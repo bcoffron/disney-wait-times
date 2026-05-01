@@ -1,0 +1,5 @@
+{
+  "name": "disney-wait-times-proxy",
+  "version": "1.0.0",
+  "description": "CORS proxy for Disneyland wait times"
+}
