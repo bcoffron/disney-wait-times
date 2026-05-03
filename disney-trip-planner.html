@@ -317,6 +317,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   .ride-block, .show-card, .info-card, .api-setup, .day-tab, .edit-toggle { background:#FFFFFF !important; }
   input, select, textarea { background:#FFFFFF !important; color:#1A1235 !important; }
 }
+
+/* Magic Day celebration screen */
+.magic-day-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#0D1B6E,#1B2FA0 40%,#6D28D9);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;overflow:hidden;box-sizing:border-box}
+#fwCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.md-sparkles{font-size:22px;letter-spacing:10px;color:#FFF;position:relative;z-index:2;margin-bottom:8px;animation:mdSparkPulse 1s ease-in-out infinite alternate}
+@keyframes mdSparkPulse{from{opacity:.6;transform:scale(1)}to{opacity:1;transform:scale(1.1)}}
+.md-castle{font-size:80px;position:relative;z-index:2;margin-bottom:8px;animation:mdCastleGlow 1.5s ease-in-out infinite alternate}
+@keyframes mdCastleGlow{from{filter:drop-shadow(0 0 20px rgba(232,160,32,.6))}to{filter:drop-shadow(0 0 50px rgba(232,160,32,1))}}
+.md-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:#FFF;text-align:center;line-height:1.2;margin-bottom:8px;text-shadow:0 0 30px rgba(232,160,32,.8);position:relative;z-index:2}
+.md-sub{font-size:14px;color:rgba(255,255,255,.8);text-align:center;line-height:1.7;margin-bottom:24px;position:relative;z-index:2}
+.md-btn{padding:15px 36px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFF;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;z-index:2;animation:mdBtnPulse 2s ease-in-out infinite}
+@keyframes mdBtnPulse{0%,100%{box-shadow:0 4px 24px rgba(201,134,10,.6)}50%{box-shadow:0 4px 40px rgba(201,134,10,.9)}}
 </style>
 </head>
 <body>
@@ -343,13 +355,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <!-- Magic Day celebration screen Jun 28 -->
-<div class="magic-day-screen" id="magicDayScreen" style="display:none">
-  <canvas id="fwCanvas"></canvas>
-  <div class="md-sparkles">&#10022; &#10022; &#10022;</div>
-  <div class="md-castle">&#127984;</div>
-  <div class="md-title">The magic begins<br>today!</div>
-  <div class="md-sub">June 28, 2026 &mdash; Coffron/Woods Family<br><span style="font-size:13px;opacity:.8">Welcome to the Happiest Place on Earth!</span></div>
-  <button class="md-btn" onclick="closeMagicDay()">Let the magic begin! &#10024;</button>
+<div id="magicDayScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#0D1B6E,#1B2FA0 40%,#6D28D9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 24px;box-sizing:border-box;overflow:hidden">
+  <canvas id="fwCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0"></canvas>
+  <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%">
+    <div style="font-size:20px;letter-spacing:10px;animation:sparkPulse 1s ease-in-out infinite alternate;color:#FFF">&#10022; &#10022; &#10022;</div>
+    <div style="font-size:72px;animation:castleGlow 1.5s ease-in-out infinite alternate;line-height:1">&#127984;</div>
+    <div style="font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:#FFF;line-height:1.2;text-shadow:0 0 30px rgba(232,160,32,.8)">The magic begins<br>today!</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.8);line-height:1.7;margin-top:4px">June 28, 2026 &mdash; Coffron/Woods Family<br><span style="font-size:13px;opacity:.8">Welcome to the Happiest Place on Earth!</span></div>
+    <button onclick="closeMagicDay()" style="margin-top:12px;padding:15px 36px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFF;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(201,134,10,.6)">Let the magic begin! &#10024;</button>
+  </div>
 </div>
 
 <!-- Tinkerbell transition overlay -->
@@ -1440,8 +1454,10 @@ function launchFwBurst(canvas){
 function runFwAnimation(){
   var canvas=document.getElementById('fwCanvas');
   if(!canvas) return;
-  canvas.width=window.innerWidth;
-  canvas.height=window.innerHeight;
+  canvas.width=window.screen.width*window.devicePixelRatio||window.innerWidth;
+  canvas.height=window.screen.height*window.devicePixelRatio||window.innerHeight;
+  canvas.style.width='100%';
+  canvas.style.height='100%';
   var ctx=canvas.getContext('2d');
   fwParticles=[];
   launchFwBurst(canvas); launchFwBurst(canvas);
@@ -1471,7 +1487,7 @@ function testMagicDay(){
   // Reset shown flag so it can show again
   try{localStorage.removeItem('magic_day_shown');}catch(e){}
   var md=document.getElementById('magicDayScreen');
-  if(md){md.style.display='flex';setTimeout(runFwAnimation,100);}
+  if(md){md.style.display='flex';md.style.flexDirection='column';md.style.alignItems='center';md.style.justifyContent='center';setTimeout(runFwAnimation,150);}
 }
 
 function closeMagicDay(){
