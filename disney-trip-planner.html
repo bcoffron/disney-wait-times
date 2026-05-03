@@ -206,10 +206,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .dining-slot{margin-top:8px;padding:8px 10px;background:#FFFBEB;border:1.5px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);width:100%;box-sizing:border-box;overflow:hidden}
 .dining-slot-lbl{font-size:10px;font-weight:700;color:#92400E;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
 .dining-slot-row{display:flex;gap:6px;margin-bottom:6px;width:100%;box-sizing:border-box}
-.dining-slot-input{flex:1;min-width:0;background:#FFFFFF;border:1.5px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:7px 9px;font-size:12px;font-family:inherit;color:var(--text);outline:none;box-sizing:border-box}
+.dining-slot-input{flex:1;min-width:0;background:#FFFFFF;border:1.5px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:9px 11px;font-size:14px;font-family:inherit;color:var(--text);outline:none;box-sizing:border-box}
 .dining-slot-input:focus{border-color:#F59E0B}
 .dining-slot-input::placeholder{color:var(--text-dim)}
-.dining-slot-save{padding:7px 12px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#F59E0B,#D97706);color:#FFFFFF;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
+.dining-slot-save{padding:9px 14px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#F59E0B,#D97706);color:#FFFFFF;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
 .dining-slot-saved{font-size:10px;color:var(--green);margin-top:3px;display:none}
 .dining-slot-saved.show{display:block}
 .accordion-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:11px 13px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;box-shadow:var(--shadow);user-select:none}
@@ -1594,6 +1594,42 @@ async function checkWazeSuggestion(){
 
   if(!opportunities.length&&!nextRideWait) return;
 
+  // ── Pre-filter: only call AI if estimated time saving >= 20 min ──────────
+  var MIN_SAVING=20;
+  var worthIt=false;
+
+  // Check opportunity rides - estimate saving vs staying on schedule
+  if(opportunities.length&&nextRide){
+    var nextScheduledWait=0;
+    if(nextRide.e.ride){
+      var nw=lookupWait(nextRide.e.ride);
+      nextScheduledWait=nw&&nw.w?nw.w:30; // default 30 if no data
+    }
+    opportunities.forEach(function(opp){
+      var walkMins=getWalkMinutes(opp.raw);
+      // Time to do opportunity ride = walk + wait
+      var timeForOpp=walkMins+opp.w;
+      // Time if we stick with schedule = wait for next ride
+      var timeSaved=nextScheduledWait-timeForOpp;
+      if(timeSaved>=MIN_SAVING){
+        worthIt=true;
+        opp._estimatedSaving=Math.round(timeSaved);
+      }
+    });
+  }
+
+  // Check if next ride wait spike is severe enough to warrant rerouting
+  if(nextRideWait){
+    // Only worth it if next ride wait is 30+ min above a reasonable threshold
+    if(nextRideWait.wait>=60) worthIt=true;
+  }
+
+  if(!worthIt){
+    console.log('Waze: opportunity found but estimated saving <'+MIN_SAVING+' min, skipping AI call');
+    return;
+  }
+  // ── End pre-filter ────────────────────────────────────────────────────────
+
   // Build prompt for AI
   var oppList=opportunities.slice(0,5).map(function(r){
     return r.raw+' ('+r.w+' min wait, walk ~'+getWalkMinutes(r.raw)+' min)';
@@ -1825,6 +1861,14 @@ async function getReroute(ride,land,btn){
 }
 
 // ── AI Schedule Reoptimize ────────────────────────────────────────────────
+var reoptCache={};
+
+function scheduleHash(data){
+  // Simple hash of schedule content to detect changes
+  try{return JSON.stringify(data.sections).length+'_'+data.sections.reduce(function(a,s){return a+s.entries.length;},0);}
+  catch(e){return '';}
+}
+
 async function reoptimize(){
   var box=document.getElementById('reoptBox');
   var txt=document.getElementById('reoptText');
@@ -1833,6 +1877,16 @@ async function reoptimize(){
   btns.classList.remove('show');
   txt.innerHTML='<span>Analyzing schedule with live + historical data</span> <span class="blink"><span>\u00b7</span><span>\u00b7</span><span>\u00b7</span></span>';
   if(!apiKey){txt.textContent='An API key is required for AI optimization. Add it in the Info tab.';return;}
+
+  // Check cache - if schedule hasn't changed, reuse last result
+  var data=getCurDay();
+  var hash=scheduleHash(data)+'_'+curDay;
+  if(reoptCache[hash]){
+    txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+reoptCache[hash].explanation+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
+    pendingReopt=reoptCache[hash].result;
+    btns.classList.add('show');
+    return;
+  }
 
   var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
   var data=getCurDay();
@@ -1928,6 +1982,8 @@ async function reoptimize(){
         pendingReopt.sections=newSecs;
         txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+(explanation||'Schedule optimized.');
         btns.classList.add('show');
+        // Cache the result
+        reoptCache[hash]={explanation:explanation||'Schedule optimized.',result:pendingReopt};
       }catch(pe){txt.textContent=explanation||'Could not apply. Try again.';}
     }else{
       txt.textContent=explanation||text;
@@ -2088,13 +2144,112 @@ async function refreshDiningRecs(restaurant, refreshBtn){
 function diningSlotKey(dayIdx, secIdx, entryIdx){
   return 'dslot_'+dayIdx+'_'+secIdx+'_'+entryIdx;
 }
+function parseTimeMins(t){
+  if(!t) return null;
+  var s=t.trim().toUpperCase().replace('.','');
+  var m=s.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/);
+  if(!m) return null;
+  var h=parseInt(m[1]),mn=m[2]?parseInt(m[2]):0,per=m[3];
+  if(per==='PM'&&h!==12) h+=12;
+  if(per==='AM'&&h===12) h=0;
+  return h*60+mn;
+}
+function fmtMins(mins){
+  var h=Math.floor(mins/60),m=mins%60;
+  var per=h>=12?'PM':'AM';
+  var h12=h>12?h-12:(h===0?12:h);
+  return h12+':'+(m<10?'0':'')+m+' '+per;
+}
+function walkBetween(restName, nextLand){
+  // Estimate walk time from restaurant area to next ride land
+  var r=(restName||'').toLowerCase();
+  var fromLand='';
+  if(r.indexOf('orleans')>-1||r.indexOf('bayou')>-1) fromLand='New Orleans Square';
+  else if(r.indexOf('river belle')>-1||r.indexOf('rancho')>-1) fromLand='Frontierland';
+  else if(r.indexOf('bengal')>-1) fromLand='Adventureland';
+  else if(r.indexOf('galactic')>-1||r.indexOf('tomorrowland')>-1) fromLand='Tomorrowland';
+  else if(r.indexOf('red rose')>-1||r.indexOf('peter pan')>-1) fromLand='Fantasyland';
+  else if(r.indexOf('ronto')>-1||r.indexOf('docking')>-1) fromLand="Galaxy's Edge";
+  else if(r.indexOf('jolly')>-1||r.indexOf('carnation')>-1||r.indexOf('main')>-1) fromLand='Main Street';
+  else if(r.indexOf('lamplight')>-1) fromLand='Pixar Pier';
+  else if(r.indexOf('carthay')>-1) fromLand='Buena Vista Street';
+  else if(r.indexOf('pym')>-1||r.indexOf('shawarma')>-1) fromLand='Avengers Campus';
+  else if(r.indexOf('flo')>-1||r.indexOf('luigi')>-1||r.indexOf('mater')>-1||r.indexOf('radiator')>-1) fromLand='Cars Land';
+  if(!fromLand||!nextLand) return 10; // default 10 min if unknown
+  var walkMap={
+    'New Orleans Square':{'Frontierland':3,'Adventureland':6,'Fantasyland':6,'Tomorrowland':10,"Galaxy's Edge":8,'Main Street':8,'Pixar Pier':20,'Avengers Campus':22},
+    'Frontierland':{'New Orleans Square':3,'Adventureland':4,'Fantasyland':7,'Tomorrowland':11,"Galaxy's Edge":10,'Main Street':9},
+    'Adventureland':{'Frontierland':4,'New Orleans Square':6,'Fantasyland':9,'Tomorrowland':10,"Galaxy's Edge":11,'Main Street':8},
+    'Fantasyland':{'New Orleans Square':6,'Frontierland':7,'Tomorrowland':7,'Adventureland':9,"Galaxy's Edge":12,'Main Street':7},
+    'Tomorrowland':{'Fantasyland':7,'New Orleans Square':10,'Main Street':5,"Galaxy's Edge":10,'Frontierland':11,'Adventureland':10},
+    "Galaxy's Edge":{'New Orleans Square':8,'Frontierland':10,'Adventureland':11,'Fantasyland':12,'Tomorrowland':10,'Main Street':12},
+    'Main Street':{'Tomorrowland':5,'Fantasyland':7,'New Orleans Square':8,'Frontierland':9,'Adventureland':8,"Galaxy's Edge":12},
+    'Pixar Pier':{'Avengers Campus':10,'Cars Land':8,'Grizzly Peak':7,'Buena Vista Street':12,'Pacific Wharf':5},
+    'Avengers Campus':{'Pixar Pier':10,'Cars Land':8,'Grizzly Peak':10,'Buena Vista Street':10},
+    'Cars Land':{'Avengers Campus':8,'Pixar Pier':8,'Grizzly Peak':8,'Buena Vista Street':12},
+  };
+  var row=walkMap[fromLand];
+  if(row&&row[nextLand]) return row[nextLand];
+  return 10;
+}
+
 function saveDiningSlot(dayIdx, secIdx, entryIdx){
   var rest=document.getElementById('ds_rest_'+dayIdx+'_'+secIdx+'_'+entryIdx);
   var time=document.getElementById('ds_time_'+dayIdx+'_'+secIdx+'_'+entryIdx);
   var saved=document.getElementById('ds_saved_'+dayIdx+'_'+secIdx+'_'+entryIdx);
   if(!rest||!time) return;
-  var val={restaurant:rest.value.trim(),time:time.value.trim()};
+  var restName=rest.value.trim();
+  var resTime=time.value.trim();
+  var val={restaurant:restName,time:resTime};
   try{localStorage.setItem(diningSlotKey(dayIdx,secIdx,entryIdx),JSON.stringify(val));}catch(e){}
+
+  // Auto-adjust schedule times if reservation time entered
+  if(resTime&&resTime.length>2){
+    var resMins=parseTimeMins(resTime);
+    if(resMins){
+      var day=JSON.parse(JSON.stringify(customSched[dayIdx]||getCurDay()));
+      var sec=day.sections[secIdx];
+      if(sec){
+        var entry=sec.entries[entryIdx];
+        var oldTimeMins=parseTimeMins(entry.t);
+        if(oldTimeMins&&Math.abs(resMins-oldTimeMins)>=5){
+          var diff=resMins-oldTimeMins;
+          // Move dining entry to reservation time
+          entry.t=resTime;
+          // Estimate dining duration (~60 min for table service, 30 for counter)
+          var diningDur=60;
+          var doneTime=resMins+diningDur;
+          // Adjust the next entry's time based on walk from restaurant to its land
+          if(entryIdx+1<sec.entries.length){
+            var nextEntry=sec.entries[entryIdx+1];
+            var nextLand=nextEntry.land||'';
+            var walkMins=walkBetween(restName,nextLand);
+            var newNextTime=doneTime+walkMins;
+            nextEntry.t=fmtMins(newNextTime);
+            // Cascade: shift all subsequent entries by the same delta
+            var cascade=newNextTime-parseTimeMins(sec.entries[entryIdx+1].t||fmtMins(newNextTime));
+            // cascade is 0 since we just set it, but shift further entries by diff
+            var totalDiff=diff;
+            for(var i=entryIdx+2;i<sec.entries.length;i++){
+              var em=parseTimeMins(sec.entries[i].t);
+              if(em) sec.entries[i].t=fmtMins(em+totalDiff);
+            }
+          }
+          customSched[dayIdx]=day;
+          saveCustom(dayIdx);
+          renderSched();
+          renderDayInfoBar();
+          if(saved){
+            saved.style.display='block';
+            saved.textContent='\u2713 Saved! Schedule adjusted to '+resTime;
+            setTimeout(function(){saved.style.display='none';},3000);
+          }
+          return;
+        }
+      }
+    }
+  }
+
   if(saved){saved.classList.add('show');setTimeout(function(){saved.classList.remove('show');},2000);}
 }
 function loadDiningSlot(dayIdx, secIdx, entryIdx){
@@ -2149,13 +2304,13 @@ function renderSched(){
           +'<div class="dining-slot-lbl">&#128197; Your Reservation</div>'
           +'<div class="dining-slot-row">'
           +'<input class="dining-slot-input" id="ds_rest_'+curDay+'_'+si+'_'+ei+'" placeholder="Restaurant name..." value="'+dslotRest.replace(/"/g,'&quot;')+'"/>'
-          +'<input class="dining-slot-input" style="max-width:90px" id="ds_time_'+curDay+'_'+si+'_'+ei+'" placeholder="Time..." value="'+dslotTime.replace(/"/g,'&quot;')+'"/>'
+          +'<input class="dining-slot-input" style="max-width:110px" id="ds_time_'+curDay+'_'+si+'_'+ei+'" placeholder="Time..." value="'+dslotTime.replace(/"/g,'&quot;')+'"/>'
           +'<button class="dining-slot-save" onclick="saveDiningSlot('+curDay+','+si+','+ei+')">Save</button>'
           +'</div>'
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
           +'</div>'
           +'<button class="dining-btn" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
-          +'<button class="dining-refresh" onclick="refreshDiningRecs(\''+safeDname+'\',this)" title="Refresh recs">&#8635;</button>'
+          +'<button class="dining-refresh" onclick="refreshDiningRecs(\''+safeDname+'\',this)">&#8635; Refresh</button>'
           +'<div class="dining-result"></div>';
       }
       var reroute='';
@@ -2376,7 +2531,7 @@ function buildFullDiningGuide(){
         +'</div>'
         +'<div class="rest-body" style="display:none;padding:10px 12px">'
         +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0">&#127869; Get dining recs</button>'
-        +'<button class="dining-refresh" onclick="refreshDiningRecsById(\''+safeName+'\',this)" title="Refresh">&#8635;</button>'
+        +'<button class="dining-refresh" onclick="refreshDiningRecsById(\''+safeName+'\',this)">&#8635; Refresh</button>'
         +'<div class="dining-result"></div>'
         +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached — tap refresh for latest</div>':'')
         +'</div>'
@@ -2478,10 +2633,7 @@ function renderShows(){
     });
   });
 
-  html+='<div style="margin-top:14px;padding:11px 13px;background:var(--navy-card);border:1px solid var(--navy-border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.7">'
-    +'<b style="color:var(--text)">How to find exact times each morning:</b><br>'
-    +'Open the Disneyland app \u2192 tap <b style="color:var(--text)">Entertainment</b> at the bottom \u2192 filter by park. Times are posted by 7 AM each day. Cavalcade times especially vary and are often only posted same-day.'
-    +'</div>';
+  html+='';
 
   document.getElementById('showsContent').innerHTML=html;
 
