@@ -1467,6 +1467,13 @@ function runFwAnimation(){
   loop();
 }
 
+function testMagicDay(){
+  // Reset shown flag so it can show again
+  try{localStorage.removeItem('magic_day_shown');}catch(e){}
+  var md=document.getElementById('magicDayScreen');
+  if(md){md.style.display='flex';setTimeout(runFwAnimation,100);}
+}
+
 function closeMagicDay(){
   if(fwAnimId) cancelAnimationFrame(fwAnimId);
   if(fwLaunchTimer) clearInterval(fwLaunchTimer);
@@ -2267,7 +2274,11 @@ function renderInfoTab(){
       return '<div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com · ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>';
     }},
     {id:'about',title:'&#8505;&#65039; About This App',html:function(){
-      return '<div class="info-card">Schedule editor with drag-reorder · AI optimization uses historical wait time patterns · Per-ride AI wait check · Live wait times via ParkSavers.com<br><br><b>Add to iPhone:</b> Safari → Share → Add to Home Screen</div>';
+      var testBtn=isAdmin()?'<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">'
+        +'<div style="font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">&#9733; Admin Test Tools</div>'
+        +'<button onclick="testMagicDay()" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:1.5px solid rgba(27,47,160,0.3);background:rgba(27,47,160,0.06);color:var(--magic);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">&#127984; Preview June 28 Celebration Screen</button>'
+        +'</div>':'';
+      return '<div class="info-card">Schedule editor with drag-reorder \u00b7 AI optimization uses historical wait time patterns \u00b7 Per-ride AI wait check \u00b7 Live wait times via ParkSavers.com<br><br><b>Add to iPhone:</b> Safari \u2192 Share \u2192 Add to Home Screen'+testBtn+'</div>';
     }},
   ];
 
