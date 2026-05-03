@@ -481,16 +481,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div style="font-size:13px;font-weight:600;color:var(--magic)">Live Wait Times</div>
         <div id="waitStatus" style="font-size:11px;color:var(--text-muted)">Loading...</div>
       </div>
-      <button class="wait-refresh-btn" onclick="fetchWaits()">&#8635; Refresh</button>
+      
     </div>
     <div id="waitTabContent"><div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div></div>
     <div style="margin-top:10px;font-size:11px;color:var(--text-dim);text-align:center">Powered by ParkSavers.com &middot; Updates every 5 min</div>
   </div>
   <div id="tabShows" class="hidden"><div id="showsContent"></div></div>
 
-  <div id="tabClosures" class="hidden">
-    <div id="closedBanner" style="padding:0"></div>
-  </div>
+
   <div id="tabInfo" class="hidden">
     <!-- Rendered dynamically by renderInfoTab() -->
   </div>
@@ -1071,7 +1069,8 @@ var DAY_TIPS=[
     {icon:'&#9889;',label:'First 90 Minutes',text:'Hit this order for minimum waits: Rise of the Resistance → Millennium Falcon → Indiana Jones. All three are in the same general direction from the entrance. Avoid Fantasyland until after 11 AM — it gets swamped with families right at opening.'},
     {icon:'&#127878;',label:'Wondrous Journeys Fireworks',text:'Best spot: the Castle Hub at the end of Main Street, dead center. Arrive 15-20 min early and stand on the center path facing the castle. Second best: the walkway near Small World. Avoid Tomorrowland side — castle projections are sideways from there.'},
     {icon:'&#127917;',label:'Fantasmic! Viewing',text:'For the first show: arrive 40-45 min early and sit center-river, upper section of the amphitheater for the best sight lines. For the second show (if attending): arrive just 20 min early — far less crowded. The left side (stage left) has slightly better views of the dragon finale.'},
-    {icon:'&#127882;',label:'Paint the Night Parade',text:'Best spots: anywhere on Main Street USA between the castle and Town Square. The corner of Main Street and the Plaza is ideal — floats slow down there for the turn. Avoid the Tomorrowland Terrace area — crowds are thicker. Grab your spot 30 min early for a front row position.'}
+    {icon:'&#127882;',label:'Paint the Night Parade',text:'Best spots: anywhere on Main Street USA between the castle and Town Square. The corner of Main Street and the Plaza is ideal — floats slow down there for the turn. Avoid the Tomorrowland Terrace area — crowds are thicker. Grab your spot 30 min early for a front row position.'},
+    {icon:'&#128683;',label:'Closures to Know — Sunday',text:'Pirates of the Caribbean is closed (no confirmed reopening for June). Buzz Lightyear Astro Blasters is closed. Blue Bayou is open but has obstructed views + construction noise from Pirates refurb — Café Orleans is the better choice. Fantasmic! runs nightly ✅'}
   ],
   // Monday Jun 29 - VIP Tour
   [
@@ -2339,7 +2338,7 @@ function renderSched(){
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
           +'</div>'
           +'<button class="dining-btn" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
-          +'<button class="dining-refresh" onclick="refreshDiningRecs(\''+safeDname+'\',this)">&#8635; Refresh</button>'
+          +''
           +'<div class="dining-result"></div>';
       }
       var reroute='';
@@ -2364,6 +2363,7 @@ function renderSched(){
   });
   if(editMode)h+='<div class="edit-hint">Tap any time or title to edit inline</div>';
   document.getElementById('schedContent').innerHTML=h;
+  renderClosed();
 }
 
 // ── Render shows ──────────────────────────────────────────────────────────
@@ -2445,10 +2445,18 @@ function renderInfoTab(){
       return h;
     }},
     {id:'closures',title:'&#128679; June 2026 Closures',html:function(){
-      var el=document.createElement('div');
-      el.id='closedBannerInfo';
-      renderClosed();
-      return '<div id="closedBannerInfo2"></div>';
+      return '<div style="font-size:12px;line-height:1.8">'
+        +'<div style="margin-bottom:10px"><b style="color:var(--red)">&#10060; Confirmed closed Jun 28–30:</b><br>'
+        +'<span style="color:var(--text-muted)">Pirates of the Caribbean &middot; Buzz Lightyear Astro Blasters &middot; Silly Symphony Swings (DCA) &middot; Inside Out Emotional Whirlwind (DCA)</span></div>'
+        +'<div style="margin-bottom:10px"><b style="color:var(--yellow)">&#9888;&#65039; Detour — DCA:</b><br>'
+        +'<span style="color:var(--text-muted)">Avengers Campus &rarr; Cars Land walkway is closed for expansion. Use the Performance Corridor or San Fransokyo Square instead.</span></div>'
+        +'<div style="margin-bottom:10px"><b style="color:var(--yellow)">&#9888;&#65039; Blue Bayou Restaurant:</b><br>'
+        +'<span style="color:var(--text-muted)">Open but with obstructed views and construction noise from the Pirates refurb. Caf&eacute; Orleans right next door is a much better choice.</span></div>'
+        +'<div style="margin-bottom:10px"><b style="color:var(--yellow)">&#9888;&#65039; Grand Californian Hotel:</b><br>'
+        +'<span style="color:var(--text-muted)">Ongoing refurbishment through 2026. Noise limited to daylight hours.</span></div>'
+        +'<div><b style="color:var(--green)">&#10003; Confirmed open &amp; running:</b><br>'
+        +'<span style="color:var(--text-muted)">Jungle Cruise &middot; Roger Rabbit’s Car Toon Spin &middot; Disneyland Monorail &middot; Fantasmic! (daily) &middot; Rise of the Resistance &middot; Tiana’s Bayou Adventure &middot; Soarin’ Over California (through Jul 1)</span></div>'
+        +'</div>';
     }},
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
       return '<div class="info-card"><b>Single Pass</b> (~$15–35/person): Rise of the Resistance · Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones · Matterhorn · Space Mountain · Haunted Mansion · Big Thunder · Smugglers Run · Tiana’s · Guardians · Incredicoaster · Web Slingers · Soarin’ · Toy Story<br><br><b>No LL needed Tuesday</b> — VIP tour handles everything.</div>'
@@ -2501,7 +2509,8 @@ function renderInfoTab(){
 }
 
 var ALL_RESTAURANTS=[
-  {name:'Café Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended'},
+  {name:'Café Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended',note:'✅ Better choice than Blue Bayou right now'},
+  {name:'Blue Bayou',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Skip ⚠️',note:'Open but obstructed views + noise from Pirates refurb. Café Orleans next door is better'},
   {name:'Carnation Cafe',park:'Disneyland',type:'Table Service',area:'Main Street USA',res:'Recommended'},
   {name:'River Belle Terrace',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
   {name:'Rancho del Zocalo',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
@@ -2555,12 +2564,12 @@ function buildFullDiningGuide(){
       var safeName=r.name.split("'").join('’');
       h+='<div class="rest-card">'
         +'<div class="rest-hdr" onclick="toggleRestCard(this,\''+safeName+'\')">'
-        +'<div><div class="rest-name">'+r.name+'</div><div class="rest-meta">'+r.area+' · '+r.type+(cached?' · <span style="color:var(--green)">&#10003; cached</span>':'')+'</div></div>'
+        +'<div style="flex:1;min-width:0">'        +'<div class="rest-name">'+r.name+(r.res&&r.res.indexOf('Skip')>-1?' <span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(248,113,113,0.12);color:var(--red)">&#9888; Skip</span>':r.res==='Required'?' <span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(248,113,113,0.12);color:var(--red)">Required</span>':r.res==='Recommended'?' <span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(27,47,160,0.1);color:var(--magic)">Recommended</span>':'')+'</div>'        +'<div class="rest-meta">'+r.area+' · '+r.type+(r.note?' · <span style="color:var(--yellow)">'+r.note+'</span>':'')+(cached?' · <span style="color:var(--green)">&#10003; cached</span>':'')+'</div>'        +'</div>'
         +'<span style="font-size:14px;color:var(--text-dim)">&#9660;</span>'
         +'</div>'
         +'<div class="rest-body" style="display:none;padding:10px 12px">'
         +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0">&#127869; Get dining recs</button>'
-        +'<button class="dining-refresh" onclick="refreshDiningRecsById(\''+safeName+'\',this)">&#8635; Refresh</button>'
+        +''
         +'<div class="dining-result"></div>'
         +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached — tap refresh for latest</div>':'')
         +'</div>'
