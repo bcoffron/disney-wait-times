@@ -343,7 +343,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <!-- Magic Day celebration screen Jun 28 -->
-<div class="magic-day-screen" id="magicDayScreen">
+<div class="magic-day-screen" id="magicDayScreen" style="display:none">
   <canvas id="fwCanvas"></canvas>
   <div class="md-sparkles">&#10022; &#10022; &#10022;</div>
   <div class="md-castle">&#127984;</div>
@@ -794,6 +794,7 @@ function playTinkAnimation(){
 function isAdmin(){return userRole==='admin';}
 function showApp(){
   document.getElementById('lockScreen').style.display='none';
+  // Never show magic day screen via normal login - only on actual Jun 28
   document.getElementById('mainApp').style.display='';
   applyRoleUI();
 }
