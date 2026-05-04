@@ -142,6 +142,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .ll-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
 .modal-bg.hidden{display:none!important}
+.chat-tab-container{display:flex;flex-direction:column;height:calc(100vh - 130px)}
+.chat-tab-container.hidden{display:none!important}
 .chat-msg{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.6;word-wrap:break-word}
 .chat-msg.user{background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .chat-msg.ai{background:var(--card);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border)}
@@ -511,7 +513,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
   <div id="tabShows" class="hidden"><div id="showsContent"></div></div>
 
-  <div id="tabChat" class="hidden" style="flex-direction:column;height:calc(100vh - 130px)">
+  <div id="tabChat" class="hidden chat-tab-container">
     <div style="padding:14px 14px 0;flex-shrink:0">
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">&#128172; Ask your Disney AI</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Ask anything about your trip.</div>
@@ -2845,7 +2847,7 @@ function setTab(tab){
   if(tab==='info') setTimeout(renderInfoTab,0);
   ['schedule','waits','shows','chat','info'].forEach(function(t){
     var el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
-    if(t===tab){el.classList.remove('hidden');el.style.display=t==='chat'?'flex':'';}
+    if(t===tab){el.classList.remove('hidden');}
     else{el.classList.add('hidden');el.style.display='none';}
     document.getElementById('ni-'+t).classList.toggle('active',t===tab);
   });
