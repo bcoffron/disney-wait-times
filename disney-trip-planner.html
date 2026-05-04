@@ -612,7 +612,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605041400 — cache bust v2
+// v202605041500 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){
   var el=document.getElementById('lockCountdowns');
@@ -622,7 +622,7 @@ function renderLockCountdowns(){
   var diningOpen=new Date(tripStart.getTime()-60*24*60*60*1000);
   var llOpen=new Date(tripStart.getTime()-7*24*60*60*1000);
   var html='';
-  var s1='background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
+  var s1='background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
   var s2='background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
   if(now<diningOpen){var d=Math.ceil((diningOpen-now)/(864e5));html+='<div style="'+s1+'">&#127869; Dining opens in <b style="color:#F0C462">'+d+' days</b></div>';}
   else if(now<tripStart){html+='<div style="'+s2+'">&#127869; Dining reservations <b style="color:#F0C462">open now!</b></div>';}
@@ -1161,9 +1161,9 @@ function renderDayTipsCard(dayIdx){
   tips.forEach(function(t){
     h+='<div class="tip-item"><div class="tip-icon">'+t.icon+'</div><div class="tip-body"><div class="tip-label">'+t.label+'</div><div class="tip-text">'+t.text+'</div></div></div>';
   });
-  h+='</div></div>';
   // Closures in tips (safe wrapper in case getLiveClosures not yet available)
   try{var lc=typeof getLiveClosures==='function'?getLiveClosures():null;var cr=lc?lc.refurb.slice():[];['Pirates of the Caribbean','Buzz Lightyear Astro Blasters','Silly Symphony Swings'].forEach(function(r){if(cr.indexOf(r)===-1)cr.push(r);});if(cr.length){h+='<div class="tip-item"><div class="tip-icon">&#128679;</div><div class="tip-body"><div class="tip-label" style="color:#EF4444">Closed for Refurbishment</div><div class="tip-text">'+cr.join(', ')+'</div></div></div>';}}catch(e){}
+  h+='</div></div>';
   return h;
 }var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
 var scheduleLastSync=null;
@@ -1314,15 +1314,20 @@ function lookupWait(rideName){
 
 function wbHTML(rideName){
   var d=lookupWait(rideName);
+  var grey='background:rgba(150,150,150,0.1);color:#888;border:1px solid rgba(150,150,150,0.2)';
   if(!d){
-    if(['2026-06-28','2026-06-29','2026-06-30'].indexOf(todayPT())===-1)
-      return '<span class="wb" style="background:rgba(150,150,150,0.1);color:#999;border:1px solid rgba(150,150,150,0.15);font-size:10px">Pre-trip</span>';
+    // No data for this ride yet
+    var onTrip=['2026-06-28','2026-06-29','2026-06-30'].indexOf(todayPT())>-1;
+    if(onTrip&&!isWithinParkWindow())
+      return '<span class="wb" style="'+grey+'">Park Closed</span>';
     return '';
   }
   if(d.s==='REFURBISHMENT') return '<span class="wb wb-closed">Refurb</span>';
   if(d.s!=='OPERATING'||d.w===null){
-    if(waitLastFetch&&(Date.now()-waitLastFetch)>60*60*1000)
-      return '<span class="wb" style="background:rgba(150,150,150,0.1);color:#888;border:1px solid rgba(150,150,150,0.2)">Park Closed</span>';
+    // Ride is closed - check if whole park is likely closed
+    var stale=waitLastFetch&&(Date.now()-waitLastFetch)>60*60*1000;
+    if(stale||!isWithinParkWindow())
+      return '<span class="wb" style="'+grey+'">Park Closed</span>';
     return '<span class="wb wb-closed">Closed</span>';
   }
   var cls=d.w===0?'wb-low':d.w<30?'wb-low':d.w<45?'wb-med':'wb-high';
@@ -2549,7 +2554,7 @@ function renderInfoTab(){
       return '<div class="info-card"><div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Enter heights for anyone under 48 inches. Rides with requirements will show a badge on the schedule.</div>'+rows+'<button onclick="addHeight()" style="padding:8px 16px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px">+ Add person</button><div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);line-height:1.8">Space Mountain 40in &#183; Matterhorn 42in &#183; Big Thunder 40in &#183; Indiana Jones 46in &#183; Rise of Resistance 40in &#183; Incredicoaster 48in &#183; Guardians 40in &#183; Radiator Springs 40in &#183; Grizzly River 42in &#183; Millennium Falcon 38in</div></div>';
     }},
     {id:'closures',title:'&#128679; June 2026 Closures',html:function(){
-      var live=getLiveClosures();var refurb=live?live.refurb:[];var tempDown=live?live.tempDown:[];
+      var live=typeof getLiveClosures==='function'?getLiveClosures():null;var refurb=live?live.refurb:[];var tempDown=live?live.tempDown:[];
       var known=[{name:'Pirates of the Caribbean',note:'Closed May 4. No confirmed reopening.'},{name:'Buzz Lightyear Astro Blasters',note:'Closed April 13. No confirmed reopening.'},{name:'Silly Symphony Swings (DCA)',note:'Closed April 27.'},{name:'Avengers to Cars Land walkway',note:'Use Performance Corridor instead.'}];
       var h='<div class="info-card">';
       if(refurb.length||tempDown.length){h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px">&#128308; Live from Wait Times</div>';refurb.concat(tempDown).forEach(function(name){h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center">Refurb</div><div style="font-size:13px;color:var(--text)">'+name+'</div></div>';});h+='<div style="border-top:1px solid var(--border);margin:10px 0"></div>';}
