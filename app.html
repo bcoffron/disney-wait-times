@@ -2895,8 +2895,12 @@ function checkHeightWarning(rideName){if(!rideName)return null;var req=null;var 
 var chatHistory=[];
 function sendSuggested(btn){var input=document.getElementById('chatInput');if(input)input.value=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChat();}
 async function sendChat(){
-  var input=document.getElementById('chatInput');var msg=input?input.value.trim():'';if(!msg)return;if(input)input.value='';
-  appendChatMsg('user',msg);if(!apiKey){appendChatMsg('ai','Add an API key in the Info tab.');return;}
+  var input=document.getElementById('chatInput');var msg=input?input.value.trim():'';
+  if(!msg){appendChatMsg('ai','[debug] No message found in input');return;}
+  if(input)input.value='';
+  appendChatMsg('user',msg);
+  if(!apiKey){appendChatMsg('ai','[debug] No API key - add one in Info tab');return;}
+  appendChatMsg('ai','[debug] API key found, sending...');
   var ml=msg.toLowerCase();var today=todayPT();var dm={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};var dn=dm[today]||'pre-trip';
   var wc='';if(/(wait|line|ride|busy|crowd)/i.test(ml)&&Object.keys(waits).length){var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);if(top.length)wc=' Live waits: '+top.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';}
   var bc='';if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
