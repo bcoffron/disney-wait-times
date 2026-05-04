@@ -559,11 +559,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="info-card"><b>Rules:</b> Buy after scanning into park &middot; Book next LL after 2 hrs OR right after scanning into current ride &middot; Book while standing in the current LL line! &middot; Each ride once per day &middot; For 2nd park: book once return time shows 11AM+</div>
     </div>
     <div class="info-sec"><div class="info-title">&#128222; Important Numbers</div>
-      <div class="info-card"><b>VIP Tour:</b> (714) 300-7710<br><b>Disneyland main:</b> (714) 781-4565<br><b>Naples Ristorante:</b> naplesristorante.com</div>
+      <div class="info-card"><b>VIP Tour:</b> (714) 300-7710<br><b>Disneyland main:</b> (714) 781-4565</div>
     </div>
   
   <div class="info-sec"><div class="info-title">&#127869; Dining to Book Ahead</div>
-      <div class="info-card"><b>Carthay Circle</b> &middot; <b>Lamplight Lounge</b> &middot; <b>Caf&eacute; Orleans</b> &middot; <b>River Belle Terrace</b> &#8212; Disneyland app<br><b>Naples Ristorante</b> &#8212; OpenTable or naplesristorante.com<br>Skip Blue Bayou this trip &#8212; Pirates refurb affects the atmosphere.</div>
+      <div class="info-card"><b>Carthay Circle</b> &middot; <b>Lamplight Lounge</b> &middot; <b>Caf&eacute; Orleans</b> &middot; <b>River Belle Terrace</b> &#8212; Disneyland app<br>Skip Blue Bayou this trip &#8212; Pirates refurb affects the atmosphere.</div>
     </div>
     <div class="info-sec"><div class="info-title">&#127915; Park Hopper</div>
       <div class="info-card">Hopping opens at <b>11:00 AM</b> daily. Book LL for 2nd park before you hop &#8212; once return time shows 11AM+.</div>
@@ -633,6 +633,12 @@ function renderLockCountdowns(){
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
+function renderMarkdown(text){
+  if(!text) return '';
+  return text
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g,'<em>$1</em>');
+}
 function isRideInRefurb(rideName){
   try{
     var stored=localStorage.getItem('weekly_refurbs');
@@ -1834,8 +1840,8 @@ function showWazeSuggestion(sug, opportunities){
   var saveHTML=sug.timeSaved>0?'<span class="waze-stat waze-stat-save">~'+sug.timeSaved+' min saved</span>':'';
   var walkHTML=sug.walkMins>0?'<span class="waze-stat waze-stat-walk">&#127939; '+sug.walkMins+' min walk</span>':'';
 
-  body.innerHTML='<div class="waze-opportunity">'+sug.headline+'</div>'
-    +'<div class="waze-detail">'+sug.detail+'</div>'
+  body.innerHTML='<div class="waze-opportunity">'+renderMarkdown(sug.headline)+'</div>'
+    +'<div class="waze-detail">'+renderMarkdown(sug.detail)+'</div>'
     +'<div class="waze-stats">'+saveHTML+walkHTML+'</div>'
     +'<div class="waze-btns">'
     +'<button class="waze-accept" onclick="acceptWaze()">&#10003; Accept & Reoptimize</button>'
@@ -2039,7 +2045,7 @@ async function reoptimize(){
   var data=getCurDay();
   var hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]){
-    txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+reoptCache[hash].explanation+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
+    txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+renderMarkdown(reoptCache[hash].explanation)+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
     pendingReopt=reoptCache[hash].result;
     btns.classList.add('show');
     return;
@@ -2137,7 +2143,7 @@ async function reoptimize(){
       try{
         pendingReopt=JSON.parse(JSON.stringify(data));
         pendingReopt.sections=newSecs;
-        txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+(explanation||'Schedule optimized.');
+        txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+renderMarkdown(explanation||'Schedule optimized.');
         btns.classList.add('show');
         // Cache the result
         reoptCache[hash]={explanation:explanation||'Schedule optimized.',result:pendingReopt};
@@ -2250,7 +2256,7 @@ async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx){
     return;
   }
 
-  var locationHint=landCtx&&landCtx!==restaurant?(' Context: dining near '+landCtx+'. If this specific restaurant has limited options for a section, suggest the best nearby alternative and note the restaurant name clearly before each item.'):'';var prompt='You are a Disneyland dining expert. Use web search to find the most current menu and recent visitor reviews for '+restaurant+' at the Disneyland Resort in Anaheim, CA. Format your response with EXACTLY these three labeled sections and nothing else:\n\nMUST HAVE:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nKIDS:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nVEGETARIAN:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nBe specific with real dish names from their current menu. IMPORTANT: Always include all three sections even if you need to suggest nearby alternatives for that meal time and park location. The KIDS section is mandatory. No intro text, no commentary, just the three sections.'+locationHint;
+  var locationHint=landCtx&&landCtx!==restaurant?(' Context: dining near '+landCtx+'. If this specific restaurant has limited options for a section, suggest the best nearby alternative and note the restaurant name clearly before each item.'):'';var prompt='Disneyland dining expert. List top dishes at '+restaurant+' at Disneyland Resort. Three sections exactly:\n\nMUST HAVE:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nKIDS:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nVEGETARIAN:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nReal dish names only. No intro text, just the three sections.'+locationHint;
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -2258,8 +2264,7 @@ async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx){
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({
         model:'claude-sonnet-4-6',
-        max_tokens:400,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
+        max_tokens:350,
         messages:[{role:'user',content:prompt}]
       })
     });
@@ -2549,6 +2554,9 @@ function renderInfoTab(){
   if(!tab) return;
 
   var sections=[
+    {id:'share',title:'&#128279; Share With Your Group',html:function(){
+      return '<div class="info-card"><div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Send this to everyone in the group.</div><div style="background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">Link</div><div style="font-size:14px;font-weight:600;color:var(--magic)">themeparkwize.com</div><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-top:10px;margin-bottom:4px">Guest Password</div><div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:.06em">CW9Dis2026</div></div><div style="display:flex;gap:8px"><button onclick="doShareText()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">&#128172; Share via Text</button><button onclick="doCopyLink()" id="copyBtn" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">&#128203; Copy Info</button></div><div style="margin-top:10px;padding:8px 10px;background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.2);border-radius:var(--radius-sm);font-size:11px;color:var(--text-muted)">&#128161; Open in Safari &#8594; Share &#8594; Add to Home Screen for best experience.</div></div>';
+    }},
     {id:'general_tips',title:'&#128161; General Park Tips',html:function(){
       var tips=[
         {icon:'&#127878;',label:'Wondrous Journeys Fireworks — Best Spots',text:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near It’s a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland — you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
@@ -2575,12 +2583,7 @@ function renderInfoTab(){
       });
       return h;
     }},
-    {id:'closures',title:'&#128679; June 2026 Closures',html:function(){
-      var el=document.createElement('div');
-      el.id='closedBannerInfo';
-      renderClosed();
-      return '<div id="closedBannerInfo2"></div>';
-    }},
+    
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
       return '<div class="info-card"><b>Single Pass</b> (~$15–35/person): Rise of the Resistance · Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones · Matterhorn · Space Mountain · Haunted Mansion · Big Thunder · Smugglers Run · Tiana’s · Guardians · Incredicoaster · Web Slingers · Soarin’ · Toy Story<br><br><b>No LL needed Tuesday</b> — VIP tour handles everything.</div>'
         +'<div class="info-card"><b>Rules:</b> Buy after scanning into park · Book next LL after 2 hrs OR right after scanning into current ride · Book while standing in the current LL line! · Each ride once per day · For 2nd park: book once return time shows 11AM+</div>';
@@ -2600,14 +2603,12 @@ function renderInfoTab(){
         +'</div>';
     }},
     {id:'numbers',title:'&#128222; Important Numbers',html:function(){
-      return '<div class="info-card"><b>VIP Tour:</b> (714) 300-7710<br><b>Disneyland main:</b> (714) 781-4565<br><b>Naples Ristorante:</b> naplesristorante.com</div>';
+      return '<div class="info-card"><b>VIP Tour:</b> (714) 300-7710<br><b>Disneyland main:</b> (714) 781-4565</div>';
     }},
     {id:'apikey',title:'&#128273; Update API Key',html:function(){
       return '<div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com · ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>';
     }},
-    {id:'share',title:'&#128279; Share With Your Group',html:function(){
-      return '<div class="info-card"><div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Send this to everyone in the group.</div><div style="background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">Link</div><div style="font-size:14px;font-weight:600;color:var(--magic)">themeparkwize.com</div><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-top:10px;margin-bottom:4px">Guest Password</div><div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:.06em">CW9Dis2026</div></div><div style="display:flex;gap:8px"><button onclick="doShareText()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">&#128172; Share via Text</button><button onclick="doCopyLink()" id="copyBtn" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">&#128203; Copy Info</button></div><div style="margin-top:10px;padding:8px 10px;background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.2);border-radius:var(--radius-sm);font-size:11px;color:var(--text-muted)">&#128161; Open in Safari &#8594; Share &#8594; Add to Home Screen for best experience.</div></div>';
-    }},
+    
     {id:'bathrooms',title:'&#128698; Bathroom Guide',html:function(){
       var areas=[{n:'Main Street USA',l:['End of Main Street near Plaza Hub','Inside City Hall (left side)']},{n:'Adventureland/Frontierland',l:['Near Jungle Cruise entrance','Behind Golden Horseshoe','Near Big Thunder Mountain']},{n:'Fantasyland',l:['Behind Its a Small World','Near Matterhorn entrance']},{n:'Tomorrowland',l:['Left of Space Mountain entrance','Near Autopia']},{n:"Galaxy's Edge",l:['Near Ogas Cantina','Near Millennium Falcon entrance']},{n:'New Orleans Square',l:['Behind Pirates of the Caribbean','Near Blue Bayou']},{n:'DCA Avengers Campus',l:['Near Web Slingers','Behind Pym Test Kitchen']},{n:'DCA Cars Land',l:['Near Radiator Springs Racers','Behind Flo V8 Cafe']},{n:'DCA Pixar Pier',l:['Near Incredicoaster','End of Pixar Pier near lagoon']},{n:'DCA Grizzly Peak',l:['Near Soarin entrance','Near Grizzly River Run exit']}];
       var h='<div class="info-card"><div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Family restrooms throughout both parks. Ask any cast member.</div>';
@@ -2626,7 +2627,7 @@ function renderInfoTab(){
       if(refurb.length||tempDown.length){h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px">&#128308; Live from Wait Times</div>';refurb.concat(tempDown).forEach(function(name){h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center">Refurb</div><div style="font-size:13px;color:var(--text)">'+name+'</div></div>';});h+='<div style="border-top:1px solid var(--border);margin:10px 0"></div>';}
       h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">&#128197; Confirmed June 2026</div>';
       known.forEach(function(item){h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Refurb</div><div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+item.note+'</div></div></div>';});
-      var ts=waitLastFetch?'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago':'Tap Wait Times to load live data';
+      var wlf=typeof waitLastFetch!=='undefined'?waitLastFetch:0;var ts=wlf?'Updated '+Math.round((Date.now()-wlf)/60000)+' min ago':'Tap Wait Times to load live data';
       h+='<div style="font-size:11px;color:var(--text-dim);margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">&#128308; '+ts+' &#183; Auto-checks every 5 min</div>';
       return h+'</div>';
     }},
@@ -2640,13 +2641,14 @@ function renderInfoTab(){
   ];
 
   var html='<div class="sec-hdr"><div class="sec-lbl">Trip Info</div><div class="sec-line"></div></div>';
+  function safeHtml(s){try{return s.html();}catch(e){console.error('Sec '+s.id,e);return '<div style="padding:10px;color:#EF4444">'+e.message+'</div>';}}
   sections.forEach(function(s){
     html+='<div class="accordion-hdr" id="ah_'+s.id+'" onclick="toggleAccordion(\''+s.id+'\')">'
       +'<span class="accordion-title">'+s.title+'</span>'
       +'<span class="accordion-arrow" style="font-style:normal">&#8964;</span>'
       +'</div>'
       +'<div class="accordion-body" id="ab_'+s.id+'">'
-      +s.html()
+      +safeHtml(s)
       +'</div>';
   });
 
@@ -2677,7 +2679,6 @@ var ALL_RESTAURANTS=[
   {name:'Award Wieners',park:'DCA',type:'Counter Service',area:'Hollywood Land',res:'Not needed'},
   {name:"Tiana's Palace",park:'DCA',type:'Counter Service',area:'Paradise Gardens',res:'Not needed'},
   {name:'Small Bytes',park:'DCA',type:'Counter Service',area:'Pixar Place',res:'Not needed'},
-  {name:'Naples Ristorante e Pizzeria',park:'Downtown Disney',type:'Table Service',area:'Downtown Disney',res:'Recommended'},
   {name:'Jazz Kitchen Coastal Grill',park:'Downtown Disney',type:'Table Service',area:'Downtown Disney',res:'Recommended'},
   {name:'Din Tai Fung',park:'Downtown Disney',type:'Table Service',area:'Downtown Disney',res:'Required'},
   {name:'Paseo',park:'Downtown Disney',type:'Table Service',area:'Downtown Disney',res:'Recommended'},
