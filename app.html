@@ -1821,7 +1821,7 @@ async function checkWazeSuggestion(){
     +(oppList?'SHORT WAIT OPPORTUNITIES right now: '+oppList+'. ':'')
     +'Current schedule:\n'+schedSummary+'\n'
     +'Based on the current wait times and schedule, give ONE specific actionable suggestion that would save the most time. '
-    +'Format your response as JSON only, no other text: {"headline":"short 8-word max headline","detail":"2 sentence explanation using **bold** around the key action or ride name","walkMins":NUMBER,"timeSaved":NUMBER,"rideToAdd":"ride name or empty","rideToDelay":"ride name to push later or empty"}';
+    +'Format your response as JSON only, no other text: {"headline":"short 8-word max headline","detail":"2-3 sentences. MUST use **bold** on every key ride name, time, and action phrase. Example: **Skip Space Mountain** and head to **Haunted Mansion** — waits drop to **under 20 min** after 8 PM.","walkMins":NUMBER,"timeSaved":NUMBER,"rideToAdd":"ride name or empty","rideToDelay":"ride name to push later or empty"}';
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
