@@ -2885,7 +2885,7 @@ function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages
     // Re-render closed banner once in the morning to catch any updates
     setTimeout(function(){renderClosed();},2000);
   }
-
+})();
 
 function renderLockCountdowns(){
   var el=document.getElementById('lockCountdowns');if(!el)return;
@@ -3029,7 +3029,7 @@ async function runWeeklyRefurbCheck(){
 setTimeout(function(){runWeeklyRefurbCheck();},30000);
 
 
-})();async function sendChatMsg(directMsg){
+async function sendChatMsg(directMsg){
   await _doChat(directMsg);
 }
 async function sendChat(){

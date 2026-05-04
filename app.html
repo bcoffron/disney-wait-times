@@ -2924,7 +2924,7 @@ function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages
     // Re-render closed banner once in the morning to catch any updates
     setTimeout(function(){renderClosed();},2000);
   }
-
+})();
 
 function renderLockCountdowns(){
   var el=document.getElementById('lockCountdowns');if(!el)return;
@@ -3068,7 +3068,7 @@ async function runWeeklyRefurbCheck(){
 // Schedule weekly check - run 30 seconds after page load to not block startup
 setTimeout(function(){runWeeklyRefurbCheck();},30000);
 
-})();
+
 </script>
 
 <!-- Setup Overlay -->
