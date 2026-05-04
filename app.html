@@ -636,12 +636,12 @@ function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_hei
 function renderClosuresFromWaits(){if(typeof waits==='undefined'||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 function isWithinParkWindow(){
   try{
-    var today=todayPT();
-    var hours={'2026-06-28':{o:7,c:24},'2026-06-29':{o:8,c:23},'2026-06-30':{o:7,c:23}};
-    var h=hours[today];if(!h)return false;
-    var now=nowPT();var hr=now.getHours()+(now.getMinutes()/60);
-    return hr>=(h.o-1)&&hr<=(h.c+1);
-  }catch(e){return false;}
+    // Disneyland generally open 8AM-midnight any day
+    // Use 7AM-1AM window (with 1hr buffer) to catch early entry and late nights
+    var now=nowPT();
+    var hr=now.getHours()+(now.getMinutes()/60);
+    return hr>=7&&hr<=25; // 7AM to 1AM next day
+  }catch(e){return true;} // default to open if error
 }
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
@@ -1324,30 +1324,64 @@ async function fetchWaits(){
   }
 }
 
+function normalizeRideName(s){
+  return s.toLowerCase()
+    // remove trademark/copyright symbols
+    .replace(/[’‘']/g,"'")
+    .replace(/[™®©]/g,'')
+    // remove punctuation except spaces
+    .replace(/[^a-z0-9 ]/g,' ')
+    // normalize common words
+    .replace(/\bmission breakout\b/,'mission breakout')
+    .replace(/\bthe\b/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
 function lookupWait(rideName){
-  if(!rideName) return null;
+  if(!rideName||!Object.keys(waits).length) return null;
+  // 1. Exact match
   var key=rideName.toLowerCase();
   if(waits[key]) return waits[key];
+  // 2. Normalized exact match
+  var norm=normalizeRideName(rideName);
   var keys=Object.keys(waits);
-  var found=keys.find(function(k){return k.includes(key.substring(0,10))||key.includes(k.substring(0,10));});
-  return found?waits[found]:null;
+  var normMap={};
+  keys.forEach(function(k){normMap[normalizeRideName(k)]=k;});
+  if(normMap[norm]) return waits[normMap[norm]];
+  // 3. One contains the other (normalized)
+  var found=keys.find(function(k){
+    var kn=normalizeRideName(k);
+    return kn.indexOf(norm)>-1||norm.indexOf(kn)>-1;
+  });
+  if(found) return waits[found];
+  // 4. Significant word overlap - split into words and check how many match
+  var words=norm.split(' ').filter(function(w){return w.length>3;});
+  if(!words.length) return null;
+  var bestScore=0,bestKey=null;
+  keys.forEach(function(k){
+    var kwords=normalizeRideName(k).split(' ').filter(function(w){return w.length>3;});
+    var matches=words.filter(function(w){return kwords.indexOf(w)>-1;}).length;
+    var score=matches/(Math.max(words.length,kwords.length));
+    if(score>bestScore){bestScore=score;bestKey=k;}
+  });
+  // require at least 50% word overlap to avoid false matches
+  return bestScore>=0.5?waits[bestKey]:null;
 }
 
 function wbHTML(rideName){
   var d=lookupWait(rideName);
   var grey='background:rgba(150,150,150,0.1);color:#888;border:1px solid rgba(150,150,150,0.2)';
+  var hasAnyData=Object.keys(waits).length>0;
   if(!d){
-    // No data for this ride yet
-    var onTrip=['2026-06-28','2026-06-29','2026-06-30'].indexOf(todayPT())>-1;
-    if(onTrip&&!isWithinParkWindow())
+    // Ride not in wait data - only show Park Closed if we HAVE data but park is closed
+    if(hasAnyData&&!isWithinParkWindow())
       return '<span class="wb" style="'+grey+'">Park Closed</span>';
     return '';
   }
   if(d.s==='REFURBISHMENT') return '<span class="wb wb-closed">Refurb</span>';
   if(d.s!=='OPERATING'||d.w===null){
-    // Ride is closed - check if whole park is likely closed
-    var stale=waitLastFetch&&(Date.now()-waitLastFetch)>60*60*1000;
-    if(stale||!isWithinParkWindow())
+    // Ride specifically closed - only say Park Closed if outside hours
+    if(!isWithinParkWindow())
       return '<span class="wb" style="'+grey+'">Park Closed</span>';
     return '<span class="wb wb-closed">Closed</span>';
   }
