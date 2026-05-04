@@ -3782,7 +3782,36 @@ function renderShows(){
     });
   });
 
-  html+='';
+  // ── Character Meet & Greets ──────────────────────────────────────────
+  html+='<div class="show-sec-hdr">&#129489; Character Meet &amp; Greets</div>';
+  var chars=[
+    {name:'Mickey &amp; Minnie Mouse',where:'Town Square Theater, Main Street USA',time:'Daily from park open',tip:'First stop at rope drop — lines under 20 min early. Mickey and Minnie in separate rooms.',park:'dl'},
+    {name:'Princess Fairytale Hall',where:'Fantasyland — near the castle',time:'Daily from park open',tip:'Meet two princesses (Cinderella, Rapunzel, Tiana, Elena). Lines build fast — go before 10 AM or after 7 PM.',park:'dl'},
+    {name:'Star Wars Characters',where:"Galaxy's Edge near Millennium Falcon",time:'Daily throughout the day',tip:'Rey, Chewbacca, Stormtroopers roam freely. No line needed. Darth Vader appears less frequently.',park:'dl'},
+    {name:'Woody &amp; Jessie',where:'Frontierland near Big Thunder',time:'Morning and afternoon sets',tip:'Walk-around characters. Check the Disneyland app for exact times day-of.',park:'dl'},
+    {name:'Spider-Man',where:'Avengers Campus, DCA',time:'Daily throughout the day',tip:'Wall-crawling Spider-Man performs above the courtyard. No meet needed — just look up.',park:'dca'},
+    {name:'Black Panther, Iron Man, Captain America',where:'Avengers Campus, DCA',time:'Daily — set times',tip:'Full character meets with dedicated queues. Black Panther lines are shortest.',park:'dca'},
+    {name:'Pixar Characters',where:'Pixar Pier, DCA',time:'Morning and afternoon',tip:'Woody, Buzz and Pixar pals near entrance to Pixar Pier. Best times 10-11 AM and 3-4 PM.',park:'dca'},
+    {name:'Lightning McQueen',where:'Cars Land, DCA',time:'Daily — set times',tip:'Lightning McQueen Racing Academy show runs multiple times daily. Check DCA app for showtimes.',park:'dca'},
+  ];
+  html+='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:8px 0 6px;opacity:.8">&#127984; Disneyland</div>';
+  chars.filter(function(c){return c.park==='dl';}).forEach(function(c){
+    html+='<div class="show-card" style="margin-bottom:8px">'
+      +'<div class="show-name">'+c.name+'</div>'
+      +'<div class="show-meta">&#128205; '+c.where+'</div>'
+      +'<div class="show-meta">&#128336; '+c.time+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;font-style:italic">&#128161; '+c.tip+'</div>'
+      +'</div>';
+  });
+  html+='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:12px 0 6px;opacity:.8">&#127905; Disney California Adventure</div>';
+  chars.filter(function(c){return c.park==='dca';}).forEach(function(c){
+    html+='<div class="show-card" style="margin-bottom:8px">'
+      +'<div class="show-name">'+c.name+'</div>'
+      +'<div class="show-meta">&#128205; '+c.where+'</div>'
+      +'<div class="show-meta">&#128336; '+c.time+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;font-style:italic">&#128161; '+c.tip+'</div>'
+      +'</div>';
+  });
 
   document.getElementById('showsContent').innerHTML=html;
 
