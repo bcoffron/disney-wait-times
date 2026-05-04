@@ -142,6 +142,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .ll-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
 .modal-bg.hidden{display:none!important}
+.pt-accordion-open{display:block!important}
 .chat-tab-container.hidden{display:none!important}
 .chat-msg{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.6;word-wrap:break-word}
 .chat-msg.user{background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
@@ -502,7 +503,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <span style="font-size:11px;color:var(--text-dim);cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();skipSetup()">Skip</span>
   </div>
 </div>
-    <div id="schedContent"></div>
+    <div id="preTripBanner" style="margin-bottom:10px;">
+  <div onclick="openPreTrip()" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+    <div style="font-size:24px;">🗺️</div>
+    <div style="flex:1;">
+      <div style="font-size:14px;font-weight:700;color:var(--text);">👉 Do This First: Pre-Trip Planning</div>
+      <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather · Packing · Dining · Group Setup</div>
+    </div>
+    <div style="font-size:18px;color:var(--gold,#C9860A);">›</div>
+  </div>
+</div>
+<div id="schedContent"></div>
   </div>
 
   <div id="tabWaits" class="hidden">
@@ -622,22 +633,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <script>
 // v202605041500 — cache bust v3
 // Safety stub - real function defined later
-function renderLockCountdowns(){
-  var el=document.getElementById('lockCountdowns');
-  if(!el) return;
-  var now=new Date();
-  var tripStart=new Date('2026-06-28T00:00:00-07:00');
-  var diningOpen=new Date(tripStart.getTime()-60*24*60*60*1000);
-  var llOpen=new Date(tripStart.getTime()-7*24*60*60*1000);
-  var html='';
-  var s1='background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
-  var s2='background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
-  if(now<diningOpen){var d=Math.ceil((diningOpen-now)/(864e5));html+='<div style="'+s1+'">&#127869; Dining opens in <b style="color:#F0C462">'+d+' days</b></div>';}
-  else if(now<tripStart){html+='<div style="'+s2+'">&#127869; Dining reservations <b style="color:#F0C462">open now!</b></div>';}
-  if(now<llOpen){var l=Math.ceil((llOpen-now)/(864e5));html+='<div style="'+s1+'">&#9889; Lightning Lane opens in <b style="color:#F0C462">'+l+' days</b></div>';}
-  else if(now<tripStart){html+='<div style="'+s2+'">&#9889; Lightning Lane <b style="color:#F0C462">open now!</b></div>';}
-  el.innerHTML=html;
-}
+function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
@@ -786,7 +782,7 @@ var PASS_ADMIN='cwdis2026admin';
 var userRole='guest'; // 'admin' or 'guest'
 
 function checkLock(){
-  renderLockCountdowns();
+  
   // After June 27, skip lock screen entirely
   var now=new Date();
   var tripStart=new Date('2026-06-28T00:00:00');
@@ -1264,7 +1260,7 @@ async function pullSchedule(){
 async function pushApiKey(key){if(!isAdmin())return;try{await fetch(SYNC_BASE+'/api/config',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},body:JSON.stringify({apiKey:key})});}catch(e){console.warn('Push API key:',e);}}
 async function pullApiKey(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/config?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.apiKey&&!apiKey){apiKey=data.apiKey;try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}var s=document.getElementById('apiSetupCard');if(s)s.style.display='none';}}catch(e){console.warn('Pull API key:',e);}}
 async function pushSchedule(){if(!isAdmin())return;try{await fetch(SYNC_BASE+'/api/schedule',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},body:JSON.stringify({schedule:customSched})});}catch(e){console.warn('Push schedule:',e);}}
-async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;renderSched();renderDayInfoBar();renderLockCountdowns();}catch(e){console.warn('Pull schedule:',e);}}
+async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;renderSched();renderDayInfoBar();renderPreTripBanner();setTimeout(renderPreTripWeather,500);}catch(e){console.warn('Pull schedule:',e);}}
 function startScheduleSync(){
   if(isAdmin()){
     console.log('Admin mode - schedule will push on save');
@@ -3102,6 +3098,192 @@ async function _doChat(msg){
   }
 }
 
+// ── Pre-Trip Panel ────────────────────────────────────────────────────────
+var PACK_ITEMS=[
+  {id:'p1',label:'Comfortable walking shoes',checked:false},
+  {id:'p2',label:'Portable phone charger / power bank',checked:false},
+  {id:'p3',label:'Sunscreen (reapply every 2 hours)',checked:false},
+  {id:'p4',label:'Sunglasses and hat',checked:false},
+  {id:'p5',label:'Light jacket for the evening',checked:false},
+  {id:'p6',label:'Refillable water bottle',checked:false},
+  {id:'p7',label:'Disneyland app downloaded and logged in',checked:false},
+  {id:'p8',label:'Screenshot your park tickets',checked:false},
+  {id:'p9',label:'Dining reservations confirmed',checked:false},
+  {id:'p10',label:'Lightning Lane strategy ready',checked:false},
+  {id:'p11',label:'Snacks for the bag',checked:false},
+  {id:'p12',label:'Small backpack or crossbody bag',checked:false},
+];
+function loadPackItems(){try{var s=localStorage.getItem('pack_items');if(s)PACK_ITEMS=JSON.parse(s);}catch(e){}}
+function savePackItems(){try{localStorage.setItem('pack_items',JSON.stringify(PACK_ITEMS));}catch(e){}}
+
+function openPreTrip(){
+  var o=document.getElementById('preTripOverlay');if(o)o.classList.remove('hidden');
+  renderPreTripCountdowns();renderPreTripWeather();renderPackList();renderRosterList();renderPreTripHeights();
+  ['pt_dining_admin','pt_roster_admin'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=isAdmin()?'block':'none';});
+}
+function closePreTrip(){var o=document.getElementById('preTripOverlay');if(o)o.classList.add('hidden');}
+
+function toggleAccordionPT(id){
+  var body=document.getElementById('ab_pt_'+id);
+  var arrow=document.getElementById('pt_'+id+'_arrow');
+  if(!body)return;
+  var open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  if(arrow)arrow.textContent=open?'›':'‹';
+}
+
+function renderPreTripCountdowns(){
+  var now=new Date();
+  var tripStart=new Date('2026-06-28T00:00:00-07:00');
+  var diningOpen=new Date(tripStart.getTime()-60*24*60*60*1000);
+  var llOpen=new Date(tripStart.getTime()-7*24*60*60*1000);
+  var dEl=document.getElementById('ptDiningDays');
+  var lEl=document.getElementById('ptLLDays');
+  var dCard=document.getElementById('ptDiningCd');
+  var lCard=document.getElementById('ptLLCd');
+  if(now<diningOpen){if(dEl)dEl.textContent=Math.ceil((diningOpen-now)/864e5);}
+  else{if(dEl)dEl.textContent='Open!';if(dCard)dCard.style.background='rgba(52,211,153,0.1)';}
+  if(now<llOpen){if(lEl)lEl.textContent=Math.ceil((llOpen-now)/864e5);}
+  else{if(lEl)lEl.textContent='Open!';if(lCard)lCard.style.background='rgba(52,211,153,0.1)';}
+}
+
+function weatherCodeToEmoji(code){
+  if(code===0)return'☀️';if(code<=2)return'⛅';if(code<=3)return'☁️';if(code<=67)return'🌧️';return'🌤️';
+}
+
+function renderPreTripWeather(){
+  var el=document.getElementById('ptWeather');
+  var note=document.getElementById('ptWeatherNote');
+  if(!el)return;
+  if(!weatherData){el.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:12px;padding:8px;">Loading forecast...</div>';return;}
+  var days=['Jun 28','Jun 29','Jun 30'];var html='';
+  for(var i=0;i<3;i++){
+    var hi=weatherData.temperature_2m_max?Math.round(weatherData.temperature_2m_max[i]):'—';
+    var lo=weatherData.temperature_2m_min?Math.round(weatherData.temperature_2m_min[i]):'—';
+    var code=weatherData.weathercode?weatherData.weathercode[i]:1;
+    html+='<div style="text-align:center;">'
+      +'<div style="font-size:11px;color:var(--text-muted);">'+days[i]+'</div>'
+      +'<div style="font-size:24px;">'+weatherCodeToEmoji(code)+'</div>'
+      +'<div style="font-size:14px;font-weight:700;color:var(--text);">'+hi+'°</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">'+lo+'°</div>'
+      +'</div>';
+  }
+  el.innerHTML=html;
+  if(note){
+    if(weatherData.isToday){note.textContent="Showing today's weather — trip forecast available closer to June 28";note.style.display='block';}
+    else if(weatherData.isTypical){note.textContent='Showing typical June averages — live forecast coming soon';note.style.display='block';}
+  }
+}
+
+function renderPackList(){
+  loadPackItems();
+  var el=document.getElementById('pt_pack_list');if(!el)return;
+  el.innerHTML=PACK_ITEMS.map(function(item){
+    var chk=item.checked?' checked':'';
+    var strike=item.checked?'text-decoration:line-through;color:var(--text-muted)':'';
+    return '<label style="display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer;">'
+      +'<input type="checkbox" data-id="'+item.id+'"'+chk+' onchange="togglePackItem(this.dataset.id,this.checked)"'
+      +' style="width:18px;height:18px;cursor:pointer;">'
+      +'<span style="font-size:13px;color:var(--text);'+strike+'">'+item.label+'</span></label>';
+  }).join('');
+}
+function togglePackItem(id,checked){PACK_ITEMS.forEach(function(i){if(i.id===id)i.checked=checked;});savePackItems();renderPackList();}
+
+var rosterMembers=[];
+function loadRoster(){try{rosterMembers=JSON.parse(localStorage.getItem('group_roster')||'[]');}catch(e){rosterMembers=[];}}
+function saveRoster(){try{localStorage.setItem('group_roster',JSON.stringify(rosterMembers));}catch(e){}}
+
+function renderRosterList(){
+  loadRoster();
+  var el=document.getElementById('pt_roster_list');if(!el)return;
+  if(!rosterMembers.length){el.innerHTML='<div style="font-size:13px;color:var(--text-muted);padding:4px 0;">No members added yet.</div>';return;}
+  el.innerHTML=rosterMembers.map(function(name,i){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--magic),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;">'+name.charAt(0).toUpperCase()+'</div>'
+      +'<div style="flex:1;font-size:13px;color:var(--text);">'+name+'</div>'
+      +(isAdmin()?'<button onclick="removeRosterMember('+i+')" style="padding:2px 8px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:inherit;">Remove</button>':'')
+      +'</div>';
+  }).join('');
+}
+function addRosterMember(){
+  var input=document.getElementById('pt_roster_input');
+  var name=input?input.value.trim():'';if(!name)return;
+  loadRoster();rosterMembers.push(name);saveRoster();
+  if(input)input.value='';renderRosterList();
+}
+function removeRosterMember(i){loadRoster();rosterMembers.splice(i,1);saveRoster();renderRosterList();}
+
+function renderPreTripHeights(){
+  var el=document.getElementById('pt_heights_list');if(!el)return;
+  var heights=typeof getGroupHeights==='function'?getGroupHeights():[];
+  if(!heights.length){el.innerHTML='<div style="color:var(--text-muted);font-size:12px;">No heights added.</div>';return;}
+  el.innerHTML=heights.map(function(h,i){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+      +'<span style="font-size:12px;color:var(--text-muted);">Child '+(i+1)+':</span>'
+      +'<span style="font-size:13px;font-weight:600;color:var(--text);">'+Math.floor(h/12)+'ft '+Math.round(h%12)+'in</span>'
+      +'<span style="font-size:11px;color:'+(h<48?'#EF4444':'#34D399')+'">'+(h<48?'Some height limits apply':'All rides OK')+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+async function loadKnowBeforeYouGo(){
+  if(!apiKey){document.getElementById('pt_kbyg_content').innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:8px;">Please add your API key in the Info tab first.</div>';return;}
+  var el=document.getElementById('pt_kbyg_content');
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">✨ Generating your briefing...</div>';
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,
+        system:'Disneyland expert. Give practical pre-trip intel. Bold key tips with **text**. Short paragraphs.',
+        messages:[{role:'user',content:'Know Before You Go briefing for 9 people visiting Disneyland Resort June 28-30 2026. Cover: expected crowd levels for late June, typical weather, best gate arrival time, must-download apps, one thing most people forget, one insider tip that saves time. Concise and friendly.'}]})
+    });
+    var data=await resp.json();
+    var text=data.content&&data.content[0]?data.content[0].text:'Could not load briefing.';
+    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.7;">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
+    try{localStorage.setItem('kbyg_text',text);localStorage.setItem('kbyg_date',new Date().toDateString());}catch(e){}
+  }catch(err){
+    el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error loading briefing.</div>';
+  }
+}
+
+function addDiningReservation(){
+  var name=prompt('Restaurant name:');if(!name)return;
+  var time=prompt('Date and time (e.g. Tue Jun 30 · 6:30 PM):');if(!time)return;
+  var conf=prompt('Confirmation number (optional):');
+  var list=document.getElementById('pt_dining_list');if(!list)return;
+  var card=document.createElement('div');
+  card.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;';
+  card.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--text);">'+name+'</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 '+time+'</div>'
+    +(conf?'<div style="font-size:11px;color:var(--gold,#C9860A);margin-top:4px;">Conf #'+conf+'</div>':'');
+  list.appendChild(card);
+}
+
+function renderPreTripBanner(){
+  var banner=document.getElementById('preTripBanner');if(!banner)return;
+  var tripStart=new Date('2026-06-28T00:00:00-07:00');
+  var now=new Date();
+  if(now>=tripStart&&!isAdmin()){banner.style.display='none';return;}
+  banner.style.display='';
+  var days=Math.ceil((tripStart-now)/864e5);
+  var sub=document.getElementById('preTripBannerSub');
+  if(sub)sub.textContent=(days>0?days+' days to go · ':'Trip starts today! · ')+'Weather · Packing · Dining · Group Setup';
+}
+
+// Load cached KBYG on open
+(function(){
+  try{
+    var cached=localStorage.getItem('kbyg_text');
+    var cachedDate=localStorage.getItem('kbyg_date');
+    if(cached&&cachedDate===new Date().toDateString()){
+      var el=document.getElementById('pt_kbyg_content');
+      if(el)el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.7;">'+renderMarkdown(cached).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
+    }
+  }catch(e){}
+  setTimeout(renderPreTripBanner,100);
+})();
+
 </script>
 
 <!-- Setup Overlay -->
@@ -3248,6 +3430,170 @@ async function _doChat(msg){
       </div>
       <button class="setup-btn" onclick="completeSetup()">&#10024; Save My Ride Style</button>
     </div>
+  </div>
+</div>
+
+
+<!-- Pre-Trip Panel Overlay -->
+<div id="preTripOverlay" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:700;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div style="background:var(--bg);border-radius:24px 24px 0 0;margin-top:60px;min-height:calc(100vh - 60px);padding:0 0 80px;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;border-radius:24px 24px 0 0;">
+      <div style="font-size:22px;">🗺️</div>
+      <div style="flex:1;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--text);">Pre-Trip Planning</div>
+        <div style="font-size:12px;color:var(--text-muted);">Everything you need before June 28</div>
+      </div>
+      <button onclick="closePreTrip()" style="padding:6px 12px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;">Done</button>
+    </div>
+
+    <!-- Countdowns -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 14px 0;">
+      <div id="ptDiningCd" style="background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.25);border-radius:12px;padding:10px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gold,#C9860A);margin-bottom:4px;">Dining Opens</div>
+        <div id="ptDiningDays" style="font-size:28px;font-weight:700;color:var(--gold,#C9860A);">—</div>
+        <div style="font-size:11px;color:var(--text-muted);">days away</div>
+      </div>
+      <div id="ptLLCd" style="background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.25);border-radius:12px;padding:10px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gold,#C9860A);margin-bottom:4px;">Lightning Lane</div>
+        <div id="ptLLDays" style="font-size:28px;font-weight:700;color:var(--gold,#C9860A);">—</div>
+        <div style="font-size:11px;color:var(--text-muted);">days away</div>
+      </div>
+    </div>
+
+    <!-- Weather -->
+    <div style="margin:12px 14px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;">☀️ Park Weather Forecast</div>
+      <div id="ptWeather" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="text-align:center;opacity:.5">
+          <div style="font-size:11px;color:var(--text-muted);">Jun 28</div>
+          <div style="font-size:22px;">—</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">—°</div>
+          <div style="font-size:11px;color:var(--text-muted);">—°</div>
+        </div>
+        <div style="text-align:center;opacity:.5">
+          <div style="font-size:11px;color:var(--text-muted);">Jun 29</div>
+          <div style="font-size:22px;">—</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">—°</div>
+          <div style="font-size:11px;color:var(--text-muted);">—°</div>
+        </div>
+        <div style="text-align:center;opacity:.5">
+          <div style="font-size:11px;color:var(--text-muted);">Jun 30</div>
+          <div style="font-size:22px;">—</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">—°</div>
+          <div style="font-size:11px;color:var(--text-muted);">—°</div>
+        </div>
+      </div>
+      <div id="ptWeatherNote" style="font-size:11px;color:var(--text-dim);margin-top:8px;text-align:center;display:none;"></div>
+    </div>
+
+    <!-- Park Hours -->
+    <div style="margin:10px 14px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);">⏰ Park Hours</div>
+      </div>
+      <div style="padding:10px 14px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">All times Pacific. Subject to change — always verify in the Disneyland app.</div>
+        <div style="display:grid;gap:6px;">
+          <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
+            <div style="font-weight:600;color:var(--text);">Sun Jun 28</div>
+            <div style="color:var(--text-muted);">🏰 DL: 8AM–12AM</div>
+            <div style="color:var(--text-muted);">🎡 DCA: 9AM–11PM</div>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
+            <div style="font-weight:600;color:var(--text);">Mon Jun 29</div>
+            <div style="color:var(--text-muted);">🏰 DL: 8AM–11PM</div>
+            <div style="color:var(--text-muted);">🎡 DCA: 9AM–10PM</div>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
+            <div style="font-weight:600;color:var(--text);">Tue Jun 30</div>
+            <div style="color:var(--text-muted);">🏰 DL: 8AM–11PM</div>
+            <div style="color:var(--text-muted);">🎡 DCA: 8AM–11PM</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Know Before You Go -->
+    <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div onclick="toggleAccordion('pt_kbyg')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">🤖 Know Before You Go</div>
+        <span id="pt_kbyg_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+      </div>
+      <div id="ab_pt_kbyg" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        <div id="pt_kbyg_content" style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+          <div style="text-align:center;padding:16px;"><button onclick="loadKnowBeforeYouGo()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">✨ Generate AI Briefing</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dining Reservations -->
+    <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div onclick="toggleAccordion('pt_dining')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">🍽️ Dining Reservations</div>
+        <span id="pt_dining_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+      </div>
+      <div id="ab_pt_dining" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        <div id="pt_dining_list">
+          <!-- Hardcoded Cafe Orleans -->
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+            <div style="font-size:13px;font-weight:700;color:var(--text);">Café Orleans</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 Tuesday Jun 30 · 6:30 PM</div>
+            <div style="font-size:12px;color:var(--text-muted);">👥 Party of 9 · New Orleans Square</div>
+            <div style="font-size:11px;color:var(--gold,#C9860A);margin-top:4px;">Conf # to be added by admin</div>
+          </div>
+        </div>
+        <div id="pt_dining_admin" style="display:none;">
+          <button onclick="addDiningReservation()" style="width:100%;padding:10px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px;">+ Add reservation</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group Roster -->
+    <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div onclick="toggleAccordion('pt_roster')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">👥 Group Roster</div>
+        <span id="pt_roster_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+      </div>
+      <div id="ab_pt_roster" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        <div id="pt_roster_list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        <div id="pt_roster_admin" style="display:none;margin-top:8px;">
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="pt_roster_input" placeholder="Add name..." style="flex:1;padding:8px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit;outline:none;">
+            <button onclick="addRosterMember()" style="padding:8px 16px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">Add</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Height Requirements</div>
+          <div id="pt_heights_list" style="font-size:12px;color:var(--text-muted);"></div>
+          <button onclick="addHeight()" style="margin-top:6px;padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;">+ Add child height</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- What to Pack -->
+    <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div onclick="toggleAccordion('pt_pack')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">🎒 What to Pack</div>
+        <span id="pt_pack_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+      </div>
+      <div id="ab_pt_pack" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        <div id="pt_pack_list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    </div>
+
+    <!-- Set Up Your Park Visit -->
+    <div style="margin:10px 14px 0;border:1px solid rgba(27,47,160,0.2);border-radius:14px;overflow:hidden;background:rgba(27,47,160,0.04);">
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="closePreTrip();openSetup();">
+        <div style="font-size:22px;">🎯</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">👉 Do This First: Set Up Your Park Visit</div>
+          <div style="font-size:12px;color:var(--text-muted);">Personalize the AI to your group in 2 minutes</div>
+        </div>
+        <div style="font-size:16px;color:var(--magic);">›</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
