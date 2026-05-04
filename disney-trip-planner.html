@@ -2040,10 +2040,10 @@ async function getReroute(ride,land,btn){
     var prompt_txt='Disneyland expert. Group of 9 adults+teens on '+dn+'. '+ride+' in '+land+' has a LIVE wait of '+wait+' min right now. ';
     if(wait<45) prompt_txt+='This is a moderate wait. In 2-3 friendly sentences, advise whether to ride now or skip and why, considering the time of day and historical patterns.';
     else prompt_txt+='This is a long wait. In 2-3 friendly sentences, tell them what to do RIGHT NOW instead and when the best time to return is based on historical patterns. Nearby alternatives: '+alts+'.';
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:prompt_txt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:'CRITICAL: Use **double asterisks** around every ride name, time, and key action. Example: **Skip Space Mountain** and head to **Haunted Mansion** — wait is only **15 min** right now.',messages:[{role:'user',content:prompt_txt}]})});
     var data=await r.json();
     var txt=data.content&&data.content[0]?data.content[0].text:'Could not get suggestion.';
-    res.innerHTML='<div class="rr-hdr">\u26A1 AI REROUTE \u2014 '+statusMsg.toUpperCase()+'</div>'+txt;
+    res.innerHTML='<div class="rr-hdr">\u26A1 AI REROUTE \u2014 '+statusMsg.toUpperCase()+'</div>'+renderMarkdown(txt);
   }catch(e){
     res.innerHTML='<div class="rr-hdr">\u26A1 SUGGESTION</div>Try '+alts+' and return after 7 PM.';
   }
