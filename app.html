@@ -1834,7 +1834,27 @@ async function checkWazeSuggestion(){
     var text=data.content&&data.content[0]?data.content[0].text:'';
     var clean=text.replace(/```json|```/g,'').trim();
     var sug=JSON.parse(clean);
-    if(sug&&sug.headline) showWazeSuggestion(sug,opportunities);
+    if(sug&&sug.headline){
+      // If Claude didn't bold anything, auto-bold the first noun phrase and any times
+      if(sug.detail&&sug.detail.indexOf('**')===-1){
+        // Bold ride names from the opportunities list
+        if(opportunities&&opportunities.length){
+          opportunities.forEach(function(opp){
+            var rname=opp._ride&&opp._ride.e&&opp._ride.e.h?opp._ride.e.h:'';
+            if(rname&&sug.detail.indexOf(rname)>-1){
+              sug.detail=sug.detail.replace(rname,'**'+rname+'**');
+            }
+          });
+        }
+        // Bold any time patterns like "12 minutes" or "45 min"
+        sug.detail=sug.detail.replace(/(\d+\s*(?:minutes?|min))/g,'**$1**');
+        // Bold the first sentence's key action (first 4+ word phrase after a verb)
+        if(sug.detail.indexOf('**')===-1){
+          sug.detail=sug.detail.replace(/^([^.!?]+[.!?])/,function(m){return '**'+m.trim()+'**';});
+        }
+      }
+      showWazeSuggestion(sug,opportunities);
+    }
   }catch(e){console.warn('Waze check:',e);}
 }
 
