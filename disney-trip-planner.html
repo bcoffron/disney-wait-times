@@ -633,6 +633,15 @@ function renderLockCountdowns(){
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
+function isWithinParkWindow(){
+  try{
+    var today=todayPT();
+    var hours={'2026-06-28':{o:7,c:24},'2026-06-29':{o:8,c:23},'2026-06-30':{o:7,c:23}};
+    var h=hours[today];if(!h)return false;
+    var now=nowPT();var hr=now.getHours()+(now.getMinutes()/60);
+    return hr>=(h.o-1)&&hr<=(h.c+1);
+  }catch(e){return false;}
+}
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
 const CLOSED=[
