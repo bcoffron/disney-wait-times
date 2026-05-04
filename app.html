@@ -2860,47 +2860,6 @@ function setTab(tab){
 
 // ── Init ──────────────────────────────────────────────────────────────────
 generateStars();renderLockCountdowns();checkLock();loadKey();loadCustom();renderShows();renderClosed();renderSched();renderDayInfoBar();renderCountdown();startWaitRefresh();scheduleWeatherCheck();scheduleMorningCheck();startScheduleSync();startNotesSync();startWazeChecks();scheduleLLPrompts();
-// Check for morning update once per day
-(function(){
-  var today=new Date().toDateString();
-  var lastCheck='';
-  try{lastCheck=localStorage.getItem('last_morning_check')||'';}catch(e){}
-  if(lastCheck!==today){
-    try{localStorage.setItem('last_morning_check',today);}catch(e){}
-    // Re-render closed banner once in the morning to catch any updates
-    setTimeout(function(){renderClosed();},2000);
-  }
-
-
-function renderLockCountdowns(){
-  var el=document.getElementById('lockCountdowns');if(!el)return;
-  var now=new Date();var tripStart=new Date('2026-06-28T00:00:00-07:00');
-  var diningOpen=new Date(tripStart.getTime()-60*24*60*60*1000);var llOpen=new Date(tripStart.getTime()-7*24*60*60*1000);
-  var html='';
-  var s1='background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
-  var s2='background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
-  if(now<diningOpen){var d=Math.ceil((diningOpen-now)/(864e5));html+='<div style="'+s1+'">&#127869; Dining opens in <b style="color:#F0C462">'+d+' days</b></div>';}
-  else if(now<tripStart){html+='<div style="'+s2+'">&#127869; Dining reservations <b style="color:#F0C462">open now!</b></div>';}
-  if(now<llOpen){var l=Math.ceil((llOpen-now)/(864e5));html+='<div style="'+s1+'">&#9889; Lightning Lane opens in <b style="color:#F0C462">'+l+' days</b></div>';}
-  else if(now<tripStart){html+='<div style="'+s2+'">&#9889; Lightning Lane <b style="color:#F0C462">open now!</b></div>';}
-  el.innerHTML=html;
-}
-
-function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
-function renderClosuresFromWaits(){if(!waits||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
-
-function doShareText(){var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://themeparkwize.com\nPassword: CW9Dis2026\n\nOpen in Safari > Share > Add to Home Screen!';if(navigator.share){navigator.share({title:'ThemeParkWize',text:msg,url:'https://themeparkwize.com'}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
-function doCopyLink(){var text='ThemeParkWize Disneyland App\nLink: https://themeparkwize.com\nPassword: CW9Dis2026';if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
-
-var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40};
-function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
-function saveGroupHeights(arr){try{localStorage.setItem('group_heights',JSON.stringify(arr));}catch(e){}}
-function addHeight(){var h=getGroupHeights();h.push(48);saveGroupHeights(h);renderInfoTab();}
-function removeHeight(i){var h=getGroupHeights();h.splice(i,1);saveGroupHeights(h);renderInfoTab();}
-function updateHeight(i,v){var h=getGroupHeights();h[i]=parseInt(v)||48;saveGroupHeights(h);renderSched();}
-function checkHeightWarning(rideName){if(!rideName)return null;var req=null;var rLower=rideName.toLowerCase();Object.keys(HEIGHTS).forEach(function(k){if(rLower.indexOf(k.toLowerCase().substring(0,8))>-1)req=HEIGHTS[k];});if(!req)return null;var heights=getGroupHeights();if(!heights.length)return null;return heights.some(function(h){return h<req;})?'warn':'ok';}
-
-var chatHistory=[];
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
   await _doChat(directMsg);
@@ -2955,6 +2914,47 @@ async function _doChat(msg){
 
 function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages');if(!msgs)return;var el=document.createElement('div');el.className='chat-msg '+role;el.textContent=text;msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;}
 
+// Check for morning update once per day
+(function(){
+  var today=new Date().toDateString();
+  var lastCheck='';
+  try{lastCheck=localStorage.getItem('last_morning_check')||'';}catch(e){}
+  if(lastCheck!==today){
+    try{localStorage.setItem('last_morning_check',today);}catch(e){}
+    // Re-render closed banner once in the morning to catch any updates
+    setTimeout(function(){renderClosed();},2000);
+  }
+
+
+function renderLockCountdowns(){
+  var el=document.getElementById('lockCountdowns');if(!el)return;
+  var now=new Date();var tripStart=new Date('2026-06-28T00:00:00-07:00');
+  var diningOpen=new Date(tripStart.getTime()-60*24*60*60*1000);var llOpen=new Date(tripStart.getTime()-7*24*60*60*1000);
+  var html='';
+  var s1='background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
+  var s2='background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
+  if(now<diningOpen){var d=Math.ceil((diningOpen-now)/(864e5));html+='<div style="'+s1+'">&#127869; Dining opens in <b style="color:#F0C462">'+d+' days</b></div>';}
+  else if(now<tripStart){html+='<div style="'+s2+'">&#127869; Dining reservations <b style="color:#F0C462">open now!</b></div>';}
+  if(now<llOpen){var l=Math.ceil((llOpen-now)/(864e5));html+='<div style="'+s1+'">&#9889; Lightning Lane opens in <b style="color:#F0C462">'+l+' days</b></div>';}
+  else if(now<tripStart){html+='<div style="'+s2+'">&#9889; Lightning Lane <b style="color:#F0C462">open now!</b></div>';}
+  el.innerHTML=html;
+}
+
+function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
+function renderClosuresFromWaits(){if(!waits||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
+
+function doShareText(){var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://themeparkwize.com\nPassword: CW9Dis2026\n\nOpen in Safari > Share > Add to Home Screen!';if(navigator.share){navigator.share({title:'ThemeParkWize',text:msg,url:'https://themeparkwize.com'}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
+function doCopyLink(){var text='ThemeParkWize Disneyland App\nLink: https://themeparkwize.com\nPassword: CW9Dis2026';if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
+
+var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40};
+function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
+function saveGroupHeights(arr){try{localStorage.setItem('group_heights',JSON.stringify(arr));}catch(e){}}
+function addHeight(){var h=getGroupHeights();h.push(48);saveGroupHeights(h);renderInfoTab();}
+function removeHeight(i){var h=getGroupHeights();h.splice(i,1);saveGroupHeights(h);renderInfoTab();}
+function updateHeight(i,v){var h=getGroupHeights();h[i]=parseInt(v)||48;saveGroupHeights(h);renderSched();}
+function checkHeightWarning(rideName){if(!rideName)return null;var req=null;var rLower=rideName.toLowerCase();Object.keys(HEIGHTS).forEach(function(k){if(rLower.indexOf(k.toLowerCase().substring(0,8))>-1)req=HEIGHTS[k];});if(!req)return null;var heights=getGroupHeights();if(!heights.length)return null;return heights.some(function(h){return h<req;})?'warn':'ok';}
+
+var chatHistory=[];
 var setupData={};
 function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
 function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}

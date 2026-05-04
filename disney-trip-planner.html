@@ -2859,6 +2859,22 @@ function setTab(tab){
 
 // ── Init ──────────────────────────────────────────────────────────────────
 generateStars();renderLockCountdowns();checkLock();loadKey();loadCustom();renderShows();renderClosed();renderSched();renderDayInfoBar();renderCountdown();startWaitRefresh();scheduleWeatherCheck();scheduleMorningCheck();startScheduleSync();startNotesSync();startWazeChecks();scheduleLLPrompts();
+function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
+async function sendChat(){
+  var input=document.getElementById('chatInput');var msg=input?input.value.trim():'';if(!msg)return;if(input)input.value='';
+  appendChatMsg('user',msg);if(!apiKey){appendChatMsg('ai','Add an API key in the Info tab.');return;}
+  var ml=msg.toLowerCase();var today=todayPT();var dm={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};var dn=dm[today]||'pre-trip';
+  var wc='';if(/(wait|line|ride|busy|crowd)/i.test(ml)&&Object.keys(waits).length){var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);if(top.length)wc=' Live waits: '+top.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';}
+  var bc='';if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
+  var sc='';if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
+  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences.';
+  if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);chatHistory.push({role:'user',content:msg});
+  var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
+  var msgs=document.getElementById('chatMessages');if(msgs){msgs.appendChild(te);msgs.scrollTop=msgs.scrollHeight;}
+  try{var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:sys,messages:chatHistory})});var data=await resp.json();if(data.error){if(te.parentNode)te.remove();appendChatMsg('ai','API Error: '+data.error.message);return;}var reply=data.content&&data.content[0]?data.content[0].text:'Sorry, try again.';chatHistory.push({role:'assistant',content:reply});if(te.parentNode)te.remove();appendChatMsg('ai',reply);}catch(e){if(te.parentNode)te.remove();var errMsg=e.message||'Unknown error';appendChatMsg('ai','Error: '+errMsg);}
+}
+function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages');if(!msgs)return;var el=document.createElement('div');el.className='chat-msg '+role;el.textContent=text;msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;}
+
 // Check for morning update once per day
 (function(){
   var today=new Date().toDateString();
@@ -2900,22 +2916,6 @@ function updateHeight(i,v){var h=getGroupHeights();h[i]=parseInt(v)||48;saveGrou
 function checkHeightWarning(rideName){if(!rideName)return null;var req=null;var rLower=rideName.toLowerCase();Object.keys(HEIGHTS).forEach(function(k){if(rLower.indexOf(k.toLowerCase().substring(0,8))>-1)req=HEIGHTS[k];});if(!req)return null;var heights=getGroupHeights();if(!heights.length)return null;return heights.some(function(h){return h<req;})?'warn':'ok';}
 
 var chatHistory=[];
-function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
-async function sendChat(){
-  var input=document.getElementById('chatInput');var msg=input?input.value.trim():'';if(!msg)return;if(input)input.value='';
-  appendChatMsg('user',msg);if(!apiKey){appendChatMsg('ai','Add an API key in the Info tab.');return;}
-  var ml=msg.toLowerCase();var today=todayPT();var dm={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};var dn=dm[today]||'pre-trip';
-  var wc='';if(/(wait|line|ride|busy|crowd)/i.test(ml)&&Object.keys(waits).length){var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);if(top.length)wc=' Live waits: '+top.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';}
-  var bc='';if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
-  var sc='';if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
-  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences.';
-  if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);chatHistory.push({role:'user',content:msg});
-  var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
-  var msgs=document.getElementById('chatMessages');if(msgs){msgs.appendChild(te);msgs.scrollTop=msgs.scrollHeight;}
-  try{var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:sys,messages:chatHistory})});var data=await resp.json();if(data.error){if(te.parentNode)te.remove();appendChatMsg('ai','API Error: '+data.error.message);return;}var reply=data.content&&data.content[0]?data.content[0].text:'Sorry, try again.';chatHistory.push({role:'assistant',content:reply});if(te.parentNode)te.remove();appendChatMsg('ai',reply);}catch(e){if(te.parentNode)te.remove();var errMsg=e.message||'Unknown error';appendChatMsg('ai','Error: '+errMsg);}
-}
-function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages');if(!msgs)return;var el=document.createElement('div');el.className='chat-msg '+role;el.textContent=text;msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;}
-
 var setupData={};
 function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
 function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}
