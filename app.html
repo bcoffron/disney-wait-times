@@ -496,6 +496,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       </div>
     </div>
 
+    <div id="setupBanner" style="display:none;padding:0 0 10px">
+  <div class="setup-banner" onclick="openSetup()">
+    <div style="font-size:24px">&#127906;</div>
+    <div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">Set up your Ride Style</div><div style="font-size:12px;color:var(--text-muted)" id="setupBannerSub">Personalize the AI in 2 minutes</div></div>
+    <span style="font-size:11px;color:var(--text-dim);cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();skipSetup()">Skip</span>
+  </div>
+</div>
     <div id="schedContent"></div>
   </div>
 
@@ -3213,12 +3220,6 @@ setTimeout(function(){runWeeklyRefurbCheck();},30000);
     </div>
   </div>
 </div>
-<div id="setupBanner" style="display:none;padding:0 0 10px">
-  <div class="setup-banner" onclick="openSetup()">
-    <div style="font-size:24px">&#127906;</div>
-    <div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">Set up your Ride Style</div><div style="font-size:12px;color:var(--text-muted)" id="setupBannerSub">Personalize the AI in 2 minutes</div></div>
-    <span style="font-size:11px;color:var(--text-dim);cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();skipSetup()">Skip</span>
-  </div>
-</div>
+
 </body>
 </html>
