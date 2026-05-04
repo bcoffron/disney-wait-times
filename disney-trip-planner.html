@@ -403,6 +403,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="setup-dot active" id="sp0"></div>
       <div class="setup-dot" id="sp1"></div>
       <div class="setup-dot" id="sp2"></div>
+      <div class="setup-dot" id="sp3"></div>
     </div>
 
     <!-- Step 1: Your Group -->
@@ -581,8 +582,52 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div class="setup-chip selected" onclick="toggleChip(this,'pace')">⚖️ Balanced — rides + breaks</div>
         <div class="setup-chip" onclick="toggleChip(this,'pace')">🌿 Relaxed — quality over quantity</div>
       </div>
+      <button class="setup-btn" onclick="setupNext(3)">Next: Characters ›</button>
+    </div>
+    <!-- Step 4: Characters -->
+    <div class="setup-step" id="setupStep3">
+      <button class="setup-back" onclick="setupBack(2)">‹ Back</button>
+      <div class="setup-title">Character Meets</div>
+      <div class="setup-sub">Want to meet characters? We'll build time into your schedule.</div>
+      <div class="setup-label">Does your group want character meets?</div>
+      <div class="setup-chips" id="charYesNo">
+        <div class="setup-chip" onclick="toggleCharMeets(true)" id="charYes">Yes! We love characters</div>
+        <div class="setup-chip selected" onclick="toggleCharMeets(false)" id="charNo">No thanks — more ride time</div>
+      </div>
+      <div id="charSelectArea" style="display:none">
+        <div class="setup-label">🏰 Disneyland — Who do you want to meet?</div>
+        <div class="setup-chips" id="charDLChips">
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Mickey &amp; Minnie</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Cinderella</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Rapunzel</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Tiana</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Snow White</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Rey (Star Wars)</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Chewbacca</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Darth Vader</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Woody &amp; Jessie</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Buzz Lightyear</div>
+        </div>
+        <div class="setup-label">🎡 DCA — Who do you want to meet?</div>
+        <div class="setup-chips" id="charDCAChips">
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Spider-Man</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Black Panther</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Iron Man</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Captain America</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Star-Lord &amp; Gamora</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Woody &amp; Buzz (Pixar Pier)</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Lightning McQueen</div>
+        </div>
+        <div class="setup-label">Priority</div>
+        <div class="setup-chips" id="charPriorityChips">
+          <div class="setup-chip selected" onclick="toggleChip(this,'charPri')">Fit in when convenient</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charPri')">High priority — schedule around them</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charPri')">First thing in the morning</div>
+        </div>
+      </div>
       <button class="setup-btn" onclick="completeSetup()">✨ Save My Ride Style</button>
     </div>
+
   </div>
 </div>
 
@@ -1920,14 +1965,23 @@ function setupGoTo(step){
   document.querySelectorAll('.setup-step').forEach(function(el,i){
     el.classList.toggle('active',i===step);
   });
-  document.querySelectorAll('.setup-dot').forEach(function(el,i){
-    el.classList.toggle('done',i<step);
-    el.classList.toggle('active',i===step);
+  [0,1,2,3].forEach(function(i){
+    var dot=document.getElementById('sp'+i);
+    if(dot){
+      dot.classList.toggle('done',i<step);
+      dot.classList.toggle('active',i===step);
+    }
   });
 }
 
 function setupNext(step){setupGoTo(step);}
 function setupBack(step){setupGoTo(step);}
+
+function toggleCharMeets(yes){
+  document.getElementById('charYes').classList.toggle('selected', yes);
+  document.getElementById('charNo').classList.toggle('selected', !yes);
+  document.getElementById('charSelectArea').style.display = yes ? 'block' : 'none';
+}
 
 function toggleChip(el,group){
   // Single select for some groups, multi for must/skip
@@ -2043,6 +2097,7 @@ function aiApplyRideDefaults(){
 
 async function completeSetup(){
   // Collect all data
+  var wantsChars=document.getElementById('charYes')&&document.getElementById('charYes').classList.contains('selected');
   setupData={
     groupSize:parseInt(document.getElementById('groupSize').value),
     ages:getChipSelections('ageChips'),
@@ -2052,7 +2107,11 @@ async function completeSetup(){
     skipRides:getChipSelections('skipRideChips'),
     ll:getChipSelections('llChips')[0]||'Undecided',
     dining:getChipSelections('diningChips')[0]||'Mix of both',
-    pace:getChipSelections('paceChips')[0]||'Balanced'
+    pace:getChipSelections('paceChips')[0]||'Balanced',
+    wantsChars:wantsChars,
+    charsDL:wantsChars?getChipSelections('charDLChips'):[],
+    charsDCA:wantsChars?getChipSelections('charDCAChips'):[],
+    charPriority:wantsChars?(getChipSelections('charPriorityChips')[0]||'Fit in when convenient'):'none'
   };
 
   // Save kids heights
@@ -2160,7 +2219,7 @@ async function generateFromSetup(){
     +'Pace: '+pace+'. '
     +'Lightning Lane: '+ll+'. '
     +'Dining preference: '+dining+'. '
-    +'MUST include these rides: '+mustList+'. '
+    +'MUST include these rides: '+mustList+'. '+charNote+''
     +'SKIP these rides entirely: '+skipList+'. '
     +'Build an optimized schedule accounting for: rope drop strategy, walking distances between lands, avoiding peak wait times (10AM-2PM for headliners), dining at off-peak times (before noon or after 2PM for lunch, before 6PM or after 7:30PM for dinner). '
     +'Return ONLY a JSON array of schedule entries, no other text: '
@@ -3771,41 +3830,4 @@ generateStars();checkLock();loadKey();loadCustom();renderShows();renderClosed();
 })();
 </script>
 </body>
-</html
-  // ── Character Meet & Greets ─────────────────────────────────────────────
-  h+='<div class="show-sec-hdr">&#129489; Character Meet &amp; Greets</div>';
-  var chars=[
-    {name:'Mickey &amp; Minnie Mouse',where:'Town Square Theater, Main Street USA',time:'Daily from park open',tip:'First stop at rope drop — lines stay under 20 min early. Mickey and Minnie in separate rooms.',type:'dl'},
-    {name:'Princess Fairytale Hall',where:'Fantasyland — near castle',time:'Daily from park open',tip:'Meet two princesses (rotates). Cinderella, Rapunzel, Tiana, Elena. Lines build fast — go before 10 AM or after 7 PM.',type:'dl'},
-    {name:'Buzz Lightyear',where:'Tomorrowland near Buzz attraction',time:'Sporadic — check app',tip:'Walk-around character — no formal meet. Worth watching for near Buzz Lightyear Astro Blasters.',type:'dl'},
-    {name:'Star Wars Characters',where:"Galaxy's Edge — near Millennium Falcon",time:'Daily throughout the day',tip:'Rey, Chewbacca, Stormtroopers roam freely. No line needed — just find them. Darth Vader appears less frequently.',type:'dl'},
-    {name:'Woody &amp; Jessie',where:"Frontierland — near Big Thunder",time:'Morning and afternoon sets',tip:'Walk-around characters. Check the Disneyland app for exact times day-of.',type:'dl'},
-    {name:'Goofy &amp; Donald Duck',where:'Various locations',time:'Rotates daily',tip:'Check the Disneyland app character finder for exact locations and times.',type:'dl'},
-    {name:'Spider-Man',where:'Avengers Campus, DCA',time:'Daily throughout the day',tip:'Wall-crawling Spider-Man performs above the courtyard — incredible to watch. No meet needed, just look up.',type:'dca'},
-    {name:'Black Panther, Iron Man, Captain America',where:'Avengers Campus, DCA',time:'Daily — set times',tip:'Full character meet with dedicated queues. Black Panther lines are shortest. Check DCA app for times.',type:'dca'},
-    {name:'Guardians of the Galaxy Characters',where:'Avengers Campus near Guardians ride, DCA',time:'Walk-around, sporadic',tip:'Star-Lord and Gamora walk around Avengers Campus. No formal meet — just find them.',type:'dca'},
-    {name:'Pixar Characters',where:'Pixar Pier, DCA',time:'Morning and afternoon',tip:'Woody, Buzz, and Pixar pals near the entrance to Pixar Pier. Best times are 10-11 AM and 3-4 PM.',type:'dca'},
-    {name:'Lightning McQueen',where:"Cars Land, DCA",time:'Daily — set times',tip:'Lightning McQueen Racing Academy show runs multiple times daily. Great for kids — check DCA app for showtimes.',type:'dca'},
-  ];
-  var dlChars=chars.filter(function(c){return c.type==='dl';});
-  var dcaChars=chars.filter(function(c){return c.type==='dca';});
-
-  h+='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:8px 0 6px;opacity:.8">🏰 Disneyland</div>';
-  dlChars.forEach(function(c){
-    h+='<div class="show-card" style="margin-bottom:8px">'
-      +'<div class="show-name">'+c.name+'</div>'
-      +'<div class="show-meta">📍 '+c.where+'</div>'
-      +'<div class="show-meta">🕐 '+c.time+'</div>'
-      +'<div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;font-style:italic">💡 '+c.tip+'</div>'
-      +'</div>';
-  });
-  h+='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:12px 0 6px;opacity:.8">🎡 Disney California Adventure</div>';
-  dcaChars.forEach(function(c){
-    h+='<div class="show-card" style="margin-bottom:8px">'
-      +'<div class="show-name">'+c.name+'</div>'
-      +'<div class="show-meta">📍 '+c.where+'</div>'
-      +'<div class="show-meta">🕐 '+c.time+'</div>'
-      +'<div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;font-style:italic">💡 '+c.tip+'</div>'
-      +'</div>';
-  });
-  >
+</html>
