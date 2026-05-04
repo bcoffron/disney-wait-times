@@ -633,6 +633,14 @@ function renderLockCountdowns(){
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
+function isRideInRefurb(rideName){
+  try{
+    var stored=localStorage.getItem('weekly_refurbs');
+    if(stored){var data=JSON.parse(stored);if(Date.now()-data.ts<7*24*60*60*1000&&Array.isArray(data.rides)){var norm=typeof normalizeRideName==='function'?normalizeRideName(rideName):rideName.toLowerCase();return data.rides.some(function(r){var rn=typeof normalizeRideName==='function'?normalizeRideName(r):r.toLowerCase();return norm.indexOf(rn)>-1||rn.indexOf(norm)>-1;});}}
+  }catch(e){}
+  if(typeof waits!=='undefined'&&Object.keys(waits).length){var d=typeof lookupWait==='function'?lookupWait(rideName):null;if(d&&d.s==='REFURBISHMENT')return true;}
+  return false;
+}
 function renderClosuresFromWaits(){if(typeof waits==='undefined'||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 function isWithinParkWindow(){
   try{
@@ -1369,6 +1377,8 @@ function lookupWait(rideName){
 }
 
 function wbHTML(rideName){
+  // Check refurb first (weekly Claude search overrides API)
+  if(isRideInRefurb(rideName)) return '<span class="wb wb-closed">Refurb</span>';
   var d=lookupWait(rideName);
   var grey='background:rgba(150,150,150,0.1);color:#888;border:1px solid rgba(150,150,150,0.2)';
   var hasAnyData=Object.keys(waits).length>0;
@@ -2929,6 +2939,87 @@ async function aiChooseRides(){var btn=document.getElementById('aiChooseBtn');va
 function applyRideDefaults(){var d=['Space Mountain','Matterhorn','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs','Guardians'];document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(d.some(function(x){return c.textContent.indexOf(x.substring(0,8))>-1;}))c.classList.add('selected');});var s=document.getElementById('aiChooseStatus');if(s){s.style.display='block';s.textContent='Applied smart defaults.';s.style.color='var(--gold)';}}
 
 function doRefreshWaits(){var btn=document.getElementById('waitRefreshBtn');if(btn){btn.textContent='Refreshing...';btn.disabled=true;}var el=document.getElementById('waitTabContent');if(el)el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Fetching live wait times...</div>';fetchWaits().then(function(){if(btn){btn.textContent='&#8635; Refresh';btn.disabled=false;}}).catch(function(){if(btn){btn.textContent='&#8635; Refresh';btn.disabled=false;}});}
+
+
+
+// ── Weekly Refurbishment Check ────────────────────────────────────────────
+function getStoredRefurbs(){
+  try{
+    var stored=localStorage.getItem('weekly_refurbs');
+    if(!stored) return null;
+    var data=JSON.parse(stored);
+    // Return if less than 7 days old
+    if(Date.now()-data.ts < 7*24*60*60*1000) return data.rides;
+    return null; // stale
+  }catch(e){return null;}
+}
+
+function storeRefurbs(rides){
+  try{
+    localStorage.setItem('weekly_refurbs',JSON.stringify({ts:Date.now(),rides:rides}));
+  }catch(e){}
+}
+
+function isRideInRefurb(rideName){
+  // Check weekly Claude search results first
+  var weeklyRefurbs=getStoredRefurbs();
+  if(weeklyRefurbs&&weeklyRefurbs.length){
+    var norm=normalizeRideName(rideName);
+    var found=weeklyRefurbs.some(function(r){
+      var rn=normalizeRideName(r);
+      return norm.indexOf(rn)>-1||rn.indexOf(norm)>-1||
+        norm.split(' ').filter(function(w){return w.length>3&&rn.indexOf(w)>-1;}).length>=1;
+    });
+    if(found) return true;
+  }
+  // Fallback: check wait times API status
+  if(Object.keys(waits).length){
+    var d=lookupWait(rideName);
+    if(d&&d.s==='REFURBISHMENT') return true;
+  }
+  return false;
+}
+
+async function runWeeklyRefurbCheck(){
+  if(!apiKey) return;
+  // Only run if no fresh data
+  if(getStoredRefurbs()!==null) return;
+  console.log('Running weekly refurb check...');
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:400,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:'Search for which rides at Disneyland Resort (Disneyland park and Disney California Adventure) are currently closed for refurbishment as of today. Check sources like TouringPlans, MiceChat, or AllEars. Return ONLY a JSON array of ride names that are confirmed closed for refurbishment, nothing else. Example: ["Pirates of the Caribbean","Buzz Lightyear Astro Blasters"]. If none found return [].'}]
+      })
+    });
+    var data=await resp.json();
+    // Extract the final text response
+    var text='';
+    if(data.content){
+      data.content.forEach(function(block){
+        if(block.type==='text') text+=block.text;
+      });
+    }
+    // Parse JSON array from response
+    var match=text.replace(/```json|```/g,'').match(/\[[\s\S]*\]/);
+    if(match){
+      var rides=JSON.parse(match[0]);
+      if(Array.isArray(rides)){
+        storeRefurbs(rides);
+        console.log('Weekly refurb check complete:',rides);
+        // Re-render schedule with updated refurb data
+        renderSched();
+      }
+    }
+  }catch(e){console.warn('Weekly refurb check failed:',e);}
+}
+
+// Schedule weekly check - run 30 seconds after page load to not block startup
+setTimeout(function(){runWeeklyRefurbCheck();},30000);
 
 })();
 </script>
