@@ -498,7 +498,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div id="setupBanner" style="display:none;padding:0 0 10px">
   <div class="setup-banner" onclick="openSetup()">
     <div style="font-size:24px">&#127906;</div>
-    <div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">Set up your Ride Style</div><div style="font-size:12px;color:var(--text-muted)" id="setupBannerSub">Personalize the AI in 2 minutes</div></div>
+    <div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">&#128073; Do This First: Set up your park visit</div><div style="font-size:12px;color:var(--text-muted)" id="setupBannerSub">Personalize the AI in 2 minutes</div></div>
     <span style="font-size:11px;color:var(--text-dim);cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();skipSetup()">Skip</span>
   </div>
 </div>
@@ -1820,7 +1820,7 @@ async function checkWazeSuggestion(){
     +(oppList?'SHORT WAIT OPPORTUNITIES right now: '+oppList+'. ':'')
     +'Current schedule:\n'+schedSummary+'\n'
     +'Based on the current wait times and schedule, give ONE specific actionable suggestion that would save the most time. '
-    +'Format your response as JSON only, no other text: {"headline":"short 8-word max headline","detail":"2 sentence explanation","walkMins":NUMBER,"timeSaved":NUMBER,"rideToAdd":"ride name or empty","rideToDelay":"ride name to push later or empty"}';
+    +'Format your response as JSON only, no other text: {"headline":"short 8-word max headline","detail":"2 sentence explanation using **bold** around the key action or ride name","walkMins":NUMBER,"timeSaved":NUMBER,"rideToAdd":"ride name or empty","rideToDelay":"ride name to push later or empty"}';
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -2867,7 +2867,7 @@ async function sendChat(){
   var wc='';if(/(wait|line|ride|busy|crowd)/i.test(ml)&&Object.keys(waits).length){var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);if(top.length)wc=' Live waits: '+top.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';}
   var bc='';if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
   var sc='';if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
-  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences.';
+  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);chatHistory.push({role:'user',content:msg});
   var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
   var msgs=document.getElementById('chatMessages');if(msgs){msgs.appendChild(te);msgs.scrollTop=msgs.scrollHeight;}
