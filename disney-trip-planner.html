@@ -2,10 +2,6 @@
 <html lang="en" style="color-scheme:light">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<!-- v202605040220 -->
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -142,40 +138,25 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .ll-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
 .modal-bg.hidden{display:none!important}
-.setup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:800;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
-.setup-panel{background:var(--bg);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,0.3)}
+.setup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:800;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
+.setup-panel{background:var(--bg);border-radius:24px 24px 0 0;padding:20px 18px 36px;width:100%;max-height:88vh;overflow-y:auto}
 .setup-step{display:none}.setup-step.active{display:block}
-.setup-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--text);margin-bottom:4px}
-.setup-sub{font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.5}
-.setup-progress{display:flex;gap:6px;margin-bottom:20px}
+.setup-progress{display:flex;gap:6px;margin-bottom:18px}
 .setup-dot{flex:1;height:3px;border-radius:2px;background:var(--border)}
-.setup-dot.done{background:var(--magic)}
-.setup-dot.active{background:linear-gradient(90deg,var(--magic),var(--purple))}
-.setup-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;margin-top:16px}
-.setup-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
-.setup-chip{padding:8px 14px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;transition:all .2s}
-.setup-chip.selected{border-color:var(--magic);background:var(--magic-dim);color:var(--magic);font-weight:600}
-.setup-chip.skip-chip{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.06);color:var(--red)}
-.setup-chip.skip-chip.selected{border-color:var(--red);background:rgba(248,113,113,.15)}
-.setup-slider-row{display:flex;align-items:center;gap:10px;margin:8px 0}
-.setup-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border);outline:none}
-.setup-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--magic),var(--purple));cursor:pointer}
-.setup-btn{width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:16px;box-shadow:0 4px 16px rgba(79,111,232,.3)}
-.setup-skip{display:block;text-align:center;font-size:13px;color:var(--text-dim);margin-top:12px;cursor:pointer;text-decoration:underline}
-.setup-back{background:none;border:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;padding:0;margin-bottom:16px}
-.setup-banner{background:linear-gradient(135deg,rgba(79,111,232,.1),rgba(167,139,250,.07));border:1.5px solid rgba(79,111,232,.2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer}
-.setup-banner-icon{font-size:24px;flex-shrink:0}
-.setup-banner-text{flex:1}
-.setup-banner-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
-.setup-banner-sub{font-size:12px;color:var(--text-muted)}
-.setup-banner-skip{font-size:11px;color:var(--text-dim);cursor:pointer;text-decoration:underline;flex-shrink:0;align-self:flex-start;margin-top:2px}
+.setup-dot.done{background:var(--magic)}.setup-dot.active{background:linear-gradient(90deg,var(--magic),var(--purple))}
+.setup-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;margin-top:14px}
+.setup-chips{display:flex;flex-wrap:wrap;gap:7px}
+.setup-chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;transition:all .2s}
+.setup-chip.selected{border-color:var(--magic);background:rgba(27,47,160,0.1);color:var(--magic);font-weight:600}
+.setup-chip.skip{border-color:rgba(220,38,38,0.3);background:rgba(220,38,38,0.05);color:var(--red,#EF4444)}
+.setup-chip.skip.selected{border-color:var(--red,#EF4444);background:rgba(220,38,38,0.12)}
+.setup-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:16px}
+.setup-back{background:none;border:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;padding:0;margin-bottom:12px}
+.setup-banner{background:linear-gradient(135deg,rgba(27,47,160,0.08),rgba(109,40,217,0.05));border:1.5px solid rgba(27,47,160,0.2);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px}
 .chat-msg{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.6;word-wrap:break-word}
 .chat-msg.user{background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .chat-msg.ai{background:var(--card);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border)}
-.chat-msg.ai b{color:var(--gold)}
-.chat-suggest{padding:7px 12px;border-radius:99px;border:1px solid var(--border);background:var(--card);color:var(--text-muted);font-size:11px;font-family:inherit;cursor:pointer;text-align:left;transition:all .2s}
-.chat-suggest:hover{border-color:var(--magic);color:var(--magic)}
-.chat-typing{display:flex;gap:4px;align-items:center;padding:12px 14px}
+.chat-suggest{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer}
 .chat-dot{width:7px;height:7px;border-radius:50%;background:var(--text-dim);animation:chatDot .8s ease-in-out infinite}
 .chat-dot:nth-child(2){animation-delay:.15s}
 .chat-dot:nth-child(3){animation-delay:.3s}
@@ -396,253 +377,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 </div>
 
-<!-- Trip Setup Panel -->
-<div class="setup-overlay hidden" id="setupOverlay">
-  <div class="setup-panel" id="setupPanel">
-    <div class="setup-progress">
-      <div class="setup-dot active" id="sp0"></div>
-      <div class="setup-dot" id="sp1"></div>
-      <div class="setup-dot" id="sp2"></div>
-      <div class="setup-dot" id="sp3"></div>
-    </div>
-
-    <!-- Step 1: Your Group -->
-    <div class="setup-step active" id="setupStep0">
-      <div class="setup-title">Your Group</div>
-      <div class="setup-sub">Tell us who's coming so we can personalize your experience.</div>
-      <div class="setup-label">Group size</div>
-      <div class="setup-slider-row">
-        <span style="font-size:13px;color:var(--text-muted)">1</span>
-        <input type="range" class="setup-slider" id="groupSize" min="1" max="20" value="9" oninput="document.getElementById('groupSizeVal').textContent=this.value">
-        <span style="font-size:13px;color:var(--text-muted)">20</span>
-        <span id="groupSizeVal" style="font-size:15px;font-weight:700;color:var(--magic);min-width:24px;text-align:right">9</span>
-      </div>
-      <div class="setup-label">Who's in the group?</div>
-      <div class="setup-chips" id="ageChips">
-        <div class="setup-chip" onclick="toggleChip(this,'ages')">Little kids (under 7)</div>
-        <div class="setup-chip" onclick="toggleChip(this,'ages')">Tweens (7-12)</div>
-        <div class="setup-chip" onclick="toggleChip(this,'ages')">Teens (13-17)</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'ages')">Adults</div>
-      </div>
-      <div class="setup-label">Any kids under 48 inches tall?</div>
-      <div class="setup-chips">
-        <div class="setup-chip" id="hasKidsYes" onclick="toggleHeightKids(true)">Yes — enter heights</div>
-        <div class="setup-chip selected" id="hasKidsNo" onclick="toggleHeightKids(false)">No</div>
-      </div>
-      <div id="kidsHeightArea" style="display:none;margin-top:8px">
-        <div id="kidsHeightInputs"></div>
-        <button onclick="addKidHeight()" style="padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;margin-top:6px">+ Add child</button>
-      </div>
-      <button class="setup-btn" onclick="setupNext(1)">Next: Ride Style ›</button>
-    </div>
-
-    <!-- Step 2: Ride Style -->
-    <div class="setup-step" id="setupStep1">
-      <button class="setup-back" onclick="setupBack(0)">‹ Back</button>
-      <div class="setup-title">Ride Style</div>
-      <div class="setup-sub">Help the AI understand what your group loves and wants to skip.</div>
-      <div class="setup-label">Thrill level</div>
-      <div class="setup-chips" id="thrillChips">
-        <div class="setup-chip" onclick="toggleChip(this,'thrill')">🎢 Max thrills</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'thrill')">⚖️ Mix of both</div>
-        <div class="setup-chip" onclick="toggleChip(this,'thrill')">🎠 Family friendly</div>
-      </div>
-      <div class="setup-label">Start time preference</div>
-      <div class="setup-chips" id="startChips">
-        <div class="setup-chip selected" onclick="toggleChip(this,'start')">🏃 Rope drop warriors</div>
-        <div class="setup-chip" onclick="toggleChip(this,'start')">☕ Mid-morning start</div>
-        <div class="setup-chip" onclick="toggleChip(this,'start')">😎 Relaxed — whenever</div>
-      </div>
-      <div class="setup-label">Must-ride ❤️</div>
-      <div class="setup-chips" id="mustRideChips">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);width:100%;margin-top:4px">🏰 Disneyland</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Space Mountain</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Matterhorn Bobsleds</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Big Thunder Mountain</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Indiana Jones Adventure</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Haunted Mansion</div>
-        
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Rise of the Resistance</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Millennium Falcon</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Tiana's Bayou Adventure</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Jungle Cruise</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Star Tours</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Roger Rabbit</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Peter Pan's Flight</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">It's a Small World</div>
-        
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Finding Nemo Submarine</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Monsters Inc</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Autopia</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Dumbo</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Mr. Toad's Wild Ride</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Alice in Wonderland</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Snow White's Enchanted Wish</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Pinocchio's Daring Journey</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Mickey & Minnie's Runaway Railway</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Chip 'n' Dale's GADGETcoaster</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Roger Dodger</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Mad Tea Party</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">King Arthur Carrousel</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Storybook Land Canal Boats</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Mark Twain Riverboat</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Disneyland Railroad</div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);width:100%;margin-top:8px">🎡 Disney California Adventure</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Radiator Springs Racers</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Guardians of the Galaxy</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Incredicoaster</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Web Slingers</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Grizzly River Run</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Soarin' Over California</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Toy Story Midway Mania</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Luigi's Rollickin' Roadsters</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Mater's Junkyard Jamboree</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Monsters Inc Mike & Sulley</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Goofy's Sky School</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Pixar Pal-A-Round</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Turtle Talk with Crush</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Little Mermaid - Ariel's Undersea Adventure</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Muppet*Vision 3D</div>
-      </div>
-      <div class="setup-label">Skip list 🚫</div>
-      <div class="setup-chips" id="skipRideChips">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);width:100%;margin-top:4px">🏰 Disneyland</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Space Mountain</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Matterhorn Bobsleds</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Big Thunder Mountain</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Indiana Jones Adventure</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Haunted Mansion</div>
-        
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Rise of the Resistance</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Millennium Falcon</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Tiana's Bayou Adventure</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Jungle Cruise</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Star Tours</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Roger Rabbit</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Peter Pan's Flight</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">It's a Small World</div>
-        
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Monsters Inc</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Autopia</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Dumbo</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Mr. Toad's Wild Ride</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Alice in Wonderland</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Snow White's Enchanted Wish</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Pinocchio's Daring Journey</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Mickey & Minnie's Runaway Railway</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Mad Tea Party</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">King Arthur Carrousel</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Storybook Land Canal Boats</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Mark Twain Riverboat</div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);width:100%;margin-top:8px">🎡 Disney California Adventure</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Radiator Springs Racers</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Guardians of the Galaxy</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Incredicoaster</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Web Slingers</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Grizzly River Run</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Soarin' Over California</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Toy Story Midway Mania</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Luigi's Rollickin' Roadsters</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Mater's Junkyard Jamboree</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Goofy's Sky School</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Pixar Pal-A-Round</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Turtle Talk with Crush</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Little Mermaid - Ariel's Undersea Adventure</div>
-        <div class="setup-chip skip-chip" onclick="toggleChip(this,'skip')">Muppet*Vision 3D</div>
-      </div>
-      <div style="margin-top:16px;padding:12px;background:linear-gradient(135deg,rgba(79,111,232,0.08),rgba(167,139,250,0.05));border:1px solid rgba(79,111,232,0.2);border-radius:var(--radius-sm);text-align:center">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Not sure? Let Claude pick the best mix for your group.</div>
-        <button onclick="aiChooseRides()" id="aiChooseBtn" style="padding:9px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 3px 12px rgba(79,111,232,0.3)">✨ Let AI Choose for Me</button>
-        <div id="aiChooseStatus" style="font-size:12px;color:var(--text-muted);margin-top:8px;display:none"></div>
-      </div>
-      <button class="setup-btn" onclick="setupNext(2)" style="margin-top:10px">Next: Your Plan ›</button>
-    </div>
-
-    <!-- Step 3: Your Plan -->
-    <div class="setup-step" id="setupStep2">
-      <button class="setup-back" onclick="setupBack(1)">‹ Back</button>
-      <div class="setup-title">Your Plan</div>
-      <div class="setup-sub">Last step! Tell us about Lightning Lane and dining so we can optimize your days.</div>
-      <div class="setup-label">Lightning Lane strategy</div>
-      <div class="setup-chips" id="llChips">
-        <div class="setup-chip" onclick="toggleChip(this,'ll')">✅ Getting Multi Pass</div>
-        <div class="setup-chip" onclick="toggleChip(this,'ll')">⭐ Getting Individual LL too</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'ll')">❓ Undecided</div>
-        <div class="setup-chip" onclick="toggleChip(this,'ll')">🚫 Skipping LL — standby only</div>
-      </div>
-      <div class="setup-label">Dining preference</div>
-      <div class="setup-chips" id="diningChips">
-        <div class="setup-chip" onclick="toggleChip(this,'dining')">🍔 Quick service — keep moving</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'dining')">⚖️ Mix of both</div>
-        <div class="setup-chip" onclick="toggleChip(this,'dining')">🍽 Sit-down meals — part of the experience</div>
-      </div>
-      <div class="setup-label">Pace preference</div>
-      <div class="setup-chips" id="paceChips">
-        <div class="setup-chip" onclick="toggleChip(this,'pace')">🚀 Pack in as much as possible</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'pace')">⚖️ Balanced — rides + breaks</div>
-        <div class="setup-chip" onclick="toggleChip(this,'pace')">🌿 Relaxed — quality over quantity</div>
-      </div>
-      <button class="setup-btn" onclick="setupNext(3)">Next: Characters ›</button>
-    </div>
-    <!-- Step 4: Characters -->
-    <div class="setup-step" id="setupStep3">
-      <button class="setup-back" onclick="setupBack(2)">‹ Back</button>
-      <div class="setup-title">Character Meets</div>
-      <div class="setup-sub">Want to meet characters? We'll build time into your schedule.</div>
-      <div class="setup-label">Does your group want character meets?</div>
-      <div class="setup-chips" id="charYesNo">
-        <div class="setup-chip" onclick="toggleCharMeets(true)" id="charYes">Yes! We love characters</div>
-        <div class="setup-chip selected" onclick="toggleCharMeets(false)" id="charNo">No thanks — more ride time</div>
-      </div>
-      <div id="charSelectArea" style="display:none">
-        <div class="setup-label">🏰 Disneyland — Who do you want to meet?</div>
-        <div class="setup-chips" id="charDLChips">
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Mickey &amp; Minnie</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Cinderella</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Rapunzel</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Tiana</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Snow White</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Rey (Star Wars)</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Chewbacca</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Darth Vader</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Woody &amp; Jessie</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Buzz Lightyear</div>
-        </div>
-        <div class="setup-label">🎡 DCA — Who do you want to meet?</div>
-        <div class="setup-chips" id="charDCAChips">
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Spider-Man</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Black Panther</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Iron Man</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Captain America</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Star-Lord &amp; Gamora</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Woody &amp; Buzz (Pixar Pier)</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Lightning McQueen</div>
-        </div>
-        <div class="setup-label">Priority</div>
-        <div class="setup-chips" id="charPriorityChips">
-          <div class="setup-chip selected" onclick="toggleChip(this,'charPri')">Fit in when convenient</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charPri')">High priority — schedule around them</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charPri')">First thing in the morning</div>
-        </div>
-      </div>
-      <button class="setup-btn" onclick="completeSetup()">✨ Save My Ride Style</button>
-    </div>
-
-  </div>
-</div>
-
-<!-- Trip Setup Banner (shows on schedule tab) -->
-<div id="setupBanner" style="display:none;padding:0 14px;margin-bottom:8px">
-  <div class="setup-banner" onclick="openSetup()">
-    <div class="setup-banner-icon">🎢</div>
-    <div class="setup-banner-text">
-      <div class="setup-banner-title">Set up your Ride Style</div>
-      <div class="setup-banner-sub">Personalize the AI to your group in 2 minutes</div>
-    </div>
-    <span class="setup-banner-skip" onclick="event.stopPropagation();skipSetup()">Skip</span>
-  </div>
-</div>
-
 <!-- Magic Day celebration screen Jun 28 -->
 <div id="magicDayScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#0D1B6E,#1B2FA0 40%,#6D28D9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 24px;box-sizing:border-box;overflow:hidden">
   <canvas id="fwCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0"></canvas>
@@ -673,6 +407,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="lock-title">Coffron/Woods<br>Disneyland Trip</div>
     <div class="lock-sub">June 28&#8211;30 &middot; Anaheim, CA</div>
 
+
     <!-- Countdown box -->
     <div id="lockCountdown" class="lock-countdown-box" style="display:none">
       <div id="lockCountdownNum" style="font-size:26px;font-weight:700;color:#FFFFFF;line-height:1"></div>
@@ -687,6 +422,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </div>
     <!-- Enter the Magic button after first unlock -->
     <button class="lock-enter-btn" id="lockEnterBtn" style="display:none" onclick="enterMagic()">&#10024; Enter the Magic &#10024;</button>
+    <div id="lockCountdowns" style="display:flex;flex-direction:column;gap:5px;margin:10px auto 0;width:100%;max-width:280px"></div>
     <div class="lock-error" id="lockError"></div>
   </div>
 </div>
@@ -747,7 +483,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <!-- Edit / AI Optimize / Reset bar -->
     <div class="edit-bar">
       <button class="edit-toggle" id="editToggle" onclick="if(isAdmin())toggleEdit()">&#9998; Edit Schedule</button>
-      <button class="ai-opt-btn" id="aiOptBtn" onclick="reoptimize()">&#10024; AI Optimize</button>
+      <button class="ai-opt-btn" id="aiOptBtn" onclick="reoptimize()">&#10024; AI Optimize Your Schedule</button>
     </div>
 
     <!-- AI Reoptimize result box -->
@@ -770,45 +506,77 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div style="font-size:13px;font-weight:600;color:var(--magic)">Live Wait Times</div>
         <div id="waitStatus" style="font-size:11px;color:var(--text-muted)">Loading...</div>
       </div>
-      
+      <button class="wait-refresh-btn" onclick="fetchWaits()">&#8635; Refresh</button>
     </div>
     <div id="waitTabContent"><div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div></div>
     <div style="margin-top:10px;font-size:11px;color:var(--text-dim);text-align:center">Powered by ParkSavers.com &middot; Updates every 5 min</div>
   </div>
   <div id="tabShows" class="hidden"><div id="showsContent"></div></div>
 
-
   <div id="tabChat" class="hidden">
-  <div style="padding:14px 14px 0">
-    <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">&#128172; Ask your Disney AI</div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Ask anything — wait times, bathrooms, snacks, ride strategy.</div>
-    <div id="chatSuggests" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">
-      <button onclick="sendSuggested(this)" class="chat-suggest">Where is the nearest bathroom to Space Mountain?</button>
-      <button onclick="sendSuggested(this)" class="chat-suggest">Where can I get a Dole Whip?</button>
-      <button onclick="sendSuggested(this)" class="chat-suggest">Where are the churro carts?</button>
-      <button onclick="sendSuggested(this)" class="chat-suggest">When should we ride Rise of the Resistance?</button>
-      <button onclick="sendSuggested(this)" class="chat-suggest">Best rope drop strategy for today?</button>
+    <div style="padding:14px 14px 0">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">&#128172; Ask your Disney AI</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Ask anything about your trip.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">
+        <button onclick="sendSuggested(this)" class="chat-suggest">Nearest bathroom to Space Mountain?</button>
+        <button onclick="sendSuggested(this)" class="chat-suggest">Where can I get a Dole Whip?</button>
+        <button onclick="sendSuggested(this)" class="chat-suggest">Where are the churro carts?</button>
+        <button onclick="sendSuggested(this)" class="chat-suggest">When should we ride Rise of the Resistance?</button>
+        <button onclick="sendSuggested(this)" class="chat-suggest">Best rope drop strategy for today?</button>
+      </div>
+    </div>
+    <div id="chatMessages" style="padding:0 14px 130px;display:flex;flex-direction:column;gap:10px;min-height:80px"></div>
+    <div style="position:fixed;bottom:72px;left:0;right:0;max-width:430px;margin:0 auto;padding:8px 14px 10px;border-top:1px solid var(--border);background:var(--bg);z-index:50">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="chatInput" placeholder="Ask anything about your trip..."
+          style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:99px;padding:10px 16px;font-size:14px;font-family:inherit;color:var(--text);outline:none"
+          onkeydown="if(event.key==='Enter'){sendChat();}">
+        <button onclick="sendChat()" style="padding:10px 16px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">Send</button>
+      </div>
+      <div style="font-size:10px;color:var(--text-dim);margin-top:4px;text-align:center">Powered by Claude AI</div>
     </div>
   </div>
-  <div id="chatMessages" style="padding:0 14px 120px;display:flex;flex-direction:column;gap:10px;min-height:100px"></div>
-  <div style="position:fixed;bottom:70px;left:0;right:0;max-width:430px;margin:0 auto;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg);z-index:50">
-    <div style="display:flex;gap:8px;align-items:flex-end">
-      <textarea id="chatInput" placeholder="Ask anything about your trip..." rows="2"
-        style="flex:1;resize:none;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;font-family:inherit;color:var(--text);outline:none;line-height:1.4"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
-      <button onclick="sendChat()" style="padding:10px 16px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;height:46px;line-height:1">&#10148;</button>
-    </div>
-    <div style="font-size:10px;color:var(--text-dim);margin-top:5px;text-align:center">Powered by Claude AI &#183; Knows your schedule &amp; live waits</div>
+  <div id="tabClosures" class="hidden">
+    <div id="closedBanner" style="padding:0"></div>
   </div>
-</div>
-
-<div id="tabInfo" class="hidden">
+  <div id="tabInfo" class="hidden">
     <!-- Rendered dynamically by renderInfoTab() -->
   </div>
   <div id="tabClosures" class="hidden">
     <div id="closedBanner" style="padding:0"></div>
   </div>
+  <div id="tabInfo" class="hidden">
+    <div class="sec-hdr"><div class="sec-lbl">Trip Info</div><div class="sec-line"></div></div>
+    <div id="closedBannerInfo"></div>
+    <div class="info-sec"><div class="info-title">&#128679; Confirmed June 2026 Closures</div>
+      <div class="info-card" style="border-color:rgba(248,113,113,.25)">
+        <b style="color:var(--red)">Pirates of the Caribbean</b> &#8212; Closed since May 4. No confirmed reopening for late June.<br><br>
+        <b style="color:var(--red)">Buzz Lightyear Astro Blasters</b> &#8212; Closed since April 13.<br><br>
+        <b style="color:var(--red)">Silly Symphony Swings (DCA)</b> &#8212; Closed since April 27.<br><br>
+        <b style="color:var(--yellow)">Blue Bayou Restaurant</b> &#8212; Open but obstructed views during Pirates refurb. Skip it &#8212; Caf&eacute; Orleans is the better choice right now.
+      </div>
+    </div>
+    <div class="info-sec"><div class="info-title">&#9889; Lightning Lane Guide</div>
+      <div class="info-card"><b>Single Pass</b> (~$15&#8211;35/person): Rise of the Resistance &middot; Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones &middot; Matterhorn &middot; Space Mountain &middot; Haunted Mansion &middot; Big Thunder &middot; Smugglers Run &middot; Tiana&rsquo;s &middot; Guardians &middot; Incredicoaster &middot; Web Slingers &middot; Soarin&rsquo; &middot; Toy Story<br><br><b>No LL needed Tuesday</b> &#8212; VIP tour handles everything.</div>
+      <div class="info-card"><b>Rules:</b> Buy after scanning into park &middot; Book next LL after 2 hrs OR right after scanning into current ride &middot; Book while standing in the current LL line! &middot; Each ride once per day &middot; For 2nd park: book once return time shows 11AM+</div>
+    </div>
+    <div class="info-sec"><div class="info-title">&#128222; Important Numbers</div>
+      <div class="info-card"><b>VIP Tour:</b> (714) 300-7710<br><b>Disneyland main:</b> (714) 781-4565<br><b>Naples Ristorante:</b> naplesristorante.com</div>
+    </div>
   
+  <div class="info-sec"><div class="info-title">&#127869; Dining to Book Ahead</div>
+      <div class="info-card"><b>Carthay Circle</b> &middot; <b>Lamplight Lounge</b> &middot; <b>Caf&eacute; Orleans</b> &middot; <b>River Belle Terrace</b> &#8212; Disneyland app<br><b>Naples Ristorante</b> &#8212; OpenTable or naplesristorante.com<br>Skip Blue Bayou this trip &#8212; Pirates refurb affects the atmosphere.</div>
+    </div>
+    <div class="info-sec"><div class="info-title">&#127915; Park Hopper</div>
+      <div class="info-card">Hopping opens at <b>11:00 AM</b> daily. Book LL for 2nd park before you hop &#8212; once return time shows 11AM+.</div>
+    </div>
+    <div class="info-sec"><div class="info-title">&#128273; Update API Key</div>
+      <div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com &middot; ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>
+    </div>
+    <div class="info-sec"><div class="info-title">&#8505;&#65039; About This App</div>
+      <div class="info-card">Schedule editor with drag-reorder &middot; AI optimization uses historical wait time patterns &middot; Per-ride AI reroute on demand &middot; Deep links to official Disneyland app<br><br><b>Add to iPhone:</b> Safari &#8594; Share &#8594; Add to Home Screen</div>
+    </div>
+  </div>
 </div>
 
 <!-- Add Entry Modal -->
@@ -846,6 +614,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
+// v202605040356 — forces cache invalidation
+// Safety stubs for functions that may be called before definition (belt and suspenders)
+function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
+function showToast(msg,bg){try{var t=document.createElement('div');t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:'+(bg||'linear-gradient(135deg,#1B2FA0,#6D28D9)')+';color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:nowrap';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove();},2500);}catch(e){}}
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
 const CLOSED=[
@@ -971,32 +743,23 @@ function renderLockCountdowns(){
   if(!el) return;
   var now=new Date();
   var tripStart=new Date('2026-06-28T00:00:00-07:00');
-
-  // Dining reservations open 60 days before trip start
   var diningOpen=new Date(tripStart.getTime()-60*24*60*60*1000);
-  // Lightning Lane bookings open 7 days before for on-site guests, day-of for off-site
   var llOpen=new Date(tripStart.getTime()-7*24*60*60*1000);
-
   var html='';
-
+  var style='background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
+  var goldStyle='background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
   if(now<diningOpen){
-    var dDays=Math.ceil((diningOpen-now)/(24*60*60*1000));
-    html+='<div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center">'
-      +'🍽 Dining reservations open in <b style="color:var(--gold-light)">'+dDays+' days</b></div>';
+    var d=Math.ceil((diningOpen-now)/(24*60*60*1000));
+    html+='<div style="'+style+'">&#127869; Dining reservations open in <b style="color:#F0C462">'+d+' days</b></div>';
   } else if(now<tripStart){
-    html+='<div style="background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.2);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center">'
-      +'🍽 Dining reservations are <b style="color:#F0C462">open now!</b></div>';
+    html+='<div style="'+goldStyle+'">&#127869; Dining reservations are <b style="color:#F0C462">open now!</b></div>';
   }
-
   if(now<llOpen){
-    var lDays=Math.ceil((llOpen-now)/(24*60*60*1000));
-    html+='<div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center">'
-      +'⚡ Lightning Lane booking opens in <b style="color:var(--gold-light)">'+lDays+' days</b></div>';
+    var l=Math.ceil((llOpen-now)/(24*60*60*1000));
+    html+='<div style="'+style+'">&#9889; Lightning Lane opens in <b style="color:#F0C462">'+l+' days</b></div>';
   } else if(now<tripStart){
-    html+='<div style="background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.2);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center">'
-      +'⚡ Lightning Lane booking is <b style="color:#F0C462">open now!</b></div>';
+    html+='<div style="'+goldStyle+'">&#9889; Lightning Lane booking is <b style="color:#F0C462">open now!</b></div>';
   }
-
   el.innerHTML=html;
 }
 
@@ -1012,7 +775,7 @@ function checkLock(){
     }catch(e){}
     document.getElementById('lockScreen').style.display='none';
     // Show magic day screen on Jun 28 first open only
-    var isJun28=todayPT()==='2026-06-28';
+    var isJun28=now<new Date('2026-06-29T00:00:00');
     var shownMagicDay=false;
     try{shownMagicDay=localStorage.getItem('magic_day_shown')==='yes';}catch(e){}
     if(isJun28&&!shownMagicDay){
@@ -1352,114 +1115,9 @@ function renderDayInfoBar(){
 }
 var PROXY='https://disney-wait-times-lupt.vercel.app/api/waittimes';
 
-// ── Height requirements (inches) ─────────────────────────────────────────
-var HEIGHTS={
-  "Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,
-  "Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Mickey Minnies Runaway Railway":32,
-  "Millennium Falcon":38,"Tianas Bayou Adventure":40,
-  "Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,
-  "Grizzly River Run":42,"Star Tours":40,"Luigis Rollickin Roadsters":32,
-  "Maters Junkyard Jamboree":32
-};
-// None means no height requirement
-Object.keys(HEIGHTS).forEach(function(k){if(HEIGHTS[k]===null||HEIGHTS[k]===undefined)delete HEIGHTS[k];});
-
-// ── Group heights storage ─────────────────────────────────────────────────
-function getGroupHeights(){
-  try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return [];}
-}
-function saveGroupHeights(arr){
-  try{localStorage.setItem('group_heights',JSON.stringify(arr));}catch(e){}
-}
-function checkHeightWarning(rideName){
-  // Returns null (no req), 'ok' (all clear), 'warn' (someone too short)
-  var req=null;
-  Object.keys(HEIGHTS).forEach(function(k){
-    if(rideName&&rideName.toLowerCase().indexOf(k.toLowerCase().substring(0,10))>-1) req=HEIGHTS[k];
-  });
-  if(!req) return null;
-  var heights=getGroupHeights();
-  if(!heights.length) return null; // no heights entered
-  var kids=heights.filter(function(h){return h<req;});
-  return kids.length>0?'warn':'ok';
-}
-
-// ── Pacific Time helpers (always use Disneyland local time) ─────────────
-var PARK_HOURS_BY_DAY=[
-  {open:'8:00 AM',close:'12:00 AM'}, // Sunday Jun 28 - DL
-  {open:'8:00 AM',close:'11:00 PM'}, // Monday Jun 29
-  {open:'8:00 AM',close:'11:00 PM'}, // Tuesday Jun 30
-];
-
-function nowPT(){
-  // Returns current time as a Date object adjusted to Pacific Time
-  // Uses Intl API to get current Pacific time parts, then builds a comparable Date
-  try{
-    var now=new Date();
-    var ptStr=now.toLocaleString('en-US',{timeZone:'America/Los_Angeles'});
-    return new Date(ptStr);
-  }catch(e){
-    // Fallback: subtract Pacific offset (UTC-7 in June = PDT)
-    var now=new Date();
-    return new Date(now.getTime()-7*60*60*1000);
-  }
-}
-
-function todayPT(){
-  // Returns today's date string YYYY-MM-DD in Pacific Time
-  try{
-    var now=new Date();
-    var parts=now.toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});
-    return parts; // en-CA gives YYYY-MM-DD format
-  }catch(e){
-    return nowPT().toISOString().split('T')[0];
-  }
-}
-
-function parsePTTime(timeStr, baseDate){
-  // Parse a time string like "8:00 AM" into a Date object on the same PT day
-  var m=timeStr.match(/(\d+):(\d+)\s*(AM|PM)/);
-  if(!m) return baseDate;
-  var h=parseInt(m[1]),mn=parseInt(m[2]),per=m[3];
-  if(per==='PM'&&h!==12)h+=12;
-  if(per==='AM'&&h===12)h=0;
-  // Build a PT date string and parse it
-  try{
-    var ptNow=new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});
-    var d=new Date(ptNow+'T'+String(h).padStart(2,'0')+':'+String(mn).padStart(2,'0')+':00-07:00');
-    return d;
-  }catch(e){
-    var d=new Date(baseDate);d.setHours(h,mn,0,0);return d;
-  }
-}
-
-function isWithinParkWindow(){
-  var today=todayPT();
-  var dayMap={'2026-06-28':0,'2026-06-29':1,'2026-06-30':2};
-  var di=dayMap[today];
-  if(di===undefined) return false;
-  var hours=PARK_HOURS_BY_DAY[di];
-  var now=new Date();
-  var open=parsePTTime(hours.open,now);
-  var close=parsePTTime(hours.close,now);
-  if(close<=open) close=new Date(close.getTime()+24*60*60*1000); // midnight
-  var bufferOpen=new Date(open.getTime()-60*60*1000);
-  var bufferClose=new Date(close.getTime()+60*60*1000);
-  return now>=bufferOpen&&now<=bufferClose;
-}
-
-function isParkOpen(){
-  var today=todayPT();
-  var dayMap={'2026-06-28':0,'2026-06-29':1,'2026-06-30':2};
-  var di=dayMap[today];
-  if(di===undefined) return false;
-  var hours=PARK_HOURS_BY_DAY[di];
-  var now=new Date();
-  var open=parsePTTime(hours.open,now);
-  var close=parsePTTime(hours.close,now);
-  if(close<=open) close=new Date(close.getTime()+24*60*60*1000);
-  return now>=open&&now<=close;
-}
+function nowPT(){try{return new Date(new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));}catch(e){return new Date(new Date().getTime()-7*60*60*1000);}}
+function todayPT(){try{return new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});}catch(e){return nowPT().toISOString().split('T')[0];}}
+function parsePTTime(t,base){var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return base;var h=parseInt(m[1]),mn=parseInt(m[2]),per=m[3].toUpperCase();if(per==='PM'&&h!==12)h+=12;if(per==='AM'&&h===12)h=0;try{var d=new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});return new Date(d+'T'+String(h).padStart(2,'0')+':'+String(mn).padStart(2,'0')+':00-07:00');}catch(e){var d=new Date(base);d.setHours(h,mn,0,0);return d;}}
 
 var DAY_TIPS=[
   // Sunday Jun 28
@@ -1468,8 +1126,7 @@ var DAY_TIPS=[
     {icon:'&#9889;',label:'First 90 Minutes',text:'Hit this order for minimum waits: Rise of the Resistance → Millennium Falcon → Indiana Jones. All three are in the same general direction from the entrance. Avoid Fantasyland until after 11 AM — it gets swamped with families right at opening.'},
     {icon:'&#127878;',label:'Wondrous Journeys Fireworks',text:'Best spot: the Castle Hub at the end of Main Street, dead center. Arrive 15-20 min early and stand on the center path facing the castle. Second best: the walkway near Small World. Avoid Tomorrowland side — castle projections are sideways from there.'},
     {icon:'&#127917;',label:'Fantasmic! Viewing',text:'For the first show: arrive 40-45 min early and sit center-river, upper section of the amphitheater for the best sight lines. For the second show (if attending): arrive just 20 min early — far less crowded. The left side (stage left) has slightly better views of the dragon finale.'},
-    {icon:'&#127882;',label:'Paint the Night Parade',text:'Best spots: anywhere on Main Street USA between the castle and Town Square. The corner of Main Street and the Plaza is ideal — floats slow down there for the turn. Avoid the Tomorrowland Terrace area — crowds are thicker. Grab your spot 30 min early for a front row position.'},
-    {icon:'&#128683;',label:'Closures to Know — Sunday',text:'Pirates of the Caribbean is closed (no confirmed reopening for June). Buzz Lightyear Astro Blasters is closed. Blue Bayou is open but has obstructed views + construction noise from Pirates refurb — Café Orleans is the better choice. Fantasmic! runs nightly ✅'}
+    {icon:'&#127882;',label:'Paint the Night Parade',text:'Best spots: anywhere on Main Street USA between the castle and Town Square. The corner of Main Street and the Plaza is ideal — floats slow down there for the turn. Avoid the Tomorrowland Terrace area — crowds are thicker. Grab your spot 30 min early for a front row position.'}
   ],
   // Monday Jun 29 - VIP Tour
   [
@@ -1477,8 +1134,7 @@ var DAY_TIPS=[
     {icon:'&#127882;',label:'Paint the Night — VIP Reserved',text:'Your VIP reserved viewing spot is the best in the park. Arrive at the designated area 10 min before showtime — no need to stake out early like everyone else. Your guide will show you exactly where to stand. Enjoy the freedom of not fighting for position.'},
     {icon:'&#127753;',label:'World of Color — VIP Reserved',text:'VIP viewing puts you at the front of the lagoon. Arrive at Paradise Gardens 15 min before showtime. The show is 25 min — stay for the full ending with the Pixar finale sequence, it’s the best part. Consider splitting your group to experience both sides of the lagoon.'},
     {icon:'&#9889;',label:'Maximize the VIP Tour',text:'VIP tours move FAST. Eat a good breakfast — you won’t have many natural breaks. Keep snacks in your bag. The tour covers both parks so wear comfortable shoes. You can request specific experiences like Galaxy’s Edge immersion or character meet-and-greets along the route.'},
-    {icon:'&#127869;',label:'Dinner Timing',text:'Your ~5 PM dinner break is perfectly timed — the tour handles peak afternoon crowds and you eat while the parks hit maximum congestion. Return refreshed for VIP Paint the Night and World of Color in the evening. Don’t rush dinner — the evening events are reserved so you have time.'},,
-    {icon:'&#128683;',label:'Closures to Know — Monday',text:'Your VIP guide routes around all closures automatically. For reference: Pirates of the Caribbean and Buzz Lightyear are closed. The Avengers Campus → Cars Land walkway is closed — your guide will use the Performance Corridor instead.'}
+    {icon:'&#127869;',label:'Dinner Timing',text:'Your ~5 PM dinner break is perfectly timed — the tour handles peak afternoon crowds and you eat while the parks hit maximum congestion. Return refreshed for VIP Paint the Night and World of Color in the evening. Don’t rush dinner — the evening events are reserved so you have time.'},
   ],
   // Tuesday Jun 30
   [
@@ -1487,7 +1143,6 @@ var DAY_TIPS=[
     {icon:'&#127917;',label:'Fantasmic! Final Night',text:'Tonight is your last Fantasmic! — catch the second showing if possible for shortest waits. The show ends around 10:30-11 PM which leaves time to grab a Mickey bar on Main Street before heading out. Second show tip: stake out a spot near the entrance/exit for easy departure after.'},
     {icon:'&#127869;',label:'Café Orleans — 6:30 PM',text:'Arrive 5 min early and check in at the host stand. Must-orders: Monte Cristo sandwich and the beignets for the table. The restaurant is right next to the Rivers of America — ask for a patio table if available for the best ambiance. After dinner you’re perfectly positioned for Fantasmic!'},
     {icon:'&#10024;',label:'Last Night Magic',text:'After Fantasmic!, take one final walk down Main Street before closing. The park is less crowded in the last 30 min and the castle looks incredible lit up at night. Grab a churro or Dole Whip from a cart — most carts stay open until park close. A perfect way to end the trip.'},
-    {icon:'&#128683;',label:'Closures to Know — Tuesday',text:'DCA: Silly Symphony Swings and Inside Out Emotional Whirlwind are both closed. The walkway between Avengers Campus and Cars Land is closed for expansion — use the Performance Corridor or San Fransokyo Square to get between them. Disneyland: Pirates of the Caribbean and Buzz Lightyear Astro Blasters remain closed. Fantasmic! runs nightly.'},
   ],
 ];
 
@@ -1675,15 +1330,7 @@ function updateWaitStatus(){
   var el=document.getElementById('waitStatus');if(el){el.textContent=txt;el.style.color=col;}renderDayInfoBar();
 }
 
-function startWaitRefresh(){
-  // Only fetch during park window (1hr before open to 1hr after close)
-  var today=todayPT();
-  var tripDays=['2026-06-28','2026-06-29','2026-06-30'];
-  if(tripDays.indexOf(today)===-1) return; // Not a park day
-  if(isWithinParkWindow()){fetchWaits();}
-  setInterval(function(){if(isWithinParkWindow()){fetchWaits();setTimeout(checkRideStatusChanges,3000);}},5*60*1000);
-  setInterval(updateWaitStatus,60*1000);
-}
+function startWaitRefresh(){fetchWaits();setInterval(fetchWaits,5*60*1000);setInterval(updateWaitStatus,60*1000);}
 
 // ── Lightning Lane system ────────────────────────────────────────────────
 var llState={multiPass:null,individualPasses:{},bookedTimes:{}};
@@ -1819,7 +1466,7 @@ function scheduleLLPrompts(){
     }
   });
   // If opening app during the window, show appropriate prompt
-  var today=todayPT();
+  var today=now.toISOString().split('T')[0];
   var dayMap={'2026-06-28':0,'2026-06-29':1,'2026-06-30':2};
   var todayIdx=dayMap[today];
   if(todayIdx!==undefined&&todayIdx!==1){
@@ -1919,507 +1566,6 @@ function runFwAnimation(){
   loop();
 }
 
-// ── Trip Setup ───────────────────────────────────────────────────────────
-var setupData={};
-
-function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
-function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}
-function isSetupDone(){try{return localStorage.getItem('setup_done')==='yes';}catch(e){return false;}}
-
-function checkShowSetupBanner(){
-  if(!isAdmin()) return;
-  if(isSetupDone()) return;
-  var skips=getSetupSkips();
-  var banner=document.getElementById('setupBanner');
-  if(!banner) return;
-  if(skips>=5){
-    // Required — open immediately
-    openSetup(true);
-    return;
-  }
-  banner.style.display='block';
-  // Update skip count display
-  var sub=banner.querySelector('.setup-banner-sub');
-  if(sub&&skips>0) sub.textContent='Personalize the AI to your group ('+(5-skips)+' reminders left)';
-}
-
-function skipSetup(){
-  setSetupSkips(getSetupSkips()+1);
-  document.getElementById('setupBanner').style.display='none';
-}
-
-function openSetup(required){
-  document.getElementById('setupOverlay').classList.remove('hidden');
-  if(required){
-    // Hide skip option
-    document.querySelectorAll('.setup-skip').forEach(function(el){el.style.display='none';});
-  }
-  setupGoTo(0);
-}
-
-function closeSetup(){
-  document.getElementById('setupOverlay').classList.add('hidden');
-}
-
-function setupGoTo(step){
-  document.querySelectorAll('.setup-step').forEach(function(el,i){
-    el.classList.toggle('active',i===step);
-  });
-  [0,1,2,3].forEach(function(i){
-    var dot=document.getElementById('sp'+i);
-    if(dot){
-      dot.classList.toggle('done',i<step);
-      dot.classList.toggle('active',i===step);
-    }
-  });
-}
-
-function setupNext(step){setupGoTo(step);}
-function setupBack(step){setupGoTo(step);}
-
-function toggleCharMeets(yes){
-  document.getElementById('charYes').classList.toggle('selected', yes);
-  document.getElementById('charNo').classList.toggle('selected', !yes);
-  document.getElementById('charSelectArea').style.display = yes ? 'block' : 'none';
-}
-
-function toggleChip(el,group){
-  // Single select for some groups, multi for must/skip
-  if(group==='must'||group==='skip'||group==='ages'){
-    el.classList.toggle('selected');
-  } else {
-    var parent=el.parentNode;
-    parent.querySelectorAll('.setup-chip').forEach(function(c){c.classList.remove('selected');});
-    el.classList.add('selected');
-  }
-}
-
-function toggleHeightKids(yes){
-  document.getElementById('hasKidsYes').classList.toggle('selected',yes);
-  document.getElementById('hasKidsNo').classList.toggle('selected',!yes);
-  document.getElementById('kidsHeightArea').style.display=yes?'block':'none';
-  if(yes&&document.getElementById('kidsHeightInputs').children.length===0) addKidHeight();
-}
-
-function addKidHeight(){
-  var area=document.getElementById('kidsHeightInputs');
-  var idx=area.children.length;
-  var div=document.createElement('div');
-  div.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px';
-  div.innerHTML='<span style="font-size:13px;color:var(--text-muted)">Child '+(idx+1)+'</span>'
-    +'<input type="number" min="24" max="60" placeholder="inches" value="44" '
-    +'style="width:80px;padding:6px 8px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit">';
-  area.appendChild(div);
-}
-
-function getChipSelections(containerId){
-  var chips=document.querySelectorAll('#'+containerId+' .setup-chip.selected');
-  return Array.from(chips).map(function(c){return c.textContent.trim();});
-}
-
-async function aiChooseRides(){
-  if(!apiKey){
-    // Use hardcoded smart defaults if no API key
-    aiApplyRideDefaults();
-    return;
-  }
-  var btn=document.getElementById('aiChooseBtn');
-  var status=document.getElementById('aiChooseStatus');
-  btn.disabled=true;
-  btn.textContent='✨ Choosing...';
-  status.style.display='block';
-  status.textContent='Claude is picking the best rides for your group...';
-
-  // Get current group info
-  var groupSize=document.getElementById('groupSize').value;
-  var ages=Array.from(document.querySelectorAll('#ageChips .setup-chip.selected')).map(function(c){return c.textContent.trim();}).join(', ')||'adults';
-  var thrill=Array.from(document.querySelectorAll('#thrillChips .setup-chip.selected')).map(function(c){return c.textContent.trim();}).join('')||'Mix of both';
-
-  var prompt="You are a Disneyland expert. Pick the best 8-10 must-ride attractions for a group of "+groupSize+" people ("+ages+") with thrill preference: "+thrill+". "
-    +"Choose from Disneyland rides: Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain, Indiana Jones Adventure, Haunted Mansion, Pirates of the Caribbean, Rise of the Resistance, Millennium Falcon, Splash Mountain, Jungle Cruise, Star Tours, Roger Rabbit, Peter Pans Flight, Monsters Inc. "
-    +"And DCA rides: Radiator Springs Racers, Guardians of the Galaxy, Incredicoaster, Web Slingers, Grizzly River Run, Soarin Over California, Toy Story Midway Mania. "
-    +"Also pick 3-5 rides they should SKIP based on the group. "
-    +"Respond ONLY with valid JSON: {\"must\":[\"ride1\",\"ride2\"],\"skip\":[\"ride1\",\"ride2\"]}";
-
-  try{
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:prompt}]})
-    });
-    var data=await resp.json();
-    var text=data.content&&data.content[0]?data.content[0].text:'';
-    var parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
-
-    // Clear current selections
-    document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});
-    document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});
-
-    // Apply AI selections
-    var mustCount=0,skipCount=0;
-    document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){
-      if(parsed.must&&parsed.must.some(function(r){return c.textContent.trim().toLowerCase().indexOf(r.toLowerCase().substring(0,8))>-1;})){
-        c.classList.add('selected');mustCount++;
-      }
-    });
-    document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){
-      if(parsed.skip&&parsed.skip.some(function(r){return c.textContent.trim().toLowerCase().indexOf(r.toLowerCase().substring(0,8))>-1;})){
-        c.classList.add('selected');skipCount++;
-      }
-    });
-
-    status.textContent='✓ AI picked '+mustCount+' must-rides and '+skipCount+' to skip. Adjust as needed!';
-    status.style.color='var(--green)';
-  }catch(e){
-    // Fallback to smart defaults
-    aiApplyRideDefaults();
-    status.textContent='✓ Applied smart defaults. Adjust as needed!';
-    status.style.color='var(--gold)';
-  }
-
-  btn.disabled=false;
-  btn.textContent='✨ Let AI Choose for Me';
-}
-
-function aiApplyRideDefaults(){
-  // Smart defaults - the crowd-pleasers everyone should hit
-  var mustDefaults=['Space Mountain','Matterhorn','Big Thunder','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs Racers','Guardians of the Galaxy'];
-  var skipDefaults=[];
-
-  document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){
-    var name=c.textContent.trim();
-    if(mustDefaults.some(function(d){return name.indexOf(d.substring(0,8))>-1;})) c.classList.add('selected');
-  });
-
-  var status=document.getElementById('aiChooseStatus');
-  if(status){status.style.display='block';status.textContent='✓ Applied crowd-pleaser defaults. Adjust as needed!';status.style.color='var(--gold)';}
-}
-
-async function completeSetup(){
-  // Collect all data
-  var wantsChars=document.getElementById('charYes')&&document.getElementById('charYes').classList.contains('selected');
-  setupData={
-    groupSize:parseInt(document.getElementById('groupSize').value),
-    ages:getChipSelections('ageChips'),
-    thrill:getChipSelections('thrillChips')[0]||'Mix of both',
-    startTime:getChipSelections('startChips')[0]||'Rope drop warriors',
-    mustRides:getChipSelections('mustRideChips'),
-    skipRides:getChipSelections('skipRideChips'),
-    ll:getChipSelections('llChips')[0]||'Undecided',
-    dining:getChipSelections('diningChips')[0]||'Mix of both',
-    pace:getChipSelections('paceChips')[0]||'Balanced',
-    wantsChars:wantsChars,
-    charsDL:wantsChars?getChipSelections('charDLChips'):[],
-    charsDCA:wantsChars?getChipSelections('charDCAChips'):[],
-    charPriority:wantsChars?(getChipSelections('charPriorityChips')[0]||'Fit in when convenient'):'none'
-  };
-
-  // Save kids heights
-  var kidInputs=document.querySelectorAll('#kidsHeightInputs input');
-  if(kidInputs.length){
-    var heights=Array.from(kidInputs).map(function(i){return parseInt(i.value)||44;});
-    saveGroupHeights(heights);
-  }
-
-  // Save to localStorage
-  try{
-    localStorage.setItem('setup_data',JSON.stringify(setupData));
-    localStorage.setItem('setup_done','yes');
-  }catch(e){}
-
-  closeSetup();
-  document.getElementById('setupBanner').style.display='none';
-
-  // If API key available, offer to generate personalized schedule
-  if(apiKey){
-    showSetupGeneratePrompt(setupData);
-  } else {
-    showToast('✓ Ride Style saved!');
-  }
-}
-
-function shareViaText(){
-  var msg='Hey! Here is the app for our Disneyland trip 🏰\n\nOpen this link: https://themeparkwize.com\n\nPassword: CW9Dis2026\n\nSave to your home screen for the best experience!';
-  if(navigator.share){
-    navigator.share({title:'ThemeParkWize — Coffron/Woods Trip',text:msg,url:'https://themeparkwize.com'}).catch(function(){});
-  } else {
-    window.open('sms:?body='+encodeURIComponent(msg));
-  }
-}
-function copyShareLink(){
-  var text='ThemeParkWize Disneyland App\nLink: https://themeparkwize.com\nPassword: CW9Dis2026\nSave to home screen in Safari for best experience!';
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(text).then(function(){
-      var btn=document.getElementById('copyShareBtn');
-      if(btn){btn.textContent='✓ Copied!';setTimeout(function(){btn.textContent='📋 Copy Info';},2000);}
-    });
-  }
-}
-
-function dismissSetupGenerate(){var c=document.getElementById("setupGenerateCard");if(c)c.remove();showToast("✓ Ride Style saved!");}
-
-function showToast(msg,color){
-  var toast=document.createElement('div');
-  toast.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:'+(color||'linear-gradient(135deg,var(--magic),var(--purple))')+';color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:900;box-shadow:0 4px 20px rgba(79,111,232,.4);text-align:center;max-width:300px';
-  toast.textContent=msg;
-  document.body.appendChild(toast);
-  setTimeout(function(){toast.remove();},3000);
-}
-
-function showSetupGeneratePrompt(data){
-  // Show a prompt card asking if they want AI to generate schedule
-  var card=document.createElement('div');
-  card.id='setupGenerateCard';
-  card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(79,111,232,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,0.4);animation:slideUp .3s ease';
-  card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">✨ Generate personalized schedule?</div>'
-    +'<div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">Claude can rebuild your schedule based on your Ride Style — prioritizing your must-rides, skipping what you marked, and matching your pace.</div>'
-    +'<div style="display:flex;gap:8px">'
-    +'<button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">✨ Yes, rebuild my schedule</button>'
-    +'<button onclick="dismissSetupGenerate()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button>'
-    +'</div>';
-  document.body.appendChild(card);
-}
-
-async function generateFromSetup(){
-  var card=document.getElementById('setupGenerateCard');
-  if(card) card.remove();
-
-  // Show loading in reopt box
-  var box=document.getElementById('reoptBox');
-  var txt=document.getElementById('reoptText');
-  if(box&&txt){
-    box.style.display='block';
-    txt.innerHTML='<span>✨ Building your personalized schedule based on your Ride Style</span> <span class="blink"><span>·</span><span>·</span><span>·</span></span>';
-  }
-
-  if(!apiKey){showToast('Add an API key in Info tab to generate schedule');return;}
-
-  var data;
-  try{data=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){data={};}
-
-  var mustList=data.mustRides&&data.mustRides.length?data.mustRides.join(', '):'the main headliners';
-  var skipList=data.skipRides&&data.skipRides.length?data.skipRides.join(', '):'none';
-  var thrill=data.thrill||'Mix of both';
-  var startTime=data.startTime||'Rope drop warriors';
-  var ll=data.ll||'Undecided';
-  var dining=data.dining||'Mix of both';
-  var pace=data.pace||'Balanced';
-  var groupSize=data.groupSize||9;
-  var ages=data.ages&&data.ages.length?data.ages.join(', '):'adults';
-
-  // Get current day's existing structure
-  var day=getCurDay();
-  var dayName=curDay===0?'Sunday June 28 (Disneyland + DCA park hopper)':curDay===1?'Monday June 29 (VIP Tour day — keep VIP entries locked)':'Tuesday June 30 (DCA morning, Disneyland evening)';
-
-  var prompt='You are a Disneyland expert building a personalized day schedule. '
-    +'Group: '+groupSize+' people ('+ages+'). '
-    +'Day: '+dayName+'. '
-    +'Thrill preference: '+thrill+'. '
-    +'Start time: '+startTime+'. '
-    +'Pace: '+pace+'. '
-    +'Lightning Lane: '+ll+'. '
-    +'Dining preference: '+dining+'. '
-    +'MUST include these rides: '+mustList+'. '+charNote+''
-    +'SKIP these rides entirely: '+skipList+'. '
-    +'Build an optimized schedule accounting for: rope drop strategy, walking distances between lands, avoiding peak wait times (10AM-2PM for headliners), dining at off-peak times (before noon or after 2PM for lunch, before 6PM or after 7:30PM for dinner). '
-    +'Return ONLY a JSON array of schedule entries, no other text: '
-    +'[{"t":"8:00 AM","h":"Arrive at gates","type":"tip","n":"note"},{"t":"8:05 AM","h":"Space Mountain","type":"ride","ride":"Space Mountain","land":"Tomorrowland"}] '
-    +'Use types: ride, food, show, tip, hop. Include land field for rides. Include realistic times. 12-16 entries total.';
-
-  try{
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]})
-    });
-    var data2=await resp.json();
-    var text=data2.content&&data2.content[0]?data2.content[0].text:'';
-    var clean=text.replace(/```json|```/g,'').trim();
-    // Find JSON array
-    var match=clean.match(/\[[\s\S]+\]/);
-    if(!match) throw new Error('No JSON array found');
-    var entries=JSON.parse(match[0]);
-
-    if(!entries||!entries.length) throw new Error('Empty entries');
-
-    // Apply to current day
-    var newDay=JSON.parse(JSON.stringify(getCurDay()));
-    // Keep non-ride sections (VIP, shows, dining reservations already booked)
-    // For Mon VIP day, keep existing structure
-    if(curDay===1){
-      if(box) box.style.display='none';
-      showToast('VIP day schedule is managed by your guide — Ride Style saved!','linear-gradient(135deg,#C9860A,#E8A020)');
-      return;
-    }
-    // Replace entries in the main section
-    if(newDay.sections&&newDay.sections.length){
-      newDay.sections[0].entries=entries;
-    }
-    customSched[curDay]=newDay;
-    saveCustom(curDay);
-    renderSched();
-    if(box) box.style.display='none';
-
-    // Push to all devices if admin
-    if(isAdmin()) pushSchedule();
-
-    showToast('✨ Schedule rebuilt for your Ride Style!');
-  }catch(e){
-    console.error('generateFromSetup error:',e);
-    if(box) box.style.display='none';
-    showToast('Could not generate schedule — try AI Optimize instead','linear-gradient(135deg,#C41E1E,#E53E3E)');
-  }
-}
-
-function addHeight(){
-  var heights=getGroupHeights();
-  heights.push(48); // default 48 inches
-  saveGroupHeights(heights);
-  renderInfoTab();
-}
-function removeHeight(idx){
-  var heights=getGroupHeights();
-  heights.splice(idx,1);
-  saveGroupHeights(heights);
-  renderInfoTab();
-}
-function updateHeight(idx,val){
-  var heights=getGroupHeights();
-  heights[idx]=parseInt(val)||48;
-  saveGroupHeights(heights);
-  renderSched();
-}
-
-// ── AI Chat ──────────────────────────────────────────────────────────────
-var chatHistory=[];
-
-function sendSuggested(btn){
-  document.getElementById('chatInput').value=btn.textContent;
-  btn.closest('div').style.display='none';
-  sendChat();
-}
-
-async function sendChat(){
-  if(!apiKey){
-    appendChatMsg('ai','I need an API key to answer questions. Add it in the Info tab under Update API Key.');
-    return;
-  }
-  var input=document.getElementById('chatInput');
-  var msg=input.value.trim();
-  if(!msg) return;
-  input.value='';
-  appendChatMsg('user',msg);
-
-  // ── Smart context — only include what's relevant ──────────────────────
-  var now=nowPT();
-  var today=todayPT();
-  var dayMap={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};
-  var dayName=dayMap[today]||'pre-trip planning';
-
-  // Only include live wait data if question is about waits/rides/times
-  var msgLower=msg.toLowerCase();
-  var needsWaits=/(wait|line|ride|long|short|now|current|minute|busy|crowd)/i.test(msgLower);
-  var needsSchedule=/(schedule|next|plan|today|when|after|before|what are we)/i.test(msgLower);
-  var needsWeb=/(open|closed|closure|refurb|hours|price|cost|menu|reservation|book)/i.test(msgLower);
-
-  var waitSummary='';
-  if(needsWaits&&Object.keys(waits).length){
-    var topRides=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;})
-      .sort(function(a,b){return a.w-b.w;}).slice(0,6);
-    if(topRides.length) waitSummary=' Shortest waits right now: '+topRides.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';
-  }
-
-  var schedSummary='';
-  if(needsSchedule){
-    try{
-      var day=getCurDay();
-      if(day&&day.sections){
-        var upNext=[];
-        day.sections.forEach(function(s){s.entries.slice(0,4).forEach(function(e){upNext.push(e.t+' '+e.h);});});
-        if(upNext.length) schedSummary=' Schedule: '+upNext.slice(0,5).join(', ')+'.';
-      }
-    }catch(e){}
-  }
-
-  // Park knowledge context - bathrooms and snacks
-  var parkKnowledge='';
-  var needsBathroom=/(bathroom|restroom|toilet|loo|potty)/i.test(msgLower);
-  var needsSnack=/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey leg|pretzel|corn dog|frozen|ice cream|drink|water|coffee)/i.test(msgLower);
-
-  if(needsBathroom){
-    parkKnowledge+=' BATHROOMS: Main Street (end near Plaza Hub, inside City Hall); Adventureland/Frontierland (near Jungle Cruise, behind Golden Horseshoe, near Big Thunder); Fantasyland (behind Its a Small World, near Matterhorn); Tomorrowland (left of Space Mountain, near Autopia); Galaxys Edge (near Ogas Cantina, near Millennium Falcon); New Orleans Square (behind Pirates, near Blue Bayou); DCA Avengers Campus (near Web Slingers, behind Pym Kitchen); DCA Cars Land (near Radiator Springs Racers, behind Flo V8 Cafe); DCA Pixar Pier (near Incredicoaster, end of pier); DCA Grizzly Peak (near Soarin, near Grizzly River Run). Family restrooms available throughout - ask a cast member.';
-  }
-
-  if(needsSnack){
-    parkKnowledge+=' POPULAR SNACKS & WHERE TO FIND THEM: CHURROS - carts throughout the park, most reliable spots: Main Street USA cart near the hub, Frontierland near Big Thunder, New Orleans Square area, Tomorrowland near Space Mountain, Fantasyland near the castle. DCA: Pixar Pier, Hollywood Land, Cars Land. $6-7 each. DOLE WHIP - Tiki Juice Bar in Adventureland (pineapple soft serve, also floats) - the ORIGINAL location, usually a line but worth it. Also available at Tropical Hideaway in Adventureland. TURKEY LEGS - Frontierland near Big Thunder, Fantasyland near Matterhorn. CORN DOGS - Little Red Wagon on Main Street USA - famous, usually worth the wait. POPCORN - carts everywhere, Main Street, hub area, all major lands. MICKEY BEIGNETS - Mint Julep Bar in New Orleans Square, fresh and hot. MICKEY PRETZELS - carts near Fantasyland and Main Street. MICKEY ICE CREAM BAR - carts throughout, also at most quick service restaurants. FUNNEL CAKE - Stage Door Cafe in Frontierland. DCA SPECIALTY: Pym Test Kitchen for Impossible Plant-Based dishes, Lamplight Lounge has great cocktails and appetizers, Flo V8 Cafe in Cars Land has good quick service. COFFEE - Starbucks on Main Street USA (walk right past the long line - theres usually a mobile order pickup option). WATER - free cups of ice water at any quick service restaurant, just ask.';
-  }
-
-  var systemPrompt='You are a friendly and knowledgeable Disneyland expert co-pilot for the Coffron/Woods family at Disneyland Resort, Anaheim CA. Today: '+dayName+'.'+waitSummary+schedSummary+parkKnowledge
-    +' Be concise and specific. Max 2-3 sentences. No intro phrases like I or As. Give direct actionable answers.';
-
-  // Keep only last 6 messages to minimize tokens
-  if(chatHistory.length>12) chatHistory=chatHistory.slice(-12);
-  chatHistory.push({role:'user',content:msg});
-
-  // Show typing indicator
-  var typingId='typing_'+Date.now();
-  var typingEl=document.createElement('div');
-  typingEl.id=typingId;
-  typingEl.className='chat-msg ai';
-  typingEl.style.padding='8px 12px';
-  typingEl.innerHTML='<div class="chat-typing"><div class="chat-dot"></div><div class="chat-dot"></div><div class="chat-dot"></div></div>';
-  document.getElementById('chatMessages').appendChild(typingEl);
-  scrollChatBottom();
-
-  try{
-    // Only add web search for questions about current park status
-    var tools=needsWeb?[{type:'web_search_20250305',name:'web_search'}]:undefined;
-    var body={
-      model:'claude-sonnet-4-6',
-      max_tokens:200,
-      system:systemPrompt,
-      messages:chatHistory
-    };
-    if(tools) body.tools=tools;
-
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify(body)
-    });
-    var data=await resp.json();
-    var reply='';
-    if(data.content){
-      data.content.forEach(function(block){
-        if(block.type==='text') reply+=block.text;
-      });
-    }
-    if(!reply) reply='Sorry, I could not get a response.';
-    chatHistory.push({role:'assistant',content:reply});
-    var te=document.getElementById(typingId);
-    if(te) te.remove();
-    appendChatMsg('ai',reply);
-  }catch(e){
-    var te=document.getElementById(typingId);
-    if(te) te.remove();
-    appendChatMsg('ai','Something went wrong. Check your API key in the Info tab.');
-  }
-}
-
-function appendChatMsg(role,text){
-  var msgs=document.getElementById('chatMessages');
-  var el=document.createElement('div');
-  el.className='chat-msg '+role;
-  el.innerHTML=text.replace(/\n/g,'<br>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
-  msgs.appendChild(el);
-  scrollChatBottom();
-}
-
-function scrollChatBottom(){
-  var msgs=document.getElementById('chatMessages');
-  if(msgs) msgs.scrollTop=msgs.scrollHeight;
-}
-
 function testMagicDay(){
   // Reset shown flag so it can show again
   try{localStorage.removeItem('magic_day_shown');}catch(e){}
@@ -2439,141 +1585,6 @@ function closeMagicDay(){
   applyRoleUI();
 }
 
-// ── Temp closure detection ───────────────────────────────────────────────
-var rideStatusTracker={}; // tracks last known status per ride
-var closureSnooze={};     // snoozed closure notifications
-
-function getUpcomingScheduledRides(hoursAhead){
-  var now=new Date();
-  var results=[];
-  var day=getCurDay();
-  if(!day||!day.sections) return results;
-  day.sections.forEach(function(sec,si){
-    sec.entries.forEach(function(e,ei){
-      if(!e.ride||e.type!=='ride') return;
-      var parts=e.t.replace(' AM','').replace(' PM','').split(':');
-      var h=parseInt(parts[0]),m=parseInt(parts[1])||0;
-      if(e.t.indexOf('PM')>-1&&h!==12)h+=12;
-      if(e.t.indexOf('AM')>-1&&h===12)h=0;
-      var entryTime=new Date(now);entryTime.setHours(h,m,0,0);
-      var diff=(entryTime-now)/60000;
-      if(diff>=-15&&diff<=hoursAhead*60) results.push({e:e,si:si,ei:ei,diff:diff});
-    });
-  });
-  return results;
-}
-
-async function checkRideStatusChanges(){
-  if(!isWithinParkWindow()) return;
-  if(!Object.keys(waits).length) return;
-  if(!apiKey) return;
-
-  var upcoming=getUpcomingScheduledRides(2);
-  if(!upcoming.length) return;
-
-  upcoming.forEach(function(item){
-    var ride=item.e.ride;
-    var wd=lookupWait(ride);
-    if(!wd) return;
-
-    var prevStatus=rideStatusTracker[ride];
-    var currStatus=wd.s;
-    rideStatusTracker[ride]=currStatus;
-
-    // Ride just went DOWN - scheduled in next 2 hrs
-    if(prevStatus==='OPERATING'&&(currStatus==='DOWN'||currStatus==='REFURBISHMENT')){
-      if(!closureSnooze[ride]||Date.now()>closureSnooze[ride]){
-        showClosureAlert(ride, item.e.land||'', item.diff);
-      }
-    }
-
-    // Ride just came back OPERATING - was DOWN
-    if((prevStatus==='DOWN'||prevStatus==='REFURBISHMENT')&&currStatus==='OPERATING'){
-      showReopenAlert(ride, wd.w, item.e.land||'');
-    }
-  });
-}
-
-async function showClosureAlert(ride, land, minsUntil){
-  var card=document.getElementById('wazeCard');
-  var body=document.getElementById('wazeBody');
-  if(!card||!body||wazeActive) return;
-  wazeActive=true;
-
-  var rideKey=ride.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20);
-  var alts=(ALTS[land]||['a nearby ride']).slice(0,2).join(' or ');
-  var timeStr=minsUntil<5?'now':Math.round(minsUntil)+' min from now';
-
-  // Get AI suggestion for alternatives
-  var aiSuggestion='';
-  try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:150,messages:[{role:'user',content:'Disneyland expert. '+ride+' in '+land+' just went temporarily down. It was scheduled '+timeStr+'. In 2 sentences suggest the best 1-2 nearby alternatives and whether to wait or move on. Nearby: '+alts+'.'}]})
-    });
-    var data=await r.json();
-    aiSuggestion=data.content&&data.content[0]?data.content[0].text:'';
-  }catch(e){}
-
-  body.innerHTML='<div class="waze-opportunity" style="color:var(--red)">&#128683; '+ride+' just went down!</div>'
-    +'<div class="waze-detail">'+(aiSuggestion||'Scheduled '+timeStr+'. Consider heading to '+alts+' instead.')+'</div>'
-    +'<div class="waze-stats"><span class="waze-stat" style="background:rgba(248,113,113,0.1);color:var(--red)">Scheduled '+timeStr+'</span></div>'
-    +'<div class="waze-btns">'
-    +'<button class="waze-accept" onclick="acceptClosureReroute(\''+rideKey+'\')" style="background:linear-gradient(135deg,var(--red),#E53E3E)">Reroute now</button>'
-    +'<button class="waze-dismiss" onclick="snoozeClosureAlert(\''+rideKey+'\')" >Check back later</button>'
-    +'</div>';
-  card.style.display='block';
-}
-
-async function showReopenAlert(ride, wait, land){
-  var card=document.getElementById('wazeCard');
-  var body=document.getElementById('wazeBody');
-  if(!card||!body||wazeActive) return;
-  wazeActive=true;
-
-  var rideKey=ride.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20);
-  var walkMins=getWalkMinutes(land||ride);
-  body.innerHTML='<div class="waze-opportunity" style="color:var(--green)">&#10024; '+ride+' is back open!</div>'
-    +'<div class="waze-detail">Wait time is '+(wait!==null?wait+' min':'unknown')+'. Want to add it back to your schedule at the best time?</div>'
-    +'<div class="waze-stats">'
-    +(wait!==null?'<span class="waze-stat g">'+(wait<30?'Short wait!':wait+' min')+'</span>':'')
-    +'<span class="waze-stat b">&#127939; '+walkMins+' min walk</span>'
-    +'</div>'
-    +'<div class="waze-btns">'
-    +'<button class="waze-accept" onclick="acceptReopenAdd(\''+rideKey+'\')" >&#10003; Add to schedule</button>'
-    +'<button class="waze-dismiss" onclick="dismissWaze()">Skip it</button>'
-    +'</div>';
-  card.style.display='block';
-}
-
-async function acceptClosureReroute(ride){
-  document.getElementById('wazeCard').style.display='none';
-  wazeActive=false;
-  // Remove the closed ride from schedule and reoptimize
-  var day=JSON.parse(JSON.stringify(customSched[curDay]||getCurDay()));
-  day.sections.forEach(function(sec){
-    sec.entries=sec.entries.filter(function(e){
-      return !e.ride||e.ride.toLowerCase().indexOf(ride.toLowerCase().substring(0,10))===-1;
-    });
-  });
-  customSched[curDay]=day;
-  saveCustom(curDay);
-  await reoptimize();
-}
-
-async function acceptReopenAdd(ride){
-  document.getElementById('wazeCard').style.display='none';
-  wazeActive=false;
-  // Add ride back and reoptimize to find best slot
-  await reoptimize();
-}
-
-function snoozeClosureAlert(ride){
-  closureSnooze[ride]=Date.now()+30*60*1000;
-  dismissWaze();
-}
-
 // ── Waze-style smart suggestions ─────────────────────────────────────────
 var wazeActive=false;
 var wazeLastCheck=0;
@@ -2582,11 +1593,11 @@ var wazePendingChange=null;
 
 function shouldRunWaze(){
   // Only run Jun 28-30 between 7AM and 11PM
-  var ptNow=nowPT();
-  var today=todayPT();
-  var tripDays=['2026-06-28','2026-06-29','2026-06-30'];
-  if(tripDays.indexOf(today)===-1) return false;
-  var h=ptNow.getHours();
+  var now=new Date();
+  var tripStart=new Date('2026-06-28T07:00:00');
+  var tripEnd=new Date('2026-06-30T23:00:00');
+  if(now<tripStart||now>tripEnd) return false;
+  var h=now.getHours();
   if(h<7||h>=23) return false;
   // Only if waits are loaded
   if(!Object.keys(waits).length) return false;
@@ -2784,8 +1795,10 @@ function dismissWaze(){
 
 function startWazeChecks(){
   // Only start if we're in the trip window
-  var today=todayPT();
-  if(['2026-06-28','2026-06-29','2026-06-30'].indexOf(today)===-1) return;
+  var now=new Date();
+  var tripStart=new Date('2026-06-28T07:00:00');
+  var tripEnd=new Date('2026-06-30T23:00:00');
+  if(now<tripStart||now>tripEnd) return;
   // Check every hour
   setInterval(checkWazeSuggestion,60*60*1000);
   // Also check 5 min after waits first load
@@ -2893,7 +1906,6 @@ async function getReroute(ride,land,btn){
     statusMsg=wait+' min (manual)';
   }
 
-  var rideKey=ride.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20);
   var alts=(ALTS[land]||['a nearby ride']).slice(0,2).join(' or ');
   var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
 
@@ -2967,7 +1979,10 @@ async function reoptimize(){
   });
 
   // Only use live wait data if we're actually at the park (Jun 28-30)
-  var atPark=['2026-06-28','2026-06-29','2026-06-30'].indexOf(todayPT())>-1;
+  var today=new Date();
+  var tripStart=new Date('2026-06-28T00:00:00');
+  var tripEnd=new Date('2026-07-01T00:00:00');
+  var atPark=today>=tripStart&&today<tripEnd;
 
   // Build live wait times context
   var liveWaitContext='';
@@ -3021,7 +2036,7 @@ async function reoptimize(){
     var r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:9000,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:6000,messages:[{role:'user',content:prompt}]})
     });
     var resp=await r.json();
     if(resp.error){txt.textContent='API error: '+resp.error.message;return;}
@@ -3068,15 +2083,15 @@ function renderClosed(){
   ['closedBanner','closedBannerInfo'].forEach(function(id){
     var el=document.getElementById(id);
     if(!el) return;
-    var h='<div style="padding:8px 0 4px">'
-      +'<div class="sec-hdr"><div class="sec-lbl">&#128683; June 2026 Closures</div><div class="sec-line"></div></div>'
-      +'<div class="info-card" style="border-color:rgba(248,113,113,.25);font-size:12px;line-height:1.8">'
-      +'<b style="color:var(--red)">&#10060; Confirmed closed:</b><br>'
-      +'Pirates of the Caribbean &middot; Buzz Lightyear Astro Blasters &middot; Silly Symphony Swings (DCA) &middot; Inside Out Emotional Whirlwind (DCA)<br><br>'
-      +'<b style="color:var(--yellow)">&#9888;&#65039; Detour:</b> Avengers Campus &rarr; Cars Land walkway closed. Use Performance Corridor or San Fransokyo Square.<br><br>'
-      +'<b style="color:var(--yellow)">&#9888;&#65039; Blue Bayou:</b> Open but obstructed views &amp; noise from Pirates refurb. Caf&eacute; Orleans is the better choice.<br><br>'
-      +'<b style="color:var(--green)">&#10003; Open:</b> Jungle Cruise &middot; Roger Rabbit &middot; Monorail &middot; Fantasmic! &middot; Rise of the Resistance &middot; Tiana&apos;s Bayou Adventure'
-      +'</div></div>';
+  var h='<div style="padding:12px 0">'
+    +'<div class="sec-hdr"><div class="sec-lbl">\u{1F6A7} Rides Closed Jun 28\u201330</div><div class="sec-line"></div></div>'
+    +CLOSED.map(function(c){return '<div class="ride-block" style="margin-bottom:7px"><div class="ride-main"><div style="font-size:20px;flex-shrink:0">\u{1F512}</div><div class="ride-body"><div class="ride-name" style="color:var(--red)">'+c.n+'</div><div class="ride-note">'+c.d+'</div></div></div></div>';}).join('')
+    +'<div class="sec-hdr" style="margin-top:16px"><div class="sec-lbl">\u{1F374} Dining Notes</div><div class="sec-line"></div></div>'
+    +'<div class="ride-block"><div class="ride-main"><div style="font-size:20px;flex-shrink:0">\u26A0\uFE0F</div><div class="ride-body"><div class="ride-name" style="color:var(--yellow)">Blue Bayou Restaurant</div><div class="ride-note">Open but obstructed views & possible construction noise during Pirates refurb. Skip it this trip \u2014 Caf\u00e9 Orleans next door is the better choice.</div></div></div></div>'
+    +'<div style="margin-top:16px;padding:11px 13px;background:var(--navy-card);border:1px solid var(--navy-border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6">'
+    +'<b style="color:var(--text)">Note:</b> Always check the Disneyland app the morning of your visit for any additional same-day closures or changes.'
+    +'</div>'
+    +'</div>';
     el.innerHTML=h;
   });
 }
@@ -3160,7 +2175,7 @@ async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx){
     return;
   }
 
-  var locationHint=landCtx&&landCtx!==restaurant?(' Context: dining near '+landCtx+'. If this specific restaurant has limited options for a section, suggest the best nearby alternative and note the restaurant name clearly before each item.'):'';var prompt='You are a Disneyland dining expert. Search the web for the current menu at '+restaurant+' at the Disneyland Resort, Anaheim CA.\\n\\nYou MUST respond with EXACTLY these three sections every time. This is NON-NEGOTIABLE. Never skip a section.\\n\\nMUST HAVE:\\n- [dish] — [one sentence]\\n- [dish] — [one sentence]\\n- [dish] — [one sentence]\\n\\nKIDS MEALS:\\n- [dish] — [one sentence]\\n- [dish] — [one sentence]\\n- [dish] — [one sentence]\\n\\nVEGETARIAN:\\n- [dish] — [one sentence]\\n- [dish] — [one sentence]\\n- [dish] — [one sentence]\\n\\nRULES — your response is WRONG if you break any of these:\\n1. ALL THREE sections are required every single time.\\n2. Each section needs exactly 3 items.\\n3. Start your response with MUST HAVE — no intro, no preamble.\\n4. No text after the last VEGETARIAN item.\\n5. KIDS MEALS: every restaurant has items kids enjoy — list them.\\n6. VEGETARIAN: every restaurant has at least some vegetarian options or sides — list them.\\nUse real dish names from the current menu.'+locationHint;
+  var locationHint=landCtx&&landCtx!==restaurant?(' Context: dining near '+landCtx+'. If this specific restaurant has limited options for a section, suggest the best nearby alternative and note the restaurant name clearly before each item.'):'';var prompt='You are a Disneyland dining expert. Use web search to find the most current menu and recent visitor reviews for '+restaurant+' at the Disneyland Resort in Anaheim, CA. Format your response with EXACTLY these three labeled sections and nothing else:\n\nMUST HAVE:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nKIDS:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nVEGETARIAN:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nBe specific with real dish names from their current menu. IMPORTANT: Always include all three sections even if you need to suggest nearby alternatives for that meal time and park location. The KIDS section is mandatory. No intro text, no commentary, just the three sections.'+locationHint;
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -3377,7 +2392,7 @@ function renderSched(){
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
           +'</div>'
           +'<button class="dining-btn" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
-          +''
+          +'<button class="dining-refresh" onclick="refreshDiningRecs(\''+safeDname+'\',this)">&#8635; Refresh</button>'
           +'<div class="dining-result"></div>';
       }
       var reroute='';
@@ -3402,8 +2417,7 @@ function renderSched(){
   });
   if(editMode)h+='<div class="edit-hint">Tap any time or title to edit inline</div>';
   document.getElementById('schedContent').innerHTML=h;
-  renderClosed();
-  checkShowSetupBanner();
+  if(typeof checkShowSetupBanner==='function') checkShowSetupBanner();
 }
 
 // ── Render shows ──────────────────────────────────────────────────────────
@@ -3485,18 +2499,10 @@ function renderInfoTab(){
       return h;
     }},
     {id:'closures',title:'&#128679; June 2026 Closures',html:function(){
-      return '<div style="font-size:12px;line-height:1.8">'
-        +'<div style="margin-bottom:10px"><b style="color:var(--red)">&#10060; Confirmed closed Jun 28–30:</b><br>'
-        +'<span style="color:var(--text-muted)">Pirates of the Caribbean &middot; Buzz Lightyear Astro Blasters &middot; Silly Symphony Swings (DCA) &middot; Inside Out Emotional Whirlwind (DCA)</span></div>'
-        +'<div style="margin-bottom:10px"><b style="color:var(--yellow)">&#9888;&#65039; Detour — DCA:</b><br>'
-        +'<span style="color:var(--text-muted)">Avengers Campus &rarr; Cars Land walkway is closed for expansion. Use the Performance Corridor or San Fransokyo Square instead.</span></div>'
-        +'<div style="margin-bottom:10px"><b style="color:var(--yellow)">&#9888;&#65039; Blue Bayou Restaurant:</b><br>'
-        +'<span style="color:var(--text-muted)">Open but with obstructed views and construction noise from the Pirates refurb. Caf&eacute; Orleans right next door is a much better choice.</span></div>'
-        +'<div style="margin-bottom:10px"><b style="color:var(--yellow)">&#9888;&#65039; Grand Californian Hotel:</b><br>'
-        +'<span style="color:var(--text-muted)">Ongoing refurbishment through 2026. Noise limited to daylight hours.</span></div>'
-        +'<div><b style="color:var(--green)">&#10003; Confirmed open &amp; running:</b><br>'
-        +'<span style="color:var(--text-muted)">Jungle Cruise &middot; Roger Rabbit’s Car Toon Spin &middot; Disneyland Monorail &middot; Fantasmic! (daily) &middot; Rise of the Resistance &middot; Tiana’s Bayou Adventure &middot; Soarin’ Over California (through Jul 1)</span></div>'
-        +'</div>';
+      var el=document.createElement('div');
+      el.id='closedBannerInfo';
+      renderClosed();
+      return '<div id="closedBannerInfo2"></div>';
     }},
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
       return '<div class="info-card"><b>Single Pass</b> (~$15–35/person): Rise of the Resistance · Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones · Matterhorn · Space Mountain · Haunted Mansion · Big Thunder · Smugglers Run · Tiana’s · Guardians · Incredicoaster · Web Slingers · Soarin’ · Toy Story<br><br><b>No LL needed Tuesday</b> — VIP tour handles everything.</div>'
@@ -3522,75 +2528,63 @@ function renderInfoTab(){
     {id:'apikey',title:'&#128273; Update API Key',html:function(){
       return '<div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com · ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>';
     }},
+    {id:'share',title:'&#128279; Share With Your Group',html:function(){
+      return '<div class="info-card">'
+        +'<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6">Send this to everyone in your group. They open the link, enter the password, and save it to their home screen.</div>'
+        +'<div style="background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px">'
+        +'<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">Link</div>'
+        +'<div style="font-size:14px;font-weight:600;color:var(--magic)">themeparkwize.com</div>'
+        +'<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-top:10px;margin-bottom:4px">Guest Password</div>'
+        +'<div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:.06em">CW9Dis2026</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px">'
+        +'<button onclick="doShareText()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">&#128172; Share via Text</button>'
+        +'<button onclick="doCopyLink()" id="copyBtn" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">&#128203; Copy Info</button>'
+        +'</div>'
+        +'<div style="margin-top:10px;padding:8px 10px;background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.2);border-radius:var(--radius-sm);font-size:11px;color:var(--text-muted)">&#128161; Tell them: Open in Safari &#8594; Share &#8594; Add to Home Screen for the best experience.</div>'
+        +'</div>';
+    }},
     {id:'bathrooms',title:'&#128698; Bathroom Guide',html:function(){
-      var baths=[
-        {area:'Main Street USA',locations:['End of Main Street near Plaza Hub — large restroom','Inside Disneyland City Hall (left side)','Between the Emporium and Starbucks on the right side']},
-        {area:'Adventureland / Frontierland',locations:['Near Jungle Cruise entrance — left side','Behind the Golden Horseshoe in Frontierland','Near Big Thunder Mountain entrance']},
-        {area:'Fantasyland',locations:['Behind Its a Small World — easiest to find','Near Matterhorn Bobsleds entrance','Inside the Fantasyland Theatre area']},
-        {area:'Tomorrowland',locations:['Left of Space Mountain entrance','Near Autopia — back of Tomorrowland']},
-        {area:"Galaxy's Edge",locations:["Inside Ogas Cantina area — clean and spacious","Near Millennium Falcon entrance — look for signs","At the edge near Star Wars Launch Bay"]},
-        {area:'New Orleans Square',locations:['Behind Pirates of the Caribbean — well signed','Near the Blue Bayou entrance area']},
-        {area:'DCA — Buena Vista Street',locations:['Near the Carthay Circle Theatre entrance','Left of the main DCA entrance gates']},
-        {area:'DCA — Avengers Campus',locations:['Near Web Slingers entrance','Behind the Pym Test Kitchen — large facility']},
-        {area:'DCA — Cars Land',locations:['Near Radiator Springs Racers entrance — clean','Behind Flo V8 Cafe']},
-        {area:'DCA — Pixar Pier',locations:['Near Incredicoaster entrance','At the end of Pixar Pier near the lagoon']},
-        {area:'DCA — Grizzly Peak',locations:['Near Soarin entrance — large facility','Near Grizzly River Run exit']},
+      var areas=[
+        {name:'Main Street USA',locs:['End of Main Street near Plaza Hub','Inside City Hall (left side)','Between Emporium and Starbucks']},
+        {name:'Adventureland / Frontierland',locs:['Near Jungle Cruise entrance','Behind the Golden Horseshoe','Near Big Thunder Mountain']},
+        {name:'Fantasyland',locs:['Behind Its a Small World','Near Matterhorn entrance','Inside Fantasyland Theatre area']},
+        {name:'Tomorrowland',locs:['Left of Space Mountain entrance','Near Autopia']},
+        {name:"Galaxy's Edge",locs:['Inside Ogas Cantina area','Near Millennium Falcon entrance']},
+        {name:'New Orleans Square',locs:['Behind Pirates of the Caribbean','Near Blue Bayou entrance']},
+        {name:'DCA Buena Vista Street',locs:['Near Carthay Circle Theatre','Left of main DCA entrance']},
+        {name:'DCA Avengers Campus',locs:['Near Web Slingers entrance','Behind Pym Test Kitchen']},
+        {name:'DCA Cars Land',locs:['Near Radiator Springs Racers','Behind Flo V8 Cafe']},
+        {name:'DCA Pixar Pier',locs:['Near Incredicoaster entrance','End of Pixar Pier near lagoon']},
+        {name:'DCA Grizzly Peak',locs:['Near Soarin entrance','Near Grizzly River Run exit']},
       ];
-      var h='<div class="info-card">'
-        +'<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6">Nearest bathrooms by area. Disney keeps these very clean — the ones near ride exits tend to be least crowded.</div>';
-      baths.forEach(function(b){
-        h+='<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">'
-          +'<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px">📍 '+b.area+'</div>';
-        b.locations.forEach(function(l){
-          h+='<div style="font-size:12px;color:var(--text-muted);padding:3px 0 3px 10px;border-left:2px solid var(--border)">'+l+'</div>';
-        });
+      var h='<div class="info-card">';
+      h+='<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Disney keeps restrooms very clean. Ones near ride exits tend to be least crowded. Family restrooms throughout both parks.</div>';
+      areas.forEach(function(a){
+        h+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
+        h+='<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">&#128205; '+a.name+'</div>';
+        a.locs.forEach(function(l){h+='<div style="font-size:12px;color:var(--text-muted);padding:2px 0 2px 8px;border-left:2px solid var(--border)">'+l+'</div>';});
         h+='</div>';
       });
-      h+='<div style="font-size:11px;color:var(--text-dim);margin-top:4px">💡 Tip: Family restrooms available throughout both parks — ask a cast member for the nearest one.</div>';
       return h+'</div>';
     }},
     {id:'heights',title:'&#128207; Group Heights',html:function(){
       var heights=getGroupHeights();
       var rows=heights.map(function(h,i){
-        var ft=Math.floor(h/12);var ins=Math.round(h%12);
         return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
           +'<span style="font-size:13px;color:var(--text-muted)">Person '+(i+1)+'</span>'
           +'<input type="number" min="24" max="84" value="'+h+'" placeholder="inches" '
           +'onchange="updateHeight('+i+',this.value)" '
           +'style="width:80px;padding:6px 8px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit">'
-          +'<span style="font-size:12px;color:var(--text-muted)">'+ft+'ft '+ins+'in</span>'
-          +'<button onclick="removeHeight('+i+')" style="padding:3px 8px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:11px;cursor:pointer">Remove</button>'
+          +'<span style="font-size:12px;color:var(--text-muted)"> ('+Math.floor(h/12)+'ft '+Math.round(h%12)+'in)</span>'
+          +'<button onclick="removeHeight('+i+')" style="padding:3px 8px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:inherit">Remove</button>'
           +'</div>';
       }).join('');
-      var reqList="Space Mountain 40in · Matterhorn 42in · Big Thunder 40in · Indiana Jones 46in · Rise of Resistance 40in · Incredicoaster 48in · Guardians 40in · Radiator Springs 40in · Grizzly River 42in · Star Tours 40in · Millennium Falcon 38in";
       return '<div class="info-card">'
-        +'<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Enter heights for anyone under 4ft. Rides with requirements will show a badge on the schedule.</div>'
+        +'<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Enter heights for anyone under 48 inches. Rides with requirements will show a badge on the schedule.</div>'
         +rows
         +'<button onclick="addHeight()" style="padding:8px 16px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px">+ Add person</button>'
-        +'<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
-        +'<div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">Height Requirements</div>'
-        +'<div style="font-size:12px;color:var(--text-muted);line-height:1.8">'+reqList+'</div>'
-        +'</div></div>';
-    }},
-    {id:'share',title:'&#128279; Share With Your Group',html:function(){
-      var guestUrl='https://themeparkwize.com';
-      var guestPass='CW9Dis2026';
-      var shareMsg='Hey! Here is the app for our Disneyland trip %F0%9F%8F%B0%0A%0AOpen this link on your phone:%0A'+encodeURIComponent(guestUrl)+'%0A%0APassword: '+guestPass+'%0A%0ASave it to your home screen for the best experience!';
-      return '<div class="info-card">'
-        +'<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">Send this to everyone in your group. They open the link, enter the password, and save it to their home screen.</div>'
-        +'<div style="background:var(--card-alt,rgba(255,255,255,0.04));border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px">'
-        +'<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px">Link</div>'
-        +'<div style="font-size:14px;font-weight:600;color:var(--magic)">'+guestUrl+'</div>'
-        +'<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-top:10px;margin-bottom:6px">Guest Password</div>'
-        +'<div style="font-size:14px;font-weight:600;color:var(--text);letter-spacing:.08em">'+guestPass+'</div>'
-        +'</div>'
-        +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-        +'<button onclick="shareViaText()" style="flex:1;min-width:120px;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">💬 Share via Text</button>'
-        +'<button onclick="copyShareLink()" style="flex:1;min-width:120px;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer" id="copyShareBtn">📋 Copy Info</button>'
-        +'</div>'
-        +'<div style="margin-top:12px;padding:10px 12px;background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.2);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6">'
-        +'<b style="color:var(--gold)">Tell them:</b> Open in Safari → tap Share → Add to Home Screen for the best experience.'
-        +'</div>'
+        +'<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);line-height:1.8">Space Mountain 40in &#183; Matterhorn 42in &#183; Big Thunder 40in &#183; Indiana Jones 46in &#183; Rise of Resistance 40in &#183; Incredicoaster 48in &#183; Guardians 40in &#183; Radiator Springs 40in &#183; Grizzly River 42in &#183; Star Tours 40in &#183; Millennium Falcon 38in</div>'
         +'</div>';
     }},
     {id:'about',title:'&#8505;&#65039; About This App',html:function(){
@@ -3620,8 +2614,7 @@ function renderInfoTab(){
 }
 
 var ALL_RESTAURANTS=[
-  {name:'Café Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended',note:'✅ Better choice than Blue Bayou right now'},
-  {name:'Blue Bayou',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Skip ⚠️',note:'Open but obstructed views + noise from Pirates refurb. Café Orleans next door is better'},
+  {name:'Café Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended'},
   {name:'Carnation Cafe',park:'Disneyland',type:'Table Service',area:'Main Street USA',res:'Recommended'},
   {name:'River Belle Terrace',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
   {name:'Rancho del Zocalo',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
@@ -3636,7 +2629,7 @@ var ALL_RESTAURANTS=[
   {name:'Lamplight Lounge',park:'DCA',type:'Table Service',area:'Pixar Pier',res:'Recommended'},
   {name:'Shawarma Palace',park:'DCA',type:'Counter Service',area:'Avengers Campus',res:'Not needed'},
   {name:'Pym Test Kitchen',park:'DCA',type:'Counter Service',area:'Avengers Campus',res:'Not needed'},
-  {name:"Flo V8 Cafe",park:'DCA',type:'Counter Service',area:'Cars Land',res:'Not needed'},
+  {name:"Flo's V8 Cafe",park:'DCA',type:'Counter Service',area:'Cars Land',res:'Not needed'},
   {name:'Pacific Wharf Cafe',park:'DCA',type:'Counter Service',area:'Pacific Wharf',res:'Not needed'},
   {name:'Award Wieners',park:'DCA',type:'Counter Service',area:'Hollywood Land',res:'Not needed'},
   {name:"Tiana's Palace",park:'DCA',type:'Counter Service',area:'Paradise Gardens',res:'Not needed'},
@@ -3675,12 +2668,12 @@ function buildFullDiningGuide(){
       var safeName=r.name.split("'").join('’');
       h+='<div class="rest-card">'
         +'<div class="rest-hdr" onclick="toggleRestCard(this,\''+safeName+'\')">'
-        +'<div style="flex:1;min-width:0">'        +'<div class="rest-name">'+r.name+(r.res&&r.res.indexOf('Skip')>-1?' <span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(248,113,113,0.12);color:var(--red)">&#9888; Skip</span>':r.res==='Required'?' <span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(248,113,113,0.12);color:var(--red)">Required</span>':r.res==='Recommended'?' <span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(27,47,160,0.1);color:var(--magic)">Recommended</span>':'')+'</div>'        +'<div class="rest-meta">'+r.area+' · '+r.type+(r.note?' · <span style="color:var(--yellow)">'+r.note+'</span>':'')+(cached?' · <span style="color:var(--green)">&#10003; cached</span>':'')+'</div>'        +'</div>'
+        +'<div><div class="rest-name">'+r.name+'</div><div class="rest-meta">'+r.area+' · '+r.type+(cached?' · <span style="color:var(--green)">&#10003; cached</span>':'')+'</div></div>'
         +'<span style="font-size:14px;color:var(--text-dim)">&#9660;</span>'
         +'</div>'
         +'<div class="rest-body" style="display:none;padding:10px 12px">'
         +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0">&#127869; Get dining recs</button>'
-        +''
+        +'<button class="dining-refresh" onclick="refreshDiningRecsById(\''+safeName+'\',this)">&#8635; Refresh</button>'
         +'<div class="dining-result"></div>'
         +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached — tap refresh for latest</div>':'')
         +'</div>'
@@ -3782,37 +2775,21 @@ function renderShows(){
     });
   });
 
-  // ── Character Meet & Greets ──────────────────────────────────────────
-  html+='<div class="show-sec-hdr">&#129489; Character Meet &amp; Greets</div>';
-  var chars=[
-    {name:'Mickey &amp; Minnie Mouse',where:'Town Square Theater, Main Street USA',time:'Daily from park open',tip:'First stop at rope drop — lines under 20 min early. Mickey and Minnie in separate rooms.',park:'dl'},
-    {name:'Princess Fairytale Hall',where:'Fantasyland — near the castle',time:'Daily from park open',tip:'Meet two princesses (Cinderella, Rapunzel, Tiana, Elena). Lines build fast — go before 10 AM or after 7 PM.',park:'dl'},
-    {name:'Star Wars Characters',where:"Galaxy's Edge near Millennium Falcon",time:'Daily throughout the day',tip:'Rey, Chewbacca, Stormtroopers roam freely. No line needed. Darth Vader appears less frequently.',park:'dl'},
-    {name:'Woody &amp; Jessie',where:'Frontierland near Big Thunder',time:'Morning and afternoon sets',tip:'Walk-around characters. Check the Disneyland app for exact times day-of.',park:'dl'},
-    {name:'Spider-Man',where:'Avengers Campus, DCA',time:'Daily throughout the day',tip:'Wall-crawling Spider-Man performs above the courtyard. No meet needed — just look up.',park:'dca'},
-    {name:'Black Panther, Iron Man, Captain America',where:'Avengers Campus, DCA',time:'Daily — set times',tip:'Full character meets with dedicated queues. Black Panther lines are shortest.',park:'dca'},
-    {name:'Pixar Characters',where:'Pixar Pier, DCA',time:'Morning and afternoon',tip:'Woody, Buzz and Pixar pals near entrance to Pixar Pier. Best times 10-11 AM and 3-4 PM.',park:'dca'},
-    {name:'Lightning McQueen',where:'Cars Land, DCA',time:'Daily — set times',tip:'Lightning McQueen Racing Academy show runs multiple times daily. Check DCA app for showtimes.',park:'dca'},
-  ];
-  html+='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:8px 0 6px;opacity:.8">&#127984; Disneyland</div>';
-  chars.filter(function(c){return c.park==='dl';}).forEach(function(c){
-    html+='<div class="show-card" style="margin-bottom:8px">'
-      +'<div class="show-name">'+c.name+'</div>'
-      +'<div class="show-meta">&#128205; '+c.where+'</div>'
-      +'<div class="show-meta">&#128336; '+c.time+'</div>'
-      +'<div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;font-style:italic">&#128161; '+c.tip+'</div>'
-      +'</div>';
-  });
-  html+='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:12px 0 6px;opacity:.8">&#127905; Disney California Adventure</div>';
-  chars.filter(function(c){return c.park==='dca';}).forEach(function(c){
-    html+='<div class="show-card" style="margin-bottom:8px">'
-      +'<div class="show-name">'+c.name+'</div>'
-      +'<div class="show-meta">&#128205; '+c.where+'</div>'
-      +'<div class="show-meta">&#128336; '+c.time+'</div>'
-      +'<div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;font-style:italic">&#128161; '+c.tip+'</div>'
-      +'</div>';
-  });
+  html+='';
 
+  // Character Meet & Greets
+  html+='<div class="show-sec-hdr">&#129489; Character Meet &amp; Greets</div>';
+  [{name:'Mickey &amp; Minnie Mouse',where:'Town Square Theater, Main Street',time:'Daily from open',tip:'Rope drop for short lines. Separate rooms for Mickey and Minnie.'},
+   {name:'Princess Fairytale Hall',where:'Fantasyland near castle',time:'Daily from open',tip:'2 princesses rotate. Go before 10 AM or after 7 PM.'},
+   {name:'Star Wars Characters',where:"Galaxy's Edge",time:'Throughout the day',tip:'Rey, Chewbacca, Stormtroopers roam freely. No line needed.'},
+   {name:'Woody &amp; Jessie',where:'Frontierland',time:'Morning and afternoon',tip:'Walk-around characters. Check Disneyland app for times.'}
+  ].forEach(function(c){html+='<div class="show-card" style="margin-bottom:8px"><div class="show-name">'+c.name+'</div><div class="show-meta">&#128205; '+c.where+' &middot; &#128336; '+c.time+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;font-style:italic">&#128161; '+c.tip+'</div></div>';});
+  html+='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold,#C9860A);margin:10px 0 6px">&#127905; DCA Characters</div>';
+  [{name:'Spider-Man',where:'Avengers Campus',time:'Throughout the day',tip:'Wall-crawling performance above courtyard. No line needed - just look up!'},
+   {name:'Black Panther, Iron Man, Captain America',where:'Avengers Campus',time:'Set times daily',tip:'Full meets with queues. Black Panther lines shortest. Check DCA app.'},
+   {name:'Pixar Characters',where:'Pixar Pier',time:'Morning and afternoon',tip:'Woody and Buzz near pier entrance. Best 10-11 AM and 3-4 PM.'},
+   {name:'Lightning McQueen',where:'Cars Land',time:'Set times daily',tip:'Lightning McQueen Racing Academy show. Multiple times daily. Great for kids.'}
+  ].forEach(function(c){html+='<div class="show-card" style="margin-bottom:8px"><div class="show-name">'+c.name+'</div><div class="show-meta">&#128205; '+c.where+' &middot; &#128336; '+c.time+'</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;font-style:italic">&#128161; '+c.tip+'</div></div>';});
   document.getElementById('showsContent').innerHTML=html;
 
   // Morning refresh - re-render once per day
@@ -3837,15 +2814,13 @@ function setTab(tab){
   curTab=tab;
   if(tab==='info') setTimeout(renderInfoTab,0);
   ['schedule','waits','shows','chat','info'].forEach(function(t){
-    var tabEl=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
-    var niEl=document.getElementById('ni-'+t);
-    if(tabEl) tabEl.classList.toggle('hidden',t!==tab);
-    if(niEl) niEl.classList.toggle('active',t===tab);
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('hidden',t!==tab);
+    document.getElementById('ni-'+t).classList.toggle('active',t===tab);
   });
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-generateStars();checkLock();loadKey();loadCustom();renderShows();renderClosed();renderSched();renderDayInfoBar();renderCountdown();startWaitRefresh();scheduleWeatherCheck();scheduleMorningCheck();startScheduleSync();startNotesSync();startWazeChecks();scheduleLLPrompts();
+generateStars();checkLock();loadKey();loadCustom();renderShows();renderClosed();renderSched();renderDayInfoBar();renderLockCountdowns();renderCountdown();startWaitRefresh();scheduleWeatherCheck();scheduleMorningCheck();startScheduleSync();startNotesSync();startWazeChecks();scheduleLLPrompts();
 // Check for morning update once per day
 (function(){
   var today=new Date().toDateString();
@@ -3856,7 +2831,464 @@ generateStars();checkLock();loadKey();loadCustom();renderShows();renderClosed();
     // Re-render closed banner once in the morning to catch any updates
     setTimeout(function(){renderClosed();},2000);
   }
+
+
+// ── AI Chat ───────────────────────────────────────────────────────────────
+var chatHistory=[];
+
+function sendSuggested(btn){
+  var input=document.getElementById('chatInput');
+  if(input) input.value=btn.textContent.trim();
+  var suggDiv=btn.closest('div');
+  if(suggDiv) suggDiv.style.display='none';
+  sendChat();
+}
+
+async function sendChat(){
+  var input=document.getElementById('chatInput');
+  var msg=input?input.value.trim():'';
+  if(!msg) return;
+  if(input) input.value='';
+  appendChatMsg('user',msg);
+  if(!apiKey){appendChatMsg('ai','Add an API key in the Info tab to use the AI chat.');return;}
+
+  var msgLower=msg.toLowerCase();
+  var today=todayPT();
+  var dayMap={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};
+  var dayName=dayMap[today]||'pre-trip';
+
+  var waitSummary='';
+  if(/(wait|line|ride|busy|crowd)/i.test(msgLower)&&Object.keys(waits).length){
+    var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);
+    if(top.length) waitSummary=' Live waits: '+top.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';
+  }
+
+  var bathroomCtx='';
+  if(/(bathroom|restroom|toilet|potty)/i.test(msgLower)){
+    bathroomCtx=' BATHROOMS: Main Street(end near Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World,near Matterhorn); Tomorrowland(left of Space Mountain); Galaxys Edge(near Ogas Cantina); New Orleans Square(behind Pirates); DCA Avengers(near Web Slingers); DCA Cars Land(near Radiator Springs); DCA Pixar Pier(near Incredicoaster); DCA Grizzly Peak(near Soarin).';
+  }
+
+  var snackCtx='';
+  if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|pretzel|corn dog|ice cream|coffee)/i.test(msgLower)){
+    snackCtx=' SNACKS: Churros-carts on Main Street hub,Frontierland,Tomorrowland,Fantasyland,DCA Pixar Pier($6-7). Dole Whip-Tiki Juice Bar Adventureland(original location). Turkey legs-Frontierland,Fantasyland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar New Orleans Square. Free water-any quick service,just ask.';
+  }
+
+  var system='Disneyland expert co-pilot for Coffron/Woods family at Disneyland Resort Anaheim CA. Today: '+dayName+'.'+waitSummary+bathroomCtx+snackCtx+' Be concise, max 2-3 sentences, no intro phrases.';
+
+  if(chatHistory.length>12) chatHistory=chatHistory.slice(-12);
+  chatHistory.push({role:'user',content:msg});
+
+  var typingEl=document.createElement('div');
+  typingEl.className='chat-msg ai';
+  typingEl.innerHTML='<span style="opacity:.5">typing...</span>';
+  var msgs=document.getElementById('chatMessages');
+  if(msgs){msgs.appendChild(typingEl);msgs.scrollTop=msgs.scrollHeight;}
+
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:system,messages:chatHistory})
+    });
+    var data=await resp.json();
+    var reply=data.content&&data.content[0]?data.content[0].text:'Sorry, could not get a response.';
+    chatHistory.push({role:'assistant',content:reply});
+    if(typingEl.parentNode) typingEl.remove();
+    appendChatMsg('ai',reply);
+  }catch(e){
+    if(typingEl.parentNode) typingEl.remove();
+    appendChatMsg('ai','Something went wrong. Check your API key in the Info tab.');
+  }
+}
+
+function appendChatMsg(role,text){
+  var msgs=document.getElementById('chatMessages');
+  if(!msgs) return;
+  var el=document.createElement('div');
+  el.className='chat-msg '+role;
+  el.textContent=text;
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+
+
+function doShareText(){
+  var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://themeparkwize.com\nPassword: CW9Dis2026\n\nOpen in Safari, then Share > Add to Home Screen for the best experience!';
+  if(navigator.share){navigator.share({title:'ThemeParkWize',text:msg,url:'https://themeparkwize.com'}).catch(function(){});}
+  else{window.open('sms:?body='+encodeURIComponent(msg));}
+}
+function doCopyLink(){
+  var text='ThemeParkWize Disneyland App\nLink: https://themeparkwize.com\nPassword: CW9Dis2026\nOpen in Safari > Share > Add to Home Screen';
+  if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var btn=document.getElementById('copyBtn');if(btn){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy Info';},2000);}});}
+}
+function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
+function saveGroupHeights(arr){try{localStorage.setItem('group_heights',JSON.stringify(arr));}catch(e){}}
+function addHeight(){var h=getGroupHeights();h.push(48);saveGroupHeights(h);renderInfoTab();}
+function removeHeight(i){var h=getGroupHeights();h.splice(i,1);saveGroupHeights(h);renderInfoTab();}
+function updateHeight(i,v){var h=getGroupHeights();h[i]=parseInt(v)||48;saveGroupHeights(h);renderSched();}
+
+var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40,"Luigis Rollickin Roadsters":32,"Maters Junkyard Jamboree":32};
+
+function checkHeightWarning(rideName){
+  if(!rideName) return null;
+  var req=null;
+  var rLower=rideName.toLowerCase();
+  Object.keys(HEIGHTS).forEach(function(k){if(rLower.indexOf(k.toLowerCase().substring(0,8))>-1)req=HEIGHTS[k];});
+  if(!req) return null;
+  var heights=getGroupHeights();
+  if(!heights.length) return null;
+  return heights.some(function(h){return h<req;})?'warn':'ok';
+}
+
+
+
+// ── Setup Form ─────────────────────────────────────────────────────────
+var setupData={};
+function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
+function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}
+function isSetupDone(){try{return localStorage.getItem('setup_done')==='yes';}catch(e){return false;}}
+
+function checkShowSetupBanner(){
+  if(!isAdmin()||isSetupDone()) return;
+  var skips=getSetupSkips();
+  var banner=document.getElementById('setupBanner');
+  if(!banner) return;
+  if(skips>=5){openSetup(true);return;}
+  banner.style.display='block';
+  if(skips>0){var sub=document.getElementById('setupBannerSub');if(sub)sub.textContent='Personalize the AI to your group ('+(5-skips)+' reminders left)';}
+}
+function skipSetup(){setSetupSkips(getSetupSkips()+1);var b=document.getElementById('setupBanner');if(b)b.style.display='none';}
+function openSetup(required){document.getElementById('setupOverlay').classList.remove('hidden');setupGoTo(0);}
+function closeSetup(){document.getElementById('setupOverlay').classList.add('hidden');}
+
+function setupGoTo(step){
+  document.querySelectorAll('.setup-step').forEach(function(el,i){el.classList.toggle('active',i===step);});
+  [0,1,2,3].forEach(function(i){var d=document.getElementById('sp'+i);if(d){d.classList.toggle('done',i<step);d.classList.toggle('active',i===step);}});
+}
+function setupNext(step){setupGoTo(step);}
+
+function toggleChip(el,group){
+  if(group==='must'||group==='skip'||group==='ages'||group==='charDL'||group==='charDCA'){
+    el.classList.toggle('selected');
+  } else {
+    el.parentNode.querySelectorAll('.setup-chip').forEach(function(c){c.classList.remove('selected');});
+    el.classList.add('selected');
+  }
+}
+function toggleCharMeets(yes){
+  document.getElementById('charYes').classList.toggle('selected',yes);
+  document.getElementById('charNo').classList.toggle('selected',!yes);
+  document.getElementById('charSelectArea').style.display=yes?'block':'none';
+}
+function toggleHeightKids(yes){
+  document.getElementById('hasKidsYes').classList.toggle('selected',yes);
+  document.getElementById('hasKidsNo').classList.toggle('selected',!yes);
+  document.getElementById('kidsHeightArea').style.display=yes?'block':'none';
+  if(yes&&document.getElementById('kidsHeightInputs').children.length===0)addKidHeight();
+}
+function addKidHeight(){
+  var area=document.getElementById('kidsHeightInputs');
+  var idx=area.children.length;
+  var div=document.createElement('div');
+  div.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px';
+  div.innerHTML='<span style="font-size:13px;color:var(--text-muted)">Child '+(idx+1)+'</span>'
+    +'<input type="number" min="24" max="60" placeholder="inches" value="44" style="width:80px;padding:6px 8px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit">';
+  area.appendChild(div);
+}
+function getChipSelections(id){return Array.from(document.querySelectorAll('#'+id+' .setup-chip.selected')).map(function(c){return c.textContent.trim();});}
+
+async function aiChooseRides(){
+  var btn=document.getElementById('aiChooseBtn');
+  var status=document.getElementById('aiChooseStatus');
+  if(!apiKey){applyRideDefaults();return;}
+  btn.disabled=true;btn.textContent='Choosing...';
+  status.style.display='block';status.textContent='Claude is picking rides for your group...';
+  var groupSize=document.getElementById('groupSize').value;
+  var ages=getChipSelections('ageChips').join(', ')||'adults';
+  var thrill=getChipSelections('thrillChips')[0]||'Mix of both';
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:
+        'Pick best 8 must-ride attractions for '+groupSize+' people ('+ages+') thrill level: '+thrill+' at Disneyland Resort. Also pick 3 to skip. Respond ONLY with JSON: {"must":["ride1"],"skip":["ride1"]}'}]})});
+    var data=await resp.json();
+    var parsed=JSON.parse((data.content[0].text||'').replace(/```json|```/g,'').trim());
+    document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});
+    document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});
+    document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(parsed.must&&parsed.must.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});
+    document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){if(parsed.skip&&parsed.skip.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});
+    status.textContent='Done! Adjust as needed.';status.style.color='var(--green)';
+  }catch(e){applyRideDefaults();status.textContent='Applied smart defaults.';status.style.color='var(--gold)';}
+  btn.disabled=false;btn.textContent='Let AI Choose for Me';
+}
+function applyRideDefaults(){
+  var defaults=['Space Mountain','Matterhorn','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs','Guardians'];
+  document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(defaults.some(function(d){return c.textContent.indexOf(d.substring(0,8))>-1;}))c.classList.add('selected');});
+}
+
+function showToast(msg,bg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:'+(bg||'linear-gradient(135deg,var(--magic),var(--purple))')+';color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:900;box-shadow:0 4px 20px rgba(0,0,0,.3);text-align:center;max-width:300px;white-space:nowrap';
+  t.textContent=msg;document.body.appendChild(t);
+  setTimeout(function(){t.remove();},2500);
+}
+
+async function completeSetup(){
+  var wantsChars=document.getElementById('charYes').classList.contains('selected');
+  setupData={
+    groupSize:parseInt(document.getElementById('groupSize').value),
+    ages:getChipSelections('ageChips'),
+    thrill:getChipSelections('thrillChips')[0]||'Mix of both',
+    startTime:getChipSelections('startChips')[0]||'Rope drop warriors',
+    mustRides:getChipSelections('mustRideChips'),
+    skipRides:getChipSelections('skipRideChips'),
+    ll:getChipSelections('llChips')[0]||'Undecided',
+    dining:getChipSelections('diningChips')[0]||'Mix of both',
+    pace:getChipSelections('paceChips')[0]||'Balanced',
+    wantsChars:wantsChars,
+    charsDL:wantsChars?getChipSelections('charDLChips'):[],
+    charsDCA:wantsChars?getChipSelections('charDCAChips'):[],
+    charPriority:wantsChars?(getChipSelections('charPriorityChips')[0]||'Fit in when convenient'):'none'
+  };
+  var kidInputs=document.querySelectorAll('#kidsHeightInputs input');
+  if(kidInputs.length){saveGroupHeights(Array.from(kidInputs).map(function(i){return parseInt(i.value)||44;}));}
+  try{localStorage.setItem('setup_data',JSON.stringify(setupData));localStorage.setItem('setup_done','yes');}catch(e){}
+  closeSetup();
+  var banner=document.getElementById('setupBanner');if(banner)banner.style.display='none';
+  if(apiKey){showSetupGeneratePrompt();}else{showToast('Ride Style saved!');}
+}
+
+function showSetupGeneratePrompt(){
+  var card=document.createElement('div');
+  card.id='setupGenCard';
+  card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';
+  card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">&#10024; Generate personalized schedule?</div>'
+    +'<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.5">Claude can rebuild your schedule based on your Ride Style.</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild my schedule</button>'
+    +'<button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button>'
+    +'</div>';
+  document.body.appendChild(card);
+}
+function dismissGenCard(){var c=document.getElementById('setupGenCard');if(c)c.remove();showToast('Ride Style saved!');}
+
+async function generateFromSetup(){
+  var card=document.getElementById('setupGenCard');if(card)card.remove();
+  if(!apiKey){showToast('Add API key in Info tab to generate schedule');return;}
+  var data;try{data=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){data={};}
+  var mustList=data.mustRides&&data.mustRides.length?data.mustRides.join(', '):'the main headliners';
+  var skipList=data.skipRides&&data.skipRides.length?data.skipRides.join(', '):'none';
+  var charNote=data.wantsChars&&data.charsDL&&data.charsDL.length?'Include character meets for: '+[].concat(data.charsDL,data.charsDCA||[]).join(', ')+'. Priority: '+data.charPriority+'.':'';
+  if(curDay===1){showToast('VIP day is managed by your guide - Ride Style saved!','linear-gradient(135deg,#C9860A,#E8A020)');return;}
+  var dayName=curDay===0?'Sunday June 28 (Disneyland+DCA)':'Tuesday June 30 (DCA morning, Disneyland evening)';
+  var box=document.getElementById('reoptBox');var txt=document.getElementById('reoptText');
+  if(box&&txt){box.style.display='block';txt.innerHTML='<span>&#10024; Building your personalized schedule...</span>';}
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:
+        'Build optimized Disneyland schedule for '+dayName+'. Group: '+(data.groupSize||9)+' people ('+((data.ages||[]).join(', ')||'adults')+').'
+        +' Thrill: '+(data.thrill||'Mix')+'.'
+        +' Start: '+(data.startTime||'Rope drop')+'.'
+        +' Pace: '+(data.pace||'Balanced')+'.'
+        +' LL: '+(data.ll||'Undecided')+'.'
+        +' MUST include: '+mustList+'.'
+        +' SKIP entirely: '+skipList+'.'
+        +charNote
+        +' Return ONLY JSON array: [{"t":"8:00 AM","h":"Ride Name","type":"ride","ride":"Ride Name","land":"Land"}]. Types: ride,food,show,tip. 12-16 entries.'}]})});
+    var d2=await resp.json();
+    var text=d2.content&&d2.content[0]?d2.content[0].text:'';
+    var match=text.replace(/```json|```/g,'').match(/\[[\s\S]+\]/);
+    if(!match)throw new Error('No JSON');
+    var entries=JSON.parse(match[0]);
+    var newDay=JSON.parse(JSON.stringify(getCurDay()));
+    if(newDay.sections&&newDay.sections.length)newDay.sections[0].entries=entries;
+    customSched[curDay]=newDay;saveCustom(curDay);renderSched();
+    if(box)box.style.display='none';
+    if(isAdmin())pushSchedule();
+    showToast('Schedule rebuilt for your Ride Style!');
+  }catch(e){if(box)box.style.display='none';showToast('Could not generate - try AI Optimize instead','linear-gradient(135deg,#c0392b,#e74c3c)');}
+}
+
 })();
 </script>
+<!-- Trip Setup Panel -->
+<div class="setup-overlay hidden" id="setupOverlay">
+  <div class="setup-panel">
+    <div class="setup-progress">
+      <div class="setup-dot active" id="sp0"></div>
+      <div class="setup-dot" id="sp1"></div>
+      <div class="setup-dot" id="sp2"></div>
+      <div class="setup-dot" id="sp3"></div>
+    </div>
+    <!-- Step 1: Group -->
+    <div class="setup-step active" id="setupStep0">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Your Group</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Tell us who's coming so we can personalize your experience.</div>
+      <div class="setup-label">Group size: <span id="groupSizeVal" style="color:var(--magic)">9</span></div>
+      <input type="range" min="1" max="20" value="9" style="width:100%;margin-bottom:4px" oninput="document.getElementById('groupSizeVal').textContent=this.value" id="groupSize">
+      <div class="setup-label">Who's in the group?</div>
+      <div class="setup-chips" id="ageChips">
+        <div class="setup-chip" onclick="toggleChip(this,'ages')">Little kids (under 7)</div>
+        <div class="setup-chip" onclick="toggleChip(this,'ages')">Tweens (7-12)</div>
+        <div class="setup-chip" onclick="toggleChip(this,'ages')">Teens (13-17)</div>
+        <div class="setup-chip selected" onclick="toggleChip(this,'ages')">Adults</div>
+      </div>
+      <div class="setup-label">Kids under 48 inches?</div>
+      <div class="setup-chips">
+        <div class="setup-chip" id="hasKidsYes" onclick="toggleHeightKids(true)">Yes</div>
+        <div class="setup-chip selected" id="hasKidsNo" onclick="toggleHeightKids(false)">No</div>
+      </div>
+      <div id="kidsHeightArea" style="display:none;margin-top:8px">
+        <div id="kidsHeightInputs"></div>
+        <button onclick="addKidHeight()" style="padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;margin-top:6px">+ Add child</button>
+      </div>
+      <button class="setup-btn" onclick="setupNext(1)">Next: Ride Style ›</button>
+    </div>
+    <!-- Step 2: Ride Style -->
+    <div class="setup-step" id="setupStep1">
+      <button class="setup-back" onclick="setupGoTo(0)">‹ Back</button>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Ride Style</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Tell the AI what your group loves and wants to skip.</div>
+      <div class="setup-label">Thrill level</div>
+      <div class="setup-chips" id="thrillChips">
+        <div class="setup-chip" onclick="toggleChip(this,'thrill')">&#127906; Max thrills</div>
+        <div class="setup-chip selected" onclick="toggleChip(this,'thrill')">&#9878;&#65039; Mix of both</div>
+        <div class="setup-chip" onclick="toggleChip(this,'thrill')">&#127904; Family friendly</div>
+      </div>
+      <div class="setup-label">Start time</div>
+      <div class="setup-chips" id="startChips">
+        <div class="setup-chip selected" onclick="toggleChip(this,'start')">&#127939; Rope drop warriors</div>
+        <div class="setup-chip" onclick="toggleChip(this,'start')">&#9749; Mid-morning start</div>
+        <div class="setup-chip" onclick="toggleChip(this,'start')">&#128526; Relaxed start</div>
+      </div>
+      <div class="setup-label">Must-ride &#10084;</div>
+      <div class="setup-chips" id="mustRideChips">
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Space Mountain</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Rise of the Resistance</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Indiana Jones Adventure</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Matterhorn Bobsleds</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Big Thunder Mountain</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Haunted Mansion</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Radiator Springs Racers</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Guardians of the Galaxy</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Incredicoaster</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Millennium Falcon</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Tianas Bayou Adventure</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Jungle Cruise</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Star Tours</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Peter Pans Flight</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Its a Small World</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Mickey Minnies Runaway Railway</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Web Slingers</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Grizzly River Run</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Soarin Over California</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Toy Story Midway Mania</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Turtle Talk with Crush</div>
+        <div class="setup-chip" onclick="toggleChip(this,'must')">Pixar Pal-A-Round</div>
+      </div>
+      <div class="setup-label">Skip list &#128683;</div>
+      <div class="setup-chips" id="skipRideChips">
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Space Mountain</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Rise of the Resistance</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Indiana Jones Adventure</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Matterhorn Bobsleds</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Grizzly River Run</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Incredicoaster</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Star Tours</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Tianas Bayou Adventure</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Its a Small World</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Pixar Pal-A-Round</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Turtle Talk with Crush</div>
+        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Toy Story Midway Mania</div>
+      </div>
+      <div style="margin-top:14px;padding:12px;background:rgba(27,47,160,0.06);border:1px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);text-align:center">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Not sure? Let Claude pick the best mix for your group.</div>
+        <button onclick="aiChooseRides()" id="aiChooseBtn" style="padding:8px 18px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">&#10024; Let AI Choose for Me</button>
+        <div id="aiChooseStatus" style="font-size:12px;color:var(--text-muted);margin-top:6px;display:none"></div>
+      </div>
+      <button class="setup-btn" onclick="setupNext(2)">Next: Your Plan ›</button>
+    </div>
+    <!-- Step 3: Your Plan -->
+    <div class="setup-step" id="setupStep2">
+      <button class="setup-back" onclick="setupGoTo(1)">‹ Back</button>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Your Plan</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Last step! Lightning Lane and dining preferences.</div>
+      <div class="setup-label">Lightning Lane strategy</div>
+      <div class="setup-chips" id="llChips">
+        <div class="setup-chip" onclick="toggleChip(this,'ll')">&#9989; Getting Multi Pass</div>
+        <div class="setup-chip selected" onclick="toggleChip(this,'ll')">&#10067; Undecided</div>
+        <div class="setup-chip" onclick="toggleChip(this,'ll')">&#128683; Skipping LL</div>
+      </div>
+      <div class="setup-label">Dining preference</div>
+      <div class="setup-chips" id="diningChips">
+        <div class="setup-chip" onclick="toggleChip(this,'dining')">&#127828; Quick service only</div>
+        <div class="setup-chip selected" onclick="toggleChip(this,'dining')">&#9878;&#65039; Mix of both</div>
+        <div class="setup-chip" onclick="toggleChip(this,'dining')">&#127869; Sit-down meals</div>
+      </div>
+      <div class="setup-label">Pace</div>
+      <div class="setup-chips" id="paceChips">
+        <div class="setup-chip" onclick="toggleChip(this,'pace')">&#128640; Pack in as much as possible</div>
+        <div class="setup-chip selected" onclick="toggleChip(this,'pace')">&#9878;&#65039; Balanced</div>
+        <div class="setup-chip" onclick="toggleChip(this,'pace')">&#127807; Relaxed</div>
+      </div>
+      <button class="setup-btn" onclick="setupNext(3)">Next: Characters ›</button>
+    </div>
+    <!-- Step 4: Characters -->
+    <div class="setup-step" id="setupStep3">
+      <button class="setup-back" onclick="setupGoTo(2)">‹ Back</button>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Character Meets</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Want to meet characters? We will build time into your schedule.</div>
+      <div class="setup-label">Does your group want character meets?</div>
+      <div class="setup-chips">
+        <div class="setup-chip" id="charYes" onclick="toggleCharMeets(true)">Yes! We love characters</div>
+        <div class="setup-chip selected" id="charNo" onclick="toggleCharMeets(false)">No thanks - more ride time</div>
+      </div>
+      <div id="charSelectArea" style="display:none;margin-top:12px">
+        <div class="setup-label">&#127984; Disneyland characters</div>
+        <div class="setup-chips" id="charDLChips">
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Mickey and Minnie</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Cinderella</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Rapunzel</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Tiana</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Rey Star Wars</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Chewbacca</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Darth Vader</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Woody and Jessie</div>
+        </div>
+        <div class="setup-label">&#127905; DCA characters</div>
+        <div class="setup-chips" id="charDCAChips">
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Spider-Man</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Black Panther</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Iron Man</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Captain America</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Woody and Buzz Pixar Pier</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Lightning McQueen</div>
+        </div>
+        <div class="setup-label">Priority</div>
+        <div class="setup-chips" id="charPriorityChips">
+          <div class="setup-chip selected" onclick="toggleChip(this,'charPri')">Fit in when convenient</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charPri')">High priority</div>
+          <div class="setup-chip" onclick="toggleChip(this,'charPri')">First thing in the morning</div>
+        </div>
+      </div>
+      <button class="setup-btn" onclick="completeSetup()">&#10024; Save My Ride Style</button>
+    </div>
+  </div>
+</div>
+
+<!-- Setup Banner -->
+<div id="setupBanner" style="display:none;padding:0 0 10px">
+  <div class="setup-banner" onclick="openSetup()">
+    <div style="font-size:24px">&#127906;</div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:700;color:var(--text)">Set up your Ride Style</div>
+      <div style="font-size:12px;color:var(--text-muted)" id="setupBannerSub">Personalize the AI to your group in 2 minutes</div>
+    </div>
+    <span style="font-size:11px;color:var(--text-dim);cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();skipSetup()">Skip</span>
+  </div>
+</div>
+
 </body>
 </html>
