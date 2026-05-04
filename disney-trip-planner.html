@@ -145,7 +145,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .chat-msg{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.6;word-wrap:break-word}
 .chat-msg.user{background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .chat-msg.ai{background:var(--card);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border)}
-.chat-suggest{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer}
+.chat-suggest{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation}
 .setup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:800;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
 .setup-panel{background:var(--bg);border-radius:24px 24px 0 0;padding:20px 18px 100px;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .setup-step{display:none}.setup-step.active{display:block}
@@ -523,13 +523,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <button onclick="sendSuggested(this)" class="chat-suggest">Best rope drop strategy for today?</button>
       </div>
     </div>
-    <div id="chatMessages" style="padding:0 14px 130px;display:flex;flex-direction:column;gap:10px;min-height:80px"></div>
-    <div style="position:fixed;bottom:72px;left:0;right:0;max-width:430px;margin:0 auto;padding:8px 14px 10px;border-top:1px solid var(--border);background:var(--bg);z-index:50">
+    <div id="chatMessages" style="padding:0 14px 160px;display:flex;flex-direction:column;gap:10px;min-height:80px"></div>
+    <div style="position:fixed;bottom:72px;left:0;right:0;max-width:430px;margin:0 auto;padding:8px 14px 10px;border-top:1px solid var(--border);background:var(--bg);z-index:300">
       <div style="display:flex;gap:8px;align-items:center">
         <input type="text" id="chatInput" placeholder="Ask anything about your trip..."
           style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:99px;padding:10px 16px;font-size:14px;font-family:inherit;color:var(--text);outline:none"
           onkeydown="if(event.key==='Enter'){event.preventDefault();sendChat();}">
-        <button onclick="sendChat()" style="padding:10px 16px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">Send</button>
+        <button onclick="sendChat()" style="padding:10px 16px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent">Send</button>
       </div>
       <div style="font-size:10px;color:var(--text-dim);margin-top:4px;text-align:center">Powered by Claude AI</div>
     </div>
