@@ -2608,11 +2608,46 @@ function renderInfoTab(){
       return h;
     }},
     {id:'closures',title:'&#128679; June 2026 Closures',html:function(){
-      setTimeout(function(){
-        var live=getLiveClosures();
-        updateClosureDisplay(live?live.refurb:[],live?live.tempDown:[]);
-      },50);
-      return '<div></div>';
+      var live=getLiveClosures();
+      var refurb=live?live.refurb:[];
+      var tempDown=live?live.tempDown:[];
+      var known=[
+        {name:'Pirates of the Caribbean',status:'Refurb',note:'Closed May 4. No confirmed reopening.'},
+        {name:'Buzz Lightyear Astro Blasters',status:'Refurb',note:'Closed April 13. No confirmed reopening.'},
+        {name:'Silly Symphony Swings (DCA)',status:'Refurb',note:'Closed April 27.'},
+        {name:"Avengers to Cars Land walkway",status:'Closed',note:'Use Performance Corridor instead.'},
+      ];
+      var open=[
+        {name:"Fantasmic!",note:'Running nightly from May 22.'},
+        {name:'Paint the Night Parade',note:'Running nightly through Aug 9.'},
+      ];
+      var h='<div class="info-card">';
+      if(refurb.length||tempDown.length){
+        h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px">&#128308; Live Closures</div>';
+        refurb.concat(tempDown).forEach(function(name){
+          h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">'
+            +'<div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center">Refurb</div>'
+            +'<div style="font-size:13px;color:var(--text)">'+name+'</div></div>';
+        });
+        h+='<div style="border-top:1px solid var(--border);margin:10px 0"></div>';
+      }
+      h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">&#128197; Confirmed June 2026</div>';
+      known.forEach(function(item){
+        h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">'
+          +'<div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center;flex-shrink:0">'+item.status+'</div>'
+          +'<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div>'
+          +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+item.note+'</div></div></div>';
+      });
+      h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:4px 0 8px">&#9989; Confirmed Open</div>';
+      open.forEach(function(item){
+        h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px">'
+          +'<div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(52,211,153,0.1);color:#34D399;font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Open</div>'
+          +'<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div>'
+          +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+item.note+'</div></div></div>';
+      });
+      var ts=waitLastFetch?'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago':'Tap Wait Times tab to load live data';
+      h+='<div style="font-size:11px;color:var(--text-dim);margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">&#128308; '+ts+' &#183; Auto-checks every 5 min</div>';
+      return h+'</div>';
     }},
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
       return '<div class="info-card"><b>Single Pass</b> (~$15–35/person): Rise of the Resistance · Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones · Matterhorn · Space Mountain · Haunted Mansion · Big Thunder · Smugglers Run · Tiana’s · Guardians · Incredicoaster · Web Slingers · Soarin’ · Toy Story<br><br><b>No LL needed Tuesday</b> — VIP tour handles everything.</div>'
