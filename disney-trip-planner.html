@@ -679,7 +679,7 @@ const DAYS=[
     {t:'7:45 PM',h:'VIP Reserved Viewing \u2014 Paint the Night setup',n:'Your guide positions your group in the VIP reserved viewing area. Parade starts at 8:30 \u2014 arrive early for best spot.',type:'vip'},
     {t:'8:30 PM',h:'\u{1F3A1} Paint the Night \u2014 VIP Reserved',n:'Best parade view of the trip. ~17 min. Then head to DCA for World of Color.',type:'show'},
     {t:'9:15 PM',h:'Walk to DCA through Downtown Disney',n:'Scenic 12-min walk. No bag check re-entry needed within the resort.',type:'hop'},
-    {t:'9:30 PM',h:'\u{1F30A} World of Color \u2014 VIP Reserved',n:'~25 min. Prime lagoon view. Stunning finale to your VIP day.',type:'show'},
+    {t:'9:30 PM',h:'\u{1F30A} World of Color \u2014 VIP Reserved',n:'~25 min. Prime lagoon view. Stunning finale to your VIP day.',type:'vip'},
   ]},
   {title:'\u{1F3F0} Disneyland \u2014 late night rides',entries:[
     {t:'10:10 PM',h:'Park hop back to Disneyland',n:'Head back through Downtown Disney. Parks are much less crowded this late \u2014 perfect for re-rides with minimal wait.',type:'hop'},
@@ -1114,6 +1114,7 @@ function renderDayInfoBar(){
   renderCountdown();
 }
 var PROXY='https://disney-wait-times-lupt.vercel.app/api/waittimes';
+var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
 
 function nowPT(){try{return new Date(new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));}catch(e){return new Date(new Date().getTime()-7*60*60*1000);}}
 function todayPT(){try{return new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});}catch(e){return nowPT().toISOString().split('T')[0];}}
@@ -1172,15 +1173,21 @@ function renderDayTipsCard(dayIdx){
     h+='<div class="tip-item"><div class="tip-icon">'+t.icon+'</div><div class="tip-body"><div class="tip-label">'+t.label+'</div><div class="tip-text">'+t.text+'</div></div></div>';
   });
   h+='</div></div>';
+  // Add live closure warnings from wait times data
+  var liveClosures=getLiveClosures();
+  var refurbRides=liveClosures?liveClosures.refurb:[];
+  // Always include known June closures
+  ['Pirates of the Caribbean','Buzz Lightyear Astro Blasters','Silly Symphony Swings'].forEach(function(r){
+    if(refurbRides.indexOf(r)===-1) refurbRides.push(r);
+  });
+  if(refurbRides.length){
+    h+='<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);border-radius:10px;padding:10px 12px;margin-bottom:8px">'
+      +'<div style="font-size:11px;font-weight:700;color:#EF4444;margin-bottom:5px">&#128679; Currently Closed for Refurbishment</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);line-height:1.6">'+refurbRides.join(' &middot; ')+'</div>'
+      +'</div>';
+  }
   return h;
 }
-var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
-var scheduleLastSync=null;
-var notesLastSync=null;
-var notesSyncInterval=null;
-var schedSyncInterval=null;
-
-// ── Schedule sync ─────────────────────────────────────────────────────────
 async function pushApiKey(key){
   if(!isAdmin()) return;
   try{
@@ -1189,12 +1196,11 @@ async function pushApiKey(key){
       headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},
       body:JSON.stringify({apiKey:key})
     });
-    console.log('API key pushed to server');
   }catch(e){console.warn('Push API key:',e);}
 }
 
 async function pullApiKey(){
-  if(isAdmin()) return; // admin uses their own locally saved key
+  if(isAdmin()) return;
   try{
     var r=await fetch(SYNC_BASE+'/api/config?t='+Date.now());
     if(!r.ok) return;
@@ -1202,8 +1208,6 @@ async function pullApiKey(){
     if(data.apiKey&&!apiKey){
       apiKey=data.apiKey;
       try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}
-      console.log('API key pulled from server');
-      // Hide the API setup card for guests
       var setup=document.getElementById('apiSetupCard');
       if(setup) setup.style.display='none';
     }
@@ -1219,12 +1223,11 @@ async function pushSchedule(){
       headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},
       body:JSON.stringify(payload)
     });
-    console.log('Schedule pushed');
   }catch(e){console.warn('Push schedule:',e);}
 }
 
 async function pullSchedule(){
-  if(isAdmin()) return; // admin uses local
+  if(isAdmin()) return;
   try{
     var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());
     if(!r.ok) return;
@@ -1422,6 +1425,12 @@ function lookupWait(rideName){
 function wbHTML(rideName){
   var d=lookupWait(rideName);
   if(!d) return '';
+  // Show "Park Closed" if data is stale (>60 min old)
+  if(waitLastFetch){
+    var ageMin=(Date.now()-waitLastFetch)/60000;
+    if(ageMin>60) return '<span class="wb" style="background:rgba(150,150,150,0.12);color:#888;border:1px solid rgba(150,150,150,0.2)">Park Closed</span>';
+  }
+  if(d.s==='REFURBISHMENT') return '<span class="wb wb-closed">Refurb</span>';
   if(d.s!=='OPERATING'||d.w===null) return '<span class="wb wb-closed">Closed</span>';
   var cls=d.w===0?'wb-low':d.w<30?'wb-low':d.w<45?'wb-med':'wb-high';
   return '<span class="wb '+cls+'">'+(d.w===0?'Walk on':d.w+' min')+'</span>';
@@ -2617,10 +2626,7 @@ function renderInfoTab(){
         {name:'Silly Symphony Swings (DCA)',status:'Refurb',note:'Closed April 27.'},
         {name:"Avengers to Cars Land walkway",status:'Closed',note:'Use Performance Corridor instead.'},
       ];
-      var open=[
-        {name:"Fantasmic!",note:'Running nightly from May 22.'},
-        {name:'Paint the Night Parade',note:'Running nightly through Aug 9.'},
-      ];
+
       var h='<div class="info-card">';
       if(refurb.length||tempDown.length){
         h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px">&#128308; Live Closures</div>';
@@ -2638,13 +2644,7 @@ function renderInfoTab(){
           +'<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div>'
           +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+item.note+'</div></div></div>';
       });
-      h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:4px 0 8px">&#9989; Confirmed Open</div>';
-      open.forEach(function(item){
-        h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px">'
-          +'<div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(52,211,153,0.1);color:#34D399;font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Open</div>'
-          +'<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div>'
-          +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+item.note+'</div></div></div>';
-      });
+
       var ts=waitLastFetch?'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago':'Tap Wait Times tab to load live data';
       h+='<div style="font-size:11px;color:var(--text-dim);margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">&#128308; '+ts+' &#183; Auto-checks every 5 min</div>';
       return h+'</div>';
