@@ -511,8 +511,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
   <div id="tabShows" class="hidden"><div id="showsContent"></div></div>
 
-  <div id="tabChat" class="hidden">
-    <div style="padding:14px 14px 0">
+  <div id="tabChat" class="hidden" style="display:none;flex-direction:column;height:calc(100vh - 130px)">
+    <div style="padding:14px 14px 0;flex-shrink:0">
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">&#128172; Ask your Disney AI</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Ask anything about your trip.</div>
       <div id="chatSuggestions" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">
@@ -523,8 +523,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <button onclick="sendSuggested(this)" class="chat-suggest">Best rope drop strategy for today?</button>
       </div>
     </div>
-    <div id="chatMessages" style="padding:0 14px 160px;display:flex;flex-direction:column;gap:10px;min-height:80px"></div>
-    <div style="position:fixed;bottom:72px;left:0;right:0;max-width:430px;margin:0 auto;padding:8px 14px 10px;border-top:1px solid var(--border);background:var(--bg);z-index:300">
+    <div id="chatMessages" style="padding:0 14px 10px;display:flex;flex-direction:column;gap:10px;flex:1;overflow-y:auto;min-height:80px"></div>
+    <div style="padding:8px 14px 16px;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0">
       <div style="display:flex;gap:8px;align-items:center">
         <input type="text" id="chatInput" placeholder="Ask anything about your trip..."
           style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:99px;padding:10px 16px;font-size:14px;font-family:inherit;color:var(--text);outline:none"
@@ -2844,7 +2844,9 @@ function setTab(tab){
   curTab=tab;
   if(tab==='info') setTimeout(renderInfoTab,0);
   ['schedule','waits','shows','chat','info'].forEach(function(t){
-    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('hidden',t!==tab);
+    var el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(t===tab){el.classList.remove('hidden');if(t==='chat')el.style.display='flex';}
+    else{el.classList.add('hidden');el.style.display='';}
     document.getElementById('ni-'+t).classList.toggle('active',t===tab);
   });
 }
