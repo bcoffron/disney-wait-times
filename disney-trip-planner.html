@@ -633,6 +633,7 @@ function renderLockCountdowns(){
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
+function renderClosuresFromWaits(){if(typeof waits==='undefined'||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 function isWithinParkWindow(){
   try{
     var today=todayPT();
@@ -1317,7 +1318,6 @@ async function fetchWaits(){
     renderSched();
     renderWaitTab();
     updateWaitStatus();
-    renderClosuresFromWaits();
   }catch(e){
     console.warn('Wait fetch error:',e);
     if(tabEl) tabEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--red,#ef4444)">Could not load wait times.<br><span style=\"font-size:11px;color:var(--text-muted)\">'+e.message+'</span></div>';
@@ -2487,6 +2487,7 @@ function renderWaitTab(){
     return h;
   }
   el.innerHTML=renderGroup('Disneyland Park',dlRides)+renderGroup('Disney California Adventure',dcaRides);
+  if(typeof renderClosuresFromWaits==='function') renderClosuresFromWaits();
 }
 function toggleAccordion(id){
   var hdr=document.getElementById('ah_'+id);
