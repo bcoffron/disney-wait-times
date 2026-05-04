@@ -1304,7 +1304,110 @@ async function fetchWaits(){
     renderSched();
     renderWaitTab();
     updateWaitStatus();
+    renderClosuresFromWaits();
   }catch(e){console.warn('Wait fetch:',e);}
+}
+
+function renderClosuresFromWaits(){
+  // Auto-detect closures and refurbishments from live wait times data
+  if(!waits||!Object.keys(waits).length) return;
+
+  var refurb=[];
+  var tempDown=[];
+
+  Object.keys(waits).forEach(function(key){
+    var r=waits[key];
+    var name=r.raw;
+    if(r.s==='REFURBISHMENT'){
+      refurb.push(name);
+    } else if(r.s==='CLOSED'&&r.w===null){
+      // Only flag as closed if it has no wait time (scheduled closure vs end of day)
+      tempDown.push(name);
+    }
+  });
+
+  // Update the closures section in Info tab if it's open
+  var closureTab=document.getElementById('ab_closures');
+  if(closureTab&&closureTab.classList.contains('open')){
+    updateClosureDisplay(refurb, tempDown);
+  }
+
+  // Store for when the accordion opens
+  try{
+    localStorage.setItem('live_refurb', JSON.stringify(refurb));
+    localStorage.setItem('live_tempdown', JSON.stringify(tempDown));
+    localStorage.setItem('live_closure_ts', Date.now().toString());
+  }catch(e){}
+}
+
+function getLiveClosures(){
+  try{
+    var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');
+    var age=Date.now()-ts;
+    if(age>30*60*1000) return null; // stale after 30 min
+    return {
+      refurb: JSON.parse(localStorage.getItem('live_refurb')||'[]'),
+      tempDown: JSON.parse(localStorage.getItem('live_tempdown')||'[]')
+    };
+  }catch(e){return null;}
+}
+
+function updateClosureDisplay(refurb, tempDown){
+  var closureEl=document.getElementById('ab_closures');
+  if(!closureEl){var el2=document.getElementById('ab_closures_inner');if(el2)closureEl=el2.parentNode;}
+  if(!closureEl) return;
+
+  // Known permanent closures for June 2026
+  var known=[
+    {name:'Pirates of the Caribbean',status:'Refurbishment',note:'Closed May 4. No confirmed reopening date.'},
+    {name:'Buzz Lightyear Astro Blasters',status:'Refurbishment',note:'Closed April 13. No confirmed reopening date.'},
+    {name:'Silly Symphony Swings',status:'Refurbishment',note:'DCA - Closed April 27.'},
+  ];
+
+  var h='<div class="info-card">';
+
+  // Show live refurb rides first
+  if(refurb.length||tempDown.length){
+    h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px">&#128308; Live from Wait Times API</div>';
+    refurb.forEach(function(name){
+      h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px">'
+        +'<div style="min-width:68px;padding:3px 8px;border-radius:99px;background:rgba(239,68,68,0.08);color:var(--red,#EF4444);font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Refurb</div>'
+        +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+name+'</div></div>';
+    });
+    tempDown.forEach(function(name){
+      h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px">'
+        +'<div style="min-width:68px;padding:3px 8px;border-radius:99px;background:rgba(239,68,68,0.08);color:var(--red,#EF4444);font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Closed</div>'
+        +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+name+'</div></div>';
+    });
+    h+='<div style="border-top:1px solid var(--border);margin:10px 0"></div>';
+  }
+
+  // Always show known confirmed closures
+  h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">&#128197; Confirmed June 2026</div>';
+  known.forEach(function(item){
+    h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">'
+      +'<div style="min-width:68px;padding:3px 8px;border-radius:99px;background:rgba(239,68,68,0.08);color:var(--red,#EF4444);font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Refurb</div>'
+      +'<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;line-height:1.4">'+item.note+'</div></div>'
+      +'</div>';
+  });
+
+  // Open rides
+  [{name:"Fantasmic!",note:"Running nightly from May 22."},
+   {name:"Paint the Night Parade",note:"Running nightly through Aug 9."}
+  ].forEach(function(item){
+    h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px">'
+      +'<div style="min-width:68px;padding:3px 8px;border-radius:99px;background:rgba(52,211,153,0.08);color:var(--green,#34D399);font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Open</div>'
+      +'<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+item.note+'</div></div>'
+      +'</div>';
+  });
+
+  var lastUpdate=waitLastFetch?'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago':'Waiting for live data...';
+  h+='<div style="font-size:11px;color:var(--text-dim);margin-top:8px">&#128308; '+lastUpdate+' &#183; Auto-updates with wait times</div>';
+  h+='</div>';
+
+  closureEl.innerHTML=h;
 }
 
 function lookupWait(rideName){
@@ -2392,7 +2495,7 @@ function renderSched(){
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
           +'</div>'
           +'<button class="dining-btn" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
-          +'<button class="dining-refresh" onclick="refreshDiningRecs(\''+safeDname+'\',this)">&#8635; Refresh</button>'
+          
           +'<div class="dining-result"></div>';
       }
       var reroute='';
@@ -2457,6 +2560,11 @@ function renderWaitTab(){
   el.innerHTML=renderGroup('Disneyland Park',dlRides)+renderGroup('Disney California Adventure',dcaRides);
 }
 function toggleAccordion(id){
+  // If opening closures, refresh with live data
+  if(id==='closures'){
+    var live=getLiveClosures();
+    updateClosureDisplay(live?live.refurb:[], live?live.tempDown:[]);
+  }
   var hdr=document.getElementById('ah_'+id);
   var body=document.getElementById('ab_'+id);
   if(!hdr||!body) return;
@@ -2468,8 +2576,9 @@ function toggleAccordion(id){
 
 function renderInfoTab(){
   // Rebuild info tab with accordions
+  console.log('renderInfoTab running, tab:', !!document.getElementById('tabInfo'));
   var tab=document.getElementById('tabInfo');
-  if(!tab) return;
+  if(!tab){console.error('tabInfo element missing');return;}
 
   var sections=[
     {id:'general_tips',title:'&#128161; General Park Tips',html:function(){
@@ -2499,10 +2608,11 @@ function renderInfoTab(){
       return h;
     }},
     {id:'closures',title:'&#128679; June 2026 Closures',html:function(){
-      var el=document.createElement('div');
-      el.id='closedBannerInfo';
-      renderClosed();
-      return '<div id="closedBannerInfo2"></div>';
+      setTimeout(function(){
+        var live=getLiveClosures();
+        updateClosureDisplay(live?live.refurb:[],live?live.tempDown:[]);
+      },50);
+      return '<div></div>';
     }},
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
       return '<div class="info-card"><b>Single Pass</b> (~$15–35/person): Rise of the Resistance · Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones · Matterhorn · Space Mountain · Haunted Mansion · Big Thunder · Smugglers Run · Tiana’s · Guardians · Incredicoaster · Web Slingers · Soarin’ · Toy Story<br><br><b>No LL needed Tuesday</b> — VIP tour handles everything.</div>'
@@ -2599,7 +2709,7 @@ function renderInfoTab(){
   var html='<div class="sec-hdr"><div class="sec-lbl">Trip Info</div><div class="sec-line"></div></div>';
   sections.forEach(function(s){
     var sectionHtml='';
-    try{ sectionHtml=s.html(); }catch(e){ sectionHtml='<div class="info-card" style="color:var(--red)">Error loading section: '+e.message+'</div>'; }
+    try{ sectionHtml=s.html(); }catch(e){ console.error('Section '+s.id+' failed:',e); sectionHtml='<div class="info-card" style="color:var(--red,#ef4444)">'+s.id+': '+e.message+'</div>'; }
     html+='<div class="accordion-hdr" id="ah_'+s.id+'" onclick="toggleAccordion(\''+s.id+'\')">'
       +'<span class="accordion-title">'+s.title+'</span>'
       +'<span class="accordion-arrow" style="font-style:normal">&#8964;</span>'
@@ -2674,7 +2784,7 @@ function buildFullDiningGuide(){
         +'</div>'
         +'<div class="rest-body" style="display:none;padding:10px 12px">'
         +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0">&#127869; Get dining recs</button>'
-        +'<button class="dining-refresh" onclick="refreshDiningRecsById(\''+safeName+'\',this)">&#8635; Refresh</button>'
+        
         +'<div class="dining-result"></div>'
         +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached — tap refresh for latest</div>':'')
         +'</div>'
