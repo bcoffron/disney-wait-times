@@ -1826,7 +1826,7 @@ async function checkWazeSuggestion(){
     var r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,system:'You are a Disneyland touring expert. CRITICAL FORMATTING RULE: In the detail field of your JSON response, you MUST use **double asterisks** around every ride name, time, and key action. Example detail: "**Skip Haunted Mansion** for now and head to **Space Mountain** — the wait just dropped to **12 minutes**." Never write a detail without at least 3 bolded phrases.',messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,system:'You are a Disneyland touring expert. CRITICAL: In the detail field, wrap the ENTIRE first sentence in **double asterisks**. The first sentence is the main action. Remaining sentences are normal. Example: {"detail":"**Skip Haunted Mansion and head straight to Space Mountain right now.** The wait just dropped to 12 min and will climb after lunch."}',messages:[{role:'user',content:prompt}]})
     });
     var data=await r.json();
     if(data.error) return;
@@ -2040,7 +2040,7 @@ async function getReroute(ride,land,btn){
     var prompt_txt='Disneyland expert. Group of 9 adults+teens on '+dn+'. '+ride+' in '+land+' has a LIVE wait of '+wait+' min right now. ';
     if(wait<45) prompt_txt+='This is a moderate wait. In 2-3 friendly sentences, advise whether to ride now or skip and why, considering the time of day and historical patterns.';
     else prompt_txt+='This is a long wait. In 2-3 friendly sentences, tell them what to do RIGHT NOW instead and when the best time to return is based on historical patterns. Nearby alternatives: '+alts+'.';
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:'CRITICAL: Use **double asterisks** around every ride name, time, and key action. Example: **Skip Space Mountain** and head to **Haunted Mansion** — wait is only **15 min** right now.',messages:[{role:'user',content:prompt_txt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:'CRITICAL: Wrap your ENTIRE first sentence in **double asterisks** to make it bold. This is the main recommendation. The remaining sentences are normal text. Example: **Skip Space Mountain for now and head straight to Haunted Mansion.** The wait there is only 15 min and will climb later.',messages:[{role:'user',content:prompt_txt}]})});
     var data=await r.json();
     var txt=data.content&&data.content[0]?data.content[0].text:'Could not get suggestion.';
     res.innerHTML='<div class="rr-hdr">\u26A1 AI REROUTE \u2014 '+statusMsg.toUpperCase()+'</div>'+renderMarkdown(txt);
