@@ -511,7 +511,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
   <div id="tabShows" class="hidden"><div id="showsContent"></div></div>
 
-  <div id="tabChat" class="hidden" style="display:none;flex-direction:column;height:calc(100vh - 130px)">
+  <div id="tabChat" class="hidden" style="flex-direction:column;height:calc(100vh - 130px)">
     <div style="padding:14px 14px 0;flex-shrink:0">
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">&#128172; Ask your Disney AI</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Ask anything about your trip.</div>
@@ -630,7 +630,7 @@ function renderLockCountdowns(){
   else if(now<tripStart){html+='<div style="'+s2+'">&#9889; Lightning Lane <b style="color:#F0C462">open now!</b></div>';}
   el.innerHTML=html;
 }
-function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
+function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
 function renderMarkdown(text){
@@ -2846,8 +2846,8 @@ function setTab(tab){
   if(tab==='info') setTimeout(renderInfoTab,0);
   ['schedule','waits','shows','chat','info'].forEach(function(t){
     var el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
-    if(t===tab){el.classList.remove('hidden');if(t==='chat')el.style.display='flex';}
-    else{el.classList.add('hidden');el.style.display='';}
+    if(t===tab){el.classList.remove('hidden');el.style.display=t==='chat'?'flex':'';}
+    else{el.classList.add('hidden');el.style.display='none';}
     document.getElementById('ni-'+t).classList.toggle('active',t===tab);
   });
 }
@@ -2895,31 +2895,65 @@ function updateHeight(i,v){var h=getGroupHeights();h[i]=parseInt(v)||48;saveGrou
 function checkHeightWarning(rideName){if(!rideName)return null;var req=null;var rLower=rideName.toLowerCase();Object.keys(HEIGHTS).forEach(function(k){if(rLower.indexOf(k.toLowerCase().substring(0,8))>-1)req=HEIGHTS[k];});if(!req)return null;var heights=getGroupHeights();if(!heights.length)return null;return heights.some(function(h){return h<req;})?'warn':'ok';}
 
 var chatHistory=[];
-function sendSuggested(btn){var input=document.getElementById('chatInput');if(input)input.value=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChat();}
-async function sendChat(){
-  var input=document.getElementById('chatInput');var msg=input?input.value.trim():'';
-  if(!msg){appendChatMsg('ai','[debug] No message found in input');return;}
-  if(input)input.value='';
-  appendChatMsg('user',msg);
-  if(!apiKey){appendChatMsg('ai','[debug] No API key - add one in Info tab');return;}
-  appendChatMsg('ai','[debug] API key found, sending...');
-  var ml=msg.toLowerCase();var today=todayPT();var dm={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};var dn=dm[today]||'pre-trip';
-  var wc='';if(/(wait|line|ride|busy|crowd)/i.test(ml)&&Object.keys(waits).length){var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);if(top.length)wc=' Live waits: '+top.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';}
-  var bc='';if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
-  var sc='';if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
-  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences.';
-  if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);chatHistory.push({role:'user',content:msg});
-  var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
-  var msgs=document.getElementById('chatMessages');if(msgs){msgs.appendChild(te);msgs.scrollTop=msgs.scrollHeight;}
-  try{var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:sys,messages:chatHistory})});var data=await resp.json();if(data.error){if(te.parentNode)te.remove();appendChatMsg('ai','API Error: '+data.error.message);return;}var reply=data.content&&data.content[0]?data.content[0].text:'Sorry, try again.';chatHistory.push({role:'assistant',content:reply});if(te.parentNode)te.remove();appendChatMsg('ai',reply);}catch(e){if(te.parentNode)te.remove();var errMsg=e.message||'Unknown error';appendChatMsg('ai','Error: '+errMsg);}
+function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
+async function sendChatMsg(directMsg){
+  await _doChat(directMsg);
 }
+async function sendChat(){
+  var input=document.getElementById('chatInput');
+  var msg=input?input.value.trim():'';
+  if(!msg) return;
+  if(input) input.value='';
+  await _doChat(msg);
+}
+async function _doChat(msg){
+  if(!msg) return;
+  appendChatMsg('user',msg);
+  if(!apiKey){appendChatMsg('ai','Please add your API key in the Info tab to use AI chat.');return;}
+  var ml=msg.toLowerCase();
+  var today=todayPT();
+  var dm={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};
+  var dn=dm[today]||'pre-trip';
+  var wc='';
+  if(/(wait|line|ride|busy|crowd)/i.test(ml)&&Object.keys(waits).length){
+    var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);
+    if(top.length)wc=' Live waits: '+top.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';
+  }
+  var bc='';
+  if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
+  var sc='';
+  if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
+  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences.';
+  if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
+  chatHistory.push({role:'user',content:msg});
+  var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
+  var msgs=document.getElementById('chatMessages');
+  if(msgs){msgs.appendChild(te);msgs.scrollTop=msgs.scrollHeight;}
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:sys,messages:chatHistory})
+    });
+    var data=await resp.json();
+    if(data.error){if(te.parentNode)te.remove();appendChatMsg('ai','Error: '+data.error.message);return;}
+    var reply=data.content&&data.content[0]?data.content[0].text:'Sorry, try again.';
+    chatHistory.push({role:'assistant',content:reply});
+    if(te.parentNode)te.remove();
+    appendChatMsg('ai',reply);
+  }catch(e){
+    if(te.parentNode)te.remove();
+    appendChatMsg('ai','Network error: '+e.message);
+  }
+}
+
 function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages');if(!msgs)return;var el=document.createElement('div');el.className='chat-msg '+role;el.textContent=text;msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;}
 
 var setupData={};
 function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
 function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}
 function isSetupDone(){try{return localStorage.getItem('setup_done')==='yes';}catch(e){return false;}}
-function checkShowSetupBanner(){if(!isAdmin()||isSetupDone())return;var sk=getSetupSkips();var b=document.getElementById('setupBanner');if(!b)return;if(sk>=5){openSetup();return;}b.style.display='block';if(sk>0){var s=document.getElementById('setupBannerSub');if(s)s.textContent='Personalize the AI ('+(5-sk)+' reminders left)';}}
+function checkShowSetupBanner(){if(!isAdmin()||isSetupDone()||curTab!=='schedule')return;var sk=getSetupSkips();var b=document.getElementById('setupBanner');if(!b)return;if(sk>=5){openSetup();return;}b.style.display='block';if(sk>0){var s=document.getElementById('setupBannerSub');if(s)s.textContent='Personalize the AI ('+(5-sk)+' reminders left)';}}
 function skipSetup(){setSetupSkips(getSetupSkips()+1);var b=document.getElementById('setupBanner');if(b)b.style.display='none';}
 function openSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.remove('hidden');setupGoTo(0);}
 function closeSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.add('hidden');}
