@@ -1816,7 +1816,7 @@ async function checkWazeSuggestion(){
   var now2=new Date();
   var timeStr=now2.getHours()+':'+(now2.getMinutes()<10?'0':'')+now2.getMinutes();
 
-  var prompt='Disneyland touring expert. Current time: '+timeStr+'. '
+  var prompt='IMPORTANT: In your detail field, you MUST wrap every key ride name, time recommendation, and action verb in **double asterisks** for bold rendering. Minimum 3 bold phrases per response. Disneyland touring expert. Current time: '+timeStr+'. '
     +(nextRideWait?'ALERT: The next scheduled ride ('+nextRideWait.ride.e.h+') currently has a '+nextRideWait.wait+' min wait. ':'')
     +(oppList?'SHORT WAIT OPPORTUNITIES right now: '+oppList+'. ':'')
     +'Current schedule:\n'+schedSummary+'\n'
@@ -1827,7 +1827,7 @@ async function checkWazeSuggestion(){
     var r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,system:'You are a Disneyland touring expert. CRITICAL FORMATTING RULE: In the detail field of your JSON response, you MUST use **double asterisks** around every ride name, time, and key action. Example detail: "**Skip Haunted Mansion** for now and head to **Space Mountain** — the wait just dropped to **12 minutes**." Never write a detail without at least 3 bolded phrases.',messages:[{role:'user',content:prompt}]})
     });
     var data=await r.json();
     if(data.error) return;
@@ -2888,7 +2888,7 @@ async function _doChat(msg){
   if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
-  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
   var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
