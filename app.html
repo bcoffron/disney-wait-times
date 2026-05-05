@@ -2143,7 +2143,7 @@ async function reoptimize(){
     });
     var resp=await r.json();
     if(resp.error){txt.textContent='API error: '+resp.error.message;return;}
-    var text=resp.content&&resp.content[0]?resp.content[0].text:'';
+    var text='';if(resp.content&&resp.content.length){resp.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
 
     var newSecs=null;
     var explanation=text;
