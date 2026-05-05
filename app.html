@@ -1449,7 +1449,81 @@ function updateWaitStatus(){
   var el=document.getElementById('waitStatus');if(el){el.textContent=txt;el.style.color=col;}renderDayInfoBar();
 }
 
-function startWaitRefresh(){fetchWaits();setInterval(fetchWaits,5*60*1000);setInterval(updateWaitStatus,60*1000);}
+function isWaitFetchTime(){
+  try{
+    var now=nowPT();
+    var hr=now.getHours()+(now.getMinutes()/60);
+    var todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    // Get dynamic park hours - fetch starts 5 min before open, stops 1hr after close
+    var window=typeof getDayParkWindow==='function'?getDayParkWindow(todayStr):{open:8,close:23};
+    var fetchStart=window.open-(5/60); // 5 min before open
+    var fetchEnd=window.close+1;       // 1 hour after close
+    // Handle overnight window (e.g. close at 23, fetchEnd=24 which wraps to next day)
+    if(fetchEnd>=24){
+      // After midnight check
+      if(hr<(fetchEnd-24)) return true;  // e.g. 0AM-1AM still fetching from last night
+    }
+    if(hr>=fetchStart&&hr<Math.min(fetchEnd,24)) return true;
+    return false;
+  }catch(e){return true;}
+}
+function getParkOpenHour(){
+  try{
+    var now=nowPT();
+    var todayStr=now.toISOString().split('T')[0];
+    var w=typeof getDayParkWindow==='function'?getDayParkWindow(todayStr):{open:8,close:23};
+    return w.open-(5/60); // 5 min before open
+  }catch(e){return 7;}
+}
+function getParkCloseHour(){
+  try{
+    var now=nowPT();
+    var todayStr=now.toISOString().split('T')[0];
+    var w=typeof getDayParkWindow==='function'?getDayParkWindow(todayStr):{open:8,close:23};
+    return w.close+1; // 1 hour after close
+  }catch(e){return 1;}
+}
+function smartFetchWaits(){
+  if(isWaitFetchTime()){
+    fetchWaits();
+  } else {
+    // Park is closed - clear stale wait data and show Park Closed
+    waits={};
+    waitLastFetch=0;
+    renderSched();
+    updateWaitStatus();
+    var tabEl=document.getElementById('waitTabContent');
+    if(tabEl)tabEl.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:8px">🌙</div><div style="font-size:14px;font-weight:600;margin-bottom:4px;">Park is Closed</div><div style="font-size:12px;">Live wait times resume at 7 AM Pacific</div></div>';
+  }
+}
+var _waitInterval=null;
+var _waitStatusInterval=null;
+function startWaitRefresh(){
+  // Initial fetch only if park is open
+  smartFetchWaits();
+  // Clear any existing intervals
+  if(_waitInterval) clearInterval(_waitInterval);
+  if(_waitStatusInterval) clearInterval(_waitStatusInterval);
+  // Poll every 5 min but check park hours each time
+  _waitInterval=setInterval(smartFetchWaits,5*60*1000);
+  _waitStatusInterval=setInterval(updateWaitStatus,60*1000);
+  // Schedule a restart at 7AM if we're currently in the closed window
+  try{
+    var now=nowPT();
+    var hr=now.getHours();
+    if(hr>=getParkCloseHour()&&hr<getParkOpenHour()){
+      var openHour=getParkOpenHour();
+      var openHourFull=Math.floor(openHour);
+      var openMin=Math.round((openHour%1)*60);
+      var nextOpen=new Date(now);
+      nextOpen.setHours(openHourFull,openMin,0,0);
+      var msUntilOpen=nextOpen-now;
+      if(msUntilOpen<0)msUntilOpen+=24*60*60*1000;
+      setTimeout(function(){smartFetchWaits();},msUntilOpen);
+      console.log('Park closed — wait fetch scheduled for '+openHourFull+':'+String(openMin).padStart(2,'0')+' PT ('+Math.round(msUntilOpen/60000)+' min)');
+    }
+  }catch(e){}
+}
 
 // ── Lightning Lane system ────────────────────────────────────────────────
 var llState={multiPass:null,individualPasses:{},bookedTimes:{}};
@@ -4223,6 +4297,131 @@ async function buildEventsIntel(){
 setTimeout(function(){
   if(apiKey && !getEventsIntel()) buildEventsIntel();
 }, 120000);
+
+// ── Park Hours Intelligence Cache ─────────────────────────────────────────
+var PARK_HOURS_CACHE_DAYS = 7;
+var parkHoursCache = null;
+
+function getParkHoursIntel(){
+  if(parkHoursCache) return parkHoursCache;
+  try{
+    var stored = localStorage.getItem('park_hours_intel');
+    if(stored){
+      parkHoursCache = JSON.parse(stored);
+      return parkHoursCache;
+    }
+  }catch(e){}
+  return null;
+}
+
+function parkHoursNeedsUpdate(){
+  try{
+    var ts = parseInt(localStorage.getItem('park_hours_intel_ts')||'0');
+    var age = (Date.now()-ts)/(1000*60*60*24);
+    return age >= PARK_HOURS_CACHE_DAYS; // refresh next 60 days every 7 days
+  }catch(e){return true;}
+}
+
+function setParkHoursIntel(data){
+  parkHoursCache = data;
+  try{
+    localStorage.setItem('park_hours_intel', JSON.stringify(data));
+    localStorage.setItem('park_hours_intel_ts', Date.now().toString());
+  }catch(e){}
+}
+
+async function buildParkHoursIntel(){
+  if(!apiKey) return;
+  var existing=getParkHoursIntel();
+  var needsUpdate=parkHoursNeedsUpdate();
+  if(existing&&!needsUpdate) return;
+  var isIncremental=!!existing;
+  var now=new Date();
+  var startDate,endDate,startStr,endStr;
+  if(isIncremental){
+    console.log('Updating Park Hours Cache (next 60 days)...');
+    startDate=new Date(now);endDate=new Date(now);
+    endDate.setDate(endDate.getDate()+60);
+  }else{
+    console.log('Building Park Hours Cache (full year)...');
+    startDate=new Date(now);startDate.setDate(1);
+    endDate=new Date(startDate);endDate.setFullYear(endDate.getFullYear()+1);
+  }
+  startStr=startDate.toISOString().split('T')[0];
+  endStr=endDate.toISOString().split('T')[0];
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:2000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:'You are a Disneyland park hours expert. Search the official Disneyland website and MousePlanet for current park hours. Note early closures for special ticketed events like Halloween and Christmas parties. Return ONLY valid JSON, no other text.',
+        messages:[{role:'user',content:'Search for Disneyland Resort official park hours from '+startStr+' through '+endStr+'. Return ONLY a JSON object: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}}. Include early close times for special events. Default: dl 08:00-23:00, dca 09:00-22:00. Only include dates with confirmed hours.'}]
+      })
+    });
+    var data=await resp.json();
+    if(data.error){console.warn('Park Hours failed:',data.error.message);return;}
+    var text='';
+    if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}
+    var match=text.replace(/```json|```/g,'').match(/\{[\s\S]+\}/);
+    if(match){
+      try{
+        var hours=JSON.parse(match[0]);
+        if(isIncremental&&existing){
+          var merged=Object.assign({},existing,hours);
+          setParkHoursIntel(merged);
+          console.log('Park Hours updated — '+Object.keys(merged).length+' days');
+        }else{
+          setParkHoursIntel(hours);
+          console.log('Park Hours built for '+Object.keys(hours).length+' days');
+        }
+      }catch(e){console.warn('Park hours parse:',e);}
+    }
+  }catch(e){console.warn('Park Hours error:',e);}
+}
+
+// Get open/close hours for a specific date and park
+// Returns {open: hour_decimal, close: hour_decimal} e.g. {open: 8, close: 23}
+function getParkHoursForDate(dateStr, park){
+  var defaults = park==='dca'?{open:9,close:22}:{open:8,close:23};
+  try{
+    var intel = getParkHoursIntel();
+    if(!intel||!intel[dateStr]) return defaults;
+    var day = intel[dateStr];
+    var p = park==='dca'?day.dca:day.dl;
+    if(!p) return defaults;
+    var openParts = p.open.split(':');
+    var closeParts = p.close.split(':');
+    return {
+      open: parseInt(openParts[0])+(parseInt(openParts[1]||0)/60),
+      close: parseInt(closeParts[0])+(parseInt(closeParts[1]||0)/60)
+    };
+  }catch(e){return defaults;}
+}
+
+// Get combined open/close for the day (earliest open, latest close across both parks)
+function getDayParkWindow(dateStr){
+  // If no dateStr provided, use today Pacific time
+  if(!dateStr){
+    try{
+      var nowP=nowPT();
+      dateStr=nowP.getFullYear()+'-'+String(nowP.getMonth()+1).padStart(2,'0')+'-'+String(nowP.getDate()).padStart(2,'0');
+    }catch(e){dateStr=new Date().toISOString().split('T')[0];}
+  }
+  var dl = getParkHoursForDate(dateStr, 'dl');
+  var dca = getParkHoursForDate(dateStr, 'dca');
+  return {
+    open: Math.min(dl.open, dca.open),
+    close: Math.max(dl.close, dca.close)
+  };
+}
+
+// Build park hours 150 seconds after load (after park/dining/events intel)
+setTimeout(function(){
+  if(apiKey && !getParkHoursIntel()) buildParkHoursIntel();
+}, 150000);
 
 </script>
 
