@@ -647,11 +647,13 @@ function isRideInRefurb(rideName){
 function renderClosuresFromWaits(){if(typeof waits==='undefined'||!Object.keys(waits).length)return;var r=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify([]));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 function isWithinParkWindow(){
   try{
+    // Disneyland generally open 8AM-midnight any day
+    // Use 7AM-1AM window (with 1hr buffer) to catch early entry and late nights
     var now=nowPT();
     var hr=now.getHours()+(now.getMinutes()/60);
-    if(hr>=1&&hr<7) return false; // 1AM-7AM = park closed
+    if(hr>=1&&hr<7) return false; // 1AM-7AM closed
     return true;
-  }catch(e){return true;}
+  }catch(e){return true;} // default to open if error
 }
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
@@ -663,10 +665,10 @@ const CLOSED=[
 
 const DAYS=[
 {label:'Sunday Jun 28',sub:'Disneyland \u2192 DCA \u2192 Disneyland \u00b7 Fireworks Night',sections:[
-  {title:'🏰 Disneyland \u2014 rope drop',entries:[
+  {title:'\u{1F3F0} Disneyland \u2014 rope drop',entries:[
     {t:'7:00 AM',h:'Arrive at Disneyland gates',n:'Arrive 1 hour before 8 AM opening. Get through security, pick up will-call tickets if needed, and be at the turnstiles ready to scan in by 7:55 AM.',type:'tip'},
-    {t:'8:00 AM',h:'🎯 Buy LL Single Pass \u2014 Rise of the Resistance',n:'Open the app the second you scan in. Buy Rise Single Pass FIRST \u2014 sells out by 9 AM.',type:'tip',ll:{t:'single',a:'Buy NOW on entry. Sells out fast \u2014 do this before anything else.'}},
-    {t:'8:00 AM',h:'🎫 Buy Lightning Lane Multi Pass',n:'Also buy LLMP. First selection: Indiana Jones Adventure.',type:'tip',ll:{t:'multi',a:'First selection: Indiana Jones Adventure'}},
+    {t:'8:00 AM',h:'\u{1F3AF} Buy LL Single Pass \u2014 Rise of the Resistance',n:'Open the app the second you scan in. Buy Rise Single Pass FIRST \u2014 sells out by 9 AM.',type:'tip',ll:{t:'single',a:'Buy NOW on entry. Sells out fast \u2014 do this before anything else.'}},
+    {t:'8:00 AM',h:'\u{1F3AB} Buy Lightning Lane Multi Pass',n:'Also buy LLMP. First selection: Indiana Jones Adventure.',type:'tip',ll:{t:'multi',a:'First selection: Indiana Jones Adventure'}},
     {t:'8:05 AM',h:'Indiana Jones Adventure',n:'Standby is 5\u201310 min at rope drop. Walk straight there.',type:'ride',ride:'Indiana Jones Adventure',land:'Adventureland',ll:{t:'multi',a:'Ride standby now. Book next LLMP: Matterhorn Bobsleds'}},
     {t:'8:30 AM',h:'Haunted Mansion',n:'5\u201310 min standby. Book next LLMP while in this line.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square',ll:{t:'multi',a:'Book next LLMP: Matterhorn Bobsleds'}},
     {t:'8:55 AM',h:'Matterhorn Bobsleds',n:'Redeem LLMP. Book next in line.',type:'ride',ride:'Matterhorn Bobsleds',land:'Fantasyland',ll:{t:'multi',a:'Redeem LLMP. Book next: Space Mountain'}},
@@ -675,8 +677,8 @@ const DAYS=[
     {t:'10:20 AM',h:"Tiana's Bayou Adventure",n:"Great alternative now that Pirates is closed. Usually 20\u201330 min standby.",type:'ride',ride:"Tiana's Bayou Adventure",land:'New Orleans Square',ll:{t:'multi',a:'Book LLMP if wait over 30 min.'}},
     {t:'10:45 AM',h:'Walk to DCA gate',n:'Park hopping opens at 11:00 AM \u2014 be at the gate a couple minutes early.',type:'hop'},
   ]},
-  {title:'🌟 Disney California Adventure \u2014 midday',entries:[
-    {t:'11:00 AM',h:'🎯 Buy LL Single Pass \u2014 Radiator Springs Racers',n:'Buy RSR Single Pass the second you enter DCA \u2014 sells out within the hour.',type:'tip',ll:{t:'single',a:'Buy immediately on entering DCA.'}},
+  {title:'\u{1F31F} Disney California Adventure \u2014 midday',entries:[
+    {t:'11:00 AM',h:'\u{1F3AF} Buy LL Single Pass \u2014 Radiator Springs Racers',n:'Buy RSR Single Pass the second you enter DCA \u2014 sells out within the hour.',type:'tip',ll:{t:'single',a:'Buy immediately on entering DCA.'}},
     {t:'11:05 AM',h:'Guardians of the Galaxy: Mission Breakout',n:'Redeem LLMP booked from Disneyland. Book next in line.',type:'ride',ride:'Guardians of the Galaxy',land:'Avengers Campus',ll:{t:'multi',a:'Redeem LLMP. Book next: Incredicoaster'}},
     {t:'11:30 AM',h:'Incredicoaster',n:'Redeem LLMP. Book next in line.',type:'ride',ride:'Incredicoaster',land:'Pixar Pier',ll:{t:'multi',a:'Redeem LLMP. Book next: Web Slingers'}},
     {t:'11:55 AM',h:'Radiator Springs Racers',n:'Redeem Single Pass. Most beautiful ride setting in either park.',type:'ride',ride:'Radiator Springs Racers',land:'Cars Land',ll:{t:'single',a:'Redeem Single Pass. Book next LLMP: Soarin\' Around the World'}},
@@ -686,20 +688,20 @@ const DAYS=[
     {t:'3:00 PM',h:'Toy Story Midway Mania',n:'Competitive 4D shooter \u2014 see who gets the top score.',type:'ride',ride:'Toy Story Midway Mania',land:'Pixar Pier'},
     {t:'4:00 PM',h:'Hop back to Disneyland',n:'Head over with plenty of time before the evening shows.',type:'hop'},
   ]},
-  {title:'🏰 Disneyland \u2014 evening shows',entries:[
+  {title:'\u{1F3F0} Disneyland \u2014 evening shows',entries:[
     {t:'4:30 PM',h:'Big Thunder Mountain Railroad',n:'Redeem any remaining LLMP. Great ride \u2014 even better after dark.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland'},
     {t:"5:00 PM",h:"Galaxy's Edge \u2014 Shadows of Memory",n:"Catch Shadows of Memory (~5:30 PM) then Millennium Falcon: Smugglers Run. Low crowds at this hour.",type:'show'},
     {t:'6:30 PM',h:'Dinner \u2014 Caf\u00e9 Orleans or River Belle Terrace',n:'Skip Blue Bayou this trip \u2014 Caf\u00e9 Orleans next door serves the same Creole classics.',type:'food'},
     {t:'7:30 PM',h:'Claim Main Street parade spot',n:'No reserved viewing Sunday \u2014 stake out a curb spot for 9 by 7:30\u20137:45 PM.',type:'tip'},
-    {t:'9:00 PM',h:'🎭 Fantasmic! \u2014 1st show',n:'~22 min. Head to Sleeping Beauty Castle hub right after for fireworks.',type:'show'},
+    {t:'9:00 PM',h:'\u{1F3AD} Fantasmic! \u2014 1st show',n:'~22 min. Head to Sleeping Beauty Castle hub right after for fireworks.',type:'show'},
     {t:'9:30 PM',h:'\u2728 Wondrous Journeys \u2014 Fireworks',n:'Full fireworks + projections tonight. Best view in front of Sleeping Beauty Castle. ~20 min.',type:'show'},
     {t:'10:00 PM',h:'Late night rides or head out',n:'Post-fireworks crowds thin fast. Space Mountain & Big Thunder have short waits now.',type:'tip'},
   ]},
 ]},
 {label:'Monday Jun 29',sub:'VIP Tour \u00b7 Paint the Night Reserved \u00b7 World of Color Reserved',sections:[
-  {title:'🏰 Disneyland \u2014 before the tour',entries:[
+  {title:'\u{1F3F0} Disneyland \u2014 before the tour',entries:[
     {t:'7:55 AM',h:'Arrive at Disneyland gates',n:'Be at the turnstiles before 8 AM. Scan in immediately and head to your first rides before the VIP tour begins.',type:'tip'},
-    {t:'8:00 AM',h:'🎫 Buy Lightning Lane Multi Pass',n:'Purchase in the Disneyland app the moment you scan in. Book Space Mountain first.',type:'tip'},
+    {t:'8:00 AM',h:'\u{1F3AB} Buy Lightning Lane Multi Pass',n:'Purchase in the Disneyland app the moment you scan in. Book Space Mountain first.',type:'tip'},
     {t:'8:05 AM',h:'Space Mountain',n:'First ride of the day \u2014 short wait at rope drop.',type:'ride',ride:'Space Mountain',land:'Tomorrowland',ll:{t:'multi',a:'Book LL immediately at park open'}},
     {t:'8:30 AM',h:'Big Thunder Mountain Railroad',n:'Frontierland. Short wait this early.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland',ll:{t:'multi',a:'Book LL after Space Mountain'}},
     {t:'8:55 AM',h:'Haunted Mansion',n:'New Orleans Square. Morning walk-on or close to it.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
@@ -712,11 +714,11 @@ const DAYS=[
   ]},
   {title:'\u2728 Evening Shows \u2014 Paint the Night & World of Color',entries:[
     {t:'7:45 PM',h:'VIP Reserved Viewing \u2014 Paint the Night setup',n:'Your guide positions your group in the VIP reserved viewing area. Parade starts at 8:30 \u2014 arrive early for best spot.',type:'vip'},
-    {t:'8:30 PM',h:'🎡 Paint the Night \u2014 VIP Reserved',n:'Best parade view of the trip. ~17 min. Then head to DCA for World of Color.',type:'show'},
+    {t:'8:30 PM',h:'\u{1F3A1} Paint the Night \u2014 VIP Reserved',n:'Best parade view of the trip. ~17 min. Then head to DCA for World of Color.',type:'show'},
     {t:'9:15 PM',h:'Walk to DCA through Downtown Disney',n:'Scenic 12-min walk. No bag check re-entry needed within the resort.',type:'hop'},
-    {t:'9:30 PM',h:'🌊 World of Color \u2014 VIP Reserved',n:'~25 min. Prime lagoon view. Stunning finale to your VIP day.',type:'vip'},
+    {t:'9:30 PM',h:'\u{1F30A} World of Color \u2014 VIP Reserved',n:'~25 min. Prime lagoon view. Stunning finale to your VIP day.',type:'vip'},
   ]},
-  {title:'🏰 Disneyland \u2014 late night rides',entries:[
+  {title:'\u{1F3F0} Disneyland \u2014 late night rides',entries:[
     {t:'10:10 PM',h:'Park hop back to Disneyland',n:'Head back through Downtown Disney. Parks are much less crowded this late \u2014 perfect for re-rides with minimal wait.',type:'hop'},
     {t:'10:20 PM',h:'Matterhorn Bobsleds',n:'Late night with minimal wait. One of Disneyland\u2019s best after 10 PM.',type:'ride',ride:'Matterhorn Bobsleds',land:'Fantasyland'},
     {t:'10:45 PM',h:'Indiana Jones Adventure',n:'Adventureland. Late night waits usually under 15 min. Perfect end-of-day ride.',type:'ride',ride:'Indiana Jones Adventure',land:'Adventureland'},
@@ -724,7 +726,7 @@ const DAYS=[
   ]},
 ]},
 {label:'Tuesday Jun 30',sub:'DCA morning \u2192 Disneyland evening \u00b7 Caf\u00e9 Orleans \u00b7 Fantasmic!',sections:[
-  {title:'🌟 Disney California Adventure \u2014 rope drop',entries:[
+  {title:'\u{1F31F} Disney California Adventure \u2014 rope drop',entries:[
     {t:'7:00 AM',h:'Arrive at DCA gates',n:'Arrive 1 hour before 8 AM opening. Clear security and be at the DCA turnstiles by 7:55 AM. Tuesday = lightest crowds of the trip.',type:'tip'},
     {t:'8:05 AM',h:'Radiator Springs Racers',n:'Longest wait in DCA. Hit this first at rope drop for a near walk-on. Cars Land is straight ahead from the DCA entrance.',type:'ride',ride:'Radiator Springs Racers',land:'Cars Land',ll:{t:'single',a:'Book LL immediately at park open if wait climbs past 45 min'}},
     {t:'8:30 AM',h:'Toy Story Midway Mania!',n:'Walk from Cars Land to Pixar Pier (8 min). Gets slammed fast \u2014 hit it now while waits are still short. Interactive shooting game.',type:'ride',ride:"Toy Story Midway Mania!",land:'Pixar Pier',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
@@ -734,22 +736,22 @@ const DAYS=[
     {t:'10:15 AM',h:'Soarin\u2019 Over California',n:'Head to Grizzly Peak (7 min from Avengers Campus). Iconic DCA ride. Book LL if wait exceeds 40 min.',type:'ride',ride:"Soarin' Over California",land:'Grizzly Peak',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
     {t:'11:00 AM',h:'Luigi\u2019s Rollickin\u2019 Roadsters',n:'Back to Cars Land (8 min). Fun and low wait. Good transition before lunch.',type:'ride',ride:"Luigi's Rollickin' Roadsters",land:'Cars Land'},
     {t:'11:25 AM',h:'Mater\u2019s Junkyard Jamboree',n:'Stay in Cars Land. Short wait, great fun.',type:'ride',ride:"Mater's Junkyard Jamboree",land:'Cars Land'},
-    {t:'12:00 PM',h:'🍴 Lunch in DCA',n:'Flo\u2019s V8 Cafe right in Cars Land for quick service, or walk to Lamplight Lounge at Pixar Pier if you have a reservation.',type:'food',land:'Cars Land'},
+    {t:'12:00 PM',h:'\u{1F374} Lunch in DCA',n:'Flo\u2019s V8 Cafe right in Cars Land for quick service, or walk to Lamplight Lounge at Pixar Pier if you have a reservation.',type:'food',land:'Cars Land'},
     {t:'1:00 PM',h:'Grizzly River Run',n:'Head to Grizzly Peak (8 min). June heat peaks in the afternoon \u2014 perfect timing to get wet. Waits are moderate at this hour.',type:'ride',ride:'Grizzly River Run',land:'Grizzly Peak'},
     {t:'1:45 PM',h:'Monsters, Inc. Mike & Sulley to the Rescue!',n:'Hollywood Land (10 min). Air-conditioned and low wait. Good midday break from the heat.',type:'ride',ride:"Monsters, Inc. Mike & Sulley to the Rescue!",land:'Hollywood Land'},
     {t:'2:15 PM',h:'Mickey\u2019s PhilharMagic',n:'Stay in Hollywood Land. Air-conditioned show, great break from the heat.',type:'ride',ride:"Mickey's PhilharMagic",land:'Hollywood Land'},
     {t:'3:00 PM',h:'Pixar Pier freestyle + snacks',n:'Grab Adorable Snowman Frosted Treats or revisit a favorite. Wind down before the park hop.',type:'tip'},
     {t:'4:15 PM',h:'Park hop to Disneyland',n:'Head through the main gate. You\u2019ll have 2+ hours before your Caf\u00e9 Orleans reservation.',type:'hop'},
   ]},
-  {title:'🏰 Disneyland \u2014 evening & Fantasmic!',entries:[
+  {title:'\u{1F3F0} Disneyland \u2014 evening & Fantasmic!',entries:[
     {t:'4:30 PM',h:'Indiana Jones Adventure',n:'Start in Adventureland \u2014 right near the Disneyland entrance. Evening waits are usually 30-40 min, better than daytime peaks.',type:'ride',ride:'Indiana Jones Adventure',land:'Adventureland',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
     {t:'5:05 PM',h:'Haunted Mansion',n:'New Orleans Square (4 min walk). Classic Disneyland. One of the best-themed rides in the park.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
     {t:'5:40 PM',h:'Millennium Falcon: Smugglers Run',n:"Galaxy's Edge (8 min walk). Evening waits drop significantly. Great way to kick off the Disneyland evening.",type:'ride',ride:'Millennium Falcon: Smugglers Run',land:"Galaxy's Edge"},
-    {t:'6:30 PM',h:'🍴 Dinner \u2014 Caf\u00e9 Orleans',n:'Your reservation. Arrive 5 min early. Must-orders: Monte Cristo sandwich and beignets for the table. Ask for a patio table. Perfectly positioned for Fantasmic! after dinner.',type:'food',land:'New Orleans Square'},
+    {t:'6:30 PM',h:'\u{1F374} Dinner \u2014 Caf\u00e9 Orleans',n:'Your reservation. Arrive 5 min early. Must-orders: Monte Cristo sandwich and beignets for the table. Ask for a patio table. Perfectly positioned for Fantasmic! after dinner.',type:'food',land:'New Orleans Square'},
     {t:'7:45 PM',h:'Big Thunder Mountain Railroad',n:'Frontierland (3 min from Caf\u00e9 Orleans). Great ride after dinner while Fantasmic! spot isn\u2019t needed yet.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland'},
     {t:'8:10 PM',h:'Peter Pan\u2019s Flight',n:'Fantasyland (6 min). Classic ride. Evening waits are manageable.',type:'ride',ride:"Peter Pan's Flight",land:'Fantasyland'},
     {t:'8:30 PM',h:'Secure Fantasmic! viewing spot',n:'Head to the Rivers of America amphitheater. Arrive 30 min before the show. Center section, upper rows for best sight lines.',type:'tip'},
-    {t:'9:00 PM',h:'🎭 Fantasmic! \u2014 1st show',n:'Your last Fantasmic! of the trip. The dragon finale is incredible. Stay for the full ending.',type:'show'},
+    {t:'9:00 PM',h:'\u{1F3AD} Fantasmic! \u2014 1st show',n:'Your last Fantasmic! of the trip. The dragon finale is incredible. Stay for the full ending.',type:'show'},
     {t:'9:30 PM',h:'Space Mountain',n:'Tomorrowland (8 min from amphitheater). Post-show crowds thin quickly. Night ride on Space Mountain is a must.',type:'ride',ride:'Space Mountain',land:'Tomorrowland'},
     {t:'10:00 PM',h:'Matterhorn Bobsleds',n:'Fantasyland (5 min from Space Mountain). End the trip here. Then grab a churro or Dole Whip on Main Street before heading out.',type:'ride',ride:'Matterhorn Bobsleds',land:'Fantasyland'},
   ]},
@@ -757,12 +759,12 @@ const DAYS=[
 ];
 
 const SHOWS=[
-  {name:'🌊 World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',hl:true,desc:'A 25-min water, light & projection show hosted by Joy from Inside Out. Best view is Monday VIP night with reserved lagoon-side viewing.'},
-  {name:'🎭 Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',hl:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers, projections, and pyrotechnics. The greatest nighttime show at any Disney park.'},
-  {name:'🎡 Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights',hl:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. The 2nd show is reversed and far less crowded.'},
+  {name:'\u{1F30A} World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',hl:true,desc:'A 25-min water, light & projection show hosted by Joy from Inside Out. Best view is Monday VIP night with reserved lagoon-side viewing.'},
+  {name:'\u{1F3AD} Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',hl:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers, projections, and pyrotechnics. The greatest nighttime show at any Disney park.'},
+  {name:'\u{1F3A1} Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights',hl:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. The 2nd show is reversed and far less crowded.'},
   {name:'\u2728 Wondrous Journeys w/ Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',hl:false,desc:'Disney Animation tribute projected on Sleeping Beauty Castle and beyond with fireworks. Sunday night is the full version.'},
   {name:'\u2728 Wondrous Journeys \u2014 Projections',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',hl:false,desc:'Same show without fireworks. Beautiful castle projections. Tuesday night will likely be this version.'},
-  {name:'🌌 Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',hl:false,desc:"The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min. No reserved viewing needed."},
+  {name:'\u{1F30C} Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',hl:false,desc:"The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min. No reserved viewing needed."},
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────
@@ -1252,7 +1254,11 @@ async function pullSchedule(){
   }catch(e){console.warn('Pull schedule:',e);}
 }
 
-async function startScheduleSync(){
+async function pushApiKey(key){if(!isAdmin())return;try{await fetch(SYNC_BASE+'/api/config',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},body:JSON.stringify({apiKey:key})});}catch(e){console.warn('Push API key:',e);}}
+async function pullApiKey(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/config?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.apiKey&&!apiKey){apiKey=data.apiKey;try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}var s=document.getElementById('apiSetupCard');if(s)s.style.display='none';}}catch(e){console.warn('Pull API key:',e);}}
+async function pushSchedule(){if(!isAdmin())return;try{await fetch(SYNC_BASE+'/api/schedule',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},body:JSON.stringify({schedule:customSched})});}catch(e){console.warn('Push schedule:',e);}}
+async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;renderSched();renderDayInfoBar();renderPreTripBanner();setTimeout(renderPreTripWeather,500);}catch(e){console.warn('Pull schedule:',e);}}
+function startScheduleSync(){
   if(isAdmin()){
     console.log('Admin mode - schedule will push on save');
     // Push existing key if admin already has one saved
@@ -1406,47 +1412,7 @@ function updateWaitStatus(){
   var el=document.getElementById('waitStatus');if(el){el.textContent=txt;el.style.color=col;}renderDayInfoBar();
 }
 
-function isWaitFetchTime(){
-  try{
-    var now=nowPT();
-    var hr=now.getHours()+(now.getMinutes()/60);
-    var todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-    var window=typeof getDayParkWindow==='function'?getDayParkWindow(todayStr):{open:8,close:23};
-    var fetchStart=window.open-(5/60);
-    var fetchEnd=window.close+1;
-    if(fetchEnd>=24){if(hr<(fetchEnd-24))return true;}
-    if(hr>=fetchStart&&hr<Math.min(fetchEnd,24))return true;
-    return false;
-  }catch(e){return true;}
-}
-function getParkOpenHour(){try{var now=nowPT();var s=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');var w=typeof getDayParkWindow==='function'?getDayParkWindow(s):{open:8,close:23};return w.open-(5/60);}catch(e){return 7;}}
-function getParkCloseHour(){try{var now=nowPT();var s=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');var w=typeof getDayParkWindow==='function'?getDayParkWindow(s):{open:8,close:23};return w.close+1;}catch(e){return 1;}}
-function smartFetchWaits(){
-  if(isWaitFetchTime()){fetchWaits();}
-  else{
-    waits={};waitLastFetch=0;renderSched();updateWaitStatus();
-    var tabEl=document.getElementById('waitTabContent');
-    if(tabEl)tabEl.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:8px">🌙</div><div style="font-size:14px;font-weight:600;margin-bottom:4px;">Park is Closed</div><div style="font-size:12px;">Live wait times resume at 7 AM Pacific</div></div>';
-  }
-}
-var _waitInterval=null,_waitStatusInterval=null;
-function startWaitRefresh(){
-  smartFetchWaits();
-  if(_waitInterval)clearInterval(_waitInterval);
-  if(_waitStatusInterval)clearInterval(_waitStatusInterval);
-  _waitInterval=setInterval(smartFetchWaits,5*60*1000);
-  _waitStatusInterval=setInterval(updateWaitStatus,60*1000);
-  try{
-    var now=nowPT(),hr=now.getHours();
-    var closeHr=getParkCloseHour(),openHr=getParkOpenHour();
-    if(hr>=closeHr&&hr<Math.floor(openHr)){
-      var openHourFull=Math.floor(openHr),openMin=Math.round((openHr%1)*60);
-      var nextOpen=new Date(now);nextOpen.setHours(openHourFull,openMin,0,0);
-      var ms=nextOpen-now;if(ms<0)ms+=24*60*60*1000;
-      setTimeout(function(){smartFetchWaits();},ms);
-    }
-  }catch(e){}
-}
+function startWaitRefresh(){fetchWaits();setInterval(fetchWaits,5*60*1000);setInterval(updateWaitStatus,60*1000);}
 
 // ── Lightning Lane system ────────────────────────────────────────────────
 var llState={multiPass:null,individualPasses:{},bookedTimes:{}};
@@ -2177,13 +2143,7 @@ async function reoptimize(){
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'You are an expert Disneyland touring planner. Keep web searches brief — search only for current rope drop order and top wait time patterns. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits. (3) Use evergreen principles as foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only.',messages:[{role:'user',content:prompt}]})
     });
     var resp=await r.json();
-    if(resp.error){
-    if(resp.error.type==='rate_limit_error'){
-      txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit — retrying in 15 seconds...</span>';
-      setTimeout(function(){reoptimize();},15000);
-    }else{txt.textContent='API error: '+resp.error.message;}
-    return;
-  }
+    if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit — retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='API error: '+resp.error.message;}return;}
     var text='';if(resp.content&&resp.content.length){resp.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
 
     var newSecs=null;
@@ -2228,9 +2188,9 @@ function renderClosed(){
     var el=document.getElementById(id);
     if(!el) return;
   var h='<div style="padding:12px 0">'
-    +'<div class="sec-hdr"><div class="sec-lbl">🚧 Rides Closed Jun 28\u201330</div><div class="sec-line"></div></div>'
-    +CLOSED.map(function(c){return '<div class="ride-block" style="margin-bottom:7px"><div class="ride-main"><div style="font-size:20px;flex-shrink:0">🔒</div><div class="ride-body"><div class="ride-name" style="color:var(--red)">'+c.n+'</div><div class="ride-note">'+c.d+'</div></div></div></div>';}).join('')
-    +'<div class="sec-hdr" style="margin-top:16px"><div class="sec-lbl">🍴 Dining Notes</div><div class="sec-line"></div></div>'
+    +'<div class="sec-hdr"><div class="sec-lbl">\u{1F6A7} Rides Closed Jun 28\u201330</div><div class="sec-line"></div></div>'
+    +CLOSED.map(function(c){return '<div class="ride-block" style="margin-bottom:7px"><div class="ride-main"><div style="font-size:20px;flex-shrink:0">\u{1F512}</div><div class="ride-body"><div class="ride-name" style="color:var(--red)">'+c.n+'</div><div class="ride-note">'+c.d+'</div></div></div></div>';}).join('')
+    +'<div class="sec-hdr" style="margin-top:16px"><div class="sec-lbl">\u{1F374} Dining Notes</div><div class="sec-line"></div></div>'
     +'<div class="ride-block"><div class="ride-main"><div style="font-size:20px;flex-shrink:0">\u26A0\uFE0F</div><div class="ride-body"><div class="ride-name" style="color:var(--yellow)">Blue Bayou Restaurant</div><div class="ride-note">Open but obstructed views & possible construction noise during Pirates refurb. Skip it this trip \u2014 Caf\u00e9 Orleans next door is the better choice.</div></div></div></div>'
     +'<div style="margin-top:16px;padding:11px 13px;background:var(--navy-card);border:1px solid var(--navy-border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6">'
     +'<b style="color:var(--text)">Note:</b> Always check the Disneyland app the morning of your visit for any additional same-day closures or changes.'
@@ -2832,33 +2792,33 @@ async function refreshDiningRecsById(restaurant,refreshBtn){
 function renderShows(){
   var sections=[
     {
-      label:'🎭 Must-See Nighttime Shows',
+      label:'\u{1F3AD} Must-See Nighttime Shows',
       shows:[
-        {name:'🌊 World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',must:true,desc:'A 25-min water, light & projection show at Paradise Gardens lagoon, hosted by Joy from Inside Out. Celebrates Disney/Pixar with fountains, fire, lasers and music. Your best view is Monday VIP night with reserved lagoon-side viewing. One or two showings per night.'},
-        {name:'🎭 Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',must:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers on boats, projections, and pyrotechnics. The greatest nighttime show at any Disney park. Second show has shorter waits for viewing spots.'},
-        {name:'🎡 Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights through Aug 9',must:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. Part of the 70th Anniversary celebration. Two shows per night \u2014 2nd show is reversed route and far less crowded. On your schedule for Monday VIP reserved viewing.'},
+        {name:'\u{1F30A} World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',must:true,desc:'A 25-min water, light & projection show at Paradise Gardens lagoon, hosted by Joy from Inside Out. Celebrates Disney/Pixar with fountains, fire, lasers and music. Your best view is Monday VIP night with reserved lagoon-side viewing. One or two showings per night.'},
+        {name:'\u{1F3AD} Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',must:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers on boats, projections, and pyrotechnics. The greatest nighttime show at any Disney park. Second show has shorter waits for viewing spots.'},
+        {name:'\u{1F3A1} Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights through Aug 9',must:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. Part of the 70th Anniversary celebration. Two shows per night \u2014 2nd show is reversed route and far less crowded. On your schedule for Monday VIP reserved viewing.'},
         {name:'\u2728 Wondrous Journeys \u2014 Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',must:true,desc:'Disney Animation tribute projected on Sleeping Beauty Castle, Main Street, and beyond with fireworks. Part of the 70th Anniversary celebration through Aug 9. Sunday night is the full fireworks version \u2014 watch from the Castle hub for best view.'},
         {name:'\u2728 Wondrous Journeys \u2014 Projections Only',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',must:false,desc:'Same beautiful show without fireworks. Tuesday night will likely be this version. Still worth watching from Main Street.'},
       ]
     },
     {
-      label:'💫 Daytime Shows & Parades',
+      label:'\u{1F4AB} Daytime Shows & Parades',
       shows:[
-        {name:'🎊 Celebrate Happy Cavalcade',park:'Disneyland',time:'Multiple times daily',days:'Through Aug 9, 2026',must:true,desc:'A festive 70th Anniversary cavalcade down Main Street featuring Mickey, Minnie, and their pals in special celebration outfits alongside Duffy and friends. Check the Disneyland app for exact times each morning \u2014 typically 3\u20134 times per day. Short, fun, and great for photos.'},
+        {name:'\u{1F38A} Celebrate Happy Cavalcade',park:'Disneyland',time:'Multiple times daily',days:'Through Aug 9, 2026',must:true,desc:'A festive 70th Anniversary cavalcade down Main Street featuring Mickey, Minnie, and their pals in special celebration outfits alongside Duffy and friends. Check the Disneyland app for exact times each morning \u2014 typically 3\u20134 times per day. Short, fun, and great for photos.'},
                         {name:'\u2728 Tapestry of Happiness',park:'Disneyland',time:'Nightly (dusk)',days:'Nightly through Aug 9',must:true,desc:'Nightly projection show on the facade of "it\u2019s a small world" \u2014 a beautiful tribute to the Sherman Brothers and the iconic song. Runs automatically at dusk, no reserved viewing needed. Easy to catch while walking by in the evening.'},
       ]
     },
     {
-      label:'🌌 Galaxy\u2019s Edge Shows',
+      label:'\u{1F30C} Galaxy\u2019s Edge Shows',
       shows:[
-        {name:'🌌 Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',must:false,desc:'The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min ambient experience. No reserved viewing \u2014 just be in Galaxy\u2019s Edge when it starts. Great for Star Wars fans.'},
-        {name:'🎆 Fire of the Rising Moons',park:'Disneyland',time:'Synced with fireworks ~9:30 PM',days:'Fri\u2013Sun fireworks nights',must:false,desc:'The same Wondrous Journeys fireworks watched from inside Galaxy’s Edge with Star Wars music playing. Best for hardcore Star Wars fans. Sunday night you’d miss the castle projections from Main Street \u2014 the Main Street view is better for most guests.'},
+        {name:'\u{1F30C} Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',must:false,desc:'The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min ambient experience. No reserved viewing \u2014 just be in Galaxy\u2019s Edge when it starts. Great for Star Wars fans.'},
+        {name:'\u{1F386} Fire of the Rising Moons',park:'Disneyland',time:'Synced with fireworks ~9:30 PM',days:'Fri\u2013Sun fireworks nights',must:false,desc:'The same Wondrous Journeys fireworks watched from inside Galaxy’s Edge with Star Wars music playing. Best for hardcore Star Wars fans. Sunday night you’d miss the castle projections from Main Street \u2014 the Main Street view is better for most guests.'},
       ]
     },
     {
-      label:'🎶 DCA Entertainment',
+      label:'\u{1F3B6} DCA Entertainment',
       shows:[
-        {name:'🎤 Live Entertainment \u2014 Avengers Campus & Pixar Pier',park:'DCA',time:'Throughout the day',days:'Daily',must:false,desc:'Various live performances throughout DCA including character moments in Avengers Campus, live music at Pixar Pier, and spontaneous entertainment. Check the Disneyland app each morning for the full schedule.'},
+        {name:'\u{1F3A4} Live Entertainment \u2014 Avengers Campus & Pixar Pier',park:'DCA',time:'Throughout the day',days:'Daily',must:false,desc:'Various live performances throughout DCA including character moments in Avengers Campus, live music at Pixar Pier, and spontaneous entertainment. Check the Disneyland app each morning for the full schedule.'},
       ]
     },
   ];
@@ -2996,11 +2956,14 @@ function renderLockCountdowns(){
   el.innerHTML=html;
 }
 
+function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
+function renderClosuresFromWaits(){if(!waits||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 
 function doShareText(){var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://themeparkwize.com\nPassword: CW9Dis2026\n\nOpen in Safari > Share > Add to Home Screen!';if(navigator.share){navigator.share({title:'ThemeParkWize',text:msg,url:'https://themeparkwize.com'}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
 function doCopyLink(){var text='ThemeParkWize Disneyland App\nLink: https://themeparkwize.com\nPassword: CW9Dis2026';if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
 
 var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40};
+function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
 function saveGroupHeights(arr){try{localStorage.setItem('group_heights',JSON.stringify(arr));}catch(e){}}
 function addHeight(){var h=getGroupHeights();h.push(48);saveGroupHeights(h);renderInfoTab();}
 function removeHeight(i){var h=getGroupHeights();h.splice(i,1);saveGroupHeights(h);renderInfoTab();}
@@ -3012,6 +2975,7 @@ var setupData={};
 function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
 function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}
 function isSetupDone(){try{return localStorage.getItem('setup_done')==='yes';}catch(e){return false;}}
+function checkShowSetupBanner(){if(!isAdmin()||isSetupDone()||curTab!=='schedule')return;var sk=getSetupSkips();var b=document.getElementById('setupBanner');if(!b)return;if(sk>=5){openSetup();return;}b.style.display='block';if(sk>0){var s=document.getElementById('setupBannerSub');if(s)s.textContent='Personalize the AI ('+(5-sk)+' reminders left)';}}
 function skipSetup(){setSetupSkips(getSetupSkips()+1);var b=document.getElementById('setupBanner');if(b)b.style.display='none';}
 function openSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.remove('hidden');setupGoTo(0);}
 function closeSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.add('hidden');}
@@ -3663,6 +3627,30 @@ function renderDiningReservationsList(){
   list.innerHTML=html;
 }
 
+function addDiningReservation(){
+  var name=prompt('Restaurant name:');if(!name)return;
+  var dateStr=prompt('Date (Sun Jun 28, Mon Jun 29, or Tue Jun 30):');if(!dateStr)return;
+  var time=prompt('Time (e.g. 6:30 PM):');if(!time)return;
+  var conf=prompt('Confirmation number (optional, press Enter to skip):');
+  
+  // Map date to schedule day
+  var schedDay=undefined;
+  var dl=dateStr.toLowerCase();
+  if(dl.indexOf('28')>-1||dl.indexOf('sun')>-1) schedDay=0;
+  else if(dl.indexOf('29')>-1||dl.indexOf('mon')>-1) schedDay=1;
+  else if(dl.indexOf('30')>-1||dl.indexOf('tue')>-1) schedDay=2;
+
+  loadDiningReservations();
+  var res={name:name,date:dateStr,time:time,conf:conf||'',schedDay:schedDay};
+  diningReservations.push(res);
+  saveDiningReservations();
+
+  // Add to schedule if day matched
+  if(schedDay!==undefined){
+    addDiningToSchedule(res,schedDay);
+  }
+  renderDiningReservationsList();
+}
 
 function removeDiningRes(i){
   loadDiningReservations();
@@ -3771,37 +3759,6 @@ async function loadLLPlanner(){
 function refreshCrowds(){try{localStorage.removeItem('crowd_pred');}catch(e){}loadCrowdPrediction();}
 function refreshDayStrategy(){try{localStorage.removeItem('day_strategy');}catch(e){}loadDayStrategy();}
 function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadLLPlanner();}
-
-// ── Park Intelligence Cache (10 days) ───────────────────────────────────
-var PARK_INTEL_CACHE_DAYS=10,parkIntelCache=null;
-function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/(864e5)<PARK_INTEL_CACHE_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
-function setParkIntel(t){parkIntelCache=t;try{localStorage.setItem('park_intel',t);localStorage.setItem('park_intel_ts',Date.now().toString());}catch(e){}}
-async function buildParkIntel(){if(!apiKey||getParkIntel())return;console.log('Building Park Intel...');try{var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland expert. 2024-2026 sources only. No Genie+/MaxPass. Verify rope drop recommendations against current wait patterns.',messages:[{role:'user',content:'Search TouringPlans AllEars MiceChat for current Disneyland strategies 2024-2026. Build Park Intelligence Brief: 1.ROPE DROP - which rides first based on current 2025-2026 waits. 2.LIGHTNING LANE - current LLMP booking sequence. 3.CROWD PATTERNS - late June. 4.TOP TIPS - 5 most impactful. 5.MISTAKES - top 2025-2026 mistakes. 6.DL VS DCA - when to prioritize each. Dense, actionable.'}]})});var d=await r.json();if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setParkIntel(t);}catch(e){console.warn('Park Intel:',e);}}
-setTimeout(function(){if(apiKey&&!getParkIntel())buildParkIntel();},120000);
-
-// ── Dining Intelligence Cache (30 days) ──────────────────────────────────
-var DINING_INTEL_CACHE_DAYS=30,diningIntelCache=null;
-function getDiningIntel(){if(diningIntelCache)return diningIntelCache;try{var s=localStorage.getItem('dining_intel'),ts=parseInt(localStorage.getItem('dining_intel_ts')||'0');if(s&&(Date.now()-ts)/(864e5)<DINING_INTEL_CACHE_DAYS){diningIntelCache=s;return s;}}catch(e){}return null;}
-function setDiningIntel(t){diningIntelCache=t;try{localStorage.setItem('dining_intel',t);localStorage.setItem('dining_intel_ts',Date.now().toString());}catch(e){}}
-async function buildDiningIntel(){if(!apiKey||getDiningIntel())return;console.log('Building Dining Intel...');try{var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland dining expert. 2024-2026 reviews only.',messages:[{role:'user',content:'Search Disney Food Blog AllEars TripAdvisor Yelp for 2024-2026 Disneyland dining. Cover: Blue Bayou Cafe Orleans River Belle Bengal Barbecue Mint Julep (DL). Carthay Lamplight Lounge Flo V8 Award Wieners (DCA). Earl of Sandwich Salt Straw (DTD). For each: rating, 2-3 must-orders, honest tip. Dense format.'}]})});var d=await r.json();if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setDiningIntel(t);}catch(e){console.warn('Dining Intel:',e);}}
-setTimeout(function(){if(apiKey&&!getDiningIntel())buildDiningIntel();},300000);
-
-// ── Events Intelligence Cache (7 days) ───────────────────────────────────
-var EVENTS_INTEL_CACHE_DAYS=7,eventsIntelCache=null;
-function getEventsIntel(){if(eventsIntelCache)return eventsIntelCache;try{var s=localStorage.getItem('events_intel'),ts=parseInt(localStorage.getItem('events_intel_ts')||'0');if(s&&(Date.now()-ts)/(864e5)<EVENTS_INTEL_CACHE_DAYS){eventsIntelCache=s;return s;}}catch(e){}return null;}
-function setEventsIntel(t){eventsIntelCache=t;try{localStorage.setItem('events_intel',t);localStorage.setItem('events_intel_ts',Date.now().toString());}catch(e){}}
-async function buildEventsIntel(){if(!apiKey||getEventsIntel())return;console.log('Building Events Intel...');try{var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland events expert.',messages:[{role:'user',content:'Search for ALL special events at Disneyland Resort June 25 - July 5 2026: ticketed after-hours events, seasonal overlays, July 4th weekend impact, early closures, new attractions opening. Factual summary with dates.'}]})});var d=await r.json();if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>100)setEventsIntel(t);}catch(e){console.warn('Events Intel:',e);}}
-setTimeout(function(){if(apiKey&&!getEventsIntel())buildEventsIntel();},480000);
-
-// ── Park Hours Cache (7 days, incremental) ───────────────────────────────
-var PARK_HOURS_CACHE_DAYS=7,parkHoursCache=null;
-function getParkHoursIntel(){if(parkHoursCache)return parkHoursCache;try{var s=localStorage.getItem('park_hours_intel');if(s){parkHoursCache=JSON.parse(s);return parkHoursCache;}}catch(e){}return null;}
-function parkHoursNeedsUpdate(){try{var ts=parseInt(localStorage.getItem('park_hours_intel_ts')||'0');return(Date.now()-ts)/(864e5)>=PARK_HOURS_CACHE_DAYS;}catch(e){return true;}}
-function setParkHoursIntel(d){parkHoursCache=d;try{localStorage.setItem('park_hours_intel',JSON.stringify(d));localStorage.setItem('park_hours_intel_ts',Date.now().toString());}catch(e){}}
-function getParkHoursForDate(dateStr,park){var def=park==='dca'?{open:9,close:22}:{open:8,close:23};try{var intel=getParkHoursIntel();if(!intel||!intel[dateStr])return def;var day=intel[dateStr],p=park==='dca'?day.dca:day.dl;if(!p)return def;var op=p.open.split(':'),cl=p.close.split(':');return{open:parseInt(op[0])+(parseInt(op[1]||0)/60),close:parseInt(cl[0])+(parseInt(cl[1]||0)/60)};}catch(e){return def;}}
-function getDayParkWindow(dateStr){if(!dateStr){try{var n=nowPT();dateStr=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}catch(e){dateStr=new Date().toISOString().split('T')[0];}}var dl=getParkHoursForDate(dateStr,'dl'),dca=getParkHoursForDate(dateStr,'dca');return{open:Math.min(dl.open,dca.open),close:Math.max(dl.close,dca.close)};}
-async function buildParkHoursIntel(){if(!apiKey)return;var existing=getParkHoursIntel(),needsUpdate=parkHoursNeedsUpdate();if(existing&&!needsUpdate)return;var isIncremental=!!existing,now=new Date(),startDate,endDate;if(isIncremental){console.log('Updating Park Hours (60 days)...');startDate=new Date(now);endDate=new Date(now);endDate.setDate(endDate.getDate()+60);}else{console.log('Building Park Hours (full year)...');startDate=new Date(now);startDate.setDate(1);endDate=new Date(startDate);endDate.setFullYear(endDate.getFullYear()+1);}var startStr=startDate.toISOString().split('T')[0],endStr=endDate.toISOString().split('T')[0];try{var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland park hours expert. Return ONLY valid JSON.',messages:[{role:'user',content:'Disneyland Resort park hours from '+startStr+' to '+endStr+'. Return ONLY JSON: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}}. Note early closes for special ticketed events. Default: dl 08:00-23:00, dca 09:00-22:00. Confirmed dates only.'}]})});var d=await r.json();if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});var m=t.replace(/```json|```/g,'').match(/\{[\s\S]+\}/);if(m){var hours=JSON.parse(m[0]);if(isIncremental&&existing){setParkHoursIntel(Object.assign({},existing,hours));}else{setParkHoursIntel(hours);}console.log('Park Hours cached:',Object.keys(parkHoursCache||{}).length,'days');}}catch(e){console.warn('Park Hours:',e);}}
-setTimeout(function(){if(apiKey)buildParkHoursIntel();},720000);
 
 </script>
 
