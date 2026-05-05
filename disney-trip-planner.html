@@ -112,6 +112,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .tb-hop{background:var(--blue-bg);color:var(--blue)}
 .tb-vip{background:linear-gradient(135deg,#C9860A,#E8A020);color:#FFFFFF!important;font-weight:700}
 .tb-tip{background:rgba(139,143,168,.1);color:var(--text-muted)}
+.tb-break{background:rgba(120,120,140,0.1);color:#888}
+.tb-photo{background:rgba(236,72,153,0.12);color:#DB2777}
+.tb-shop{background:rgba(16,185,129,0.1);color:#059669}
+.tb-pins{background:rgba(99,102,241,0.1);color:#6366F1}
 .tb-ll{background:var(--orange-bg);color:var(--orange)}
 .del-btn{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--red-bg);border:1px solid rgba(248,113,113,.4);color:var(--red);font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center;font-family:inherit;padding:0;line-height:1}
 .edit-mode .del-btn{display:flex}
@@ -684,6 +688,7 @@ const DAYS=[
     {t:'1:00 PM',h:'Lunch in DCA',n:'Carthay Circle (book ahead) or Lamplight Lounge on Pixar Pier.',type:'food'},
     {t:'2:00 PM',h:'Web Slingers: A Spider-Man Adventure',n:'Redeem LLMP. Interactive shooter \u2014 fun group competition.',type:'ride',ride:'Web Slingers',land:'Avengers Campus',ll:{t:'multi',a:'Redeem LLMP. Book next: Toy Story Midway Mania'}},
     {t:'2:30 PM',h:"Soarin' Around the World",n:'Redeem LLMP. Beautiful hang-glider experience.',type:'ride',ride:"Soarin' Around the World",land:'Grizzly Peak'},
+    {t:'2:30 PM',h:'🛍 Shopping + Pin Trading',n:'Main Street Emporium for souvenirs. Pin trading at any Cast Member with a lanyard or the pin board near City Hall. Great time to rest feet while kids browse.',type:'shop'},
     {t:'3:00 PM',h:'Toy Story Midway Mania',n:'Competitive 4D shooter \u2014 see who gets the top score.',type:'ride',ride:'Toy Story Midway Mania',land:'Pixar Pier'},
     {t:'4:00 PM',h:'Hop back to Disneyland',n:'Head over with plenty of time before the evening shows.',type:'hop'},
   ]},
@@ -2130,7 +2135,7 @@ async function reoptimize(){
     +constraintRules+' '
     +freedomRules+' '
     +(curDay===0?dlRides:curDay===2?dcaRides+' '+dlRides:dlRides)+' '
-    +'Respond with: 1) ONE sentence (max 20 words) summarizing the single biggest change made. 2) Full updated sections array as JSON in JSONSTART[ ]JSONEND markers matching the exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
+    +'CRITICAL FORMAT - follow exactly: Line 1: SUMMARY: [max 15 words on biggest change]. Line 2+: JSONSTART then the full updated sections JSON array then JSONEND. Match exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -2143,20 +2148,34 @@ async function reoptimize(){
     var text='';if(resp.content&&resp.content.length){resp.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
 
     var newSecs=null;
-    var explanation=text;
+    var explanation='Schedule optimized.';
+    // Method 1: JSONSTART/JSONEND markers
     var js1=text.indexOf('JSONSTART');
     var je1=js1>-1?text.indexOf('JSONEND',js1+9):-1;
     if(js1>-1&&je1>-1){
-      explanation=text.substring(0,js1).trim();
-      try{newSecs=JSON.parse(text.substring(js1+9,je1).trim());}catch(e){}
+      var summaryLine=text.substring(0,js1);
+      var sumMatch=summaryLine.match(/SUMMARY:\s*(.+)/);
+      if(sumMatch)explanation=sumMatch[1].trim();
+      try{newSecs=JSON.parse(text.substring(js1+9,je1).trim());}catch(e){console.warn('JSON parse 1:',e);}
     }
+    // Method 2: Find outermost [ ] array
     if(!newSecs){
-      var ab=text.indexOf('[');
-      var zb=text.lastIndexOf(']');
-      if(ab>-1&&zb>ab){
-        explanation=text.substring(0,ab).trim();
-        try{newSecs=JSON.parse(text.substring(ab,zb+1));}catch(e){}
+      var depth=0,start=-1,end2=-1;
+      for(var ci=0;ci<text.length;ci++){
+        if(text[ci]==='['){if(depth===0)start=ci;depth++;}
+        else if(text[ci]===']'){depth--;if(depth===0){end2=ci;break;}}
       }
+      if(start>-1&&end2>start){
+        var sumPart=text.substring(0,start);
+        var sumM=sumPart.match(/SUMMARY:\s*(.+)/);
+        if(sumM)explanation=sumM[1].trim();
+        try{newSecs=JSON.parse(text.substring(start,end2+1));}catch(e){console.warn('JSON parse 2:',e);}
+      }
+    }
+    // Method 3: Extract SUMMARY line even if JSON fails
+    if(!newSecs){
+      var sumM3=text.match(/SUMMARY:\s*(.+)/);
+      if(sumM3)explanation=sumM3[1].trim();
     }
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
       try{
@@ -2466,7 +2485,7 @@ function renderSched(){
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
-      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>'};
+      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',break:'<span class="tb tb-break">break</span>',photo:'<span class="tb tb-photo">📸 photo</span>',shop:'<span class="tb tb-shop">🛍 shop</span>',pins:'<span class="tb tb-pins">📌 pins</span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
       var diningRec='';
       if(e.type==='food'&&e.h){
@@ -2878,7 +2897,13 @@ async function sendChat(){
   var wc='';if(/(wait|line|ride|busy|crowd)/i.test(ml)&&Object.keys(waits).length){var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);if(top.length)wc=' Live waits: '+top.map(function(r){return r.raw+' '+r.w+'min';}).join(', ')+'.';}
   var bc='';if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
   var sc='';if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
-  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  var pc='';
+  if(/(pin|trading|pins|lanyard)/i.test(ml)){pc=' PIN TRADING: Any Cast Member with a lanyard will trade. Best spots: City Hall pin board, Emporium pin wall(Main Street), Star Wars Trading Post(Galaxys Edge), World of Disney(Downtown Disney). Kids always get priority.';}
+  var shc='';
+  if(/(shop|souvenir|buy|store|merch|gift)/i.test(ml)){shc=' SHOPPING: Main Street Emporium(biggest, least crowded at end of day). Star Wars Trading Post. Elias & Co(DCA). World of Disney(Downtown Disney, biggest selection). Buy bulky items last — bag check at entrance is free.';}
+  var phc='';
+  if(/(photo|picture|instagram|selfie|photo op|photopass)/i.test(ml)){phc=' PHOTO OPS: Partners statue(Hub, in front of castle) best at opening. Castle from Main Street golden hour. Cars Land neon signs at dusk. Millennium Falcon in Galaxys Edge. Pixar Pier with Incredicoaster behind. Guardians building(orange+blue). PhotoPass photographers at castle, Cars Land, Galaxys Edge — free with Memory Maker.';}
+  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+pc+shc+phc+' Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);chatHistory.push({role:'user',content:msg});
   var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
   var msgs=document.getElementById('chatMessages');if(msgs){msgs.appendChild(te);msgs.scrollTop=msgs.scrollHeight;}
@@ -3067,7 +3092,7 @@ async function _doChat(msg){
   if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
-  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences.';
+  var sys='Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+pc+shc+phc+' Be concise, max 2-3 sentences.';
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
   var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
