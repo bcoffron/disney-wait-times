@@ -982,6 +982,7 @@ async function fetchWeather(){
         weatherData=data.daily;
         try{localStorage.setItem('wx_data',JSON.stringify(weatherData));localStorage.setItem('wx_date',new Date().toDateString());}catch(e){}
         renderDayInfoBar();
+        renderPreTripWeather();
         return;
       }
     }
@@ -1006,6 +1007,7 @@ async function fetchWeather(){
         };
         try{localStorage.setItem('wx_data',JSON.stringify(weatherData));localStorage.setItem('wx_date',new Date().toDateString());}catch(e){}
         renderDayInfoBar();
+        renderPreTripWeather();
         return;
       }
     }
@@ -1019,6 +1021,7 @@ async function fetchWeather(){
     isTypical:true
   };
   renderDayInfoBar();
+  renderPreTripWeather();
 }
 
 function loadCachedWeather(){
@@ -1111,7 +1114,7 @@ function renderDayInfoBar(){
     +'<button onclick="setTab(\'waits\')" style="padding:3px 9px;border-radius:99px;border:1.5px solid rgba(27,47,160,0.2);background:rgba(27,47,160,0.06);color:var(--magic);font-size:10px;font-weight:600;font-family:inherit;cursor:pointer">View All</button>'
     +'</div>'
     +'</div>';
-  var wxHTML='<div class="weather-card">';
+  var wxHTML='<div class="weather-card"><div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;">&#127757; Anaheim, CA</div>';
   if(weatherData&&weatherData.time){
     var hi=Math.round(weatherData.temperature_2m_max[curDay]);
     var lo=Math.round(weatherData.temperature_2m_min[curDay]);
@@ -2505,7 +2508,7 @@ function renderSched(){
         +'<div class="ride-main">'
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
-        +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+e.h+'</span>'+(tbmap[e.type]||'')+llb+(e.ride?wbHTML(e.ride):'')+' </div>'
+        +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+e.h+'</span>'+(tbmap[e.type]||'')+llb+(e.ride?(function(){var b=wbHTML(e.ride);return b?b+'<span style="font-size:9px;color:var(--text-dim);margin-left:3px;vertical-align:middle;">current wait</span>':'';}()):'')+'</div>'
         +'<div class="ride-note">'+e.n+'</div>'+diningRec
         +reroute
         +'</div></div>';
@@ -3102,7 +3105,7 @@ function savePackItems(){try{localStorage.setItem('pack_items',JSON.stringify(PA
 
 function openPreTrip(){
   var o=document.getElementById('preTripOverlay');if(o)o.classList.remove('hidden');
-  renderPreTripCountdowns();renderPreTripWeather();renderPackList();renderRosterList();renderPreTripHeights();
+  renderPreTripCountdowns();renderPreTripWeather();renderPackList();renderRosterList();renderPreTripHeights();renderPreTripChecklist();renderDiningReservationsList();
   ['pt_dining_admin','pt_roster_admin'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=isAdmin()?'block':'none';});
 }
 function closePreTrip(){var o=document.getElementById('preTripOverlay');if(o)o.classList.add('hidden');}
@@ -3411,7 +3414,7 @@ async function loadHotelRecs(){
       +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">'
       +'<span style="color:var(--text-muted);">🚶 '+h.walk+'</span>'
       +'<span style="color:var(--text-muted);">📞 '+h.phone+'</span>'
-      +'<span style="color:var(--magic,#1B2FA0);">🌐 '+h.web+'</span>'
+      +'<span onclick="window.open(\'https://\'+h.web,\'_blank\')" style="color:var(--magic,#1B2FA0);cursor:pointer;text-decoration:underline;touch-action:manipulation;">🌐 '+h.web+'</span>'
       +'</div>'
       +'</div>';
   });
@@ -3421,6 +3424,185 @@ async function loadHotelRecs(){
 
   // Cache it
   try{localStorage.setItem('hotel_recs',html);localStorage.setItem('hotel_recs_date',Date.now().toString());}catch(e){}
+}
+
+// ── Pre-Trip Checklist ────────────────────────────────────────────────────
+var PRE_TRIP_CHECKLIST=[
+  {weeks:8, label:'Book dining reservations (opens 60 days before trip)'},
+  {weeks:7, label:'Purchase park tickets if not already done'},
+  {weeks:6, label:'Book hotel if not already booked'},
+  {weeks:5, label:'Research Lightning Lane Multi Pass strategy'},
+  {weeks:4, label:'Check refurbishment schedules and plan alternatives'},
+  {weeks:3, label:'Download the official Disneyland app and log in'},
+  {weeks:3, label:'Add your park tickets to the Disneyland app'},
+  {weeks:2, label:'Book Lightning Lane Individual Selections (7 days before)'},
+  {weeks:2, label:'Check weather forecast and pack accordingly'},
+  {weeks:1, label:'Confirm all dining reservations'},
+  {weeks:1, label:'Charge all electronics and power banks the night before'},
+  {weeks:1, label:'Screenshot your park tickets and dining confirmations'},
+  {weeks:1, label:'Review your ThemeParkWize daily schedule'},
+  {weeks:0, label:'Arrive at park gates 45-60 min before opening'},
+];
+
+function renderPreTripChecklist(){
+  var el=document.getElementById('pt_checklist_content');
+  if(!el) return;
+  var tripStart=new Date('2026-06-28T00:00:00-07:00');
+  var now=new Date();
+  var daysUntil=Math.ceil((tripStart-now)/(864e5));
+  var weeksUntil=daysUntil/7;
+  var html='<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">'+
+    (daysUntil>0?daysUntil+' days until your trip':'Your trip has started!')+'</div>';
+  html+='<div style="display:flex;flex-direction:column;gap:4px;">';
+  PRE_TRIP_CHECKLIST.forEach(function(item){
+    var done=weeksUntil<=item.weeks;
+    var current=weeksUntil<=item.weeks+1&&weeksUntil>item.weeks;
+    var bg=done?'rgba(52,211,153,0.08)':current?'rgba(201,134,10,0.08)':'transparent';
+    var border=done?'1px solid rgba(52,211,153,0.2)':current?'1px solid rgba(201,134,10,0.2)':'1px solid transparent';
+    var icon=done?'<span style="color:#34D399;font-size:14px;">&#10003;</span>':current?'<span style="color:var(--gold,#C9860A);font-size:12px;">&#9654;</span>':'<span style="color:var(--text-dim);font-size:12px;">&#9675;</span>';
+    var textColor=done?'var(--text-muted)':current?'var(--text)':'var(--text-muted)';
+    var strike=done?'text-decoration:line-through;':'';
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:'+bg+';border:'+border+';">'
+      +icon+'<span style="font-size:12px;color:'+textColor+';'+strike+'">'+item.label+'</span></div>';
+  });
+  html+='</div>';
+
+  // Custom items
+  var customItems=[];
+  try{customItems=JSON.parse(localStorage.getItem('checklist_custom')||'[]');}catch(e){}
+  if(customItems.length){
+    html+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:12px 0 6px;">Your additions</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:4px;" id="pt_custom_items">';
+    customItems.forEach(function(item,i){
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:var(--card);border:1px solid var(--border);">'
+        +'<span style="color:var(--text-dim);font-size:12px;">&#9675;</span>'
+        +'<span style="font-size:12px;color:var(--text);flex:1;">'+item+'</span>'
+        +'<button onclick="removeChecklistItem('+i+')" style="padding:2px 8px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:inherit;">&#215;</button>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+
+  html+='<div style="display:flex;gap:8px;margin-top:10px;">'
+    +'<input type="text" id="pt_checklist_input" placeholder="Add your own item..." '
+    +'style="flex:1;padding:8px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit;outline:none;">'
+    +'<button onclick="addChecklistItem()" style="padding:8px 16px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">Add</button>'
+    +'</div>';
+
+  el.innerHTML=html;
+}
+
+function addChecklistItem(){
+  var input=document.getElementById('pt_checklist_input');
+  var val=input?input.value.trim():'';
+  if(!val) return;
+  var items=[];
+  try{items=JSON.parse(localStorage.getItem('checklist_custom')||'[]');}catch(e){}
+  items.push(val);
+  try{localStorage.setItem('checklist_custom',JSON.stringify(items));}catch(e){}
+  if(input)input.value='';
+  renderPreTripChecklist();
+}
+
+function removeChecklistItem(i){
+  var items=[];
+  try{items=JSON.parse(localStorage.getItem('checklist_custom')||'[]');}catch(e){}
+  items.splice(i,1);
+  try{localStorage.setItem('checklist_custom',JSON.stringify(items));}catch(e){}
+  renderPreTripChecklist();
+}
+
+// ── Dining Reservation → Schedule sync ───────────────────────────────────
+var diningReservations=[];
+function loadDiningReservations(){
+  try{diningReservations=JSON.parse(localStorage.getItem('dining_reservations')||'[]');}catch(e){diningReservations=[];}
+}
+function saveDiningReservations(){
+  try{localStorage.setItem('dining_reservations',JSON.stringify(diningReservations));}catch(e){}
+}
+
+function renderDiningReservationsList(){
+  loadDiningReservations();
+  var list=document.getElementById('pt_dining_list');
+  if(!list) return;
+  var html='';
+  // Always show Cafe Orleans
+  html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--text);">Cafe Orleans</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">&#128197; Tuesday Jun 30 &middot; 6:30 PM</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);">&#128101; Party of 9 &middot; New Orleans Square</div>'
+    +'<div style="font-size:11px;color:var(--gold,#C9860A);margin-top:4px;">Added to Tuesday schedule &#10003;</div>'
+    +'</div>';
+  diningReservations.forEach(function(res,i){
+    html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:start;">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text);">'+res.name+'</div>'
+      +(isAdmin()?'<button onclick="removeDiningRes('+i+')" style="padding:2px 8px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:inherit;">Remove</button>':'')
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">&#128197; '+res.date+' &middot; '+res.time+'</div>'
+      +(res.conf?'<div style="font-size:11px;color:var(--gold,#C9860A);margin-top:4px;">Conf #'+res.conf+'</div>':'')
+      +(res.schedDay!==undefined?'<div style="font-size:11px;color:#34D399;margin-top:2px;">Added to '+['Sunday','Monday','Tuesday'][res.schedDay]+' schedule &#10003;</div>':'')
+      +'</div>';
+  });
+  list.innerHTML=html;
+}
+
+function addDiningReservation(){
+  var name=prompt('Restaurant name:');if(!name)return;
+  var dateStr=prompt('Date (Sun Jun 28, Mon Jun 29, or Tue Jun 30):');if(!dateStr)return;
+  var time=prompt('Time (e.g. 6:30 PM):');if(!time)return;
+  var conf=prompt('Confirmation number (optional, press Enter to skip):');
+  
+  // Map date to schedule day
+  var schedDay=undefined;
+  var dl=dateStr.toLowerCase();
+  if(dl.indexOf('28')>-1||dl.indexOf('sun')>-1) schedDay=0;
+  else if(dl.indexOf('29')>-1||dl.indexOf('mon')>-1) schedDay=1;
+  else if(dl.indexOf('30')>-1||dl.indexOf('tue')>-1) schedDay=2;
+
+  loadDiningReservations();
+  var res={name:name,date:dateStr,time:time,conf:conf||'',schedDay:schedDay};
+  diningReservations.push(res);
+  saveDiningReservations();
+
+  // Add to schedule if day matched
+  if(schedDay!==undefined){
+    addDiningToSchedule(res,schedDay);
+  }
+  renderDiningReservationsList();
+}
+
+function removeDiningRes(i){
+  loadDiningReservations();
+  diningReservations.splice(i,1);
+  saveDiningReservations();
+  renderDiningReservationsList();
+}
+
+function addDiningToSchedule(res,day){
+  // Get current schedule for the day
+  try{
+    var key='schedule_v2_day'+day;
+    var sched=JSON.parse(localStorage.getItem(key)||'[]');
+    // Check not already added
+    var exists=sched.some(function(item){return item.h&&item.h.indexOf(res.name)>-1;});
+    if(exists) return;
+    // Add dining entry
+    sched.push({
+      t:res.time,
+      h:'&#127860; '+res.name,
+      n:'Dining reservation &middot; Party of 9'+(res.conf?' &middot; Conf #'+res.conf:''),
+      type:'dining',
+      locked:true
+    });
+    // Sort by time
+    sched.sort(function(a,b){
+      var ta=a.t||'';var tb=b.t||'';
+      return ta.localeCompare(tb);
+    });
+    localStorage.setItem(key,JSON.stringify(sched));
+    if(typeof renderSched==='function') renderSched();
+  }catch(e){}
 }
 
 </script>
@@ -3600,6 +3782,17 @@ async function loadHotelRecs(){
       </div>
     </div>
 
+    <!-- Pre-Trip Checklist -->
+    <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div onclick="toggleAccordionPT('checklist')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">&#9989; Pre-Trip Checklist</div>
+        <span id="pt_checklist_arrow" style="color:var(--text-muted);font-size:16px;">&#8250;</span>
+      </div>
+      <div id="ab_pt_checklist" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        <div id="pt_checklist_content"></div>
+      </div>
+    </div>
+
     <!-- Set Up Your Park Visit -->
     <div style="margin:10px 14px 0;border:1px solid rgba(27,47,160,0.2);border-radius:14px;overflow:hidden;background:rgba(27,47,160,0.04);">
       <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="closePreTrip();openSetup();">
@@ -3695,7 +3888,7 @@ async function loadHotelRecs(){
           </div>
         </div>
         <div id="pt_dining_admin" style="display:none;">
-          <button onclick="addDiningReservation()" style="width:100%;padding:10px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px;">+ Add reservation</button>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-align:center;">Reservations are automatically added to your daily schedule</div><button onclick="addDiningReservation()" style="width:100%;padding:10px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;touch-action:manipulation;">+ Add reservation</button>
         </div>
       </div>
     </div>
