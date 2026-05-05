@@ -651,12 +651,13 @@ function isRideInRefurb(rideName){
 function renderClosuresFromWaits(){if(typeof waits==='undefined'||!Object.keys(waits).length)return;var r=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify([]));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 function isWithinParkWindow(){
   try{
-    // Disneyland generally open 8AM-midnight any day
-    // Use 7AM-1AM window (with 1hr buffer) to catch early entry and late nights
     var now=nowPT();
     var hr=now.getHours()+(now.getMinutes()/60);
-    return hr>=7&&hr<=25; // 7AM to 1AM next day
-  }catch(e){return true;} // default to open if error
+    // Park open roughly 8AM-midnight with 1hr buffer each side
+    // Before 7AM or after 1AM (hour 1 next day) = park closed
+    if(hr>=1&&hr<7) return false; // 1AM-7AM = definitely closed
+    return true; // 7AM-1AM window = potentially open
+  }catch(e){return true;}
 }
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
@@ -1182,8 +1183,40 @@ function renderDayTipsCard(dayIdx){
     +'<div class="day-tips-hdr-left"><span style="font-size:16px">&#128161;</span><span class="day-tips-title">Tips for Today</span></div>'
     +'<span class="day-tips-arrow">&#9660;</span>'
     +'</div>'
-    +'<div class="day-tips-body" id="dt_body_'+dayIdx+'">'
-    +'<div style="display:flex;gap:8px;padding:8px 10px;background:rgba(27,47,160,0.06);border-radius:var(--radius-sm);margin-bottom:10px;align-items:flex-start">'
+    +'<div class="day-tips-body" id="dt_body_'+dayIdx+'">';
+  // Inject special events warning if events intel has info for this day
+  var eventsHtml='';
+  try{
+    var ei=typeof getEventsIntel==='function'?getEventsIntel():null;
+    if(ei){
+      var dayDates=['June 28','June 29','June 30'];
+      var dayDate=dayDates[dayIdx]||'';
+      // Check if events intel mentions this specific day
+      var hasEvent=ei.toLowerCase().indexOf(dayDate.toLowerCase())>-1||
+        ei.toLowerCase().indexOf('jun '+dayDates[dayIdx]?dayDates[dayIdx].split(' ')[1]:'')>-1;
+      // Also check for general event keywords that affect any day
+      var hasParty=/(special event|ticketed event|after.?hours|party|early close|hard ticket)/i.test(ei);
+      if(hasEvent||hasParty){
+        // Extract relevant snippet (first mention of this day or event keywords)
+        var snippet='';
+        var lines=ei.split('\n');
+        lines.forEach(function(line){
+          if(line.toLowerCase().indexOf(dayDate.toLowerCase())>-1||(hasParty&&/(special event|ticketed|after.?hours|party|hard ticket)/i.test(line))){
+            if(snippet.length<300)snippet+=(snippet?'\n':'')+line.trim();
+          }
+        });
+        if(!snippet&&hasParty)snippet=ei.substring(0,300);
+        if(snippet){
+          eventsHtml='<div style="margin-bottom:10px;padding:10px 12px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:10px;">';
+          eventsHtml+='<div style="font-size:12px;font-weight:700;color:#DC2626;margin-bottom:4px;">&#127881; Special Event Notice</div>';
+          eventsHtml+='<div style="font-size:11px;color:var(--text);line-height:1.6;">'+snippet.replace(/\n/g,'<br>')+'</div>';
+          eventsHtml+='</div>';
+        }
+      }
+    }
+  }catch(e){}
+  h+=eventsHtml;
+  h+='<div style="display:flex;gap:8px;padding:8px 10px;background:rgba(27,47,160,0.06);border-radius:var(--radius-sm);margin-bottom:10px;align-items:flex-start">'
     +'<span style="font-size:14px;flex-shrink:0">&#128161;</span>'
     +'<span style="font-size:11px;color:var(--text-muted);line-height:1.6"><b style="color:var(--magic)">Tip:</b> These are general guidelines based on historical patterns. For the best ride order on the day, use <b style="color:var(--magic)">&#10024; AI Optimize</b> in your schedule — it factors in live wait times, walking distances, and your specific itinerary.</span>'
     +'</div>';
@@ -2087,18 +2120,30 @@ async function reoptimize(){
   var today=new Date();
   var tripStart=new Date('2026-06-28T00:00:00');
   var tripEnd=new Date('2026-07-01T00:00:00');
-  var atPark=today>=tripStart&&today<tripEnd;
+  // Only use live waits if we're actually IN the park on that specific day
+  // during park operating hours (7AM-1AM Pacific)
+  var nowPacific=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));
+  var todayStr=nowPacific.toISOString().split('T')[0];
+  var parkDayDates=['2026-06-28','2026-06-29','2026-06-30'];
+  var isActualParkDay=parkDayDates.indexOf(todayStr)>-1;
+  var parkHour=nowPacific.getHours();
+  var duringParkHours=parkHour>=7&&parkHour<=24; // 7AM to midnight
+  var atPark=isActualParkDay&&duringParkHours;
 
   // Build live wait times context
   var liveWaitContext='';
+  var waitApiDown=atPark&&Object.keys(waits).length===0; // In park but no data = API down
   var liveAvailable=atPark&&Object.keys(waits).length>0;
+  if(waitApiDown){
+    liveWaitContext='NOTE: Live wait time API is currently unavailable. Fall back to historical patterns and current web search data for typical wait times at this time of day in late June at Disneyland. ';
+  }
   if(liveAvailable){
     var waitLines=[];
     Object.values(waits).forEach(function(r){
       if(r.s==='OPERATING'&&r.w!==null) waitLines.push(r.raw+': '+r.w+' min');
       else if(r.s!=='OPERATING') waitLines.push(r.raw+': CLOSED');
     });
-    liveWaitContext='LIVE WAIT TIMES RIGHT NOW (use these to override historical estimates where available): '+waitLines.join(', ')+'. ';
+    liveWaitContext='LIVE WAIT TIMES RIGHT NOW: These are authoritative for the NEXT 1-2 HOURS and take priority for immediate ride decisions. For later in the day (3+ hours from now), blend live data with historical patterns. Historical patterns for late June Disneyland: Fantasyland always busiest, 11AM-3PM peak crowds everywhere, after 7PM waits drop significantly. Live data shows current momentum but historical predicts afternoon and evening better. Use both.';
   } else {
     liveWaitContext='No live wait data available \u2014 relying on historical patterns only. ';
   }
@@ -2138,15 +2183,20 @@ async function reoptimize(){
     +'CRITICAL FORMAT - follow exactly: Line 1: SUMMARY: [max 15 words on biggest change]. Line 2+: JSONSTART then the full updated sections JSON array then JSONEND. Match exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
 
   try{
+    var parkIntel=getParkIntel();
+    var useWebSearch=!parkIntel;
+    var eventsIntel=typeof getEventsIntel==='function'?getEventsIntel():null;
+    var intelContext=parkIntel?'\n\nPARK INTELLIGENCE (verified 2024-2026 strategies, pre-researched):\n'+parkIntel:'';+(eventsIntel?'\n\nSPECIAL EVENTS & TICKETED EVENTS (June-July 2026):\n'+eventsIntel:'');
     var r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'You are an expert Disneyland touring planner. Keep web searches brief — search only for current rope drop order and top wait time patterns. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits. (3) Use evergreen principles as foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only.',messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:useWebSearch?[{type:'web_search_20250305',name:'web_search'}]:[],system:'You are an expert Disneyland touring planner. Keep web searches brief — search only for current rope drop order and top wait time patterns. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits. (3) Use evergreen principles as foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only.',messages:[{role:'user',content:prompt}]})
     });
     var resp=await r.json();
     if(resp.error){txt.textContent='API error: '+resp.error.message;return;}
     var text='';if(resp.content&&resp.content.length){resp.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
 
+    console.log('REOPT RAW RESPONSE:',text.substring(0,500));
     var newSecs=null;
     var explanation='Schedule optimized.';
     // Method 1: JSONSTART/JSONEND markers
@@ -2291,7 +2341,7 @@ async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx){
     return;
   }
 
-  var locationHint=landCtx&&landCtx!==restaurant?(' Context: dining near '+landCtx+'. If this specific restaurant has limited options for a section, suggest the best nearby alternative and note the restaurant name clearly before each item.'):'';var prompt='Disneyland dining expert. List top dishes at '+restaurant+' at Disneyland Resort. Three sections exactly:\n\nMUST HAVE:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nKIDS:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nVEGETARIAN:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nReal dish names only. No intro text, just the three sections.'+locationHint;
+  var locationHint=landCtx&&landCtx!==restaurant?(' Context: dining near '+landCtx+'. If this specific restaurant has limited options for a section, suggest the best nearby alternative and note the restaurant name clearly before each item.'):'';var diningIntel=typeof getDiningIntel==='function'?getDiningIntel():null;var diningCtx=diningIntel?'\n\nCURRENT 2024-2026 DINING INTEL:\n'+diningIntel.substring(0,1500):'';var prompt='Disneyland dining expert with current 2024-2026 menu and review data.'+diningCtx+' List top dishes at '+restaurant+' at Disneyland Resort. Three sections exactly:\n\nMUST HAVE:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nKIDS:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nVEGETARIAN:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nReal dish names only. No intro text, just the three sections.'+locationHint;
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -2978,8 +3028,11 @@ async function completeSetup(){
 }
 function showSetupGeneratePrompt(){var card=document.createElement('div');card.id='sgc';card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">&#10024; Generate personalized schedule?</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Claude can rebuild your schedule based on your Ride Style.</div><div style="display:flex;gap:8px"><button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild</button><button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button></div>';document.body.appendChild(card);}
 function dismissGenCard(){var c=document.getElementById('sgc');if(c)c.remove();showToast('Ride Style saved!');}
-async function generateFromSetup(){var card=document.getElementById('sgc');if(card)card.remove();if(!apiKey){showToast('Add API key first');return;}var data;try{data=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){data={};}if(curDay===1){showToast('VIP day managed by guide','linear-gradient(135deg,#C9860A,#E8A020)');return;}var box=document.getElementById('reoptBox');var txt=document.getElementById('reoptText');if(box&&txt){box.style.display='block';txt.innerHTML='&#10024; Building your schedule...';}try{var ml=data.mustRides&&data.mustRides.length?data.mustRides.join(', '):'the main headliners';var sl=data.skipRides&&data.skipRides.length?data.skipRides.join(', '):'none';var cn=data.wantsChars&&data.charsDL&&data.charsDL.length?'Include character meets for: '+[].concat(data.charsDL||[],data.charsDCA||[]).join(', ')+'.':'';var dn=curDay===0?'Sunday June 28 (Disneyland+DCA)':'Tuesday June 30 (DCA morning, Disneyland evening)';var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Expert Disneyland planner. Search TouringPlans and AllEars for current summer 2026 rope drop strategies and optimal ride sequencing before building this schedule. First rides should reflect current best practices for beating crowds. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.',messages:[{role:'user',content:'Build Disneyland schedule for '+dn+'. Group: '+(data.groupSize||9)+' people. MUST: '+ml+'. SKIP: '+sl+'. '+cn+' Return ONLY JSON array: [{"t":"8:00 AM","h":"Name","type":"ride","land":"Land"}]. 12-16 entries.'}]})});var d2=await resp.json();var text=d2.content&&d2.content[0]?d2.content[0].text:'';var match=text.replace(/```json|```/g,'').match(/\[[\s\S]+\]/);if(!match)throw new Error('No JSON');var entries=JSON.parse(match[0]);var nd=JSON.parse(JSON.stringify(getCurDay()));if(nd.sections&&nd.sections.length)nd.sections[0].entries=entries;customSched[curDay]=nd;saveCustom(curDay);renderSched();if(box)box.style.display='none';if(isAdmin())pushSchedule();showToast('Schedule rebuilt!');}catch(e){if(box)box.style.display='none';showToast('Could not generate','linear-gradient(135deg,#c0392b,#e74c3c)');}}
-async function aiChooseRides(){var btn=document.getElementById('aiChooseBtn');var status=document.getElementById('aiChooseStatus');if(!apiKey){applyRideDefaults();return;}btn.disabled=true;btn.textContent='Choosing...';status.style.display='block';status.textContent='Claude is picking rides...';var gs=document.getElementById('groupSize').value;var ages=getChipSelections('ageChips').join(', ')||'adults';var thrill=getChipSelections('thrillChips')[0]||'Mix';try{var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland ride expert. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.',messages:[{role:'user',content:'Pick best 8 must-ride attractions for '+gs+' people ('+ages+') thrill: '+thrill+' at Disneyland Resort. Also pick 3 to skip. Respond ONLY with JSON: {"must":["ride1"],"skip":["ride1"]}'}]})});var data=await resp.json();var parsed=JSON.parse((data.content[0].text||'').replace(/```json|```/g,'').trim());document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(parsed.must&&parsed.must.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){if(parsed.skip&&parsed.skip.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});status.textContent='Done! Adjust as needed.';status.style.color='var(--green)';}catch(e){applyRideDefaults();status.textContent='Applied smart defaults.';status.style.color='var(--gold)';}btn.disabled=false;btn.textContent='Let AI Choose for Me';}
+async function generateFromSetup(){var card=document.getElementById('sgc');if(card)card.remove();if(!apiKey){showToast('Add API key first');return;}var data;try{data=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){data={};}if(curDay===1){showToast('VIP day managed by guide','linear-gradient(135deg,#C9860A,#E8A020)');return;}var box=document.getElementById('reoptBox');var txt=document.getElementById('reoptText');if(box&&txt){box.style.display='block';txt.innerHTML='&#10024; Building your schedule...';}try{var ml=data.mustRides&&data.mustRides.length?data.mustRides.join(', '):'the main headliners';var sl=data.skipRides&&data.skipRides.length?data.skipRides.join(', '):'none';var cn=data.wantsChars&&data.charsDL&&data.charsDL.length?'Include character meets for: '+[].concat(data.charsDL||[],data.charsDCA||[]).join(', ')+'.':'';var dn=curDay===0?'Sunday June 28 (Disneyland+DCA)':'Tuesday June 30 (DCA morning, Disneyland evening)';var parkIntel=getParkIntel();var useWebSearch=!parkIntel;var eventsIntel=typeof getEventsIntel==='function'?getEventsIntel():null;
+    var intelContext=parkIntel?'\n\nPARK INTELLIGENCE BRIEF (verified 2024-2026 strategies):\n'+parkIntel:'';+(eventsIntel?'\n\nSPECIAL EVENTS & TICKETED EVENTS (June-July 2026):\n'+eventsIntel:'');
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:useWebSearch?[{type:'web_search_20250305',name:'web_search'}]:[],system:'Expert Disneyland planner. Search TouringPlans and AllEars for current summer 2026 rope drop strategies and optimal ride sequencing before building this schedule. First rides should reflect current best practices for beating crowds. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.'+intelContext,messages:[{role:'user',content:'Build Disneyland schedule for '+dn+'. Group: '+(data.groupSize||9)+' people. MUST: '+ml+'. SKIP: '+sl+'. '+cn+' Return ONLY JSON array: [{"t":"8:00 AM","h":"Name","type":"ride","land":"Land"}]. 12-16 entries.'}]})});var d2=await resp.json();var text=d2.content&&d2.content[0]?d2.content[0].text:'';var match=text.replace(/```json|```/g,'').match(/\[[\s\S]+\]/);if(!match)throw new Error('No JSON');var entries=JSON.parse(match[0]);var nd=JSON.parse(JSON.stringify(getCurDay()));if(nd.sections&&nd.sections.length)nd.sections[0].entries=entries;customSched[curDay]=nd;saveCustom(curDay);renderSched();if(box)box.style.display='none';if(isAdmin())pushSchedule();showToast('Schedule rebuilt!');}catch(e){if(box)box.style.display='none';showToast('Could not generate','linear-gradient(135deg,#c0392b,#e74c3c)');}}
+async function aiChooseRides(){var btn=document.getElementById('aiChooseBtn');var status=document.getElementById('aiChooseStatus');if(!apiKey){applyRideDefaults();return;}btn.disabled=true;btn.textContent='Choosing...';status.style.display='block';status.textContent='Claude is picking rides...';var gs=document.getElementById('groupSize').value;var ages=getChipSelections('ageChips').join(', ')||'adults';var thrill=getChipSelections('thrillChips')[0]||'Mix';try{var parkIntel=getParkIntel();var useWebSearch=!parkIntel;var intelContext=parkIntel?'\n\nPARK INTELLIGENCE BRIEF (verified 2024-2026 strategies):\n'+parkIntel:'';
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,tools:useWebSearch?[{type:'web_search_20250305',name:'web_search'}]:[],system:'Disneyland ride expert. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.'+intelContext,messages:[{role:'user',content:'Pick best 8 must-ride attractions for '+gs+' people ('+ages+') thrill: '+thrill+' at Disneyland Resort. Also pick 3 to skip. Respond ONLY with JSON: {"must":["ride1"],"skip":["ride1"]}'}]})});var data=await resp.json();var parsed=JSON.parse((data.content[0].text||'').replace(/```json|```/g,'').trim());document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(parsed.must&&parsed.must.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){if(parsed.skip&&parsed.skip.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});status.textContent='Done! Adjust as needed.';status.style.color='var(--green)';}catch(e){applyRideDefaults();status.textContent='Applied smart defaults.';status.style.color='var(--gold)';}btn.disabled=false;btn.textContent='Let AI Choose for Me';}
 function applyRideDefaults(){var d=['Space Mountain','Matterhorn','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs','Guardians'];document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(d.some(function(x){return c.textContent.indexOf(x.substring(0,8))>-1;}))c.classList.add('selected');});var s=document.getElementById('aiChooseStatus');if(s){s.style.display='block';s.textContent='Applied smart defaults.';s.style.color='var(--gold)';}}
 
 function doRefreshWaits(){var btn=document.getElementById('waitRefreshBtn');if(btn){btn.textContent='Refreshing...';btn.disabled=true;}var el=document.getElementById('waitTabContent');if(el)el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Fetching live wait times...</div>';fetchWaits().then(function(){if(btn){btn.textContent='&#8635; Refresh';btn.disabled=false;}}).catch(function(){if(btn){btn.textContent='&#8635; Refresh';btn.disabled=false;}});}
@@ -3269,12 +3322,14 @@ async function loadKnowBeforeYouGo(){
     +' | Character meets: '+chars+(charList?' ('+charList+')':'')+'\nTRIP: Disneyland Resort, June 28-30 2026, Anaheim CA\n';
   var prompt=groupCtx+'Write a Know Before You Go briefing HIGHLY SPECIFIC to this exact group. Every tip must address their group size, ages, preferences, and pace. Cover:\n\n1. **Crowd & Timing Reality** - late June crowds and how '+size+' people affects wait times\n2. **Morning Strategy** - exactly how to execute their arrival to hit must-rides before crowds\n3. **Group Logistics** - keeping '+size+' people together: meeting points, splitting up, communication, the group slowdown factor\n4. **Lightning Lane Strategy** - specific LL advice for their plan and group size\n5. **Energy & Pacing** - realistic pacing for their preference and dining style\n6. **The #1 Mistake Groups of '+size+' Make** - the most common error and how to avoid it\n7. **Your Group Secret Weapon** - one specific advantage their profile gives them\n\nBold all key actions and ride names. Be brutally specific - no generic advice.'
   try{
+    var parkIntel=getParkIntel();var useWebSearch=!parkIntel;var eventsIntel=typeof getEventsIntel==='function'?getEventsIntel():null;
+    var intelContext=(parkIntel?'\n\nPARK INTELLIGENCE BRIEF (verified 2024-2026 strategies):\n'+parkIntel:'')+(eventsIntel?'\n\nSPECIAL EVENTS & TICKETED EVENTS (June-July 2026):\n'+eventsIntel:'');
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,
-        system:'You are an expert Disneyland trip planner. Before giving advice, use web search to find the CURRENT most widely accepted rope drop strategies, wait time patterns, and touring tips from sources like TouringPlans, AllEars, MiceChat, and Disney Food Blog for June 2026. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Your advice must reflect strategies that are verified current and backed by real visitor data — never outdated tips. Every recommendation must be specific to the group profile provided.',
-        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:'You are an expert Disneyland trip planner. Before giving advice, use web search to find the CURRENT most widely accepted rope drop strategies, wait time patterns, and touring tips from sources like TouringPlans, AllEars, MiceChat, and Disney Food Blog for June 2026. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Your advice must reflect strategies that are verified current and backed by real visitor data — never outdated tips. Every recommendation must be specific to the group profile provided.'+intelContext,
+        tools:useWebSearch?[{type:'web_search_20250305',name:'web_search'}]:[],
         messages:[{role:'user',content:prompt}]})
     });
     var data=await resp.json();
@@ -3727,7 +3782,11 @@ async function loadCrowdPrediction(){
   var size=sd.groupSize||4;
   var prompt='Analyze crowd levels for Disneyland Resort for the full week of June 25 - July 2 2026. Cover all 8 days: Thu Jun 25, Fri Jun 26, Sat Jun 27 (travel day), Sun Jun 28 (PARK DAY 1 Disneyland), Mon Jun 29 (PARK DAY 2 VIP Tour), Tue Jun 30 (PARK DAY 3 DCA + DL evening), Wed Jul 1 (departure), Thu Jul 2 (pre-4th of July buildup). For each day: 1. **Crowd Level** 1-10 with descriptor. 2. Which park is less crowded. 3. Best window for headliners. 4. One key note (events, holiday buildup, school-out patterns). For non-park days give shorter entries showing whether it would have been worth visiting instead. End with a **WEEK SUMMARY** noting best/worst days and key patterns. Base on historical late June/early July Disneyland patterns. Group size: '+size+'.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'You are a Disneyland crowd expert. Search current sources like TouringPlans crowd calendar, AllEars, and MiceChat for June/July 2026 crowd predictions before responding. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Give specific data-informed crowd forecasts backed by current predictions and historical patterns.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var parkIntel=getParkIntel();
+    var useWebSearch=!parkIntel;
+    var eventsIntel=typeof getEventsIntel==='function'?getEventsIntel():null;
+    var intelContext=parkIntel?'\n\nPARK INTELLIGENCE (verified 2024-2026 strategies, pre-researched):\n'+parkIntel:'';+(eventsIntel?'\n\nSPECIAL EVENTS & TICKETED EVENTS (June-July 2026):\n'+eventsIntel:'');
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'You are a Disneyland crowd expert. Search current sources like TouringPlans crowd calendar, AllEars, and MiceChat for June/July 2026 crowd predictions'+intelContext+' before responding. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Give specific data-informed crowd forecasts backed by current predictions and historical patterns.',tools:useWebSearch?[{type:'web_search_20250305',name:'web_search'}]:[],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
@@ -3753,7 +3812,11 @@ async function loadDayStrategy(){
   try{for(var d=0;d<3;d++){var dn=['Sun Jun 28 (Disneyland)','Mon Jun 29 (VIP Tour 10AM-5PM)','Tue Jun 30 (DCA + DL evening)'][d];var sc=JSON.parse(localStorage.getItem('schedule_v2_day'+d)||'[]');if(sc.length)schedSummary+=dn+': '+sc.slice(0,3).map(function(i){return(i.t||'')+(i.e?i.e.h:i.h||'');}).join(', ')+'\n';}}catch(e){}
   var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Pace: '+pace+' | Start: '+startTime+' | LL: '+ll+' | Must-rides: '+mustRides+'\n'+(schedSummary?'Schedule overview:\n'+schedSummary:'')+'\nWrite a day-by-day strategy for June 28-30 2026. One focused paragraph per day (5-6 sentences). Cover: top priority for the day, morning sequence for must-rides, midday decision, best evening move, one group-specific tip. Day 1: Sun Jun 28 Disneyland (fireworks at night). Day 2: Mon Jun 29 VIP Tour 10AM-5PM (free morning before 10, Paint the Night + World of Color VIP after). Day 3: Tue Jun 30 DCA morning, Disneyland evening, Cafe Orleans 6:30PM, Fantasmic at night. Bold the single most important action each day.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:650,system:'You are an expert Disneyland trip strategist. Search current sources including TouringPlans, AllEars, and MiceChat for the latest June 2026 touring strategies, rope drop tips, and crowd patterns before building the plan. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Every recommendation must be verified current and specific to the group.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var parkIntel=getParkIntel();
+    var useWebSearch=!parkIntel;
+    var eventsIntel=typeof getEventsIntel==='function'?getEventsIntel():null;
+    var intelContext=parkIntel?'\n\nPARK INTELLIGENCE (verified 2024-2026 strategies, pre-researched):\n'+parkIntel:'';+(eventsIntel?'\n\nSPECIAL EVENTS & TICKETED EVENTS (June-July 2026):\n'+eventsIntel:'');
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:650,system:'You are an expert Disneyland trip strategist. Search current sources including TouringPlans, AllEars, and MiceChat for the latest June 2026 touring strategies'+intelContext+', rope drop tips, and crowd patterns before building the plan. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Every recommendation must be verified current and specific to the group.',tools:useWebSearch?[{type:'web_search_20250305',name:'web_search'}]:[],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
@@ -3777,7 +3840,11 @@ async function loadLLPlanner(){
   var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed';
   var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Start: '+startTime+' | LL plan: '+ll+' | Must-rides: '+mustRides+'\nDATES: Sun Jun 28, Mon Jun 29 (VIP Tour 10AM-5PM), Tue Jun 30\n\nCreate a Lightning Lane strategy for each park day:\n\n**LLMP Booking Order (each day):**\n- First ride to book at park open (or 7AM on-site)\n- Exact sequence: ride name → target time → expected return window\n- How many devices to use for '+size+' people and who books what\n- Which rides to skip LL and ride standby instead\n\n**Lightning Lane Single (Individual Attractions):**\n- Which ILL rides are worth paying for (Rise of Resistance, RSR, etc)\n- Recommended purchase time\n\n**Key Rules for this group:**\n- How group size of '+size+' affects booking\n- The #1 LL mistake to avoid\n\nBe extremely specific with ride names and times. Bold the most critical actions.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system:'You are a Disneyland Lightning Lane expert. Search current sources like TouringPlans, AllEars, and the Disney Tourist Blog for the most current June 2026 Lightning Lane strategies, pricing, and booking tips before responding. LL rules and best practices change frequently — always use the most current verified information. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var parkIntel=getParkIntel();
+    var useWebSearch=!parkIntel;
+    var eventsIntel=typeof getEventsIntel==='function'?getEventsIntel():null;
+    var intelContext=parkIntel?'\n\nPARK INTELLIGENCE (verified 2024-2026 strategies, pre-researched):\n'+parkIntel:'';+(eventsIntel?'\n\nSPECIAL EVENTS & TICKETED EVENTS (June-July 2026):\n'+eventsIntel:'');
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system:'You are a Disneyland Lightning Lane expert. Search current sources like TouringPlans, AllEars, and the Disney Tourist Blog for the most current June 2026 Lightning Lane strategies'+intelContext+', pricing, and booking tips before responding. LL rules and best practices change frequently — always use the most current verified information. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.',tools:useWebSearch?[{type:'web_search_20250305',name:'web_search'}]:[],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
@@ -3909,6 +3976,260 @@ function closeSetupFinal(){
   try{localStorage.removeItem('kbyg_setup_hash');}catch(e){}
   showToast('Trip setup complete! 🎉');
 }
+
+// ── Park Intelligence Cache ───────────────────────────────────────────────
+var PARK_INTEL_CACHE_DAYS = 10;
+var parkIntelCache = null;
+
+function getParkIntel(){
+  if(parkIntelCache) return parkIntelCache;
+  try{
+    var stored = localStorage.getItem('park_intel');
+    var ts = parseInt(localStorage.getItem('park_intel_ts')||'0');
+    var age = (Date.now()-ts)/(1000*60*60*24);
+    if(stored && age < PARK_INTEL_CACHE_DAYS){
+      parkIntelCache = stored;
+      return stored;
+    }
+  }catch(e){}
+  return null;
+}
+
+function setParkIntel(text){
+  parkIntelCache = text;
+  try{
+    localStorage.setItem('park_intel', text);
+    localStorage.setItem('park_intel_ts', Date.now().toString());
+  }catch(e){}
+}
+
+function parkIntelAge(){
+  try{
+    var ts = parseInt(localStorage.getItem('park_intel_ts')||'0');
+    if(!ts) return null;
+    var days = (Date.now()-ts)/(1000*60*60*24);
+    return Math.round(days*10)/10;
+  }catch(e){return null;}
+}
+
+async function buildParkIntel(){
+  if(!apiKey) return;
+  if(getParkIntel()) return; // already cached
+
+  console.log('Building Park Intelligence Cache...');
+  try{
+    var resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        messages:[{role:'user',content:'Search TouringPlans AllEars MiceChat Disney Tourist Blog for current Disneyland touring strategies 2024-2026 only. Build a Park Intelligence Brief: 1.ROPE DROP - which rides first at park open based on current 2025-2026 wait patterns. 2.LIGHTNING LANE - current LLMP booking sequence, which rides first, how many devices, which LLS rides worth buying. 3.CROWD PATTERNS - late June levels, peak hours, park hopping timing. 4.TOP TIPS - 5-7 most impactful current strategies. 5.MISTAKES - top time-wasting mistakes 2025-2026. 6.DL VS DCA - when to prioritize each. 3-5 sentences per section, dense and actionable.'}],
+        system:'You are a Disneyland expert researcher. Search multiple sources to build a comprehensive strategy brief. '
+          +'CRITICAL GUARDRAILS: (1) Only use sources and strategies from 2024-2026. '
+          +'(2) Discard ANYTHING referencing Genie+, MaxPass, or pre-Lightning Lane systems — these are retired. '
+          +'(3) Lightning Lane Multi Pass (LLMP) and Lightning Lane Single (LLS) replaced Genie+ in late 2024 — use only current LL terminology. '
+          +'(4) If a strategy article is older than 2024, ignore it entirely. '
+          +'(5) Verify rope drop ride recommendations reflect CURRENT wait time patterns, not what was popular in 2019-2023. '
+          +'Be concise — this brief will be injected into AI prompts so keep it dense and factual.',
+        messages:[{role:'user',content:'Search TouringPlans AllEars MiceChat Disney Tourist Blog for current Disneyland touring strategies 2024-2026 only. Build a Park Intelligence Brief: 1.ROPE DROP - which rides first at park open based on current 2025-2026 wait patterns. 2.LIGHTNING LANE - current LLMP booking sequence, which rides first, how many devices, which LLS rides worth buying. 3.CROWD PATTERNS - late June levels, peak hours, park hopping timing. 4.TOP TIPS - 5-7 most impactful current strategies. 5.MISTAKES - top time-wasting mistakes 2025-2026. 6.DL VS DCA - when to prioritize each. 3-5 sentences per section, dense and actionable.'}]
+      })
+    });
+    var data = await resp.json();
+    if(data.error){console.warn('Park Intel build failed:',data.error.message);return;}
+    var text = '';
+    if(data.content&&data.content.length){
+      data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
+    }
+    if(text&&text.length>200){
+      setParkIntel(text);
+      console.log('Park Intelligence Cache built successfully ('+text.length+' chars)');
+    }
+  }catch(e){console.warn('Park Intel error:',e);}
+}
+
+// Run park intel build 60 seconds after app loads (non-blocking)
+setTimeout(function(){
+  if(apiKey && !getParkIntel()) buildParkIntel();
+}, 60000);
+
+// ── Dining Intelligence Cache ─────────────────────────────────────────────
+var DINING_INTEL_CACHE_DAYS = 30;
+var diningIntelCache = null;
+
+function getDiningIntel(){
+  if(diningIntelCache) return diningIntelCache;
+  try{
+    var stored = localStorage.getItem('dining_intel');
+    var ts = parseInt(localStorage.getItem('dining_intel_ts')||'0');
+    var age = (Date.now()-ts)/(1000*60*60*24);
+    if(stored && age < DINING_INTEL_CACHE_DAYS){
+      diningIntelCache = stored;
+      return stored;
+    }
+  }catch(e){}
+  return null;
+}
+
+function setDiningIntel(text){
+  diningIntelCache = text;
+  try{
+    localStorage.setItem('dining_intel', text);
+    localStorage.setItem('dining_intel_ts', Date.now().toString());
+  }catch(e){}
+}
+
+async function buildDiningIntel(){
+  if(!apiKey) return;
+  if(getDiningIntel()) return;
+
+  console.log('Building Dining Intelligence Cache...');
+  try{
+    var resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1500,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:'You are a Disneyland dining expert and food critic. Search Disney Food Blog, AllEars dining reviews, TripAdvisor, Yelp, and Google Reviews for current 2024-2026 reviews and menu information for Disneyland Resort restaurants. Only use reviews and menu info from 2024-2026 — menus change and older reviews may reference discontinued items. Be specific about must-order dishes, what to avoid, price ranges, and whether the experience is worth it. Focus on what actual recent visitors say.',
+        messages:[{role:'user',content:'Search Disney Food Blog AllEars TripAdvisor Yelp Google Reviews for current 2024-2026 Disneyland Resort dining reviews and menus. Cover all major restaurants: Blue Bayou Cafe Orleans River Belle Carnation Cafe Plaza Inn Ogas Cantina Bengal Barbecue Mint Julep Tiki Juice Bar (Disneyland). Carthay Circle Lamplight Lounge Napa Rose Wine Country Trattoria Cocina Cucamonga Award Wieners Flo V8 Cafe (DCA). Ballast Point Earl of Sandwich Salt Straw Black Tap (Downtown Disney). For each: star rating out of 5, 2-3 must-order dishes with current prices, one honest tip from recent 2024-2026 visitors. Dense reference format.'}]
+      })
+    });
+    var data = await resp.json();
+    if(data.error){console.warn('Dining Intel failed:',data.error.message);return;}
+    var text = '';
+    if(data.content&&data.content.length){
+      data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
+    }
+    if(text&&text.length>200){
+      setDiningIntel(text);
+      console.log('Dining Intelligence Cache built ('+text.length+' chars)');
+    }
+  }catch(e){console.warn('Dining Intel error:',e);}
+}
+
+// Build dining intel 90 seconds after load (staggered from park intel at 60s)
+setTimeout(function(){
+  if(apiKey && !getDiningIntel()) buildDiningIntel();
+}, 90000);
+// v202605041500 — cache bust v3
+// Safety stub - real function defined later
+function renderLockCountdowns(){}
+function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
+function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
+function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
+function renderMarkdown(text){
+  if(!text) return '';
+  return text
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g,'<em>$1</em>');
+}
+function isRideInRefurb(rideName){
+  try{
+    var stored=localStorage.getItem('weekly_refurbs');
+    if(stored){var data=JSON.parse(stored);if(Date.now()-data.ts<7*24*60*60*1000&&Array.isArray(data.rides)){var norm=typeof normalizeRideName==='function'?normalizeRideName(rideName):rideName.toLowerCase();return data.rides.some(function(r){var rn=typeof normalizeRideName==='function'?normalizeRideName(r):r.toLowerCase();return norm.indexOf(rn)>-1||rn.indexOf(norm)>-1;});}}
+  }catch(e){}
+  if(typeof waits!=='undefined'&&Object.keys(waits).length){var d=typeof lookupWait==='function'?lookupWait(rideName):null;if(d&&d.s==='REFURBISHMENT')return true;}
+  return false;
+}
+function renderClosuresFromWaits(){if(typeof waits==='undefined'||!Object.keys(waits).length)return;var r=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify([]));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
+function isWithinParkWindow(){
+  try{
+    var now=nowPT();
+    var hr=now.getHours()+(now.getMinutes()/60);
+    // Park open roughly 8AM-midnight with 1hr buffer each side
+    // Before 7AM or after 1AM (hour 1 next day) = park closed
+    if(hr>=1&&hr<7) return false; // 1AM-7AM = definitely closed
+    return true; // 7AM-1AM window = potentially open
+  }catch(e){return true;}
+}
+// ── Dining Intelligence Cache ─────────────────────────────────────────────
+var DINING_INTEL_CACHE_DAYS = 30;
+var diningIntelCache = null;
+
+function getDiningIntel(){
+  if(diningIntelCache) return diningIntelCache;
+  try{
+    var stored = localStorage.getItem('dining_intel');
+    var ts = parseInt(localStorage.getItem('dining_intel_ts')||'0');
+    var age = (Date.now()-ts)/(1000*60*60*24);
+    if(stored && age < DINING_INTEL_CACHE_DAYS){
+      diningIntelCache = stored;
+      return stored;
+    }
+  }catch(e){}
+  return null;
+}
+
+function setDiningIntel(text){
+  diningIntelCache = text;
+  try{
+    localStorage.setItem('dining_intel', text);
+    localStorage.setItem('dining_intel_ts', Date.now().toString());
+  }catch(e){}
+}
+
+
+// ── Special Events Intelligence Cache ────────────────────────────────────
+var EVENTS_INTEL_CACHE_DAYS = 7;
+var eventsIntelCache = null;
+
+function getEventsIntel(){
+  if(eventsIntelCache) return eventsIntelCache;
+  try{
+    var stored = localStorage.getItem('events_intel');
+    var ts = parseInt(localStorage.getItem('events_intel_ts')||'0');
+    var age = (Date.now()-ts)/(1000*60*60*24);
+    if(stored && age < EVENTS_INTEL_CACHE_DAYS){
+      eventsIntelCache = stored;
+      return stored;
+    }
+  }catch(e){}
+  return null;
+}
+
+function setEventsIntel(text){
+  eventsIntelCache = text;
+  try{
+    localStorage.setItem('events_intel', text);
+    localStorage.setItem('events_intel_ts', Date.now().toString());
+  }catch(e){}
+}
+
+async function buildEventsIntel(){
+  if(!apiKey) return;
+  if(getEventsIntel()) return;
+
+  console.log('Building Special Events Intelligence Cache...');
+  try{
+    var resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:800,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:'You are a Disneyland events expert. Search for ALL special events, ticketed events, seasonal overlays, and holiday events at Disneyland Resort around the trip dates. Be thorough — include after-hours events, special ticketed parties, limited-time entertainment, seasonal overlays, character meet changes, and any events that would affect crowds, park hours, or the guest experience. Also check for July 4th weekend events since the trip ends June 30 and that weekend may affect crowds even if the group has left.',
+        messages:[{role:'user',content:'Search for ALL special events at Disneyland Resort for late June and early July 2026, specifically June 25 - July 5 2026. Include: (1) Special ticketed after-hours events or parties (like Oogie Boogie Bash, Fantasy Faire, etc) happening during or near these dates. (2) Any seasonal overlays or limited-time entertainment running in late June 2026. (3) Any special character meets or limited appearances. (4) July 4th weekend events or fireworks schedules that might affect June 28-30 crowds. (5) Any changes to normal park hours for these specific dates. (6) Any new attractions, shows, or experiences opening around this time. Also note if any major events END before June 28 or START after June 30 that might affect crowd levels. Format as a brief factual summary with specific dates.'}]
+      })
+    });
+    var data = await resp.json();
+    if(data.error){console.warn('Events Intel failed:',data.error.message);return;}
+    var text = '';
+    if(data.content&&data.content.length){
+      data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
+    }
+    if(text&&text.length>100){
+      setEventsIntel(text);
+      console.log('Events Intelligence Cache built ('+text.length+' chars)');
+    }
+  }catch(e){console.warn('Events Intel error:',e);}
+}
+
+// Build events intel 2 minutes after load (staggered: park=60s, dining=90s, events=120s)
+setTimeout(function(){
+  if(apiKey && !getEventsIntel()) buildEventsIntel();
+}, 120000);
 
 </script>
 
