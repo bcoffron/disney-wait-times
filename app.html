@@ -2067,7 +2067,7 @@ async function reoptimize(){
   var data=getCurDay();
   var hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]){
-    txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+renderMarkdown(reoptCache[hash].explanation)+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
+    txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;">'+renderMarkdown(reoptCache[hash].explanation)+'</div>'+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
     pendingReopt=reoptCache[hash].result;
     btns.classList.add('show');
     return;
@@ -2133,7 +2133,7 @@ async function reoptimize(){
     +constraintRules+' '
     +freedomRules+' '
     +(curDay===0?dlRides:curDay===2?dcaRides+' '+dlRides:dlRides)+' '
-    +'Respond with: 1) 3-4 sentences explaining the key changes made, which live vs historical data influenced decisions, any rides added, and dining timing changes. 2) Full updated sections array as JSON in JSONSTART[ ]JSONEND markers matching the exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
+    +'Respond with: 1) ONE sentence (max 20 words) summarizing the single biggest change made. 2) Full updated sections array as JSON in JSONSTART[ ]JSONEND markers matching the exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -2165,16 +2165,14 @@ async function reoptimize(){
       try{
         pendingReopt=JSON.parse(JSON.stringify(data));
         pendingReopt.sections=newSecs;
-        txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+renderMarkdown(explanation||'Schedule optimized.');
+        txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;">'+renderMarkdown(explanation||'Schedule optimized.')+'</div>';
         btns.classList.add('show');
         // Cache the result
         reoptCache[hash]={explanation:explanation||'Schedule optimized.',result:pendingReopt};
       }catch(pe){txt.textContent=explanation||'Could not apply. Try again.';}
     }else{
-      txt.textContent=explanation||text;
-      if(explanation&&explanation.length>20){
-        txt.innerHTML+='<br><br><span style="color:var(--text-dim);font-size:11px">Could not parse updated schedule automatically. Use the explanation above to manually reorder using Edit mode.</span>';
-      }
+      // JSON parse failed - show friendly message and retry hint
+      txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Schedule analysis complete. The AI suggested improvements but they need to be applied manually — try optimizing again or use Edit mode to reorder.</span>';
     }
   }catch(e){txt.textContent='Error: '+e.message;}
 }
@@ -3759,12 +3757,131 @@ function refreshCrowds(){try{localStorage.removeItem('crowd_pred');}catch(e){}lo
 function refreshDayStrategy(){try{localStorage.removeItem('day_strategy');}catch(e){}loadDayStrategy();}
 function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadLLPlanner();}
 
+// ── Setup Steps 4 + 5 ────────────────────────────────────────────────────
+
+async function completeSetupAndSummarize(){
+  // First save all the data including step 4 answers
+  var wc=document.getElementById('charYes')&&document.getElementById('charYes').classList.contains('selected');
+  setupData={
+    groupSize:parseInt(document.getElementById('groupSize').value),
+    ages:getChipSelections('ageChips'),
+    thrill:getChipSelections('thrillChips')[0]||'Mix',
+    startTime:getChipSelections('startChips')[0]||'Rope drop',
+    mustRides:getChipSelections('mustRideChips'),
+    skipRides:getChipSelections('skipRideChips'),
+    ll:getChipSelections('llChips')[0]||'Undecided',
+    dining:getChipSelections('diningChips')[0]||'Mix',
+    pace:getChipSelections('paceChips')[0]||'Balanced',
+    wantsChars:wc,
+    charsDL:wc?getChipSelections('charDLChips'):[],
+    charsDCA:wc?getChipSelections('charDCAChips'):[],
+    charPriority:wc?(getChipSelections('charPriorityChips')[0]||'Fit in when convenient'):'none',
+    // Step 4 additions
+    experience:getChipSelections('experienceChips')[0]||'First timers',
+    mobility:getChipSelections('mobilityChips')[0]||'None',
+    fears:getChipSelections('fearChips'),
+    dreamOutcome:document.getElementById('dreamOutcome')?document.getElementById('dreamOutcome').value.trim():''
+  };
+  var ki=document.querySelectorAll('#kidsHeightInputs input');
+  if(ki.length){saveGroupHeights(Array.from(ki).map(function(i){return parseInt(i.value)||44;}));}
+  try{localStorage.setItem('setup_data',JSON.stringify(setupData));localStorage.setItem('setup_done','yes');}catch(e){}
+  var b=document.getElementById('setupBanner');if(b)b.style.display='none';
+
+  // Move to step 5
+  goSetupStep(5);
+
+  // Generate trip summary
+  generateTripSummary();
+}
+
+async function generateTripSummary(){
+  var el=document.getElementById('tripSummaryContent');
+  if(!el) return;
+  if(!apiKey){
+    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.7;">Your Ride Style is saved! Head to the Pre-Trip Planning section to generate your personalized AI briefing once you add your API key.</div>';
+    return;
+  }
+
+  var sd=setupData||{};
+  var size=sd.groupSize||4;
+  var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed ages';
+  var thrill=sd.thrill||'Mix';
+  var pace=sd.pace||'Balanced';
+  var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'not specified';
+  var ll=sd.ll||'Undecided';
+  var experience=sd.experience||'First timers';
+  var mobility=sd.mobility||'None';
+  var fears=sd.fears&&sd.fears.length?sd.fears.join(', '):'none specified';
+  var dream=sd.dreamOutcome||'';
+
+  var prompt='Write a 3-4 sentence personalized trip summary for this group visiting Disneyland Resort June 28-30 2026. '
+    +'Make it warm, specific, and exciting — like a great travel advisor summing up exactly what this trip will be for them. '
+    +'GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Pace: '+pace+' | Must-rides: '+mustRides
+    +' | LL plan: '+ll+' | Experience: '+experience+' | Mobility: '+mobility
+    +' | Biggest concerns: '+fears
+    +(dream?' | Their dream outcome: '+dream:'')
+    +'. End with one specific actionable tip that addresses their biggest concern. Bold the most important insight.';
+
+  try{
+    var r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,
+        system:'You are a warm, expert Disneyland trip advisor. Write personalized trip summaries that make families excited and confident about their visit. Be specific to their group profile. Use **bold** for the single most important insight.',
+        messages:[{role:'user',content:prompt}]})
+    });
+    var data=await r.json();
+    if(data.error){el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved! Open Pre-Trip Planning to generate your full AI briefing.</div>';return;}
+    var text='';
+    if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}
+    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.8;">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
+    // Clear KBYG cache so it regenerates with new setup
+    try{localStorage.removeItem('kbyg_text');localStorage.removeItem('kbyg_date');}catch(e){}
+  }catch(err){
+    el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved! Open Pre-Trip Planning for your full AI briefing.</div>';
+  }
+}
+
+function copyTripLink(){
+  var url='https://themeparkwize.com';
+  try{
+    navigator.clipboard.writeText(url).then(function(){showToast('Link copied!');});
+  }catch(e){
+    // Fallback
+    var el=document.getElementById('shareUrlDisplay');
+    if(el){
+      var range=document.createRange();range.selectNode(el);
+      window.getSelection().removeAllRanges();window.getSelection().addRange(range);
+      document.execCommand('copy');window.getSelection().removeAllRanges();
+      showToast('Link copied!');
+    }
+  }
+}
+
+function shareTripLink(){
+  var url='https://themeparkwize.com';
+  var text='Join our Disneyland trip on ThemeParkWize! Live wait times, AI schedule optimization, and real-time group updates.';
+  if(navigator.share){
+    navigator.share({title:'ThemeParkWize — Disneyland Trip',text:text,url:url});
+  } else {
+    copyTripLink();
+  }
+}
+
+function closeSetupFinal(){
+  closeSetup();
+  renderPreTripBanner();
+  // Invalidate KBYG cache so it uses new setup data
+  try{localStorage.removeItem('kbyg_setup_hash');}catch(e){}
+  showToast('Trip setup complete! 🎉');
+}
+
 </script>
 
 <!-- Setup Overlay -->
 <div class="setup-overlay hidden" id="setupOverlay">
   <div class="setup-panel">
-    <div class="setup-progress"><div class="setup-dot active" id="sp0"></div><div class="setup-dot" id="sp1"></div><div class="setup-dot" id="sp2"></div><div class="setup-dot" id="sp3"></div></div>
+    <div class="setup-progress"><div class="setup-dot active" id="sp0"></div><div class="setup-dot" id="sp1"></div><div class="setup-dot" id="sp2"></div><div class="setup-dot" id="sp3"></div><div class="setup-dot" id="sp4"></div><div class="setup-dot" id="sp5"></div></div>
     <div class="setup-step active" id="setupStep0">
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Your Group</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Tell us who is coming so we can personalize your experience.</div>
@@ -3903,7 +4020,72 @@ function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadL
           <div class="setup-chip" onclick="toggleChip(this,'charPri')">First thing in the morning</div>
         </div>
       </div>
-      <button class="setup-btn" onclick="completeSetup()">&#10024; Save My Ride Style</button>
+      <button class="setup-btn" onclick="goSetupStep(4)">Next ›</button>
+    </div>
+    <!-- Step 4: Smart Profile Questions -->
+    <div class="setup-step" id="setupStep4">
+      <button class="setup-close" onclick="closeSetup()">&#10005;</button>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;">Almost done! ✨</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">A few quick questions so we can personalize your AI advice.</div>
+
+      <div class="setup-section">
+        <div class="setup-label">Has anyone in your group been to Disneyland before?</div>
+        <div class="setup-chips" id="experienceChips">
+          <div class="setup-chip selected" onclick="toggleChip(this,'exp')">First timers</div>
+          <div class="setup-chip" onclick="toggleChip(this,'exp')">Some have, some haven't</div>
+          <div class="setup-chip" onclick="toggleChip(this,'exp')">We're veterans</div>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label">Any mobility or accessibility considerations?</div>
+        <div class="setup-chips" id="mobilityChips">
+          <div class="setup-chip selected" onclick="toggleChip(this,'mob')">None</div>
+          <div class="setup-chip" onclick="toggleChip(this,'mob')">Stroller</div>
+          <div class="setup-chip" onclick="toggleChip(this,'mob')">Wheelchair / ECV</div>
+          <div class="setup-chip" onclick="toggleChip(this,'mob')">Someone with limited walking</div>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label">What's your biggest concern about the trip?</div>
+        <div class="setup-chips" id="fearChips">
+          <div class="setup-chip selected" onclick="toggleChip(this,'fear')">Long wait times</div>
+          <div class="setup-chip" onclick="toggleChip(this,'fear')">Missing our must-do rides</div>
+          <div class="setup-chip" onclick="toggleChip(this,'fear')">Kids getting overwhelmed or tired</div>
+          <div class="setup-chip" onclick="toggleChip(this,'fear')">Keeping everyone together</div>
+          <div class="setup-chip" onclick="toggleChip(this,'fear')">Cost getting out of hand</div>
+          <div class="setup-chip" onclick="toggleChip(this,'fear')">Not knowing what to do next</div>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-label">What would make this trip perfect? (optional)</div>
+        <textarea id="dreamOutcome" placeholder="e.g. My kids see their favorite characters, we ride everything without huge waits, everyone goes home happy..." style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit;resize:none;height:80px;outline:none;margin-top:4px;"></textarea>
+      </div>
+
+      <button class="setup-btn" onclick="completeSetupAndSummarize()">&#10024; Save &amp; Generate My Trip Summary</button>
+    </div>
+
+    <!-- Step 5: Trip Summary + Share -->
+    <div class="setup-step" id="setupStep5">
+      <button class="setup-close" onclick="closeSetup()">&#10005;</button>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;">Your Trip is Ready! 🎉</div>
+      <div id="tripSummaryContent" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;min-height:80px;">
+        <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">✨ Generating your personalized trip summary...</div>
+      </div>
+
+      <div style="background:rgba(27,47,160,0.05);border:1.5px solid rgba(27,47,160,0.2);border-radius:14px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">📲 Share with your group</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Your trip is set up — send this link to everyone coming. They'll see the full schedule, live wait times, and AI features.</div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--magic,#1B2FA0);font-family:monospace;margin-bottom:10px;" id="shareUrlDisplay">themeparkwize.com</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📋 Copy Link</button>
+          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📤 Share</button>
+        </div>
+      </div>
+
+      <button class="setup-btn" onclick="closeSetupFinal()">✓ Let's Go Plan!</button>
     </div>
   </div>
 </div>
