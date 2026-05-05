@@ -422,7 +422,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </div>
     <!-- Enter the Magic button after first unlock -->
     <button class="lock-enter-btn" id="lockEnterBtn" style="display:none" onclick="enterMagic()">&#10024; Enter the Magic &#10024;</button>
-    <div id="lockCountdowns" style="display:flex;flex-direction:column;gap:5px;margin:20px auto 0;width:100%;max-width:280px"></div>
     <div class="lock-error" id="lockError"></div>
   </div>
 </div>
@@ -975,11 +974,11 @@ function scheduleMorningCheck(){
 async function fetchWeather(){
   try{
     // First try: get the actual June 28-30 forecast if within range
-    var tripUrl='https://api.open-meteo.com/v1/forecast?latitude=33.8104&longitude=-117.9190&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&start_date=2026-06-28&end_date=2026-07-02&forecast_days=16';
+    var tripUrl='https://api.open-meteo.com/v1/forecast?latitude=33.8104&longitude=-117.9190&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&start_date=2026-06-27&end_date=2026-07-01&forecast_days=16';
     var r=await fetch(tripUrl);
     if(r.ok){
       var data=await r.json();
-      if(data.daily&&data.daily.time&&data.daily.time.length>=3){
+      if(data.daily&&data.daily.time&&data.daily.time.length>=1){
         weatherData=data.daily;
         try{localStorage.setItem('wx_data',JSON.stringify(weatherData));localStorage.setItem('wx_date',new Date().toDateString());}catch(e){}
         renderDayInfoBar();
@@ -1013,10 +1012,10 @@ async function fetchWeather(){
   }catch(e2){}
   // Final fallback: typical June Anaheim averages
   weatherData={
-    time:['2026-06-28','2026-06-29','2026-06-30','2026-07-01','2026-07-02'],
-    temperature_2m_max:[88,90,89,87,88],
-    temperature_2m_min:[65,66,65,64,65],
-    weathercode:[1,1,1,0,0],
+    time:['2026-06-27','2026-06-28','2026-06-29','2026-06-30','2026-07-01'],
+    temperature_2m_max:[87,88,90,89,87],
+    temperature_2m_min:[63,65,66,65,64],
+    weathercode:[0,1,1,1,0],
     isTypical:true
   };
   renderDayInfoBar();
@@ -3141,7 +3140,7 @@ function renderPreTripWeather(){
   var note=document.getElementById('ptWeatherNote');
   if(!el)return;
   if(!weatherData){el.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:12px;padding:8px;">Loading forecast...</div>';return;}
-  var days=['Jun 28','Jun 29','Jun 30','Jul 1','Jul 2'];var html='';
+  var days=['Jun 27','Jun 28','Jun 29','Jun 30','Jul 1'];var html='';
   for(var i=0;i<Math.min(5,weatherData.temperature_2m_max?weatherData.temperature_2m_max.length:3);i++){
     var hi=weatherData.temperature_2m_max?Math.round(weatherData.temperature_2m_max[i]):'—';
     var lo=weatherData.temperature_2m_min?Math.round(weatherData.temperature_2m_min[i]):'—';
@@ -3268,6 +3267,161 @@ function renderPreTripBanner(){
   }catch(e){}
   setTimeout(renderPreTripBanner,100);
 })();
+
+async function loadHotelRecs(){
+  var el=document.getElementById('pt_hotels_content');
+  if(!el) return;
+
+  // Check cache (valid for 7 days)
+  try{
+    var cached=localStorage.getItem('hotel_recs');
+    var cachedDate=localStorage.getItem('hotel_recs_date');
+    var cacheAge=(Date.now()-parseInt(cachedDate||'0'))/(1000*60*60*24);
+    if(cached&&cacheAge<7){
+      el.innerHTML=cached;
+      return;
+    }
+  }catch(e){}
+
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">🏨 Loading hotel recommendations...</div>';
+
+  // Hardcoded hotel data - accurate, no API needed
+  var hotels=[
+    {
+      name:'Disneyland Hotel',
+      type:'Disney Official',
+      stars:4.5,
+      price:'$350–$600/night',
+      walk:'5 min walk to gates',
+      phone:'(714) 778-6600',
+      web:'disneyland.disney.go.com',
+      desc:'The original Disney resort hotel. Monorail access, themed pools with waterslides, and early park entry for guests. Walking distance to Downtown Disney.',
+      tag:'official'
+    },
+    {
+      name:"Disney's Grand Californian Hotel & Spa",
+      type:'Disney Official',
+      stars:4.8,
+      price:'$600–$1,200/night',
+      phone:'(714) 635-2300',
+      web:'disneyland.disney.go.com',
+      walk:'Inside DCA — direct park access',
+      desc:'The crown jewel of Disney hotels. Arts & Crafts architecture, direct access into Disney California Adventure, Napa Rose fine dining, and the best pool complex on property.',
+      tag:'official'
+    },
+    {
+      name:"Disney's Paradise Pier Hotel",
+      type:'Disney Official',
+      stars:4.2,
+      price:'$280–$500/night',
+      phone:'(714) 999-0990',
+      web:'disneyland.disney.go.com',
+      walk:'5 min walk to DCA',
+      desc:'Bright California beach theme. More affordable Disney option with rooftop pool, character dining at PCH Grill, and early park entry benefits.',
+      tag:'official'
+    },
+    {
+      name:'Hyatt Regency Orange County',
+      type:'Good Neighbor Hotel',
+      stars:4.3,
+      price:'$180–$320/night',
+      phone:'(714) 750-1234',
+      web:'hyatt.com',
+      walk:'10 min walk',
+      desc:'Large resort with two pools and a waterslide. Family suites available. Great value compared to on-property Disney hotels with complimentary shuttle.',
+      tag:'neighbor'
+    },
+    {
+      name:'Hilton Anaheim',
+      type:'Good Neighbor Hotel',
+      stars:4.2,
+      price:'$160–$290/night',
+      phone:'(714) 750-4321',
+      web:'hilton.com',
+      walk:'12 min walk',
+      desc:'Connected to Anaheim Convention Center. Resort-style pool, multiple restaurants on site. One of the largest hotels near the park with reliable service.',
+      tag:'neighbor'
+    },
+    {
+      name:'Courtyard by Marriott Anaheim Resort',
+      type:'Walking Distance',
+      stars:4.1,
+      price:'$140–$250/night',
+      phone:'(714) 254-1442',
+      web:'marriott.com',
+      walk:'8 min walk',
+      desc:'Clean, modern rooms with a pool. Excellent value option with free parking included. Breakfast available on-site. Very popular with families.',
+      tag:'nearby'
+    },
+    {
+      name:"Candy Cane Inn",
+      type:'Walking Distance',
+      stars:4.4,
+      price:'$130–$220/night',
+      phone:'(714) 774-5284',
+      web:'candycaneinn.net',
+      walk:'5 min walk',
+      desc:'Charming boutique hotel beloved by Disney fans. Garden courtyard, complimentary breakfast, and personal service. Often cited as the best value near the park.',
+      tag:'nearby'
+    },
+    {
+      name:'Desert Palms Hotel & Suites',
+      type:'Walking Distance',
+      stars:4.0,
+      price:'$120–$200/night',
+      phone:'(714) 535-1133',
+      web:'desertpalmshotel.com',
+      walk:'6 min walk',
+      desc:'All-suite property great for families. Full kitchens available, free breakfast, and a heated pool. Budget-friendly without sacrificing location.',
+      tag:'nearby'
+    }
+  ];
+
+  function stars(n){
+    var full=Math.floor(n);
+    var half=n%1>=0.5?1:0;
+    var s='';
+    for(var i=0;i<full;i++)s+='★';
+    if(half)s+='½';
+    return '<span style="color:#F59E0B;">'+s+'</span> <span style="font-size:11px;color:var(--text-muted);">'+n+'</span>';
+  }
+
+  function tagBadge(tag){
+    if(tag==='official') return '<span style="background:rgba(27,47,160,0.1);color:var(--magic,#1B2FA0);border:1px solid rgba(27,47,160,0.2);border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;">✦ Disney Official</span>';
+    if(tag==='neighbor') return '<span style="background:rgba(201,134,10,0.1);color:var(--gold,#C9860A);border:1px solid rgba(201,134,10,0.2);border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;">Good Neighbor</span>';
+    return '<span style="background:var(--card);color:var(--text-muted);border:1px solid var(--border);border-radius:99px;padding:2px 8px;font-size:10px;">Walking Distance</span>';
+  }
+
+  var html='<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Prices are estimated nightly rates and vary by season and availability.</div>';
+  html+='<div style="display:flex;flex-direction:column;gap:10px;">';
+
+  hotels.forEach(function(h){
+    html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">'
+      +'<div style="flex:1;">'
+      +'<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;">'+h.name+'</div>'
+      +tagBadge(h.tag)
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text);">'+h.price+'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div style="font-size:12px;margin-bottom:6px;">'+stars(h.stars)+'</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">'+h.desc+'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">'
+      +'<span style="color:var(--text-muted);">🚶 '+h.walk+'</span>'
+      +'<span style="color:var(--text-muted);">📞 '+h.phone+'</span>'
+      +'<span style="color:var(--magic,#1B2FA0);">🌐 '+h.web+'</span>'
+      +'</div>'
+      +'</div>';
+  });
+
+  html+='</div>';
+  el.innerHTML=html;
+
+  // Cache it
+  try{localStorage.setItem('hotel_recs',html);localStorage.setItem('hotel_recs_date',Date.now().toString());}catch(e){}
+}
 
 </script>
 
@@ -3542,6 +3696,21 @@ function renderPreTripBanner(){
         </div>
         <div id="pt_dining_admin" style="display:none;">
           <button onclick="addDiningReservation()" style="width:100%;padding:10px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px;">+ Add reservation</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hotel Recommendations -->
+    <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div onclick="toggleAccordionPT('hotels')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">🏨 Hotel Recommendations</div>
+        <span id="pt_hotels_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+      </div>
+      <div id="ab_pt_hotels" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        <div id="pt_hotels_content">
+          <div style="text-align:center;padding:12px;">
+            <button onclick="loadHotelRecs()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🏨 Load Hotel Recommendations</button>
+          </div>
         </div>
       </div>
     </div>
