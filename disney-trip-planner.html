@@ -3225,22 +3225,51 @@ function renderPreTripHeights(){
 async function loadKnowBeforeYouGo(){
   if(!apiKey){document.getElementById('pt_kbyg_content').innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:8px;">Please add your API key in the Info tab first.</div>';return;}
   var el=document.getElementById('pt_kbyg_content');
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">✨ Generating your briefing...</div>';
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">✨ Generating your personalized briefing...</div>';
+  var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
+  var setupDone=localStorage.getItem('setup_done')==='yes';
+  var size=sd.groupSize||4;
+  var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'adults and kids (typical family)';
+  var thrill=sd.thrill||'Mix of thrill and family rides';
+  var pace=sd.pace||'Balanced';
+  var startTime=sd.startTime||'Rope drop';
+  var ll=sd.ll||'Undecided on Lightning Lane';
+  var dining=sd.dining||'Mix of quick service and table service';
+  var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'not specified yet';
+  var skipRides=sd.skipRides&&sd.skipRides.length?sd.skipRides.join(', '):'none specified';
+  var chars=sd.wantsChars?'Yes':'No';
+  var charList='';
+  if(sd.charsDL&&sd.charsDL.length)charList+=sd.charsDL.join(', ');
+  if(sd.charsDCA&&sd.charsDCA.length)charList+=(charList?', ':'')+sd.charsDCA.join(', ');
+  var groupCtx='GROUP: '+size+' people | Ages: '+ages+' | Ride style: '+thrill+' | Pace: '+pace
+    +' | Arrival: '+startTime+' | Lightning Lane: '+ll+' | Dining: '+dining
+    +' | Must-rides: '+mustRides+' | Skip list: '+skipRides
+    +' | Character meets: '+chars+(charList?' ('+charList+')':'')+'\nTRIP: Disneyland Resort, June 28-30 2026, Anaheim CA\n';
+  var prompt=groupCtx+'Write a Know Before You Go briefing HIGHLY SPECIFIC to this exact group. Every tip must address their group size, ages, preferences, and pace. Cover:\n\n1. **Crowd & Timing Reality** - late June crowds and how '+size+' people affects wait times\n2. **Morning Strategy** - exactly how to execute their arrival to hit must-rides before crowds\n3. **Group Logistics** - keeping '+size+' people together: meeting points, splitting up, communication, the group slowdown factor\n4. **Lightning Lane Strategy** - specific LL advice for their plan and group size\n5. **Energy & Pacing** - realistic pacing for their preference and dining style\n6. **The #1 Mistake Groups of '+size+' Make** - the most common error and how to avoid it\n7. **Your Group Secret Weapon** - one specific advantage their profile gives them\n\nBold all key actions and ride names. Be brutally specific - no generic advice.'
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,
-        system:'Disneyland expert. Give practical pre-trip intel. Bold key tips with **text**. Short paragraphs.',
-        messages:[{role:'user',content:'Know Before You Go briefing for 9 people visiting Disneyland Resort June 28-30 2026. Cover: expected crowd levels for late June, typical weather, best gate arrival time, must-download apps, one thing most people forget, one insider tip that saves time. Concise and friendly.'}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,
+        system:'You are an expert Disneyland trip planner who has guided hundreds of large groups. You give brutally practical, specific advice tailored to the exact group you are briefing. Never give generic tips — every piece of advice must be directly applicable to this specific group size, age mix, and preferences.',
+        messages:[{role:'user',content:prompt}]})
     });
     var data=await resp.json();
+    if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text=data.content&&data.content[0]?data.content[0].text:'Could not load briefing.';
-    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.7;">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
-    try{localStorage.setItem('kbyg_text',text);localStorage.setItem('kbyg_date',new Date().toDateString());}catch(e){}
-  }catch(err){
-    el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error loading briefing.</div>';
-  }
+    var formatted='<p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p>';
+    var note=setupDone
+      ?'<div style="font-size:11px;color:#34D399;margin-bottom:10px;display:flex;align-items:center;gap:4px;"><span>&#10003;</span> Personalized to your group setup</div>'
+      :'<div style="font-size:11px;color:var(--gold,#C9860A);margin-bottom:10px;">&#9888; Complete Ride Style setup for a more tailored briefing</div>';
+    el.innerHTML=note+'<div style="font-size:13px;color:var(--text);line-height:1.8;">'+formatted+'</div>'
+      +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">&#8635; Regenerate</button>';
+    try{localStorage.setItem('kbyg_text',el.innerHTML);localStorage.setItem('kbyg_date',new Date().toDateString());localStorage.setItem('kbyg_setup_hash',JSON.stringify(sd));}catch(e){}
+  }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Network error: '+err.message+'</div>';}
+}
+
+function regenerateKBYG(){
+  try{localStorage.removeItem('kbyg_text');localStorage.removeItem('kbyg_date');}catch(e){}
+  loadKnowBeforeYouGo();
 }
 
 function addDiningReservation(){
@@ -3272,9 +3301,12 @@ function renderPreTripBanner(){
   try{
     var cached=localStorage.getItem('kbyg_text');
     var cachedDate=localStorage.getItem('kbyg_date');
-    if(cached&&cachedDate===new Date().toDateString()){
+    var cachedSetup=localStorage.getItem('kbyg_setup_hash');
+    var currentSetup=localStorage.getItem('setup_data')||'{}';
+    var setupChanged=cachedSetup&&cachedSetup!==currentSetup;
+    if(cached&&cachedDate===new Date().toDateString()&&!setupChanged){
       var el=document.getElementById('pt_kbyg_content');
-      if(el)el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.7;">'+renderMarkdown(cached).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
+      if(el)el.innerHTML=cached;
     }
   }catch(e){}
   setTimeout(renderPreTripBanner,100);
@@ -3306,7 +3338,7 @@ async function loadHotelRecs(){
       price:'$350–$600/night',
       walk:'5 min walk to gates',
       phone:'(714) 778-6600',
-      web:'disneyland.disney.go.com',
+      web:'https://disneyland.disney.go.com/hotels/disneyland-hotel/',
       desc:'The original Disney resort hotel. Monorail access, themed pools with waterslides, and early park entry for guests. Walking distance to Downtown Disney.',
       tag:'official'
     },
@@ -3316,7 +3348,7 @@ async function loadHotelRecs(){
       stars:4.8,
       price:'$600–$1,200/night',
       phone:'(714) 635-2300',
-      web:'disneyland.disney.go.com',
+      web:'https://disneyland.disney.go.com/hotels/disney-grand-californian-hotel/',
       walk:'Inside DCA — direct park access',
       desc:'The crown jewel of Disney hotels. Arts & Crafts architecture, direct access into Disney California Adventure, Napa Rose fine dining, and the best pool complex on property.',
       tag:'official'
@@ -3327,7 +3359,7 @@ async function loadHotelRecs(){
       stars:4.2,
       price:'$280–$500/night',
       phone:'(714) 999-0990',
-      web:'disneyland.disney.go.com',
+      web:'https://disneyland.disney.go.com/hotels/paradise-pier-hotel/',
       walk:'5 min walk to DCA',
       desc:'Bright California beach theme. More affordable Disney option with rooftop pool, character dining at PCH Grill, and early park entry benefits.',
       tag:'official'
@@ -3338,7 +3370,7 @@ async function loadHotelRecs(){
       stars:4.3,
       price:'$180–$320/night',
       phone:'(714) 750-1234',
-      web:'hyatt.com',
+      web:'https://www.hyatt.com/en-US/hotel/california/hyatt-regency-orange-county/laxoc',
       walk:'10 min walk',
       desc:'Large resort with two pools and a waterslide. Family suites available. Great value compared to on-property Disney hotels with complimentary shuttle.',
       tag:'neighbor'
@@ -3349,7 +3381,7 @@ async function loadHotelRecs(){
       stars:4.2,
       price:'$160–$290/night',
       phone:'(714) 750-4321',
-      web:'hilton.com',
+      web:'https://www.hilton.com/en/hotels/snaahhh-hilton-anaheim/',
       walk:'12 min walk',
       desc:'Connected to Anaheim Convention Center. Resort-style pool, multiple restaurants on site. One of the largest hotels near the park with reliable service.',
       tag:'neighbor'
@@ -3360,7 +3392,7 @@ async function loadHotelRecs(){
       stars:4.1,
       price:'$140–$250/night',
       phone:'(714) 254-1442',
-      web:'marriott.com',
+      web:'https://www.marriott.com/en-us/hotels/laxar-courtyard-anaheim-resort-convention-center/overview/',
       walk:'8 min walk',
       desc:'Clean, modern rooms with a pool. Excellent value option with free parking included. Breakfast available on-site. Very popular with families.',
       tag:'nearby'
@@ -3371,7 +3403,7 @@ async function loadHotelRecs(){
       stars:4.4,
       price:'$130–$220/night',
       phone:'(714) 774-5284',
-      web:'candycaneinn.net',
+      web:'https://www.candycaneinn.net',
       walk:'5 min walk',
       desc:'Charming boutique hotel beloved by Disney fans. Garden courtyard, complimentary breakfast, and personal service. Often cited as the best value near the park.',
       tag:'nearby'
@@ -3382,7 +3414,7 @@ async function loadHotelRecs(){
       stars:4.0,
       price:'$120–$200/night',
       phone:'(714) 535-1133',
-      web:'desertpalmshotel.com',
+      web:'https://www.desertpalmshotel.com',
       walk:'6 min walk',
       desc:'All-suite property great for families. Full kitchens available, free breakfast, and a heated pool. Budget-friendly without sacrificing location.',
       tag:'nearby'
@@ -3423,7 +3455,7 @@ async function loadHotelRecs(){
       +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">'
       +'<span style="color:var(--text-muted);">🚶 '+h.walk+'</span>'
       +'<span style="color:var(--text-muted);">📞 '+h.phone+'</span>'
-      +'<span onclick="window.open(\'https://\'+h.web,\'_blank\')" style="color:var(--magic,#1B2FA0);cursor:pointer;text-decoration:underline;touch-action:manipulation;">🌐 '+h.web+'</span>'
+      +'<span onclick="window.open(h.web,\'_blank\')" style="color:var(--magic,#1B2FA0);cursor:pointer;text-decoration:underline;touch-action:manipulation;">🌐 Visit Website</span>'
       +'</div>'
       +'</div>';
   });
@@ -3459,20 +3491,51 @@ function renderPreTripChecklist(){
   var tripStart=new Date('2026-06-28T00:00:00-07:00');
   var now=new Date();
   var daysUntil=Math.ceil((tripStart-now)/(864e5));
-  var weeksUntil=daysUntil/7;
-  var html='<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">'+
-    (daysUntil>0?daysUntil+' days until your trip':'Your trip has started!')+'</div>';
-  html+='<div style="display:flex;flex-direction:column;gap:4px;">';
-  PRE_TRIP_CHECKLIST.forEach(function(item){
-    var done=weeksUntil<=item.weeks;
-    var current=weeksUntil<=item.weeks+1&&weeksUntil>item.weeks;
-    var bg=done?'rgba(52,211,153,0.08)':current?'rgba(201,134,10,0.08)':'transparent';
-    var border=done?'1px solid rgba(52,211,153,0.2)':current?'1px solid rgba(201,134,10,0.2)':'1px solid transparent';
-    var icon=done?'<span style="color:#34D399;font-size:14px;">&#10003;</span>':current?'<span style="color:var(--gold,#C9860A);font-size:12px;">&#9654;</span>':'<span style="color:var(--text-dim);font-size:12px;">&#9675;</span>';
-    var textColor=done?'var(--text-muted)':current?'var(--text)':'var(--text-muted)';
-    var strike=done?'text-decoration:line-through;':'';
-    html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:'+bg+';border:'+border+';">'
-      +icon+'<span style="font-size:12px;color:'+textColor+';'+strike+'">'+item.label+'</span></div>';
+  var weeksUntil=Math.max(0,daysUntil/7);
+
+  // Load manual check states
+  var checked={};
+  try{checked=JSON.parse(localStorage.getItem('checklist_checked')||'{}');}catch(e){}
+
+  var html='<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">'+
+    (daysUntil>0?'<strong>'+daysUntil+' days</strong> until your trip':'Your trip has started!')+'</div>';
+
+  // Group items by week bucket
+  var buckets=[
+    {label:'8+ Weeks Out', min:8, max:999},
+    {label:'6–8 Weeks Out', min:6, max:8},
+    {label:'4–6 Weeks Out', min:4, max:6},
+    {label:'2–4 Weeks Out', min:2, max:4},
+    {label:'1–2 Weeks Out', min:1, max:2},
+    {label:'Final Week', min:0, max:1},
+  ];
+
+  buckets.forEach(function(bucket){
+    var items=PRE_TRIP_CHECKLIST.filter(function(i){return i.weeks>=bucket.min&&i.weeks<bucket.max;});
+    if(!items.length) return;
+    var isCurrent=weeksUntil>=bucket.min&&weeksUntil<bucket.max;
+    var isPast=weeksUntil<bucket.min;
+    var sectionColor=isCurrent?'var(--gold,#C9860A)':isPast?'#34D399':'var(--text-muted)';
+    var sectionBadge=isCurrent?' <span style="background:rgba(201,134,10,0.15);color:var(--gold,#C9860A);border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;">NOW</span>':'';
+    html+='<div style="margin-bottom:12px;">';
+    html+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:'+sectionColor+';margin-bottom:6px;">'+bucket.label+sectionBadge+'</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:3px;">';
+    items.forEach(function(item){
+      var key='item_'+item.weeks+'_'+item.label.substring(0,10);
+      var manualChecked=!!checked[key];
+      var autoDone=weeksUntil<item.weeks;
+      var isChecked=manualChecked||autoDone;
+      var strike=isChecked?'text-decoration:line-through;color:var(--text-muted);':'';
+      html+='<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;'
+        +(isCurrent&&!isChecked?'background:rgba(201,134,10,0.06);border:1px solid rgba(201,134,10,0.15);':'background:var(--card);border:1px solid var(--border);')
+        +'cursor:pointer;">'
+        +'<input type="checkbox" data-key="'+key+'"'+(isChecked?' checked':'')
+        +' onchange="toggleChecklistCheck(this.dataset.key,this.checked)"'
+        +' style="width:16px;height:16px;cursor:pointer;accent-color:var(--magic,#1B2FA0);">'
+        +'<span style="font-size:12px;color:var(--text);'+strike+'">'+item.label+'</span>'
+        +'</label>';
+    });
+    html+='</div></div>';
   });
   html+='</div>';
 
@@ -3501,6 +3564,12 @@ function renderPreTripChecklist(){
   el.innerHTML=html;
 }
 
+function toggleChecklistCheck(key,val){
+  var checked={};
+  try{checked=JSON.parse(localStorage.getItem('checklist_checked')||'{}');}catch(e){}
+  if(val) checked[key]=true; else delete checked[key];
+  try{localStorage.setItem('checklist_checked',JSON.stringify(checked));}catch(e){}
+}
 function addChecklistItem(){
   var input=document.getElementById('pt_checklist_input');
   var val=input?input.value.trim():'';
@@ -3791,16 +3860,7 @@ function addDiningToSchedule(res,day){
       </div>
     </div>
 
-    <!-- Pre-Trip Checklist -->
-    <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
-      <div onclick="toggleAccordionPT('checklist')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">&#9989; Pre-Trip Checklist</div>
-        <span id="pt_checklist_arrow" style="color:var(--text-muted);font-size:16px;">&#8250;</span>
-      </div>
-      <div id="ab_pt_checklist" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
-        <div id="pt_checklist_content"></div>
-      </div>
-    </div>
+
 
     <!-- Set Up Your Park Visit -->
     <div style="margin:10px 14px 0;border:1px solid rgba(27,47,160,0.2);border-radius:14px;overflow:hidden;background:rgba(27,47,160,0.04);">
@@ -3864,6 +3924,17 @@ function addDiningToSchedule(res,day){
             <div style="color:var(--text-muted);">🎡 DCA: 8AM–11PM</div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Pre-Trip Checklist -->
+    <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div onclick="toggleAccordionPT('checklist')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">&#9989; Pre-Trip Checklist</div>
+        <span id="pt_checklist_arrow" style="color:var(--text-muted);font-size:16px;">&#8250;</span>
+      </div>
+      <div id="ab_pt_checklist" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        <div id="pt_checklist_content"></div>
       </div>
     </div>
 
