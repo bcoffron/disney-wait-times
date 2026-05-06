@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605061225 — cache bust v3
+// v202605061231 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2236,6 +2236,17 @@ async function reoptimize(){
       }
     }
     
+    // TEMP DEBUG
+    (function(){try{
+      var b=document.getElementById('reopt_debug_box');
+      if(!b){b=document.createElement('div');b.id='reopt_debug_box';
+        b.style.cssText='margin-top:8px;padding:8px;background:#000;border-radius:8px;font-size:10px;color:#0f0;font-family:monospace;white-space:pre-wrap;word-break:break-all;';
+        var p=document.getElementById('reoptText');if(p&&p.parentNode)p.parentNode.appendChild(b);}
+      b.textContent='newSecs:'+(newSecs?'OK len='+newSecs.length:'NULL')
+        +'\nexpl:'+explanation
+        +'\nbtns el:'+(document.getElementById('reoptBtns')?'found':'MISSING')
+        +'\nbtnsCls:'+( document.getElementById('reoptBtns')?document.getElementById('reoptBtns').className:'n/a');
+    }catch(de){}})();
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
       try{
         pendingReopt=JSON.parse(JSON.stringify(data));
