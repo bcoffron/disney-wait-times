@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605061215 — cache bust v3
+// v202605061225 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2240,11 +2240,14 @@ async function reoptimize(){
       try{
         pendingReopt=JSON.parse(JSON.stringify(data));
         pendingReopt.sections=newSecs;
-        txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+renderMarkdown(explanation||'Schedule optimized.');
-        btns.classList.add('show');
-        // Cache the result
-        reoptCache[hash]={explanation:explanation||'Schedule optimized.',result:pendingReopt};
-      }catch(pe){txt.textContent=explanation||'Could not apply. Try again.';}
+      }catch(pe){
+        // Deep copy failed - use direct reference
+        pendingReopt={sections:newSecs,day:data.day,label:data.label,sub:data.sub};
+      }
+      var expText=explanation&&explanation.length>5?explanation:'Schedule optimized — tap Accept to apply changes.';
+      txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;">'+renderMarkdown(expText)+'</div>';
+      btns.classList.add('show');
+      reoptCache[hash]={explanation:expText,result:pendingReopt};
     }else{
       txt.textContent=explanation||text;
       if(explanation&&explanation.length>20){
