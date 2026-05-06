@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605060241 — cache bust v3
+// v202605060248 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2160,21 +2160,37 @@ async function reoptimize(){
     })();
 
     var newSecs=null;
-    var explanation=text;
-    var js1=text.indexOf('JSONSTART');
-    var je1=js1>-1?text.indexOf('JSONEND',js1+9):-1;
-    if(js1>-1&&je1>-1){
-      explanation=text.substring(0,js1).trim();
-      try{newSecs=JSON.parse(text.substring(js1+9,je1).trim());}catch(e){}
-    }
-    if(!newSecs){
-      var ab=text.indexOf('[');
-      var zb=text.lastIndexOf(']');
-      if(ab>-1&&zb>ab){
-        explanation=text.substring(0,ab).trim();
-        try{newSecs=JSON.parse(text.substring(ab,zb+1));}catch(e){}
+    var explanation='Schedule optimized.';
+    // Method 1: Find outermost JSON array using bracket depth (most reliable)
+    var arrStart=text.indexOf('[');
+    if(arrStart>-1){
+      var dep=0,arrEnd=-1;
+      for(var ci=arrStart;ci<text.length;ci++){
+        if(text[ci]==='[')dep++;
+        else if(text[ci]===']'){dep--;if(dep===0){arrEnd=ci;break;}}
+      }
+      if(arrEnd>arrStart){
+        try{
+          var parsed=JSON.parse(text.substring(arrStart,arrEnd+1));
+          if(Array.isArray(parsed)&&parsed.length>0){
+            newSecs=parsed;
+            var before=text.substring(0,arrStart).trim();
+            if(before.length>3&&before.length<300)explanation=before.replace(/^SUMMARY[:\s]*/,'').trim();
+          }
+        }catch(e){console.warn('Array parse failed:',e);}
       }
     }
+    // Method 2: JSONSTART/JSONEND markers
+    if(!newSecs){
+      var js1=text.indexOf('JSONSTART');
+      var je1=js1>-1?text.indexOf('JSONEND',js1+9):-1;
+      if(js1>-1&&je1>-1){
+        var sumLine=text.substring(0,js1).trim();
+        if(sumLine.length>3)explanation=sumLine.replace(/^SUMMARY[:\s]*/,'').trim();
+        try{newSecs=JSON.parse(text.substring(js1+9,je1).trim());}catch(e){}
+      }
+    }
+    
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
       try{
         pendingReopt=JSON.parse(JSON.stringify(data));
