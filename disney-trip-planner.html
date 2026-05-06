@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605060231 — cache bust v3
+// v202605060241 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2142,6 +2142,19 @@ async function reoptimize(){
     var resp=await r.json();
     if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit — retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='API error: '+resp.error.message;}return;}
     var text='';if(resp.content&&resp.content.length){resp.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
+    // DEBUG PANEL - remove after fixing JSON parser
+    (function(){
+      try{
+        var box=document.getElementById('reopt_debug_box');
+        if(!box){
+          box=document.createElement('div');
+          box.id='reopt_debug_box';
+          box.style.cssText='margin-top:10px;padding:10px;background:rgba(0,0,0,0.8);border-radius:10px;font-size:10px;color:#00ff00;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto;border:1px solid #333;';
+          var parent=document.getElementById('reoptText');if(parent&&parent.parentNode)parent.parentNode.appendChild(box);
+        }
+        box.textContent='DEBUG - RAW RESPONSE ('+text.length+' chars):\n'+text.substring(0,500);
+      }catch(dbgErr){}
+    })();
 
     var newSecs=null;
     var explanation=text;
