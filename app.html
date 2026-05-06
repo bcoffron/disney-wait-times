@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605060256 — cache bust v3
+// v202605060306 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2140,7 +2140,7 @@ async function reoptimize(){
     var r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'You are an expert Disneyland touring planner. Keep web searches brief — search only for current rope drop order and top wait time patterns. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits. (3) Use evergreen principles as foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only.',messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'You are a Disneyland schedule optimizer. STRICT OUTPUT FORMAT: Your response must be ONLY a valid JSON array starting with [ and ending with ]. No explanations before the JSON. No markdown. No headers. After the closing ] you may add one line: SUMMARY: [max 10 words]. Do ONE web search maximum. Output JSON first, summary after.',messages:[{role:'user',content:prompt}]})
     });
     var resp=await r.json();
     if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit — retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='API error: '+resp.error.message;}return;}
@@ -2161,50 +2161,32 @@ async function reoptimize(){
 
     var newSecs=null;
     var explanation='Schedule optimized.';
-    // Claude returns explanation text THEN JSON array
-    // Strategy: find the LAST valid top-level JSON array in the response
-    // Also check after common delimiters like ---, ```json
-    var searchText=text;
-    // Strip markdown code fences
-    searchText=searchText.replace(/```json/g,'').replace(/```/g,'');
-    // Try to find array after --- separator
-    var sepIdx=searchText.lastIndexOf('---');
-    var searchFrom=sepIdx>-1?sepIdx:0;
-    // Find the last [ that starts a valid complete array
-    var bestArr=null;
-    var pos=searchText.length;
-    while(pos>searchFrom){
-      var bracketPos=searchText.lastIndexOf('[',pos-1);
-      if(bracketPos<searchFrom||bracketPos<0)break;
-      // Check if this starts a valid array
-      var dep=0,arrEnd=-1;
-      for(var ci=bracketPos;ci<searchText.length;ci++){
-        if(searchText[ci]==='[')dep++;
-        else if(searchText[ci]===']'){dep--;if(dep===0){arrEnd=ci;break;}}
+    // Claude puts JSON at the end after explanations - search from end
+    var cleanText=text.replace(/```json|```/g,'').trim();
+    // Find the last ] then walk back to its matching [
+    var lastBracket=cleanText.lastIndexOf(']');
+    if(lastBracket>-1){
+      var dep=0,arrStart2=-1;
+      for(var ci=lastBracket;ci>=0;ci--){
+        if(cleanText[ci]===']')dep++;
+        else if(cleanText[ci]==='['){dep--;if(dep===0){arrStart2=ci;break;}}
       }
-      if(arrEnd>bracketPos){
+      if(arrStart2>-1){
         try{
-          var parsed=JSON.parse(searchText.substring(bracketPos,arrEnd+1));
+          var parsed=JSON.parse(cleanText.substring(arrStart2,lastBracket+1));
           if(Array.isArray(parsed)&&parsed.length>0&&parsed[0].entries){
-            bestArr=parsed;
-            // Everything before this array is the explanation
-            var before=text.substring(0,text.lastIndexOf(searchText.substring(bracketPos,bracketPos+10))).trim();
-            before=before.replace(/---/g,'').replace(/#{1,3}[^\n]*/g,'').replace(/\*\*/g,'').trim();
-            if(before.length>5&&before.length<500)explanation=before.split('\n')[0].trim();
-            break;
+            newSecs=parsed;
+            // Get summary from text after the array
+            var after=cleanText.substring(lastBracket+1).trim();
+            if(after.length>3)explanation=after.replace(/^SUMMARY[:\s]*/,'').split('\n')[0].trim();
           }
-        }catch(e){}
+        }catch(e){console.warn('Parse from end failed:',e);}
       }
-      pos=bracketPos;
     }
-    if(bestArr)newSecs=bestArr;
-    // Fallback: JSONSTART/JSONEND markers
+    // Fallback: JSONSTART markers
     if(!newSecs){
-      var js1=text.indexOf('JSONSTART');
-      var je1=js1>-1?text.indexOf('JSONEND',js1+9):-1;
-      if(js1>-1&&je1>-1){
-        try{newSecs=JSON.parse(text.substring(js1+9,je1).trim());}catch(e){}
-      }
+      var js1=text.indexOf('JSONSTART'),je1=js1>-1?text.indexOf('JSONEND',js1+9):-1;
+      if(js1>-1&&je1>-1){try{newSecs=JSON.parse(text.substring(js1+9,je1).trim());}catch(e){}}
     }
     
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
