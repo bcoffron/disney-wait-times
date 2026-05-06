@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605060314 — cache bust v3
+// v202605061126 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -1411,7 +1411,34 @@ function updateWaitStatus(){
   var el=document.getElementById('waitStatus');if(el){el.textContent=txt;el.style.color=col;}renderDayInfoBar();
 }
 
-function startWaitRefresh(){fetchWaits();setInterval(fetchWaits,5*60*1000);setInterval(updateWaitStatus,60*1000);}
+
+function isWaitFetchTime(){
+  try{
+    var now=nowPT();
+    var hr=now.getHours()+(now.getMinutes()/60);
+    var ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    var w=typeof getDayParkWindow==='function'?getDayParkWindow(ds):{open:8,close:23};
+    var fs=w.open-(5/60),fe=w.close+1;
+    if(fe>=24&&hr<(fe-24))return true;
+    if(hr>=fs&&hr<Math.min(fe,24))return true;
+    return false;
+  }catch(e){return true;}
+}
+
+function smartFetchWaits(){
+  if(isWaitFetchTime()){
+    fetchWaits();
+  }else{
+    waits={};waitLastFetch=0;renderSched();updateWaitStatus();
+    var t=document.getElementById('waitTabContent');
+    if(t)t.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:8px">🌙</div><div style="font-size:14px;font-weight:600;">Park is Closed</div><div style="font-size:12px;">Wait times resume when park opens</div></div>';
+  }
+}
+function startWaitRefresh(){
+  smartFetchWaits();
+  setInterval(smartFetchWaits,5*60*1000);
+  setInterval(updateWaitStatus,60*1000);
+}
 
 // ── Lightning Lane system ────────────────────────────────────────────────
 var llState={multiPass:null,individualPasses:{},bookedTimes:{}};
@@ -2159,21 +2186,28 @@ async function reoptimize(){
     var newSecs=null;
     var explanation='Schedule optimized.';
     var cleanText=text.replace(/```json|```/g,'').trim();
-    // Method 1: JSONSTART/JSONEND markers (Claude now uses these)
+    // Method 1: Find JSONSTART then extract array using bracket depth
     var js1=cleanText.indexOf('JSONSTART');
-    var je1=js1>-1?cleanText.indexOf('JSONEND',js1+9):-1;
-    if(js1>-1&&je1>-1){
-      var jsonStr=cleanText.substring(js1+9,je1).trim();
-      try{
-        var p1=JSON.parse(jsonStr);
-        if(Array.isArray(p1)&&p1.length>0){
-          newSecs=p1;
-          var afterEnd=cleanText.substring(je1+7).trim();
-          if(afterEnd.length>3&&afterEnd.length<300)explanation=afterEnd.replace(/^SUMMARY[:\s]*/,'').split('\n')[0].trim();
-        }
-      }catch(e){console.warn('JSONSTART parse failed:',e,jsonStr.substring(0,100));}
+    if(js1>-1){
+      var afterMark=cleanText.substring(js1+9).trim();
+      // Find the complete array from JSONSTART forward
+      var dep=0,arrEnd=-1;
+      for(var ci=0;ci<afterMark.length;ci++){
+        if(afterMark[ci]==='[')dep++;
+        else if(afterMark[ci]===']'){dep--;if(dep===0){arrEnd=ci;break;}}
+      }
+      if(arrEnd>-1){
+        try{
+          var p1=JSON.parse(afterMark.substring(0,arrEnd+1));
+          if(Array.isArray(p1)&&p1.length>0){
+            newSecs=p1;
+            var rest=afterMark.substring(arrEnd+1).replace(/JSONEND/g,'').trim();
+            if(rest.length>3&&rest.length<300)explanation=rest.replace(/^SUMMARY[:\s]*/,'').split('\n')[0].trim();
+          }
+        }catch(e){console.warn('JSONSTART bracket parse:',e);}
+      }
     }
-    // Method 2: search from end backwards for last ] matching [
+    // Method 2: Last complete array in response
     if(!newSecs){
       var lastB=cleanText.lastIndexOf(']');
       if(lastB>-1){
@@ -2187,10 +2221,8 @@ async function reoptimize(){
             var p2=JSON.parse(cleanText.substring(a2,lastB+1));
             if(Array.isArray(p2)&&p2.length>0&&p2[0].entries){
               newSecs=p2;
-              var aft2=cleanText.substring(lastB+1).trim();
-              if(aft2.length>3)explanation=aft2.replace(/^SUMMARY[:\s]*/,'').split('\n')[0].trim();
             }
-          }catch(e){console.warn('End-search parse failed:',e);}
+          }catch(e){}
         }
       }
     }
