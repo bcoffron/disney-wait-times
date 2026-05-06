@@ -620,7 +620,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605060200 — cache bust v3
+// v202605060209 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){
   var el=document.getElementById('lockCountdowns');
@@ -662,7 +662,8 @@ function isWithinParkWindow(){
     // Use 7AM-1AM window (with 1hr buffer) to catch early entry and late nights
     var now=nowPT();
     var hr=now.getHours()+(now.getMinutes()/60);
-    return hr>=7&&hr<=25; // 7AM to 1AM next day
+    if(hr>=1&&hr<7) return false; // 1AM-7AM park closed
+    return true;
   }catch(e){return true;} // default to open if error
 }
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
@@ -2150,7 +2151,7 @@ async function reoptimize(){
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:6000,messages:[{role:'user',content:prompt}]})
     });
     var resp=await r.json();
-    if(resp.error){txt.textContent='API error: '+resp.error.message;return;}
+    if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit — retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='API error: '+resp.error.message;}return;}
     var text=resp.content&&resp.content[0]?resp.content[0].text:'';
 
     var newSecs=null;
