@@ -1,6 +1,6 @@
-module.exports.config = { maxDuration: 10 };
 let storedApiKey = null;
-module.exports = async function handler(req, res) {
+
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
@@ -18,4 +18,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Missing apiKey' });
   }
   return res.status(405).json({ error: 'Method not allowed' });
-};
+}
+
+handler.config = { maxDuration: 10 };
+module.exports = handler;
