@@ -12,8 +12,8 @@ if(!prompt)return res.status(400).json({error:"Missing prompt"});
 const tools=useWebSearch?[{type:"web_search_20250305",name:"web_search"}]:[];
 const model=useWebSearch?"claude-sonnet-4-6":"claude-haiku-4-5-20251001";
 
-// Override system prompt to use pure JSON output (more reliable than JSONSTART/JSONEND)
-const jsonSystemPrompt="You are a Disneyland schedule optimizer. Return ONLY a valid JSON object with no markdown, no explanation outside JSON. Format: {\"sections\":[{\"title\":\"string\",\"entries\":[{\"t\":\"H:MM AM/PM\",\"name\":\"string\",\"type\":\"ride|show|dining|break\",\"note\":\"string\",\"land\":\"string\",\"h\":\"string\"}]}],\"explanation\":\"max 20 words on biggest change\"}";
+// Extract schedule schema from the app prompt so model uses exact field names
+const jsonSystemPrompt="You are a Disneyland schedule optimizer. Return ONLY valid JSON, no markdown. Use EXACTLY these field names: {\"sections\":[{\"title\":\"Morning\",\"entries\":[{\"t\":\"8:00 AM\",\"h\":\"Ride Name\",\"type\":\"ride\",\"n\":\"tip text\",\"land\":\"Fantasyland\"}]}],\"explanation\":\"max 20 words\"}. Field h=attraction name, n=note/tip, t=time, type=ride|show|dining|break|tip.";
 
 const r=await fetch("https://api.anthropic.com/v1/messages",{
 method:"POST",
@@ -25,21 +25,35 @@ if(data.error)return res.status(500).json({error:data.error});
 let text="";
 for(const block of(data.content||[]))if(block.type==="text")text+=block.text;
 text=text.replace(/```json|```/g,"").trim();
+
+function normalizeEntry(e){
+  // Map common field names to app format
+  return {
+    t: e.t||e.time||"",
+    h: e.h||e.name||e.title||e.attraction||"",
+    type: e.type||"ride",
+    n: e.n||e.note||e.tip||e.description||"",
+    land: e.land||""
+  };
+}
+
 try{
 const parsed=JSON.parse(text);
 if(parsed.sections&&Array.isArray(parsed.sections)){
-return res.status(200).json({sections:parsed.sections,explanation:parsed.explanation||""});
+const normalized=parsed.sections.map(function(s){return{title:s.title||"",entries:(s.entries||[]).map(normalizeEntry)};});
+return res.status(200).json({sections:normalized,explanation:parsed.explanation||""});
 }
-return res.status(200).json({error:"No sections in response",raw:text.substring(0,200)});
 }catch(e){
-// Try to extract JSON from text
 const m=text.match(/\{[\s\S]+\}/);
 if(m)try{
 const p=JSON.parse(m[0]);
-if(p.sections)return res.status(200).json({sections:p.sections,explanation:p.explanation||""});
-}catch(e2){}
-return res.status(200).json({error:"Parse failed",raw:text.substring(0,300)});
+if(p.sections){
+const normalized=p.sections.map(function(s){return{title:s.title||"",entries:(s.entries||[]).map(normalizeEntry)};});
+return res.status(200).json({sections:normalized,explanation:p.explanation||""});
 }
+}catch(e2){}
+}
+return res.status(200).json({error:"Parse failed",raw:text.substring(0,300)});
 }catch(e){
 return res.status(500).json({error:e.message});
 }
