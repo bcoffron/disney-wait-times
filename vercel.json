@@ -1,5 +1,20 @@
 {
-  "rewrites": [
-    { "source": "/api/waittimes", "destination": "/api/waittimes" }
+  "crons": [
+    {
+      "path": "/api/cron-cache?key=park_intel",
+      "schedule": "0 3 */10 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=dining_intel",
+      "schedule": "0 4 1 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=events_intel",
+      "schedule": "0 3 */7 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=park_hours_intel",
+      "schedule": "0 3 */7 * *"
+    }
   ]
 }
