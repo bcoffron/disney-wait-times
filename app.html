@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071148 — cache bust v3
+// v202605071412 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2128,6 +2128,7 @@ async function reoptimize(){
   var tripStart=new Date('2026-06-28T00:00:00');
   var tripEnd=new Date('2026-07-01T00:00:00');
   var tripStartDate=new Date('2026-06-28');var tripEndDate=new Date('2026-07-01');var todayDate=new Date();todayDate.setHours(0,0,0,0);var atPark=todayDate>=tripStartDate&&todayDate<tripEndDate;
+  var preTrip=!atPark;
 
   // Build live wait times context
   var liveWaitContext='';
