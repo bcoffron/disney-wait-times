@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071458 — cache bust v3
+// v202605071531 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -3918,7 +3918,7 @@ function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localS
 var CACHE_BASE="https://disney-wait-times-lupt.vercel.app";
 function serverCacheGet(key,cb){fetch(CACHE_BASE+"/api/cache?key="+key+"&t="+Date.now()).then(function(r){return r.json();}).then(function(d){if(d.hit&&d.data){try{localStorage.setItem(key,typeof d.data==="string"?d.data:JSON.stringify(d.data));localStorage.setItem(key+"_ts",String(d.ts));}catch(e){}cb(null,d.data,d.ts);}else{cb(null,null,0);}}).catch(function(e){cb(e,null,0);});}
 function serverCacheSet(key,value,ts){fetch(CACHE_BASE+"/api/cache?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:value,ts:ts||Date.now()})}).then(function(r){return r.json();}).then(function(d){console.log("Server cache set "+key+":",(d.ok?"OK":"FAILED"));}).catch(function(e){console.warn("Server cache write failed:",e);});try{localStorage.setItem(key,typeof value==="string"?value:JSON.stringify(value));localStorage.setItem(key+"_ts",String(ts||Date.now()));}catch(e){}}
-function warmCachesFromServer(){var keys=["park_intel","dining_intel","events_intel","park_hours_intel"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value){console.log("Server cache miss:",key);return;}var ageDays=Math.round((Date.now()-ts)/864e5*10)/10;console.log("Server cache HIT:",key,ageDays+"d old");if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}});});}}});});}
+function warmCachesFromServer(){var keys=["park_intel","dining_intel","events_intel","park_hours_intel"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;console.log("Server cache HIT:",key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}});});}
 setTimeout(function(){warmCachesFromServer();},5000);
 function setParkIntel(t){parkIntelCache=t;serverCacheSet('park_intel',t);}
 var DINING_INTEL_DAYS=30,diningIntelCache=null;
