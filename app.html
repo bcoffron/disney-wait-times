@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071412 — cache bust v3
+// v202605071423 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2510,12 +2510,18 @@ function renderInlineSuggestion(e, ei, entries, dayIdx) {
     var nextLand = nextEntry ? (nextEntry.land || '') : '';
 
     // BATHROOM BREAK: suggest after every 3 ride entries or before a long show
-    var rideCount = 0;
-    for (var i = 0; i <= ei; i++) {
-      if (entries[i].type === 'ride') rideCount++;
-    }
     var nextIsShow = nextEntry && nextEntry.type === 'show';
-    if ((rideCount > 0 && rideCount % 3 === 0) || nextIsShow) {
+    var isMorning = hr >= 7 && hr < 12;
+    var isAfternoon = hr >= 12 && hr < 20;
+    var periodKey = 'bath_'+dayIdx+'_'+(isMorning?'am':'pm');
+    if (!window._shownBath) window._shownBath = {};
+    var rideCount = 0;
+    for (var i = 0; i <= ei; i++) { if (entries[i].type === 'ride') rideCount++; }
+    var shouldShowBath = !window._shownBath[periodKey] && (
+      nextIsShow || (isMorning && rideCount === 3) || (isAfternoon && rideCount === 6)
+    );
+    if (shouldShowBath) {
+      window._shownBath[periodKey] = true;
       var bathroomNote = nextIsShow
         ? 'Hit the restrooms before the show starts — lines get long right after it ends.'
         : 'Quick restroom break — good time before crowds build at the next cluster.';
