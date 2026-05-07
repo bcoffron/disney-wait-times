@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071531 — cache bust v3
+// v202605071810 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2219,6 +2219,7 @@ async function reoptimize(){
         +'<button onclick="dismissReopt()" style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #ccc;background:none;color:#666;font-size:14px;font-family:inherit;cursor:pointer;">✕ Keep Current</button>'
         +'</div>';
       reoptCache[hash+'_v2']={explanation:expText,result:pendingReopt};
+      btns.classList.add('show');
     }else{
       txt.textContent=explanation||text;
       if(explanation&&explanation.length>20){
