@@ -1,23 +1,45 @@
-const { put, list } = require('@vercel/blob');
+const { put, list, head, del } = require('@vercel/blob');
 const VALID_KEYS = ['park_intel','dining_intel','events_intel','park_hours_intel'];
 const EXPIRY_DAYS = {park_intel:10,dining_intel:30,events_intel:7,park_hours_intel:7};
 const memCache = {};
+
 async function blobGet(key) {
   try {
     const {blobs} = await list({prefix:'twize/'+key});
-    if(!blobs||blobs.length===0) return null;
+    if(!blobs||!blobs.length) return null;
     const blob = blobs.sort((a,b)=>new Date(b.uploadedAt)-new Date(a.uploadedAt))[0];
-    const r = await fetch(blob.url);
+    const r = await fetch(blob.downloadUrl||blob.url);
     return await r.json();
-  } catch(e) { return memCache[key]||null; }
+  } catch(e) { console.warn('blobGet err:',e.message); return memCache[key]||null; }
 }
+
 async function blobSet(key,value) {
   const data = {value,ts:Date.now()};
   try {
-    await put('twize/'+key+'.json',JSON.stringify(data),{access:'public',addRandomSuffix:false,contentType:'application/json'});
+    await put('twize/'+key+'.json', JSON.stringify(data), {
+      access:'public',
+      addRandomSuffix:false,
+      contentType:'application/json',
+      allowOverwrite:true
+    });
     return true;
-  } catch(e) { memCache[key]=data; return false; }
+  } catch(e) {
+    // If public not allowed, try without access (uses store default)
+    try {
+      await put('twize/'+key+'.json', JSON.stringify(data), {
+        addRandomSuffix:false,
+        contentType:'application/json',
+        allowOverwrite:true
+      });
+      return true;
+    } catch(e2) {
+      console.warn('blobSet err:',e2.message);
+      memCache[key]=data;
+      return false;
+    }
+  }
 }
+
 module.exports = async function handler(req,res) {
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');
