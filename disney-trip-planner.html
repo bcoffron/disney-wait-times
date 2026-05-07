@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071632 — cache bust v3
+// v202605071151 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -1170,7 +1170,7 @@ function toggleDayTips(dayIdx){
 }
 
 function renderDayTipsCard(dayIdx){
-  var tips=DAY_TIPS[dayIdx];
+  var tips=typeof getEnrichedTips==="function"?getEnrichedTips(dayIdx):(DAY_TIPS[dayIdx]||[]);
   if(!tips) return '';
   var h='<div class="day-tips-card">'
     +'<div class="day-tips-hdr" id="dt_hdr_'+dayIdx+'" onclick="toggleDayTips('+dayIdx+')">'
@@ -1189,6 +1189,7 @@ function renderDayTipsCard(dayIdx){
   try{var lc=typeof getLiveClosures==='function'?getLiveClosures():null;var cr=lc?lc.refurb.slice():[];['Pirates of the Caribbean','Buzz Lightyear Astro Blasters','Silly Symphony Swings'].forEach(function(r){if(cr.indexOf(r)===-1)cr.push(r);});if(cr.length){h+='<div class="tip-item"><div class="tip-icon">&#128679;</div><div class="tip-body"><div class="tip-label" style="color:#EF4444">Closed for Refurbishment</div><div class="tip-text">'+cr.join(', ')+'</div></div></div>';}}catch(e){}
   // Always add Ask AI tip
   h+='<div class="tip-item"><div class="tip-icon">&#128172;</div><div class="tip-body"><div class="tip-label">Ask AI Anything</div><div class="tip-text">Have questions about snacks, bathrooms, photo spots, character meets, or anything else? Tap the &#128172; Ask AI tab -- your personal Disneyland expert is ready to help.</div></div></div>';
+  h+='<div class="tip-item"><div class="tip-icon">&#128172;</div><div class="tip-body"><div class="tip-label">Ask AI Anything</div><div class="tip-text">Have questions about snacks, bathrooms, photo spots, character meets? Tap the &#128172; Ask AI tab -- your personal Disneyland expert is ready to help.</div></div></div>';
   h+='</div></div>';
   return h;
 }var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
@@ -3866,6 +3867,280 @@ function refreshCrowds(){try{localStorage.removeItem('crowd_pred');}catch(e){}lo
 function refreshDayStrategy(){try{localStorage.removeItem('day_strategy');}catch(e){}loadDayStrategy();}
 function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadLLPlanner();}
 
+
+
+function getEnrichedTips(dayIdx) {
+  var base = DAY_TIPS[dayIdx] ? DAY_TIPS[dayIdx].slice() : [];
+  try {
+    var pi = typeof getParkIntel === "function" ? getParkIntel() : null;
+    if (pi && pi.length > 100) {
+      for (var ri = 0; ri < base.length; ri++) {
+        if (base[ri].label === "Rope Drop Strategy" || base[ri].label === "DCA Rope Drop") {
+          var lines = pi.split("\n"), ropeText = "", inRope = false;
+          for (var i = 0; i < lines.length; i++) {
+            var l = lines[i].toLowerCase();
+            if (l.indexOf("rope drop") > -1) inRope = true;
+            if (inRope) { ropeText += lines[i] + " "; if (ropeText.length > 400) break; }
+          }
+          if (ropeText.length > 50) base[ri] = {icon: base[ri].icon, label: base[ri].label, text: ropeText.trim().substring(0, 450)};
+          break;
+        }
+      }
+      for (var li = 0; li < base.length; li++) {
+        if (base[li].label === "First 90 Minutes" || base[li].label === "Tuesday Advantage") {
+          var lines2 = pi.split("\n"), llText = "", inLL = false;
+          for (var j = 0; j < lines2.length; j++) {
+            var l2 = lines2[j].toLowerCase();
+            if (l2.indexOf("lightning lane") > -1 || l2.indexOf("llmp") > -1) inLL = true;
+            if (inLL) { llText += lines2[j] + " "; if (llText.length > 400) break; }
+          }
+          if (llText.length > 50) base[li] = {icon: base[li].icon, label: "Lightning Lane Strategy", text: llText.trim().substring(0, 450)};
+          break;
+        }
+      }
+    }
+
+  } catch(e) {}
+  // Always add Ask AI tip at the end
+  base.push({
+    icon: '&#128172;',
+    label: 'Ask AI Anything',
+    text: 'Have questions about snacks, bathrooms, photo spots, character meets, or anything else? Tap the &#128172; Ask AI tab at the bottom -- your personal Disneyland expert is ready to help with specific questions about your schedule and locations.'
+  });
+  return base;
+}
+
+// ── Inline schedule suggestions (bathroom, snack, photo) ─────────────────
+function renderInlineSuggestion(e, ei, entries, dayIdx) {
+  try {
+    var h = '';
+    var land = e.land || '';
+    var time = e.t || '';
+    var hr = 0;
+    if (time) {
+      var parts = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (parts) {
+        hr = parseInt(parts[1]);
+        if (parts[3].toUpperCase() === 'PM' && hr !== 12) hr += 12;
+        if (parts[3].toUpperCase() === 'AM' && hr === 12) hr = 0;
+      }
+    }
+    var isLast = ei === entries.length - 1;
+    var nextEntry = entries[ei + 1];
+    var nextLand = nextEntry ? (nextEntry.land || '') : '';
+
+    // BATHROOM BREAK: suggest after every 3 ride entries or before a long show
+    var rideCount = 0;
+    for (var i = 0; i <= ei; i++) {
+      if (entries[i].type === 'ride') rideCount++;
+    }
+    var nextIsShow = nextEntry && nextEntry.type === 'show';
+    if ((rideCount > 0 && rideCount % 3 === 0) || nextIsShow) {
+      var bathroomNote = nextIsShow
+        ? 'Hit the restrooms before the show starts — lines get long right after it ends.'
+        : 'Quick restroom break — good time before crowds build at the next cluster.';
+      var bathroomLoc = {
+        "Fantasyland": "Closest: near It's a Small World entrance or Pinocchio Village Haus.",
+        "New Orleans Square": "Closest: near the French Market restaurant.",
+        "Adventureland": "Closest: near the Jungle Cruise exit.",
+        "Tomorrowland": "Closest: near Space Mountain exit or Tomorrowland Terrace.",
+        "Galaxy's Edge": "Closest: near Oga's Cantina or the Milk Stand.",
+        "Cars Land": "Closest: near Flo's V8 Cafe.",
+        "Buena Vista Street": "Closest: near Carthay Circle."
+      };
+      var locHint = bathroomLoc[land] ? ' ' + bathroomLoc[land] : '';
+      h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;margin:4px 0 8px;background:rgba(34,197,94,0.08);border-left:3px solid rgba(34,197,94,0.5);border-radius:10px;">'
+        + '<span style="font-size:16px;flex-shrink:0;line-height:1.4">&#128701;</span>'
+        + '<div><div style="font-size:11px;font-weight:700;color:#166534;letter-spacing:.04em;margin-bottom:2px;">RESTROOM BREAK</div>'
+        + '<div style="font-size:11px;color:var(--text-muted);line-height:1.5;">' + bathroomNote + locHint + '</div>'
+        + '</div></div>';
+    }
+
+    // PHOTO OP: suggest when entering a known photo land for the first time
+    var PHOTO_TIPS = {
+        "Fantasyland": {icon:"&#128248;", note:"Castle from the Hub dead center on Main Street.", spot:"Main Street Hub", time:"Golden hour or after dark"},
+        "New Orleans Square": {icon:"&#128248;", note:"Balconies over Blue Bayou entrance for group shots.", spot:"Blue Bayou entrance", time:"Evening for magical lighting"},
+        "Adventureland": {icon:"&#128248;", note:"Jungle bridge near Indiana Jones for a great group shot.", spot:"Indiana Jones bridge", time:"Morning or tiki torches at dusk"},
+        "Cars Land": {icon:"&#128248;", note:"Radiator Springs at night -- neon lights on Cozy Cone and Ramone mural.", spot:"Cozy Cone & Ramone's", time:"After dark for neon"},
+        "Buena Vista Street": {icon:"&#128248;", note:"Carthay Circle tower at golden hour.", spot:"Carthay Circle", time:"Golden hour or twilight"},
+        "Tomorrowland": {icon:"&#128248;", note:"Space Mountain entrance sign and PeopleMover tracks from below.", spot:"Space Mountain entrance", time:"After dark"},
+        "Galaxy's Edge": {icon:"&#128248;", note:"Millennium Falcon exterior and the market alley.", spot:"Millennium Falcon", time:"Early morning before crowds"}
+      };
+    // Only show photo tip when land changes (first entry in this land)
+    var isFirstInLand = land && (ei === 0 || entries[ei-1].land !== land);
+    if (isFirstInLand && PHOTO_TIPS[land] && nextLand !== land) {
+      var pt = PHOTO_TIPS[land];
+      h += '<div style="margin:4px 0 8px;background:rgba(109,40,217,0.07);border-left:3px solid rgba(109,40,217,0.4);border-radius:10px;overflow:hidden;">'
+        + '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;">'
+        + '<span style="font-size:16px;flex-shrink:0;line-height:1.4">' + pt.icon + '</span>'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:11px;font-weight:700;color:var(--purple);letter-spacing:.04em;margin-bottom:3px;">PHOTO OP: ' + land.toUpperCase() + '</div>'
+        + '<div style="font-size:12px;color:var(--text);font-weight:600;margin-bottom:2px;">&#128205; ' + (pt.spot||land) + '</div>'
+        + '<div style="font-size:11px;color:var(--text-muted);line-height:1.5;">' + pt.note + '</div>'
+        + (pt.time ? '<div style="font-size:10px;color:var(--purple);margin-top:3px;font-style:italic;">Best time: ' + pt.time + '</div>' : '')
+        + '</div></div></div>';
+    }
+
+    // SNACK: suggest mid-morning (10-11 AM) or mid-afternoon (2-4 PM)
+    var SNACK_TIPS = {
+      "Adventureland": "Dole Whip at the Tiki Juice Bar -- the signature Disneyland treat.",
+      "New Orleans Square": "Beignets at Cafe Orleans counter -- hot, powdery, perfect. Get a bag of 3.",
+      "Main Street": "Churro from a cart or Gibson Girl ice cream.",
+      "Cars Land": "Cozy Cone Motel -- any cone flavor, fun photo op too.",
+      "Pacific Wharf": "Boudin Sourdough bread bowl -- great seated break near the water.",
+      "Galaxy's Edge": "Blue or Green Milk from the Milk Stand.",
+      "Fantasyland": "Bing Bong's Sweet Stuff for a quick snack break."
+    };
+    var isSnackTime = (hr === 10 || hr === 15 || hr === 14) && isLast;
+    if (isSnackTime && SNACK_TIPS[land]) {
+      h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;margin:4px 0 8px;background:rgba(234,179,8,0.08);border-left:3px solid rgba(234,179,8,0.5);border-radius:10px;">'
+        + '<span style="font-size:16px;flex-shrink:0;line-height:1.4">&#127829;</span>'
+        + '<div><div style="font-size:11px;font-weight:700;color:#92400e;letter-spacing:.04em;margin-bottom:2px;">SNACK STOP</div>'
+        + '<div style="font-size:11px;color:var(--text-muted);line-height:1.5;">' + SNACK_TIPS[land] + '</div>'
+        + '</div></div>';
+    }
+
+    return h;
+  } catch(err) { return ''; }
+}
+
+var CACHE_BASE="https://disney-wait-times-lupt.vercel.app";
+function serverCacheGet(key,cb){fetch(CACHE_BASE+"/api/cache?key="+key+"&t="+Date.now()).then(function(r){return r.json();}).then(function(d){if(d.hit&&d.data){try{localStorage.setItem(key,typeof d.data==="string"?d.data:JSON.stringify(d.data));localStorage.setItem(key+"_ts",String(d.ts));}catch(e){}cb(null,d.data,d.ts);}else{cb(null,null,0);}}).catch(function(e){cb(e,null,0);});}
+function serverCacheSet(key,value,ts){fetch(CACHE_BASE+"/api/cache?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:value,ts:ts||Date.now()})}).then(function(r){return r.json();}).then(function(d){console.log("Server cache set "+key+":",(d.ok?"OK":"FAILED"));}).catch(function(e){console.warn("Server cache write failed:",e);});try{localStorage.setItem(key,typeof value==="string"?value:JSON.stringify(value));localStorage.setItem(key+"_ts",String(ts||Date.now()));}catch(e){}}
+function warmCachesFromServer(){var keys=["park_intel","dining_intel","events_intel","park_hours_intel"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;var age=(Date.now()-ts)/864e5;var expiry=key==="dining_intel"?30:key==="park_intel"?10:7;if(age<expiry){console.log("Server cache warm: "+key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}}});)}
+setTimeout(function(){warmCachesFromServer();},5000);
+
+var PARK_INTEL_DAYS=10,parkIntelCache=null;
+function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<PARK_INTEL_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
+function setParkIntel(t){parkIntelCache=t;serverCacheSet('park_intel',t);}
+var DINING_INTEL_DAYS=30,diningIntelCache=null;
+function getDiningIntel(){if(diningIntelCache)return diningIntelCache;try{var s=localStorage.getItem('dining_intel'),ts=parseInt(localStorage.getItem('dining_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<DINING_INTEL_DAYS){diningIntelCache=s;return s;}}catch(e){}return null;}
+function setDiningIntel(t){diningIntelCache=t;serverCacheSet('dining_intel',t);}
+var EVENTS_INTEL_DAYS=7,eventsIntelCache=null;
+function getEventsIntel(){if(eventsIntelCache)return eventsIntelCache;try{var s=localStorage.getItem('events_intel'),ts=parseInt(localStorage.getItem('events_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<EVENTS_INTEL_DAYS){eventsIntelCache=s;return s;}}catch(e){}return null;}
+function setEventsIntel(t){eventsIntelCache=t;serverCacheSet('events_intel',t);}
+var HOURS_INTEL_DAYS=7,parkHoursCache=null;
+function getParkHoursIntel(){if(parkHoursCache)return parkHoursCache;try{var s=localStorage.getItem('park_hours_intel');if(s){parkHoursCache=JSON.parse(s);return parkHoursCache;}}catch(e){}return null;}
+function parkHoursNeedsUpdate(){try{var ts=parseInt(localStorage.getItem('park_hours_intel_ts')||'0');return(Date.now()-ts)/864e5>=HOURS_INTEL_DAYS;}catch(e){return true;}}
+function setParkHoursIntel(d){parkHoursCache=d;serverCacheSet('park_hours_intel',d);}
+function getParkHoursForDate(ds,park){var def=park==='dca'?{open:9,close:22}:{open:8,close:23};try{var intel=getParkHoursIntel();if(!intel||!intel[ds])return def;var day=intel[ds],p=park==='dca'?day.dca:day.dl;if(!p)return def;var o=p.open.split(':'),c=p.close.split(':');return{open:parseInt(o[0])+(parseInt(o[1]||0)/60),close:parseInt(c[0])+(parseInt(c[1]||0)/60)};}catch(e){return def;}}
+function getDayParkWindow(ds){if(!ds){try{var n=nowPT();ds=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}catch(e){ds=new Date().toISOString().split('T')[0];}}var dl=getParkHoursForDate(ds,'dl'),dca=getParkHoursForDate(ds,'dca');return{open:Math.min(dl.open,dca.open),close:Math.max(dl.close,dca.close)};}
+function buildParkIntel(){if(!apiKey||getParkIntel())return;console.log('Building Park Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland expert. 2024-2026 only. No Genie+/MaxPass.',messages:[{role:'user',content:'Search TouringPlans AllEars MiceChat 2024-2026 Disneyland strategies: rope drop, LLMP sequence, late June crowds, top 5 tips, mistakes, DL vs DCA. Dense summary.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setParkIntel(t);}).catch(function(e){console.warn('Park Intel:',e);});}
+function buildDiningIntel(){if(!apiKey||getDiningIntel())return;console.log('Building Dining Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland dining expert. 2024-2026 reviews only.',members:[{role:'user',content:'Search Disney Food Blog AllEars TripAdvisor 2024-2026 Disneyland dining. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Lamplight Flo V8 Award Wieners (DCA). Earl Sandwich Salt Straw (DTD). Rating, must-orders, tip each.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setDiningIntel(t);}).catch(function(e){console.warn('Dining Intel:',e);});}
+function buildEventsIntel(){if(!apiKey||getEventsIntel())return;console.log('Building Events Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland events expert.',messages:[{role:'user',content:'Special events Disneyland June 25-July 5 2026: ticketed events, early closures, July 4th weekend. Brief factual summary with dates.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>100)setEventsIntel(t);}).catch(function(e){console.warn('Events Intel:',e);});}
+function buildParkHoursIntel(){if(!apiKey)return;var existing=getParkHoursIntel(),needsUpdate=parkHoursNeedsUpdate();if(existing&&!needsUpdate)return;var isInc=!!existing,now=new Date(),sd,ed;if(isInc){sd=new Date(now);ed=new Date(now);ed.setDate(ed.getDate()+60);}else{sd=new Date(now);sd.setDate(1);ed=new Date(sd);ed.setFullYear(ed.getFullYear()+1);}var s=sd.toISOString().split('T')[0],e=ed.toISOString().split('T')[0];fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Return ONLY valid JSON park hours.',messages:[{role:'user',content:'Disneyland park hours '+s+' to '+e+'. ONLY JSON: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}}. Default dl 08:00-23:00 dca 09:00-22:00.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});var m=t.replace(/```json|```/g,'').match(/[{][\s\S]+[}]/);if(m){try{var h=JSON.parse(m[0]);setParkHoursIntel(isInc&&existing?Object.assign({},existing,h):h);}catch(ex){}}}).catch(function(e){console.warn('Park Hours:',e);});}
+setTimeout(function(){if(apiKey&&!getParkIntel())buildParkIntel();},120000);
+setTimeout(function(){if(apiKey&&!getDiningIntel())buildDiningIntel();},300000);
+setTimeout(function(){if(apiKey&&!getEventsIntel())buildEventsIntel();},480000);
+setTimeout(function(){if(apiKey)buildParkHoursIntel();},720000);
+
+function completeSetupAndSummarize(){
+  var wc=document.getElementById('charYes')&&document.getElementById('charYes').classList.contains('selected');
+  setupData={
+    groupSize:parseInt(document.getElementById('groupSize').value),
+    ages:getChipSelections('ageChips'),
+    thrill:getChipSelections('thrillChips')[0]||'Mix',
+    startTime:getChipSelections('startChips')[0]||'Rope drop',
+    mustRides:getChipSelections('mustRideChips'),
+    skipRides:getChipSelections('skipRideChips'),
+    ll:getChipSelections('llChips')[0]||'Undecided',
+    dining:getChipSelections('diningChips')[0]||'Mix',
+    pace:getChipSelections('paceChips')[0]||'Balanced',
+    wantsChars:wc,
+    charsDL:wc?getChipSelections('charDLChips'):[],
+    charsDCA:wc?getChipSelections('charDCAChips'):[],
+    charPriority:wc?(getChipSelections('charPriorityChips')[0]||'Fit in when convenient'):'none',
+    experience:getChipSelections('experienceChips')[0]||'First timers',
+    mobility:getChipSelections('mobilityChips')[0]||'None',
+    fears:getChipSelections('fearChips'),
+    dreamOutcome:document.getElementById('dreamOutcome')?document.getElementById('dreamOutcome').value.trim():''
+  };
+  var ki=document.querySelectorAll('#kidsHeightInputs input');
+  if(ki.length){saveGroupHeights(Array.from(ki).map(function(i){return parseInt(i.value)||44;}));}
+  try{localStorage.setItem('setup_data',JSON.stringify(setupData));localStorage.setItem('setup_done','yes');}catch(e){}
+  var b=document.getElementById('setupBanner');if(b)b.style.display='none';
+  goSetupStep(5);
+  generateTripSummary();
+}
+
+function generateTripSummary(){
+  var el=document.getElementById('tripSummaryContent');
+  if(!el) return;
+  if(!apiKey){
+    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.7;">Your Ride Style is saved! Open Pre-Trip Planning to generate your full AI briefing.</div>';
+    return;
+  }
+  var sd=setupData||{};
+  var size=sd.groupSize||4;
+  var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed ages';
+  var thrill=sd.thrill||'Mix';
+  var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'not specified';
+  var experience=sd.experience||'First timers';
+  var fears=sd.fears&&sd.fears.length?sd.fears.join(', '):'none';
+  var dream=sd.dreamOutcome||'';
+  var prompt='Write a warm 3-4 sentence personalized trip summary for this group visiting Disneyland Resort June 28-30 2026. '
+    +'GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Must-rides: '+mustRides
+    +' | Experience: '+experience+' | Biggest concerns: '+fears
+    +(dream?' | Dream outcome: '+dream:'')
+    +'. End with one specific tip addressing their biggest concern. Bold the most important insight.';
+  fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,system:'Warm expert Disneyland trip advisor. Write personalized summaries that excite and reassure families. Bold one key insight.',messages:[{role:'user',content:prompt}]})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.error){el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved! Open Pre-Trip Planning for your full AI briefing.</div>';return;}
+    var text='';if(d.content)d.content.forEach(function(b){if(b.type==='text')text+=b.text;});
+    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.8;">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
+    try{localStorage.removeItem('kbyg_text');localStorage.removeItem('kbyg_date');}catch(e){}
+  })
+  .catch(function(){el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved!</div>';});
+}
+
+function copyTripLink(){
+  var url='https://themeparkwize.com';
+  if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){showToast('Link copied!');});}
+  else{var el=document.getElementById('shareUrlDisplay');if(el){var r=document.createRange();r.selectNode(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);document.execCommand('copy');window.getSelection().removeAllRanges();showToast('Link copied!');}}
+}
+
+function shareTripLink(){
+  var url='https://themeparkwize.com';
+  if(navigator.share){navigator.share({title:'ThemeParkWize',text:'Join our Disneyland trip on ThemeParkWize!',url:url});}
+  else{copyTripLink();}
+}
+
+function closeSetupFinal(){
+  closeSetup();
+  renderPreTripBanner();
+  try{localStorage.removeItem('kbyg_setup_hash');}catch(e){}
+  showToast('Trip setup complete! 🎉');
+}
+
+
+var PARK_INTEL_DAYS=10,parkIntelCache=null;
+function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<PARK_INTEL_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
+function setParkIntel(t){parkIntelCache=t;try{localStorage.setItem('park_intel',t);localStorage.setItem('park_intel_ts',String(Date.now()));}catch(e){}}
+var DINING_INTEL_DAYS=30,diningIntelCache=null;
+function getDiningIntel(){if(diningIntelCache)return diningIntelCache;try{var s=localStorage.getItem('dining_intel'),ts=parseInt(localStorage.getItem('dining_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<DINING_INTEL_DAYS){diningIntelCache=s;return s;}}catch(e){}return null;}
+function setDiningIntel(t){diningIntelCache=t;try{localStorage.setItem('dining_intel',t);localStorage.setItem('dining_intel_ts',String(Date.now()));}catch(e){}}
+var EVENTS_INTEL_DAYS=7,eventsIntelCache=null;
+function getEventsIntel(){if(eventsIntelCache)return eventsIntelCache;try{var s=localStorage.getItem('events_intel'),ts=parseInt(localStorage.getItem('events_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<EVENTS_INTEL_DAYS){eventsIntelCache=s;return s;}}catch(e){}return null;}
+function setEventsIntel(t){eventsIntelCache=t;try{localStorage.setItem('events_intel',t);localStorage.setItem('events_intel_ts',String(Date.now()));}catch(e){}}
+var HOURS_INTEL_DAYS=7,parkHoursCache=null;
+function getParkHoursIntel(){if(parkHoursCache)return parkHoursCache;try{var s=localStorage.getItem('park_hours_intel');if(s){parkHoursCache=JSON.parse(s);return parkHoursCache;}}catch(e){}return null;}
+function parkHoursNeedsUpdate(){try{var ts=parseInt(localStorage.getItem('park_hours_intel_ts')||'0');return(Date.now()-ts)/864e5>=HOURS_INTEL_DAYS;}catch(e){return true;}}
+function setParkHoursIntel(d){parkHoursCache=d;try{localStorage.setItem('park_hours_intel',JSON.stringify(d));localStorage.setItem('park_hours_intel_ts',String(Date.now()));}catch(e){}}
+function getParkHoursForDate(ds,park){var def=park==='dca'?{open:9,close:22}:{open:8,close:23};try{var intel=getParkHoursIntel();if(!intel||!intel[ds])return def;var day=intel[ds],p=park==='dca'?day.dca:day.dl;if(!p)return def;var o=p.open.split(':'),c=p.close.split(':');return{open:parseInt(o[0])+(parseInt(o[1]||0)/60),close:parseInt(c[0])+(parseInt(c[1]||0)/60)};}catch(e){return def;}}
+function getDayParkWindow(ds){if(!ds){try{var n=nowPT();ds=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}catch(e){ds=new Date().toISOString().split('T')[0];}}var dl=getParkHoursForDate(ds,'dl'),dca=getParkHoursForDate(ds,'dca');return{open:Math.min(dl.open,dca.open),close:Math.max(dl.close,dca.close)};}
+function isWaitFetchTime(){try{var now=nowPT(),hr=now.getHours()+(now.getMinutes()/60),ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),w=typeof getDayParkWindow==='function'?getDayParkWindow(ds):{open:8,close:23},fs=w.open-(5/60),fe=w.close+1;if(fe>=24&&hr<(fe-24))return true;if(hr>=fs&&hr<Math.min(fe,24))return true;return false;}catch(e){return true;}}
+function smartFetchWaits(){if(isWaitFetchTime()){fetchWaits();}else{waits={};waitLastFetch=0;renderSched();updateWaitStatus();var t=document.getElementById('waitTabContent');if(t)t.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:8px">&#127769;</div><div style="font-size:14px;font-weight:600;">Park is Closed</div><div style="font-size:12px;">Wait times resume when park opens</div></div>';}}
+var _wi=null,_wsi=null;
+function startWaitRefresh(){smartFetchWaits();if(_wi)clearInterval(_wi);if(_wsi)clearInterval(_wsi);_wi=setInterval(smartFetchWaits,5*60*1000);_wsi=setInterval(updateWaitStatus,60*1000);}
+function buildParkIntel(){if(!apiKey||getParkIntel())return;console.log('Building Park Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland expert. 2024-2026 only. No Genie+/MaxPass.',messages:[{role:'user',content:'Search TouringPlans AllEars MiceChat 2024-2026 Disneyland: current rope drop strategy, LLMP booking sequence, late June crowds, top 5 tips, common mistakes, DL vs DCA timing. Dense actionable summary.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setParkIntel(t);}).catch(function(e){console.warn('Park Intel:',e);});}
+function buildDiningIntel(){if(!apiKey||getDiningIntel())return;console.log('Building Dining Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland dining expert. 2024-2026 reviews only.',messages:[{role:'user',content:'Search Disney Food Blog AllEars TripAdvisor 2024-2026 Disneyland dining. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Lamplight Flo V8 Award Wieners (DCA). Earl Sandwich Salt Straw (DTD). Rating, must-orders, tip each.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setDiningIntel(t);}).catch(function(e){console.warn('Dining Intel:',e);});}
+function buildEventsIntel(){if(!apiKey||getEventsIntel())return;console.log('Building Events Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland events expert.',messages:[{role:'user',content:'Special events Disneyland June 25-July 5 2026: ticketed events, early closures, July 4th weekend. Brief factual summary with dates.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>100)setEventsIntel(t);}).catch(function(e){console.warn('Events Intel:',e);});}
+function buildParkHoursIntel(){if(!apiKey)return;var existing=getParkHoursIntel(),needsUpdate=parkHoursNeedsUpdate();if(existing&&!needsUpdate)return;var isInc=!!existing,now=new Date(),sd,ed;if(isInc){sd=new Date(now);ed=new Date(now);ed.setDate(ed.getDate()+60);}else{sd=new Date(now);sd.setDate(1);ed=new Date(sd);ed.setFullYear(ed.getFullYear()+1);}var s=sd.toISOString().split('T')[0],e=ed.toISOString().split('T')[0];fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Return ONLY valid JSON park hours.',messages:[{role:'user',content:'Disneyland park hours '+s+' to '+e+'. ONLY JSON: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}}. Default dl 08:00-23:00 dca 09:00-22:00.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});var m=t.replace(/```json|```/g,'').match(/\{[\s\S]+\}/);if(m){try{var h=JSON.parse(m[0]);setParkHoursIntel(isInc&&existing?Object.assign({},existing,h):h);}catch(ex){}}}).catch(function(e){console.warn('Park Hours:',e);});}
+setTimeout(function(){if(apiKey&&!getParkIntel())buildParkIntel();},120000);
+setTimeout(function(){if(apiKey&&!getDiningIntel())buildDiningIntel();},300000);
+setTimeout(function(){if(apiKey&&!getEventsIntel())buildEventsIntel();},480000);
+setTimeout(function(){if(apiKey)buildParkHoursIntel();},720000);
 </script>
 
 <!-- Setup Overlay -->
