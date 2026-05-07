@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605062302 — cache bust v3
+// v202605070659 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2206,36 +2206,30 @@ async function reoptimize(){
 
     var newSecs=null;
     var explanation='Schedule optimized.';
+    var parseErr='';
     var cleanText=text.replace(/```json|```/g,'').trim();
     var js1=cleanText.indexOf('JSONSTART');
+    var arrEnd=-1;
     if(js1>-1){
       var afterMark=cleanText.substring(js1+9).trim();
-      var dep=0,arrEnd=-1;
+      var dep=0;
       for(var ci=0;ci<afterMark.length;ci++){
         if(afterMark[ci]==='[')dep++;
         else if(afterMark[ci]===']'){dep--;if(dep===0){arrEnd=ci;break;}}
       }
       if(arrEnd>-1){
         var jsonStr=afterMark.substring(0,arrEnd+1);
-        try{
-          var p1=JSON.parse(jsonStr);
-          if(Array.isArray(p1)&&p1.length>0)newSecs=p1;
-        }catch(e1){}
-        if(newSecs){
-          var rest=afterMark.substring(arrEnd+1).replace(/JSONEND/g,'').trim();
-          if(rest.length>3&&rest.length<300)explanation=rest.replace(/^SUMMARY[\s:]*/,'').split('\n')[0].trim();
+        try{var p1=JSON.parse(jsonStr);if(Array.isArray(p1)&&p1.length>0)newSecs=p1;}
+        catch(e1){
+          parseErr='jp:'+e1.message.substring(0,40);
+          try{var p2=eval('('+jsonStr+')');if(Array.isArray(p2)&&p2.length>0)newSecs=p2;}
+          catch(e2){parseErr+=' ev:'+e2.message.substring(0,30);}
         }
+        if(newSecs){var rest=afterMark.substring(arrEnd+1).replace(/JSONEND/g,'').trim();if(rest.length>3&&rest.length<300)explanation=rest.replace(/^SUMMARY[\s:]*/,'').split('\n')[0].trim();}
       }
     }
-    if(!newSecs){
-      var lb=cleanText.lastIndexOf(']');
-      if(lb>-1){
-        var d2=0,a2=-1;
-        for(var ci=lb;ci>=0;ci--){if(cleanText[ci]===']')d2++;else if(cleanText[ci]==='['){d2--;if(d2===0){a2=ci;break;}}}
-        if(a2>-1){try{var p4=JSON.parse(cleanText.substring(a2,lb+1));if(Array.isArray(p4)&&p4.length>0&&p4[0].entries)newSecs=p4;}catch(e){}}
-      }
-    }
-    alert('newSecs:'+(newSecs?'FOUND '+newSecs.length:'NULL')+' expl:'+explanation.substring(0,30));
+    if(!newSecs){var lb=cleanText.lastIndexOf(']');if(lb>-1){var d2=0,a2=-1;for(var ci=lb;ci>=0;ci--){if(cleanText[ci]===']')d2++;else if(cleanText[ci]==='['){d2--;if(d2===0){a2=ci;break;}}}if(a2>-1){try{var p4=JSON.parse(cleanText.substring(a2,lb+1));if(Array.isArray(p4)&&p4.length>0&&p4[0].entries)newSecs=p4;}catch(e4){try{var p5=eval('('+cleanText.substring(a2,lb+1)+')');if(Array.isArray(p5)&&p5.length>0&&p5[0].entries)newSecs=p5;}catch(e5){}}}}}
+arrEnd+'\ntextLen:'+text.length);
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
       try{pendingReopt=JSON.parse(JSON.stringify(data));}catch(pe){pendingReopt={};}
       pendingReopt.sections=newSecs;
