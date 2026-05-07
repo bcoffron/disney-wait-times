@@ -1,5 +1,8 @@
 {
   "name": "disney-wait-times-proxy",
   "version": "1.0.0",
-  "description": "CORS proxy for Disneyland wait times"
+  "description": "CORS proxy and cache server for ThemeParkWize",
+  "dependencies": {
+    "@vercel/blob": "^0.27.0"
+  }
 }
