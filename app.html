@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071557 — cache bust v3
+// v202605071620 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -1209,6 +1209,12 @@ function getEnrichedTips(dayIdx) {
       if (allEntries.length > 8) base.push({icon: "&#128564;", label: "Rest Strategy", text: "Plan a 20-30 min seated rest between 1-3 PM when heat and crowds peak. Any air-conditioned show building works. Your group will have more energy for evening highlights."});
     }
   } catch(e) {}
+  // Always add Ask AI tip at the end
+  base.push({
+    icon: '&#128172;',
+    label: 'Ask AI Anything',
+    text: 'Have questions about snacks, bathrooms, photo spots, character meets, or anything else? Tap the &#128172; Ask AI tab at the bottom -- your personal Disneyland expert is ready to help with specific questions about your schedule and locations.'
+  });
   return base;
 }
 
@@ -2498,6 +2504,100 @@ function loadDiningSlot(dayIdx, secIdx, entryIdx){
     return s?JSON.parse(s):null;
   }catch(e){return null;}
 }
+
+// ── Inline schedule suggestions (bathroom, snack, photo) ─────────────────
+function renderInlineSuggestion(e, ei, entries, dayIdx) {
+  try {
+    var h = '';
+    var land = e.land || '';
+    var time = e.t || '';
+    var hr = 0;
+    if (time) {
+      var parts = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (parts) {
+        hr = parseInt(parts[1]);
+        if (parts[3].toUpperCase() === 'PM' && hr !== 12) hr += 12;
+        if (parts[3].toUpperCase() === 'AM' && hr === 12) hr = 0;
+      }
+    }
+    var isLast = ei === entries.length - 1;
+    var nextEntry = entries[ei + 1];
+    var nextLand = nextEntry ? (nextEntry.land || '') : '';
+
+    // BATHROOM BREAK: suggest after every 3 ride entries or before a long show
+    var rideCount = 0;
+    for (var i = 0; i <= ei; i++) {
+      if (entries[i].type === 'ride') rideCount++;
+    }
+    var nextIsShow = nextEntry && nextEntry.type === 'show';
+    if ((rideCount > 0 && rideCount % 3 === 0) || nextIsShow) {
+      var bathroomNote = nextIsShow
+        ? 'Hit the restrooms before the show starts — lines get long right after it ends.'
+        : 'Quick restroom break — good time before crowds build at the next cluster.';
+      var bathroomLoc = {
+        "Fantasyland": "Closest: near It's a Small World entrance or Pinocchio Village Haus.",
+        "New Orleans Square": "Closest: near the French Market restaurant.",
+        "Adventureland": "Closest: near the Jungle Cruise exit.",
+        "Tomorrowland": "Closest: near Space Mountain exit or Tomorrowland Terrace.",
+        "Galaxy's Edge": "Closest: near Oga's Cantina or the Milk Stand.",
+        "Cars Land": "Closest: near Flo's V8 Cafe.",
+        "Buena Vista Street": "Closest: near Carthay Circle."
+      };
+      var locHint = bathroomLoc[land] ? ' ' + bathroomLoc[land] : '';
+      h += '<div class="ride-block" style="background:rgba(27,47,160,0.04);border:1px dashed rgba(27,47,160,0.2);margin:6px 0;">'
+        + '<div class="ride-time" style="color:var(--text-muted);font-size:11px;">&#128701;</div>'
+        + '<div class="ride-main">'
+        + '<div class="ride-hdr" style="color:var(--text-muted);font-size:12px;font-weight:600;">Restroom Break</div>'
+        + '<div class="ride-note" style="font-size:11px;">' + bathroomNote + locHint + '</div>'
+        + '</div></div>';
+    }
+
+    // PHOTO OP: suggest when entering a known photo land for the first time
+    var PHOTO_TIPS = {
+      "Fantasyland": {icon:"&#128248;", note:"Castle from the Hub dead center on Main Street. Bridge near Small World at night."},
+      "New Orleans Square": {icon:"&#128248;", note:"Balconies over Blue Bayou entrance for group shots. Evening lighting is magical."},
+      "Adventureland": {icon:"&#128248;", note:"Jungle bridge near Indiana Jones. Tiki torch area at dusk is gorgeous."},
+      "Cars Land": {icon:"&#128248;", note:"Radiator Springs at night -- neon lights on Cozy Cone and Ramone mural are stunning."},
+      "Buena Vista Street": {icon:"&#128248;", note:"Carthay Circle tower at golden hour. Trolley tracks for a classic DCA shot."},
+      "Tomorrowland": {icon:"&#128248;", note:"Space Mountain entrance sign at night and PeopleMover tracks from below."},
+      "Galaxy's Edge": {icon:"&#128248;", note:"Millennium Falcon exterior and the market alley. Best lighting early morning."}
+    };
+    // Only show photo tip when land changes (first entry in this land)
+    var isFirstInLand = land && (ei === 0 || entries[ei-1].land !== land);
+    if (isFirstInLand && PHOTO_TIPS[land] && nextLand !== land) {
+      var pt = PHOTO_TIPS[land];
+      h += '<div class="ride-block" style="background:rgba(109,40,217,0.04);border:1px dashed rgba(109,40,217,0.2);margin:6px 0;">'
+        + '<div class="ride-time" style="color:var(--purple);font-size:14px;">' + pt.icon + '</div>'
+        + '<div class="ride-main">'
+        + '<div class="ride-hdr" style="color:var(--purple);font-size:12px;font-weight:600;">Photo Op: ' + land + '</div>'
+        + '<div class="ride-note" style="font-size:11px;">' + pt.note + '</div>'
+        + '</div></div>';
+    }
+
+    // SNACK: suggest mid-morning (10-11 AM) or mid-afternoon (2-4 PM)
+    var SNACK_TIPS = {
+      "Adventureland": "Dole Whip at the Tiki Juice Bar -- the signature Disneyland treat.",
+      "New Orleans Square": "Beignets at Cafe Orleans counter -- hot, powdery, perfect. Get a bag of 3.",
+      "Main Street": "Churro from a cart or Gibson Girl ice cream.",
+      "Cars Land": "Cozy Cone Motel -- any cone flavor, fun photo op too.",
+      "Pacific Wharf": "Boudin Sourdough bread bowl -- great seated break near the water.",
+      "Galaxy's Edge": "Blue or Green Milk from the Milk Stand.",
+      "Fantasyland": "Bing Bong's Sweet Stuff for a quick snack break."
+    };
+    var isSnackTime = (hr === 10 || hr === 15 || hr === 14) && isLast;
+    if (isSnackTime && SNACK_TIPS[land]) {
+      h += '<div class="ride-block" style="background:rgba(234,179,8,0.06);border:1px dashed rgba(234,179,8,0.4);margin:6px 0;">'
+        + '<div class="ride-time" style="font-size:14px;">&#127829;</div>'
+        + '<div class="ride-main">'
+        + '<div class="ride-hdr" style="color:#92400e;font-size:12px;font-weight:600;">Snack Stop</div>'
+        + '<div class="ride-note" style="font-size:11px;">' + SNACK_TIPS[land] + '</div>'
+        + '</div></div>';
+    }
+
+    return h;
+  } catch(err) { return ''; }
+}
+
 function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
@@ -2570,6 +2670,8 @@ function renderSched(){
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
       h+='</div>';
+      // Inject inline suggestion cards based on location and timing
+      h+=renderInlineSuggestion(e,ei,sec.entries,curDay);
     });
     if(editMode)h+='<button class="add-btn" onclick="openModal('+si+')">+ Add entry here</button>';
   });
