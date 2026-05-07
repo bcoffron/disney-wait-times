@@ -1,4 +1,12 @@
 {
+  "functions": {
+    "api/reoptimize.js": {
+      "maxDuration": 60
+    },
+    "api/cron-cache.js": {
+      "maxDuration": 300
+    }
+  },
   "crons": [
     {
       "path": "/api/cron-cache?key=park_intel",
