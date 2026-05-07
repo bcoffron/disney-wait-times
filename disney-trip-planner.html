@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071424 — cache bust v3
+// v202605071501 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -1257,7 +1257,7 @@ async function pullSchedule(){
 }
 
 async function pushApiKey(key){if(!isAdmin())return;try{await fetch(SYNC_BASE+'/api/config',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},body:JSON.stringify({apiKey:key})});}catch(e){console.warn('Push API key:',e);}}
-async function pullApiKey(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/config?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.apiKey&&!apiKey){apiKey=data.apiKey;try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}var s=document.getElementById('apiSetupCard');if(s)s.style.display='none';}}catch(e){console.warn('Pull API key:',e);}}
+async function pullApiKey(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/config?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.apiKey&&!apiKey){apiKey=data.apiKey;try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}var s=document.getElementById('apiSetupCard');if(s&&typeof isAdmin==='function'&&!isAdmin())s.style.display='none';}}catch(e){console.warn('Pull API key:',e);}}
 async function pushSchedule(){if(!isAdmin())return;try{await fetch(SYNC_BASE+'/api/schedule',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},body:JSON.stringify({schedule:customSched})});}catch(e){console.warn('Push schedule:',e);}}
 async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;renderSched();renderDayInfoBar();renderPreTripBanner();setTimeout(renderPreTripWeather,500);}catch(e){console.warn('Pull schedule:',e);}}
 function startScheduleSync(){
