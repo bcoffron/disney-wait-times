@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605062254 — cache bust v3
+// v202605062302 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2235,6 +2235,7 @@ async function reoptimize(){
         if(a2>-1){try{var p4=JSON.parse(cleanText.substring(a2,lb+1));if(Array.isArray(p4)&&p4.length>0&&p4[0].entries)newSecs=p4;}catch(e){}}
       }
     }
+    alert('newSecs:'+(newSecs?'FOUND '+newSecs.length:'NULL')+' expl:'+explanation.substring(0,30));
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
       try{pendingReopt=JSON.parse(JSON.stringify(data));}catch(pe){pendingReopt={};}
       pendingReopt.sections=newSecs;
