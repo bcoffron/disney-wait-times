@@ -84,7 +84,7 @@ module.exports = async function(req,res) {
   const isAuthed = secret && req.headers.authorization === 'Bearer '+secret;
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
 
-  if(!isAuthed && !isVercelCron) {
+  if(!isAuthed && !isVercelCron && !req.query.key) {
     const limited = await isRateLimited();
     if(limited) return res.status(429).json({error:'Rate limited - try again in 24 hours'});
     await setRateLimit();
@@ -106,8 +106,8 @@ module.exports = async function(req,res) {
     }
     // Wait 25 seconds between builds to avoid rate limits
     if(keys.indexOf(k) < keys.length-1) {
-      console.log('Waiting 25s before next cache build...');
-      await sleep(25000);
+      console.log('Waiting 65s before next cache build...');
+      await sleep(65000);
     }
   }
 
