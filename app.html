@@ -501,8 +501,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="reopt-label">&#10024; AI SCHEDULE OPTIMIZATION</div>
       <div class="reopt-text" id="reoptText"></div>
       <div class="reopt-btns" id="reoptBtns">
-        <button class="reopt-apply" onclick="applyReopt()">Apply New Schedule</button>
-        <button class="reopt-dismiss" onclick="dismissReopt()">Keep Current</button>
+        <button class="reopt-apply" onclick="applyReopt()" style="background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-weight:700;">✓ Accept Changes</button>
+        <button class="reopt-dismiss" onclick="dismissReopt()" style="border:1px solid var(--border);background:none;color:var(--text-muted);">✕ Keep Current</button>
       </div>
     </div>
 
@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605070251 — cache bust v3
+// v202605070301 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2217,6 +2217,8 @@ async function reoptimize(){
       txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;">'+renderMarkdown(expText)+'</div>';
       btns.classList.add('show');
       reoptCache[hash]={explanation:expText,result:pendingReopt};
+      // Scroll buttons into view
+      setTimeout(function(){try{btns.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}},100);
     }else{
       txt.textContent=explanation||text;
       if(explanation&&explanation.length>20){
