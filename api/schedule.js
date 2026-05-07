@@ -11,7 +11,8 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const ADMIN_KEY = 'CWdis2026admin';
+  const ADMIN_KEY = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
+  const sentKey = (req.headers['x-admin-key'] || '').toLowerCase();
 
   if (req.method === 'POST') {
     // Only admin can push schedule
