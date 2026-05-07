@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605070956 — cache bust v3
+// v202605071013 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2191,34 +2191,12 @@ async function reoptimize(){
     +'Current schedule:\n'+summary
 
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:(!atPark&&hasCache?[]:[{type:'web_search_20250305',name:'web_search'}]),system:'You are an expert Disneyland touring planner. When not at the park, search for current tips, rope drop strategies, and crowd patterns. CRITICAL FORMAT: Output JSONSTART[sections array]JSONEND then one line starting with SUMMARY:. Nothing before JSONSTART. Sections must match exact schema with title and entries fields.',messages:[{role:'user',content:prompt}]})
-    });
-    var resp=await r.json();
-    if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit — retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='API error: '+resp.error.message;}return;}
-    var text='';if(resp.content&&resp.content.length){resp.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    
+    var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,systemPrompt:'You are an expert Disneyland touring planner. Output JSONSTART[updated sections array]JSONEND then SUMMARY: [max 15 words on biggest change]. Sections schema: [{title:string,entries:[{t:string,h:string,n:string,type:string}]}].',useWebSearch:preTrip&&!hasCache,apiKey:apiKey})});
 
-    var newSecs=null;
-    var explanation='Schedule optimized.';
-    var cleanText=text.replace(/```json|```/g,'').trim();
-    var js1=cleanText.indexOf('JSONSTART');
-    var arrEnd=-1;
-    if(js1>-1){
-      var afterMark=cleanText.substring(js1+9).trim();
-      var dep=0;
-      for(var ci=0;ci<afterMark.length;ci++){if(afterMark[ci]==='[')dep++;else if(afterMark[ci]===']'){dep--;if(dep===0){arrEnd=ci;break;}}}
-      if(arrEnd>-1){
-        var jsonStr=afterMark.substring(0,arrEnd+1);
-        var safeJson=jsonStr.replace(/([^\\])\n/g,'$1\\n').replace(/([^\\])\r/g,'$1\\r').replace(/([^\\])\t/g,'$1\\t');
-        try{var p1=JSON.parse(safeJson);if(Array.isArray(p1)&&p1.length>0)newSecs=p1;}catch(e1){}
-        if(!newSecs){try{var p2=JSON.parse(jsonStr);if(Array.isArray(p2)&&p2.length>0)newSecs=p2;}catch(e2){}}
-        if(newSecs){var rest=afterMark.substring(arrEnd+1).replace(/JSONEND/g,'').trim();if(rest.length>3&&rest.length<300)explanation=rest.replace(/^SUMMARY[\s:]*/,'').split('\n')[0].trim();}
-      }
-    }
-    if(!newSecs){var lb=cleanText.lastIndexOf(']');if(lb>-1){var d2=0,a2=-1;for(var ci=lb;ci>=0;ci--){if(cleanText[ci]===']')d2++;else if(cleanText[ci]==='['){d2--;if(d2===0){a2=ci;break;}}}if(a2>-1){var chunk=cleanText.substring(a2,lb+1);var sc=chunk.replace(/([^\\])\n/g,'$1\\n');try{var p4=JSON.parse(sc);if(Array.isArray(p4)&&p4.length>0&&p4[0].entries)newSecs=p4;}catch(e4){try{var p5=JSON.parse(chunk);if(Array.isArray(p5)&&p5.length>0&&p5[0].entries)newSecs=p5;}catch(e5){}}}}}
+    var resp=await r.json();
+    if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit — retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='Error: '+(resp.error.message||resp.error);}return;}
+    var newSecs=resp.sections||null;
+    var explanation=resp.explanation||'Schedule optimized.';
 
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
       try{pendingReopt=JSON.parse(JSON.stringify(data));}catch(pe){pendingReopt={};}
