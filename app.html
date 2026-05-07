@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605061231 — cache bust v3
+// v202605070251 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2177,7 +2177,6 @@ async function reoptimize(){
     var newSecs=null;
     var explanation='Schedule optimized.';
     var cleanText=text.replace(/```json|```/g,'').trim();
-    // Find JSONSTART then extract array using bracket depth
     var js1=cleanText.indexOf('JSONSTART');
     if(js1>-1){
       var afterMark=cleanText.substring(js1+9).trim();
@@ -2188,65 +2187,24 @@ async function reoptimize(){
       }
       if(arrEnd>-1){
         var jsonStr=afterMark.substring(0,arrEnd+1);
-        // Try parse directly first
         try{
           var p1=JSON.parse(jsonStr);
-          if(Array.isArray(p1)&&p1.length>0){newSecs=p1;}
-        }catch(e1){
-          // iOS Safari may choke on certain unicode - sanitize and retry
-          try{
-            var safe=jsonStr
-              .replace(/\u2014/g,'-')
-              .replace(/\u2013/g,'-')
-              .replace(/\u2019/g,"'")
-              .replace(/\u201c/g,'"')
-              .replace(/\u201d/g,'"')
-              .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'');
-            var p2=JSON.parse(safe);
-            if(Array.isArray(p2)&&p2.length>0){newSecs=p2;}
-          }catch(e2){
-            // Last resort: use Function constructor to eval as JS
-            try{
-              var p3=Function('"use strict";return ('+jsonStr+')')();
-              if(Array.isArray(p3)&&p3.length>0){newSecs=p3;}
-            }catch(e3){}
-          }
-        }
+          if(Array.isArray(p1)&&p1.length>0)newSecs=p1;
+        }catch(e1){}
         if(newSecs){
           var rest=afterMark.substring(arrEnd+1).replace(/JSONEND/g,'').trim();
-          if(rest.length>3&&rest.length<300)explanation=rest.replace(/^SUMMARY[:\s]*/,'').split('\n')[0].trim();
+          if(rest.length>3&&rest.length<300)explanation=rest.replace(/^SUMMARY[\s:]*/,'').split('\n')[0].trim();
         }
       }
     }
-    // Fallback: last array in response
     if(!newSecs){
-      var lastB=cleanText.lastIndexOf(']');
-      if(lastB>-1){
+      var lb=cleanText.lastIndexOf(']');
+      if(lb>-1){
         var d2=0,a2=-1;
-        for(var ci=lastB;ci>=0;ci--){
-          if(cleanText[ci]===']')d2++;
-          else if(cleanText[ci]==='['){d2--;if(d2===0){a2=ci;break;}}
-        }
-        if(a2>-1){
-          try{
-            var p4=JSON.parse(cleanText.substring(a2,lastB+1));
-            if(Array.isArray(p4)&&p4.length>0&&p4[0].entries){newSecs=p4;}
-          }catch(e){}
-        }
+        for(var ci=lb;ci>=0;ci--){if(cleanText[ci]===']')d2++;else if(cleanText[ci]==='['){d2--;if(d2===0){a2=ci;break;}}}
+        if(a2>-1){try{var p4=JSON.parse(cleanText.substring(a2,lb+1));if(Array.isArray(p4)&&p4.length>0&&p4[0].entries)newSecs=p4;}catch(e){}}
       }
     }
-    
-    // TEMP DEBUG
-    (function(){try{
-      var b=document.getElementById('reopt_debug_box');
-      if(!b){b=document.createElement('div');b.id='reopt_debug_box';
-        b.style.cssText='margin-top:8px;padding:8px;background:#000;border-radius:8px;font-size:10px;color:#0f0;font-family:monospace;white-space:pre-wrap;word-break:break-all;';
-        var p=document.getElementById('reoptText');if(p&&p.parentNode)p.parentNode.appendChild(b);}
-      b.textContent='newSecs:'+(newSecs?'OK len='+newSecs.length:'NULL')
-        +'\nexpl:'+explanation
-        +'\nbtns el:'+(document.getElementById('reoptBtns')?'found':'MISSING')
-        +'\nbtnsCls:'+( document.getElementById('reoptBtns')?document.getElementById('reoptBtns').className:'n/a');
-    }catch(de){}})();
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
       try{
         pendingReopt=JSON.parse(JSON.stringify(data));
