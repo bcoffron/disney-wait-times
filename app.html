@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071810 — cache bust v3
+// v202605071816 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2208,6 +2208,12 @@ async function reoptimize(){
     if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit -- retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='Error: '+(resp.error.message||resp.error);}return;}
     var newSecs=resp.sections||null;
     var explanation=resp.explanation||'Schedule optimized.';
+    // If server returned raw text, parse JSONSTART/JSONEND client-side
+    if(!newSecs&&resp.raw){
+      var jm=resp.raw.match(/JSONSTART([\s\S]+?)JSONEND/);
+      var sm=resp.raw.match(/SUMMARY:\s*(.+)/);
+      if(jm){try{newSecs=JSON.parse(jm[1].trim());if(sm)explanation=sm[1].trim();}catch(e){}}
+    }
 
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
       try{pendingReopt=JSON.parse(JSON.stringify(data));}catch(pe){pendingReopt={};}
