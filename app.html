@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605070319 — cache bust v3
+// v202605070326 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2088,19 +2088,20 @@ async function reoptimize(){
   var btns=document.getElementById('reoptBtns');
   box.style.display='block';
   btns.style.display='none';
-  txt.innerHTML='<span>Analyzing schedule with live + historical data</span> <span class="blink"><span>\u00b7</span><span>\u00b7</span><span>\u00b7</span></span>';
+  var loadMsg=atPark?'Analyzing schedule with live wait times':'Researching strategies and optimizing schedule';
+  txt.innerHTML='<span>'+loadMsg+'</span> <span class="blink"><span>\u00b7</span><span>\u00b7</span><span>\u00b7</span></span>';
   if(!apiKey){txt.textContent='An API key is required for AI optimization. Add it in the Info tab.';return;}
 
   // Check cache - if schedule hasn't changed, reuse last result
   var data=getCurDay();
   var hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]){
-    txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+renderMarkdown(reoptCache[hash].explanation)+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
+    txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+renderMarkdown(reoptCache[hash].explanation)+'<br><span style="font-size:11px;color:var(--text-muted)">(cached)</span></div>'
+      +'<div style="display:flex;gap:8px;margin-top:4px;">'
+      +'<button onclick="applyReopt()" style="flex:1;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#6D28D9,#1B2FA0);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">✓ Accept</button>'
+      +'<button onclick="dismissReopt()" style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #ccc;background:none;color:#666;font-size:14px;font-family:inherit;cursor:pointer;">✕ Keep Current</button>'
+      +'</div>';
     pendingReopt=reoptCache[hash].result;
-    btns.style.display='flex';
-    btns.style.gap='8px';
-    btns.style.marginTop='12px';
-    setTimeout(function(){try{btns.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}},150);
     return;
   }
 
@@ -2235,20 +2236,15 @@ async function reoptimize(){
       }
     }
     if(newSecs&&Array.isArray(newSecs)&&newSecs.length>0){
-      try{
-        pendingReopt=JSON.parse(JSON.stringify(data));
-        pendingReopt.sections=newSecs;
-      }catch(pe){
-        // Deep copy failed - use direct reference
-        pendingReopt={sections:newSecs,day:data.day,label:data.label,sub:data.sub};
-      }
-      var expText=explanation&&explanation.length>5?explanation:'Schedule optimized — tap Accept to apply changes.';
-      txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;">'+renderMarkdown(expText)+'</div>';
-      btns.style.display='flex';
-      btns.style.gap='8px';
-      btns.style.marginTop='12px';
+      try{pendingReopt=JSON.parse(JSON.stringify(data));}catch(pe){pendingReopt={};}
+      pendingReopt.sections=newSecs;
+      var expText=explanation&&explanation.length>5?explanation:'Schedule optimized — tap Accept to apply.';
+      txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+renderMarkdown(expText)+'</div>'
+        +'<div style="display:flex;gap:8px;margin-top:4px;">'
+        +'<button onclick="applyReopt()" style="flex:1;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#6D28D9,#1B2FA0);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">✓ Accept</button>'
+        +'<button onclick="dismissReopt()" style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #ccc;background:none;color:#666;font-size:14px;font-family:inherit;cursor:pointer;">✕ Keep Current</button>'
+        +'</div>';
       reoptCache[hash]={explanation:expText,result:pendingReopt};
-      setTimeout(function(){try{btns.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}},150);
     }else{
       txt.textContent=explanation||text;
       if(explanation&&explanation.length>20){
