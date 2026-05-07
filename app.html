@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605062236 — cache bust v3
+// v202605062244 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2083,7 +2083,7 @@ function scheduleHash(data){
 }
 
 async function reoptimize(){
-  var box=document.getElementById('reoptBox');
+  reoptCache={};var box=document.getElementById('reoptBox');
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
   box.style.display='block';
@@ -2096,12 +2096,14 @@ async function reoptimize(){
   var data=getCurDay();
   var hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]){
-    txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+renderMarkdown(reoptCache[hash].explanation)+'<br><span style="font-size:11px;color:var(--text-muted)">(cached)</span></div>'
+    var cached=reoptCache[hash];
+    pendingReopt=cached.result;
+    var expC=cached.explanation||'Schedule optimized.';
+    txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+renderMarkdown(expC)+'<br><span style="font-size:11px;color:var(--text-muted)">(cached)</span></div>'
       +'<div style="display:flex;gap:8px;margin-top:4px;">'
-      +'<button onclick="applyReopt()" style="flex:1;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#6D28D9,#1B2FA0);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">✓ Accept</button>'
-      +'<button onclick="dismissReopt()" style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #ccc;background:none;color:#666;font-size:14px;font-family:inherit;cursor:pointer;">✕ Keep Current</button>'
+      +'<button onclick="applyReopt()" style="flex:1;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#6D28D9,#1B2FA0);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">\u2713 Accept</button>'
+      +'<button onclick="dismissReopt()" style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #ccc;background:none;color:#666;font-size:14px;font-family:inherit;cursor:pointer;">\u2715 Keep Current</button>'
       +'</div>';
-    pendingReopt=reoptCache[hash].result;
     return;
   }
 
