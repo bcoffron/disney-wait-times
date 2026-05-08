@@ -17,6 +17,7 @@ async function blobSet(key,value) {
   const data = {value,ts:Date.now()};
   try {
     await put('twize/'+key+'.json', JSON.stringify(data), {
+      access:'public',
       addRandomSuffix:false,
       contentType:'application/json',
       allowOverwrite:true
