@@ -10,11 +10,9 @@ const apiKey=process.env.ANTHROPIC_API_KEY||clientKey;
 if(!apiKey)return res.status(500).json({error:"No API key"});
 if(!prompt)return res.status(400).json({error:"Missing prompt"});
 
-// Extract existing sections JSON from prompt (between JSONSTART[ and ]JSONEND)
 const existingMatch=prompt.match(/JSONSTART(\[\s\S]*?\])JSONEND/);
 const existingSections=existingMatch?existingMatch[1]:null;
 
-// Always use Sonnet — reliable JSON output from long prompts
 const tools=useWebSearch?[{type:"web_search_20250305",name:"web_search"}]:[];
 const model="claude-sonnet-4-6";
 
@@ -34,11 +32,10 @@ headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version
 body:JSON.stringify({model,max_tokens:2000,system,tools,messages:[{role:"user",content:userMsg}]})
 });
 const data=await r.json();
-if(data.error)return res.status(500).json({error:data.error});
+if(data.error)return res.status(500).json({error:data.error.message||data.error});
 let text="";
 for(const block of(data.content||[]))if(block.type==="text")text+=block.text;
 
-// Robust JSON extraction
 const clean=text.replace(/```json[\s\S]*?```/g,"").replace(/```/g,"").trim();
 
 let parsed=null;
