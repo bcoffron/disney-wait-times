@@ -393,7 +393,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <!-- Tinkerbell transition overlay -->
 <div class="tink-overlay" id="tinkOverlay"></div>
 <div class="tink-fairy" id="tinkFairy" style="display:none">
-  <div class="tink-body">🧚</div>
+  <div class="tink-body">ð§</div>
 </div>
 
 <div class="lock-screen" id="lockScreen">
@@ -429,7 +429,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <div class="app" id="mainApp" style="display:none">
 
 <div class="header">
-  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">✨ 🏰 ✨</div>
+  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">â¨ ð° â¨</div>
   <div class="header-top">
     <div>
       <div class="header-title"><svg width="26" height="22" viewBox="0 0 52 44" style="vertical-align:middle;margin-right:5px;flex-shrink:0" fill="#1B2FA0"><circle cx="12" cy="14" r="12"/><circle cx="40" cy="14" r="12"/><circle cx="26" cy="30" r="16"/></svg>Coffron/Woods Disneyland Trip</div>
@@ -440,12 +440,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
   <div id="preTripBanner" style="margin-bottom:10px;">
   <div onclick="openPreTrip()" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
-    <div style="font-size:24px;">🗺️</div>
+    <div style="font-size:24px;">ðºï¸</div>
     <div style="flex:1;">
-      <div style="font-size:14px;font-weight:700;color:var(--text);">👉 Do This First: Pre-Trip Planning</div>
-      <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather · Packing · Dining · Group Setup</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);">ð Do This First: Pre-Trip Planning</div>
+      <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather Â· Packing Â· Dining Â· Group Setup</div>
     </div>
-    <div style="font-size:18px;color:var(--gold,#C9860A);">›</div>
+    <div style="font-size:18px;color:var(--gold,#C9860A);">âº</div>
   </div>
 </div>
 
@@ -488,7 +488,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="day-info-bar" id="dayInfoBar"></div>
     <!-- Guest sync note -->
     <div id="guestSyncNote" style="display:none;padding:7px 12px;background:rgba(27,47,160,0.06);border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);margin-bottom:10px;font-size:11px;color:var(--magic);text-align:center">
-      &#128274; Read-only schedule · Auto-syncs every 2 min
+      &#128274; Read-only schedule Â· Auto-syncs every 2 min
     </div>
     <!-- Edit / AI Optimize / Reset bar -->
     <div class="edit-bar">
@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071916 — cache bust v3
+// v202605071916 â cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -658,9 +658,9 @@ function isWithinParkWindow(){
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
 const CLOSED=[
-  {n:'Pirates of the Caribbean',d:'Closed since May 4 — no confirmed reopening for late June'},
-  {n:'Buzz Lightyear Astro Blasters',d:'Closed since April 13 — no reopening date'},
-  {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27 — no reopening date'},
+  {n:'Pirates of the Caribbean',d:'Closed since May 4 â no confirmed reopening for late June'},
+  {n:'Buzz Lightyear Astro Blasters',d:'Closed since April 13 â no reopening date'},
+  {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27 â no reopening date'},
 ];
 
 const DAYS=[
@@ -767,7 +767,7 @@ const SHOWS=[
   {name:'\u{1F30C} Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',hl:false,desc:"The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min. No reserved viewing needed."},
 ];
 
-// ── State ─────────────────────────────────────────────────────────────────
+// ââ State âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var apiKey='', curDay=0, curTab='schedule';
 var waits={}, waitLastFetch=0;
 var weatherData=null;
@@ -825,7 +825,7 @@ function tryUnlock(){
     try{localStorage.setItem('disney_unlocked','guest');}catch(e){}
     playTinkAnimation();
   }else{
-    document.getElementById('lockError').textContent='Incorrect password — try again!';
+    document.getElementById('lockError').textContent='Incorrect password â try again!';
     document.getElementById('lockInput').value='';
     setTimeout(function(){document.getElementById('lockError').textContent='';},3000);
   }
@@ -945,9 +945,9 @@ function generateStars(){
 }
 
 var PARK_HOURS=[
-  {dl:'8:00 AM – 12:00 AM',dca:'8:00 AM – 10:00 PM',note:'Sunday peak summer — always verify in the Disneyland app'},
-  {dl:'8:00 AM – 11:00 PM',dca:'8:00 AM – 10:00 PM',note:'Monday VIP Tour day — verify in Disneyland app'},
-  {dl:'8:00 AM – 11:00 PM',dca:'8:00 AM – 10:00 PM',note:'Tuesday — verify in Disneyland app'},
+  {dl:'8:00 AM â 12:00 AM',dca:'8:00 AM â 10:00 PM',note:'Sunday peak summer â always verify in the Disneyland app'},
+  {dl:'8:00 AM â 11:00 PM',dca:'8:00 AM â 10:00 PM',note:'Monday VIP Tour day â verify in Disneyland app'},
+  {dl:'8:00 AM â 11:00 PM',dca:'8:00 AM â 10:00 PM',note:'Tuesday â verify in Disneyland app'},
 ];
 
 async function fetchParkHours(){
@@ -1077,9 +1077,9 @@ function getCountdown(){
   var d3=new Date('2026-06-30T00:00:00');
   var d4=new Date('2026-07-01T00:00:00');
   if(now>=d4) return null;
-  if(now>=d3&&now<d4) return {during:true,msg:'Last day — Make it magical! 🎆'};
-  if(now>=d2&&now<d3) return {during:true,msg:'You’re a VIP today! ⭐'};
-  if(now>=d1&&now<d2) return {during:true,msg:'Day 1 of 3 — Let’s go! ✨'};
+  if(now>=d3&&now<d4) return {during:true,msg:'Last day â Make it magical! ð'};
+  if(now>=d2&&now<d3) return {during:true,msg:'Youâre a VIP today! â­'};
+  if(now>=d1&&now<d2) return {during:true,msg:'Day 1 of 3 â Letâs go! â¨'};
   var days=Math.ceil((d1-now)/(1000*60*60*24));
   return {during:false,days:days};
 }
@@ -1088,13 +1088,13 @@ function renderCountdown(){
   var hel=document.getElementById('headerCountdown');
   if(hel){
     if(cd&&cd.during){hel.textContent=cd.msg;hel.style.display='block';}
-    else if(cd&&!cd.during){hel.textContent=cd.days+(cd.days===1?' day':' days')+' until the magic begins ✨';hel.style.display='block';}
+    else if(cd&&!cd.during){hel.textContent=cd.days+(cd.days===1?' day':' days')+' until the magic begins â¨';hel.style.display='block';}
     else{hel.style.display='none';}
   }
   var lcont=document.getElementById('lockCountdown');
   if(lcont){
     if(cd&&cd.during){lcont.style.display='block';document.getElementById('lockCountdownMsg').textContent=cd.msg;document.getElementById('lockCountdownNum').textContent='';}
-    else if(cd&&!cd.during){lcont.style.display='block';document.getElementById('lockCountdownNum').textContent=cd.days+(cd.days===1?' day':' days');document.getElementById('lockCountdownMsg').textContent='until the magic begins ✨';}
+    else if(cd&&!cd.during){lcont.style.display='block';document.getElementById('lockCountdownNum').textContent=cd.days+(cd.days===1?' day':' days');document.getElementById('lockCountdownMsg').textContent='until the magic begins â¨';}
     else{lcont.style.display='none';}
   }
 }
@@ -1103,10 +1103,10 @@ function renderDayInfoBar(){
   if(!el) return;
   var ph=PARK_HOURS[curDay]||PARK_HOURS[0];
   var days=['Sun Jun 28','Mon Jun 29','Tue Jun 30'];
-  var waitStatusTxt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live — just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+'m ago'):'Loading wait times...';
+  var waitStatusTxt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live â just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+'m ago'):'Loading wait times...';
   var waitColor=waitLastFetch?'#15803D':'var(--text-dim)';
   var hoursHTML='<div class="park-hours-card">'
-    +'<div class="ph-title">&#127984; Park Hours — '+days[curDay]+'</div>'
+    +'<div class="ph-title">&#127984; Park Hours â '+days[curDay]+'</div>'
     +'<div class="ph-row"><span class="ph-park">Disneyland</span><span class="ph-time">'+ph.dl+'</span></div>'
     +'<div class="ph-row"><span class="ph-park">DCA</span><span class="ph-time">'+ph.dca+'</span></div>'
     
@@ -1137,27 +1137,27 @@ function todayPT(){try{return new Date().toLocaleDateString('en-CA',{timeZone:'A
 var DAY_TIPS=[
   // Sunday Jun 28
   [
-    {icon:'&#127939;',label:'Rope Drop Strategy',text:'Arrive at turnstiles by 7:55 AM. The moment gates open, head straight for Rise of the Resistance via Galaxy’s Edge — it fills fast. If Rise has a long wait when you arrive (60+ min), skip it and hit Tiana’s Bayou Adventure first then come back to Rise after 7 PM when waits drop. Note: Sunday is your busiest day — use 11 AM–2 PM for dining and shows when crowds peak.'},
-    {icon:'&#9889;',label:'First 90 Minutes',text:'Hit this order for minimum waits: Rise of the Resistance → Millennium Falcon → Indiana Jones. All three are in the same general direction from the entrance. Avoid Fantasyland until after 11 AM — it gets swamped with families right at opening.'},
-    {icon:'&#127878;',label:'Wondrous Journeys Fireworks',text:'Best spot: the Castle Hub at the end of Main Street, dead center. Arrive 15-20 min early and stand on the center path facing the castle. Second best: the walkway near Small World. Avoid Tomorrowland side — castle projections are sideways from there.'},
-    {icon:'&#127917;',label:'Fantasmic! Viewing',text:'For the first show: arrive 40-45 min early and sit center-river, upper section of the amphitheater for the best sight lines. For the second show (if attending): arrive just 20 min early — far less crowded. The left side (stage left) has slightly better views of the dragon finale.'},
-    {icon:'&#127882;',label:'Paint the Night Parade',text:'Best spots: anywhere on Main Street USA between the castle and Town Square. The corner of Main Street and the Plaza is ideal — floats slow down there for the turn. Avoid the Tomorrowland Terrace area — crowds are thicker. Grab your spot 30 min early for a front row position.'}
+    {icon:'&#127939;',label:'Rope Drop Strategy',text:'Arrive at turnstiles by 7:55 AM. The moment gates open, head straight for Rise of the Resistance via Galaxyâs Edge â it fills fast. If Rise has a long wait when you arrive (60+ min), skip it and hit Tianaâs Bayou Adventure first then come back to Rise after 7 PM when waits drop. Note: Sunday is your busiest day â use 11 AMâ2 PM for dining and shows when crowds peak.'},
+    {icon:'&#9889;',label:'First 90 Minutes',text:'Hit this order for minimum waits: Rise of the Resistance â Millennium Falcon â Indiana Jones. All three are in the same general direction from the entrance. Avoid Fantasyland until after 11 AM â it gets swamped with families right at opening.'},
+    {icon:'&#127878;',label:'Wondrous Journeys Fireworks',text:'Best spot: the Castle Hub at the end of Main Street, dead center. Arrive 15-20 min early and stand on the center path facing the castle. Second best: the walkway near Small World. Avoid Tomorrowland side â castle projections are sideways from there.'},
+    {icon:'&#127917;',label:'Fantasmic! Viewing',text:'For the first show: arrive 40-45 min early and sit center-river, upper section of the amphitheater for the best sight lines. For the second show (if attending): arrive just 20 min early â far less crowded. The left side (stage left) has slightly better views of the dragon finale.'},
+    {icon:'&#127882;',label:'Paint the Night Parade',text:'Best spots: anywhere on Main Street USA between the castle and Town Square. The corner of Main Street and the Plaza is ideal â floats slow down there for the turn. Avoid the Tomorrowland Terrace area â crowds are thicker. Grab your spot 30 min early for a front row position.'}
   ],
   // Monday Jun 29 - VIP Tour
   [
-    {icon:'&#11088;',label:'VIP Tour Tips',text:'Your guide will meet you at the park entrance at 10 AM. Let them lead — they have access to private entrances, back routes and can re-ride attractions. Tell them your must-rides at the start. Don’t be shy about asking for specific rides or a second lap on a favorite.'},
-    {icon:'&#127882;',label:'Paint the Night — VIP Reserved',text:'Your VIP reserved viewing spot is the best in the park. Arrive at the designated area 10 min before showtime — no need to stake out early like everyone else. Your guide will show you exactly where to stand. Enjoy the freedom of not fighting for position.'},
-    {icon:'&#127753;',label:'World of Color — VIP Reserved',text:'VIP viewing puts you at the front of the lagoon. Arrive at Paradise Gardens 15 min before showtime. The show is 25 min — stay for the full ending with the Pixar finale sequence, it’s the best part. Consider splitting your group to experience both sides of the lagoon.'},
-    {icon:'&#9889;',label:'Maximize the VIP Tour',text:'VIP tours move FAST. Eat a good breakfast — you won’t have many natural breaks. Keep snacks in your bag. The tour covers both parks so wear comfortable shoes. You can request specific experiences like Galaxy’s Edge immersion or character meet-and-greets along the route.'},
-    {icon:'&#127869;',label:'Dinner Timing',text:'Your ~5 PM dinner break is perfectly timed — the tour handles peak afternoon crowds and you eat while the parks hit maximum congestion. Return refreshed for VIP Paint the Night and World of Color in the evening. Don’t rush dinner — the evening events are reserved so you have time.'},
+    {icon:'&#11088;',label:'VIP Tour Tips',text:'Your guide will meet you at the park entrance at 10 AM. Let them lead â they have access to private entrances, back routes and can re-ride attractions. Tell them your must-rides at the start. Donât be shy about asking for specific rides or a second lap on a favorite.'},
+    {icon:'&#127882;',label:'Paint the Night â VIP Reserved',text:'Your VIP reserved viewing spot is the best in the park. Arrive at the designated area 10 min before showtime â no need to stake out early like everyone else. Your guide will show you exactly where to stand. Enjoy the freedom of not fighting for position.'},
+    {icon:'&#127753;',label:'World of Color â VIP Reserved',text:'VIP viewing puts you at the front of the lagoon. Arrive at Paradise Gardens 15 min before showtime. The show is 25 min â stay for the full ending with the Pixar finale sequence, itâs the best part. Consider splitting your group to experience both sides of the lagoon.'},
+    {icon:'&#9889;',label:'Maximize the VIP Tour',text:'VIP tours move FAST. Eat a good breakfast â you wonât have many natural breaks. Keep snacks in your bag. The tour covers both parks so wear comfortable shoes. You can request specific experiences like Galaxyâs Edge immersion or character meet-and-greets along the route.'},
+    {icon:'&#127869;',label:'Dinner Timing',text:'Your ~5 PM dinner break is perfectly timed â the tour handles peak afternoon crowds and you eat while the parks hit maximum congestion. Return refreshed for VIP Paint the Night and World of Color in the evening. Donât rush dinner â the evening events are reserved so you have time.'},
   ],
   // Tuesday Jun 30
   [
-    {icon:'&#127939;',label:'DCA Rope Drop',text:'Arrive at DCA gates by 7:55 AM. Make a beeline for Radiator Springs Racers — it’s the longest wait in the park and the best ride at DCA. If waits are already 45+ min at rope drop, grab a Lightning Lane and head to Guardians of the Galaxy – Mission: BREAKOUT! first instead.'},
-    {icon:'&#9889;',label:'Tuesday Advantage',text:'Tuesday is your lightest crowd day of the trip. Take advantage by revisiting any rides you missed or re-riding favorites. Waits that were 60+ min on Sunday will likely be 20-30 min today. This is your best shot at Toy Story Midway Mania — it draws big crowds but eases up by late afternoon.'},
-    {icon:'&#127917;',label:'Fantasmic! Final Night',text:'Tonight is your last Fantasmic! — catch the second showing if possible for shortest waits. The show ends around 10:30-11 PM which leaves time to grab a Mickey bar on Main Street before heading out. Second show tip: stake out a spot near the entrance/exit for easy departure after.'},
-    {icon:'&#127869;',label:'Café Orleans — 6:30 PM',text:'Arrive 5 min early and check in at the host stand. Must-orders: Monte Cristo sandwich and the beignets for the table. The restaurant is right next to the Rivers of America — ask for a patio table if available for the best ambiance. After dinner you’re perfectly positioned for Fantasmic!'},
-    {icon:'&#10024;',label:'Last Night Magic',text:'After Fantasmic!, take one final walk down Main Street before closing. The park is less crowded in the last 30 min and the castle looks incredible lit up at night. Grab a churro or Dole Whip from a cart — most carts stay open until park close. A perfect way to end the trip.'},
+    {icon:'&#127939;',label:'DCA Rope Drop',text:'Arrive at DCA gates by 7:55 AM. Make a beeline for Radiator Springs Racers â itâs the longest wait in the park and the best ride at DCA. If waits are already 45+ min at rope drop, grab a Lightning Lane and head to Guardians of the Galaxy â Mission: BREAKOUT! first instead.'},
+    {icon:'&#9889;',label:'Tuesday Advantage',text:'Tuesday is your lightest crowd day of the trip. Take advantage by revisiting any rides you missed or re-riding favorites. Waits that were 60+ min on Sunday will likely be 20-30 min today. This is your best shot at Toy Story Midway Mania â it draws big crowds but eases up by late afternoon.'},
+    {icon:'&#127917;',label:'Fantasmic! Final Night',text:'Tonight is your last Fantasmic! â catch the second showing if possible for shortest waits. The show ends around 10:30-11 PM which leaves time to grab a Mickey bar on Main Street before heading out. Second show tip: stake out a spot near the entrance/exit for easy departure after.'},
+    {icon:'&#127869;',label:'CafÃ© Orleans â 6:30 PM',text:'Arrive 5 min early and check in at the host stand. Must-orders: Monte Cristo sandwich and the beignets for the table. The restaurant is right next to the Rivers of America â ask for a patio table if available for the best ambiance. After dinner youâre perfectly positioned for Fantasmic!'},
+    {icon:'&#10024;',label:'Last Night Magic',text:'After Fantasmic!, take one final walk down Main Street before closing. The park is less crowded in the last 30 min and the castle looks incredible lit up at night. Grab a churro or Dole Whip from a cart â most carts stay open until park close. A perfect way to end the trip.'},
   ],
 ];
 
@@ -1222,7 +1222,7 @@ function renderDayTipsCard(dayIdx){
     +'<div class="day-tips-body" id="dt_body_'+dayIdx+'">'
     +'<div style="display:flex;gap:8px;padding:8px 10px;background:rgba(27,47,160,0.06);border-radius:var(--radius-sm);margin-bottom:10px;align-items:flex-start">'
     +'<span style="font-size:14px;flex-shrink:0">&#128161;</span>'
-    +'<span style="font-size:11px;color:var(--text-muted);line-height:1.6"><b style="color:var(--magic)">Tip:</b> These are general guidelines based on historical patterns. For the best ride order on the day, use <b style="color:var(--magic)">&#10024; AI Optimize</b> in your schedule — it factors in live wait times, walking distances, and your specific itinerary.</span>'
+    +'<span style="font-size:11px;color:var(--text-muted);line-height:1.6"><b style="color:var(--magic)">Tip:</b> These are general guidelines based on historical patterns. For the best ride order on the day, use <b style="color:var(--magic)">&#10024; AI Optimize</b> in your schedule â it factors in live wait times, walking distances, and your specific itinerary.</span>'
     +'</div>';
   tips.forEach(function(t){
     h+='<div class="tip-item"><div class="tip-icon">'+t.icon+'</div><div class="tip-body"><div class="tip-label">'+t.label+'</div><div class="tip-text">'+t.text+'</div></div></div>';
@@ -1237,7 +1237,7 @@ var notesLastSync=null;
 var notesSyncInterval=null;
 var schedSyncInterval=null;
 
-// ── Schedule sync ─────────────────────────────────────────────────────────
+// ââ Schedule sync âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function pushApiKey(key){
   if(!isAdmin()) return;
   try{
@@ -1314,7 +1314,7 @@ function startScheduleSync(){
   }
 }
 
-// ── VIP notes sync ────────────────────────────────────────────────────────
+// ââ VIP notes sync ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function pushVipNotes(dayIdx,val){
   try{
     await fetch(SYNC_BASE+'/api/vipnotes',{
@@ -1383,8 +1383,8 @@ async function fetchWaits(){
 function normalizeRideName(s){
   return s.toLowerCase()
     // remove trademark/copyright symbols
-    .replace(/[’‘']/g,"'")
-    .replace(/[™®©]/g,'')
+    .replace(/[ââ']/g,"'")
+    .replace(/[â¢Â®Â©]/g,'')
     // remove punctuation except spaces
     .replace(/[^a-z0-9 ]/g,' ')
     // normalize common words
@@ -1455,7 +1455,7 @@ function updateWaitStatus(){
 
 function startWaitRefresh(){fetchWaits();setInterval(fetchWaits,5*60*1000);setInterval(updateWaitStatus,60*1000);}
 
-// ── Lightning Lane system ────────────────────────────────────────────────
+// ââ Lightning Lane system ââââââââââââââââââââââââââââââââââââââââââââââââ
 var llState={multiPass:null,individualPasses:{},bookedTimes:{}};
 var llPromptShown={planning:false,confirmed:false};
 
@@ -1600,7 +1600,7 @@ function scheduleLLPrompts(){
   }
 }
 
-// ── LL banner "Got it" buttons ────────────────────────────────────────────
+// ââ LL banner "Got it" buttons ââââââââââââââââââââââââââââââââââââââââââââ
 function llGotIt(rideKey, bannerEl){
   var timeInput=bannerEl.parentNode.querySelector('.ll-time-input');
   var returnTime=timeInput?timeInput.value.trim():'';
@@ -1640,7 +1640,7 @@ function llGotIt(rideKey, bannerEl){
   }
 }
 
-// ── Magic Day fireworks ──────────────────────────────────────────────────
+// ââ Magic Day fireworks ââââââââââââââââââââââââââââââââââââââââââââââââââ
 var fwParticles=[], fwAnimId=null, fwLaunchTimer=null;
 
 function launchFwBurst(canvas){
@@ -1708,7 +1708,7 @@ function closeMagicDay(){
   applyRoleUI();
 }
 
-// ── Waze-style smart suggestions ─────────────────────────────────────────
+// ââ Waze-style smart suggestions âââââââââââââââââââââââââââââââââââââââââ
 var wazeActive=false;
 var wazeLastCheck=0;
 var wazeSnooze={};
@@ -1799,7 +1799,7 @@ async function checkWazeSuggestion(){
 
   if(!opportunities.length&&!nextRideWait) return;
 
-  // ── Pre-filter: only call AI if estimated time saving >= 20 min ──────────
+  // ââ Pre-filter: only call AI if estimated time saving >= 20 min ââââââââââ
   var MIN_SAVING=20;
   var worthIt=false;
 
@@ -1833,7 +1833,7 @@ async function checkWazeSuggestion(){
     console.log('Waze: opportunity found but estimated saving <'+MIN_SAVING+' min, skipping AI call');
     return;
   }
-  // ── End pre-filter ────────────────────────────────────────────────────────
+  // ââ End pre-filter ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   // Build prompt for AI
   var oppList=opportunities.slice(0,5).map(function(r){
@@ -1855,7 +1855,7 @@ async function checkWazeSuggestion(){
     +(oppList?'SHORT WAIT OPPORTUNITIES right now: '+oppList+'. ':'')
     +'Current schedule:\n'+schedSummary+'\n'
     +'Based on the current wait times and schedule, give ONE specific actionable suggestion that would save the most time. '
-    +'Format your response as JSON only, no other text: {"headline":"short 8-word max headline","detail":"2-3 sentences. MUST use **bold** on every key ride name, time, and action phrase. Example: **Skip Space Mountain** and head to **Haunted Mansion** — waits drop to **under 20 min** after 8 PM.","walkMins":NUMBER,"timeSaved":NUMBER,"rideToAdd":"ride name or empty","rideToDelay":"ride name to push later or empty"}';
+    +'Format your response as JSON only, no other text: {"headline":"short 8-word max headline","detail":"2-3 sentences. MUST use **bold** on every key ride name, time, and action phrase. Example: **Skip Space Mountain** and head to **Haunted Mansion** â waits drop to **under 20 min** after 8 PM.","walkMins":NUMBER,"timeSaved":NUMBER,"rideToAdd":"ride name or empty","rideToDelay":"ride name to push later or empty"}';
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -1953,17 +1953,17 @@ function startWazeChecks(){
 var editMode=false, customSched=[null,null,null], addSecIdx=null;
 var pendingReopt=null, dragSrc=null;
 
-// ── API Key ───────────────────────────────────────────────────────────────
+// ââ API Key âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function loadKey(){try{apiKey=localStorage.getItem('disney_api_key')||'';}catch(e){}if(apiKey&&apiKey.startsWith('sk-')){document.getElementById('apiSetup').style.display='none';}}
 function saveKey(){var v=document.getElementById('apiKeyInput').value.trim();if(!v.startsWith('sk-')){alert('Enter a valid key starting with sk-');return;}apiKey=v;try{localStorage.setItem('disney_api_key',v);}catch(e){}document.getElementById('apiSaved').classList.add('show');document.getElementById('apiSetup').style.display='none';}
 function saveKey2(){var v=document.getElementById('apiKeyInput2').value.trim();if(!v.startsWith('sk-')){alert('Enter a valid key starting with sk-');return;}apiKey=v;try{localStorage.setItem('disney_api_key',v);}catch(e){}document.getElementById('apiSaved2').classList.add('show');}
 function resetKey(){apiKey='';try{localStorage.removeItem('disney_api_key');}catch(e){}document.getElementById('apiSetup').style.display='';document.getElementById('apiKeyInput').value='';document.getElementById('apiSaved').classList.remove('show');}
 
-// ── Deep links ────────────────────────────────────────────────────────────
+// ââ Deep links ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openDisneyApp(){var a=document.createElement('a');a.href='https://disneyland.disney.go.com/wait-times/';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
 function openLightningLane(){var a=document.createElement('a');a.href='https://disneyland.disney.go.com/my-plans/';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
 
-// ── Schedule storage ──────────────────────────────────────────────────────
+// ââ Schedule storage ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function loadCustom(){for(var d=0;d<3;d++){try{var s=localStorage.getItem('sched_day_'+d);if(s)customSched[d]=JSON.parse(s);}catch(e){}}}
 function saveCustom(d){
   try{localStorage.setItem('sched_day_'+d,JSON.stringify(customSched[d]));}catch(e){}
@@ -1971,14 +1971,14 @@ function saveCustom(d){
 }
 function getCurDay(){return customSched[curDay]||JSON.parse(JSON.stringify(DAYS[curDay]));}
 
-// ── VIP notes ─────────────────────────────────────────────────────────────
+// ââ VIP notes âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function saveVipNotes(d,v){
   try{localStorage.setItem('vip_notes_'+d,v);}catch(e){}
   pushVipNotes(d,v);
 }
 function loadVipNotes(d){try{return localStorage.getItem('vip_notes_'+d)||'';}catch(e){return '';}}
 
-// ── Edit mode ─────────────────────────────────────────────────────────────
+// ââ Edit mode âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function startInlineEdit(el, dayIdx, secIdx, entryIdx, field){
   if(!editMode) return;
   var data=JSON.parse(JSON.stringify(getCurDay()));
@@ -2009,19 +2009,19 @@ function toggleEdit(){if(!isAdmin()){alert('Sign in as admin to edit the schedul
 function resetSched(){if(!confirm('Reset this day to the original schedule?'))return;customSched[curDay]=null;try{localStorage.removeItem('sched_day_'+curDay);}catch(e){}renderSched();}
 function deleteEntry(d,s,e){var data=JSON.parse(JSON.stringify(getCurDay()));data.sections[s].entries.splice(e,1);customSched[d]=data;saveCustom(d);renderSched();}
 
-// ── Drag & drop ───────────────────────────────────────────────────────────
+// ââ Drag & drop âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function onDragStart(e,d,s,i){dragSrc=d+'_'+s+'_'+i;e.dataTransfer.effectAllowed='move';e.currentTarget.classList.add('dragging');}
 function onDragEnd(e){e.currentTarget.classList.remove('dragging');document.querySelectorAll('.drag-over').forEach(function(el){el.classList.remove('drag-over');});}
 function onDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
 function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
 function onDrop(e,d,s,i){e.preventDefault();e.currentTarget.classList.remove('drag-over');if(!dragSrc)return;var p=dragSrc.split('_');var ss=parseInt(p[1]),si=parseInt(p[2]);if(ss===s&&si===i)return;var data=JSON.parse(JSON.stringify(getCurDay()));var moved=data.sections[ss].entries.splice(si,1)[0];var di=(ss===s&&si<i)?i-1:i;data.sections[s].entries.splice(di,0,moved);customSched[d]=data;saveCustom(d);dragSrc=null;renderSched();}
 
-// ── Add entry modal ───────────────────────────────────────────────────────
+// ââ Add entry modal âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openModal(si){addSecIdx=si;document.getElementById('newTime').value='';document.getElementById('newTitle').value='';document.getElementById('newNote').value='';document.getElementById('newType').value='ride';document.getElementById('addModal').classList.remove('hidden');setTimeout(function(){document.getElementById('newTime').focus();},100);}
 function closeModal(){document.getElementById('addModal').classList.add('hidden');addSecIdx=null;}
 function saveEntry(){if(addSecIdx===null)return;var t=document.getElementById('newTime').value.trim();var h=document.getElementById('newTitle').value.trim();if(!t||!h){alert('Time and Title required');return;}var data=JSON.parse(JSON.stringify(getCurDay()));data.sections[addSecIdx].entries.push({t:t,h:h,n:document.getElementById('newNote').value.trim()||'\u00a0',type:document.getElementById('newType').value});customSched[curDay]=data;saveCustom(curDay);closeModal();renderSched();}
 
-// ── Per-ride AI reroute ───────────────────────────────────────────────────
+// ââ Per-ride AI reroute âââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function getReroute(ride,land,btn){
   var card=btn.closest('.ride-block');
   var res=card.querySelector('.reroute-result');
@@ -2087,7 +2087,7 @@ async function getReroute(ride,land,btn){
   btn.disabled=false;
 }
 
-// ── AI Schedule Reoptimize ────────────────────────────────────────────────
+// ââ AI Schedule Reoptimize ââââââââââââââââââââââââââââââââââââââââââââââââ
 var reoptCache={};
 
 function scheduleHash(data){
@@ -2234,7 +2234,7 @@ async function reoptimize(){
 function applyReopt(){if(!pendingReopt)return;customSched[curDay]=pendingReopt;saveCustom(curDay);pendingReopt=null;document.getElementById('reoptBox').style.display='none';renderSched();;document.getElementById("reoptBtns").classList.remove("show");}
 function dismissReopt(){pendingReopt=null;document.getElementById('reoptBox').style.display='none';;document.getElementById("reoptBtns").classList.remove("show");}
 
-// ── Render closed banner ──────────────────────────────────────────────────
+// ââ Render closed banner ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function renderClosed(){
   ['closedBanner','closedBannerInfo'].forEach(function(id){
     var el=document.getElementById(id);
@@ -2252,7 +2252,7 @@ function renderClosed(){
   });
 }
 
-// ── Render schedule ───────────────────────────────────────────────────────
+// ââ Render schedule âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function renderLLBanner(e,dayIdx){
   var isS=e.ll.t==='single';
   var rideKey=(e.ride||e.h||'').toLowerCase().replace(/[^a-z0-9]/g,'_').substring(0,15);
@@ -2330,7 +2330,7 @@ async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx){
     return;
   }
 
-  var locationHint=landCtx&&landCtx!==restaurant?(' Context: dining near '+landCtx+'. If this specific restaurant has limited options for a section, suggest the best nearby alternative and note the restaurant name clearly before each item.'):'';var prompt='Disneyland dining expert. List top dishes at '+restaurant+' at Disneyland Resort. Three sections exactly:\n\nMUST HAVE:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nKIDS:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nVEGETARIAN:\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n- [dish name] — [one sentence description]\n\nReal dish names only. No intro text, just the three sections.'+locationHint;
+  var locationHint=landCtx&&landCtx!==restaurant?(' Context: dining near '+landCtx+'. If this specific restaurant has limited options for a section, suggest the best nearby alternative and note the restaurant name clearly before each item.'):'';var prompt='Disneyland dining expert. List top dishes at '+restaurant+' at Disneyland Resort. Three sections exactly:\n\nMUST HAVE:\n- [dish name] â [one sentence description]\n- [dish name] â [one sentence description]\n- [dish name] â [one sentence description]\n\nKIDS:\n- [dish name] â [one sentence description]\n- [dish name] â [one sentence description]\n- [dish name] â [one sentence description]\n\nVEGETARIAN:\n- [dish name] â [one sentence description]\n- [dish name] â [one sentence description]\n- [dish name] â [one sentence description]\n\nReal dish names only. No intro text, just the three sections.'+locationHint;
 
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -2495,7 +2495,7 @@ function loadDiningSlot(dayIdx, secIdx, entryIdx){
   }catch(e){return null;}
 }
 
-// ── Inline schedule suggestions (bathroom, snack, photo) ─────────────────
+// ââ Inline schedule suggestions (bathroom, snack, photo) âââââââââââââââââ
 function renderInlineSuggestion(e, ei, entries, dayIdx) {
   try {
     var h = '';
@@ -2528,8 +2528,8 @@ function renderInlineSuggestion(e, ei, entries, dayIdx) {
     if (shouldShowBath) {
       window._shownBath[periodKey] = true;
       var bathroomNote = nextIsShow
-        ? 'Hit the restrooms before the show starts — lines get long right after it ends.'
-        : 'Quick restroom break — good time before crowds build at the next cluster.';
+        ? 'Hit the restrooms before the show starts â lines get long right after it ends.'
+        : 'Quick restroom break â good time before crowds build at the next cluster.';
       var bathroomLoc = {
         "Fantasyland": "Closest: near It's a Small World entrance or Pinocchio Village Haus.",
         "New Orleans Square": "Closest: near the French Market restaurant.",
@@ -2677,7 +2677,7 @@ function renderSched(){
   if(typeof checkShowSetupBanner==='function')checkShowSetupBanner();
 }
 
-// ── Render shows ──────────────────────────────────────────────────────────
+// ââ Render shows ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function renderWaitTab(){
   var el=document.getElementById('waitTabContent');
   if(!el) return;
@@ -2736,23 +2736,23 @@ function renderInfoTab(){
     }},
     {id:'general_tips',title:'&#128161; General Park Tips',html:function(){
       var tips=[
-        {icon:'&#127878;',label:'Wondrous Journeys Fireworks — Best Spots',text:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near It’s a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland — you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
-        {icon:'&#127882;',label:'Paint the Night Parade — Best Spots',text:'Main Street USA is the best overall location — the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot — floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
-        {icon:'&#127917;',label:'Fantasmic! — Best Viewing',text:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded — often by 50%.'},
-        {icon:'&#127753;',label:'World of Color — Best Viewing',text:'Paradise Gardens lagoon — center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday you’re already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
-        {icon:'&#127775;',label:'Tapestry of Happiness — It’s a Small World',text:'Runs automatically at dusk every night. No reserved viewing needed — just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
-        {icon:'&#127939;',label:'Rope Drop Strategy',text:'Arrive at the turnstiles 5-10 min before official opening. Cast Members let people through in waves. Be in the first wave to get a 10-15 min head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly — don’t run — to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
-        {icon:'&#9889;',label:'Lightning Lane Strategy',text:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line — this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, Tiana’s early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
-        {icon:'&#128336;',label:'Crowd Flow by Time of Day',text:'6-9 AM: Empty — best time for headliners. 9-11 AM: Building — finish Tomorrowland and Fantasyland. 11 AM-2 PM: Peak — use for dining, shows, or Galaxy’s Edge (it handles crowds better). 2-4 PM: Slightly easier, good for Adventureland. 4-6 PM: Busy but manageable. 7 PM onwards: Crowds thin noticeably as families leave — great for second rides on favorites.'},
-        {icon:'&#127951;',label:'What to Bring',text:'Phone charger/power bank (essential — Disneyland app drains battery fast). Comfortable walking shoes — expect 8-12 miles per day. Light layers for evening (Anaheim cools down after 8 PM). Sunscreen. Reusable water bottle — free water at any counter service. Snacks for the group to avoid long food lines at peak times.'},
-        {icon:'&#128241;',label:'Disneyland App Must-Knows',text:'Download before you go and log in. Mobile Order is a game changer — order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes — use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
-        {icon:'&#127869;',label:'Best Times to Eat — Avoid the Rush',text:'Peak meal times are 12:00–1:30 PM (lunch) and 6:00–7:30 PM (dinner) — restaurants are packed and waits are long. Best lunch: 11:00–11:30 AM (before the rush) or 2:00–3:00 PM (after it). Best dinner: 5:00–5:30 PM (early bird) or 8:00–8:30 PM (late, after shows). Counter service is least busy 2:00–4:00 PM and right before park close.'},
-        {icon:'&#128241;',label:'Mobile Order — Use It Every Time',text:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30–45 min before you want to eat, then tap “I’m here” when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20–30 min just to order.'},
-        {icon:'&#127869;',label:'Walk-up List — Your Secret Weapon',text:'Can’t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day — people regularly snag same-day spots at Lamplight Lounge, Café Orleans, and Carthay Circle this way. Keep checking the app — spots open up frequently.'},
-        {icon:'&#127860;',label:'Must-Order Dishes — Don’t Miss These',text:'Café Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers — fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand — much shorter line. Galaxy’s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
-        {icon:'&#127381;',label:'Share Portions — Save Money & Try More',text:'Portions at Disneyland are large. Lamplight’s Lobster Nachos, Plaza Inn’s fried chicken, and Café Orleans’ Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5–6 items instead of 9 and share around the table.'},
-        {icon:'&#127869;',label:'Dining Package Tip — Fantasmic!',text:'Café Orleans offers a Fantasmic! Dining Package — includes a reserved Fantasmic! viewing area with your meal. If you’re eating at Café Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy’s Edge fireworks also have dining packages. Book 60 days ahead — same window as regular reservations.'},
-        {icon:'&#127879;',label:'Hidden Gems & Local Tips',text:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square — look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle — short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Walt’s personal apartment windows — a light is always kept on in his honor.'},
+        {icon:'&#127878;',label:'Wondrous Journeys Fireworks â Best Spots',text:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near Itâs a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland â you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
+        {icon:'&#127882;',label:'Paint the Night Parade â Best Spots',text:'Main Street USA is the best overall location â the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot â floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
+        {icon:'&#127917;',label:'Fantasmic! â Best Viewing',text:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded â often by 50%.'},
+        {icon:'&#127753;',label:'World of Color â Best Viewing',text:'Paradise Gardens lagoon â center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday youâre already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
+        {icon:'&#127775;',label:'Tapestry of Happiness â Itâs a Small World',text:'Runs automatically at dusk every night. No reserved viewing needed â just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
+        {icon:'&#127939;',label:'Rope Drop Strategy',text:'Arrive at the turnstiles 5-10 min before official opening. Cast Members let people through in waves. Be in the first wave to get a 10-15 min head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly â donât run â to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
+        {icon:'&#9889;',label:'Lightning Lane Strategy',text:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line â this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, Tianaâs early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
+        {icon:'&#128336;',label:'Crowd Flow by Time of Day',text:'6-9 AM: Empty â best time for headliners. 9-11 AM: Building â finish Tomorrowland and Fantasyland. 11 AM-2 PM: Peak â use for dining, shows, or Galaxyâs Edge (it handles crowds better). 2-4 PM: Slightly easier, good for Adventureland. 4-6 PM: Busy but manageable. 7 PM onwards: Crowds thin noticeably as families leave â great for second rides on favorites.'},
+        {icon:'&#127951;',label:'What to Bring',text:'Phone charger/power bank (essential â Disneyland app drains battery fast). Comfortable walking shoes â expect 8-12 miles per day. Light layers for evening (Anaheim cools down after 8 PM). Sunscreen. Reusable water bottle â free water at any counter service. Snacks for the group to avoid long food lines at peak times.'},
+        {icon:'&#128241;',label:'Disneyland App Must-Knows',text:'Download before you go and log in. Mobile Order is a game changer â order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes â use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
+        {icon:'&#127869;',label:'Best Times to Eat â Avoid the Rush',text:'Peak meal times are 12:00â1:30 PM (lunch) and 6:00â7:30 PM (dinner) â restaurants are packed and waits are long. Best lunch: 11:00â11:30 AM (before the rush) or 2:00â3:00 PM (after it). Best dinner: 5:00â5:30 PM (early bird) or 8:00â8:30 PM (late, after shows). Counter service is least busy 2:00â4:00 PM and right before park close.'},
+        {icon:'&#128241;',label:'Mobile Order â Use It Every Time',text:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30â45 min before you want to eat, then tap âIâm hereâ when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20â30 min just to order.'},
+        {icon:'&#127869;',label:'Walk-up List â Your Secret Weapon',text:'Canât get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day â people regularly snag same-day spots at Lamplight Lounge, CafÃ© Orleans, and Carthay Circle this way. Keep checking the app â spots open up frequently.'},
+        {icon:'&#127860;',label:'Must-Order Dishes â Donât Miss These',text:'CafÃ© Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers â fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand â much shorter line. Galaxyâs Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
+        {icon:'&#127381;',label:'Share Portions â Save Money & Try More',text:'Portions at Disneyland are large. Lamplightâs Lobster Nachos, Plaza Innâs fried chicken, and CafÃ© Orleansâ Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5â6 items instead of 9 and share around the table.'},
+        {icon:'&#127869;',label:'Dining Package Tip â Fantasmic!',text:'CafÃ© Orleans offers a Fantasmic! Dining Package â includes a reserved Fantasmic! viewing area with your meal. If youâre eating at CafÃ© Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxyâs Edge fireworks also have dining packages. Book 60 days ahead â same window as regular reservations.'},
+        {icon:'&#127879;',label:'Hidden Gems & Local Tips',text:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square â look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle â short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Waltâs personal apartment windows â a light is always kept on in his honor.'},
       ];
       var h='';
       tips.forEach(function(t){
@@ -2762,8 +2762,8 @@ function renderInfoTab(){
     }},
     
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
-      return '<div class="info-card"><b>Single Pass</b> (~$15–35/person): Rise of the Resistance · Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones · Matterhorn · Space Mountain · Haunted Mansion · Big Thunder · Smugglers Run · Tiana’s · Guardians · Incredicoaster · Web Slingers · Soarin’ · Toy Story<br><br><b>No LL needed Tuesday</b> — VIP tour handles everything.</div>'
-        +'<div class="info-card"><b>Rules:</b> Buy after scanning into park · Book next LL after 2 hrs OR right after scanning into current ride · Book while standing in the current LL line! · Each ride once per day · For 2nd park: book once return time shows 11AM+</div>';
+      return '<div class="info-card"><b>Single Pass</b> (~$15â35/person): Rise of the Resistance Â· Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones Â· Matterhorn Â· Space Mountain Â· Haunted Mansion Â· Big Thunder Â· Smugglers Run Â· Tianaâs Â· Guardians Â· Incredicoaster Â· Web Slingers Â· Soarinâ Â· Toy Story<br><br><b>No LL needed Tuesday</b> â VIP tour handles everything.</div>'
+        +'<div class="info-card"><b>Rules:</b> Buy after scanning into park Â· Book next LL after 2 hrs OR right after scanning into current ride Â· Book while standing in the current LL line! Â· Each ride once per day Â· For 2nd park: book once return time shows 11AM+</div>';
     }},
     
     {id:'bathrooms',title:'&#128698; Bathroom Guide',html:function(){
@@ -2772,7 +2772,7 @@ function renderInfoTab(){
       areas.forEach(function(a){h+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">&#128205; '+a.n+'</div>';a.l.forEach(function(l){h+='<div style="font-size:12px;color:var(--text-muted);padding:2px 0 2px 8px;border-left:2px solid var(--border)">'+l+'</div>';});h+='</div>';});
       return h+'</div>';
     }},
-    {id:'ai_dining',title:'&#127869; Dining Guide — All Restaurants',html:function(){
+    {id:'ai_dining',title:'&#127869; Dining Guide â All Restaurants',html:function(){
       return buildFullDiningGuide();
     }},
     {id:'hopper',title:'&#127915; Park Hopper',html:function(){
@@ -2806,7 +2806,7 @@ function renderInfoTab(){
       return h+'</div>';
     }},
     {id:'apikey',title:'&#128273; Update API Key',html:function(){
-      return '<div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com · ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>';
+      return '<div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com Â· ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>';
     }},
     
     
@@ -2838,7 +2838,7 @@ function renderInfoTab(){
 }
 
 var ALL_RESTAURANTS=[
-  {name:'Café Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended'},
+  {name:'CafÃ© Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended'},
   {name:'Carnation Cafe',park:'Disneyland',type:'Table Service',area:'Main Street USA',res:'Recommended'},
   {name:'River Belle Terrace',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
   {name:'Rancho del Zocalo',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
@@ -2893,17 +2893,17 @@ function buildFullDiningGuide(){
     rests.forEach(function(r){
       var cacheKey='dining_'+r.name.toLowerCase().replace(/[^a-z0-9]/g,'_');
       var cached=null;try{cached=localStorage.getItem(cacheKey);}catch(e){}
-      var safeName=r.name.split("'").join('’');
+      var safeName=r.name.split("'").join('â');
       h+='<div class="rest-card">'
         +'<div class="rest-hdr" onclick="toggleRestCard(this,\''+safeName+'\')">'
-        +'<div><div class="rest-name">'+r.name+'</div><div class="rest-meta">'+r.area+' · '+r.type+(cached?' · <span style="color:var(--green)">&#10003; cached</span>':'')+'</div></div>'
+        +'<div><div class="rest-name">'+r.name+'</div><div class="rest-meta">'+r.area+' Â· '+r.type+(cached?' Â· <span style="color:var(--green)">&#10003; cached</span>':'')+'</div></div>'
         +'<span style="font-size:14px;color:var(--text-dim)">&#9660;</span>'
         +'</div>'
         +'<div class="rest-body" style="display:none;padding:10px 12px">'
         +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0">&#127869; Get dining recs</button>'
         +''
         +'<div class="dining-result"></div>'
-        +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached — tap refresh for latest</div>':'')
+        +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached â tap refresh for latest</div>':'')
         +'</div>'
         +'</div>';
     });
@@ -2922,7 +2922,7 @@ function toggleRestCard(hdr,name){
   var body=hdr.nextElementSibling;
   var isOpen=body.style.display==='block';
   body.style.display=isOpen?'none':'block';
-  hdr.querySelector('span:last-child').textContent=isOpen?'▼':'▲';
+  hdr.querySelector('span:last-child').textContent=isOpen?'â¼':'â²';
   if(!isOpen){
     // Auto-load cached result if available
     var cacheKey='dining_'+name.toLowerCase().replace(/[^a-z0-9]/g,'_');
@@ -2972,7 +2972,7 @@ function renderShows(){
       label:'\u{1F30C} Galaxy\u2019s Edge Shows',
       shows:[
         {name:'\u{1F30C} Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',must:false,desc:'The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min ambient experience. No reserved viewing \u2014 just be in Galaxy\u2019s Edge when it starts. Great for Star Wars fans.'},
-        {name:'\u{1F386} Fire of the Rising Moons',park:'Disneyland',time:'Synced with fireworks ~9:30 PM',days:'Fri\u2013Sun fireworks nights',must:false,desc:'The same Wondrous Journeys fireworks watched from inside Galaxy’s Edge with Star Wars music playing. Best for hardcore Star Wars fans. Sunday night you’d miss the castle projections from Main Street \u2014 the Main Street view is better for most guests.'},
+        {name:'\u{1F386} Fire of the Rising Moons',park:'Disneyland',time:'Synced with fireworks ~9:30 PM',days:'Fri\u2013Sun fireworks nights',must:false,desc:'The same Wondrous Journeys fireworks watched from inside Galaxyâs Edge with Star Wars music playing. Best for hardcore Star Wars fans. Sunday night youâd miss the castle projections from Main Street \u2014 the Main Street view is better for most guests.'},
       ]
     },
     {
@@ -2984,7 +2984,7 @@ function renderShows(){
   ];
 
   var html='<div style="padding:4px 0 10px;font-size:12px;color:var(--text-muted);line-height:1.6;padding:10px 0 14px">'
-    +'<b style="color:var(--text)">Tip:</b> Exact show times change daily. Check the <b style="color:var(--blue)">Disneyland app \u2192 Entertainment</b> each morning for today’s schedule. Times below are typical but not guaranteed.'
+    +'<b style="color:var(--text)">Tip:</b> Exact show times change daily. Check the <b style="color:var(--blue)">Disneyland app \u2192 Entertainment</b> each morning for todayâs schedule. Times below are typical but not guaranteed.'
     +'</div>';
 
   sections.forEach(function(sec){
@@ -3016,7 +3016,7 @@ function renderShows(){
   }
 }
 
-// ── Nav ───────────────────────────────────────────────────────────────────
+// ââ Nav âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function setDay(d){
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
@@ -3034,7 +3034,7 @@ function setTab(tab){
   });
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
+// ââ Init ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 generateStars();renderLockCountdowns();checkLock();loadKey();loadCustom();renderShows();renderClosed();renderSched();renderDayInfoBar();renderCountdown();startWaitRefresh();scheduleWeatherCheck();scheduleMorningCheck();startScheduleSync();startNotesSync();startWazeChecks();scheduleLLPrompts();
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
@@ -3157,15 +3157,15 @@ async function completeSetup(){
 }
 function showSetupGeneratePrompt(){var card=document.createElement('div');card.id='sgc';card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">&#10024; Generate personalized schedule?</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Claude can rebuild your schedule based on your Ride Style.</div><div style="display:flex;gap:8px"><button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild</button><button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button></div>';document.body.appendChild(card);}
 function dismissGenCard(){var c=document.getElementById('sgc');if(c)c.remove();showToast('Ride Style saved!');}
-async function generateFromSetup(){var card=document.getElementById('sgc');if(card)card.remove();if(!apiKey){showToast('Add API key first');return;}var data;try{data=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){data={};}if(curDay===1){showToast('VIP day managed by guide','linear-gradient(135deg,#C9860A,#E8A020)');return;}var box=document.getElementById('reoptBox');var txt=document.getElementById('reoptText');if(box&&txt){box.style.display='block';txt.innerHTML='&#10024; Building your schedule...';}try{var ml=data.mustRides&&data.mustRides.length?data.mustRides.join(', '):'the main headliners';var sl=data.skipRides&&data.skipRides.length?data.skipRides.join(', '):'none';var cn=data.wantsChars&&data.charsDL&&data.charsDL.length?'Include character meets for: '+[].concat(data.charsDL||[],data.charsDCA||[]).join(', ')+'.':'';var dn=curDay===0?'Sunday June 28 (Disneyland+DCA)':'Tuesday June 30 (DCA morning, Disneyland evening)';var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Expert Disneyland planner. Search TouringPlans and AllEars for current summer 2026 rope drop strategies and optimal ride sequencing before building this schedule. First rides should reflect current best practices for beating crowds. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.',messages:[{role:'user',content:'Build Disneyland schedule for '+dn+'. Group: '+(data.groupSize||9)+' people. MUST: '+ml+'. SKIP: '+sl+'. '+cn+' Return ONLY JSON array: [{"t":"8:00 AM","h":"Name","type":"ride","land":"Land"}]. 12-16 entries.'}]})});var d2=await resp.json();var text=d2.content&&d2.content[0]?d2.content[0].text:'';var match=text.replace(/```json|```/g,'').match(/\[[\s\S]+\]/);if(!match)throw new Error('No JSON');var entries=JSON.parse(match[0]);var nd=JSON.parse(JSON.stringify(getCurDay()));if(nd.sections&&nd.sections.length)nd.sections[0].entries=entries;customSched[curDay]=nd;saveCustom(curDay);renderSched();if(box)box.style.display='none';if(isAdmin())pushSchedule();showToast('Schedule rebuilt!');}catch(e){if(box)box.style.display='none';showToast('Could not generate','linear-gradient(135deg,#c0392b,#e74c3c)');}}
-async function aiChooseRides(){var btn=document.getElementById('aiChooseBtn');var status=document.getElementById('aiChooseStatus');if(!apiKey){applyRideDefaults();return;}btn.disabled=true;btn.textContent='Choosing...';status.style.display='block';status.textContent='Claude is picking rides...';var gs=document.getElementById('groupSize').value;var ages=getChipSelections('ageChips').join(', ')||'adults';var thrill=getChipSelections('thrillChips')[0]||'Mix';try{var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland ride expert. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.',messages:[{role:'user',content:'Pick best 8 must-ride attractions for '+gs+' people ('+ages+') thrill: '+thrill+' at Disneyland Resort. Also pick 3 to skip. Respond ONLY with JSON: {"must":["ride1"],"skip":["ride1"]}'}]})});var data=await resp.json();var parsed=JSON.parse((data.content[0].text||'').replace(/```json|```/g,'').trim());document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(parsed.must&&parsed.must.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){if(parsed.skip&&parsed.skip.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});status.textContent='Done! Adjust as needed.';status.style.color='var(--green)';}catch(e){applyRideDefaults();status.textContent='Applied smart defaults.';status.style.color='var(--gold)';}btn.disabled=false;btn.textContent='Let AI Choose for Me';}
+async function generateFromSetup(){var card=document.getElementById('sgc');if(card)card.remove();if(!apiKey){showToast('Add API key first');return;}var data;try{data=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){data={};}if(curDay===1){showToast('VIP day managed by guide','linear-gradient(135deg,#C9860A,#E8A020)');return;}var box=document.getElementById('reoptBox');var txt=document.getElementById('reoptText');if(box&&txt){box.style.display='block';txt.innerHTML='&#10024; Building your schedule...';}try{var ml=data.mustRides&&data.mustRides.length?data.mustRides.join(', '):'the main headliners';var sl=data.skipRides&&data.skipRides.length?data.skipRides.join(', '):'none';var cn=data.wantsChars&&data.charsDL&&data.charsDL.length?'Include character meets for: '+[].concat(data.charsDL||[],data.charsDCA||[]).join(', ')+'.':'';var dn=curDay===0?'Sunday June 28 (Disneyland+DCA)':'Tuesday June 30 (DCA morning, Disneyland evening)';var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Expert Disneyland planner. Search TouringPlans and AllEars for current summer 2026 rope drop strategies and optimal ride sequencing before building this schedule. First rides should reflect current best practices for beating crowds. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits â popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only â never as a current strategy recommendation.',messages:[{role:'user',content:'Build Disneyland schedule for '+dn+'. Group: '+(data.groupSize||9)+' people. MUST: '+ml+'. SKIP: '+sl+'. '+cn+' Return ONLY JSON array: [{"t":"8:00 AM","h":"Name","type":"ride","land":"Land"}]. 12-16 entries.'}]})});var d2=await resp.json();var text=d2.content&&d2.content[0]?d2.content[0].text:'';var match=text.replace(/```json|```/g,'').match(/\[[\s\S]+\]/);if(!match)throw new Error('No JSON');var entries=JSON.parse(match[0]);var nd=JSON.parse(JSON.stringify(getCurDay()));if(nd.sections&&nd.sections.length)nd.sections[0].entries=entries;customSched[curDay]=nd;saveCustom(curDay);renderSched();if(box)box.style.display='none';if(isAdmin())pushSchedule();showToast('Schedule rebuilt!');}catch(e){if(box)box.style.display='none';showToast('Could not generate','linear-gradient(135deg,#c0392b,#e74c3c)');}}
+async function aiChooseRides(){var btn=document.getElementById('aiChooseBtn');var status=document.getElementById('aiChooseStatus');if(!apiKey){applyRideDefaults();return;}btn.disabled=true;btn.textContent='Choosing...';status.style.display='block';status.textContent='Claude is picking rides...';var gs=document.getElementById('groupSize').value;var ages=getChipSelections('ageChips').join(', ')||'adults';var thrill=getChipSelections('thrillChips')[0]||'Mix';try{var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland ride expert. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits â popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only â never as a current strategy recommendation.',messages:[{role:'user',content:'Pick best 8 must-ride attractions for '+gs+' people ('+ages+') thrill: '+thrill+' at Disneyland Resort. Also pick 3 to skip. Respond ONLY with JSON: {"must":["ride1"],"skip":["ride1"]}'}]})});var data=await resp.json();var parsed=JSON.parse((data.content[0].text||'').replace(/```json|```/g,'').trim());document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){c.classList.remove('selected');});document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(parsed.must&&parsed.must.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});document.querySelectorAll('#skipRideChips .setup-chip').forEach(function(c){if(parsed.skip&&parsed.skip.some(function(r){return c.textContent.toLowerCase().indexOf(r.toLowerCase().substring(0,7))>-1;}))c.classList.add('selected');});status.textContent='Done! Adjust as needed.';status.style.color='var(--green)';}catch(e){applyRideDefaults();status.textContent='Applied smart defaults.';status.style.color='var(--gold)';}btn.disabled=false;btn.textContent='Let AI Choose for Me';}
 function applyRideDefaults(){var d=['Space Mountain','Matterhorn','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs','Guardians'];document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(d.some(function(x){return c.textContent.indexOf(x.substring(0,8))>-1;}))c.classList.add('selected');});var s=document.getElementById('aiChooseStatus');if(s){s.style.display='block';s.textContent='Applied smart defaults.';s.style.color='var(--gold)';}}
 
 function doRefreshWaits(){var btn=document.getElementById('waitRefreshBtn');if(btn){btn.textContent='Refreshing...';btn.disabled=true;}var el=document.getElementById('waitTabContent');if(el)el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Fetching live wait times...</div>';fetchWaits().then(function(){if(btn){btn.textContent='&#8635; Refresh';btn.disabled=false;}}).catch(function(){if(btn){btn.textContent='&#8635; Refresh';btn.disabled=false;}});}
 
 
 
-// ── Weekly Refurbishment Check ────────────────────────────────────────────
+// ââ Weekly Refurbishment Check ââââââââââââââââââââââââââââââââââââââââââââ
 function getStoredRefurbs(){
   try{
     var stored=localStorage.getItem('weekly_refurbs');
@@ -3245,7 +3245,7 @@ async function runWeeklyRefurbCheck(){
 setTimeout(function(){runWeeklyRefurbCheck();},30000);
 
 
-// ── Pre-Trip Panel ────────────────────────────────────────────────────────
+// ââ Pre-Trip Panel ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var PACK_ITEMS=[
   {id:'p1',label:'Comfortable walking shoes',checked:false},
   {id:'p2',label:'Portable phone charger / power bank',checked:false},
@@ -3276,7 +3276,7 @@ function toggleAccordionPT(id){
   if(!body)return;
   var open=body.style.display==='block';
   body.style.display=open?'none':'block';
-  if(arrow)arrow.textContent=open?'›':'‹';
+  if(arrow)arrow.textContent=open?'âº':'â¹';
 }
 
 function renderPreTripCountdowns(){
@@ -3295,7 +3295,7 @@ function renderPreTripCountdowns(){
 }
 
 function weatherCodeToEmoji(code){
-  if(code===0)return'☀️';if(code<=2)return'⛅';if(code<=3)return'☁️';if(code<=67)return'🌧️';return'🌤️';
+  if(code===0)return'âï¸';if(code<=2)return'â';if(code<=3)return'âï¸';if(code<=67)return'ð§ï¸';return'ð¤ï¸';
 }
 
 function renderPreTripWeather(){
@@ -3305,20 +3305,20 @@ function renderPreTripWeather(){
   if(!weatherData){el.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:12px;padding:8px;">Loading forecast...</div>';return;}
   var days=['Jun 27','Jun 28','Jun 29','Jun 30','Jul 1'];var html='';
   for(var i=0;i<Math.min(5,weatherData.temperature_2m_max?weatherData.temperature_2m_max.length:3);i++){
-    var hi=weatherData.temperature_2m_max?Math.round(weatherData.temperature_2m_max[i]):'—';
-    var lo=weatherData.temperature_2m_min?Math.round(weatherData.temperature_2m_min[i]):'—';
+    var hi=weatherData.temperature_2m_max?Math.round(weatherData.temperature_2m_max[i]):'â';
+    var lo=weatherData.temperature_2m_min?Math.round(weatherData.temperature_2m_min[i]):'â';
     var code=weatherData.weathercode?weatherData.weathercode[i]:1;
     html+='<div style="text-align:center;">'
       +'<div style="font-size:11px;color:var(--text-muted);">'+days[i]+'</div>'
       +'<div style="font-size:24px;">'+weatherCodeToEmoji(code)+'</div>'
-      +'<div style="font-size:14px;font-weight:700;color:var(--text);">'+hi+'°</div>'
-      +'<div style="font-size:11px;color:var(--text-muted);">'+lo+'°</div>'
+      +'<div style="font-size:14px;font-weight:700;color:var(--text);">'+hi+'Â°</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">'+lo+'Â°</div>'
       +'</div>';
   }
   el.innerHTML=html;
   if(note){
-    if(weatherData.isToday){note.textContent="Showing today's weather — trip forecast available closer to June 28";note.style.display='block';}
-    else if(weatherData.isTypical){note.textContent='Showing typical June averages — live forecast coming soon';note.style.display='block';}
+    if(weatherData.isToday){note.textContent="Showing today's weather â trip forecast available closer to June 28";note.style.display='block';}
+    else if(weatherData.isTypical){note.textContent='Showing typical June averages â live forecast coming soon';note.style.display='block';}
   }
 }
 
@@ -3376,7 +3376,7 @@ function renderPreTripHeights(){
 async function loadKnowBeforeYouGo(){
   if(!apiKey){document.getElementById('pt_kbyg_content').innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:8px;">Please add your API key in the Info tab first.</div>';return;}
   var el=document.getElementById('pt_kbyg_content');
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">✨ Generating your personalized briefing...</div>';
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">â¨ Generating your personalized briefing...</div>';
   var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
   var setupDone=localStorage.getItem('setup_done')==='yes';
   var size=sd.groupSize||4;
@@ -3402,7 +3402,7 @@ async function loadKnowBeforeYouGo(){
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,
-        system:'You are an expert Disneyland trip planner. Before giving advice, use web search to find the CURRENT most widely accepted rope drop strategies, wait time patterns, and touring tips from sources like TouringPlans, AllEars, MiceChat, and Disney Food Blog for June 2026. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Your advice must reflect strategies that are verified current and backed by real visitor data — never outdated tips. Every recommendation must be specific to the group profile provided.',
+        system:'You are an expert Disneyland trip planner. Before giving advice, use web search to find the CURRENT most widely accepted rope drop strategies, wait time patterns, and touring tips from sources like TouringPlans, AllEars, MiceChat, and Disney Food Blog for June 2026. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits â popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only â never as a current strategy recommendation. Your advice must reflect strategies that are verified current and backed by real visitor data â never outdated tips. Every recommendation must be specific to the group profile provided.',
         tools:[{type:'web_search_20250305',name:'web_search'}],
         messages:[{role:'user',content:prompt}]})
     });
@@ -3426,13 +3426,13 @@ function regenerateKBYG(){
 
 function addDiningReservation(){
   var name=prompt('Restaurant name:');if(!name)return;
-  var time=prompt('Date and time (e.g. Tue Jun 30 · 6:30 PM):');if(!time)return;
+  var time=prompt('Date and time (e.g. Tue Jun 30 Â· 6:30 PM):');if(!time)return;
   var conf=prompt('Confirmation number (optional):');
   var list=document.getElementById('pt_dining_list');if(!list)return;
   var card=document.createElement('div');
   card.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;';
   card.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--text);">'+name+'</div>'
-    +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 '+time+'</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">ð '+time+'</div>'
     +(conf?'<div style="font-size:11px;color:var(--gold,#C9860A);margin-top:4px;">Conf #'+conf+'</div>':'');
   list.appendChild(card);
 }
@@ -3445,7 +3445,7 @@ function renderPreTripBanner(){
   banner.style.display='';
   var days=Math.ceil((tripStart-now)/864e5);
   var sub=document.getElementById('preTripBannerSub');
-  if(sub)sub.textContent=(days>0?days+' days to go · ':'Trip starts today! · ')+'Weather · Packing · Dining · Group Setup';
+  if(sub)sub.textContent=(days>0?days+' days to go Â· ':'Trip starts today! Â· ')+'Weather Â· Packing Â· Dining Â· Group Setup';
 }
 
 // Load cached KBYG on open
@@ -3479,7 +3479,7 @@ async function loadHotelRecs(){
     }
   }catch(e){}
 
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">🏨 Loading hotel recommendations...</div>';
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">ð¨ Loading hotel recommendations...</div>';
 
   // Hardcoded hotel data - accurate, no API needed
   var hotels=[
@@ -3487,7 +3487,7 @@ async function loadHotelRecs(){
       name:'Disneyland Hotel',
       type:'Disney Official',
       stars:4.5,
-      price:'$350–$600/night',
+      price:'$350â$600/night',
       walk:'5 min walk to gates',
       phone:'(714) 778-6600',
       web:'https://disneyland.disney.go.com/hotels/disneyland-hotel/',
@@ -3498,10 +3498,10 @@ async function loadHotelRecs(){
       name:"Disney's Grand Californian Hotel & Spa",
       type:'Disney Official',
       stars:4.8,
-      price:'$600–$1,200/night',
+      price:'$600â$1,200/night',
       phone:'(714) 635-2300',
       web:'https://disneyland.disney.go.com/hotels/disney-grand-californian-hotel/',
-      walk:'Inside DCA — direct park access',
+      walk:'Inside DCA â direct park access',
       desc:'The crown jewel of Disney hotels. Arts & Crafts architecture, direct access into Disney California Adventure, Napa Rose fine dining, and the best pool complex on property.',
       tag:'official'
     },
@@ -3509,7 +3509,7 @@ async function loadHotelRecs(){
       name:"Disney's Paradise Pier Hotel",
       type:'Disney Official',
       stars:4.2,
-      price:'$280–$500/night',
+      price:'$280â$500/night',
       phone:'(714) 999-0990',
       web:'https://disneyland.disney.go.com/hotels/paradise-pier-hotel/',
       walk:'5 min walk to DCA',
@@ -3520,7 +3520,7 @@ async function loadHotelRecs(){
       name:'Hyatt Regency Orange County',
       type:'Good Neighbor Hotel',
       stars:4.3,
-      price:'$180–$320/night',
+      price:'$180â$320/night',
       phone:'(714) 750-1234',
       web:'https://www.hyatt.com/en-US/hotel/california/hyatt-regency-orange-county/laxoc',
       walk:'10 min walk',
@@ -3531,7 +3531,7 @@ async function loadHotelRecs(){
       name:'Hilton Anaheim',
       type:'Good Neighbor Hotel',
       stars:4.2,
-      price:'$160–$290/night',
+      price:'$160â$290/night',
       phone:'(714) 750-4321',
       web:'https://www.hilton.com/en/hotels/snaahhh-hilton-anaheim/',
       walk:'12 min walk',
@@ -3542,7 +3542,7 @@ async function loadHotelRecs(){
       name:'Courtyard by Marriott Anaheim Resort',
       type:'Walking Distance',
       stars:4.1,
-      price:'$140–$250/night',
+      price:'$140â$250/night',
       phone:'(714) 254-1442',
       web:'https://www.marriott.com/en-us/hotels/laxar-courtyard-anaheim-resort-convention-center/overview/',
       walk:'8 min walk',
@@ -3553,7 +3553,7 @@ async function loadHotelRecs(){
       name:"Candy Cane Inn",
       type:'Walking Distance',
       stars:4.4,
-      price:'$130–$220/night',
+      price:'$130â$220/night',
       phone:'(714) 774-5284',
       web:'https://www.candycaneinn.net',
       walk:'5 min walk',
@@ -3564,7 +3564,7 @@ async function loadHotelRecs(){
       name:'Desert Palms Hotel & Suites',
       type:'Walking Distance',
       stars:4.0,
-      price:'$120–$200/night',
+      price:'$120â$200/night',
       phone:'(714) 535-1133',
       web:'https://www.desertpalmshotel.com',
       walk:'6 min walk',
@@ -3577,13 +3577,13 @@ async function loadHotelRecs(){
     var full=Math.floor(n);
     var half=n%1>=0.5?1:0;
     var s='';
-    for(var i=0;i<full;i++)s+='★';
-    if(half)s+='½';
+    for(var i=0;i<full;i++)s+='â';
+    if(half)s+='Â½';
     return '<span style="color:#F59E0B;">'+s+'</span> <span style="font-size:11px;color:var(--text-muted);">'+n+'</span>';
   }
 
   function tagBadge(tag){
-    if(tag==='official') return '<span style="background:rgba(27,47,160,0.1);color:var(--magic,#1B2FA0);border:1px solid rgba(27,47,160,0.2);border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;">✦ Disney Official</span>';
+    if(tag==='official') return '<span style="background:rgba(27,47,160,0.1);color:var(--magic,#1B2FA0);border:1px solid rgba(27,47,160,0.2);border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;">â¦ Disney Official</span>';
     if(tag==='neighbor') return '<span style="background:rgba(201,134,10,0.1);color:var(--gold,#C9860A);border:1px solid rgba(201,134,10,0.2);border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;">Good Neighbor</span>';
     return '<span style="background:var(--card);color:var(--text-muted);border:1px solid var(--border);border-radius:99px;padding:2px 8px;font-size:10px;">Walking Distance</span>';
   }
@@ -3605,9 +3605,9 @@ async function loadHotelRecs(){
       +'<div style="font-size:12px;margin-bottom:6px;">'+stars(h.stars)+'</div>'
       +'<div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">'+h.desc+'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">'
-      +'<span style="color:var(--text-muted);">🚶 '+h.walk+'</span>'
-      +'<span style="color:var(--text-muted);">📞 '+h.phone+'</span>'
-      +'<span onclick="window.open(h.web,\'_blank\')" style="color:var(--magic,#1B2FA0);cursor:pointer;text-decoration:underline;touch-action:manipulation;">🌐 Visit Website</span>'
+      +'<span style="color:var(--text-muted);">ð¶ '+h.walk+'</span>'
+      +'<span style="color:var(--text-muted);">ð '+h.phone+'</span>'
+      +'<span onclick="window.open(h.web,\'_blank\')" style="color:var(--magic,#1B2FA0);cursor:pointer;text-decoration:underline;touch-action:manipulation;">ð Visit Website</span>'
       +'</div>'
       +'</div>';
   });
@@ -3619,7 +3619,7 @@ async function loadHotelRecs(){
   try{localStorage.setItem('hotel_recs',html);localStorage.setItem('hotel_recs_date',Date.now().toString());}catch(e){}
 }
 
-// ── Pre-Trip Checklist ────────────────────────────────────────────────────
+// ââ Pre-Trip Checklist ââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var PRE_TRIP_CHECKLIST=[
   {weeks:8, label:'Book dining reservations (opens 60 days before trip)'},
   {weeks:7, label:'Purchase park tickets if not already done'},
@@ -3655,10 +3655,10 @@ function renderPreTripChecklist(){
   // Group items by week bucket
   var buckets=[
     {label:'8+ Weeks Out', min:8, max:999},
-    {label:'6–8 Weeks Out', min:6, max:8},
-    {label:'4–6 Weeks Out', min:4, max:6},
-    {label:'2–4 Weeks Out', min:2, max:4},
-    {label:'1–2 Weeks Out', min:1, max:2},
+    {label:'6â8 Weeks Out', min:6, max:8},
+    {label:'4â6 Weeks Out', min:4, max:6},
+    {label:'2â4 Weeks Out', min:2, max:4},
+    {label:'1â2 Weeks Out', min:1, max:2},
     {label:'Final Week', min:0, max:1},
   ];
 
@@ -3752,7 +3752,7 @@ function removeChecklistItem(i){
   renderPreTripChecklist();
 }
 
-// ── Dining Reservation → Schedule sync ───────────────────────────────────
+// ââ Dining Reservation â Schedule sync âââââââââââââââââââââââââââââââââââ
 var diningReservations=[];
 function loadDiningReservations(){
   try{diningReservations=JSON.parse(localStorage.getItem('dining_reservations')||'[]');}catch(e){diningReservations=[];}
@@ -3845,7 +3845,7 @@ function addDiningToSchedule(res,day){
   }catch(e){}
 }
 
-// ── Crowd Prediction ──────────────────────────────────────────────────────
+// ââ Crowd Prediction ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function loadCrowdPrediction(){
   var el=document.getElementById('pt_crowds_content');
   if(!el) return;
@@ -3856,17 +3856,17 @@ async function loadCrowdPrediction(){
   var size=sd.groupSize||4;
   var prompt='Analyze crowd levels for Disneyland Resort for the full week of June 25 - July 2 2026. Cover all 8 days: Thu Jun 25, Fri Jun 26, Sat Jun 27 (travel day), Sun Jun 28 (PARK DAY 1 Disneyland), Mon Jun 29 (PARK DAY 2 VIP Tour), Tue Jun 30 (PARK DAY 3 DCA + DL evening), Wed Jul 1 (departure), Thu Jul 2 (pre-4th of July buildup). For each day: 1. **Crowd Level** 1-10 with descriptor. 2. Which park is less crowded. 3. Best window for headliners. 4. One key note (events, holiday buildup, school-out patterns). For non-park days give shorter entries showing whether it would have been worth visiting instead. End with a **WEEK SUMMARY** noting best/worst days and key patterns. Base on historical late June/early July Disneyland patterns. Group size: '+size+'.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'You are a Disneyland crowd expert. Search current sources like TouringPlans crowd calendar, AllEars, and MiceChat for June/July 2026 crowd predictions before responding. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Give specific data-informed crowd forecasts backed by current predictions and historical patterns.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'You are a Disneyland crowd expert. Search current sources like TouringPlans crowd calendar, AllEars, and MiceChat for June/July 2026 crowd predictions before responding. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits â popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only â never as a current strategy recommendation. Give specific data-informed crowd forecasts backed by current predictions and historical patterns.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Refresh</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">âº Refresh</button>';
     el.innerHTML=html;
     try{localStorage.setItem('crowd_pred',html);localStorage.setItem('crowd_pred_date',new Date().toDateString());}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
 }
 
-// ── Day-by-Day Strategy ───────────────────────────────────────────────────
+// ââ Day-by-Day Strategy âââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function loadDayStrategy(){
   var el=document.getElementById('pt_daystrategy_content');
   if(!el) return;
@@ -3882,17 +3882,17 @@ async function loadDayStrategy(){
   try{for(var d=0;d<3;d++){var dn=['Sun Jun 28 (Disneyland)','Mon Jun 29 (VIP Tour 10AM-5PM)','Tue Jun 30 (DCA + DL evening)'][d];var sc=JSON.parse(localStorage.getItem('schedule_v2_day'+d)||'[]');if(sc.length)schedSummary+=dn+': '+sc.slice(0,3).map(function(i){return(i.t||'')+(i.e?i.e.h:i.h||'');}).join(', ')+'\n';}}catch(e){}
   var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Pace: '+pace+' | Start: '+startTime+' | LL: '+ll+' | Must-rides: '+mustRides+'\n'+(schedSummary?'Schedule overview:\n'+schedSummary:'')+'\nWrite a day-by-day strategy for June 28-30 2026. One focused paragraph per day (5-6 sentences). Cover: top priority for the day, morning sequence for must-rides, midday decision, best evening move, one group-specific tip. Day 1: Sun Jun 28 Disneyland (fireworks at night). Day 2: Mon Jun 29 VIP Tour 10AM-5PM (free morning before 10, Paint the Night + World of Color VIP after). Day 3: Tue Jun 30 DCA morning, Disneyland evening, Cafe Orleans 6:30PM, Fantasmic at night. Bold the single most important action each day.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:650,system:'You are an expert Disneyland trip strategist. Search current sources including TouringPlans, AllEars, and MiceChat for the latest June 2026 touring strategies, rope drop tips, and crowd patterns before building the plan. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Every recommendation must be verified current and specific to the group.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:650,system:'You are an expert Disneyland trip strategist. Search current sources including TouringPlans, AllEars, and MiceChat for the latest June 2026 touring strategies, rope drop tips, and crowd patterns before building the plan. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits â popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only â never as a current strategy recommendation. Every recommendation must be verified current and specific to the group.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshDayStrategy()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Regenerate</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshDayStrategy()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">âº Regenerate</button>';
     el.innerHTML=html;
     try{localStorage.setItem('day_strategy',html);localStorage.setItem('day_strategy_hash',localStorage.getItem('setup_data')||'{}');}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
 }
 
-// ── Lightning Lane Planner ────────────────────────────────────────────────
+// ââ Lightning Lane Planner ââââââââââââââââââââââââââââââââââââââââââââââââ
 async function loadLLPlanner(){
   var el=document.getElementById('pt_llplanner_content');
   if(!el) return;
@@ -3904,13 +3904,13 @@ async function loadLLPlanner(){
   var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'the main headliners';
   var thrill=sd.thrill||'Mix';var startTime=sd.startTime||'Rope drop';
   var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed';
-  var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Start: '+startTime+' | LL plan: '+ll+' | Must-rides: '+mustRides+'\nDATES: Sun Jun 28, Mon Jun 29 (VIP Tour 10AM-5PM), Tue Jun 30\n\nCreate a Lightning Lane strategy for each park day:\n\n**LLMP Booking Order (each day):**\n- First ride to book at park open (or 7AM on-site)\n- Exact sequence: ride name → target time → expected return window\n- How many devices to use for '+size+' people and who books what\n- Which rides to skip LL and ride standby instead\n\n**Lightning Lane Single (Individual Attractions):**\n- Which ILL rides are worth paying for (Rise of Resistance, RSR, etc)\n- Recommended purchase time\n\n**Key Rules for this group:**\n- How group size of '+size+' affects booking\n- The #1 LL mistake to avoid\n\nBe extremely specific with ride names and times. Bold the most critical actions.';
+  var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Start: '+startTime+' | LL plan: '+ll+' | Must-rides: '+mustRides+'\nDATES: Sun Jun 28, Mon Jun 29 (VIP Tour 10AM-5PM), Tue Jun 30\n\nCreate a Lightning Lane strategy for each park day:\n\n**LLMP Booking Order (each day):**\n- First ride to book at park open (or 7AM on-site)\n- Exact sequence: ride name â target time â expected return window\n- How many devices to use for '+size+' people and who books what\n- Which rides to skip LL and ride standby instead\n\n**Lightning Lane Single (Individual Attractions):**\n- Which ILL rides are worth paying for (Rise of Resistance, RSR, etc)\n- Recommended purchase time\n\n**Key Rules for this group:**\n- How group size of '+size+' affects booking\n- The #1 LL mistake to avoid\n\nBe extremely specific with ride names and times. Bold the most critical actions.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system:'You are a Disneyland Lightning Lane expert. Search current sources like TouringPlans, AllEars, and the Disney Tourist Blog for the most current June 2026 Lightning Lane strategies, pricing, and booking tips before responding. LL rules and best practices change frequently — always use the most current verified information. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system:'You are a Disneyland Lightning Lane expert. Search current sources like TouringPlans, AllEars, and the Disney Tourist Blog for the most current June 2026 Lightning Lane strategies, pricing, and booking tips before responding. LL rules and best practices change frequently â always use the most current verified information. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits â popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only â never as a current strategy recommendation.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshLLPlan()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid rgba(201,134,10,0.3);background:none;color:var(--gold,#C9860A);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Regenerate</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshLLPlan()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid rgba(201,134,10,0.3);background:none;color:var(--gold,#C9860A);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">âº Regenerate</button>';
     el.innerHTML=html;
     try{localStorage.setItem('ll_plan',html);localStorage.setItem('ll_plan_hash',localStorage.getItem('setup_data')||'{}');}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
@@ -3920,13 +3920,13 @@ function refreshCrowds(){try{localStorage.removeItem('crowd_pred');}catch(e){}lo
 function refreshDayStrategy(){try{localStorage.removeItem('day_strategy');}catch(e){}loadDayStrategy();}
 function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadLLPlanner();}
 
-// ── Intelligence Caches ───────────────────────────────────────────────────
+// ââ Intelligence Caches âââââââââââââââââââââââââââââââââââââââââââââââââââ
 var PARK_INTEL_DAYS=10,parkIntelCache=null;
 function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<PARK_INTEL_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
 
-var CACHE_BASE="https://disney-wait-times-lupt.vercel.app";
-function serverCacheGet(key,cb){fetch(CACHE_BASE+"/api/cache?key="+key+"&t="+Date.now()).then(function(r){return r.json();}).then(function(d){if(d.hit&&d.data){try{localStorage.setItem(key,typeof d.data==="string"?d.data:JSON.stringify(d.data));localStorage.setItem(key+"_ts",String(d.ts));}catch(e){}cb(null,d.data,d.ts);}else{cb(null,null,0);}}).catch(function(e){cb(e,null,0);});}
-function serverCacheSet(key,value,ts){fetch(CACHE_BASE+"/api/cache?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:value,ts:ts||Date.now()})}).then(function(r){return r.json();}).then(function(d){console.log("Server cache set "+key+":",(d.ok?"OK":"FAILED"));}).catch(function(e){console.warn("Server cache write failed:",e);});try{localStorage.setItem(key,typeof value==="string"?value:JSON.stringify(value));localStorage.setItem(key+"_ts",String(ts||Date.now()));}catch(e){}}
+var SYNC_BASE="https://disney-wait-times-lupt.vercel.app";
+function serverCacheGet(key,cb){fetch(SYNC_BASE+"/api/cache?key="+key+"&t="+Date.now()).then(function(r){return r.json();}).then(function(d){if(d.hit&&d.data){try{localStorage.setItem(key,typeof d.data==="string"?d.data:JSON.stringify(d.data));localStorage.setItem(key+"_ts",String(d.ts));}catch(e){}cb(null,d.data,d.ts);}else{cb(null,null,0);}}).catch(function(e){cb(e,null,0);});}
+function serverCacheSet(key,value,ts){fetch(SYNC_BASE+"/api/cache?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:value,ts:ts||Date.now()})}).then(function(r){return r.json();}).then(function(d){console.log("Server cache set "+key+":",(d.ok?"OK":"FAILED"));}).catch(function(e){console.warn("Server cache write failed:",e);});try{localStorage.setItem(key,typeof value==="string"?value:JSON.stringify(value));localStorage.setItem(key+"_ts",String(ts||Date.now()));}catch(e){}}
 function warmCachesFromServer(){var keys=["park_intel","dining_intel","events_intel","park_hours_intel"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;console.log("Server cache HIT:",key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}});});}
 setTimeout(function(){warmCachesFromServer();},5000);
 function setParkIntel(t){parkIntelCache=t;serverCacheSet('park_intel',t);}
@@ -4027,7 +4027,7 @@ function closeSetupFinal(){
   closeSetup();
   renderPreTripBanner();
   try{localStorage.removeItem('kbyg_setup_hash');}catch(e){}
-  showToast('Trip setup complete! 🎉');
+  showToast('Trip setup complete! ð');
 }
 
 
@@ -4175,12 +4175,12 @@ function closeSetupFinal(){
           <div class="setup-chip" onclick="toggleChip(this,'charPri')">First thing in the morning</div>
         </div>
       </div>
-      <button class="setup-btn" onclick="setupGoTo(4)">Next ›</button>
+      <button class="setup-btn" onclick="setupGoTo(4)">Next âº</button>
     </div>
     <!-- Step 4: Smart Profile Questions -->
     <div class="setup-step" id="setupStep4">
       <button class="setup-close" onclick="closeSetup()">&#10005;</button>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;">Almost done! ✨</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;">Almost done! â¨</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">A few quick questions to personalize your AI advice.</div>
       <div class="setup-section">
         <div class="setup-label">Has anyone in your group been to Disneyland before?</div>
@@ -4220,19 +4220,19 @@ function closeSetupFinal(){
     <!-- Step 5: Trip Summary + Share -->
     <div class="setup-step" id="setupStep5">
       <button class="setup-close" onclick="closeSetup()">&#10005;</button>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px;">Your Trip is Ready! 🎉</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px;">Your Trip is Ready! ð</div>
       <div id="tripSummaryContent" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;min-height:80px;">
-        <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">✨ Generating your personalized trip summary...</div>
+        <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">â¨ Generating your personalized trip summary...</div>
       </div>
       <div style="background:rgba(27,47,160,0.05);border:1.5px solid rgba(27,47,160,0.2);border-radius:14px;padding:14px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">📲 Share with your group</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Send this link to everyone coming — they'll see the full schedule, live wait times, and AI features.</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">ð² Share with your group</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Send this link to everyone coming â they'll see the full schedule, live wait times, and AI features.</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📋 Copy Link</button>
-          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📤 Share</button>
+          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">ð Copy Link</button>
+          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">ð¤ Share</button>
         </div>
       </div>
-      <button class="setup-btn" onclick="closeSetupFinal()">✓ Let's Go Plan!</button>
+      <button class="setup-btn" onclick="closeSetupFinal()">â Let's Go Plan!</button>
     </div>
   </div>
 </div>
@@ -4243,7 +4243,7 @@ function closeSetupFinal(){
   <div style="background:var(--bg);border-radius:24px 24px 0 0;margin-top:60px;min-height:calc(100vh - 60px);padding:0 0 80px;">
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;border-radius:24px 24px 0 0;">
-      <div style="font-size:22px;">🗺️</div>
+      <div style="font-size:22px;">ðºï¸</div>
       <div style="flex:1;">
         <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--text);">Pre-Trip Planning</div>
         <div style="font-size:12px;color:var(--text-muted);">Everything you need before June 28</div>
@@ -4255,12 +4255,12 @@ function closeSetupFinal(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 14px 0;">
       <div id="ptDiningCd" style="background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.25);border-radius:12px;padding:10px;text-align:center;">
         <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gold,#C9860A);margin-bottom:4px;">Dining Reservations Open</div>
-        <div id="ptDiningDays" style="font-size:28px;font-weight:700;color:var(--gold,#C9860A);">—</div>
+        <div id="ptDiningDays" style="font-size:28px;font-weight:700;color:var(--gold,#C9860A);">â</div>
         <div style="font-size:11px;color:var(--text-muted);">days away</div>
       </div>
       <div id="ptLLCd" style="background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.25);border-radius:12px;padding:10px;text-align:center;">
         <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gold,#C9860A);margin-bottom:4px;">Lightning Lane Opens</div>
-        <div id="ptLLDays" style="font-size:28px;font-weight:700;color:var(--gold,#C9860A);">—</div>
+        <div id="ptLLDays" style="font-size:28px;font-weight:700;color:var(--gold,#C9860A);">â</div>
         <div style="font-size:11px;color:var(--text-muted);">days away</div>
       </div>
     </div>
@@ -4270,36 +4270,36 @@ function closeSetupFinal(){
     <!-- Set Up Your Park Visit -->
     <div style="margin:10px 14px 0;border:1px solid rgba(27,47,160,0.2);border-radius:14px;overflow:hidden;background:rgba(27,47,160,0.04);">
       <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="closePreTrip();openSetup();">
-        <div style="font-size:22px;">🎯</div>
+        <div style="font-size:22px;">ð¯</div>
         <div style="flex:1;">
-          <div style="font-size:14px;font-weight:700;color:var(--text);">👉 Do This First: Set Up Your Park Visit</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">ð Do This First: Set Up Your Park Visit</div>
           <div style="font-size:12px;color:var(--text-muted);">Personalize the AI to your group in 2 minutes</div>
         </div>
-        <div style="font-size:16px;color:var(--magic);">›</div>
+        <div style="font-size:16px;color:var(--magic);">âº</div>
       </div>
     </div>
 
     <!-- Weather -->
     <div style="margin:12px 14px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;">☀️ Park Weather Forecast</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;">âï¸ Park Weather Forecast</div>
       <div id="ptWeather" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
         <div style="text-align:center;opacity:.5">
           <div style="font-size:11px;color:var(--text-muted);">Jun 28</div>
-          <div style="font-size:22px;">—</div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);">—°</div>
-          <div style="font-size:11px;color:var(--text-muted);">—°</div>
+          <div style="font-size:22px;">â</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">âÂ°</div>
+          <div style="font-size:11px;color:var(--text-muted);">âÂ°</div>
         </div>
         <div style="text-align:center;opacity:.5">
           <div style="font-size:11px;color:var(--text-muted);">Jun 29</div>
-          <div style="font-size:22px;">—</div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);">—°</div>
-          <div style="font-size:11px;color:var(--text-muted);">—°</div>
+          <div style="font-size:22px;">â</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">âÂ°</div>
+          <div style="font-size:11px;color:var(--text-muted);">âÂ°</div>
         </div>
         <div style="text-align:center;opacity:.5">
           <div style="font-size:11px;color:var(--text-muted);">Jun 30</div>
-          <div style="font-size:22px;">—</div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);">—°</div>
-          <div style="font-size:11px;color:var(--text-muted);">—°</div>
+          <div style="font-size:22px;">â</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">âÂ°</div>
+          <div style="font-size:11px;color:var(--text-muted);">âÂ°</div>
         </div>
       </div>
       <div id="ptWeatherNote" style="font-size:11px;color:var(--text-dim);margin-top:8px;text-align:center;display:none;"></div>
@@ -4308,25 +4308,25 @@ function closeSetupFinal(){
     <!-- Park Hours -->
     <div style="margin:10px 14px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div style="padding:12px 14px;border-bottom:1px solid var(--border);">
-        <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);">⏰ Park Hours</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);">â° Park Hours</div>
       </div>
       <div style="padding:10px 14px;">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">All times Pacific. Subject to change — always verify in the Disneyland app.</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">All times Pacific. Subject to change â always verify in the Disneyland app.</div>
         <div style="display:grid;gap:6px;">
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Sun Jun 28</div>
-            <div style="color:var(--text-muted);">🏰 DL: 8AM–12AM</div>
-            <div style="color:var(--text-muted);">🎡 DCA: 9AM–11PM</div>
+            <div style="color:var(--text-muted);">ð° DL: 8AMâ12AM</div>
+            <div style="color:var(--text-muted);">ð¡ DCA: 9AMâ11PM</div>
           </div>
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Mon Jun 29</div>
-            <div style="color:var(--text-muted);">🏰 DL: 8AM–11PM</div>
-            <div style="color:var(--text-muted);">🎡 DCA: 9AM–10PM</div>
+            <div style="color:var(--text-muted);">ð° DL: 8AMâ11PM</div>
+            <div style="color:var(--text-muted);">ð¡ DCA: 9AMâ10PM</div>
           </div>
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Tue Jun 30</div>
-            <div style="color:var(--text-muted);">🏰 DL: 8AM–11PM</div>
-            <div style="color:var(--text-muted);">🎡 DCA: 8AM–11PM</div>
+            <div style="color:var(--text-muted);">ð° DL: 8AMâ11PM</div>
+            <div style="color:var(--text-muted);">ð¡ DCA: 8AMâ11PM</div>
           </div>
         </div>
       </div>
@@ -4346,12 +4346,12 @@ function closeSetupFinal(){
     <!-- Know Before You Go -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('kbyg')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">🤖 Know Before You Go</div>
-        <span id="pt_kbyg_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">ð¤ Know Before You Go</div>
+        <span id="pt_kbyg_arrow" style="color:var(--text-muted);font-size:16px;">âº</span>
       </div>
       <div id="ab_pt_kbyg" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_kbyg_content" style="font-size:13px;color:var(--text-muted);line-height:1.7;">
-          <div style="text-align:center;padding:16px;"><button onclick="loadKnowBeforeYouGo()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">✨ Generate AI Briefing</button></div>
+          <div style="text-align:center;padding:16px;"><button onclick="loadKnowBeforeYouGo()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">â¨ Generate AI Briefing</button></div>
         </div>
       </div>
     </div>
@@ -4359,13 +4359,13 @@ function closeSetupFinal(){
     <!-- Crowd Prediction -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('crowds')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">📊 Crowd Prediction</div>
-        <span id="pt_crowds_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">ð Crowd Prediction</div>
+        <span id="pt_crowds_arrow" style="color:var(--text-muted);font-size:16px;">âº</span>
       </div>
       <div id="ab_pt_crowds" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_crowds_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadCrowdPrediction()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📊 Generate Crowd Forecast</button>
+            <button onclick="loadCrowdPrediction()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">ð Generate Crowd Forecast</button>
           </div>
         </div>
       </div>
@@ -4374,13 +4374,13 @@ function closeSetupFinal(){
     <!-- Day-by-Day Strategy -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('daystrategy')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">🗓️ Day-by-Day Strategy</div>
-        <span id="pt_daystrategy_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">ðï¸ Day-by-Day Strategy</div>
+        <span id="pt_daystrategy_arrow" style="color:var(--text-muted);font-size:16px;">âº</span>
       </div>
       <div id="ab_pt_daystrategy" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_daystrategy_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadDayStrategy()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🗓️ Generate Day-by-Day Plan</button>
+            <button onclick="loadDayStrategy()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">ðï¸ Generate Day-by-Day Plan</button>
           </div>
         </div>
       </div>
@@ -4390,15 +4390,15 @@ function closeSetupFinal(){
     <div style="margin:10px 14px 0;border:1px solid rgba(201,134,10,0.3);border-radius:14px;overflow:hidden;background:rgba(201,134,10,0.03);">
       <div onclick="toggleAccordionPT('llplanner')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:transparent;">
         <div>
-          <div style="font-size:14px;font-weight:600;color:var(--text);">⚡ Lightning Lane Planner</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);">â¡ Lightning Lane Planner</div>
           <div style="font-size:11px;color:var(--gold,#C9860A);">AI-generated booking order for your group</div>
         </div>
-        <span id="pt_llplanner_arrow" style="color:var(--gold,#C9860A);font-size:16px;">›</span>
+        <span id="pt_llplanner_arrow" style="color:var(--gold,#C9860A);font-size:16px;">âº</span>
       </div>
       <div id="ab_pt_llplanner" style="display:none;padding:12px 14px;border-top:1px solid rgba(201,134,10,0.2);">
         <div id="pt_llplanner_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadLLPlanner()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,#C9860A,#E9A020);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">⚡ Generate LL Strategy</button>
+            <button onclick="loadLLPlanner()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,#C9860A,#E9A020);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">â¡ Generate LL Strategy</button>
           </div>
         </div>
       </div>
@@ -4407,16 +4407,16 @@ function closeSetupFinal(){
     <!-- Dining Reservations -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('dining')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">🍽️ Dining Reservations</div>
-        <span id="pt_dining_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">ð½ï¸ Dining Reservations</div>
+        <span id="pt_dining_arrow" style="color:var(--text-muted);font-size:16px;">âº</span>
       </div>
       <div id="ab_pt_dining" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_dining_list">
           <!-- Hardcoded Cafe Orleans -->
           <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
-            <div style="font-size:13px;font-weight:700;color:var(--text);">Café Orleans</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 Tuesday Jun 30 · 6:30 PM</div>
-            <div style="font-size:12px;color:var(--text-muted);">👥 Party of 9 · New Orleans Square</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">CafÃ© Orleans</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">ð Tuesday Jun 30 Â· 6:30 PM</div>
+            <div style="font-size:12px;color:var(--text-muted);">ð¥ Party of 9 Â· New Orleans Square</div>
             <div style="font-size:11px;color:var(--gold,#C9860A);margin-top:4px;">Conf # to be added by admin</div>
           </div>
         </div>
@@ -4429,13 +4429,13 @@ function closeSetupFinal(){
     <!-- Hotel Recommendations -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('hotels')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">🏨 Hotel Recommendations</div>
-        <span id="pt_hotels_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">ð¨ Hotel Recommendations</div>
+        <span id="pt_hotels_arrow" style="color:var(--text-muted);font-size:16px;">âº</span>
       </div>
       <div id="ab_pt_hotels" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_hotels_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadHotelRecs()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🏨 Load Hotel Recommendations</button>
+            <button onclick="loadHotelRecs()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">ð¨ Load Hotel Recommendations</button>
           </div>
         </div>
       </div>
@@ -4444,8 +4444,8 @@ function closeSetupFinal(){
     <!-- Group Roster -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('roster')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">👥 Group Roster</div>
-        <span id="pt_roster_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">ð¥ Group Roster</div>
+        <span id="pt_roster_arrow" style="color:var(--text-muted);font-size:16px;">âº</span>
       </div>
       <div id="ab_pt_roster" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_roster_list" style="display:flex;flex-direction:column;gap:6px;"></div>
@@ -4466,8 +4466,8 @@ function closeSetupFinal(){
     <!-- What to Pack -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('pack')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">🎒 What to Pack</div>
-        <span id="pt_pack_arrow" style="color:var(--text-muted);font-size:16px;">›</span>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">ð What to Pack</div>
+        <span id="pt_pack_arrow" style="color:var(--text-muted);font-size:16px;">âº</span>
       </div>
       <div id="ab_pt_pack" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_pack_list" style="display:flex;flex-direction:column;gap:6px;"></div>
