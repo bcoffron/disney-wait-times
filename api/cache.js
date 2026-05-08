@@ -1,4 +1,4 @@
-import { put, list, getDownloadUrl } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -14,11 +14,11 @@ export default async function handler(req, res) {
 
   const key = req.query.key;
 
-  // Debug: list all blobs (admin only)
+  // Debug: list all blobs
   if (req.method === 'GET' && req.query.debug === '1') {
     try {
       const { blobs } = await list({ prefix: 'twize/' });
-      return res.json({ blobs: blobs.map(b => ({ path: b.pathname, size: b.size, url: b.url })) });
+      return res.json({ blobs: blobs.map(b => ({ path: b.pathname, size: b.size })) });
     } catch(e) {
       return res.json({ error: e.message });
     }
@@ -34,9 +34,7 @@ export default async function handler(req, res) {
       const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
       if (!blobs || blobs.length === 0) return res.json({ hit: false, reason: 'no_blobs' });
       const blob = blobs[0];
-      // For private stores, use downloadUrl
-      const downloadUrl = blob.downloadUrl || blob.url;
-      const dataResp = await fetch(downloadUrl);
+      const dataResp = await fetch(blob.url);
       if (!dataResp.ok) return res.json({ hit: false, reason: 'fetch_failed', status: dataResp.status });
       const text = await dataResp.text();
       const parsed = JSON.parse(text);
@@ -59,6 +57,7 @@ export default async function handler(req, res) {
       if (!data) return res.status(400).json({ error: 'Missing data' });
       const payload = JSON.stringify({ data, ts: ts || new Date().toISOString() });
       await put('twize/' + key + '.json', payload, {
+        access: 'public',
         addRandomSuffix: false,
         contentType: 'application/json'
       });
