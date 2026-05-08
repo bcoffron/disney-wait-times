@@ -626,22 +626,22 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <script>
 // v202605071916 — cache bust v3
 // Safety stub - real function defined later
-function stripMd(text){if(!text)return '';return text.replace(/^#{1,3} */gm,'').replace(/^---+$/gm,'').replace(/^[|].+[|]$/gm,'').replace(/[*][*]([^*]+)[*][*]/g,'<strong>$1</strong>').replace(/[*]([^*]+)[*]/g,'<em>$1</em>').replace(/
-
-
-+/g,'
-
-').trim();}\s*/g,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/^---+$/gm,'').replace(/^\|.+\|$/gm,'').replace(/\n{3,}/g,'\n\n').trim();}
+function stripMd(t){
+  if(!t)return '';
+  return t
+    .replace(/^#{1,3} .*/gm, function(m){return m.replace(/^#{1,3} /,'');})
+    .replace(/^---+$/gm,'')
+    .replace(/^\|.*\|$/gm,'')
+    .replace(/\*\*([^*]+)\*\*/g,'$1')
+    .replace(/\*([^*]+)\*/g,'$1')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
+}
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
-function stripMd(text){
-  if(!text) return '';
-  return text
-    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g,'<em>$1</em>');
-}
+
 function isRideInRefurb(rideName){
   try{
     var stored=localStorage.getItem('weekly_refurbs');
