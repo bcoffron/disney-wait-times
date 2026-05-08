@@ -21,10 +21,10 @@ async function blobSet(key,value) {
       contentType:'application/json',
       allowOverwrite:true
     });
-    return true;
+    return {ok:true};
   } catch(e) {
     console.warn('blobSet err:',e.message);
-    return false;
+    return {ok:false,err:e.message};
   }
 }
 
@@ -48,8 +48,8 @@ module.exports = async function handler(req,res) {
     try {
       const {value} = req.body;
       if(value===undefined) return res.status(400).json({error:'Missing value'});
-      const ok = await blobSet(key,value);
-      return res.status(200).json({ok,key,ts:Date.now()});
+      const result = await blobSet(key,value);
+      return res.status(200).json({ok:result.ok,key,ts:Date.now(),blobErr:result.err||null});
     } catch(e) { return res.status(500).json({error:e.message}); }
   }
   return res.status(405).json({error:'Method not allowed'});
