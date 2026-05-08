@@ -78,8 +78,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .reopt-text{font-size:13px;color:var(--text-muted);line-height:1.6}
 .reopt-btns{display:none;gap:8px;margin-top:10px}
 .reopt-btns.show{display:flex}
-.reopt-apply{flex:1;padding:9px;border-radius:var(--radius-sm);border:1px solid rgba(124,58,237,0.4);background:rgba(124,58,237,0.08);color:#7C3AED;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
-.reopt-dismiss{padding:9px 14px;border-radius:var(--radius-sm);border:1px solid var(--navy-border);background:transparent;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer}
+.reopt-apply{flex:2;padding:9px;border-radius:var(--radius-sm);border:1px solid rgba(124,58,237,0.4);background:rgba(124,58,237,0.08);color:#7C3AED;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.reopt-dismiss{flex:1;padding:9px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;font-family:inherit;cursor:pointer}
 .sec-hdr{display:flex;align-items:center;gap:8px;margin:13px 0 7px}
 .sec-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--magic);white-space:nowrap;opacity:0.7}
 .sec-line{flex:1;height:.5px;background:var(--navy-border)}
@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071907 — cache bust v3
+// v202605071916 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
