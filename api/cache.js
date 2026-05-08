@@ -1,4 +1,4 @@
-import { list } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && req.query.debug === '1') {
     try {
       const { blobs } = await list({ prefix: 'twize/' });
-      return res.json({ blobs: blobs.map(b => ({ path: b.pathname, size: b.size, url: b.url })) });
+      return res.json({ blobs: blobs.map(b => ({ path: b.pathname, size: b.size })) });
     } catch(e) {
       return res.json({ error: e.message });
     }
@@ -28,14 +28,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid key' });
   }
 
-  // GET — read from blob store
+  // GET — read from private blob store
   if (req.method === 'GET') {
     try {
       const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
       if (!blobs || blobs.length === 0) return res.json({ hit: false, reason: 'no_blobs' });
       const blob = blobs[0];
-      const dataResp = await fetch(blob.url);
-      if (!dataResp.ok) return res.json({ hit: false, reason: 'fetch_failed', blobUrl: blob.url.substring(0,40) });
+      // Private blobs require downloadUrl, not url
+      const fetchUrl = blob.downloadUrl || blob.url;
+      const dataResp = await fetch(fetchUrl);
+      if (!dataResp.ok) return res.json({ hit: false, reason: 'fetch_failed', status: dataResp.status });
       const text = await dataResp.text();
       const parsed = JSON.parse(text);
       return res.json({ hit: true, data: parsed.data, ts: parsed.ts });
@@ -44,7 +46,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST — delegate to cron-cache which handles blob writes correctly
+  // POST — write to private blob store
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
     const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
@@ -52,13 +54,19 @@ export default async function handler(req, res) {
     if (!validAdmin && !validCron) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    // Trigger cron to rebuild this key
-    const cronUrl = 'https://' + req.headers.host + '/api/cron-cache?key=' + key;
-    const cronResp = await fetch(cronUrl, {
-      headers: { 'Authorization': 'Bearer ' + process.env.CRON_SECRET }
-    });
-    const cronData = await cronResp.json();
-    return res.json(cronData);
+    try {
+      const { data, ts } = req.body;
+      if (!data) return res.status(400).json({ error: 'Missing data' });
+      const payload = JSON.stringify({ data, ts: ts || new Date().toISOString() });
+      await put('twize/' + key + '.json', payload, {
+        access: 'private',
+        addRandomSuffix: false,
+        contentType: 'application/json'
+      });
+      return res.json({ ok: true, key, length: payload.length });
+    } catch(e) {
+      return res.status(500).json({ ok: false, error: e.message });
+    }
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
