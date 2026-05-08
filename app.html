@@ -2316,7 +2316,7 @@ function buildDiningHTML(restaurant, text){
   html+=renderItems(sections.veggie,'dr-veggie','veggie');
   return html;
 }
-async function fetchDiningRecs(restaurant, callback) {
+function fetchDiningRecs(restaurant, callback) {
   var context = diningIntelCache ? '=== DINING INTEL ===\n' + diningIntelCache : '';
   var prompt = 'Give a brief dining recommendation for: ' + restaurant + '. Include must-orders, tips, and reservation advice. 2-3 sentences.';
   fetch(SYNC_BASE + '/api/ai', {
@@ -3134,7 +3134,7 @@ async function completeSetup(){
 }
 function showSetupGeneratePrompt(){var card=document.createElement('div');card.id='sgc';card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">&#10024; Generate personalized schedule?</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Claude can rebuild your schedule based on your Ride Style.</div><div style="display:flex;gap:8px"><button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild</button><button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button></div>';document.body.appendChild(card);}
 function dismissGenCard(){var c=document.getElementById('sgc');if(c)c.remove();showToast('Ride Style saved!');}
-async function generateFromSetup(params, callback) {
+function generateFromSetup(params, callback) {
   var context = [
     parkIntelCache ? '=== PARK STRATEGY ===\n' + parkIntelCache : '',
     eventsIntelCache ? '=== EVENTS ===\n' + eventsIntelCache : '',
@@ -3168,7 +3168,7 @@ async function generateFromSetup(params, callback) {
       else callback('Empty schedule');
     }catch(e){callback('Parse error: '+e.message);}
   }
-async function aiChooseRides(params, callback) {
+function aiChooseRides(params, callback) {
   var context = parkIntelCache ? '=== PARK STRATEGY & RIDE INTEL ===\n' + parkIntelCache : '';
   var prompt = 'Choose the best rides for this group and return ONLY a JSON array of ride name strings. Group: ' + JSON.stringify(params);
   fetch(SYNC_BASE + '/api/ai', {
