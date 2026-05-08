@@ -11,20 +11,18 @@ if(!apiKey)return res.status(500).json({error:"No API key"});
 if(!prompt)return res.status(400).json({error:"Missing prompt"});
 
 // Extract existing sections JSON from prompt (between JSONSTART[ and ]JSONEND)
-const existingMatch=prompt.match(/JSONSTART(\[[\s\S]*?\])JSONEND/);
+const existingMatch=prompt.match(/JSONSTART(\[\s\S]*?\])JSONEND/);
 const existingSections=existingMatch?existingMatch[1]:null;
 
-// Extract context clues from prompt (day, group size, date)
-const dayMatch=prompt.match(/on ([^.]+\.)/)||["","Disneyland day"];
-
+// Always use Sonnet — reliable JSON output from long prompts
 const tools=useWebSearch?[{type:"web_search_20250305",name:"web_search"}]:[];
-const model=useWebSearch?"claude-sonnet-4-6":"claude-haiku-4-5-20251001";
+const model="claude-sonnet-4-6";
 
-const system="You are a Disneyland schedule optimizer. Return ONLY a JSON object with no explanation outside JSON. Format exactly: {\"sections\":[{\"title\":\"string\",\"entries\":[{\"t\":\"H:MM AM/PM\",\"h\":\"Attraction Name\",\"type\":\"ride|show|dining|break|tip\",\"n\":\"brief tip\",\"land\":\"Land Name\"}]}],\"explanation\":\"one sentence max\"}";
+const system='You are a Disneyland schedule optimizer. Output ONLY valid JSON — no prose, no markdown fences. Use exactly this structure: {"sections":[{"title":"string","entries":[{"t":"H:MM AM/PM","h":"Attraction Name","type":"ride|show|dining|break|tip","n":"brief tip","land":"Land Name"}]}],"explanation":"one sentence max"}';
 
 const userMsg=existingSections
-?"Optimize this Disneyland schedule for minimum waits. Return improved version as JSON.\n\nCurrent schedule:\n"+existingSections+"\n\nContext from planner:\n"+prompt.replace(/JSONSTART[\s\S]*?JSONEND/,"").substring(0,800)
-:prompt.substring(0,1500);
+?"Optimize this Disneyland schedule for minimum waits. Return improved version as JSON only.\n\nCurrent schedule:\n"+existingSections+"\n\nContext:\n"+prompt.replace(/JSONSTART[\s\S]*?JSONEND/,"").substring(0,800)
+:"Create an optimized Disneyland schedule. Return JSON only.\n\n"+prompt.substring(0,2000);
 
 function normalizeEntry(e){
 return{t:e.t||e.time||"",h:e.h||e.name||e.title||e.attraction||"",type:e.type||"ride",n:e.n||e.note||e.tip||e.description||"",land:e.land||""};
@@ -39,20 +37,24 @@ const data=await r.json();
 if(data.error)return res.status(500).json({error:data.error});
 let text="";
 for(const block of(data.content||[]))if(block.type==="text")text+=block.text;
-const clean=text.replace(/```json|```/g,"").trim();
 
-// Try to parse JSON
+// Robust JSON extraction
+const clean=text.replace(/```json[\s\S]*?```/g,"").replace(/```/g,"").trim();
+
 let parsed=null;
-try{parsed=JSON.parse(clean);}catch(e){
+try{parsed=JSON.parse(clean);}catch(e1){
 const m=clean.match(/\{[\s\S]+\}/);
-if(m)try{parsed=JSON.parse(m[0]);}catch(e2){}
+if(m)try{parsed=JSON.parse(m[0]);}catch(e2){
+const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
+if(s>-1&&e>s)try{parsed=JSON.parse(clean.substring(s,e+1));}catch(e3){}
+}
 }
 
 if(parsed&&parsed.sections&&Array.isArray(parsed.sections)){
 const normalized=parsed.sections.map(function(s){return{title:s.title||"",entries:(s.entries||[]).map(normalizeEntry)};});
 return res.status(200).json({sections:normalized,explanation:parsed.explanation||"Schedule optimized."});
 }
-return res.status(200).json({error:"Parse failed",raw:text.substring(0,400)});
+return res.status(200).json({error:"Parse failed",raw:clean.substring(0,600)});
 
 }catch(e){
 return res.status(500).json({error:e.message});
