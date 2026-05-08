@@ -24,6 +24,7 @@ async function blobStore(key, data) {
   // Try without access first (uses store default - works for private stores)
   try {
     await put('twize/'+key+'.json', JSON.stringify(data), {
+      access:'private',
       addRandomSuffix:false,
       contentType:'application/json',
       allowOverwrite:true
