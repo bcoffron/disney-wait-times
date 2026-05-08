@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid key' });
   }
 
-  // GET — read from private blob store
+  // GET â read from private blob store
   if (req.method === 'GET') {
     try {
       const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST — write to private blob store
+  // POST â write to private blob store
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
     const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
