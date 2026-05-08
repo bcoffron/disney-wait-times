@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605041347">
+<meta name="version" content="202605072228">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -2231,8 +2231,8 @@ async function reoptimize(){
     }
   }catch(e){txt.textContent='Error: '+e.message;}
 }
-function applyReopt(){if(!pendingReopt)return;customSched[curDay]=pendingReopt;saveCustom(curDay);pendingReopt=null;document.getElementById('reoptBox').style.display='none';renderSched();}
-function dismissReopt(){pendingReopt=null;document.getElementById('reoptBox').style.display='none';}
+function applyReopt(){if(!pendingReopt)return;customSched[curDay]=pendingReopt;saveCustom(curDay);pendingReopt=null;document.getElementById('reoptBox').style.display='none';renderSched();;document.getElementById("reoptBtns").classList.remove("show");}
+function dismissReopt(){pendingReopt=null;document.getElementById('reoptBox').style.display='none';;document.getElementById("reoptBtns").classList.remove("show");}
 
 // ── Render closed banner ──────────────────────────────────────────────────
 function renderClosed(){
@@ -2877,6 +2877,11 @@ var ALL_RESTAURANTS=[
   {name:'Great Maple Modern American Eatery',park:'Pixar Place Hotel',type:'Table Service',area:'Pixar Place Hotel',res:'Recommended'},
 ];
 
+function getAllDiningRecs(){
+  var btns=document.querySelectorAll('.dining-get-btn');
+  if(!btns.length){showToast('Open the dining guide first');return;}
+  btns.forEach(function(btn){if(btn.offsetParent!==null)btn.click();});
+}
 function buildFullDiningGuide(){
   var html='<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">Tap any restaurant for AI-powered recs with must-haves, kids meals and vegetarian options. Results are cached on your device after the first search.</div>';
   var dlRests=ALL_RESTAURANTS.filter(function(r){return r.park==='Disneyland';});
@@ -3971,7 +3976,7 @@ function completeSetupAndSummarize(){
   if(ki.length){saveGroupHeights(Array.from(ki).map(function(i){return parseInt(i.value)||44;}));}
   try{localStorage.setItem('setup_data',JSON.stringify(setupData));localStorage.setItem('setup_done','yes');}catch(e){}
   var b=document.getElementById('setupBanner');if(b)b.style.display='none';
-  goSetupStep(5);
+  setupGoTo(5);
   generateTripSummary();
 }
 
@@ -4026,33 +4031,6 @@ function closeSetupFinal(){
 }
 
 
-var PARK_INTEL_DAYS=10,parkIntelCache=null;
-function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<PARK_INTEL_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
-function setParkIntel(t){parkIntelCache=t;try{localStorage.setItem('park_intel',t);localStorage.setItem('park_intel_ts',String(Date.now()));}catch(e){}}
-var DINING_INTEL_DAYS=30,diningIntelCache=null;
-function getDiningIntel(){if(diningIntelCache)return diningIntelCache;try{var s=localStorage.getItem('dining_intel'),ts=parseInt(localStorage.getItem('dining_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<DINING_INTEL_DAYS){diningIntelCache=s;return s;}}catch(e){}return null;}
-function setDiningIntel(t){diningIntelCache=t;try{localStorage.setItem('dining_intel',t);localStorage.setItem('dining_intel_ts',String(Date.now()));}catch(e){}}
-var EVENTS_INTEL_DAYS=7,eventsIntelCache=null;
-function getEventsIntel(){if(eventsIntelCache)return eventsIntelCache;try{var s=localStorage.getItem('events_intel'),ts=parseInt(localStorage.getItem('events_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<EVENTS_INTEL_DAYS){eventsIntelCache=s;return s;}}catch(e){}return null;}
-function setEventsIntel(t){eventsIntelCache=t;try{localStorage.setItem('events_intel',t);localStorage.setItem('events_intel_ts',String(Date.now()));}catch(e){}}
-var HOURS_INTEL_DAYS=7,parkHoursCache=null;
-function getParkHoursIntel(){if(parkHoursCache)return parkHoursCache;try{var s=localStorage.getItem('park_hours_intel');if(s){parkHoursCache=JSON.parse(s);return parkHoursCache;}}catch(e){}return null;}
-function parkHoursNeedsUpdate(){try{var ts=parseInt(localStorage.getItem('park_hours_intel_ts')||'0');return(Date.now()-ts)/864e5>=HOURS_INTEL_DAYS;}catch(e){return true;}}
-function setParkHoursIntel(d){parkHoursCache=d;try{localStorage.setItem('park_hours_intel',JSON.stringify(d));localStorage.setItem('park_hours_intel_ts',String(Date.now()));}catch(e){}}
-function getParkHoursForDate(ds,park){var def=park==='dca'?{open:9,close:22}:{open:8,close:23};try{var intel=getParkHoursIntel();if(!intel||!intel[ds])return def;var day=intel[ds],p=park==='dca'?day.dca:day.dl;if(!p)return def;var o=p.open.split(':'),c=p.close.split(':');return{open:parseInt(o[0])+(parseInt(o[1]||0)/60),close:parseInt(c[0])+(parseInt(c[1]||0)/60)};}catch(e){return def;}}
-function getDayParkWindow(ds){if(!ds){try{var n=nowPT();ds=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}catch(e){ds=new Date().toISOString().split('T')[0];}}var dl=getParkHoursForDate(ds,'dl'),dca=getParkHoursForDate(ds,'dca');return{open:Math.min(dl.open,dca.open),close:Math.max(dl.close,dca.close)};}
-function isWaitFetchTime(){try{var now=nowPT(),hr=now.getHours()+(now.getMinutes()/60),ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),w=typeof getDayParkWindow==='function'?getDayParkWindow(ds):{open:8,close:23},fs=w.open-(5/60),fe=w.close+1;if(fe>=24&&hr<(fe-24))return true;if(hr>=fs&&hr<Math.min(fe,24))return true;return false;}catch(e){return true;}}
-function smartFetchWaits(){if(isWaitFetchTime()){fetchWaits();}else{waits={};waitLastFetch=0;renderSched();updateWaitStatus();var t=document.getElementById('waitTabContent');if(t)t.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:8px">&#127769;</div><div style="font-size:14px;font-weight:600;">Park is Closed</div><div style="font-size:12px;">Wait times resume when park opens</div></div>';}}
-var _wi=null,_wsi=null;
-function startWaitRefresh(){smartFetchWaits();if(_wi)clearInterval(_wi);if(_wsi)clearInterval(_wsi);_wi=setInterval(smartFetchWaits,5*60*1000);_wsi=setInterval(updateWaitStatus,60*1000);}
-function buildParkIntel(){if(!apiKey||getParkIntel())return;console.log('Building Park Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland expert. 2024-2026 only. No Genie+/MaxPass.',messages:[{role:'user',content:'Search TouringPlans AllEars MiceChat 2024-2026 Disneyland: current rope drop strategy, LLMP booking sequence, late June crowds, top 5 tips, common mistakes, DL vs DCA timing. Dense actionable summary.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setParkIntel(t);}).catch(function(e){console.warn('Park Intel:',e);});}
-function buildDiningIntel(){if(!apiKey||getDiningIntel())return;console.log('Building Dining Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland dining expert. 2024-2026 reviews only.',messages:[{role:'user',content:'Search Disney Food Blog AllEars TripAdvisor 2024-2026 Disneyland dining. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Lamplight Flo V8 Award Wieners (DCA). Earl Sandwich Salt Straw (DTD). Rating, must-orders, tip each.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setDiningIntel(t);}).catch(function(e){console.warn('Dining Intel:',e);});}
-function buildEventsIntel(){if(!apiKey||getEventsIntel())return;console.log('Building Events Intel...');fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Disneyland events expert.',messages:[{role:'user',content:'Special events Disneyland June 25-July 5 2026: ticketed events, early closures, July 4th weekend. Brief factual summary with dates.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>100)setEventsIntel(t);}).catch(function(e){console.warn('Events Intel:',e);});}
-function buildParkHoursIntel(){if(!apiKey)return;var existing=getParkHoursIntel(),needsUpdate=parkHoursNeedsUpdate();if(existing&&!needsUpdate)return;var isInc=!!existing,now=new Date(),sd,ed;if(isInc){sd=new Date(now);ed=new Date(now);ed.setDate(ed.getDate()+60);}else{sd=new Date(now);sd.setDate(1);ed=new Date(sd);ed.setFullYear(ed.getFullYear()+1);}var s=sd.toISOString().split('T')[0],e=ed.toISOString().split('T')[0];fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Return ONLY valid JSON park hours.',messages:[{role:'user',content:'Disneyland park hours '+s+' to '+e+'. ONLY JSON: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}}. Default dl 08:00-23:00 dca 09:00-22:00.'}]})}).then(function(r){return r.json();}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});var m=t.replace(/```json|```/g,'').match(/\{[\s\S]+\}/);if(m){try{var h=JSON.parse(m[0]);setParkHoursIntel(isInc&&existing?Object.assign({},existing,h):h);}catch(ex){}}}).catch(function(e){console.warn('Park Hours:',e);});}
-setTimeout(function(){if(apiKey&&!getParkIntel())buildParkIntel();},120000);
-setTimeout(function(){if(apiKey&&!getDiningIntel())buildDiningIntel();},300000);
-setTimeout(function(){if(apiKey&&!getEventsIntel())buildEventsIntel();},480000);
-setTimeout(function(){if(apiKey)buildParkHoursIntel();},720000);
 </script>
 
 <!-- Setup Overlay -->
@@ -4197,7 +4175,7 @@ setTimeout(function(){if(apiKey)buildParkHoursIntel();},720000);
           <div class="setup-chip" onclick="toggleChip(this,'charPri')">First thing in the morning</div>
         </div>
       </div>
-      <button class="setup-btn" onclick="goSetupStep(4)">Next ›</button>
+      <button class="setup-btn" onclick="setupGoTo(4)">Next ›</button>
     </div>
     <!-- Step 4: Smart Profile Questions -->
     <div class="setup-step" id="setupStep4">
