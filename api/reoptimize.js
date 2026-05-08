@@ -13,7 +13,7 @@ if(!prompt)return res.status(400).json({error:"Missing prompt"});
 const existingMatch=prompt.match(/JSONSTART(\[\s\S]*?\])JSONEND/);
 const existingSections=existingMatch?existingMatch[1]:null;
 
-const tools=useWebSearch?[{type:"web_search_20250305",name:"web_search"}]:[];
+// Never use web search — cache context is already in the prompt
 const model="claude-sonnet-4-6";
 
 const system='You are a Disneyland schedule optimizer. Output ONLY valid JSON — no prose, no markdown fences. Use exactly this structure: {"sections":[{"title":"string","entries":[{"t":"H:MM AM/PM","h":"Attraction Name","type":"ride|show|dining|break|tip","n":"brief tip","land":"Land Name"}]}],"explanation":"one sentence max"}';
@@ -29,10 +29,10 @@ return{t:e.t||e.time||"",h:e.h||e.name||e.title||e.attraction||"",type:e.type||"
 const r=await fetch("https://api.anthropic.com/v1/messages",{
 method:"POST",
 headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
-body:JSON.stringify({model,max_tokens:2000,system,tools,messages:[{role:"user",content:userMsg}]})
+body:JSON.stringify({model,max_tokens:4000,system,messages:[{role:"user",content:userMsg}]})
 });
 const data=await r.json();
-if(data.error)return res.status(500).json({error:data.error.message||data.error});
+if(data.error)return res.status(500).json({error:data.error.message||JSON.stringify(data.error)});
 let text="";
 for(const block of(data.content||[]))if(block.type==="text")text+=block.text;
 
