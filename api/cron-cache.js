@@ -24,13 +24,13 @@ async function isFresh(key) {
 async function blobStore(key, data) {
   // Try without access first (uses store default - works for private stores)
   try {
-    await put('twize/'+key+'.json', JSON.stringify(data), {
+    const blob = await put('twize/'+key+'.json', JSON.stringify(data), {
       access:'private',
       addRandomSuffix:false,
       contentType:'application/json',
       allowOverwrite:true
     });
-    return true;
+    return blob.url||blob.pathname||'written';
   } catch(e) {
     console.warn('blobStore failed:', e.message);
     return false;
@@ -103,7 +103,7 @@ module.exports = async function(req,res) {
     if(!VALID_KEYS.includes(k)){errors.push({key:k,error:'Invalid key'});continue;}
     if(await isFresh(k)){results.push({key:k,skipped:true});continue;}
     try {
-      results.push(await build(k, apiKey));
+      const blobUrl = await build(k, apiKey); results.push({key:k, length:blobUrl.length||0, blobUrl});
     } catch(e) {
       errors.push({key:k, error:e.message});
     }
