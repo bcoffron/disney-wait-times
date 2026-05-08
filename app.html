@@ -2169,7 +2169,9 @@ async function reoptimize(){
     +'2) SHOW LOCK: Never move show entries or entries within 1 hour before a show. '
     +'3) FIXED DINING LOCK: Never move dining entries that have a specific reservation time (e.g. 6:30 PM reservation). Flexible dining entries (e.g. "Lunch in DCA") CAN be moved to better timing windows. '
     +'4) HOP LOCK: Never remove park hop entries but you MAY adjust their time if it improves flow. '
-    +'5) VIP LOCK: Never move or remove VIP tour entries.\n    +'6) SNACK LIMIT: Maximum 2 snack stops per day \u2014 1 morning, 1 afternoon. Do not add more.'\n    +'7) PHOTO OP LIMIT: Maximum 2-3 photo op recommendations per time block. Never repeat the same photo op location twice in the same day.'';
+    +'5) VIP LOCK: Never move or remove VIP tour entries.'
+    +'6) SNACK LIMIT: Maximum 2 snack stops per day \u2014 1 morning, 1 afternoon. Do not add more.'
+    +'7) PHOTO OP LIMIT: Maximum 2-3 photo op recommendations per time block. Never repeat the same photo op location twice in the same day.';
   try{
     var skipList=[];
     var storedRefurbs=getStoredRefurbs();
