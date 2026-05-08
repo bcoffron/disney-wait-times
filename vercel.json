@@ -5,6 +5,9 @@
     },
     "api/cron-cache.js": {
       "maxDuration": 300
+    },
+    "api/ai.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
