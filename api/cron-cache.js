@@ -15,7 +15,8 @@ async function isFresh(key) {
     const {blobs} = await list({prefix:'twize/'+key});
     if(!blobs||!blobs.length) return false;
     const blob = blobs.sort((a,b)=>new Date(b.uploadedAt)-new Date(a.uploadedAt))[0];
-    const data = await (await fetch(blob.url)).json();
+    const fetchUrl = blob.downloadUrl||blob.url;
+    const data = await (await fetch(fetchUrl)).json();
     return data&&data.ts&&(Date.now()-data.ts)/864e5 < EXPIRY_DAYS[key]*0.8;
   } catch(e){return false;}
 }
@@ -53,7 +54,7 @@ async function build(key, apiKey) {
     const m = text.replace(/```[^]*?```/g,'').match(/\{[\s\S]+\}/);
     if(m) try{value=JSON.parse(m[0]);}catch(e){}
   }
-  await blobStore(key, {value, ts:Date.now()});
+  await blobStore(key, {data:value, ts:Date.now()});
   return {key, length:text.length};
 }
 
@@ -64,14 +65,15 @@ async function isRateLimited() {
     const {blobs} = await list({prefix:'twize/rate_limit'});
     if(!blobs||!blobs.length) return false;
     const blob = blobs.sort((a,b)=>new Date(b.uploadedAt)-new Date(a.uploadedAt))[0];
-    const data = await (await fetch(blob.url)).json();
+    const fetchUrl = blob.downloadUrl||blob.url;
+    const data = await (await fetch(fetchUrl)).json();
     return data&&data.ts&&(Date.now()-data.ts)/3600000 < 24;
   } catch(e){return false;}
 }
 
 async function setRateLimit() {
   try {
-    await put(RATE_LIMIT_KEY, JSON.stringify({ts:Date.now()}), {addRandomSuffix:false,contentType:'application/json',allowOverwrite:true});
+    await put(RATE_LIMIT_KEY, JSON.stringify({ts:Date.now()}), {access:'private',addRandomSuffix:false,contentType:'application/json',allowOverwrite:true});
   } catch(e){}
 }
 
