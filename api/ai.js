@@ -8,10 +8,10 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'No API key' });
 
-  const { prompt, system, context, maxTokens = 1000, model = 'claude-sonnet-4-20250514' } = req.body || {};
+  const { prompt, system, context, maxTokens = 1000, model = 'claude-sonnet-4-6' } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-  // Build system prompt — inject cache context if provided
+  // Build system prompt â inject cache context if provided
   let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant.';
   if (context) {
     systemPrompt += '\n\n=== CURRENT DISNEYLAND INTELLIGENCE (use this instead of searching) ===\n' + context;
