@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST — write to blob store
+  // POST — write to blob store (no access param — use store default)
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
     const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
@@ -57,7 +57,6 @@ export default async function handler(req, res) {
       if (!data) return res.status(400).json({ error: 'Missing data' });
       const payload = JSON.stringify({ data, ts: ts || new Date().toISOString() });
       await put('twize/' + key + '.json', payload, {
-        access: 'public',
         addRandomSuffix: false,
         contentType: 'application/json'
       });
