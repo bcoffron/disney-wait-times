@@ -28,25 +28,25 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid key' });
   }
 
-  // GET ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ read from private blob store
+  // GET ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ read from private blob store
   if (req.method === 'GET') {
     try {
       const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
-      if (!blobs || blobs.length === 0) return res.json({ err: 'miss', value: null });
+      if (!blobs || blobs.length === 0) return res.json({ hit: false });
       const blob = blobs[0];
       // Private blobs require downloadUrl, not url
       const fetchUrl = blob.downloadUrl || blob.url;
       const dataResp = await fetch(fetchUrl);
-      if (!dataResp.ok) return res.json({ err: 'fetch_failed', value: null });
+      if (!dataResp.ok) return res.json({ hit: false });
       const text = await dataResp.text();
       const parsed = JSON.parse(text);
-      return res.json({ err: null, value: parsed.data, ts: parsed.ts });
+      return res.json({ hit: true, data: parsed.data, ts: parsed.ts });
     } catch(e) {
-      return res.json({ err: e.message, value: null });
+      return res.json({ hit: false, error: e.message });
     }
   }
 
-  // POST ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ write to private blob store
+  // POST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ write to private blob store
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
     const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
