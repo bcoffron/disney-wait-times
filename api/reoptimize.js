@@ -10,25 +10,24 @@ const apiKey=process.env.ANTHROPIC_API_KEY||clientKey;
 if(!apiKey)return res.status(500).json({error:"No API key"});
 if(!prompt)return res.status(400).json({error:"Missing prompt"});
 
-// Extract existing sections JSON if present (JSONSTART[...]JSONEND)
 const existingMatch=prompt.match(/JSONSTART(\[\s\S]*?\])JSONEND/);
 const existingSections=existingMatch?existingMatch[1]:null;
 
-// Strip boilerplate walking times / rules from prompt to keep it short
+// Strip boilerplate to keep prompt short and fast
 const cleanPrompt=prompt
-  .replace(/Walking times[\s\S]*?(?=\n\n|CURRENT|JSONSTART|$)/i,'')
-  .replace(/Show positioning[\s\S]*?(?=\n\n|CURRENT|JSONSTART|$)/i,'')
-  .replace(/DINING TIMING RULES[\s\S]*?(?=\n\n|CURRENT|JSONSTART|$)/i,'')
   .replace(/You are an expert[^\n]*/i,'')
-  .trim();
+  .replace(/Walking times[\s\S]{0,400}/i,'')
+  .replace(/Show positioning[\s\S]{0,200}/i,'')
+  .replace(/DINING TIMING RULES[\s\S]{0,200}/i,'')
+  .trim()
+  .substring(0,600);
 
-const model="claude-haiku-4-5-20251001";
-
-const system='Disneyland schedule optimizer. Output ONLY a JSON object, no prose, no markdown. Format: {"sections":[{"title":"string","entries":[{"t":"H:MM AM/PM","h":"name","type":"ride|show|dining|break|tip","n":"tip","land":"land"}]}],"explanation":"one sentence"}';
+const model="claude-sonnet-4-6";
+const system='Disneyland schedule optimizer. Output ONLY a raw JSON object — absolutely no prose, no markdown, no backticks. Structure: {"sections":[{"title":"string","entries":[{"t":"H:MM AM/PM","h":"name","type":"ride|show|dining|break|tip","n":"tip","land":"land"}]}],"explanation":"one sentence"}';
 
 const userMsg=existingSections
-?"Optimize for min waits, return JSON only.\nSchedule: "+existingSections+"\nContext: "+cleanPrompt.substring(0,400)
-:"Create optimized schedule, return JSON only.\n"+cleanPrompt.substring(0,600);
+?"Optimize for min waits. Return JSON only.\nSchedule:"+existingSections+"\nContext:"+cleanPrompt
+:"Optimized Disneyland schedule for this group. Return JSON only.\n"+cleanPrompt;
 
 function normalizeEntry(e){
 return{t:e.t||e.time||"",h:e.h||e.name||e.title||e.attraction||"",type:e.type||"ride",n:e.n||e.note||e.tip||e.description||"",land:e.land||""};
@@ -43,6 +42,7 @@ const data=await r.json();
 if(data.error)return res.status(500).json({error:data.error.message||JSON.stringify(data.error)});
 let text="";
 for(const block of(data.content||[]))if(block.type==="text")text+=block.text;
+if(!text)return res.status(500).json({error:"Empty response",stop_reason:data.stop_reason,model:data.model});
 
 const clean=text.replace(/```json[\s\S]*?```/g,"").replace(/```/g,"").trim();
 let parsed=null;
@@ -64,5 +64,5 @@ return res.status(200).json({error:"Parse failed",raw:clean.substring(0,600)});
 return res.status(500).json({error:e.message});
 }
 }
-handler.config={maxDuration:25};
+handler.config={maxDuration:30};
 module.exports=handler;
