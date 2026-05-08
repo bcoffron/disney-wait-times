@@ -22,19 +22,13 @@ async function isFresh(key) {
 }
 
 async function blobStore(key, data) {
-  // Try without access first (uses store default - works for private stores)
-  try {
-    const blob = await put('twize/'+key+'.json', JSON.stringify(data), {
-      access:'private',
-      addRandomSuffix:false,
-      contentType:'application/json',
-      allowOverwrite:true
-    });
-    return blob.url||blob.pathname||'written';
-  } catch(e) {
-    console.warn('blobStore failed:', e.message);
-    return false;
-  }
+  const blob = await put('twize/'+key+'.json', JSON.stringify(data), {
+    access:'private',
+    addRandomSuffix:false,
+    contentType:'application/json',
+    allowOverwrite:true
+  });
+  return blob.url;
 }
 
 async function build(key, apiKey) {
