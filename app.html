@@ -516,7 +516,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div style="font-size:13px;font-weight:600;color:var(--magic)">Live Wait Times</div>
         <div id="waitStatus" style="font-size:11px;color:var(--text-muted)">Loading...</div>
       </div>
-      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">&#8635; Refresh</button>
+      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">↻ Refresh</button>
     </div>
     <div id="waitTabContent"><div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div></div>
     <div style="margin-top:10px;font-size:11px;color:var(--text-dim);text-align:center">Powered by ParkSavers.com &middot; Updates every 5 min</div>
@@ -626,11 +626,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <script>
 // v202605071916 — cache bust v3
 // Safety stub - real function defined later
+function stripMd(t){if(!t)return '';return t.replace(/#{1,3}\s*/g,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/^---+$/gm,'').replace(/^\|.+\|$/gm,'').replace(/\n{3,}/g,'\n\n').trim();}
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
-function renderMarkdown(text){
+function stripMd(text){
   if(!text) return '';
   return text
     .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
@@ -1029,7 +1030,7 @@ function loadCachedWeather(){
   try{
     var cached=localStorage.getItem('wx_data');
     var cachedDate=localStorage.getItem('wx_date');
-    if(cached&&cachedDate===new Date().toDateString()){
+    if(cached){
       weatherData=JSON.parse(cached);
       renderDayInfoBar();
       return true;
@@ -1613,6 +1614,7 @@ function llGotIt(rideKey, bannerEl){
 
   // Check if schedule needs reoptimizing (return time differs from scheduled time by 20+ min)
   var day=getCurDay();
+  if(!day||!day.sections||!day.sections.length){return;}
   var scheduledTime=null;
   day.sections.forEach(function(sec){
     sec.entries.forEach(function(e){
@@ -1904,8 +1906,8 @@ function showWazeSuggestion(sug, opportunities){
   var saveHTML=sug.timeSaved>0?'<span class="waze-stat waze-stat-save">~'+sug.timeSaved+' min saved</span>':'';
   var walkHTML=sug.walkMins>0?'<span class="waze-stat waze-stat-walk">&#127939; '+sug.walkMins+' min walk</span>':'';
 
-  body.innerHTML='<div class="waze-opportunity">'+renderMarkdown(sug.headline)+'</div>'
-    +'<div class="waze-detail">'+renderMarkdown(sug.detail)+'</div>'
+  body.innerHTML='<div class="waze-opportunity">'+stripMd(sug.headline)+'</div>'
+    +'<div class="waze-detail">'+stripMd(sug.detail)+'</div>'
     +'<div class="waze-stats">'+saveHTML+walkHTML+'</div>'
     +'<div class="waze-btns">'
     +'<button class="waze-accept" onclick="acceptWaze()">&#10003; Accept & Reoptimize</button>'
@@ -2080,7 +2082,7 @@ async function getReroute(ride,land,btn){
     var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:'CRITICAL: Wrap your ENTIRE first sentence in **double asterisks** to make it bold. This is the main recommendation. The remaining sentences are normal text. Example: **Skip Space Mountain for now and head straight to Haunted Mansion.** The wait there is only 15 min and will climb later.',messages:[{role:'user',content:prompt_txt}]})});
     var data=await r.json();
     var txt=data.content&&data.content[0]?data.content[0].text:'Could not get suggestion.';
-    res.innerHTML='<div class="rr-hdr">\u26A1 AI REROUTE \u2014 '+statusMsg.toUpperCase()+'</div>'+renderMarkdown(txt);
+    res.innerHTML='<div class="rr-hdr">\u26A1 AI REROUTE \u2014 '+statusMsg.toUpperCase()+'</div>'+stripMd(txt);
   }catch(e){
     res.innerHTML='<div class="rr-hdr">\u26A1 SUGGESTION</div>Try '+alts+' and return after 7 PM.';
   }
@@ -2109,7 +2111,7 @@ async function reoptimize(){
   var data=getCurDay();
   var hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]){
-    txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+renderMarkdown(reoptCache[hash].explanation)+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
+    txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+stripMd(reoptCache[hash].explanation)+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
     pendingReopt=reoptCache[hash].result;
     btns.classList.add('show');
     return;
@@ -2167,7 +2169,7 @@ async function reoptimize(){
     +'2) SHOW LOCK: Never move show entries or entries within 1 hour before a show. '
     +'3) FIXED DINING LOCK: Never move dining entries that have a specific reservation time (e.g. 6:30 PM reservation). Flexible dining entries (e.g. "Lunch in DCA") CAN be moved to better timing windows. '
     +'4) HOP LOCK: Never remove park hop entries but you MAY adjust their time if it improves flow. '
-    +'5) VIP LOCK: Never move or remove VIP tour entries.';
+    +'5) VIP LOCK: Never move or remove VIP tour entries.\n    +'6) SNACK LIMIT: Maximum 2 snack stops per day \u2014 1 morning, 1 afternoon. Do not add more.'\n    +'7) PHOTO OP LIMIT: Maximum 2-3 photo op recommendations per time block. Never repeat the same photo op location twice in the same day.'';
   try{
     var skipList=[];
     var storedRefurbs=getStoredRefurbs();
@@ -2219,7 +2221,7 @@ async function reoptimize(){
       try{pendingReopt=JSON.parse(JSON.stringify(data));}catch(pe){pendingReopt={};}
       pendingReopt.sections=newSecs;
       var expText=explanation&&explanation.length>5?explanation:'Schedule optimized -- tap Accept to apply.';
-      txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+renderMarkdown(expText)+'</div>'
+      txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+stripMd(expText)+'</div>'
         ;
       reoptCache[hash+'_v2']={explanation:expText,result:pendingReopt};
       btns.classList.add('show');
@@ -2316,27 +2318,36 @@ function buildDiningHTML(restaurant, text){
   html+=renderItems(sections.veggie,'dr-veggie','veggie');
   return html;
 }
-function fetchDiningRecs(restaurant, callback) {
-  var context = diningIntelCache ? '=== DINING INTEL ===\n' + diningIntelCache : '';
-  var prompt = 'Give a brief dining recommendation for: ' + restaurant + '. Include must-orders, tips, and reservation advice. 2-3 sentences.';
-  fetch(SYNC_BASE + '/api/ai', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      prompt: prompt,
-      system: 'Disneyland dining expert. Use the provided dining intelligence to give accurate current recommendations.',
-      context: context,
-      maxTokens: 350
-    })
-  })
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.ok||!d.text){callback('AI error: '+(d.error||'no response'));return;}
-    callback(null, d.text.trim());
-  })
-  .catch(function(e){callback('Network error: '+e.message);});
+async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx) {
+  if(!resultEl) return;
+  var origBtnHtml = btnEl ? btnEl.innerHTML : '';
+  if(btnEl){ btnEl.disabled=true; btnEl.innerHTML='Getting recs…'; }
+  resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">Loading…</span>';
+  var context = (landCtx||'') + (diningIntelCache ? '\n=== DINING INTEL ===\n' + diningIntelCache : '');
+  var prompt = 'Give a concise dining recommendation for ' + restaurant + ' at Disneyland Resort. Must-order dishes, tips, and any reservation advice. 2-3 sentences max.';
+  try {
+    var resp = await fetch(SYNC_BASE+'/api/ai', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        prompt: prompt,
+        system: 'Disneyland dining expert. Be concise. Maximum 2-3 sentences. No markdown headers or tables.',
+        context: context,
+        maxTokens: 250
+      })
+    });
+    var d = await resp.json();
+    if(!d.ok||!d.text){ resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">Could not load recommendation.</span>'; }
+    else {
+      var txt = stripMd(d.text.trim());
+      resultEl.innerHTML='<div style="font-size:13px;line-height:1.5;padding:8px 0">'+txt+'</div>';
+      try{ localStorage.setItem(diningCacheKey(restaurant), txt); }catch(e){}
+    }
+  } catch(e) {
+    resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">Network error.</span>';
+  }
+  if(btnEl){ btnEl.disabled=false; btnEl.innerHTML=origBtnHtml; }
 }
-
 async function getDiningRecs(restaurant, landCtx, btnEl){
   var resultEl=btnEl.parentNode.querySelector('.dining-result');
   if(!resultEl) return;
@@ -2580,6 +2591,10 @@ function renderInlineSuggestion(e, ei, entries, dayIdx) {
 function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
+  if(!day||!day.sections||!day.sections.length){
+    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">📋</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>✎ Edit Schedule</strong> to build one, or use <strong>✨ AI Optimize</strong> to generate a plan.</div></div>';
+    return;
+  }
   day.sections.forEach(function(sec,si){
     var isVipSec=sec.title&&sec.title.indexOf('VIP Tour')>-1;
     if(isVipSec){
@@ -3047,6 +3062,7 @@ async function _doChat(msg){
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
   var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  if(!window.chatHistory)window.chatHistory=[];
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
   var te=document.createElement('div');te.className='chat-msg ai';te.innerHTML='<span style="opacity:.5">typing...</span>';
@@ -3070,7 +3086,7 @@ async function _doChat(msg){
   }
 }
 
-function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages');if(!msgs)return;var el=document.createElement('div');el.className='chat-msg '+role;el.textContent=text;msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;}
+function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages');if(!msgs)return;var el=document.createElement('div');el.className='chat-msg '+role;el.textContent=(role==='ai'?stripMd(text):text);msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;}
 
 // Check for morning update once per day
 (function(){
@@ -3203,7 +3219,7 @@ function aiChooseRides(params, callback) {
 function applyRideDefaults(){var d=['Space Mountain','Matterhorn','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs','Guardians'];document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(d.some(function(x){return c.textContent.indexOf(x.substring(0,8))>-1;}))c.classList.add('selected');});var s=document.getElementById('aiChooseStatus');if(s){s.style.display='block';s.textContent='Applied smart defaults.';s.style.color='var(--gold)';}}
 function applyRideDefaults(){var d=['Space Mountain','Matterhorn','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs','Guardians'];document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(d.some(function(x){return c.textContent.indexOf(x.substring(0,8))>-1;}))c.classList.add('selected');});var s=document.getElementById('aiChooseStatus');if(s){s.style.display='block';s.textContent='Applied smart defaults.';s.style.color='var(--gold)';}}
 
-function doRefreshWaits(){var btn=document.getElementById('waitRefreshBtn');if(btn){btn.textContent='Refreshing...';btn.disabled=true;}var el=document.getElementById('waitTabContent');if(el)el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Fetching live wait times...</div>';fetchWaits().then(function(){if(btn){btn.textContent='&#8635; Refresh';btn.disabled=false;}}).catch(function(){if(btn){btn.textContent='&#8635; Refresh';btn.disabled=false;}});}
+function doRefreshWaits(){var btn=document.getElementById('waitRefreshBtn');if(btn){btn.textContent='Refreshing...';btn.disabled=true;}var el=document.getElementById('waitTabContent');if(el)el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Fetching live wait times...</div>';fetchWaits().then(function(){if(btn){btn.textContent='↻ Refresh';btn.disabled=false;}}).catch(function(){if(btn){btn.textContent='↻ Refresh';btn.disabled=false;}});}
 
 
 
@@ -3367,6 +3383,7 @@ function renderPreTripWeather(){
 function renderPackList(){
   loadPackItems();
   var el=document.getElementById('pt_pack_list');if(!el)return;
+  if(!PACK_ITEMS||!Array.isArray(PACK_ITEMS)){el.innerHTML='<div style="color:var(--text-muted);padding:12px;text-align:center;font-size:13px">Pack list not available.</div>';return;}
   el.innerHTML=PACK_ITEMS.map(function(item){
     var chk=item.checked?' checked':'';
     var strike=item.checked?'text-decoration:line-through;color:var(--text-muted)':'';
@@ -3444,19 +3461,19 @@ async function loadKnowBeforeYouGo(){
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,
-        system:'You are an expert Disneyland trip planner. Before giving advice, use web search to find the CURRENT most widely accepted rope drop strategies, wait time patterns, and touring tips from sources like TouringPlans, AllEars, MiceChat, and Disney Food Blog for June 2026. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Your advice must reflect strategies that are verified current and backed by real visitor data — never outdated tips. Every recommendation must be specific to the group profile provided.',
+        system:'You are an expert Disneyland trip planner. Before giving advice, use web search to find the CURRENT most widely accepted rope drop strategies, wait time patterns, and touring tips from sources like TouringPlans, AllEars, MiceChat, and Disney Food Blog for June 2026. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Be concise. Maximum 3 short paragraphs. No markdown headers or tables. Your advice must reflect strategies that are verified current and backed by real visitor data — never outdated tips. Every recommendation must be specific to the group profile provided. Be concise. Maximum 3 short paragraphs. No markdown headers or tables.',
         tools:[{type:'web_search_20250305',name:'web_search'}],
         messages:[{role:'user',content:prompt}]})
     });
     var data=await resp.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='Could not load briefing.';
-    var formatted='<p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p>';
+    var formatted='<p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p>';
     var note=setupDone
       ?'<div style="font-size:11px;color:#34D399;margin-bottom:10px;display:flex;align-items:center;gap:4px;"><span>&#10003;</span> Personalized to your group setup</div>'
       :'<div style="font-size:11px;color:var(--gold,#C9860A);margin-bottom:10px;">&#9888; Complete Ride Style setup for a more tailored briefing</div>';
     el.innerHTML=note+'<div style="font-size:13px;color:var(--text);line-height:1.8;">'+formatted+'</div>'
-      +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">&#8635; Regenerate</button>';
+      +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↻ Regenerate</button>';
     try{localStorage.setItem('kbyg_text',el.innerHTML);localStorage.setItem('kbyg_date',new Date().toDateString());localStorage.setItem('kbyg_setup_hash',JSON.stringify(sd));}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Network error: '+err.message+'</div>';}
 }
@@ -3498,7 +3515,7 @@ function renderPreTripBanner(){
     var cachedSetup=localStorage.getItem('kbyg_setup_hash');
     var currentSetup=localStorage.getItem('setup_data')||'{}';
     var setupChanged=cachedSetup&&cachedSetup!==currentSetup;
-    if(cached&&cachedDate===new Date().toDateString()&&!setupChanged){
+    if(cached&&!setupChanged){
       var el=document.getElementById('pt_kbyg_content');
       if(el)el.innerHTML=cached;
     }
@@ -3891,18 +3908,18 @@ function addDiningToSchedule(res,day){
 async function loadCrowdPrediction(){
   var el=document.getElementById('pt_crowds_content');
   if(!el) return;
-  try{var cached=localStorage.getItem('crowd_pred');var cachedDate=localStorage.getItem('crowd_pred_date');if(cached&&cachedDate===new Date().toDateString()){el.innerHTML=cached;return;}}catch(e){}
+  try{var cached=localStorage.getItem('crowd_pred');var cachedDate=localStorage.getItem('crowd_pred_date');if(cached){el.innerHTML=cached;return;}}catch(e){}
   if(!apiKey){el.innerHTML='<div style="color:var(--text-muted);font-size:13px;">Add your API key in the Info tab first.</div>';return;}
   el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Analyzing crowd patterns...</div>';
   var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
   var size=sd.groupSize||4;
   var prompt='Analyze crowd levels for Disneyland Resort for the full week of June 25 - July 2 2026. Cover all 8 days: Thu Jun 25, Fri Jun 26, Sat Jun 27 (travel day), Sun Jun 28 (PARK DAY 1 Disneyland), Mon Jun 29 (PARK DAY 2 VIP Tour), Tue Jun 30 (PARK DAY 3 DCA + DL evening), Wed Jul 1 (departure), Thu Jul 2 (pre-4th of July buildup). For each day: 1. **Crowd Level** 1-10 with descriptor. 2. Which park is less crowded. 3. Best window for headliners. 4. One key note (events, holiday buildup, school-out patterns). For non-park days give shorter entries showing whether it would have been worth visiting instead. End with a **WEEK SUMMARY** noting best/worst days and key patterns. Base on historical late June/early July Disneyland patterns. Group size: '+size+'.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'You are a Disneyland crowd expert. Search current sources like TouringPlans crowd calendar, AllEars, and MiceChat for June/July 2026 crowd predictions before responding. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Give specific data-informed crowd forecasts backed by current predictions and historical patterns.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'You are a Disneyland crowd expert. Search current sources like TouringPlans crowd calendar, AllEars, and MiceChat for June/July 2026 crowd predictions before responding. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Give specific data-informed crowd forecasts backed by current predictions and historical patterns. Be concise. Maximum 3 short paragraphs. No markdown headers or tables.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Refresh</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Refresh</button>';
     el.innerHTML=html;
     try{localStorage.setItem('crowd_pred',html);localStorage.setItem('crowd_pred_date',new Date().toDateString());}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
@@ -3924,11 +3941,11 @@ async function loadDayStrategy(){
   try{for(var d=0;d<3;d++){var dn=['Sun Jun 28 (Disneyland)','Mon Jun 29 (VIP Tour 10AM-5PM)','Tue Jun 30 (DCA + DL evening)'][d];var sc=JSON.parse(localStorage.getItem('schedule_v2_day'+d)||'[]');if(sc.length)schedSummary+=dn+': '+sc.slice(0,3).map(function(i){return(i.t||'')+(i.e?i.e.h:i.h||'');}).join(', ')+'\n';}}catch(e){}
   var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Pace: '+pace+' | Start: '+startTime+' | LL: '+ll+' | Must-rides: '+mustRides+'\n'+(schedSummary?'Schedule overview:\n'+schedSummary:'')+'\nWrite a day-by-day strategy for June 28-30 2026. One focused paragraph per day (5-6 sentences). Cover: top priority for the day, morning sequence for must-rides, midday decision, best evening move, one group-specific tip. Day 1: Sun Jun 28 Disneyland (fireworks at night). Day 2: Mon Jun 29 VIP Tour 10AM-5PM (free morning before 10, Paint the Night + World of Color VIP after). Day 3: Tue Jun 30 DCA morning, Disneyland evening, Cafe Orleans 6:30PM, Fantasmic at night. Bold the single most important action each day.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:650,system:'You are an expert Disneyland trip strategist. Search current sources including TouringPlans, AllEars, and MiceChat for the latest June 2026 touring strategies, rope drop tips, and crowd patterns before building the plan. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Every recommendation must be verified current and specific to the group.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:650,system:'You are an expert Disneyland trip strategist. Search current sources including TouringPlans, AllEars, and MiceChat for the latest June 2026 touring strategies, rope drop tips, and crowd patterns before building the plan. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Every recommendation must be verified current and specific to the group. Be concise. Maximum 3 short paragraphs. No markdown headers or tables.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshDayStrategy()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Regenerate</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshDayStrategy()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Regenerate</button>';
     el.innerHTML=html;
     try{localStorage.setItem('day_strategy',html);localStorage.setItem('day_strategy_hash',localStorage.getItem('setup_data')||'{}');}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
@@ -3952,7 +3969,7 @@ async function loadLLPlanner(){
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshLLPlan()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid rgba(201,134,10,0.3);background:none;color:var(--gold,#C9860A);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Regenerate</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshLLPlan()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid rgba(201,134,10,0.3);background:none;color:var(--gold,#C9860A);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">↺ Regenerate</button>';
     el.innerHTML=html;
     try{localStorage.setItem('ll_plan',html);localStorage.setItem('ll_plan_hash',localStorage.getItem('setup_data')||'{}');}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
@@ -4047,7 +4064,7 @@ function generateTripSummary(){
   .then(function(d){
     if(d.error){el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved! Open Pre-Trip Planning for your full AI briefing.</div>';return;}
     var text='';if(d.content)d.content.forEach(function(b){if(b.type==='text')text+=b.text;});
-    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.8;">'+renderMarkdown(text).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
+    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.8;">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
     try{localStorage.removeItem('kbyg_text');localStorage.removeItem('kbyg_date');}catch(e){}
   })
   .catch(function(){el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved!</div>';});
