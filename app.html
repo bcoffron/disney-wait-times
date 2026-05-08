@@ -624,7 +624,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071855 — cache bust v3
+// v202605071907 — cache bust v3
 // Safety stub - real function defined later
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
@@ -2205,7 +2205,6 @@ async function reoptimize(){
     });
 
     var resp=await r.json();
-    console.log("REOPT RESP:",JSON.stringify(resp).substring(0,500));
     if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit -- retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='Error: '+(resp.error.message||resp.error);}return;}
     var newSecs=resp.sections||null;
     var explanation=resp.explanation||'Schedule optimized.';
@@ -2221,10 +2220,7 @@ async function reoptimize(){
       pendingReopt.sections=newSecs;
       var expText=explanation&&explanation.length>5?explanation:'Schedule optimized -- tap Accept to apply.';
       txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+renderMarkdown(expText)+'</div>'
-        +'<div style="display:flex;gap:8px;">'
-        +'<button onclick="applyReopt()" style="flex:1;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#6D28D9,#1B2FA0);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">✓ Accept</button>'
-        +'<button onclick="dismissReopt()" style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #ccc;background:none;color:#666;font-size:14px;font-family:inherit;cursor:pointer;">✕ Keep Current</button>'
-        +'</div>';
+        ;
       reoptCache[hash+'_v2']={explanation:expText,result:pendingReopt};
       btns.classList.add('show');
     }else{
