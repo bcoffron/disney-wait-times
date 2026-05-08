@@ -23,7 +23,7 @@ async function isFresh(key) {
 
 async function blobStore(key, data) {
   const blob = await put('twize/'+key+'.json', JSON.stringify(data), {
-    access:'private',
+    access:'public',
     addRandomSuffix:false,
     contentType:'application/json',
     allowOverwrite:true
@@ -67,7 +67,7 @@ async function isRateLimited() {
 
 async function setRateLimit() {
   try {
-    await put(RATE_LIMIT_KEY, JSON.stringify({ts:Date.now()}), {access:'private',addRandomSuffix:false,contentType:'application/json',allowOverwrite:true});
+    await put(RATE_LIMIT_KEY, JSON.stringify({ts:Date.now()}), {access:'public',addRandomSuffix:false,contentType:'application/json',allowOverwrite:true});
   } catch(e){}
 }
 
