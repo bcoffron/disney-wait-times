@@ -1,4 +1,4 @@
-import { put, list } from '@vercel/blob';
+import { list } from '@vercel/blob';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && req.query.debug === '1') {
     try {
       const { blobs } = await list({ prefix: 'twize/' });
-      return res.json({ blobs: blobs.map(b => ({ path: b.pathname, size: b.size })) });
+      return res.json({ blobs: blobs.map(b => ({ path: b.pathname, size: b.size, url: b.url })) });
     } catch(e) {
       return res.json({ error: e.message });
     }
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       if (!blobs || blobs.length === 0) return res.json({ hit: false, reason: 'no_blobs' });
       const blob = blobs[0];
       const dataResp = await fetch(blob.url);
-      if (!dataResp.ok) return res.json({ hit: false, reason: 'fetch_failed', status: dataResp.status });
+      if (!dataResp.ok) return res.json({ hit: false, reason: 'fetch_failed', blobUrl: blob.url.substring(0,40) });
       const text = await dataResp.text();
       const parsed = JSON.parse(text);
       return res.json({ hit: true, data: parsed.data, ts: parsed.ts });
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST — write to blob store (no access param — use store default)
+  // POST — delegate to cron-cache which handles blob writes correctly
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
     const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
@@ -52,18 +52,13 @@ export default async function handler(req, res) {
     if (!validAdmin && !validCron) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    try {
-      const { data, ts } = req.body;
-      if (!data) return res.status(400).json({ error: 'Missing data' });
-      const payload = JSON.stringify({ data, ts: ts || new Date().toISOString() });
-      await put('twize/' + key + '.json', payload, {
-        addRandomSuffix: false,
-        contentType: 'application/json'
-      });
-      return res.json({ ok: true, key, length: payload.length });
-    } catch(e) {
-      return res.status(500).json({ ok: false, error: e.message });
-    }
+    // Trigger cron to rebuild this key
+    const cronUrl = 'https://' + req.headers.host + '/api/cron-cache?key=' + key;
+    const cronResp = await fetch(cronUrl, {
+      headers: { 'Authorization': 'Bearer ' + process.env.CRON_SECRET }
+    });
+    const cronData = await cronResp.json();
+    return res.json(cronData);
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
