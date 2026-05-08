@@ -17,26 +17,14 @@ async function blobSet(key,value) {
   const data = {value,ts:Date.now()};
   try {
     await put('twize/'+key+'.json', JSON.stringify(data), {
-      access:'public',
       addRandomSuffix:false,
       contentType:'application/json',
       allowOverwrite:true
     });
     return true;
   } catch(e) {
-    // If public not allowed, try without access (uses store default)
-    try {
-      await put('twize/'+key+'.json', JSON.stringify(data), {
-        addRandomSuffix:false,
-        contentType:'application/json',
-        allowOverwrite:true
-      });
-      return true;
-    } catch(e2) {
-      console.warn('blobSet err:',e2.message);
-      memCache[key]=data;
-      return false;
-    }
+    console.warn('blobSet err:',e.message);
+    return false;
   }
 }
 
