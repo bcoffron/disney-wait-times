@@ -2589,15 +2589,36 @@ function injectScheduleExtras(sections) {
     if(!hasCastleEve) addPhoto('8:30 PM','Photo Op: Castle at Night','Castle lights and projections after dark -- best shots of the trip.','Main Street U.S.A.');
   }
   if (toAdd.length === 0) return;
-  // Inject into Extras section (create if needed)
-  var extrasSec = null;
-  sections.forEach(function(s) { if(s.title === 'Extras') extrasSec = s; });
-  if (!extrasSec) { extrasSec = {title:'Extras', entries:[]}; sections.push(extrasSec); }
-  toAdd.forEach(function(e) { extrasSec.entries.push(e); });
+  // Insert each extra inline into the most appropriate existing section
+  // Find the section whose entries span the closest time range to each extra
+  toAdd.forEach(function(entry) {
+    var eMins = toMin(entry.t);
+    var bestSec = null;
+    var bestDist = Infinity;
+    sections.forEach(function(sec) {
+      if (!sec.entries || sec.entries.length === 0) return;
+      // Find the min and max time in this section
+      var minT = Infinity, maxT = -Infinity;
+      sec.entries.forEach(function(e) {
+        var em = toMin(e.t);
+        if (em < minT) minT = em;
+        if (em > maxT) maxT = em;
+      });
+      // Distance: 0 if within range, else distance to nearest bound
+      var dist = (eMins >= minT && eMins <= maxT) ? 0 :
+                 Math.min(Math.abs(eMins - minT), Math.abs(eMins - maxT));
+      if (dist < bestDist) { bestDist = dist; bestSec = sec; }
+    });
+    if (!bestSec && sections.length > 0) bestSec = sections[0];
+    if (bestSec) bestSec.entries.push(entry);
+  });
   // Sort all sections' entries by time
-  sections.forEach(function(sec) { if(sec.entries&&sec.entries.length>1) sec.entries.sort(function(a,b){ return toMin(a.t)-toMin(b.t); }); });
+  sections.forEach(function(sec) {
+    if (sec.entries && sec.entries.length > 1) {
+      sec.entries.sort(function(a, b) { return toMin(a.t) - toMin(b.t); });
+    }
+  });
 }
-
 function renderDayTipsCard(dayIdx){
   var tips=window._dayTipsCache&&window._dayTipsCache[dayIdx];
   if(!tips||!tips.length)return '';
@@ -2671,7 +2692,7 @@ function renderSched(){
           +'</div>'
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
           +'</div>'
-          +'<button class="dining-btn" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
+          +'<button class="dining-btn" style="touch-action:manipulation;cursor:pointer" ontouchstart="" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
           +''
           +'<div class="dining-result"></div>';
       }
@@ -4327,7 +4348,7 @@ function closeSetupFinal(){
   <div style="background:var(--bg);border-radius:24px 24px 0 0;margin-top:60px;min-height:calc(100vh - 60px);padding:0 0 80px;">
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;border-radius:24px 24px 0 0;">
-      <div style="font-size:22px;">=( </div>
+      <div style="font-size:22px;"📋  </div>
       <div style="flex:1;">
         <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--text);">Pre-Trip Planning</div>
         <div style="font-size:12px;color:var(--text-muted);">Everything you need before June 28</div>
@@ -4354,7 +4375,7 @@ function closeSetupFinal(){
     <!-- Set Up Your Park Visit -->
     <div style="margin:10px 14px 0;border:1px solid rgba(27,47,160,0.2);border-radius:14px;overflow:hidden;background:rgba(27,47,160,0.04);">
       <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="closePreTrip();openSetup();">
-        <div style="font-size:22px;"><(</div>
+        <div style="font-size:22px;"⚙️ (</div>
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:700;color:var(--text);">✅ Do This First: Set Up Your Park Visit</div>
           <div style="font-size:12px;color:var(--text-muted);">Personalize the AI to your group in 2 minutes</div>
@@ -4430,7 +4451,7 @@ function closeSetupFinal(){
     <!-- Know Before You Go -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('kbyg')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">>  Know Before You Go</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">💡 Know Before You Go</div>
         <span id="pt_kbyg_arrow" style="color:var(--text-muted);font-size:16px;">:</span>
       </div>
       <div id="ab_pt_kbyg" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">

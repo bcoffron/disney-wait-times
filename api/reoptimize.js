@@ -91,7 +91,7 @@ if(!text.trim().endsWith(']')){
 
 if(parsed&&parsed.sections&&Array.isArray(parsed.sections)){
   const normalized=parsed.sections.map(s=>({title:s.title||"",entries:(s.entries||[]).map(normalizeEntry)}));
-if(normalized.length<8)return res.status(200).json({error:'Schedule incomplete — please try again',sections:normalized});
+if(normalized.length<1)return res.status(200).json({error:'Schedule incomplete — please try again',sections:normalized});
 return res.status(200).json({sections:normalized,explanation:parsed.explanation||"Schedule optimized."});
 }
 
