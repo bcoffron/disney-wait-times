@@ -393,7 +393,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <!-- Tinkerbell transition overlay -->
 <div class="tink-overlay" id="tinkOverlay"></div>
 <div class="tink-fairy" id="tinkFairy" style="display:none">
-  <div class="tink-body">>🧚</div>
+  <div class="tink-body">🧚</div>
 </div>
 
 <div class="lock-screen" id="lockScreen">
@@ -429,7 +429,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <div class="app" id="mainApp" style="display:none">
 
 <div class="header">
-  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">( <✨ (</div>
+  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">✨✨✨</div>
   <div class="header-top">
     <div>
       <div class="header-title"><svg width="26" height="22" viewBox="0 0 52 44" style="vertical-align:middle;margin-right:5px;flex-shrink:0" fill="#1B2FA0"><circle cx="12" cy="14" r="12"/><circle cx="40" cy="14" r="12"/><circle cx="26" cy="30" r="16"/></svg>Coffron/Woods Disneyland Trip</div>
@@ -440,7 +440,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
   <div id="preTripBanner" style="margin-bottom:10px;">
   <div onclick="openPreTrip()" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
-    <div style="font-size:24px;">=✨ </div>
+    <div style="font-size:24px;">=( </div>
     <div style="flex:1;">
       <div style="font-size:14px;font-weight:700;color:var(--text);">=I Do This First: Pre-Trip Planning</div>
       <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather • Packing • Dining • Group Setup</div>
@@ -488,7 +488,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="day-info-bar" id="dayInfoBar"></div>
     <!-- Guest sync note -->
     <div id="guestSyncNote" style="display:none;padding:7px 12px;background:rgba(27,47,160,0.06);border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);margin-bottom:10px;font-size:11px;color:var(--magic);text-align:center">
-      &#128274; Read-only schedule • Auto-syncs every 2 min
+      &#128274; Read-only schedule " Auto-syncs every 2 min
     </div>
     <!-- Edit / AI Optimize / Reset bar -->
     <div class="edit-bar">
@@ -516,7 +516,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div style="font-size:13px;font-weight:600;color:var(--magic)">Live Wait Times</div>
         <div id="waitStatus" style="font-size:11px;color:var(--text-muted)">Loading...</div>
       </div>
-      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">🔄 Refresh</button>
+      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">=  Refresh</button>
     </div>
     <div id="waitTabContent"><div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div></div>
     <div style="margin-top:10px;font-size:11px;color:var(--text-dim);text-align:center">Powered by ParkSavers.com &middot; Updates every 5 min</div>
@@ -671,20 +671,20 @@ const CLOSED=[
 ];
 
 const DAYS=[
-{label:'Sunday Jun 28',sub:'Disneyland • Fireworks Night',sections:[
-  {title:'Sunday Jun 28 — Disneyland',entries:[
-    {t:'8:00 AM',h:'Rope Drop — Head to Fantasyland',type:'tip',n:'Arrive at the main gate 45 min before opening. Position at the Fantasyland rope for best access.',land:'Main Street U.S.A.'},
-    {t:'8:15 AM',h:"Peter Pan's Flight",type:'ride',n:'First ride of the trip — lines build fast, do this at rope drop.',land:'Fantasyland'},
+{label:'Sunday Jun 28',sub:'Disneyland " Fireworks Night',sections:[
+  {title:'Sunday Jun 28   Disneyland',entries:[
+    {t:'8:00 AM',h:'Rope Drop   Head to Fantasyland',type:'tip',n:'Arrive at the main gate 45 min before opening. Position at the Fantasyland rope for best access.',land:'Main Street U.S.A.'},
+    {t:'8:15 AM',h:"Peter Pan's Flight",type:'ride',n:'First ride of the trip   lines build fast, do this at rope drop.',land:'Fantasyland'},
     {t:'9:00 AM',h:'Matterhorn Bobsleds',type:'ride',n:'Hit this before the 10am crowds arrive.',land:'Fantasyland'},
-    {t:'9:45 AM',h:'Space Mountain',type:'ride',n:'Morning is the best time — waits under 30 min before 10am.',land:'Tomorrowland'},
+    {t:'9:45 AM',h:'Space Mountain',type:'ride',n:'Morning is the best time   waits under 30 min before 10am.',land:'Tomorrowland'},
     {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
-    {t:'12:00 PM',h:'Lunch — Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou is inside Pirates — book ahead. River Belle is walk-up friendly.',land:'New Orleans Square'},
-    {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park — use Lightning Lane if available.',land:'Tomorrowland'},
+    {t:'12:00 PM',h:'Lunch   Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou is inside Pirates   book ahead. River Belle is walk-up friendly.',land:'New Orleans Square'},
+    {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park   use Lightning Lane if available.',land:'Tomorrowland'},
     {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
-    {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness — great for all ages.',land:'Frontierland'},
-    {t:'5:00 PM',h:'Rest Break — Return to Hotel',type:'break',n:'Pool time or rest before the evening. Come back refreshed for fireworks night.',land:'Main Street U.S.A.'},
-    {t:'6:30 PM',h:'Return to Park — Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
-    {t:'8:00 PM',h:'Fantasyland Evening Rides',type:'tip',n:'Evening is the best time for Fantasyland — lighter crowds after 8pm.',land:'Fantasyland'},
+    {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness   great for all ages.',land:'Frontierland'},
+    {t:'5:00 PM',h:'Rest Break   Return to Hotel',type:'break',n:'Pool time or rest before the evening. Come back refreshed for fireworks night.',land:'Main Street U.S.A.'},
+    {t:'6:30 PM',h:'Return to Park   Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
+    {t:'8:00 PM',h:'Fantasyland Evening Rides',type:'tip',n:'Evening is the best time for Fantasyland   lighter crowds after 8pm.',land:'Fantasyland'},
     {t:'9:30 PM',h:'Wondrous Journeys Fireworks',type:'show',n:'Watch from the hub in front of the castle. Arrive 20 min early for a good spot.',land:'Main Street U.S.A.'},
   ]},
 ]},
@@ -1069,7 +1069,7 @@ function getCountdown(){
   var d3=new Date('2026-06-30T00:00:00');
   var d4=new Date('2026-07-01T00:00:00');
   if(now>=d4) return null;
-  if(now>=d3&&now<d4) return {during:true,msg:'Last day   Make it magical! ✨'};
+  if(now>=d3&&now<d4) return {during:true,msg:'Last day   Make it magical! ('};
   if(now>=d2&&now<d3) return {during:true,msg:'You re a VIP today! P'};
   if(now>=d1&&now<d2) return {during:true,msg:'Day 1 of 3   Let s go! ('};
   var days=Math.ceil((d1-now)/(1000*60*60*24));
@@ -1263,7 +1263,8 @@ function startNotesSync(){
   notesSyncInterval=setInterval(pullVipNotes,30*1000);
 }
 
-async function fetchWaits(){
+async function todayPT(){var d=new Date();var pt=new Date(d.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));var y=pt.getFullYear(),m=String(pt.getMonth()+1).padStart(2,'0'),day=String(pt.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
+function fetchWaits(){
   var tabEl=document.getElementById('waitTabContent');
   if(tabEl) tabEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div>';
   try{
@@ -1290,7 +1291,7 @@ async function fetchWaits(){
     updateWaitStatus();
   }catch(e){
     console.warn('Wait fetch error:',e);
-    if(tabEl) tabEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--red,#ef4444)">Unable to load wait times — tap ↻ to retry.'+e.message+'</span></div>';
+    if(tabEl) tabEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--red,#ef4444)">Unable to load wait times   tap 🔄 to retry.'+e.message+'</span></div>';
   }
 }
 
@@ -1298,7 +1299,7 @@ function normalizeRideName(s){
   return s.toLowerCase()
     // remove trademark/copyright symbols
     .replace(/[  ']/g,"'")
-    .replace(/["““]/g,'')
+    .replace(/["  ]/g,'')
     // remove punctuation except spaces
     .replace(/[^a-z0-9 ]/g,' ')
     // normalize common words
@@ -2563,7 +2564,7 @@ function renderSched(){
   if(day&&day.sections)injectScheduleExtras(day.sections);
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
-    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">=📅</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
+    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">📅</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
     return;
   }
   day.sections.forEach(function(sec,si){
@@ -2686,7 +2687,7 @@ function renderWaitTab(){
     });
     return h;
   }
-  el.innerHTML=renderGroup('<🏰 Disneyland Park',dlRides)+renderGroup('<🌊 Disney California Adventure',dcaRides);
+  el.innerHTML=renderGroup('🏰 Disneyland Park',dlRides)+renderGroup('🌊 Disney California Adventure',dcaRides);
   if(typeof renderClosuresFromWaits==='function') renderClosuresFromWaits();
 }
 function toggleAccordion(id){
@@ -2736,8 +2737,8 @@ function renderInfoTab(){
     }},
     
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
-      return '<div class="info-card"><b>Single Pass</b> (~$15 35/person): Rise of the Resistance → Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones → Matterhorn → Space Mountain → Haunted Mansion → Big Thunder → Smugglers Run → Tiana s → Guardians → Incredicoaster → Web Slingers → Soarin  • Toy Story<br><br><b>No LL needed Tuesday</b>   VIP tour handles everything.</div>'
-        +'<div class="info-card"><b>Rules:</b> Buy after scanning into park • Book next LL after 2 hrs OR right after scanning into current ride • Book while standing in the current LL line! • Each ride once per day • For 2nd park: book once return time shows 11AM+</div>';
+      return '<div class="info-card"><b>Single Pass</b> (~$15 35/person): Rise of the Resistance → Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones → Matterhorn → Space Mountain → Haunted Mansion → Big Thunder → Smugglers Run → Tiana s → Guardians → Incredicoaster → Web Slingers → Soarin  " Toy Story<br><br><b>No LL needed Tuesday</b>   VIP tour handles everything.</div>'
+        +'<div class="info-card"><b>Rules:</b> Buy after scanning into park " Book next LL after 2 hrs OR right after scanning into current ride " Book while standing in the current LL line! " Each ride once per day " For 2nd park: book once return time shows 11AM+</div>';
     }},
     
     {id:'bathrooms',title:'&#128698; Bathroom Guide',html:function(){
@@ -2780,7 +2781,7 @@ function renderInfoTab(){
       return h+'</div>';
     }},
     {id:'apikey',title:'&#128273; Update API Key',html:function(){
-      return '<div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com • ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>';
+      return '<div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com " ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>';
     }},
     
     
@@ -2870,7 +2871,7 @@ function buildFullDiningGuide(){
       var safeName=r.name.split("'").join(' ');
       h+='<div class="rest-card">'
         +'<div class="rest-hdr" onclick="toggleRestCard(this,\''+safeName+'\')">'
-        +'<div><div class="rest-name">'+r.name+'</div><div class="rest-meta">'+r.area+' • '+r.type+(cached?' • <span style="color:var(--green)">&#10003; cached</span>':'')+'</div></div>'
+        +'<div><div class="rest-name">'+r.name+'</div><div class="rest-meta">'+r.area+' " '+r.type+(cached?' " <span style="color:var(--green)">&#10003; cached</span>':'')+'</div></div>'
         +'<span style="font-size:14px;color:var(--text-dim)">&#9660;</span>'
         +'</div>'
         +'<div class="rest-body" style="display:none;padding:10px 12px">'
@@ -2896,7 +2897,7 @@ function toggleRestCard(hdr,name){
   var body=hdr.nextElementSibling;
   var isOpen=body.style.display==='block';
   body.style.display=isOpen?'none':'block';
-  hdr.querySelector('span:last-child').textContent=isOpen?'✅':'🔴';
+  hdr.querySelector('span:last-child').textContent=isOpen?' ':'=4';
   if(!isOpen){
     // Auto-load cached result if available
     var cacheKey='dining_'+name.toLowerCase().replace(/[^a-z0-9]/g,'_');
@@ -3153,7 +3154,7 @@ function generateFromSetup(params, callback) {
     if(!d.ok||!d.text){callback('AI error: '+(d.error||'no response'));return;}
     try{
       var text = d.text.trim();
-      // Find JSON array — may be truncated, so try to find and close it
+      // Find JSON array   may be truncated, so try to find and close it
       var start = text.indexOf('[');
       var end = text.lastIndexOf('}');
       if(start === -1){callback('No JSON array found');return;}
@@ -3195,7 +3196,7 @@ function aiChooseRides(params, callback) {
 function applyRideDefaults(){var d=['Space Mountain','Matterhorn','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs','Guardians'];document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(d.some(function(x){return c.textContent.indexOf(x.substring(0,8))>-1;}))c.classList.add('selected');});var s=document.getElementById('aiChooseStatus');if(s){s.style.display='block';s.textContent='Applied smart defaults.';s.style.color='var(--gold)';}}
 function applyRideDefaults(){var d=['Space Mountain','Matterhorn','Indiana Jones','Haunted Mansion','Rise of the Resistance','Radiator Springs','Guardians'];document.querySelectorAll('#mustRideChips .setup-chip').forEach(function(c){if(d.some(function(x){return c.textContent.indexOf(x.substring(0,8))>-1;}))c.classList.add('selected');});var s=document.getElementById('aiChooseStatus');if(s){s.style.display='block';s.textContent='Applied smart defaults.';s.style.color='var(--gold)';}}
 
-function doRefreshWaits(){var btn=document.getElementById('waitRefreshBtn');if(btn){btn.textContent='Refreshing...';btn.disabled=true;}var el=document.getElementById('waitTabContent');if(el)el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Fetching live wait times...</div>';fetchWaits().then(function(){if(btn){btn.textContent='🔄 Refresh';btn.disabled=false;}}).catch(function(){if(btn){btn.textContent='🔄 Refresh';btn.disabled=false;}});}
+function doRefreshWaits(){var btn=document.getElementById('waitRefreshBtn');if(btn){btn.textContent='Refreshing...';btn.disabled=true;}var el=document.getElementById('waitTabContent');if(el)el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Fetching live wait times...</div>';fetchWaits().then(function(){if(btn){btn.textContent='=  Refresh';btn.disabled=false;}}).catch(function(){if(btn){btn.textContent='=  Refresh';btn.disabled=false;}});}
 
 
 
@@ -3440,7 +3441,7 @@ async function loadKnowBeforeYouGo(){
       ?'<div style="font-size:11px;color:#34D399;margin-bottom:10px;display:flex;align-items:center;gap:4px;"><span>&#10003;</span> Personalized to your group setup</div>'
       :'<div style="font-size:11px;color:var(--gold,#C9860A);margin-bottom:10px;">&#9888; Complete Ride Style setup for a more tailored briefing</div>';
     el.innerHTML=note+'<div style="font-size:13px;color:var(--text);line-height:1.8;">'+formatted+'</div>'
-      +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔄 Regenerate</button>';
+      +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Regenerate</button>';
     try{localStorage.setItem('kbyg_text',el.innerHTML);localStorage.setItem('kbyg_date',new Date().toDateString());localStorage.setItem('kbyg_setup_hash',JSON.stringify(sd));}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Network error: '+err.message+'</div>';}
 }
@@ -3452,13 +3453,13 @@ function regenerateKBYG(){
 
 function addDiningReservation(){
   var name=prompt('Restaurant name:');if(!name)return;
-  var time=prompt('Date and time (e.g. Tue Jun 30 • 6:30 PM):');if(!time)return;
+  var time=prompt('Date and time (e.g. Tue Jun 30 " 6:30 PM):');if(!time)return;
   var conf=prompt('Confirmation number (optional):');
   var list=document.getElementById('pt_dining_list');if(!list)return;
   var card=document.createElement('div');
   card.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;';
   card.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--text);">'+name+'</div>'
-    +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">=🕓 '+time+'</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">==S '+time+'</div>'
     +(conf?'<div style="font-size:11px;color:var(--gold,#C9860A);margin-top:4px;">Conf #'+conf+'</div>':'');
   list.appendChild(card);
 }
@@ -3471,7 +3472,7 @@ function renderPreTripBanner(){
   banner.style.display='';
   var days=Math.ceil((tripStart-now)/864e5);
   var sub=document.getElementById('preTripBannerSub');
-  if(sub)sub.textContent=(days>0?days+' days to go 🏰 ':'Trip starts today! ✨  ')+'Weather • Packing • Dining • Group Setup';
+  if(sub)sub.textContent=(days>0?days+' days to go 🏰 ':'Trip starts today! ✨ ')+'Weather • Packing • Dining • Group Setup';
 }
 
 // Load cached KBYG on open
@@ -3631,8 +3632,8 @@ async function loadHotelRecs(){
       +'<div style="font-size:12px;margin-bottom:6px;">'+stars(h.stars)+'</div>'
       +'<div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">'+h.desc+'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">'
-      +'<span style="color:var(--text-muted);">=🚶 '+h.walk+'</span>'
-      +'<span style="color:var(--text-muted);">=📞 '+h.phone+'</span>'
+      +'<span style="color:var(--text-muted);">🚶 '+h.walk+'</span>'
+      +'<span style="color:var(--text-muted);">📞 '+h.phone+'</span>'
       +'<span onclick="window.open(this.dataset.url,\'_blank\')" data-url="'+h.web+'" style="color:var(--magic,#1B2FA0);cursor:pointer;text-decoration:underline;touch-action:manipulation;"><  Visit Website</span>'
       +'</div>'
       +'</div>';
@@ -3778,7 +3779,7 @@ function removeChecklistItem(i){
   renderPreTripChecklist();
 }
 
-//    Dining Reservation • Schedule sync                                    
+//    Dining Reservation " Schedule sync                                    
 var diningReservations=[];
 function loadDiningReservations(){
   try{diningReservations=JSON.parse(localStorage.getItem('dining_reservations')||'[]');}catch(e){diningReservations=[];}
@@ -3887,7 +3888,7 @@ async function loadCrowdPrediction(){
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔄 Refresh</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Refresh</button>';
     el.innerHTML=html;
     try{localStorage.setItem('crowd_pred',html);localStorage.setItem('crowd_pred_date',new Date().toDateString());}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
@@ -3913,7 +3914,7 @@ async function loadDayStrategy(){
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshDayStrategy()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔄 Regenerate</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshDayStrategy()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Regenerate</button>';
     el.innerHTML=html;
     try{localStorage.setItem('day_strategy',html);localStorage.setItem('day_strategy_hash',localStorage.getItem('setup_data')||'{}');}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
@@ -3937,7 +3938,7 @@ async function loadLLPlanner(){
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshLLPlan()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid rgba(201,134,10,0.3);background:none;color:var(--gold,#C9860A);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔄 Regenerate</button>';
+    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshLLPlan()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid rgba(201,134,10,0.3);background:none;color:var(--gold,#C9860A);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Regenerate</button>';
     el.innerHTML=html;
     try{localStorage.setItem('ll_plan',html);localStorage.setItem('ll_plan_hash',localStorage.getItem('setup_data')||'{}');}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
@@ -4054,7 +4055,7 @@ function closeSetupFinal(){
   closeSetup();
   renderPreTripBanner();
   try{localStorage.removeItem('kbyg_setup_hash');}catch(e){}
-  showToast('Trip setup complete! <✨');
+  showToast('Trip setup complete! <(');
 }
 
 
@@ -4247,16 +4248,16 @@ function closeSetupFinal(){
     <!-- Step 5: Trip Summary + Share -->
     <div class="setup-step" id="setupStep5">
       <button class="setup-close" onclick="closeSetup()">&#10005;</button>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px;">Your Trip is Ready! ✨</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px;">Your Trip is Ready! (</div>
       <div id="tripSummaryContent" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;min-height:80px;">
         <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">( Generating your personalized trip summary...</div>
       </div>
       <div style="background:rgba(27,47,160,0.05);border:1.5px solid rgba(27,47,160,0.2);border-radius:14px;padding:14px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">=📤 Share with your group</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">📤 Share with your group</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Send this link to everyone coming   they'll see the full schedule, live wait times, and AI features.</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">=🔗 Copy Link</button>
-          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">=📤 Share</button>
+          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔗 Copy Link</button>
+          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📤 Share</button>
         </div>
       </div>
       <button class="setup-btn" onclick="closeSetupFinal()">  Let's Go Plan!</button>
@@ -4270,7 +4271,7 @@ function closeSetupFinal(){
   <div style="background:var(--bg);border-radius:24px 24px 0 0;margin-top:60px;min-height:calc(100vh - 60px);padding:0 0 80px;">
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;border-radius:24px 24px 0 0;">
-      <div style="font-size:22px;">=✨ </div>
+      <div style="font-size:22px;">=( </div>
       <div style="flex:1;">
         <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--text);">Pre-Trip Planning</div>
         <div style="font-size:12px;color:var(--text-muted);">Everything you need before June 28</div>
@@ -4297,7 +4298,7 @@ function closeSetupFinal(){
     <!-- Set Up Your Park Visit -->
     <div style="margin:10px 14px 0;border:1px solid rgba(27,47,160,0.2);border-radius:14px;overflow:hidden;background:rgba(27,47,160,0.04);">
       <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="closePreTrip();openSetup();">
-        <div style="font-size:22px;"><✨</div>
+        <div style="font-size:22px;"><(</div>
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:700;color:var(--text);">=I Do This First: Set Up Your Park Visit</div>
           <div style="font-size:12px;color:var(--text-muted);">Personalize the AI to your group in 2 minutes</div>
@@ -4313,19 +4314,19 @@ function closeSetupFinal(){
         <div style="text-align:center;opacity:.5">
           <div style="font-size:11px;color:var(--text-muted);">Jun 28</div>
           <div style="font-size:22px;"> </div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);"> •</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);"> "</div>
           <div style="font-size:11px;color:var(--text-muted);"> </div>
         </div>
         <div style="text-align:center;opacity:.5">
           <div style="font-size:11px;color:var(--text-muted);">Jun 29</div>
           <div style="font-size:22px;"> </div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);"> •</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);"> "</div>
           <div style="font-size:11px;color:var(--text-muted);"> </div>
         </div>
         <div style="text-align:center;opacity:.5">
           <div style="font-size:11px;color:var(--text-muted);">Jun 30</div>
           <div style="font-size:22px;"> </div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);"> •</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);"> "</div>
           <div style="font-size:11px;color:var(--text-muted);"> </div>
         </div>
       </div>
@@ -4392,7 +4393,7 @@ function closeSetupFinal(){
       <div id="ab_pt_crowds" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_crowds_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadCrowdPrediction()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">=🔄 Generate Crowd Forecast</button>
+            <button onclick="loadCrowdPrediction()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">==  Generate Crowd Forecast</button>
           </div>
         </div>
       </div>
@@ -4407,7 +4408,7 @@ function closeSetupFinal(){
       <div id="ab_pt_daystrategy" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_daystrategy_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadDayStrategy()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">=🗓  Generate Day-by-Day Plan</button>
+            <button onclick="loadDayStrategy()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔄 Generate Day-by-Day Plan</button>
           </div>
         </div>
       </div>
@@ -4442,8 +4443,8 @@ function closeSetupFinal(){
           <!-- Hardcoded Cafe Orleans -->
           <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
             <div style="font-size:13px;font-weight:700;color:var(--text);">Café Orleans</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">=🍽️ Tuesday Jun 30 • 6:30 PM</div>
-            <div style="font-size:12px;color:var(--text-muted);">=e Party of 9 • New Orleans Square</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">=<}  Tuesday Jun 30 " 6:30 PM</div>
+            <div style="font-size:12px;color:var(--text-muted);">=e Party of 9 " New Orleans Square</div>
             <div style="font-size:11px;color:var(--gold,#C9860A);margin-top:4px;">Conf # to be added by admin</div>
           </div>
         </div>
@@ -4456,13 +4457,13 @@ function closeSetupFinal(){
     <!-- Hotel Recommendations -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('hotels')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">🏨 Hotel Recommendations</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);"><🏨 Hotel Recommendations</div>
         <span id="pt_hotels_arrow" style="color:var(--text-muted);font-size:16px;">:</span>
       </div>
       <div id="ab_pt_hotels" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_hotels_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadHotelRecs()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;"><🏨 Load Hotel Recommendations</button>
+            <button onclick="loadHotelRecs()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;"><<🏨 Load Hotel Recommendations</button>
           </div>
         </div>
       </div>
@@ -4493,7 +4494,7 @@ function closeSetupFinal(){
     <!-- What to Pack -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('pack')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">🧳 What to Pack</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">>🧳 What to Pack</div>
         <span id="pt_pack_arrow" style="color:var(--text-muted);font-size:16px;">:</span>
       </div>
       <div id="ab_pt_pack" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
