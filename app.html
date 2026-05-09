@@ -2326,6 +2326,7 @@ function buildDiningHTML(restaurant, text){
   return html;
 }
 async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx) {
+  console.log('fetchDiningRecs called:', restaurant);
   if(!resultEl) return;
   if(btnEl && btnEl.disabled) return;
   var origBtnHtml = btnEl ? btnEl.innerHTML : '';
@@ -2697,9 +2698,14 @@ function renderWaitTab(){
   keys.forEach(function(k){
     var r=waits[k];
     if(!r) return;
+    if(r.s !== 'OPERATING') return;
     var isDCA=dcaKeywords.some(function(kw){return k.includes(kw);});
     if(isDCA) dcaRides.push(r); else dlRides.push(r);
   });
+  if(dlRides.length + dcaRides.length < 3){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-muted);">Park not yet open — check back after 9am</div>';
+    return;
+  }
   function sortRides(arr){
     return arr.sort(function(a,b){
       if(a.s==='OPERATING'&&b.s!=='OPERATING') return -1;
@@ -3177,7 +3183,7 @@ function generateFromSetup(params, callback) {
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       prompt: prompt,
-      system: 'Expert Disneyland planner. Return ONLY a raw JSON array starting with [ and ending with ]. No markdown, no backticks, no explanation. Each entry must have: t, h, type, n, land fields.',
+      system: 'Expert Disneyland planner. Return ONLY a raw JSON array starting with [ and ending with ]. No markdown, no backticks, no explanation. Each entry must have: t, h, type, n, land fields.' + (typeof constraintRules !== 'undefined' ? ' Schedule rules: ' + constraintRules : ''),
       context: context,
       maxTokens: 3000
     })
@@ -3345,7 +3351,8 @@ function toggleAccordionPT(id){
   var open=body.style.display==='block';
   body.style.display=open?'none':'block';
   if(arrow)arrow.textContent=open?'›':'‹';
-}
+
+  if(id === 'pack' && !open) renderPackList();}
 
 function renderPreTripCountdowns(){
   var now=new Date();
@@ -3470,8 +3477,8 @@ async function loadKnowBeforeYouGo(){
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,
-        system:'Give exactly 5 bullet points, one sentence each. No headers, no markdown, no extra text. Just 5 concise tips for visiting Disneyland.',
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,
+        system:'You are a Disneyland expert. Return ONLY 5 bullet points. Each bullet must be ONE sentence under 15 words. Format: • tip here. No headers, no intro, no markdown, nothing else.',
         tools:[{type:'web_search_20250305',name:'web_search'}],
         messages:[{role:'user',content:prompt}]})
     });
@@ -3676,7 +3683,7 @@ async function loadHotelRecs(){
       +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">'
       +'<span style="color:var(--text-muted);">🚶 '+h.walk+'</span>'
       +'<span style="color:var(--text-muted);">📞 '+h.phone+'</span>'
-      +'<span onclick="window.open(h.web,\'_blank\')" style="color:var(--magic,#1B2FA0);cursor:pointer;text-decoration:underline;touch-action:manipulation;">🌐 Visit Website</span>'
+      +'<span onclick="window.open(this.dataset.url,\'_blank\')" data-url="'+h.web+'" style="color:var(--magic,#1B2FA0);cursor:pointer;text-decoration:underline;touch-action:manipulation;">🌐 Visit Website</span>'
       +'</div>'
       +'</div>';
   });
@@ -3925,7 +3932,7 @@ async function loadCrowdPrediction(){
   var size=sd.groupSize||4;
   var prompt='Analyze crowd levels for Disneyland Resort for the full week of June 25 - July 2 2026. Cover all 8 days: Thu Jun 25, Fri Jun 26, Sat Jun 27 (travel day), Sun Jun 28 (PARK DAY 1 Disneyland), Mon Jun 29 (PARK DAY 2 VIP Tour), Tue Jun 30 (PARK DAY 3 DCA + DL evening), Wed Jul 1 (departure), Thu Jul 2 (pre-4th of July buildup). For each day: 1. **Crowd Level** 1-10 with descriptor. 2. Which park is less crowded. 3. Best window for headliners. 4. One key note (events, holiday buildup, school-out patterns). For non-park days give shorter entries showing whether it would have been worth visiting instead. End with a **WEEK SUMMARY** noting best/worst days and key patterns. Base on historical late June/early July Disneyland patterns. Group size: '+size+'.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'Return ONLY a crowd level rating like 7/10 — Heavily Crowded followed by one sentence explaining why. No other text, no headers, no markdown.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:100,system:'Return ONLY this exact format and nothing else: X/10 — Label. Example: 7/10 — Heavily Crowded. One sentence max after the rating.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
