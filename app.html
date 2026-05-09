@@ -393,7 +393,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <!-- Tinkerbell transition overlay -->
 <div class="tink-overlay" id="tinkOverlay"></div>
 <div class="tink-fairy" id="tinkFairy" style="display:none">
-  <div class="tink-body">🧚</div>
+  <div class="tink-body"🧚</div>
 </div>
 
 <div class="lock-screen" id="lockScreen">
@@ -1263,8 +1263,8 @@ function startNotesSync(){
   notesSyncInterval=setInterval(pullVipNotes,30*1000);
 }
 
-async function todayPT(){var d=new Date();var pt=new Date(d.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));var y=pt.getFullYear(),m=String(pt.getMonth()+1).padStart(2,'0'),day=String(pt.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
-function fetchWaits(){
+function todayPT(){var d=new Date();var pt=new Date(d.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));var y=pt.getFullYear(),m=String(pt.getMonth()+1).padStart(2,'0'),day=String(pt.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
+async function fetchWaits(){
   var tabEl=document.getElementById('waitTabContent');
   if(tabEl) tabEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div>';
   try{
@@ -1291,7 +1291,7 @@ function fetchWaits(){
     updateWaitStatus();
   }catch(e){
     console.warn('Wait fetch error:',e);
-    if(tabEl) tabEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--red,#ef4444)">Unable to load wait times   tap 🔄 to retry.'+e.message+'</span></div>';
+    if(tabEl) tabEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--red,#ef4444)">Unable to load wait times   tap =  to retry.'+e.message+'</span></div>';
   }
 }
 
@@ -3506,7 +3506,7 @@ async function loadHotelRecs(){
     }
   }catch(e){}
 
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;"><⏳ Loading hotel recommendations...</div>';
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">⏳ Loading hotel recommendations...</div>';
 
   // Hardcoded hotel data - accurate, no API needed
   var hotels=[
@@ -4379,7 +4379,7 @@ function closeSetupFinal(){
       </div>
       <div id="ab_pt_kbyg" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_kbyg_content" style="font-size:13px;color:var(--text-muted);line-height:1.7;">
-          <div style="text-align:center;padding:16px;"><button onclick="loadKnowBeforeYouGo()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">( Generate AI Briefing</button></div>
+          <div style="text-align:center;padding:16px;"><button onclick="loadKnowBeforeYouGo()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">🤖 Generate AI Briefing</button></div>
         </div>
       </div>
     </div>
@@ -4408,7 +4408,7 @@ function closeSetupFinal(){
       <div id="ab_pt_daystrategy" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_daystrategy_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadDayStrategy()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔄 Generate Day-by-Day Plan</button>
+            <button onclick="loadDayStrategy()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Generate Day-by-Day Plan</button>
           </div>
         </div>
       </div>
@@ -4457,13 +4457,13 @@ function closeSetupFinal(){
     <!-- Hotel Recommendations -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('hotels')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);"><🏨 Hotel Recommendations</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">🏨 Hotel Recommendations</div>
         <span id="pt_hotels_arrow" style="color:var(--text-muted);font-size:16px;">:</span>
       </div>
       <div id="ab_pt_hotels" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
         <div id="pt_hotels_content">
           <div style="text-align:center;padding:12px;">
-            <button onclick="loadHotelRecs()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;"><<🏨 Load Hotel Recommendations</button>
+            <button onclick="loadHotelRecs()" style="padding:10px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🏨 Load Hotel Recommendations</button>
           </div>
         </div>
       </div>
@@ -4494,7 +4494,7 @@ function closeSetupFinal(){
     <!-- What to Pack -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('pack')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">>🧳 What to Pack</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);"🧳 What to Pack</div>
         <span id="pt_pack_arrow" style="color:var(--text-muted);font-size:16px;">:</span>
       </div>
       <div id="ab_pt_pack" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
