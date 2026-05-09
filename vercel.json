@@ -8,6 +8,9 @@
     },
     "api/ai.js": {
       "maxDuration": 60
+    },
+    "api/waittimes.js": {
+      "maxDuration": 15
     }
   },
   "crons": [
