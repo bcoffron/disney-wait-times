@@ -1374,7 +1374,7 @@ async function fetchWaits(){
     waits={};
     data.rides.forEach(function(ride){
       var name=ride.name.replace(/&#039;/g,"'").replace(/&amp;/g,"&").replace(/&quot;/g,'"');
-      waits[name.toLowerCase()]={w:ride.wait,s:ride.status,raw:name};
+      waits[name.toLowerCase()]={w:ride.wait,s:ride.status,raw:name,park:ride.park||''};
     });
     waitLastFetch=Date.now();
     renderSched();
@@ -2699,7 +2699,7 @@ function renderWaitTab(){
     var r=waits[k];
     if(!r) return;
     if(r.s !== 'OPERATING') return;
-    var isDCA=dcaKeywords.some(function(kw){return k.includes(kw);});
+    var isDCA=r.park&&r.park.toLowerCase().indexOf('california')>=0;
     if(isDCA) dcaRides.push(r); else dlRides.push(r);
   });
   if(dlRides.length + dcaRides.length < 3){
@@ -2724,7 +2724,7 @@ function renderWaitTab(){
     });
     return h;
   }
-  el.innerHTML=renderGroup('Disneyland Park',dlRides)+renderGroup('Disney California Adventure',dcaRides);
+  el.innerHTML=renderGroup('🏰 Disneyland Park',dlRides)+renderGroup('🎡 Disney California Adventure',dcaRides);
   if(typeof renderClosuresFromWaits==='function') renderClosuresFromWaits();
 }
 function toggleAccordion(id){
