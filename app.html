@@ -442,7 +442,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <div onclick="openPreTrip()" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
     <div style="font-size:24px;">✨ </div>
     <div style="flex:1;">
-      <div style="font-size:14px;font-weight:700;color:var(--text);">=I Do This First: Pre-Trip Planning</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);">✅ Do This First: Pre-Trip Planning</div>
       <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather • Packing • Dining • Group Setup</div>
     </div>
     <div style="font-size:18px;color:var(--gold,#C9860A);">:</div>
@@ -516,7 +516,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div style="font-size:13px;font-weight:600;color:var(--magic)">Live Wait Times</div>
         <div id="waitStatus" style="font-size:11px;color:var(--text-muted)">Loading...</div>
       </div>
-      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">🔄 Refresh</button>
+      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">🔄  Refresh</button>
     </div>
     <div id="waitTabContent"><div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div></div>
     <div style="margin-top:10px;font-size:11px;color:var(--text-dim);text-align:center">Powered by ParkSavers.com &middot; Updates every 5 min</div>
@@ -1144,11 +1144,16 @@ async function _aiProxy(body, cacheCtx){
     prompt=typeof userMsg.content==='string'?userMsg.content:(JSON.stringify(userMsg.content));
   }
   var ctx=cacheCtx||(parkIntelCache?(parkIntelCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';
-  var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6'})});
-  var d=await r.json();
-  if(d.ok)return{content:[{type:'text',text:d.text}]};
-  return{error:{message:d.error||'AI proxy error'}};
+  try{
+    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6'})});
+    var d;
+    try{d=await r.json();}catch(jsonErr){return{error:{message:'AI response parse error: '+r.status}};}
+    if(d.ok)return{content:[{type:'text',text:d.text}]};
+    return{error:{message:d.error||'AI proxy error ('+r.status+')'}};
+  }catch(fetchErr){
+    return{error:{message:'AI fetch error: '+fetchErr.message}};
+  }
 }
 
 async function pushApiKey(key){
@@ -2246,8 +2251,9 @@ async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx) {
         maxTokens: 250
       })
     });
-    var d = await resp.json();
-    if(!d.ok||!d.text){ resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">Could not load recommendation.</span>'; }
+    var d;
+    try{d=await resp.json();}catch(je){resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">Response error.</span>';if(btnEl){btnEl.disabled=false;btnEl.innerHTML=origBtnHtml;}return;}
+    if(!d||!d.ok||!d.text){ resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">Could not load recommendation.</span>'; }
     else {
       var txt = stripMd(d.text.trim());
       resultEl.innerHTML='<div style="font-size:13px;line-height:1.5;padding:8px 0">'+txt+'</div>';
@@ -2501,45 +2507,95 @@ function renderInlineSuggestion(e, ei, entries, dayIdx) {
 function injectScheduleExtras(sections) {
   if (!sections) return;
   var toMin = function(s) { if(!s) return 0; var m = s.match(/(\d+):(\d+)\s*(AM|PM)/i); if(!m) return 0; var h = parseInt(m[1]) % 12 + (m[3].toUpperCase() === 'PM' ? 12 : 0); return h * 60 + parseInt(m[2]); };
-  // Flatten all entries from all sections for analysis
   var allEntries = [];
   sections.forEach(function(sec) { if(sec.entries) sec.entries.forEach(function(e){ allEntries.push(e); }); });
-  // If no entries at all, nothing to inject into
   if (allEntries.length === 0) return;
-  var hasType = function(type, keyword, minStart, minEnd) {
+  var hasEntry = function(type, keyword, minStart, minEnd) {
     return allEntries.some(function(e) {
       var t = toMin(e.t);
       var matchType = !type || e.type === type;
       var matchKey = !keyword || (e.h && e.h.toLowerCase().indexOf(keyword.toLowerCase()) >= 0);
-      var matchTime = (!minStart || t >= minStart) && (!minEnd || t < minEnd);
+      var matchTime = (!minStart || t >= minStart) && (!minEnd || t <= minEnd);
       return matchType && matchKey && matchTime;
     });
   };
-  var morningLand = 'Main Street U.S.A.', afternoonLand = 'Fantasyland';
-  var snackMap = {'Adventureland':'Dole Whip at the Tiki Juice Bar','Fantasyland':'Matterhorn Macaroon near Fantasyland','Tomorrowland':'Galactic Grill snack near Space Mountain','New Orleans Square':'Beignets at Cafe Orleans counter','Frontierland':'Corn dog from Stage Door Cafe','Hollywood Land':'Corn dog from Award Wieners (DCA)','Cars Land':'Chili Cone Queso from Flos V8 Cafe','Buena Vista Street':'Cappuccino from Fiddler Fifer and Practical Cafe'};
-  allEntries.forEach(function(e) { if(e.land && toMin(e.t) < 720) morningLand = e.land; });
-  allEntries.forEach(function(e) { if(e.land && toMin(e.t) >= 720) afternoonLand = e.land; });
-  var morningSnack = snackMap[morningLand] || 'Churro from a cart near the hub';
-  var afternoonSnack = snackMap[afternoonLand] || 'Mickey pretzel from a cart';
-  // Build list of new entries to inject
+  // Detect dominant land by time of day (fall back to schedule's first named land)
+  var getDomLand = function(minStart, minEnd, fallback) {
+    var counts = {};
+    allEntries.forEach(function(e) {
+      var t = toMin(e.t);
+      if((!minStart||t>=minStart) && (!minEnd||t<=minEnd) && e.land && e.land !== 'Main Street U.S.A.') {
+        counts[e.land] = (counts[e.land]||0) + 1;
+      }
+    });
+    var best = fallback || 'Main Street U.S.A.', bestCount = 0;
+    Object.keys(counts).forEach(function(l){ if(counts[l]>bestCount){bestCount=counts[l];best=l;} });
+    return best;
+  };
+  var snackMap = {
+    'Adventureland':'Dole Whip at the Tiki Juice Bar',
+    'Fantasyland':'Matterhorn Macaroon near Fantasyland',
+    'Tomorrowland':'Galactic Grill snack near Space Mountain',
+    'New Orleans Square':'Beignets at the Blue Bayou counter',
+    'Frontierland':'Corn dog from Stage Door Cafe',
+    'Hollywood Land':'Corn dog from Award Wieners (DCA)',
+    'Cars Land':'Chili Cone Queso from Flos V8 Cafe',
+    'Buena Vista Street':'Cappuccino from Fiddler Fifer and Practical Cafe',
+    'Pixar Pier':'Pixar Pier churro or Adorable Snowman Frosted Treats'
+  };
   var toAdd = [];
-  if (!hasType('tip', 'snack', 540, 720)) toAdd.push({t:'10:30 AM', h:'Morning Snack Stop', type:'tip', n:morningSnack, land:morningLand});
-  if (!hasType('tip', 'snack', 720, 1080)) toAdd.push({t:'3:00 PM', h:'Afternoon Snack Stop', type:'tip', n:afternoonSnack, land:afternoonLand});
-  if (!hasType('break', null, 540, 720)) toAdd.push({t:'11:00 AM', h:'Restroom Break', type:'break', n:'Quick restroom stop before mid-day crowds.', land:morningLand});
-  if (!hasType('break', null, 720, 900)) toAdd.push({t:'2:00 PM', h:'Restroom Break', type:'break', n:'Restroom break -- check Disneyland app for nearest location.', land:afternoonLand});
-  var photoCount = allEntries.filter(function(e) { return e.h && e.h.toLowerCase().indexOf('photo op') >= 0; }).length;
-  var hasCastleMorning = allEntries.some(function(e) { return e.h && e.h.indexOf('Castle') >= 0 && toMin(e.t) < 720; });
-  var hasCastleEvening = allEntries.some(function(e) { return e.h && e.h.indexOf('Castle') >= 0 && toMin(e.t) >= 1200; });
-  if (photoCount < 2 && !hasCastleMorning) toAdd.push({t:'9:15 AM', h:'Photo Op: Sleeping Beauty Castle', type:'tip', n:'Best morning light for castle shots before crowds build.', land:'Main Street U.S.A.'});
-  if (photoCount < 2 && !hasCastleEvening) toAdd.push({t:'8:30 PM', h:'Photo Op: Castle at Night', type:'tip', n:'Castle lights up beautifully after dark -- best shots of the trip.', land:'Main Street U.S.A.'});
+  // Morning snack (10:00 AM - 11:30 AM window)
+  var morningLand = getDomLand(480, 720, 'Fantasyland');
+  var morningSnack = snackMap[morningLand] || 'Churro from a cart near the hub';
+  if (!hasEntry(null, 'snack', 540, 720) && !hasEntry(null, 'snack stop', 540, 720)) {
+    toAdd.push({t:'10:30 AM', h:'Morning Snack Stop', type:'tip', n:morningSnack, land:morningLand});
+  }
+  // Afternoon snack (2:30 PM - 4:00 PM window)
+  var afternoonLand = getDomLand(720, 960, morningLand);
+  var afternoonSnack = snackMap[afternoonLand] || 'Mickey pretzel from a cart';
+  if (!hasEntry(null, 'snack', 750, 1020) && !hasEntry(null, 'snack stop', 750, 1020)) {
+    toAdd.push({t:'3:00 PM', h:'Afternoon Snack Stop', type:'tip', n:afternoonSnack, land:afternoonLand});
+  }
+  // Restroom breaks
+  if (!hasEntry('break', null, 540, 720)) {
+    toAdd.push({t:'11:00 AM', h:'Restroom Break', type:'break', n:'Quick restroom stop -- use Disneyland app to find the nearest one.', land:morningLand});
+  }
+  if (!hasEntry('break', null, 750, 900)) {
+    toAdd.push({t:'2:15 PM', h:'Restroom Break', type:'break', n:'Afternoon restroom break -- near current land.', land:afternoonLand});
+  }
+  // Photo ops with time-block distribution: max 2 per block, max 6 total
+  // Blocks: morning (<720), midday (720-1080), evening (>=1080)
+  var photoEntries = allEntries.filter(function(e){ return e.h && e.h.toLowerCase().indexOf('photo op')>=0; });
+  var photoBefore720 = photoEntries.filter(function(e){ return toMin(e.t)<720; }).length;
+  var photo720to1080 = photoEntries.filter(function(e){ var t=toMin(e.t); return t>=720&&t<1080; }).length;
+  var photoAfter1080 = photoEntries.filter(function(e){ return toMin(e.t)>=1080; }).length;
+  var totalPhoto = photoEntries.length;
+  var usedLocations = photoEntries.map(function(e){ return e.n||e.h||''; });
+  var addPhoto = function(t, h, n, land) {
+    if(usedLocations.indexOf(n)>=0) return false; // no duplicate locations
+    usedLocations.push(n);
+    toAdd.push({t:t, h:h, type:'tip', n:n, land:land});
+    totalPhoto++;
+    return true;
+  };
+  // Morning (before noon)
+  if(photoBefore720 < 2 && totalPhoto < 6) {
+    var hasCastleMorn = photoEntries.some(function(e){ return e.h&&e.h.indexOf('Castle')>=0&&toMin(e.t)<720; });
+    if(!hasCastleMorn) addPhoto('9:15 AM','Photo Op: Sleeping Beauty Castle','Best morning light for castle shots before crowds build -- great with Main Street backdrop.','Main Street U.S.A.');
+  }
+  // Evening (after 6pm)
+  if(photoAfter1080 < 2 && totalPhoto < 6) {
+    var hasCastleEve = photoEntries.some(function(e){ return e.h&&e.h.indexOf('Castle')>=0&&toMin(e.t)>=1080; });
+    if(!hasCastleEve) addPhoto('8:30 PM','Photo Op: Castle at Night','Castle lights and projections after dark -- best shots of the trip.','Main Street U.S.A.');
+  }
   if (toAdd.length === 0) return;
-  // Find or create an 'Extras' section to hold injected entries
+  // Inject into Extras section (create if needed)
   var extrasSec = null;
   sections.forEach(function(s) { if(s.title === 'Extras') extrasSec = s; });
   if (!extrasSec) { extrasSec = {title:'Extras', entries:[]}; sections.push(extrasSec); }
   toAdd.forEach(function(e) { extrasSec.entries.push(e); });
-  // Sort entries within each section by time
-  sections.forEach(function(sec) { if(sec.entries && sec.entries.length > 1) sec.entries.sort(function(a,b){ return toMin(a.t)-toMin(b.t); }); });
+  // Sort all sections' entries by time
+  sections.forEach(function(sec) { if(sec.entries&&sec.entries.length>1) sec.entries.sort(function(a,b){ return toMin(a.t)-toMin(b.t); }); });
 }
 
 function renderDayTipsCard(dayIdx){
@@ -2875,7 +2931,7 @@ function buildFullDiningGuide(){
         +'<span style="font-size:14px;color:var(--text-dim)">&#9660;</span>'
         +'</div>'
         +'<div class="rest-body" style="display:none;padding:10px 12px">'
-        +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0">&#127869; Get dining recs</button>'
+        +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0;touch-action:manipulation;cursor:pointer" ontouchstart="">&#127869; Get dining recs</button>'
         +''
         +'<div class="dining-result"></div>'
         +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached   tap refresh for latest</div>':'')
@@ -4300,7 +4356,7 @@ function closeSetupFinal(){
       <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="closePreTrip();openSetup();">
         <div style="font-size:22px;"><(</div>
         <div style="flex:1;">
-          <div style="font-size:14px;font-weight:700;color:var(--text);">=I Do This First: Set Up Your Park Visit</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">✅ Do This First: Set Up Your Park Visit</div>
           <div style="font-size:12px;color:var(--text-muted);">Personalize the AI to your group in 2 minutes</div>
         </div>
         <div style="font-size:16px;color:var(--magic);">:</div>
@@ -4343,18 +4399,18 @@ function closeSetupFinal(){
         <div style="display:grid;gap:6px;">
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Sun Jun 28</div>
-            <div style="color:var(--text-muted);">< DL: 8AM 12AM</div>
-            <div style="color:var(--text-muted);">< DCA: 9AM 11PM</div>
+            <div style="color:var(--text-muted);">🕒 DL: 8AM 12AM</div>
+            <div style="color:var(--text-muted);">🕒 DCA: 9AM 11PM</div>
           </div>
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Mon Jun 29</div>
-            <div style="color:var(--text-muted);">< DL: 8AM 11PM</div>
-            <div style="color:var(--text-muted);">< DCA: 9AM 10PM</div>
+            <div style="color:var(--text-muted);">🕒 DL: 8AM 11PM</div>
+            <div style="color:var(--text-muted);">🕒 DCA: 9AM 10PM</div>
           </div>
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Tue Jun 30</div>
-            <div style="color:var(--text-muted);">< DL: 8AM 11PM</div>
-            <div style="color:var(--text-muted);">< DCA: 8AM 11PM</div>
+            <div style="color:var(--text-muted);">🕒 DL: 8AM 11PM</div>
+            <div style="color:var(--text-muted);">🕒 DCA: 8AM 11PM</div>
           </div>
         </div>
       </div>
