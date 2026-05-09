@@ -3045,6 +3045,7 @@ function setTab(tab){
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('hidden',t!==tab);
     document.getElementById('ni-'+t).classList.toggle('active',t===tab);
   });
+  if(t==='waits'){if(typeof fetchWaits==='function')fetchWaits();}
 }
 
 // ââ Init ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
