@@ -2600,89 +2600,34 @@ function renderInlineSuggestion(e, ei, entries, dayIdx) {
   } catch(err) { return ''; }
 }
 
-function injectScheduleExtras(sections){
-  if(!sections||!Array.isArray(sections))return;
-  sections.forEach(function(sec){
-    if(!sec.entries||!Array.isArray(sec.entries))return;
-    var entries=sec.entries;
-    function toMin(t){
-      if(!t)return -1;
-      var m=t.match(/(\d+):(\d+)\s*(am|pm)?/i);
-      if(!m)return -1;
-      var h=parseInt(m[1]),mn=parseInt(m[2]),ap=(m[3]||'').toLowerCase();
-      if(ap==='pm'&&h!==12)h+=12;
-      if(ap==='am'&&h===12)h=0;
-      return h*60+mn;
-    }
-    function detectLand(targetMin){
-      var best='',bestDist=9999;
-      entries.forEach(function(e){var t=toMin(e.t);if(t<0)return;var d=Math.abs(t-targetMin);if(d<bestDist){bestDist=d;best=e.land||'';}});
-      return best.toLowerCase();
-    }
-    function hasInWindow(type,label,minStart,minEnd){
-      return entries.some(function(e){var t=toMin(e.t);return t>=minStart&&t<=minEnd&&(e.type===type||(label&&e.h&&e.h.toLowerCase().indexOf(label.toLowerCase())>-1));});
-    }
-    function snackFor(land){
-      if(land.indexOf('adventureland')>-1||land.indexOf('new orleans')>-1)return{h:'Dole Whip Stop',n:'Grab a Dole Whip at the Tiki Juice Bar in Adventureland!'};
-      if(land.indexOf('fantasyland')>-1)return{h:'Matterhorn Macaroon',n:'Try a Matterhorn Macaroon from Jolly Holiday Bakery in Fantasyland.'};
-      if(land.indexOf('california')>-1||land.indexOf('dca')>-1||land.indexOf('pixar')>-1||land.indexOf('paradise')>-1)return{h:'Award Wieners Corn Dog',n:'Grab an iconic corn dog from Award Wieners in Hollywood Land, DCA.'};
-      if(land.indexOf('tomorrowland')>-1)return{h:'Galactic Grill Snack',n:'Stop at Galactic Grill in Tomorrowland for a quick snack.'};
-      if(land.indexOf('frontierland')>-1)return{h:'Churro Stop',n:'Grab a churro from a Frontierland cart!'};
-      return{h:'Main Street Snack Stop',n:'Grab a quick snack on Main Street, U.S.A.'};
-    }
-    function restroomFor(land){
-      if(land.indexOf('fantasyland')>-1)return{n:'Restrooms near the Fantasyland Theatre.'};
-      if(land.indexOf('adventureland')>-1||land.indexOf('new orleans')>-1)return{n:'Restrooms near Adventureland entrance or Blue Bayou.'};
-      if(land.indexOf('california')>-1||land.indexOf('dca')>-1)return{n:'Restrooms near Buena Vista Street or Paradise Gardens, DCA.'};
-      if(land.indexOf('tomorrowland')>-1)return{n:'Restrooms near Tomorrowland Terrace.'};
-      return{n:'Use restrooms near Main Street, U.S.A.'};
-    }
-    // Morning snack 10:00am-11:30am (600-690)
-    if(!hasInWindow('tip','snack',600,690)&&!hasInWindow('snack','snack',600,690)){
-      var lA=detectLand(630);var sA=snackFor(lA);
-      entries.push({t:'10:30am',h:sA.h,type:'tip',n:sA.n,land:lA});
-    }
-    // Afternoon snack 2:30pm-4:00pm (870-960)
-    if(!hasInWindow('tip','snack',870,960)&&!hasInWindow('snack','snack',870,960)){
-      var lB=detectLand(900);var sB=snackFor(lB);
-      entries.push({t:'3:00pm',h:sB.h,type:'tip',n:sB.n,land:lB});
-    }
-    // Morning restroom ~11am (645-675)
-    if(!hasInWindow('break','restroom',645,675)){
-      var lC=detectLand(660);var rC=restroomFor(lC);
-      entries.push({t:'11:00am',h:'Restroom Break',type:'break',n:rC.n,land:lC});
-    }
-    // Afternoon restroom ~2pm (825-855)
-    if(!hasInWindow('break','restroom',825,855)){
-      var lD=detectLand(840);var rD=restroomFor(lD);
-      entries.push({t:'2:00pm',h:'Restroom Break',type:'break',n:rD.n,land:lD});
-    }
-    // Photo ops (max 2/day)
-    var photos=entries.filter(function(e){return e.type==='photo_op'||(e.h&&e.h.toLowerCase().indexOf('photo')>-1);});
-    var photoLocs=photos.map(function(e){return(e.h||'').toLowerCase();});
-    var photoCount=photos.length;
-    if(photoCount<2){
-      var hasMorn=photos.some(function(e){var t=toMin(e.t);return t>=555&&t<=600;});
-      if(!hasMorn&&photoCount<2){
-        var lE=detectLand(570);
-        var ph1=(lE.indexOf('california')>-1||lE.indexOf('dca')>-1)?
-          {t:'9:30am',h:'Pixar Pier Photo',n:'Morning shot of the Pixar Pier Ferris Wheel.',type:'photo_op',land:lE}:
-          {t:'9:30am',h:'Castle Photo',n:'Photo of Sleeping Beauty Castle in the morning light.',type:'photo_op',land:lE};
-        if(photoLocs.indexOf(ph1.h.toLowerCase())===-1){entries.push(ph1);photoCount++;photoLocs.push(ph1.h.toLowerCase());}
-      }
-      var hasEve=photos.some(function(e){var t=toMin(e.t);return t>=1200&&t<=1260;});
-      if(!hasEve&&photoCount<2){
-        var lF=detectLand(1230);
-        var ph2=(lF.indexOf('california')>-1||lF.indexOf('dca')>-1)?
-          {t:'8:30pm',h:'World of Color Viewing Spot',n:'Great photo at World of Color viewing area.',type:'photo_op',land:lF}:
-          {t:'8:30pm',h:'Castle at Night Photo',n:'Sleeping Beauty Castle lit up at night.',type:'photo_op',land:lF};
-        if(photoLocs.indexOf(ph2.h.toLowerCase())===-1){entries.push(ph2);photoCount++;}
-      }
-    }
-    // Sort by time
-    entries.sort(function(a,b){var ta=toMin(a.t),tb=toMin(b.t);if(ta<0&&tb<0)return 0;if(ta<0)return 1;if(tb<0)return -1;return ta-tb;});
-    sec.entries=entries;
-  });
+function injectScheduleExtras(sections) {
+  if (!sections) return [];
+  var toMin = function(s) { if(!s) return 0; var m = s.match(/(\d+):(\d+)\s*(AM|PM)/i); if(!m) return 0; var h = parseInt(m[1]) % 12 + (m[3].toUpperCase() === 'PM' ? 12 : 0); return h * 60 + parseInt(m[2]); };
+  var hasType = function(type, keyword, minStart, minEnd) {
+    return sections.some(function(e) {
+      var t = toMin(e.t);
+      var matchType = !type || e.type === type;
+      var matchKey = !keyword || (e.h && e.h.toLowerCase().indexOf(keyword.toLowerCase()) >= 0);
+      var matchTime = (!minStart || t >= minStart) && (!minEnd || t < minEnd);
+      return matchType && matchKey && matchTime;
+    });
+  };
+  var morningLand = 'Main Street U.S.A.', afternoonLand = 'Fantasyland';
+  var snackMap = {'Adventureland':'Dole Whip at the Tiki Juice Bar','Fantasyland':'Matterhorn Macaroon near Fantasyland','Tomorrowland':'Galactic Grill snack near Space Mountain','New Orleans Square':'Beignets at Cafe Orleans counter','Frontierland':'Corn dog from Stage Door Cafe','Hollywood Land':'Corn dog from Award Wieners (DCA)','Cars Land':'Chili Cone Queso from Flos V8 Cafe','Buena Vista Street':'Cappuccino from Fiddler Fifer and Practical Cafe'};
+  sections.forEach(function(e) { if(e.land && toMin(e.t) < 720) morningLand = e.land; });
+  sections.forEach(function(e) { if(e.land && toMin(e.t) >= 720) afternoonLand = e.land; });
+  var morningSnack = snackMap[morningLand] || 'Churro from a cart near the hub';
+  var afternoonSnack = snackMap[afternoonLand] || 'Mickey pretzel from a cart';
+  if (!hasType('tip', 'snack', 540, 720)) sections.push({t:'10:30 AM', h:'Morning Snack Stop', type:'tip', n:morningSnack, land:morningLand});
+  if (!hasType('tip', 'snack', 720, 1080)) sections.push({t:'3:00 PM', h:'Afternoon Snack Stop', type:'tip', n:afternoonSnack, land:afternoonLand});
+  if (!hasType('break', null, 540, 720)) sections.push({t:'11:00 AM', h:'Restroom Break', type:'break', n:'Quick restroom stop before mid-day crowds.', land:morningLand});
+  if (!hasType('break', null, 720, 900)) sections.push({t:'2:00 PM', h:'Restroom Break', type:'break', n:'Restroom break -- check Disneyland app for nearest location.', land:afternoonLand});
+  var photoCount = sections.filter(function(e) { return e.h && e.h.toLowerCase().indexOf('photo op') >= 0; }).length;
+  var hasCastleMorning = sections.some(function(e) { return e.h && e.h.indexOf('Castle') >= 0 && toMin(e.t) < 720; });
+  var hasCastleEvening = sections.some(function(e) { return e.h && e.h.indexOf('Castle') >= 0 && toMin(e.t) >= 1200; });
+  if (photoCount < 2 && !hasCastleMorning) sections.push({t:'9:15 AM', h:'Photo Op: Sleeping Beauty Castle', type:'tip', n:'Best morning light for castle shots before crowds build.', land:'Main Street U.S.A.'});
+  if (photoCount < 2 && !hasCastleEvening) sections.push({t:'8:30 PM', h:'Photo Op: Castle at Night', type:'tip', n:'Castle lights up beautifully after dark -- best shots of the trip.', land:'Main Street U.S.A.'});
+  sections.sort(function(a, b) { return toMin(a.t) - toMin(b.t); });
   return sections;
 }
 
