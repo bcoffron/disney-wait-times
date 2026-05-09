@@ -3461,7 +3461,7 @@ function renderPreTripCountdowns(){
 }
 
 function weatherCodeToEmoji(code){
-  if(code===0)return'  ';if(code<=2)return'�';if(code<=3)return'  ';if(code<=67)return'<' ';return'<$ ';
+  if(code===0)return'Sunny';if(code<=2)return'PCloudy';if(code<=3)return'Cloudy';if(code<=67)return'Rain';return'Snow';
 }
 
 function renderPreTripWeather(){
@@ -4047,9 +4047,9 @@ async function loadDayStrategy(){
   var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed';
   var schedSummary='';
   try{for(var d=0;d<3;d++){var dn=['Sun Jun 28 (Disneyland)','Mon Jun 29 (VIP Tour 10AM-5PM)','Tue Jun 30 (DCA + DL evening)'][d];var sc=JSON.parse(localStorage.getItem('schedule_v2_day'+d)||'[]');if(sc.length)schedSummary+=dn+': '+sc.slice(0,3).map(function(i){return(i.t||'')+(i.e?i.e.h:i.h||'');}).join(', ')+'\n';}}catch(e){}
-  var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Pace: '+pace+' | Start: '+startTime+' | LL: '+ll+' | Must-rides: '+mustRides+'\n'+(schedSummary?'Schedule overview:\n'+schedSummary:'')+'\nWrite a 2-3 sentence strategy for each day: Jun 28 Disneyland (fireworks night), Jun 29 VIP Tour 10AM-5PM, Jun 30 DCA morning then Disneyland evening + Fantasmic. Be concise. 2-3 sentences max per day.';
+  var prompt='For a group of '+size+' people visiting Disneyland June 28-30, 2026: in 2 sentences maximum per day, give the single most important strategy for each of the 3 days. Be extremely brief. Day 1 Jun 28 Disneyland, Day 2 Jun 29 VIP Tour, Day 3 Jun 30 DCA+DL.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:150,system:'You are a concise Disneyland trip strategist. Search current sources including TouringPlans, AllEars, and MiceChat for the latest June 2026 touring strategies, rope drop tips, and crowd patterns before building the plan. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits   popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only   never as a current strategy recommendation. Every recommendation must be verified current and specific to the group. Be concise. Maximum 3 short paragraphs. No markdown headers or tables.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:150,system:'You are a brief Disneyland trip strategist. Give the single most important strategy for each park day in 2 sentences or less. No markdown, no headers, no bullet points.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
