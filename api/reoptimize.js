@@ -76,9 +76,24 @@ catch(e1){
   }
 }
 
+// Fix truncation: if AI text doesn't end with ] try to close the array
+if(!text.trim().endsWith(']')){
+  const lastBrace=text.lastIndexOf('}');
+  if(lastBrace>-1){
+    const fixed=text.substring(0,lastBrace+1)+']';
+    try{
+      const tp=JSON.parse(fixed);
+      if(Array.isArray(tp)){text=fixed;}
+      else if(tp&&tp.sections){text=fixed;}
+    }catch(ef){}
+  }
+}
+
 if(parsed&&parsed.sections&&Array.isArray(parsed.sections)){
   const normalized=parsed.sections.map(s=>({title:s.title||"",entries:(s.entries||[]).map(normalizeEntry)}));
-  return res.status(200).json({sections:normalized,explanation:parsed.explanation||"Schedule optimized."});
+  const totalEntries=normalized.reduce((s,sec)=>s+(sec.entries?sec.entries.length:0),0);
+if(totalEntries<10)return res.status(200).json({error:'Schedule too short — regenerate',sections:normalized});
+return res.status(200).json({sections:normalized,explanation:parsed.explanation||"Schedule optimized."});
 }
 
 console.error("Parse failed. clean:",clean.substring(0,200));
