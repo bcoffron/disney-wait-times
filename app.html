@@ -2634,7 +2634,7 @@ function injectScheduleExtras(sections) {
 
 function renderSched(){
   var day=getCurDay();
-  if(day&&day.sections)day.sections=injectScheduleExtras(day.sections);
+  if(false&&(day&&day.sections)day.sections=injectScheduleExtras(day.sections);
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
     document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">=�</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
