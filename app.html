@@ -1366,7 +1366,7 @@ async function fetchWaits(){
       return;
     }
     var data=await r.json();
-    if(!data.rides||!data.rides.length){
+    if(!data||!data.rides||!Array.isArray(data.rides)||!data.rides.length){
       console.warn('Wait fetch: no rides in response');
       if(tabEl) tabEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">No ride data returned</div>';
       return;
@@ -2175,8 +2175,8 @@ async function reoptimize(){
     +'3) FIXED DINING LOCK: Never move dining entries that have a specific reservation time (e.g. 6:30 PM reservation). Flexible dining entries (e.g. "Lunch in DCA") CAN be moved to better timing windows. '
     +'4) HOP LOCK: Never remove park hop entries but you MAY adjust their time if it improves flow. '
     +'5) VIP LOCK: Never move or remove VIP tour entries.'
-    +'6) SNACK LIMIT: Maximum 2 snack stops per day \u2014 1 morning, 1 afternoon. Do not add more.'
-    +'7) PHOTO OP LIMIT: Maximum 2-3 photo op recommendations per time block. Never repeat the same photo op location twice in the same day.';
+    +'6) SNACK RULE: You MUST include exactly 1 snack stop between 9am–9noon (morning snack) and exactly 1 snack stop between 2pm–5pm (afternoon snack). These are required, not optional.'
+    +'7) PHOTO OP RULE: Maximum 2 photo ops between 9am–noon, maximum 2 between noon–6pm, maximum 2 between 6pm–close. Never repeat the same photo op location in the same day. Total photo ops per day: 4–6 max.';
   try{
     var skipList=[];
     var storedRefurbs=getStoredRefurbs();
@@ -2327,6 +2327,7 @@ function buildDiningHTML(restaurant, text){
 }
 async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx) {
   if(!resultEl) return;
+  if(btnEl && btnEl.disabled) return;
   var origBtnHtml = btnEl ? btnEl.innerHTML : '';
   if(btnEl){ btnEl.disabled=true; btnEl.innerHTML='Getting recs…'; }
   resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">Loading…</span>';
@@ -2695,6 +2696,7 @@ function renderWaitTab(){
   var dlRides=[],dcaRides=[];
   keys.forEach(function(k){
     var r=waits[k];
+    if(!r) return;
     var isDCA=dcaKeywords.some(function(kw){return k.includes(kw);});
     if(isDCA) dcaRides.push(r); else dlRides.push(r);
   });
@@ -3022,6 +3024,7 @@ function renderShows(){
 
 // ── Nav ───────────────────────────────────────────────────────────────────
 function setDay(d){
+  window.scrollTo(0,0);
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
   editMode=false;
@@ -3325,7 +3328,7 @@ var PACK_ITEMS=[
   {id:'p11',label:'Snacks for the bag',checked:false},
   {id:'p12',label:'Small backpack or crossbody bag',checked:false},
 ];
-function loadPackItems(){try{var s=localStorage.getItem('pack_items');if(s)PACK_ITEMS=JSON.parse(s);}catch(e){}}
+function loadPackItems(){try{var s=localStorage.getItem('pack_items');if(s){var p=JSON.parse(s);if(Array.isArray(p)&&p.length>0)PACK_ITEMS=p;}}catch(e){}}
 function savePackItems(){try{localStorage.setItem('pack_items',JSON.stringify(PACK_ITEMS));}catch(e){}}
 
 function openPreTrip(){
@@ -3468,7 +3471,7 @@ async function loadKnowBeforeYouGo(){
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,
-        system:'You are an expert Disneyland trip planner. Before giving advice, use web search to find the CURRENT most widely accepted rope drop strategies, wait time patterns, and touring tips from sources like TouringPlans, AllEars, MiceChat, and Disney Food Blog for June 2026. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Be concise. Maximum 3 short paragraphs. No markdown headers or tables. Your advice must reflect strategies that are verified current and backed by real visitor data — never outdated tips. Every recommendation must be specific to the group profile provided. Be concise. Maximum 3 short paragraphs. No markdown headers or tables.',
+        system:'Give exactly 5 bullet points, one sentence each. No headers, no markdown, no extra text. Just 5 concise tips for visiting Disneyland.',
         tools:[{type:'web_search_20250305',name:'web_search'}],
         messages:[{role:'user',content:prompt}]})
     });
@@ -3566,7 +3569,7 @@ async function loadHotelRecs(){
       stars:4.8,
       price:'$600–$1,200/night',
       phone:'(714) 635-2300',
-      web:'https://disneyland.disney.go.com/hotels/disney-grand-californian-hotel/',
+      web:'https://disneyland.disney.go.com/hotels/grand-californian-hotel/',
       walk:'Inside DCA — direct park access',
       desc:'The crown jewel of Disney hotels. Arts & Crafts architecture, direct access into Disney California Adventure, Napa Rose fine dining, and the best pool complex on property.',
       tag:'official'
@@ -3922,7 +3925,7 @@ async function loadCrowdPrediction(){
   var size=sd.groupSize||4;
   var prompt='Analyze crowd levels for Disneyland Resort for the full week of June 25 - July 2 2026. Cover all 8 days: Thu Jun 25, Fri Jun 26, Sat Jun 27 (travel day), Sun Jun 28 (PARK DAY 1 Disneyland), Mon Jun 29 (PARK DAY 2 VIP Tour), Tue Jun 30 (PARK DAY 3 DCA + DL evening), Wed Jul 1 (departure), Thu Jul 2 (pre-4th of July buildup). For each day: 1. **Crowd Level** 1-10 with descriptor. 2. Which park is less crowded. 3. Best window for headliners. 4. One key note (events, holiday buildup, school-out patterns). For non-park days give shorter entries showing whether it would have been worth visiting instead. End with a **WEEK SUMMARY** noting best/worst days and key patterns. Base on historical late June/early July Disneyland patterns. Group size: '+size+'.';
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'You are a Disneyland crowd expert. Search current sources like TouringPlans crowd calendar, AllEars, and MiceChat for June/July 2026 crowd predictions before responding. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits — popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only — never as a current strategy recommendation. Give specific data-informed crowd forecasts backed by current predictions and historical patterns. Be concise. Maximum 3 short paragraphs. No markdown headers or tables.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,system:'Return ONLY a crowd level rating like 7/10 — Heavily Crowded followed by one sentence explaining why. No other text, no headers, no markdown.',tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
     var data=await r.json();
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
