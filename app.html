@@ -2602,6 +2602,7 @@ function renderInlineSuggestion(e, ei, entries, dayIdx) {
 
 function injectScheduleExtras(sections) {
   if (!sections) return [];
+  if (sections.length === 0) sections = [{t:'8:00 AM', h:'Rope Drop', type:'tip', n:'Arrive at gates 45 min before opening for best ride access.', land:'Main Street U.S.A.'}];
   var toMin = function(s) { if(!s) return 0; var m = s.match(/(\d+):(\d+)\s*(AM|PM)/i); if(!m) return 0; var h = parseInt(m[1]) % 12 + (m[3].toUpperCase() === 'PM' ? 12 : 0); return h * 60 + parseInt(m[2]); };
   var hasType = function(type, keyword, minStart, minEnd) {
     return sections.some(function(e) {
