@@ -671,38 +671,21 @@ const CLOSED=[
 ];
 
 const DAYS=[
-{label:'Sunday Jun 28',sub:'Disneyland \u2192 DCA \u2192 Disneyland \u00b7 Fireworks Night',sections:[
-  {title:'\u{1F3F0} Disneyland \u2014 rope drop',entries:[
-    {t:'7:00 AM',h:'Arrive at Disneyland gates',n:'Arrive 1 hour before 8 AM opening. Get through security, pick up will-call tickets if needed, and be at the turnstiles ready to scan in by 7:55 AM.',type:'tip'},
-    {t:'8:00 AM',h:'\u{1F3AF} Buy LL Single Pass \u2014 Rise of the Resistance',n:'Open the app the second you scan in. Buy Rise Single Pass FIRST \u2014 sells out by 9 AM.',type:'tip',ll:{t:'single',a:'Buy NOW on entry. Sells out fast \u2014 do this before anything else.'}},
-    {t:'8:00 AM',h:'\u{1F3AB} Buy Lightning Lane Multi Pass',n:'Also buy LLMP. First selection: Indiana Jones Adventure.',type:'tip',ll:{t:'multi',a:'First selection: Indiana Jones Adventure'}},
-    {t:'8:05 AM',h:'Indiana Jones Adventure',n:'Standby is 5\u201310 min at rope drop. Walk straight there.',type:'ride',ride:'Indiana Jones Adventure',land:'Adventureland',ll:{t:'multi',a:'Ride standby now. Book next LLMP: Matterhorn Bobsleds'}},
-    {t:'8:30 AM',h:'Haunted Mansion',n:'5\u201310 min standby. Book next LLMP while in this line.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square',ll:{t:'multi',a:'Book next LLMP: Matterhorn Bobsleds'}},
-    {t:'8:55 AM',h:'Matterhorn Bobsleds',n:'Redeem LLMP. Book next in line.',type:'ride',ride:'Matterhorn Bobsleds',land:'Fantasyland',ll:{t:'multi',a:'Redeem LLMP. Book next: Space Mountain'}},
-    {t:'9:20 AM',h:'Rise of the Resistance',n:'Redeem Single Pass. Most immersive ride in either park \u2014 allow 15 min for pre-show.',type:'ride',ride:'Star Wars: Rise of the Resistance',land:"Galaxy's Edge",ll:{t:'single',a:'Redeem Single Pass. Book next LLMP after scanning in: Big Thunder Mountain'}},
-    {t:'9:55 AM',h:'Space Mountain',n:'Redeem LLMP. Book DCA ride (needs 11AM+ return window) while in line.',type:'ride',ride:'Space Mountain',land:'Tomorrowland',ll:{t:'multi',a:'Redeem LLMP. Pre-book DCA: Guardians of the Galaxy (must show 11AM+ return time)'}},
-    {t:'10:20 AM',h:"Tiana's Bayou Adventure",n:"Great alternative now that Pirates is closed. Usually 20\u201330 min standby.",type:'ride',ride:"Tiana's Bayou Adventure",land:'New Orleans Square',ll:{t:'multi',a:'Book LLMP if wait over 30 min.'}},
-    {t:'10:45 AM',h:'Walk to DCA gate',n:'Park hopping opens at 11:00 AM \u2014 be at the gate a couple minutes early.',type:'hop'},
-  ]},
-  {title:'\u{1F31F} Disney California Adventure \u2014 midday',entries:[
-    {t:'11:00 AM',h:'\u{1F3AF} Buy LL Single Pass \u2014 Radiator Springs Racers',n:'Buy RSR Single Pass the second you enter DCA \u2014 sells out within the hour.',type:'tip',ll:{t:'single',a:'Buy immediately on entering DCA.'}},
-    {t:'11:05 AM',h:'Guardians of the Galaxy: Mission Breakout',n:'Redeem LLMP booked from Disneyland. Book next in line.',type:'ride',ride:'Guardians of the Galaxy',land:'Avengers Campus',ll:{t:'multi',a:'Redeem LLMP. Book next: Incredicoaster'}},
-    {t:'11:30 AM',h:'Incredicoaster',n:'Redeem LLMP. Book next in line.',type:'ride',ride:'Incredicoaster',land:'Pixar Pier',ll:{t:'multi',a:'Redeem LLMP. Book next: Web Slingers'}},
-    {t:'11:55 AM',h:'Radiator Springs Racers',n:'Redeem Single Pass. Most beautiful ride setting in either park.',type:'ride',ride:'Radiator Springs Racers',land:'Cars Land',ll:{t:'single',a:'Redeem Single Pass. Book next LLMP: Soarin\' Around the World'}},
-    {t:'1:00 PM',h:'Lunch in DCA',n:'Carthay Circle (book ahead) or Lamplight Lounge on Pixar Pier.',type:'food'},
-    {t:'2:00 PM',h:'Web Slingers: A Spider-Man Adventure',n:'Redeem LLMP. Interactive shooter \u2014 fun group competition.',type:'ride',ride:'Web Slingers',land:'Avengers Campus',ll:{t:'multi',a:'Redeem LLMP. Book next: Toy Story Midway Mania'}},
-    {t:'2:30 PM',h:"Soarin' Around the World",n:'Redeem LLMP. Beautiful hang-glider experience.',type:'ride',ride:"Soarin' Around the World",land:'Grizzly Peak'},
-    {t:'3:00 PM',h:'Toy Story Midway Mania',n:'Competitive 4D shooter \u2014 see who gets the top score.',type:'ride',ride:'Toy Story Midway Mania',land:'Pixar Pier'},
-    {t:'4:00 PM',h:'Hop back to Disneyland',n:'Head over with plenty of time before the evening shows.',type:'hop'},
-  ]},
-  {title:'\u{1F3F0} Disneyland \u2014 evening shows',entries:[
-    {t:'4:30 PM',h:'Big Thunder Mountain Railroad',n:'Redeem any remaining LLMP. Great ride \u2014 even better after dark.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland'},
-    {t:"5:00 PM",h:"Galaxy's Edge \u2014 Shadows of Memory",n:"Catch Shadows of Memory (~5:30 PM) then Millennium Falcon: Smugglers Run. Low crowds at this hour.",type:'show'},
-    {t:'6:30 PM',h:'Dinner \u2014 Caf\u00e9 Orleans or River Belle Terrace',n:'Skip Blue Bayou this trip \u2014 Caf\u00e9 Orleans next door serves the same Creole classics.',type:'food'},
-    {t:'7:30 PM',h:'Claim Main Street parade spot',n:'No reserved viewing Sunday \u2014 stake out a curb spot for 9 by 7:30\u20137:45 PM.',type:'tip'},
-    {t:'9:00 PM',h:'\u{1F3AD} Fantasmic! \u2014 1st show',n:'~22 min. Head to Sleeping Beauty Castle hub right after for fireworks.',type:'show'},
-    {t:'9:30 PM',h:'\u2728 Wondrous Journeys \u2014 Fireworks',n:'Full fireworks + projections tonight. Best view in front of Sleeping Beauty Castle. ~20 min.',type:'show'},
-    {t:'10:00 PM',h:'Late night rides or head out',n:'Post-fireworks crowds thin fast. Space Mountain & Big Thunder have short waits now.',type:'tip'},
+{label:'Sunday Jun 28',sub:'Disneyland • Fireworks Night',sections:[
+  {title:'Sunday Jun 28 — Disneyland',entries:[
+    {t:'8:00 AM',h:'Rope Drop — Head to Fantasyland',type:'tip',n:'Arrive at the main gate 45 min before opening. Position at the Fantasyland rope for best access.',land:'Main Street U.S.A.'},
+    {t:'8:15 AM',h:"Peter Pan's Flight",type:'ride',n:'First ride of the trip — lines build fast, do this at rope drop.',land:'Fantasyland'},
+    {t:'9:00 AM',h:'Matterhorn Bobsleds',type:'ride',n:'Hit this before the 10am crowds arrive.',land:'Fantasyland'},
+    {t:'9:45 AM',h:'Space Mountain',type:'ride',n:'Morning is the best time — waits under 30 min before 10am.',land:'Tomorrowland'},
+    {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
+    {t:'12:00 PM',h:'Lunch — Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou is inside Pirates — book ahead. River Belle is walk-up friendly.',land:'New Orleans Square'},
+    {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park — use Lightning Lane if available.',land:'Tomorrowland'},
+    {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
+    {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness — great for all ages.',land:'Frontierland'},
+    {t:'5:00 PM',h:'Rest Break — Return to Hotel',type:'break',n:'Pool time or rest before the evening. Come back refreshed for fireworks night.',land:'Main Street U.S.A.'},
+    {t:'6:30 PM',h:'Return to Park — Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
+    {t:'8:00 PM',h:'Fantasyland Evening Rides',type:'tip',n:'Evening is the best time for Fantasyland — lighter crowds after 8pm.',land:'Fantasyland'},
+    {t:'9:30 PM',h:'Wondrous Journeys Fireworks',type:'show',n:'Watch from the hub in front of the castle. Arrive 20 min early for a good spot.',land:'Main Street U.S.A.'},
   ]},
 ]},
 {label:'Monday Jun 29',sub:'VIP Tour \u00b7 Paint the Night Reserved \u00b7 World of Color Reserved',sections:[
@@ -2634,7 +2617,7 @@ function injectScheduleExtras(sections) {
 
 function renderSched(){
   var day=getCurDay();
-  if(false&&(day&&day.sections)day.sections=injectScheduleExtras(day.sections);
+  if(day&&day.sections)injectScheduleExtras(day.sections);
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
     document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">=�</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
