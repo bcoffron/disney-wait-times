@@ -393,7 +393,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <!-- Tinkerbell transition overlay -->
 <div class="tink-overlay" id="tinkOverlay"></div>
 <div class="tink-fairy" id="tinkFairy" style="display:none">
-  <div class="tink-body">✨</div>
+  <div class="tink-body">🧚</div>
 </div>
 
 <div class="lock-screen" id="lockScreen">
@@ -429,7 +429,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <div class="app" id="mainApp" style="display:none">
 
 <div class="header">
-  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">(((</div>
+  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">✨✨✨</div>
   <div class="header-top">
     <div>
       <div class="header-title"><svg width="26" height="22" viewBox="0 0 52 44" style="vertical-align:middle;margin-right:5px;flex-shrink:0" fill="#1B2FA0"><circle cx="12" cy="14" r="12"/><circle cx="40" cy="14" r="12"/><circle cx="26" cy="30" r="16"/></svg>Coffron/Woods Disneyland Trip</div>
@@ -440,10 +440,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
   <div id="preTripBanner" style="margin-bottom:10px;">
   <div onclick="openPreTrip()" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
-    <div style="font-size:24px;">( </div>
+    <div style="font-size:24px;">✨ </div>
     <div style="flex:1;">
-      <div style="font-size:14px;font-weight:700;color:var(--text);">  Do This First: Pre-Trip Planning</div>
-      <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather " Packing " Dining " Group Setup</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);">✅ Do This First: Pre-Trip Planning</div>
+      <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather • Packing • Dining • Group Setup</div>
     </div>
     <div style="font-size:18px;color:var(--gold,#C9860A);">:</div>
   </div>
@@ -488,7 +488,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="day-info-bar" id="dayInfoBar"></div>
     <!-- Guest sync note -->
     <div id="guestSyncNote" style="display:none;padding:7px 12px;background:rgba(27,47,160,0.06);border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);margin-bottom:10px;font-size:11px;color:var(--magic);text-align:center">
-      &#128274; Read-only schedule " Auto-syncs every 2 min
+      &#128274; Read-only schedule • Auto-syncs every 2 min
     </div>
     <!-- Edit / AI Optimize / Reset bar -->
     <div class="edit-bar">
@@ -516,7 +516,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div style="font-size:13px;font-weight:600;color:var(--magic)">Live Wait Times</div>
         <div id="waitStatus" style="font-size:11px;color:var(--text-muted)">Loading...</div>
       </div>
-      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">=   Refresh</button>
+      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">🔄  Refresh</button>
     </div>
     <div id="waitTabContent"><div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div></div>
     <div style="margin-top:10px;font-size:11px;color:var(--text-dim);text-align:center">Powered by ParkSavers.com &middot; Updates every 5 min</div>
@@ -2620,7 +2620,7 @@ function renderSched(){
   if(day&&day.sections)injectScheduleExtras(day.sections);
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
-    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">🧚</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
+    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">📅</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
     return;
   }
   day.sections.forEach(function(sec,si){
@@ -2743,8 +2743,7 @@ function renderWaitTab(){
     });
     return h;
   }
-  el.innerHTML=renderGroup('🏰 Disneyland Park',dlRides)+renderGroup('<
- Disney California Adventure',dcaRides);
+  el.innerHTML=renderGroup('🏰 Disneyland Park',dlRides)+renderGroup('🌊 Disney California Adventure',dcaRides);
   if(typeof renderClosuresFromWaits==='function') renderClosuresFromWaits();
 }
 function toggleAccordion(id){
@@ -2794,7 +2793,7 @@ function renderInfoTab(){
     }},
     
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
-      return '<div class="info-card"><b>Single Pass</b> (~$15 35/person): Rise of the Resistance · Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones · Matterhorn · Space Mountain · Haunted Mansion · Big Thunder · Smugglers Run · Tiana s · Guardians · Incredicoaster · Web Slingers · Soarin  " Toy Story<br><br><b>No LL needed Tuesday</b>   VIP tour handles everything.</div>'
+      return '<div class="info-card"><b>Single Pass</b> (~$15 35/person): Rise of the Resistance → Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones → Matterhorn → Space Mountain → Haunted Mansion → Big Thunder → Smugglers Run → Tiana s → Guardians → Incredicoaster → Web Slingers → Soarin  " Toy Story<br><br><b>No LL needed Tuesday</b>   VIP tour handles everything.</div>'
         +'<div class="info-card"><b>Rules:</b> Buy after scanning into park " Book next LL after 2 hrs OR right after scanning into current ride " Book while standing in the current LL line! " Each ride once per day " For 2nd park: book once return time shows 11AM+</div>';
     }},
     
@@ -3238,7 +3237,7 @@ function aiChooseRides(params, callback) {
       maxTokens: 300
     })
   })
-  .then(function(r){return r;})
+  .then(function(r){return r.json();})
   .then(function(d){
     if(!d.ok||!d.text){callback('AI error: '+(d.error||'no response'));return;}
     try{
@@ -3399,8 +3398,8 @@ function renderPreTripWeather(){
     html+='<div style="text-align:center;">'
       +'<div style="font-size:11px;color:var(--text-muted);">'+days[i]+'</div>'
       +'<div style="font-size:24px;">'+weatherCodeToEmoji(code)+'</div>'
-      +'<div style="font-size:14px;font-weight:700;color:var(--text);">'+hi+'°F</div>'
-      +'<div style="font-size:11px;color:var(--text-muted);">'+lo+'°F</div>'
+      +'<div style="font-size:14px;font-weight:700;color:var(--text);">'+hi+'°</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">'+lo+'°</div>'
       +'</div>';
   }
   el.innerHTML=html;
@@ -3529,7 +3528,7 @@ function renderPreTripBanner(){
   banner.style.display='';
   var days=Math.ceil((tripStart-now)/864e5);
   var sub=document.getElementById('preTripBannerSub');
-  if(sub)sub.textContent=(days>0?days+' days to go ✨ ':'Trip starts today! ✨ ')+'Weather " Packing " Dining " Group Setup';
+  if(sub)sub.textContent=(days>0?days+' days to go 🏰 ':'Trip starts today! ✨ ')+'Weather • Packing • Dining • Group Setup';
 }
 
 // Load cached KBYG on open
@@ -3563,7 +3562,7 @@ async function loadHotelRecs(){
     }
   }catch(e){}
 
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">🏨 Loading hotel recommendations...</div>';
+  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">⏳ Loading hotel recommendations...</div>';
 
   // Hardcoded hotel data - accurate, no API needed
   var hotels=[
@@ -4310,10 +4309,10 @@ function closeSetupFinal(){
         <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">( Generating your personalized trip summary...</div>
       </div>
       <div style="background:rgba(27,47,160,0.05);border:1.5px solid rgba(27,47,160,0.2);border-radius:14px;padding:14px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">👥 Share with your group</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">📤 Share with your group</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Send this link to everyone coming   they'll see the full schedule, live wait times, and AI features.</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Copy Link</button>
+          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔗 Copy Link</button>
           <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📤 Share</button>
         </div>
       </div>
@@ -4357,7 +4356,7 @@ function closeSetupFinal(){
       <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="closePreTrip();openSetup();">
         <div style="font-size:22px;"><(</div>
         <div style="flex:1;">
-          <div style="font-size:14px;font-weight:700;color:var(--text);">  Do This First: Set Up Your Park Visit</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">✅ Do This First: Set Up Your Park Visit</div>
           <div style="font-size:12px;color:var(--text-muted);">Personalize the AI to your group in 2 minutes</div>
         </div>
         <div style="font-size:16px;color:var(--magic);">:</div>
@@ -4400,18 +4399,18 @@ function closeSetupFinal(){
         <div style="display:grid;gap:6px;">
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Sun Jun 28</div>
-            <div style="color:var(--text-muted);">=R DL: 8AM 12AM</div>
-            <div style="color:var(--text-muted);">=R DCA: 9AM 11PM</div>
+            <div style="color:var(--text-muted);">🕒 DL: 8AM 12AM</div>
+            <div style="color:var(--text-muted);">🕒 DCA: 9AM 11PM</div>
           </div>
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Mon Jun 29</div>
-            <div style="color:var(--text-muted);">=R DL: 8AM 11PM</div>
-            <div style="color:var(--text-muted);">=R DCA: 9AM 10PM</div>
+            <div style="color:var(--text-muted);">🕒 DL: 8AM 11PM</div>
+            <div style="color:var(--text-muted);">🕒 DCA: 9AM 10PM</div>
           </div>
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;font-size:12px;">
             <div style="font-weight:600;color:var(--text);">Tue Jun 30</div>
-            <div style="color:var(--text-muted);">=R DL: 8AM 11PM</div>
-            <div style="color:var(--text-muted);">=R DCA: 8AM 11PM</div>
+            <div style="color:var(--text-muted);">🕒 DL: 8AM 11PM</div>
+            <div style="color:var(--text-muted);">🕒 DCA: 8AM 11PM</div>
           </div>
         </div>
       </div>
@@ -4444,7 +4443,7 @@ function closeSetupFinal(){
     <!-- Crowd Prediction -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('crowds')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">📊 Crowd Prediction</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">📈 Crowd Prediction</div>
         <span id="pt_crowds_arrow" style="color:var(--text-muted);font-size:16px;">:</span>
       </div>
       <div id="ab_pt_crowds" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
@@ -4459,7 +4458,7 @@ function closeSetupFinal(){
     <!-- Day-by-Day Strategy -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('daystrategy')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">📅 Day-by-Day Strategy</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">🗓 Day-by-Day Strategy</div>
         <span id="pt_daystrategy_arrow" style="color:var(--text-muted);font-size:16px;">:</span>
       </div>
       <div id="ab_pt_daystrategy" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
@@ -4551,7 +4550,7 @@ function closeSetupFinal(){
     <!-- What to Pack -->
     <div style="margin:10px 14px 0;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
       <div onclick="toggleAccordionPT('pack')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card);">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">🎒 What to Pack</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">🧳 What to Pack</div>
         <span id="pt_pack_arrow" style="color:var(--text-muted);font-size:16px;">:</span>
       </div>
       <div id="ab_pt_pack" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
