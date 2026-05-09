@@ -91,8 +91,7 @@ if(!text.trim().endsWith(']')){
 
 if(parsed&&parsed.sections&&Array.isArray(parsed.sections)){
   const normalized=parsed.sections.map(s=>({title:s.title||"",entries:(s.entries||[]).map(normalizeEntry)}));
-  const totalEntries=normalized.reduce((s,sec)=>s+(sec.entries?sec.entries.length:0),0);
-if(totalEntries<10)return res.status(200).json({error:'Schedule too short — regenerate',sections:normalized});
+if(normalized.length<8)return res.status(200).json({error:'Schedule incomplete — please try again',sections:normalized});
 return res.status(200).json({sections:normalized,explanation:parsed.explanation||"Schedule optimized."});
 }
 
