@@ -2683,6 +2683,7 @@ function injectScheduleExtras(sections){
     entries.sort(function(a,b){var ta=toMin(a.t),tb=toMin(b.t);if(ta<0&&tb<0)return 0;if(ta<0)return 1;if(tb<0)return -1;return ta-tb;});
     sec.entries=entries;
   });
+  return sections;
 }
 
 function renderSched(){
