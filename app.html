@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605072228">
+<meta name="version" content="202605101200-v85">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -89,7 +89,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .ride-block.is-hop{border-style:dashed;background:rgba(27,47,160,0.02)}
 .ride-block.is-vip{border-left:4px solid #C9860A!important;background:linear-gradient(135deg,#FFFBF0,#FFF8E6)!important;border-color:#D4A017!important}
 .ride-block.is-break{border-left:4px solid #2980b9!important;background:linear-gradient(135deg,#EBF5FB,#D6EAF8)!important}
-.ride-block.is-photo{border-left:4px solid #e67e22!important;background:linear-gradient(135deg,#FEF9E7,#FDEBD0)!important}
+.ride-block.is-photo{border-left:4px solid #7c3aed!important;background:linear-gradient(135deg,#F5F3FF,#EDE9FE)!important}
+  .ride-block.is-photo .ride-time{color:#7c3aed!important}
 .ride-block.is-snack{border-left:4px solid #27ae60!important;background:linear-gradient(135deg,#EAFAF1,#D5F5E3)!important}
 .ride-block.is-vip .ride-time{color:#B8860B!important}
 .ride-block.is-vip .ride-note{color:#7A6020!important}
@@ -114,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .tb-food{background:var(--gold-dim);color:var(--gold)}
 .tb-hop{background:var(--blue-bg);color:var(--blue)}
 .tb-vip{background:linear-gradient(135deg,#C9860A,#E8A020);color:#FFFFFF!important;font-weight:700}
-.tb-tip{background:rgba(139,143,168,.1);color:var(--text-muted)}.tb-break{background:rgba(100,180,255,.15);color:#2980b9}.tb-photo{background:rgba(255,200,100,.15);color:#e67e22}
+.tb-tip{background:rgba(139,143,168,.1);color:var(--text-muted)}.tb-break{background:rgba(100,180,255,.15);color:#2980b9}.tb-photo{background:rgba(124,58,237,0.12);color:#7c3aed}
 .tb-ll{background:var(--orange-bg);color:var(--orange)}
 .del-btn{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--red-bg);border:1px solid rgba(248,113,113,.4);color:var(--red);font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center;font-family:inherit;padding:0;line-height:1}
 .edit-mode .del-btn{display:flex}
@@ -627,7 +628,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </div>
 
 <script>
-// v202605071916   cache bust v3
+// v202605101200 cache bust v85
 // Safety stub - real function defined later
 function stripMd(t){
   if(!t)return '';
