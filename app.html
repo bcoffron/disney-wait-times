@@ -2695,7 +2695,7 @@ function renderSched(){
           +'</div>'
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
           +'</div>'
-          +'<button class="dining-btn" style="touch-action:manipulation;cursor:pointer" ontouchstart="" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
+          +'<button class="dining-btn" style="touch-action:manipulation;cursor:pointer" ontouchstart="event.preventDefault();event.stopPropagation();" ontouchend="event.preventDefault();this.onclick(event);" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
           +''
           +'<div class="dining-result"></div>';
       }
@@ -2955,7 +2955,7 @@ function buildFullDiningGuide(){
         +'<span style="font-size:14px;color:var(--text-dim)">&#9660;</span>'
         +'</div>'
         +'<div class="rest-body" style="display:none;padding:10px 12px">'
-        +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0;touch-action:manipulation;cursor:pointer" ontouchstart="">&#127869; Get dining recs</button>'
+        +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0;touch-action:manipulation;cursor:pointer" ontouchstart="event.preventDefault();event.stopPropagation();" ontouchend="event.preventDefault();this.onclick(event);">&#127869; Get dining recs</button>'
         +''
         +'<div class="dining-result"></div>'
         +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached   tap refresh for latest</div>':'')
@@ -4347,8 +4347,8 @@ function closeSetupFinal(){
 
 
 <!-- Pre-Trip Panel Overlay -->
-<div id="preTripOverlay" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;width:100%;background:rgba(0,0,0,0.45);z-index:700;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;">
-  <div style="background:var(--bg);border-radius:24px 24px 0 0;margin-top:60px;min-height:calc(100vh - 60px);padding:0 0 80px;width:100%;box-sizing:border-box;overflow-x:hidden;">
+<div id="preTripOverlay" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;width:100%;background:rgba(0,0,0,0.45);z-index:700;display:flex;align-items:flex-end;overflow:hidden;">
+  <div style="background:var(--bg);border-radius:24px 24px 0 0;padding:0 0 80px;width:100%;max-height:92vh;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;">
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;border-radius:24px 24px 0 0;">
       <div style="font-size:22px;"📋  </div>
