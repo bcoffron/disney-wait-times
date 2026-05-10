@@ -231,40 +231,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .tip-body{}
 .tip-label{font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
 .tip-text{font-size:12px;color:var(--text-muted);line-height:1.6}
-.dining-slot{margin-top:8px;padding:8px 10px;background:#FFFBEB;border:1.5px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);width:100%;box-sizing:border-box;overflow:hidden}
-.dining-slot-lbl{font-size:10px;font-weight:700;color:#92400E;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
-.dining-slot-row{display:flex;gap:6px;margin-bottom:6px;width:100%;box-sizing:border-box}
-.dining-slot-input{flex:1;min-width:0;background:#FFFFFF;border:1.5px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:9px 11px;font-size:14px;font-family:inherit;color:var(--text);outline:none;box-sizing:border-box}
-.dining-slot-input:focus{border-color:#F59E0B}
-.dining-slot-input::placeholder{color:var(--text-dim)}
-.dining-slot-save{padding:9px 14px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#F59E0B,#D97706);color:#FFFFFF;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
-.dining-slot-saved{font-size:10px;color:var(--green);margin-top:3px;display:none}
-.dining-slot-saved.show{display:block}
-.accordion-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:11px 13px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;box-shadow:var(--shadow);user-select:none}
-.accordion-hdr.open{border-radius:var(--radius-sm) var(--radius-sm) 0 0;margin-bottom:0;border-bottom-color:transparent}
-.accordion-title{font-family:'Playfair Display',serif;font-size:15px;color:var(--text);font-weight:600}
-.accordion-arrow{font-size:14px;color:var(--text-dim);transition:transform .2s;line-height:1}
-.accordion-hdr.open .accordion-arrow{transform:rotate(180deg)}
-.accordion-body{display:none;padding:10px 13px 13px;background:var(--card);border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);margin-bottom:8px}
-.accordion-body.open{display:block}
-.rest-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow)}
-.rest-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer}
-.rest-name{font-size:13px;font-weight:600;color:var(--text)}
-.rest-meta{font-size:11px;color:var(--text-dim);margin-top:1px}
-.rest-tag{font-size:10px;padding:1px 7px;border-radius:99px;background:var(--gold-dim);color:var(--gold)}
-.dining-btn{display:inline-flex;align-items:center;gap:4px;margin-top:7px;padding:5px 11px;background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:99px;color:#92400E;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer}
-.dining-btn:active{transform:scale(.95)}
-.dining-refresh{display:inline-flex;align-items:center;justify-content:center;margin-top:7px;margin-left:4px;width:26px;height:26px;background:rgba(201,134,10,0.1);border:1.5px solid #F59E0B;border-radius:50%;color:#92400E;font-size:13px;font-family:inherit;cursor:pointer;vertical-align:middle}
-.dining-refresh:active{transform:scale(.95)}
-.dining-result{margin-top:8px;padding:11px 12px;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6;display:none;word-wrap:break-word;overflow-wrap:break-word;width:100%;box-sizing:border-box}
+.dining-btn{display:block;width:100%;margin-top:8px;padding:10px;border-radius:var(--radius-sm);border:1.5px solid #F59E0B;background:#FEF3C7;color:#92400E;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center;touch-action:manipulation}
+.dining-btn:active{transform:scale(.97)}
+.dining-result{margin-top:8px;padding:11px 12px;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--radius-sm);font-size:13px;color:var(--text);line-height:1.6;display:none;word-wrap:break-word;overflow-wrap:break-word;width:100%;box-sizing:border-box}
 .dining-result.show{display:block}
-.dining-result-hdr{font-size:10px;font-weight:700;color:#92400E;letter-spacing:.05em;margin-bottom:8px}
-.dr-row{display:flex;align-items:flex-start;gap:7px;margin-bottom:8px;width:100%}
-.dr-row:last-child{margin-bottom:0}
-.dr-tag{flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;margin-top:1px;white-space:nowrap}
-.dr-must{background:#FEE2E2;color:#991B1B}
-.dr-kids{background:#DBEAFE;color:#1E40AF}
-.dr-veggie{background:#DCFCE7;color:#166534}
 .day-info-bar{display:flex;gap:8px;margin-bottom:12px}
 .park-hours-card{flex:1;padding:7px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow)}
 .ph-title{font-size:9px;font-weight:700;color:var(--magic);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
@@ -2252,59 +2222,27 @@ function buildDiningHTML(restaurant, text){
   html+=renderItems(sections.veggie,'dr-veggie','veggie');
   return html;
 }
-async function fetchDiningRecs(restaurant, resultEl, btnEl, landCtx) {
-  console.log('fetchDiningRecs called:', restaurant);
+async function fetchDiningRecs(e){
+  if(e) e.preventDefault();
+  var btn=this;
+  var name=btn.dataset.name||'';
+  var land=btn.dataset.land||'';
+  var resultEl=btn.nextElementSibling;
   if(!resultEl) return;
-  if(btnEl && btnEl.disabled) return;
-  var origBtnHtml = btnEl ? btnEl.innerHTML : '';
-  if(btnEl){ btnEl.disabled=true; btnEl.innerHTML='Getting recs...'; }
-  resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">Loading...</span>';
-  var context = (landCtx||'') + (diningIntelCache ? '\n=== DINING INTEL ===\n' + diningIntelCache : '');
-  var prompt = 'Give a concise dining recommendation for ' + restaurant + ' at Disneyland Resort. Must-order dishes, tips, and any reservation advice. 2-3 sentences max.';
-  try {
-    var resp = await fetch(SYNC_BASE+'/api/ai', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        prompt: prompt,
-        system: 'Disneyland dining expert. Be concise. Maximum 2-3 sentences. No markdown headers or tables.',
-        context: context,
-        maxTokens: 250
-      })
-    });
-    var d;
-    try{d=await resp.json();}catch(je){resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">Response error.</span>';if(btnEl){btnEl.disabled=false;btnEl.innerHTML=origBtnHtml;}return;}
-    if(!d||!d.ok||!d.text){ resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">Could not load recommendation.</span>'; }
-    else {
-      var txt = stripMd(d.text.trim());
-      resultEl.innerHTML='<div style="font-size:13px;line-height:1.5;padding:8px 0">'+txt+'</div>';
-      try{ localStorage.setItem(diningCacheKey(restaurant), txt); }catch(e){}
-    }
-  } catch(e) {
-    resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">Network error.</span>';
-  }
-  if(btnEl){ btnEl.disabled=false; btnEl.innerHTML=origBtnHtml; }
+  btn.disabled=true;
+  resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">⏳ Loading…</span>';
+  resultEl.classList.add('show');
+  var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:'You are a Disneyland dining expert. Be concise. 2–3 sentences max. No markdown.',messages:[{role:'user',content:'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.'}]});
+  if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px">⚠️ '+r.error.message+'</span>';}
+  else if(r&&r.content&&r.content.length){resultEl.innerHTML='<div style="font-size:13px;line-height:1.6">'+stripMd(r.content[0].text.trim())+'</div>';}
+  else{resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">No result.</span>';}
+  btn.disabled=false;
 }
-async function getDiningRecs(restaurant, landCtx, btnEl){
-  var resultEl=btnEl.parentNode.querySelector('.dining-result');
-  if(!resultEl) return;
-  // Check cache
-  try{
-    var cached=localStorage.getItem(diningCacheKey(restaurant));
-    if(cached){
-      resultEl.innerHTML=cached;
-      resultEl.classList.add('show');
-      return;
-    }
-  }catch(e){}
-  await fetchDiningRecs(restaurant, resultEl, btnEl);
-}
-
-async function refreshDiningRecs(restaurant, refreshBtn){
-  try{localStorage.removeItem(diningCacheKey(restaurant));}catch(e){}
-  var resultEl=refreshBtn.parentNode.querySelector('.dining-result');
-  if(!resultEl) return;
-  await fetchDiningRecs(restaurant, resultEl, null);
+function attachDiningListeners(){
+  document.querySelectorAll('.dining-btn').forEach(function(btn){
+    btn.removeEventListener('touchend',fetchDiningRecs);
+    btn.addEventListener('touchend',fetchDiningRecs);
+  });
 }
 
 function diningSlotKey(dayIdx, secIdx, entryIdx){
@@ -2498,8 +2436,7 @@ function renderSched(){
           +'</div>'
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
           +'</div>'
-          +'<button class="dining-btn" style="touch-action:manipulation;cursor:pointer" ontouchstart="event.preventDefault();event.stopPropagation();" ontouchend="event.preventDefault();this.onclick(event);" onclick="getDiningRecs(\''+safeDname+'\',\''+safeLandCtx+'\',this)">&#127869; Get dining recs & reviews</button>'
-          +''
+          +'<button class="dining-btn" data-name=\''+safeName+'\' data-land=\''+safeLandCtx+'\'>🍽️ Get Dining Recommendations</button>'
           +'<div class="dining-result"></div>';
       }
       var reroute='';
@@ -2525,6 +2462,7 @@ function renderSched(){
   if(editMode)h+='<div class="edit-hint">Tap any time or title to edit inline</div>';
   document.getElementById('schedContent').innerHTML=h;
   if(typeof checkShowSetupBanner==='function')checkShowSetupBanner();
+  setTimeout(attachDiningListeners,0);
 }
 
 //    Render shows                                                           
@@ -2732,79 +2670,6 @@ var ALL_RESTAURANTS=[
   {name:'Broken Spell Lounge',park:'Disneyland Hotel',type:'Bar/Lounge',area:'Disneyland Hotel',res:'Not needed'},
   {name:'Great Maple Modern American Eatery',park:'Pixar Place Hotel',type:'Table Service',area:'Pixar Place Hotel',res:'Recommended'},
 ];
-
-function getAllDiningRecs(){
-  var btns=document.querySelectorAll('.dining-get-btn');
-  if(!btns.length){showToast('Open the dining guide first');return;}
-  btns.forEach(function(btn){if(btn.offsetParent!==null)btn.click();});
-}
-function buildFullDiningGuide(){
-  var html='<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">Tap any restaurant for AI-powered recs with must-haves, kids meals and vegetarian options. Results are cached on your device after the first search.</div>';
-  var dlRests=ALL_RESTAURANTS.filter(function(r){return r.park==='Disneyland';});
-  var dcaRests=ALL_RESTAURANTS.filter(function(r){return r.park==='DCA';});
-  var dtdRests=ALL_RESTAURANTS.filter(function(r){return r.park==='Downtown Disney';});
-  var hotelRests=ALL_RESTAURANTS.filter(function(r){return r.park!=='Disneyland'&&r.park!=='DCA'&&r.park!=='Downtown Disney';});
-  function buildGroup(title,rests){
-    var h='<div class="sec-hdr"><div class="sec-lbl">'+title+'</div><div class="sec-line"></div></div>';
-    rests.forEach(function(r){
-      var cacheKey='dining_'+r.name.toLowerCase().replace(/[^a-z0-9]/g,'_');
-      var cached=null;try{cached=localStorage.getItem(cacheKey);}catch(e){}
-      var safeName=r.name.split("'").join(' ');
-      h+='<div class="rest-card">'
-        +'<div class="rest-hdr" onclick="toggleRestCard(this,\''+safeName+'\')">'
-        +'<div><div class="rest-name">'+r.name+'</div><div class="rest-meta">'+r.area+' " '+r.type+(cached?' " <span style="color:var(--green)">&#10003; cached</span>':'')+'</div></div>'
-        +'<span style="font-size:14px;color:var(--text-dim)">&#9660;</span>'
-        +'</div>'
-        +'<div class="rest-body" style="display:none;padding:10px 12px">'
-        +'<button class="dining-btn" onclick="getDiningRecsById(\''+safeName+'\',this)" style="margin-top:0;touch-action:manipulation;cursor:pointer" ontouchstart="event.preventDefault();event.stopPropagation();" ontouchend="event.preventDefault();this.onclick(event);">&#127869; Get dining recs</button>'
-        +''
-        +'<div class="dining-result"></div>'
-        +(cached?'<div style="margin-top:6px;font-size:11px;color:var(--text-dim)">&#128190; Cached   tap refresh for latest</div>':'')
-        +'</div>'
-        +'</div>';
-    });
-    return h;
-  }
-  html+=buildGroup('&#127984; Disneyland Park',dlRests);
-  html+=buildGroup('&#127775; Disney California Adventure',dcaRests);
-  html+=buildGroup('&#127981; Downtown Disney',dtdRests);
-  html+=buildGroup('&#127963; Disney Hotels',hotelRests);
-  html+='<button onclick="getAllDiningRecs()" style="width:100%;margin-top:8px;padding:11px;border-radius:var(--radius-sm);border:1.5px solid #F59E0B;background:#FFFBEB;color:#92400E;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">&#127869; Fetch recs for all restaurants</button>';
-  html+='<div id="allDiningResult" style="margin-top:8px"></div>';
-  return html;
-}
-
-function toggleRestCard(hdr,name){
-  var body=hdr.nextElementSibling;
-  var isOpen=body.style.display==='block';
-  body.style.display=isOpen?'none':'block';
-  hdr.querySelector('span:last-child').textContent=isOpen?' ':'=4';
-  if(!isOpen){
-    // Auto-load cached result if available
-    var cacheKey='dining_'+name.toLowerCase().replace(/[^a-z0-9]/g,'_');
-    var cached=null;try{cached=localStorage.getItem(cacheKey);}catch(e){}
-    if(cached){
-      var resultEl=body.querySelector('.dining-result');
-      if(resultEl){resultEl.innerHTML=cached;resultEl.classList.add('show');}
-    }
-  }
-}
-
-async function getDiningRecsById(restaurant,btnEl){
-  var resultEl=(btnEl&&btnEl.parentNode)?btnEl.parentNode.querySelector('.dining-result'):null;
-  if(!resultEl&&btnEl){var p=btnEl.closest('.dining-wrap,.ride-block,div');if(p)resultEl=p.querySelector('.dining-result');}
-  if(!resultEl) return;
-  var cacheKey='dining_'+restaurant.toLowerCase().replace(/[^a-z0-9]/g,'_');
-  try{var cached=localStorage.getItem(cacheKey);if(cached){resultEl.innerHTML=cached;resultEl.classList.add('show');return;}}catch(e){}
-  await fetchDiningRecs(restaurant,resultEl,btnEl,'');
-}
-
-async function refreshDiningRecsById(restaurant,refreshBtn){
-  var cacheKey='dining_'+restaurant.toLowerCase().replace(/[^a-z0-9]/g,'_');
-  try{localStorage.removeItem(cacheKey);}catch(e){}
-  var resultEl=refreshBtn.parentNode.querySelector('.dining-result');
-  if(resultEl) await fetchDiningRecs(restaurant,resultEl,null);
-}
 
 function renderShows(){
   var sections=[
@@ -3405,7 +3270,7 @@ async function loadKnowBeforeYouGo(){
       ?'<div style="font-size:11px;color:#34D399;margin-bottom:10px;display:flex;align-items:center;gap:4px;"><span>&#10003;</span> Personalized to your group setup</div>'
       :'<div style="font-size:11px;color:var(--gold,#C9860A);margin-bottom:10px;">&#9888; Complete Ride Style setup for a more tailored briefing</div>';
     el.innerHTML=note+'<div style="font-size:13px;color:var(--text);line-height:1.8;">'+formatted+'</div>'
-      +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Regenerate</button>';
+      +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;"> Regenerate</button>';
     try{localStorage.setItem('kbyg_text',el.innerHTML);localStorage.setItem('kbyg_date',new Date().toDateString());localStorage.setItem('kbyg_setup_hash',JSON.stringify(sd));}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Network error: '+err.message+'</div>';}
 }
@@ -3528,31 +3393,6 @@ function removeDiningRes(i){
   renderDiningReservationsList();
 }
 
-function addDiningToSchedule(res,day){
-  // Get current schedule for the day
-  try{
-    var key='schedule_v2_day'+day;
-    var sched=JSON.parse(localStorage.getItem(key)||'[]');
-    // Check not already added
-    var exists=sched.some(function(item){return item.h&&item.h.indexOf(res.name)>-1;});
-    if(exists) return;
-    // Add dining entry
-    sched.push({
-      t:res.time,
-      h:'&#127860; '+res.name,
-      n:'Dining reservation &middot; Party of 9'+(res.conf?' &middot; Conf #'+res.conf:''),
-      type:'dining',
-      locked:true
-    });
-    // Sort by time
-    sched.sort(function(a,b){
-      var ta=a.t||'';var tb=b.t||'';
-      return ta.localeCompare(tb);
-    });
-    localStorage.setItem(key,JSON.stringify(sched));
-    if(typeof renderSched==='function') renderSched();
-  }catch(e){}
-}
 
 //    Crowd Prediction                                                       
 async function loadCrowdPrediction(){
@@ -3567,7 +3407,7 @@ async function loadCrowdPrediction(){
   var prompt='Analyze crowd levels for Disneyland Resort for the full week of June 25 - July 2 2026. Cover all 8 days: Thu Jun 25, Fri Jun 26, Sat Jun 27 (travel day), Sun Jun 28 (PARK DAY 1 Disneyland), Mon Jun 29 (PARK DAY 2 VIP Tour), Tue Jun 30 (PARK DAY 3 DCA + DL evening), Wed Jul 1 (departure), Thu Jul 2 (pre-4th of July buildup). For each day: 1. **Crowd Level** 1-10 with descriptor. 2. Which park is less crowded. 3. Best window for headliners. 4. One key note (events, holiday buildup, school-out patterns). For non-park days give shorter entries showing whether it would have been worth visiting instead. End with a **WEEK SUMMARY** noting best/worst days and key patterns. Base on historical late June/early July Disneyland patterns. Group size: '+size+'.';
   try{
     var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:100,system:'Return ONLY this exact format and nothing else: X/10   Label. Example: 7/10   Heavily Crowded. One sentence max after the rating.',messages:[{role:'user',content:prompt}]});
-    var data=await r.json();
+    var data=r;
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
     var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Refresh</button>';
@@ -3593,7 +3433,7 @@ async function loadDayStrategy(){
   var prompt='For a group of '+size+' people visiting Disneyland June 28-30, 2026: in 2 sentences maximum per day, give the single most important strategy for each of the 3 days. Be extremely brief. Day 1 Jun 28 Disneyland, Day 2 Jun 29 VIP Tour, Day 3 Jun 30 DCA+DL.';
   try{
     var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:150,system:'You are a brief Disneyland trip strategist. Give the single most important strategy for each park day in 2 sentences or less. No markdown, no headers, no bullet points.',messages:[{role:'user',content:prompt}]});
-    var data=await r.json();
+    var data=r;
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
     var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshDayStrategy()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Regenerate</button>';
