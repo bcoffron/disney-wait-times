@@ -761,6 +761,7 @@ const SHOWS=[
 
 //    State                                                                  
 var apiKey='', curDay=0, curTab='schedule';
+var _injectedDays={};
 var waits={}, waitLastFetch=0;
 var weatherData=null;
 var PASS_GUEST='cw9dis2026';
@@ -1874,7 +1875,6 @@ function startWazeChecks(){
 }
 
 var editMode=false, customSched=[null,null,null], addSecIdx=null;
-var _injectedDays=[false,false,false];
 var pendingReopt=null, dragSrc=null;
 
 //    API Key                                                                
@@ -2641,7 +2641,7 @@ function renderDayTipsCard(dayIdx){
 }
 function renderSched(){
   var day=getCurDay();
-  if(day&&day.sections&&!_injectedDays[curDay]){var _tgt=customSched[curDay]?customSched[curDay].sections:DAYS[curDay].sections;injectScheduleExtras(_tgt);_injectedDays[curDay]=true;}
+  if(day&&day.sections&&!(_injectedDays&&_injectedDays[curDay])){var _tgt=(customSched&&customSched[curDay])?customSched[curDay].sections:DAYS[curDay].sections;injectScheduleExtras(_tgt);if(_injectedDays)_injectedDays[curDay]=true;}
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
     document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">📅</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
@@ -2670,7 +2670,7 @@ function renderSched(){
       if(e.type==='show')bc+=' is-show';
       else if(e.type==='food')bc+=' is-food';
       else if(e.type==='hop')bc+=' is-hop';
-      else if(e.type==='vip')bc+=' is-vip';if(e.type==='break')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
+      else if(e.type==='vip')bc+=' is-vip';if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
@@ -4347,7 +4347,7 @@ function closeSetupFinal(){
 
 
 <!-- Pre-Trip Panel Overlay -->
-<div id="preTripOverlay" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:700;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+<div id="preTripOverlay" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;width:100%;background:rgba(0,0,0,0.45);z-index:700;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;">
   <div style="background:var(--bg);border-radius:24px 24px 0 0;margin-top:60px;min-height:calc(100vh - 60px);padding:0 0 80px;width:100%;box-sizing:border-box;overflow-x:hidden;">
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;border-radius:24px 24px 0 0;">
