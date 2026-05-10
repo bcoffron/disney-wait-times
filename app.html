@@ -90,6 +90,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .ride-block.is-vip{border-left:4px solid #C9860A!important;background:linear-gradient(135deg,#FFFBF0,#FFF8E6)!important;border-color:#D4A017!important}
 .ride-block.is-break{border-left:4px solid #2980b9!important;background:linear-gradient(135deg,#EBF5FB,#D6EAF8)!important}
 .ride-block.is-photo{border-left:4px solid #e67e22!important;background:linear-gradient(135deg,#FEF9E7,#FDEBD0)!important}
+.ride-block.is-snack{border-left:4px solid #27ae60!important;background:linear-gradient(135deg,#EAFAF1,#D5F5E3)!important}
 .ride-block.is-vip .ride-time{color:#B8860B!important}
 .ride-block.is-vip .ride-note{color:#7A6020!important}
 .ride-block.is-lls{border-left:3px solid var(--orange)}
@@ -701,9 +702,9 @@ const DAYS=[
     {t:'8:00 AM',h:'\u{1F3AB} Buy Lightning Lane Multi Pass',n:'Purchase in the Disneyland app the moment you scan in. Book Space Mountain first.',type:'tip'},
     {t:'8:05 AM',h:'Space Mountain',n:'First ride of the day \u2014 short wait at rope drop.',type:'ride',ride:'Space Mountain',land:'Tomorrowland',ll:{t:'multi',a:'Book LL immediately at park open'}},
     {t:'8:30 AM',h:'Big Thunder Mountain Railroad',n:'Frontierland. Short wait this early.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland',ll:{t:'multi',a:'Book LL after Space Mountain'}},
-    {t:'8:45 AM',h:'Photo Op: Big Thunder Mountain View',type:'photo',n:'Quick shot with Big Thunder Mountain in the background. Great Frontierland backdrop before heading to NOS.',land:'Frontierland'},
+    {t:'8:45 AM',h:'Photo Op: Big Thunder Mountain',type:'photo',n:'Iconic red rock formation from the Rivers of America. Perfect Frontierland backdrop before heading to New Orleans Square.',land:'Frontierland'},
     {t:'8:55 AM',h:'Haunted Mansion',n:'New Orleans Square. Morning walk-on or close to it.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
-    {t:'9:10 AM',h:'Morning Snack: Mint Julep Bar',type:'tip',n:'Mint julep and beignets at the Mint Julep Bar in New Orleans Square. Right on your path to the VIP meeting point.',land:'New Orleans Square'},
+    {t:'9:10 AM',h:'Morning Snack: Mint Julep Bar',type:'tip',n:'Fresh-squeezed lemonade or Mickey beignets at the Mint Julep Bar, New Orleans Square. Right on your path to the VIP meeting point.',land:'New Orleans Square'},
     {t:'9:40 AM',h:'Head to VIP meeting point',n:'Make your way to the main entrance area. Your guide will brief the group on the full day plan.',type:'vip'},
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near the main entrance before your VIP tour begins.',land:'Main Street'},
   ]},
@@ -711,9 +712,9 @@ const DAYS=[
     {t:'10:00 AM',h:'VIP Tour begins \u2014 Disneyland',n:'Your guide handles all skip-the-line access today. Use the notes below to share your ride wishlist and must-dos.',type:'vip'},
     {t:'10AM\u20135PM',h:'\u2B50 VIP Tour \u2014 Notes & Ride Wishlist',n:'Write your plans below.',type:'vip',isVipNotes:true},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Ask your VIP guide for the nearest restroom. Most lands have facilities near major attractions.',land:''},
-    {t:'3:30 PM',h:'Afternoon Snack: Guide Recommendation',type:'tip',n:'Ask your VIP guide for the best nearby snack. Bengal BBQ in Adventureland and Jolly Holiday Bakery on Main Street are excellent afternoon stops.',land:''},
+    {t:'3:30 PM',h:'Afternoon Snack: Gibson Girl Ice Cream Parlor',type:'tip',n:'Hand-dipped cones at Gibson Girl Ice Cream Parlor on Main Street. Perfect treat after an afternoon of VIP rides.',land:'Main Street U.S.A.'},
     {t:'5:00 PM',h:'Dinner & tip your VIP guide',n:'Your guide will recommend a great dinner spot. This is the natural moment to tip \u2014 industry standard is 15\u201320% of tour cost. Cash preferred.',type:'food',land:'Disneyland'},
-    {t:'5:15 PM',h:'Photo Op: New Orleans Square at Dusk',type:'photo',n:'Beautiful golden-hour light in New Orleans Square near the Haunted Mansion. Great group photo backdrop.',land:'New Orleans Square'},
+    {t:'5:15 PM',h:'Photo Op: New Orleans Square at Dusk',type:'photo',n:'Golden hour on the balconies overlooking the bayou. Beautiful light and atmosphere in New Orleans Square.',land:'New Orleans Square'},
   ]},
   {title:'\u2728 Evening Shows \u2014 Paint the Night & World of Color',entries:[
     {t:'7:45 PM',h:'VIP Reserved Viewing \u2014 Paint the Night setup',n:'Your guide positions your group in the VIP reserved viewing area. Parade starts at 8:30 \u2014 arrive early for best spot.',type:'vip'},
@@ -735,10 +736,10 @@ const DAYS=[
     {t:'8:30 AM',h:'Toy Story Midway Mania!',n:'Walk from Cars Land to Pixar Pier (8 min). Gets slammed fast \u2014 hit it now while waits are still short. Interactive shooting game.',type:'ride',ride:"Toy Story Midway Mania!",land:'Pixar Pier',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
     {t:'8:55 AM',h:'Guardians of the Galaxy \u2014 Mission: Breakout',n:'From Pixar Pier to Avengers Campus (5 min). Drop Tower-style ride, very high demand. Early morning is your best shot at a short wait.',type:'ride',ride:'Guardians of the Galaxy - Mission: BREAKOUT!',land:'Avengers Campus'},
     {t:'9:20 AM',h:'Incredicoaster',n:'Stay in Pixar Pier. Fast and fun. Short wait right after Guardians while crowds are still spreading out.',type:'ride',ride:'Incredicoaster',land:'Pixar Pier'},
-    {t:'9:35 AM',h:'Photo Op: Pixar Pier Boardwalk',type:'photo',n:'Incredicoaster loops make a great backdrop. Grab your photo on the Pixar Pier boardwalk before the crowds build.',land:'Pixar Pier'},
+    {t:'9:35 AM',h:'Photo Op: Pixar Pier Boardwalk',type:'photo',n:'Incredicoaster and Ferris wheel from the waterfront. Best angle is from the Pixar Pier boardwalk before the crowds build.',land:'Pixar Pier'},
     {t:'9:45 AM',h:'Web Slingers: A Spider-Man Adventure',n:'Back to Avengers Campus (5 min). Interactive ride, great for all ages. Book LL if waits exceed 30 min.',type:'ride',ride:'WEB SLINGERS: A Spider-Man Adventure',land:'Avengers Campus',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms at Avengers Campus near Web Slingers entrance, on your way to Soarin.',land:'Avengers Campus'},
-    {t:'10:05 AM',h:'Morning Snack: Pym Test Kitchen',type:'tip',n:'Grab an Ant-Man-themed snack at Pym Test Kitchen in Avengers Campus before heading to Grizzly Peak.',land:'Avengers Campus'},
+    {t:'10:05 AM',h:'Morning Snack: Pym Test Kitchen',type:'tip',n:'Try the Impossible Spoonful or a giant pretzel at Pym Test Kitchen, Avengers Campus.',land:'Avengers Campus'},
     {t:'10:15 AM',h:'Soarin\u2019 Over California',n:'Head to Grizzly Peak (7 min from Avengers Campus). Iconic DCA ride. Book LL if wait exceeds 40 min.',type:'ride',ride:"Soarin' Over California",land:'Grizzly Peak',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
     {t:'11:00 AM',h:'Luigi\u2019s Rollickin\u2019 Roadsters',n:'Back to Cars Land (8 min). Fun and low wait. Good transition before lunch.',type:'ride',ride:"Luigi's Rollickin' Roadsters",land:'Cars Land'},
     {t:'11:25 AM',h:'Mater\u2019s Junkyard Jamboree',n:'Stay in Cars Land. Short wait, great fun.',type:'ride',ride:"Mater's Junkyard Jamboree",land:'Cars Land'},
@@ -747,9 +748,9 @@ const DAYS=[
     {t:'1:45 PM',h:'Monsters, Inc. Mike & Sulley to the Rescue!',n:'Hollywood Land (10 min). Air-conditioned and low wait. Good midday break from the heat.',type:'ride',ride:"Monsters, Inc. Mike & Sulley to the Rescue!",land:'Hollywood Land'},
     {t:'2:15 PM',h:'Mickey\u2019s PhilharMagic',n:'Stay in Hollywood Land. Air-conditioned show, great break from the heat.',type:'ride',ride:"Mickey's PhilharMagic",land:'Hollywood Land'},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms in Hollywood Land near the exit of Mickey PhilharMagic, before heading to Pixar Pier.',land:'Hollywood Land'},
-    {t:'3:05 PM',h:'Afternoon Snack: Adorable Snowman Frosted Treats',type:'tip',n:'Monsters Inc.-themed soft serve at Pixar Pier. Perfect afternoon cool-down on a warm June day.',land:'Pixar Pier'},
+    {t:'3:05 PM',h:'Afternoon Snack: Adorable Snowman Frosted Treats',type:'tip',n:'Lemon or raspberry soft serve from the Adorable Snowman Frosted Treats cart at Pixar Pier.',land:'Pixar Pier'},
     {t:'3:00 PM',h:'Pixar Pier freestyle + snacks',n:'Grab Adorable Snowman Frosted Treats or revisit a favorite. Wind down before the park hop.',type:'tip'},
-    {t:'3:45 PM',h:'Photo Op: Pixar Pal-A-Round',type:'photo',n:'The Pixar Pal-A-Round Ferris Wheel is a great photo subject. Get a shot at the Pixar Pier entrance before park hop.',land:'Pixar Pier'},
+    {t:'3:45 PM',h:'Photo Op: Pixar Pal-A-Round',type:'photo',n:'The giant Mickey Ferris wheel from below at Pixar Pier. Best viewed and photographed from the Pixar Pier waterfront.',land:'Pixar Pier'},
     {t:'4:15 PM',h:'Park hop to Disneyland',n:'Head through the main gate. You\u2019ll have 2+ hours before your Caf\u00e9 Orleans reservation.',type:'hop'},
   ]},
   {title:'\u{1F3F0} Disneyland \u2014 evening & Fantasmic!',entries:[
@@ -2471,6 +2472,7 @@ function renderSched(){
       else if(e.type==='food')bc+=' is-food';
       else if(e.type==='hop')bc+=' is-hop';
       else if(e.type==='vip')bc+=' is-vip';if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
+      if(e.type==='tip'&&e.h&&e.h.indexOf('Snack')>-1)bc+=' is-snack';
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
