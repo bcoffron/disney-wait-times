@@ -1083,7 +1083,7 @@ function renderCountdown(){
   var hel=document.getElementById('headerCountdown');
   if(hel){
     if(cd&&cd.during){hel.textContent=cd.msg;hel.style.display='block';}
-    else if(cd&&!cd.during){hel.textContent=cd.days+(cd.days===1?' day':' days')+' until the magic begins (';hel.style.display='block';}
+    else if(cd&&!cd.during){hel.textContent=cd.days+(cd.days===1?' day':' days')+' until the magic begins';hel.style.display='block';}
     else{hel.style.display='none';}
   }
   var lcont=document.getElementById('lockCountdown');
