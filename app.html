@@ -678,15 +678,21 @@ const DAYS=[
     {t:'8:00 AM',h:'Rope Drop   Head to Fantasyland',type:'tip',n:'Arrive at the main gate 45 min before opening. Position at the Fantasyland rope for best access.',land:'Main Street U.S.A.'},
     {t:'8:15 AM',h:"Peter Pan's Flight",type:'ride',n:'First ride of the trip   lines build fast, do this at rope drop.',land:'Fantasyland'},
     {t:'9:00 AM',h:'Matterhorn Bobsleds',type:'ride',n:'Hit this before the 10am crowds arrive.',land:'Fantasyland'},
+    {t:'9:15 AM',h:'Photo Op: Sleeping Beauty Castle',type:'photo',n:'Perfect time for a castle shot before the hub fills up. Position on Main Street hub for the iconic front view.',land:'Main Street'},
     {t:'9:45 AM',h:'Space Mountain',type:'ride',n:'Morning is the best time   waits under 30 min before 10am.',land:'Tomorrowland'},
+    {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near Matterhorn/Fantasyland entrance on your way toward Tomorrowland.',land:'Fantasyland'},
+    {t:'10:30 AM',h:'Morning Snack: Matterhorn Macaroon',type:'tip',n:'Pick up a Matterhorn Macaroon at the Fantasyland cart near the Matterhorn. Iconic Disneyland treat.',land:'Fantasyland'},
     {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
     {t:'12:00 PM',h:'Lunch   Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou is inside Pirates   book ahead. River Belle is walk-up friendly.',land:'New Orleans Square'},
     {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park   use Lightning Lane if available.',land:'Tomorrowland'},
     {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
+    {t:'2:30 PM',h:'Afternoon Snack: Beignets at Cafe Orleans',type:'tip',n:'Beignets and mint julep at the Cafe Orleans counter window in New Orleans Square. Classic Disneyland afternoon treat.',land:'New Orleans Square'},
+    {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms near Pirates of the Caribbean entrance in New Orleans Square.',land:'New Orleans Square'},
     {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness   great for all ages.',land:'Frontierland'},
     {t:'5:00 PM',h:'Rest Break   Return to Hotel',type:'break',n:'Pool time or rest before the evening. Come back refreshed for fireworks night.',land:'Main Street U.S.A.'},
     {t:'6:30 PM',h:'Return to Park   Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
     {t:'8:00 PM',h:'Fantasyland Evening Rides',type:'tip',n:'Evening is the best time for Fantasyland   lighter crowds after 8pm.',land:'Fantasyland'},
+    {t:'8:30 PM',h:'Photo Op: Castle at Night',type:'photo',n:'The castle glows beautifully after dark. Grab your shot from the Main Street hub before Wondrous Journeys prep.',land:'Main Street'},
     {t:'9:30 PM',h:'Wondrous Journeys Fireworks',type:'show',n:'Watch from the hub in front of the castle. Arrive 20 min early for a good spot.',land:'Main Street U.S.A.'},
   ]},
 ]},
@@ -696,13 +702,19 @@ const DAYS=[
     {t:'8:00 AM',h:'\u{1F3AB} Buy Lightning Lane Multi Pass',n:'Purchase in the Disneyland app the moment you scan in. Book Space Mountain first.',type:'tip'},
     {t:'8:05 AM',h:'Space Mountain',n:'First ride of the day \u2014 short wait at rope drop.',type:'ride',ride:'Space Mountain',land:'Tomorrowland',ll:{t:'multi',a:'Book LL immediately at park open'}},
     {t:'8:30 AM',h:'Big Thunder Mountain Railroad',n:'Frontierland. Short wait this early.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland',ll:{t:'multi',a:'Book LL after Space Mountain'}},
+    {t:'8:45 AM',h:'Photo Op: Big Thunder Mountain View',type:'photo',n:'Quick shot with Big Thunder Mountain in the background. Great Frontierland backdrop before heading to NOS.',land:'Frontierland'},
     {t:'8:55 AM',h:'Haunted Mansion',n:'New Orleans Square. Morning walk-on or close to it.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
+    {t:'9:10 AM',h:'Morning Snack: Mint Julep Bar',type:'tip',n:'Mint julep and beignets at the Mint Julep Bar in New Orleans Square. Right on your path to the VIP meeting point.',land:'New Orleans Square'},
     {t:'9:40 AM',h:'Head to VIP meeting point',n:'Make your way to the main entrance area. Your guide will brief the group on the full day plan.',type:'vip'},
+    {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near the main entrance before your VIP tour begins.',land:'Main Street'},
   ]},
   {title:'\u2B50 VIP Tour \u2014 10:00 AM to 5:00 PM',entries:[
     {t:'10:00 AM',h:'VIP Tour begins \u2014 Disneyland',n:'Your guide handles all skip-the-line access today. Use the notes below to share your ride wishlist and must-dos.',type:'vip'},
     {t:'10AM\u20135PM',h:'\u2B50 VIP Tour \u2014 Notes & Ride Wishlist',n:'Write your plans below.',type:'vip',isVipNotes:true},
+    {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Ask your VIP guide for the nearest restroom. Most lands have facilities near major attractions.',land:''},
+    {t:'3:30 PM',h:'Afternoon Snack: Guide Recommendation',type:'tip',n:'Ask your VIP guide for the best nearby snack. Bengal BBQ in Adventureland and Jolly Holiday Bakery on Main Street are excellent afternoon stops.',land:''},
     {t:'5:00 PM',h:'Dinner & tip your VIP guide',n:'Your guide will recommend a great dinner spot. This is the natural moment to tip \u2014 industry standard is 15\u201320% of tour cost. Cash preferred.',type:'food',land:'Disneyland'},
+    {t:'5:15 PM',h:'Photo Op: New Orleans Square at Dusk',type:'photo',n:'Beautiful golden-hour light in New Orleans Square near the Haunted Mansion. Great group photo backdrop.',land:'New Orleans Square'},
   ]},
   {title:'\u2728 Evening Shows \u2014 Paint the Night & World of Color',entries:[
     {t:'7:45 PM',h:'VIP Reserved Viewing \u2014 Paint the Night setup',n:'Your guide positions your group in the VIP reserved viewing area. Parade starts at 8:30 \u2014 arrive early for best spot.',type:'vip'},
@@ -724,7 +736,10 @@ const DAYS=[
     {t:'8:30 AM',h:'Toy Story Midway Mania!',n:'Walk from Cars Land to Pixar Pier (8 min). Gets slammed fast \u2014 hit it now while waits are still short. Interactive shooting game.',type:'ride',ride:"Toy Story Midway Mania!",land:'Pixar Pier',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
     {t:'8:55 AM',h:'Guardians of the Galaxy \u2014 Mission: Breakout',n:'From Pixar Pier to Avengers Campus (5 min). Drop Tower-style ride, very high demand. Early morning is your best shot at a short wait.',type:'ride',ride:'Guardians of the Galaxy - Mission: BREAKOUT!',land:'Avengers Campus'},
     {t:'9:20 AM',h:'Incredicoaster',n:'Stay in Pixar Pier. Fast and fun. Short wait right after Guardians while crowds are still spreading out.',type:'ride',ride:'Incredicoaster',land:'Pixar Pier'},
+    {t:'9:35 AM',h:'Photo Op: Pixar Pier Boardwalk',type:'photo',n:'Incredicoaster loops make a great backdrop. Grab your photo on the Pixar Pier boardwalk before the crowds build.',land:'Pixar Pier'},
     {t:'9:45 AM',h:'Web Slingers: A Spider-Man Adventure',n:'Back to Avengers Campus (5 min). Interactive ride, great for all ages. Book LL if waits exceed 30 min.',type:'ride',ride:'WEB SLINGERS: A Spider-Man Adventure',land:'Avengers Campus',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
+    {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms at Avengers Campus near Web Slingers entrance, on your way to Soarin.',land:'Avengers Campus'},
+    {t:'10:05 AM',h:'Morning Snack: Pym Test Kitchen',type:'tip',n:'Grab an Ant-Man-themed snack at Pym Test Kitchen in Avengers Campus before heading to Grizzly Peak.',land:'Avengers Campus'},
     {t:'10:15 AM',h:'Soarin\u2019 Over California',n:'Head to Grizzly Peak (7 min from Avengers Campus). Iconic DCA ride. Book LL if wait exceeds 40 min.',type:'ride',ride:"Soarin' Over California",land:'Grizzly Peak',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
     {t:'11:00 AM',h:'Luigi\u2019s Rollickin\u2019 Roadsters',n:'Back to Cars Land (8 min). Fun and low wait. Good transition before lunch.',type:'ride',ride:"Luigi's Rollickin' Roadsters",land:'Cars Land'},
     {t:'11:25 AM',h:'Mater\u2019s Junkyard Jamboree',n:'Stay in Cars Land. Short wait, great fun.',type:'ride',ride:"Mater's Junkyard Jamboree",land:'Cars Land'},
@@ -732,7 +747,10 @@ const DAYS=[
     {t:'1:00 PM',h:'Grizzly River Run',n:'Head to Grizzly Peak (8 min). June heat peaks in the afternoon \u2014 perfect timing to get wet. Waits are moderate at this hour.',type:'ride',ride:'Grizzly River Run',land:'Grizzly Peak'},
     {t:'1:45 PM',h:'Monsters, Inc. Mike & Sulley to the Rescue!',n:'Hollywood Land (10 min). Air-conditioned and low wait. Good midday break from the heat.',type:'ride',ride:"Monsters, Inc. Mike & Sulley to the Rescue!",land:'Hollywood Land'},
     {t:'2:15 PM',h:'Mickey\u2019s PhilharMagic',n:'Stay in Hollywood Land. Air-conditioned show, great break from the heat.',type:'ride',ride:"Mickey's PhilharMagic",land:'Hollywood Land'},
+    {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms in Hollywood Land near the exit of Mickey PhilharMagic, before heading to Pixar Pier.',land:'Hollywood Land'},
+    {t:'3:05 PM',h:'Afternoon Snack: Adorable Snowman Frosted Treats',type:'tip',n:'Monsters Inc.-themed soft serve at Pixar Pier. Perfect afternoon cool-down on a warm June day.',land:'Pixar Pier'},
     {t:'3:00 PM',h:'Pixar Pier freestyle + snacks',n:'Grab Adorable Snowman Frosted Treats or revisit a favorite. Wind down before the park hop.',type:'tip'},
+    {t:'3:45 PM',h:'Photo Op: Pixar Pal-A-Round',type:'photo',n:'The Pixar Pal-A-Round Ferris Wheel is a great photo subject. Get a shot at the Pixar Pier entrance before park hop.',land:'Pixar Pier'},
     {t:'4:15 PM',h:'Park hop to Disneyland',n:'Head through the main gate. You\u2019ll have 2+ hours before your Caf\u00e9 Orleans reservation.',type:'hop'},
   ]},
   {title:'\u{1F3F0} Disneyland \u2014 evening & Fantasmic!',entries:[
@@ -761,7 +779,6 @@ const SHOWS=[
 
 //    State                                                                  
 var apiKey='', curDay=0, curTab='schedule';
-var _injectedDays={};
 var waits={}, waitLastFetch=0;
 var weatherData=null;
 var PASS_GUEST='cw9dis2026';
@@ -2406,222 +2423,6 @@ function loadDiningSlot(dayIdx, secIdx, entryIdx){
     return s?JSON.parse(s):null;
   }catch(e){return null;}
 }
-
-//    Inline schedule suggestions (bathroom, snack, photo)                  
-function renderInlineSuggestion(e, ei, entries, dayIdx) {
-  try {
-    var h = '';
-    var land = e.land || '';
-    var time = e.t || '';
-    var hr = 0;
-    if (time) {
-      var parts = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (parts) {
-        hr = parseInt(parts[1]);
-        if (parts[3].toUpperCase() === 'PM' && hr !== 12) hr += 12;
-        if (parts[3].toUpperCase() === 'AM' && hr === 12) hr = 0;
-      }
-    }
-    var isLast = ei === entries.length - 1;
-    var nextEntry = entries[ei + 1];
-    var nextLand = nextEntry ? (nextEntry.land || '') : '';
-
-    // BATHROOM BREAK: suggest after every 3 ride entries or before a long show
-    var nextIsShow = nextEntry && nextEntry.type === 'show';
-    var isMorning = hr >= 7 && hr < 12;
-    var isAfternoon = hr >= 12 && hr < 20;
-    var periodKey = 'bath_'+dayIdx+'_'+(isMorning?'am':'pm');
-    if (!window._shownBath) window._shownBath = {};
-    var rideCount = 0;
-    for (var i = 0; i <= ei; i++) { if (entries[i].type === 'ride') rideCount++; }
-    var shouldShowBath = !window._shownBath[periodKey] && (
-      nextIsShow || (isMorning && rideCount === 3) || (isAfternoon && rideCount === 6)
-    );
-    if (shouldShowBath) {
-      window._shownBath[periodKey] = true;
-      var bathroomNote = nextIsShow
-        ? 'Hit the restrooms before the show starts   lines get long right after it ends.'
-        : 'Quick restroom break   good time before crowds build at the next cluster.';
-      var bathroomLoc = {
-        "Fantasyland": "Closest: near It's a Small World entrance or Pinocchio Village Haus.",
-        "New Orleans Square": "Closest: near the French Market restaurant.",
-        "Adventureland": "Closest: near the Jungle Cruise exit.",
-        "Tomorrowland": "Closest: near Space Mountain exit or Tomorrowland Terrace.",
-        "Galaxy's Edge": "Closest: near Oga's Cantina or the Milk Stand.",
-        "Cars Land": "Closest: near Flo's V8 Cafe.",
-        "Buena Vista Street": "Closest: near Carthay Circle."
-      };
-      var locHint = bathroomLoc[land] ? ' ' + bathroomLoc[land] : '';
-      h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;margin:4px 0 8px;background:rgba(34,197,94,0.08);border-left:3px solid rgba(34,197,94,0.5);border-radius:10px;">'
-        + '<span style="font-size:16px;flex-shrink:0;line-height:1.4">&#128701;</span>'
-        + '<div><div style="font-size:11px;font-weight:700;color:#166534;letter-spacing:.04em;margin-bottom:2px;">RESTROOM BREAK</div>'
-        + '<div style="font-size:11px;color:var(--text-muted);line-height:1.5;">' + bathroomNote + locHint + '</div>'
-        + '</div></div>';
-    }
-
-    // PHOTO OP: suggest when entering a known photo land for the first time
-    var PHOTO_TIPS = {
-        "Fantasyland": {icon:"&#128248;", note:"Castle from the Hub dead center on Main Street.", spot:"Main Street Hub", time:"Golden hour or after dark"},
-        "New Orleans Square": {icon:"&#128248;", note:"Balconies over Blue Bayou entrance for group shots.", spot:"Blue Bayou entrance", time:"Evening for magical lighting"},
-        "Adventureland": {icon:"&#128248;", note:"Jungle bridge near Indiana Jones for a great group shot.", spot:"Indiana Jones bridge", time:"Morning or tiki torches at dusk"},
-        "Cars Land": {icon:"&#128248;", note:"Radiator Springs at night — neon lights on Cozy Cone and Ramone mural.", spot:"Cozy Cone & Ramone's", time:"After dark for neon"},
-        "Buena Vista Street": {icon:"&#128248;", note:"Carthay Circle tower at golden hour.", spot:"Carthay Circle", time:"Golden hour or twilight"},
-        "Tomorrowland": {icon:"&#128248;", note:"Space Mountain entrance sign and PeopleMover tracks from below.", spot:"Space Mountain entrance", time:"After dark"},
-        "Galaxy's Edge": {icon:"&#128248;", note:"Millennium Falcon exterior and the market alley.", spot:"Millennium Falcon", time:"Early morning before crowds"}
-      };
-    // Only show photo tip when land changes (first entry in this land)
-    var isFirstInLand = land && (ei === 0 || entries[ei-1].land !== land);
-    if (isFirstInLand && PHOTO_TIPS[land] && nextLand !== land) {
-      var pt = PHOTO_TIPS[land];
-      h += '<div style="margin:4px 0 8px;background:rgba(109,40,217,0.07);border-left:3px solid rgba(109,40,217,0.4);border-radius:10px;overflow:hidden;">'
-        + '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;">'
-        + '<span style="font-size:16px;flex-shrink:0;line-height:1.4">' + pt.icon + '</span>'
-        + '<div style="flex:1;">'
-        + '<div style="font-size:11px;font-weight:700;color:var(--purple);letter-spacing:.04em;margin-bottom:3px;">PHOTO OP: ' + land.toUpperCase() + '</div>'
-        + '<div style="font-size:12px;color:var(--text);font-weight:600;margin-bottom:2px;">&#128205; ' + (pt.spot||land) + '</div>'
-        + '<div style="font-size:11px;color:var(--text-muted);line-height:1.5;">' + pt.note + '</div>'
-        + (pt.time ? '<div style="font-size:10px;color:var(--purple);margin-top:3px;font-style:italic;">Best time: ' + pt.time + '</div>' : '')
-        + '</div></div></div>';
-    }
-
-    // SNACK: suggest mid-morning (10-11 AM) or mid-afternoon (2-4 PM)
-    var SNACK_TIPS = {
-      "Adventureland": "Dole Whip at the Tiki Juice Bar — the signature Disneyland treat.",
-      "New Orleans Square": "Beignets at Cafe Orleans counter — hot, powdery, perfect. Get a bag of 3.",
-      "Main Street": "Churro from a cart or Gibson Girl ice cream.",
-      "Cars Land": "Cozy Cone Motel — any cone flavor, fun photo op too.",
-      "Pacific Wharf": "Boudin Sourdough bread bowl — great seated break near the water.",
-      "Galaxy's Edge": "Blue or Green Milk from the Milk Stand.",
-      "Fantasyland": "Bing Bong's Sweet Stuff for a quick snack break."
-    };
-    var isSnackTime = (hr === 10 || hr === 15 || hr === 14) && isLast;
-    if (isSnackTime && SNACK_TIPS[land]) {
-      h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;margin:4px 0 8px;background:rgba(234,179,8,0.08);border-left:3px solid rgba(234,179,8,0.5);border-radius:10px;">'
-        + '<span style="font-size:16px;flex-shrink:0;line-height:1.4">&#127829;</span>'
-        + '<div><div style="font-size:11px;font-weight:700;color:#92400e;letter-spacing:.04em;margin-bottom:2px;">SNACK STOP</div>'
-        + '<div style="font-size:11px;color:var(--text-muted);line-height:1.5;">' + SNACK_TIPS[land] + '</div>'
-        + '</div></div>';
-    }
-
-    return h;
-  } catch(err) { return ''; }
-}
-
-function injectScheduleExtras(sections) {
-  if (!sections) return;
-  var toMin = function(s) { if(!s) return 0; var m = s.match(/(\d+):(\d+)\s*(AM|PM)/i); if(!m) return 0; var h = parseInt(m[1]) % 12 + (m[3].toUpperCase() === 'PM' ? 12 : 0); return h * 60 + parseInt(m[2]); };
-  var allEntries = [];
-  sections.forEach(function(sec) { if(sec.entries) sec.entries.forEach(function(e){ allEntries.push(e); }); });
-  if (allEntries.length === 0) return;
-  var hasEntry = function(type, keyword, minStart, minEnd) {
-    return allEntries.some(function(e) {
-      var t = toMin(e.t);
-      var matchType = !type || e.type === type;
-      var matchKey = !keyword || (e.h && e.h.toLowerCase().indexOf(keyword.toLowerCase()) >= 0);
-      var matchTime = (!minStart || t >= minStart) && (!minEnd || t <= minEnd);
-      return matchType && matchKey && matchTime;
-    });
-  };
-  // Detect dominant land by time of day (fall back to schedule's first named land)
-  var getDomLand = function(minStart, minEnd, fallback) {
-    var counts = {};
-    allEntries.forEach(function(e) {
-      var t = toMin(e.t);
-      if((!minStart||t>=minStart) && (!minEnd||t<=minEnd) && e.land && e.land !== 'Main Street U.S.A.') {
-        counts[e.land] = (counts[e.land]||0) + 1;
-      }
-    });
-    var best = fallback || 'Main Street U.S.A.', bestCount = 0;
-    Object.keys(counts).forEach(function(l){ if(counts[l]>bestCount){bestCount=counts[l];best=l;} });
-    return best || fallback;
-  };
-  var snackMap = {
-    'Adventureland':'Dole Whip at the Tiki Juice Bar',
-    'Fantasyland':'Matterhorn Macaroon near Fantasyland',
-    'Tomorrowland':'Galactic Grill snack near Space Mountain',
-    'New Orleans Square':'Beignets at the Blue Bayou counter',
-    'Frontierland':'Corn dog from Stage Door Cafe',
-    'Hollywood Land':'Corn dog from Award Wieners (DCA)',
-    'Cars Land':'Chili Cone Queso from Flos V8 Cafe',
-    'Buena Vista Street':'Cappuccino from Fiddler Fifer and Practical Cafe',
-    'Pixar Pier':'Pixar Pier churro or Adorable Snowman Frosted Treats'
-  };
-  var toAdd = [];
-  // Morning snack (10:00 AM - 11:30 AM window)
-  var morningLand = getDomLand(480, 720, 'Fantasyland');
-  var morningSnack = snackMap[morningLand] || 'Churro from a cart near the hub';
-  if (!hasEntry(null, 'snack', 540, 720) && !hasEntry(null, 'snack stop', 540, 720)) {
-    toAdd.push({t:'10:30 AM', h:'Morning Snack Stop', type:'tip', n:morningSnack, land:morningLand});
-  }
-  // Afternoon snack (2:30 PM - 4:00 PM window)
-  var afternoonLand = getDomLand(720, 960, morningLand);
-  var afternoonSnack = snackMap[afternoonLand] || 'Mickey pretzel from a cart';
-  if (!hasEntry(null, 'snack', 750, 1020) && !hasEntry(null, 'snack stop', 750, 1020)) {
-    toAdd.push({t:'3:00 PM', h:'Afternoon Snack Stop', type:'tip', n:afternoonSnack, land:afternoonLand});
-  }
-  // Restroom breaks
-  if (!hasEntry('break', null, 540, 720)) {
-    toAdd.push({t:'11:00 AM', h:'Restroom Break', type:'break', n:'Quick restroom stop — use Disneyland app to find the nearest one.', land:morningLand});
-  }
-  if (!hasEntry('break', null, 750, 900)) {
-    toAdd.push({t:'2:15 PM', h:'Restroom Break', type:'break', n:'Afternoon restroom break — near current land.', land:afternoonLand});
-  }
-  // Photo ops with time-block distribution: max 2 per block, max 6 total
-  // Blocks: morning (<720), midday (720-1080), evening (>=1080)
-  var photoEntries = allEntries.filter(function(e){ return e.h && e.h.toLowerCase().indexOf('photo op')>=0; });
-  var _existPhotos=[];sections.forEach(function(s){if(s.entries)s.entries.forEach(function(e){if(e.type==='photo')_existPhotos.push(e);});});var photoBefore720 = _existPhotos.filter(function(e){return toMin(e.t)<720;}).length+photoEntries.filter(function(e){ return toMin(e.t)<720; }).length;
-  var photo720to1080 = _existPhotos.filter(function(e){var t=toMin(e.t);return t>=720&&t<1080;}).length+photoEntries.filter(function(e){ var t=toMin(e.t); return t>=720&&t<1080; }).length;
-  var photoAfter1080 = _existPhotos.filter(function(e){return toMin(e.t)>=1080;}).length+photoEntries.filter(function(e){ return toMin(e.t)>=1080; }).length;
-  var totalPhoto = photoEntries.length;
-  var usedLocations = photoEntries.map(function(e){ return e.n||e.h||''; });
-  var addPhoto = function(t, h, n, land) {
-    if(usedLocations.indexOf(n)>=0) return false; // no duplicate locations
-    usedLocations.push(n);
-    toAdd.push({t:t, h:h, type:'photo', n:n, land:land});
-    totalPhoto++;
-    return true;
-  };
-  // Morning (before noon)
-  if(photoBefore720 < 2 && totalPhoto < 6) {
-    var hasCastleMorn = photoEntries.some(function(e){ return e.h&&e.h.indexOf('Castle')>=0&&toMin(e.t)<720; });
-    if(!hasCastleMorn) addPhoto('9:15 AM','Photo Op: Sleeping Beauty Castle','Best morning light for castle shots before crowds build — great with Main Street backdrop.','Main Street U.S.A.');
-  }
-  // Evening (after 6pm)
-  if(photoAfter1080 < 2 && totalPhoto < 6) {
-    var hasCastleEve = photoEntries.some(function(e){ return e.h&&e.h.indexOf('Castle')>=0&&toMin(e.t)>=1080; });
-    if(!hasCastleEve) addPhoto('8:30 PM','Photo Op: Castle at Night','Castle lights and projections after dark — best shots of the trip.','Main Street U.S.A.');
-  }
-  if (toAdd.length === 0) return;
-  // Insert each extra inline into the most appropriate existing section
-  // Find the section whose entries span the closest time range to each extra
-  toAdd.forEach(function(entry) {
-    var eMins = toMin(entry.t);
-    var bestSec = null;
-    var bestDist = Infinity;
-    sections.forEach(function(sec) {
-      if (!sec.entries || sec.entries.length === 0) return;
-      // Find the min and max time in this section
-      var minT = Infinity, maxT = -Infinity;
-      sec.entries.forEach(function(e) {
-        var em = toMin(e.t);
-        if (em < minT) minT = em;
-        if (em > maxT) maxT = em;
-      });
-      // Distance: 0 if within range, else distance to nearest bound
-      var dist = (eMins >= minT && eMins <= maxT) ? 0 :
-                 Math.min(Math.abs(eMins - minT), Math.abs(eMins - maxT));
-      if (dist < bestDist) { bestDist = dist; bestSec = sec; }
-    });
-    if (!bestSec && sections.length > 0) bestSec = sections[0];
-    if (bestSec) bestSec.entries.push(entry);
-  });
-  // Sort all sections' entries by time
-  sections.forEach(function(sec) {
-    if (sec.entries && sec.entries.length > 1) {
-      sec.entries.sort(function(a, b) { return toMin(a.t) - toMin(b.t); });
-    }
-  });
-}
 function renderDayTipsCard(dayIdx){
   var tips=window._dayTipsCache&&window._dayTipsCache[dayIdx];
   if(!tips||!tips.length)return '';
@@ -2641,7 +2442,6 @@ function renderDayTipsCard(dayIdx){
 }
 function renderSched(){
   var day=getCurDay();
-  if(day&&day.sections&&!(_injectedDays&&_injectedDays[curDay])){var _tgt=(customSched&&customSched[curDay])?customSched[curDay].sections:DAYS[curDay].sections;injectScheduleExtras(_tgt);if(_injectedDays)_injectedDays[curDay]=true;}
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
     document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">📅</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
@@ -2717,8 +2517,6 @@ function renderSched(){
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
       h+='</div>';
-      // Inject inline suggestion cards based on location and timing
-      h+=renderInlineSuggestion(e,ei,sec.entries,curDay);
     });
     if(editMode)h+='<button class="add-btn" onclick="openModal('+si+')">+ Add entry here</button>';
   });
@@ -3081,7 +2879,7 @@ function setDay(d){
   editMode=false;
   var et=document.getElementById('editToggle');et.textContent='\u270E Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
-  if(_injectedDays&&!_injectedDays[d]){var _st=(customSched&&customSched[d])?customSched[d].sections:DAYS[d].sections;injectScheduleExtras(_st);_injectedDays[d]=true;}renderClosed();renderSched();renderDayInfoBar();
+enderClosed();renderSched();renderDayInfoBar();
 }
 function setTab(tab){
   curTab=tab;
@@ -3225,7 +3023,7 @@ function generateFromSetup(params, callback) {
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       prompt: prompt,
-      system: 'Expert Disneyland planner. Return ONLY a raw JSON array starting with [ and ending with ]. No markdown, no backticks, no explanation. Each entry must have: t, h, type, n, land fields.' + (typeof constraintRules !== 'undefined' ? ' Schedule rules: ' + constraintRules : ''),
+      system: 'Expert Disneyland planner. Return ONLY a raw JSON array starting with [ and ending with ]. No markdown, no backticks, no explanation. Each entry must have: t, h, type, n, land fields. Include the following in every generated schedule placed at geographically logical positions: one restroom break around 10:00 AM near whatever land the group is in at that time using type:break; one restroom break around 3:00 PM using type:break; one morning snack stop around 10:30 AM at a real park snack location near surrounding rides using type:tip; one afternoon snack stop around 3:30 PM at a real park snack location using type:tip; two photo ops per day at real park locations geographic to surrounding rides one before noon and one after 5 PM using type:photo.' + (typeof constraintRules !== 'undefined' ? ' Schedule rules: ' + constraintRules : ''),
       context: context,
       maxTokens: 3000
     })
