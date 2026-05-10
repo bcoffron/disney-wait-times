@@ -2881,7 +2881,7 @@ function setDay(d){
   editMode=false;
   var et=document.getElementById('editToggle');et.textContent='\u270E Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
-enderClosed();renderSched();renderDayInfoBar();
+renderClosed();renderSched();renderDayInfoBar();
 }
 function setTab(tab){
   curTab=tab;
