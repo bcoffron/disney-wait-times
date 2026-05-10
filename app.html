@@ -1072,7 +1072,7 @@ function getCountdown(){
   var d3=new Date('2026-06-30T00:00:00');
   var d4=new Date('2026-07-01T00:00:00');
   if(now>=d4) return null;
-  if(now>=d3&&now<d4) return {during:true,msg:'Last day   Make it magical! ('};
+  if(now>=d3&&now<d4) return {during:true,msg:'Last day   Make it magical!'};
   if(now>=d2&&now<d3) return {during:true,msg:'You re a VIP today! P'};
   if(now>=d1&&now<d2) return {during:true,msg:'Day 1 of 3   Let s go! ('};
   var days=Math.ceil((d1-now)/(1000*60*60*24));
@@ -1089,7 +1089,7 @@ function renderCountdown(){
   var lcont=document.getElementById('lockCountdown');
   if(lcont){
     if(cd&&cd.during){lcont.style.display='block';document.getElementById('lockCountdownMsg').textContent=cd.msg;document.getElementById('lockCountdownNum').textContent='';}
-    else if(cd&&!cd.during){lcont.style.display='block';document.getElementById('lockCountdownNum').textContent=cd.days+(cd.days===1?' day':' days');document.getElementById('lockCountdownMsg').textContent='until the magic begins (';}
+    else if(cd&&!cd.during){lcont.style.display='block';document.getElementById('lockCountdownNum').textContent=cd.days+(cd.days===1?' day':' days');document.getElementById('lockCountdownMsg').textContent='until the magic begins';}
     else{lcont.style.display='none';}
   }
 }
@@ -2464,7 +2464,7 @@ function renderInlineSuggestion(e, ei, entries, dayIdx) {
         "Fantasyland": {icon:"&#128248;", note:"Castle from the Hub dead center on Main Street.", spot:"Main Street Hub", time:"Golden hour or after dark"},
         "New Orleans Square": {icon:"&#128248;", note:"Balconies over Blue Bayou entrance for group shots.", spot:"Blue Bayou entrance", time:"Evening for magical lighting"},
         "Adventureland": {icon:"&#128248;", note:"Jungle bridge near Indiana Jones for a great group shot.", spot:"Indiana Jones bridge", time:"Morning or tiki torches at dusk"},
-        "Cars Land": {icon:"&#128248;", note:"Radiator Springs at night -- neon lights on Cozy Cone and Ramone mural.", spot:"Cozy Cone & Ramone's", time:"After dark for neon"},
+        "Cars Land": {icon:"&#128248;", note:"Radiator Springs at night — neon lights on Cozy Cone and Ramone mural.", spot:"Cozy Cone & Ramone's", time:"After dark for neon"},
         "Buena Vista Street": {icon:"&#128248;", note:"Carthay Circle tower at golden hour.", spot:"Carthay Circle", time:"Golden hour or twilight"},
         "Tomorrowland": {icon:"&#128248;", note:"Space Mountain entrance sign and PeopleMover tracks from below.", spot:"Space Mountain entrance", time:"After dark"},
         "Galaxy's Edge": {icon:"&#128248;", note:"Millennium Falcon exterior and the market alley.", spot:"Millennium Falcon", time:"Early morning before crowds"}
@@ -2486,11 +2486,11 @@ function renderInlineSuggestion(e, ei, entries, dayIdx) {
 
     // SNACK: suggest mid-morning (10-11 AM) or mid-afternoon (2-4 PM)
     var SNACK_TIPS = {
-      "Adventureland": "Dole Whip at the Tiki Juice Bar -- the signature Disneyland treat.",
-      "New Orleans Square": "Beignets at Cafe Orleans counter -- hot, powdery, perfect. Get a bag of 3.",
+      "Adventureland": "Dole Whip at the Tiki Juice Bar — the signature Disneyland treat.",
+      "New Orleans Square": "Beignets at Cafe Orleans counter — hot, powdery, perfect. Get a bag of 3.",
       "Main Street": "Churro from a cart or Gibson Girl ice cream.",
-      "Cars Land": "Cozy Cone Motel -- any cone flavor, fun photo op too.",
-      "Pacific Wharf": "Boudin Sourdough bread bowl -- great seated break near the water.",
+      "Cars Land": "Cozy Cone Motel — any cone flavor, fun photo op too.",
+      "Pacific Wharf": "Boudin Sourdough bread bowl — great seated break near the water.",
       "Galaxy's Edge": "Blue or Green Milk from the Milk Stand.",
       "Fantasyland": "Bing Bong's Sweet Stuff for a quick snack break."
     };
@@ -2561,17 +2561,17 @@ function injectScheduleExtras(sections) {
   }
   // Restroom breaks
   if (!hasEntry('break', null, 540, 720)) {
-    toAdd.push({t:'11:00 AM', h:'Restroom Break', type:'break', n:'Quick restroom stop -- use Disneyland app to find the nearest one.', land:morningLand});
+    toAdd.push({t:'11:00 AM', h:'Restroom Break', type:'break', n:'Quick restroom stop — use Disneyland app to find the nearest one.', land:morningLand});
   }
   if (!hasEntry('break', null, 750, 900)) {
-    toAdd.push({t:'2:15 PM', h:'Restroom Break', type:'break', n:'Afternoon restroom break -- near current land.', land:afternoonLand});
+    toAdd.push({t:'2:15 PM', h:'Restroom Break', type:'break', n:'Afternoon restroom break — near current land.', land:afternoonLand});
   }
   // Photo ops with time-block distribution: max 2 per block, max 6 total
   // Blocks: morning (<720), midday (720-1080), evening (>=1080)
   var photoEntries = allEntries.filter(function(e){ return e.h && e.h.toLowerCase().indexOf('photo op')>=0; });
-  var photoBefore720 = photoEntries.filter(function(e){ return toMin(e.t)<720; }).length;
-  var photo720to1080 = photoEntries.filter(function(e){ var t=toMin(e.t); return t>=720&&t<1080; }).length;
-  var photoAfter1080 = photoEntries.filter(function(e){ return toMin(e.t)>=1080; }).length;
+  var _existPhotos=[];sections.forEach(function(s){if(s.entries)s.entries.forEach(function(e){if(e.type==='photo')_existPhotos.push(e);});});var photoBefore720 = _existPhotos.filter(function(e){return toMin(e.t)<720;}).length+photoEntries.filter(function(e){ return toMin(e.t)<720; }).length;
+  var photo720to1080 = _existPhotos.filter(function(e){var t=toMin(e.t);return t>=720&&t<1080;}).length+photoEntries.filter(function(e){ var t=toMin(e.t); return t>=720&&t<1080; }).length;
+  var photoAfter1080 = _existPhotos.filter(function(e){return toMin(e.t)>=1080;}).length+photoEntries.filter(function(e){ return toMin(e.t)>=1080; }).length;
   var totalPhoto = photoEntries.length;
   var usedLocations = photoEntries.map(function(e){ return e.n||e.h||''; });
   var addPhoto = function(t, h, n, land) {
@@ -2584,12 +2584,12 @@ function injectScheduleExtras(sections) {
   // Morning (before noon)
   if(photoBefore720 < 2 && totalPhoto < 6) {
     var hasCastleMorn = photoEntries.some(function(e){ return e.h&&e.h.indexOf('Castle')>=0&&toMin(e.t)<720; });
-    if(!hasCastleMorn) addPhoto('9:15 AM','Photo Op: Sleeping Beauty Castle','Best morning light for castle shots before crowds build -- great with Main Street backdrop.','Main Street U.S.A.');
+    if(!hasCastleMorn) addPhoto('9:15 AM','Photo Op: Sleeping Beauty Castle','Best morning light for castle shots before crowds build — great with Main Street backdrop.','Main Street U.S.A.');
   }
   // Evening (after 6pm)
   if(photoAfter1080 < 2 && totalPhoto < 6) {
     var hasCastleEve = photoEntries.some(function(e){ return e.h&&e.h.indexOf('Castle')>=0&&toMin(e.t)>=1080; });
-    if(!hasCastleEve) addPhoto('8:30 PM','Photo Op: Castle at Night','Castle lights and projections after dark -- best shots of the trip.','Main Street U.S.A.');
+    if(!hasCastleEve) addPhoto('8:30 PM','Photo Op: Castle at Night','Castle lights and projections after dark — best shots of the trip.','Main Street U.S.A.');
   }
   if (toAdd.length === 0) return;
   // Insert each extra inline into the most appropriate existing section
@@ -2648,6 +2648,7 @@ function renderSched(){
     return;
   }
   day.sections.forEach(function(sec,si){
+    if(!sec.entries||sec.entries.length===0)return;
     var isVipSec=sec.title&&sec.title.indexOf('VIP Tour')>-1;
     if(isVipSec){
       h+='<div class="sec-hdr" style="margin-top:12px"><div class="sec-lbl" style="background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:11px;font-weight:700;letter-spacing:.1em">&#11088; '+sec.title+'</div><div class="sec-line" style="background:linear-gradient(90deg,#D4A017,transparent)"></div></div>';
@@ -3080,7 +3081,7 @@ function setDay(d){
   editMode=false;
   var et=document.getElementById('editToggle');et.textContent='\u270E Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
-  renderClosed();renderSched();renderDayInfoBar();
+  if(_injectedDays&&!_injectedDays[d]){var _st=(customSched&&customSched[d])?customSched[d].sections:DAYS[d].sections;injectScheduleExtras(_st);_injectedDays[d]=true;}renderClosed();renderSched();renderDayInfoBar();
 }
 function setTab(tab){
   curTab=tab;
