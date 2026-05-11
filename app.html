@@ -683,7 +683,7 @@ const DAYS=[
     {t:'10:00 AM',h:'VIP Tour begins \u2014 Disneyland',n:'Your guide handles all skip-the-line access today. Use the notes below to share your ride wishlist and must-dos.',type:'vip'},
     {t:'10AM\u20135PM',h:'\u2B50 VIP Tour \u2014 Notes & Ride Wishlist',n:'Write your plans below.',type:'vip',isVipNotes:true},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Ask your VIP guide for the nearest restroom. Most lands have facilities near major attractions.',land:''},
-    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at Café Orléans',type:'tip',n:'Monte Cristo sandwich at Café Orléans counter window in New Orleans Square — the most talked-about snack at Disneyland, cheaper here than Blue Bayou.',land:'New Orleans Square'},
+    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at Café Orléans',type:'tip',n:'The Monte Cristo sandwich at Café Orléans is a Disneyland bucket-list item — fried sandwich with powdered sugar, served at the counter window. No reservation needed.',land:'New Orleans Square'},
     {t:'5:00 PM',h:'Dinner & tip your VIP guide',n:'Your guide will recommend a great dinner spot. This is the natural moment to tip \u2014 industry standard is 15\u201320% of tour cost. Cash preferred.',type:'food',land:'Disneyland'},
     {t:'5:15 PM',h:'Photo Op: New Orleans Square at Dusk',type:'photo',n:'Golden hour on the balconies overlooking the bayou. Beautiful light and atmosphere in New Orleans Square.',land:'New Orleans Square'},
   ]},
@@ -721,7 +721,7 @@ const DAYS=[
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms in Hollywood Land near the exit of Mickey PhilharMagic, before heading to Pixar Pier.',land:'Hollywood Land'},
     {t:'3:05 PM',h:'Afternoon Snack: Adorable Snowman Frosted Treats',type:'tip',n:'Lemon or raspberry soft serve from the Adorable Snowman Frosted Treats cart at Pixar Pier.',land:'Pixar Pier'},
     {t:'3:00 PM',h:'Pixar Pier freestyle + snacks',n:'Grab Adorable Snowman Frosted Treats or revisit a favorite. Wind down before the park hop.',type:'tip'},
-    {t:'3:45 PM',h:'Photo Op: Pixar Pal-A-Round',type:'photo',n:'The giant Mickey Ferris wheel from below at Pixar Pier. Best viewed and photographed from the Pixar Pier waterfront.',land:'Pixar Pier'},
+    {t:'3:45 PM',h:'Photo Op: Cars Land at Night',type:'photo',n:'Radiator Springs glows with neon after dark — best photo spot at DCA. Shoot from the far end of the land looking back toward Flo\'s V8 Cafe for the full neon reflection shot.',land:'Cars Land'},
     {t:'4:15 PM',h:'Park hop to Disneyland',n:'Head through the main gate. You\u2019ll have 2+ hours before your Caf\u00e9 Orleans reservation.',type:'hop'},
   ]},
   {title:'\u{1F3F0} Disneyland \u2014 evening & Fantasmic!',entries:[
@@ -2431,8 +2431,8 @@ function renderSched(){
         diningRec='<div class="dining-slot">'
           +'<div class="dining-slot-lbl">&#128197; Your Reservation</div>'
           +'<div class="dining-slot-row">'
-          +'<input class="dining-slot-input" id="ds_rest_'+curDay+'_'+si+'_'+ei+'" placeholder="Restaurant name..." value="'+dslotRest.replace(/"/g,'&quot;')+'"/>'
-          +'<input class="dining-slot-input" style="max-width:110px" id="ds_time_'+curDay+'_'+si+'_'+ei+'" placeholder="Time..." value="'+dslotTime.replace(/"/g,'&quot;')+'"/>'
+          +'<input class="dining-slot-input" style="font-size:16px" id="ds_rest_'+curDay+'_'+si+'_'+ei+'" placeholder="Restaurant name" autocomplete="off" autocorrect="off" value="'+dslotRest.replace(/"/g,'&quot;')+'"/>'
+          +'<input class="dining-slot-input" style="max-width:110px;font-size:16px" id="ds_time_'+curDay+'_'+si+'_'+ei+'" placeholder="Time..." autocomplete="off" autocorrect="off" value="'+dslotTime.replace(/"/g,'&quot;')+'"/>'
           +'<button class="dining-slot-save" onclick="saveDiningSlot('+curDay+','+si+','+ei+')">Save</button>'
           +'</div>'
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
