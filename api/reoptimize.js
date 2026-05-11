@@ -14,7 +14,7 @@ const existingMatch=prompt.match(/JSONSTART(\[[\s\S]*?\])JSONEND/);
 const existingSections=existingMatch?existingMatch[1]:null;
 
 // Strip boilerplate walking times/rules â keep prompt lean
-const cleanPrompt=promp
+const cleanPrompt=prompt
   .replace(/You are an expert[^\n]*/i,'')
   .replace(/Walking times[\s\S]{0,500}/i,'')
   .replace(/Show positioning[\s\S]{0,300}/i,'')
@@ -26,7 +26,7 @@ const model="claude-sonnet-4-6";
 const system='You are a Disneyland schedule optimizer. You MUST output ONLY a raw JSON object with zero additional text. Do not use markdown. Do not explain. Just JSON. Required structure: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence summary"}';
 
 const userMsg=existingSections
-  ?"Optimize this schedule for minimum waits. JSON only, no other text.\nCurrent:"+existingSections+"\nContext:"+cleanPrompt.substring(0,6000)
+  ?"Optimize this schedule for minimum waits. JSON only, no other text.\nCurrent:"+existingSections.substring(0,6000)+"\nContext:"+cleanPrompt.substring(0,6000)
   :"Build an optimized day plan. JSON only, no other text.\n"+cleanPrompt;
 
 function normalizeEntry(e){
