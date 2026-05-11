@@ -367,7 +367,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <!-- Tinkerbell transition overlay -->
 <div class="tink-overlay" id="tinkOverlay"></div>
 <div class="tink-fairy" id="tinkFairy" style="display:none">
-  <div class="tink-body">Ã°ÂÂ§Â</div>
+  <div class="tink-body">ð§</div>
 </div>
 
 <div class="lock-screen" id="lockScreen">
@@ -403,7 +403,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <div class="app" id="mainApp" style="display:none">
 
 <div class="header">
-  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">Ã¢ÂÂ¨Ã¢ÂÂ¨Ã¢ÂÂ¨</div>
+  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">â¨â¨â¨</div>
   <div class="header-top">
     <div>
       <div class="header-title"><svg width="26" height="22" viewBox="0 0 52 44" style="vertical-align:middle;margin-right:5px;flex-shrink:0" fill="#1B2FA0"><circle cx="12" cy="14" r="12"/><circle cx="40" cy="14" r="12"/><circle cx="26" cy="30" r="16"/></svg>Coffron/Woods Disneyland Trip</div>
@@ -414,10 +414,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
   <div id="preTripBanner" style="margin-bottom:10px;">
   <div onclick="openPreTrip()" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
-    <div style="font-size:24px;">Ã¢ÂÂ¨ </div>
+    <div style="font-size:24px;">â¨ </div>
     <div style="flex:1;">
-      <div style="font-size:14px;font-weight:700;color:var(--text);">Ã¢ÂÂ Do This First: Pre-Trip Planning</div>
-      <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather Ã¢ÂÂ¢ Packing Ã¢ÂÂ¢ Dining Ã¢ÂÂ¢ Group Setup</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);">â Do This First: Pre-Trip Planning</div>
+      <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather â¢ Packing â¢ Dining â¢ Group Setup</div>
     </div>
     <div style="font-size:18px;color:var(--gold,#C9860A);">:</div>
   </div>
@@ -462,7 +462,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="day-info-bar" id="dayInfoBar"></div>
     <!-- Guest sync note -->
     <div id="guestSyncNote" style="display:none;padding:7px 12px;background:rgba(27,47,160,0.06);border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);margin-bottom:10px;font-size:11px;color:var(--magic);text-align:center">
-      &#128274; Read-only schedule Ã¢ÂÂ¢ Auto-syncs every 2 min
+      &#128274; Read-only schedule â¢ Auto-syncs every 2 min
     </div>
     <!-- Edit / AI Optimize / Reset bar -->
     <div class="edit-bar">
@@ -490,7 +490,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         <div style="font-size:13px;font-weight:600;color:var(--magic)">Live Wait Times</div>
         <div id="waitStatus" style="font-size:11px;color:var(--text-muted)">Loading...</div>
       </div>
-      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">Ã°ÂÂÂ  Refresh</button>
+      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">ð  Refresh</button>
     </div>
     <div id="waitTabContent"><div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div></div>
     <div style="margin-top:10px;font-size:11px;color:var(--text-dim);text-align:center">Powered by ParkSavers.com &middot; Updates every 5 min</div>
@@ -663,7 +663,7 @@ const DAYS=[
     {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness   great for all ages.',land:'Frontierland'},
     {t:'6:30 PM',h:'Return to Park   Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
     {t:'8:00 PM',h:'Fantasyland Evening Rides',type:'tip',n:'Evening is the best time for Fantasyland   lighter crowds after 8pm.',land:'Fantasyland'},
-    {t:'8:30 PM',h:'Photo Op: Matterhorn at Night',type:'photo',n:'The Matterhorn lit up at night from the Fantasyland side Ã¢ÂÂ dramatic snow-capped peak with evening lighting. Best viewed from the path near the Matterhorn Bobsleds entrance.',land:'Fantasyland'},
+    {t:'8:30 PM',h:'Photo Op: Matterhorn at Night',type:'photo',n:'The Matterhorn lit up at night from the Fantasyland side â dramatic snow-capped peak with evening lighting. Best viewed from the path near the Matterhorn Bobsleds entrance.',land:'Fantasyland'},
     {t:'9:30 PM',h:'Wondrous Journeys Fireworks',type:'show',n:'Watch from the hub in front of the castle. Arrive 20 min early for a good spot.',land:'Main Street U.S.A.'},
   ]},
 ]},
@@ -683,7 +683,7 @@ const DAYS=[
     {t:'10:00 AM',h:'VIP Tour begins \u2014 Disneyland',n:'Your guide handles all skip-the-line access today. Use the notes below to share your ride wishlist and must-dos.',type:'vip'},
     {t:'10AM\u20135PM',h:'\u2B50 VIP Tour \u2014 Notes & Ride Wishlist',n:'Write your plans below.',type:'vip',isVipNotes:true},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Ask your VIP guide for the nearest restroom. Most lands have facilities near major attractions.',land:''},
-    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at CafÃÂ© OrlÃÂ©ans',type:'tip',n:'The Monte Cristo sandwich at CafÃÂ© OrlÃÂ©ans is a Disneyland bucket-list item Ã¢ÂÂ fried sandwich with powdered sugar, served at the counter window. No reservation needed.',land:'New Orleans Square'},
+    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at CafÃ© OrlÃ©ans',type:'tip',n:'The Monte Cristo sandwich at CafÃ© OrlÃ©ans is a Disneyland bucket-list item â fried sandwich with powdered sugar, served at the counter window. No reservation needed.',land:'New Orleans Square'},
     {t:'5:00 PM',h:'Dinner & tip your VIP guide',n:'Your guide will recommend a great dinner spot. This is the natural moment to tip \u2014 industry standard is 15\u201320% of tour cost. Cash preferred.',type:'food',land:'Disneyland'},
     {t:'5:15 PM',h:'Photo Op: New Orleans Square at Dusk',type:'photo',n:'Golden hour on the balconies overlooking the bayou. Beautiful light and atmosphere in New Orleans Square.',land:'New Orleans Square'},
   ]},
@@ -707,7 +707,7 @@ const DAYS=[
     {t:'8:30 AM',h:'Toy Story Midway Mania!',n:'Walk from Cars Land to Pixar Pier (8 min). Gets slammed fast \u2014 hit it now while waits are still short. Interactive shooting game.',type:'ride',ride:"Toy Story Midway Mania!",land:'Pixar Pier',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
     {t:'8:55 AM',h:'Guardians of the Galaxy \u2014 Mission: Breakout',n:'From Pixar Pier to Avengers Campus (5 min). Drop Tower-style ride, very high demand. Early morning is your best shot at a short wait.',type:'ride',ride:'Guardians of the Galaxy - Mission: BREAKOUT!',land:'Avengers Campus'},
     {t:'9:20 AM',h:'Incredicoaster',n:'Stay in Pixar Pier. Fast and fun. Short wait right after Guardians while crowds are still spreading out.',type:'ride',ride:'Incredicoaster',land:'Pixar Pier'},
-    {t:'9:35 AM',h:'Photo Op: Radiator Springs',type:'photo',n:'Red rock canyon formations at Cars Land Ã¢ÂÂ best light in the morning before crowds fill in. Shoot from near Flo\'s V8 Cafe looking toward the Cozy Cone for the full Cars Land panorama.',land:'Cars Land'},
+    {t:'9:35 AM',h:'Photo Op: Radiator Springs',type:'photo',n:'Red rock canyon formations at Cars Land â best light in the morning before crowds fill in. Shoot from near Flo\'s V8 Cafe looking toward the Cozy Cone for the full Cars Land panorama.',land:'Cars Land'},
     {t:'9:45 AM',h:'Web Slingers: A Spider-Man Adventure',n:'Back to Avengers Campus (5 min). Interactive ride, great for all ages. Book LL if waits exceed 30 min.',type:'ride',ride:'WEB SLINGERS: A Spider-Man Adventure',land:'Avengers Campus',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms at Avengers Campus near Web Slingers entrance, on your way to Soarin.',land:'Avengers Campus'},
     {t:'10:05 AM',h:'Morning Snack: Pym Test Kitchen',type:'tip',n:'Try the Impossible Spoonful or a giant pretzel at Pym Test Kitchen, Avengers Campus.',land:'Avengers Campus'},
@@ -2230,10 +2230,10 @@ async function fetchDiningRecs(e){
   var resultEl=btn.nextElementSibling;
   if(!resultEl) return;
   btn.disabled=true;
-  resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">Ã¢ÂÂ³ LoadingÃ¢ÂÂ¦</span>';
+  resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">â³ Loadingâ¦</span>';
   resultEl.classList.add('show');
-  var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:'You are a Disneyland dining expert. Be concise. 2Ã¢ÂÂ3 sentences max. No markdown.',messages:[{role:'user',content:'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.'}]});
-  if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px">Ã¢ÂÂ Ã¯Â¸Â '+r.error.message+'</span>';}
+  var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:'You are a Disneyland dining expert. Be concise. 2â3 sentences max. No markdown.',messages:[{role:'user',content:'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.'}]});
+  if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px">â ï¸ '+r.error.message+'</span>';}
   else if(r&&r.content&&r.content.length){resultEl.innerHTML='<div style="font-size:13px;line-height:1.6">'+stripMd(r.content[0].text.trim())+'</div>';}
   else{resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">No result.</span>';}
   btn.disabled=false;
@@ -2383,7 +2383,7 @@ function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
-    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">Ã°ÂÂÂ</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
+    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">ð</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
     return;
   }
   day.sections.forEach(function(sec,si){
@@ -2415,7 +2415,7 @@ function renderSched(){
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
-      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',break:'<span class="tb tb-break">Ã°ÂÂÂ´</span>',photo:'<span class="tb tb-photo">Ã°ÂÂÂ·</span>'};
+      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',break:'<span class="tb tb-break">ð´</span>',photo:'<span class="tb tb-photo">ð·</span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
       var diningRec='';
       if(e.type==='food'&&e.h){
@@ -2436,7 +2436,7 @@ function renderSched(){
           +'</div>'
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'" style="display:none">&#10003; Saved!</div>'
           +'</div>'
-          +'<button class="dining-btn" data-name=\''+dname.split("'").join('\u2019')+'\' data-land=\''+safeLandCtx+'\'>Ã°ÂÂÂ½Ã¯Â¸Â Get Dining Recommendations</button>'
+          +'<button class="dining-btn" data-name=\''+dname.split("'").join('\u2019')+'\' data-land=\''+safeLandCtx+'\'>ð½ï¸ Get Dining Recommendations</button>'
           +'<div class="dining-result"></div>';
       }
       var reroute='';
@@ -2506,7 +2506,7 @@ function renderWaitTab(){
     });
     return h;
   }
-  el.innerHTML=renderGroup('Ã°ÂÂÂ° Disneyland Park',dlRides)+renderGroup('Ã°ÂÂÂ Disney California Adventure',dcaRides);
+  el.innerHTML=renderGroup('ð° Disneyland Park',dlRides)+renderGroup('ð Disney California Adventure',dcaRides);
   if(typeof renderClosuresFromWaits==='function') renderClosuresFromWaits();
 }
 function toggleAccordion(id){
@@ -2542,10 +2542,10 @@ function renderInfoTab(){
         {icon:'&#128241;',label:'Disneyland App Must-Knows',text:'Download before you go and log in. Mobile Order is a game changer   order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes   use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
         {icon:'&#127869;',label:'Best Times to Eat   Avoid the Rush',text:'Peak meal times are 12:00 1:30 PM (lunch) and 6:00 7:30 PM (dinner)   restaurants are packed and waits are long. Best lunch: 11:00 11:30 AM (before the rush) or 2:00 3:00 PM (after it). Best dinner: 5:00 5:30 PM (early bird) or 8:00 8:30 PM (late, after shows). Counter service is least busy 2:00 4:00 PM and right before park close.'},
         {icon:'&#128241;',label:'Mobile Order   Use It Every Time',text:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30 45 min before you want to eat, then tap  I m here  when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20 30 min just to order.'},
-        {icon:'&#127869;',label:'Walk-up List   Your Secret Weapon',text:'Can t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day   people regularly snag same-day spots at Lamplight Lounge, CafÃÂ© Orleans, and Carthay Circle this way. Keep checking the app   spots open up frequently.'},
-        {icon:'&#127860;',label:'Must-Order Dishes   Don t Miss These',text:'CafÃÂ© Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers   fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand   much shorter line. Galaxy s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
-        {icon:'&#127381;',label:'Share Portions   Save Money & Try More',text:'Portions at Disneyland are large. Lamplight s Lobster Nachos, Plaza Inn s fried chicken, and CafÃÂ© Orleans  Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5 6 items instead of 9 and share around the table.'},
-        {icon:'&#127869;',label:'Dining Package Tip   Fantasmic!',text:'CafÃÂ© Orleans offers a Fantasmic! Dining Package   includes a reserved Fantasmic! viewing area with your meal. If you re eating at CafÃÂ© Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy s Edge fireworks also have dining packages. Book 60 days ahead   same window as regular reservations.'},
+        {icon:'&#127869;',label:'Walk-up List   Your Secret Weapon',text:'Can t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day   people regularly snag same-day spots at Lamplight Lounge, CafÃ© Orleans, and Carthay Circle this way. Keep checking the app   spots open up frequently.'},
+        {icon:'&#127860;',label:'Must-Order Dishes   Don t Miss These',text:'CafÃ© Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers   fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand   much shorter line. Galaxy s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
+        {icon:'&#127381;',label:'Share Portions   Save Money & Try More',text:'Portions at Disneyland are large. Lamplight s Lobster Nachos, Plaza Inn s fried chicken, and CafÃ© Orleans  Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5 6 items instead of 9 and share around the table.'},
+        {icon:'&#127869;',label:'Dining Package Tip   Fantasmic!',text:'CafÃ© Orleans offers a Fantasmic! Dining Package   includes a reserved Fantasmic! viewing area with your meal. If you re eating at CafÃ© Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy s Edge fireworks also have dining packages. Book 60 days ahead   same window as regular reservations.'},
         {icon:'&#127879;',label:'Hidden Gems & Local Tips',text:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square   look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle   short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Walt s personal apartment windows   a light is always kept on in his honor.'},
       ];
       var h='';
@@ -2556,7 +2556,7 @@ function renderInfoTab(){
     }},
     
     {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
-      return '<div class="info-card"><b>Single Pass</b> (~$15 35/person): Rise of the Resistance Ã¢ÂÂ Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones Ã¢ÂÂ Matterhorn Ã¢ÂÂ Space Mountain Ã¢ÂÂ Haunted Mansion Ã¢ÂÂ Big Thunder Ã¢ÂÂ Smugglers Run Ã¢ÂÂ Tiana s Ã¢ÂÂ Guardians Ã¢ÂÂ Incredicoaster Ã¢ÂÂ Web Slingers Ã¢ÂÂ Soarin  " Toy Story<br><br><b>No LL needed Tuesday</b>   VIP tour handles everything.</div>'
+      return '<div class="info-card"><b>Single Pass</b> (~$15 35/person): Rise of the Resistance â Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones â Matterhorn â Space Mountain â Haunted Mansion â Big Thunder â Smugglers Run â Tiana s â Guardians â Incredicoaster â Web Slingers â Soarin  " Toy Story<br><br><b>No LL needed Tuesday</b>   VIP tour handles everything.</div>'
         +'<div class="info-card"><b>Rules:</b> Buy after scanning into park " Book next LL after 2 hrs OR right after scanning into current ride " Book while standing in the current LL line! " Each ride once per day " For 2nd park: book once return time shows 11AM+</div>';
     }},
     
@@ -2632,7 +2632,7 @@ function renderInfoTab(){
 }
 
 var ALL_RESTAURANTS=[
-  {name:'CafÃÂ© Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended'},
+  {name:'CafÃ© Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended'},
   {name:'Carnation Cafe',park:'Disneyland',type:'Table Service',area:'Main Street USA',res:'Recommended'},
   {name:'River Belle Terrace',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
   {name:'Rancho del Zocalo',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
@@ -3050,7 +3050,7 @@ function openPreTrip(){
   var now=new Date();
   var daysUntilDining=Math.max(0,Math.ceil((new Date(tripStart.getTime()-60*86400000)-now)/86400000));
   var daysUntilLL=Math.max(0,Math.ceil((new Date(tripStart.getTime()-7*86400000)-now)/86400000));
-  function wxEmoji(c){if(c<=1)return 'Ã¢ÂÂÃ¯Â¸Â';if(c<=3)return 'Ã¢ÂÂ';if(c<=67)return 'Ã°ÂÂÂ§Ã¯Â¸Â';if(c<=77)return 'Ã¢ÂÂÃ¯Â¸Â';if(c<=82)return 'Ã°ÂÂÂ¦Ã¯Â¸Â';return 'Ã¢ÂÂ¡';}
+  function wxEmoji(c){if(c<=1)return 'âï¸';if(c<=3)return 'â';if(c<=67)return 'ð§ï¸';if(c<=77)return 'âï¸';if(c<=82)return 'ð¦ï¸';return 'â¡';}
   function fmtH(h){return (h%12||12)+(h>=12?' PM':' AM');}
   var dayLbls=['Sun Jun 28','Mon Jun 29','Tue Jun 30'];
   var hoursHtml='';
@@ -3060,9 +3060,9 @@ function openPreTrip(){
     hoursHtml+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(di<2?'border-bottom:1px solid var(--border)':'')+'">'
       +'<span style="font-weight:600;font-size:13px">'+dayLbls[di]+'</span>'
       +'<span style="font-size:12px;color:var(--text-muted)">'
-      +(dlH?'DL '+fmtH(dlH.open)+'Ã¢ÂÂ'+fmtH(dlH.close):'DL n/a')
-      +' ÃÂ  '
-      +(dcaH?'DCA '+fmtH(dcaH.open)+'Ã¢ÂÂ'+fmtH(dcaH.close):'DCA n/a')
+      +(dlH?'DL '+fmtH(dlH.open)+'â'+fmtH(dlH.close):'DL n/a')
+      +' Â  '
+      +(dcaH?'DCA '+fmtH(dcaH.open)+'â'+fmtH(dcaH.close):'DCA n/a')
       +'</span></div>';
   });
   var wxHtml='';
@@ -3077,12 +3077,12 @@ function openPreTrip(){
       return '<div style="flex:1;text-align:center;padding:10px 4px;background:var(--card);border-radius:12px;margin:0 3px">'
         +'<div style="font-size:10px;font-weight:600;color:var(--text-muted);margin-bottom:4px">'+dayLbls[di]+'</div>'
         +'<div style="font-size:22px;margin-bottom:4px">'+wxEmoji(code)+'</div>'
-        +'<div style="font-size:13px;font-weight:700">'+hi+'ÃÂ°</div>'
-        +'<div style="font-size:11px;color:var(--text-muted)">'+lo+'ÃÂ°</div>'
+        +'<div style="font-size:13px;font-weight:700">'+hi+'Â°</div>'
+        +'<div style="font-size:11px;color:var(--text-muted)">'+lo+'Â°</div>'
         +'</div>';
     }).join('');
   } else {
-    wxHtml='<div style="color:var(--text-muted);font-size:13px">LoadingÃ¢ÂÂ¦</div>';
+    wxHtml='<div style="color:var(--text-muted);font-size:13px">Loadingâ¦</div>';
   }
   function acc(id,title,body,open){
     return '<div style="border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:12px">'
@@ -3092,36 +3092,38 @@ function openPreTrip(){
       +' ontouchend="event.preventDefault();ptToggle(this.dataset.ptid);"'
       +' style="width:100%;text-align:left;padding:14px 16px;background:var(--card);border:none;font-size:15px;font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer;touch-action:manipulation">'
       +'<span>'+title+'</span>'
-      +'<span id="pt_arr_'+id+'" style="font-size:11px;color:var(--text-muted)">'+(open?'Ã¢ÂÂ²':'Ã¢ÂÂ¼')+'</span>'
+      +'<span id="pt_arr_'+id+'" style="font-size:11px;color:var(--text-muted)">'+(open?'â²':'â¼')+'</span>'
       +'</button>'
       +'<div id="pt_body_'+id+'" style="'+(open?'':'display:none;')+'padding:14px 16px;border-top:1px solid var(--border)">'
       +body
       +'</div>'
+      +'</div>';
+  }
   var drs=[];
   try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
-  var drListHtml='<div id="pt_dining_list" style="margin-bottom:12px">';
+  var drItemsHtml='';
   if(!drs.length){
-    drListHtml+='<p style="color:var(--text-muted);font-size:13px;margin:0 0 8px">No reservations added yet.</p>';
-  } else {
-    drListHtml+=drs.map(function(r,i){
-      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">'
-        +'<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>'
-        +'<div style="font-size:12px;color:var(--text-muted)">'+r.date+' Â· '+r.time+(r.conf?' Â· #'+r.conf:'')+'</div></div>'
-        +'<button data-dridx="'+i+'" ontouchend="event.preventDefault();removeDiningRes(+this.dataset.dridx);" onclick="removeDiningRes(+this.dataset.dridx);" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;touch-action:manipulation;padding:0 4px">ðï¸</button>'
-        +'</div>';
-    }).join('');
+    drItemsHtml+='<p style="color:var(--text-muted);font-size:13px;margin:0 0 8px">No reservations added yet.</p>';
+  }else{
+    drs.forEach(function(r,i){
+      drItemsHtml+='<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">';
+      drItemsHtml+='<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>';
+      drItemsHtml+='<div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div>';
+      drItemsHtml+='<button data-dridx="'+i+'" onclick="removeDiningRes(+this.dataset.dridx)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px">&#128465;</button>';
+      drItemsHtml+='</div>';
+    });
   }
-  drListHtml+='</div>';
-  var addResBtnHtml=''
-    +'<div style="display:flex;gap:8px;margin-bottom:8px">'
-    +'<input id="pt_new_rest" type="text" autocomplete="off" autocorrect="off" inputmode="text" placeholder="Restaurant name" style="flex:1;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">'
-    +'<input id="pt_new_time" type="text" autocomplete="off" inputmode="none" placeholder="6:30 PM" style="width:110px;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">'
-    +'</div>'
-    +'<button id="pt_save_res_btn" ontouchend="event.preventDefault();addDiningReservation();" onclick="addDiningReservation();" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation;margin-bottom:0">Save Reservation</button>'
-    +'<button ontouchend="event.preventDefault();getDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land);" onclick="getDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land);" style="margin-top:10px;width:100%;padding:12px;background:var(--magic);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation" data-rest="Cafe Orleans" data-elid="pt_dining_recs_result" data-land="">'&#10024; Get AI Dining Tips</button>';
+  var drListHtml='<div id="pt_dining_list" style="margin-bottom:12px">'+drItemsHtml+'</div>';
+  var addResBtnHtml='<div style="display:flex;gap:8px;margin-bottom:8px">';
+  addResBtnHtml+='<input id="pt_new_rest" type="text" autocomplete="off" autocorrect="off" inputmode="text" placeholder="Restaurant name" style="flex:1;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">';
+  addResBtnHtml+='<input id="pt_new_time" type="text" autocomplete="off" inputmode="none" placeholder="6:30 PM" style="width:110px;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">';
+  addResBtnHtml+='</div>';
+  addResBtnHtml+='<button id="pt_save_res_btn" onclick="addDiningReservation()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px">Save Reservation</button>';
+  addResBtnHtml+='<button onclick="getDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land)" data-rest="Cafe Orleans" data-elid="pt_dining_recs_result" data-land="" style="width:100%;padding:12px;background:var(--magic);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer">&#10024; Get AI Dining Tips</button>';
+
   p.innerHTML=''
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
-    +'<h2 style="margin:0;font-size:20px;font-weight:700">Ã°ÂÂÂ Pre-Trip Planning</h2>'
+    +'<h2 style="margin:0;font-size:20px;font-weight:700">ð Pre-Trip Planning</h2>'
     +'<button id="pt_done_btn"'
     +' onclick="document.getElementById(this.dataset.oid).classList.add(this.dataset.cls)"'
     +' ontouchstart="event.preventDefault();"'
@@ -3140,35 +3142,35 @@ function openPreTrip(){
     +'</div>'
     +'</div>'
     +'<div style="background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:12px">'
-    +'<div style="font-size:15px;font-weight:700;margin-bottom:8px">Ã°ÂÂÂ¡ Park Hours</div>'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:8px">ð¡ Park Hours</div>'
     +hoursHtml
     +'</div>'
     +'<div style="background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:12px">'
-    +'<div style="font-size:15px;font-weight:700;margin-bottom:10px">Ã¢ÂÂ Weather Ã¢ÂÂ Anaheim Jun 28Ã¢ÂÂ30</div>'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:10px">â Weather â Anaheim Jun 28â30</div>'
     +'<div style="display:flex;margin:0 -3px">'+wxHtml+'</div>'
     +(weatherData&&weatherData.isTypical?'<div style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center">Typical June averages</div>':'')
     +'</div>'
-    +acc('setup','Ã¢ÂÂÃ¯Â¸Â Setup Your Park Visit',
+    +acc('setup','âï¸ Setup Your Park Visit',
       '<div style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Configure your group, park preferences, and schedule.</div>'
       +'<button onclick="openSetup&&openSetup();"'
       +' ontouchstart="event.preventDefault();"'
       +' ontouchend="event.preventDefault();openSetup&&openSetup();"'
-      +' style="width:100%;padding:10px;background:var(--magic);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation">Ã¢ÂÂÃ¯Â¸Â Open Setup</button>',
+      +' style="width:100%;padding:10px;background:var(--magic);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation">âï¸ Open Setup</button>',
       false)
-    +acc('kbyg','Ã°ÂÂÂ¡ Know Before You Go',
+    +acc('kbyg','ð¡ Know Before You Go',
       '<div id="pt_kbyg_content"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px">Tap to expand for AI insights</div></div>',
       false)
-    +acc('crowds','Ã°ÂÂÂ¥ Crowd Prediction',
+    +acc('crowds','ð¥ Crowd Prediction',
       '<div id="pt_crowds_content"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px">Tap to expand for crowd forecast</div></div>',
       false)
-    +acc('daystrategy','Ã°ÂÂÂÃ¯Â¸Â Day-by-Day Strategy',
+    +acc('daystrategy','ðï¸ Day-by-Day Strategy',
       '<div id="pt_daystrategy_content"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px">Tap to expand for strategy</div></div>',
       false)
-    +acc('llplanner','Ã¢ÂÂ¡ Lightning Lane Planner',
+    +acc('llplanner','â¡ Lightning Lane Planner',
       '<div id="pt_llplanner_content"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px">Tap to expand for LL plan</div></div>',
       false)
-    +acc('dining','Ã°ÂÂÂ½Ã¯Â¸Â Dining Reservations',drListHtml+addResBtnHtml,false)
-    +acc('checklist','Ã¢ÂÂ Pre-Trip Checklist','<div id="pt_checklist_content"></div>',true);
+    +acc('dining','ð½ï¸ Dining Reservations',drListHtml+addResBtnHtml,false)
+    +acc('checklist','â Pre-Trip Checklist','<div id="pt_checklist_content"></div>',true);
   renderPreTripChecklist();
 }
 
@@ -3178,7 +3180,7 @@ function ptToggle(id){
   if(!body)return;
   var isOpen=body.style.display!=='none';
   body.style.display=isOpen?'none':'block';
-  if(arr)arr.textContent=isOpen?'Ã¢ÂÂ¼':'Ã¢ÂÂ²';
+  if(arr)arr.textContent=isOpen?'â¼':'â²';
   if(!isOpen){
     if(id==='kbyg')loadKnowBeforeYouGo();
     else if(id==='crowds')loadCrowdPrediction();
@@ -3209,12 +3211,12 @@ function renderPreTripChecklist(){
           +' onclick="removeChecklistItem(+this.dataset.cidx)"'
           +' ontouchstart="event.preventDefault();"'
           +' ontouchend="event.preventDefault();removeChecklistItem(+this.dataset.cidx);"'
-          +' style="margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;touch-action:manipulation;padding:0 4px">ÃÂ</button>'
+          +' style="margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;touch-action:manipulation;padding:0 4px">Ã</button>'
         :'')
       +'</label>';
   }).join('')
   +'<div style="display:flex;gap:8px;margin-top:12px">'
-  +'<input id="pt_checklist_new" type="text" placeholder="Add custom itemÃ¢ÂÂ¦"'
+  +'<input id="pt_checklist_new" type="text" placeholder="Add custom itemâ¦"'
   +' style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--card)">'
   +'<button onclick="addChecklistItem()"'
   +' ontouchstart="event.preventDefault();"'
@@ -3323,10 +3325,9 @@ function saveDiningReservations(){
   try{localStorage.setItem('dining_reservations',JSON.stringify(diningReservations));}catch(e){}
 }
 
-
 function renderDiningReservationsList(){
   var list=document.getElementById('pt_dining_list');
-  if(!list) return;
+  if(!list)return;
   var drs=[];
   try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
   if(!drs.length){
@@ -3334,11 +3335,12 @@ function renderDiningReservationsList(){
     return;
   }
   list.innerHTML=drs.map(function(r,i){
-    return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">'
-      +'<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>'
-      +'<div style="font-size:12px;color:var(--text-muted)">'+(r.date?r.date+' Â· ':'')+r.time+(r.conf?' Â· #'+r.conf:'')+'</div></div>'
-      +'<button data-dridx="'+i+'" ontouchend="event.preventDefault();removeDiningRes(+this.dataset.dridx);" onclick="removeDiningRes(+this.dataset.dridx);" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;touch-action:manipulation;padding:0 4px">ðï¸</button>'
-      +'</div>';
+    var card='<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">';
+    card+='<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>';
+    card+='<div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div>';
+    card+='<button data-dridx="'+i+'" onclick="removeDiningRes(+this.dataset.dridx)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px">&#128465;</button>';
+    card+='</div>';
+    return card;
   }).join('');
 }
 
@@ -3346,10 +3348,10 @@ function addDiningReservation(){
   var nameEl=document.getElementById('pt_new_rest');
   var timeEl=document.getElementById('pt_new_time');
   var btn=document.getElementById('pt_save_res_btn');
-  if(!nameEl||!timeEl) return;
+  if(!nameEl||!timeEl)return;
   var name=nameEl.value.trim();
   var time=timeEl.value.trim();
-  if(!name) return;
+  if(!name)return;
   var drs=[];
   try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
   drs.push({name:name,date:'',time:time||'',conf:''});
@@ -3358,7 +3360,7 @@ function addDiningReservation(){
   timeEl.value='';
   if(btn){
     var orig=btn.textContent;
-    btn.textContent='â Saved!';
+    btn.textContent='\u2705 Saved!';
     btn.style.background='#22c55e';
     setTimeout(function(){btn.textContent=orig;btn.style.background='';},1000);
   }
@@ -3433,7 +3435,7 @@ async function loadLLPlanner(){
   var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'the main headliners';
   var thrill=sd.thrill||'Mix';var startTime=sd.startTime||'Rope drop';
   var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed';
-  var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Start: '+startTime+' | LL plan: '+ll+' | Must-rides: '+mustRides+'\nDATES: Sun Jun 28, Mon Jun 29 (VIP Tour 10AM-5PM), Tue Jun 30\n\nCreate a Lightning Lane strategy for each park day:\n\n**LLMP Booking Order (each day):**\n- First ride to book at park open (or 7AM on-site)\n- Exact sequence: ride name Ã¢ÂÂ target time Ã¢ÂÂ expected return window\n- How many devices to use for '+size+' people and who books what\n- Which rides to skip LL and ride standby instead\n\n**Lightning Lane Single (Individual Attractions):**\n- Which ILL rides are worth paying for (Rise of Resistance, RSR, etc)\n- Recommended purchase time\n\n**Key Rules for this group:**\n- How group size of '+size+' affects booking\n- The #1 LL mistake to avoid\n\nBe extremely specific with ride names and times. Bold the most critical actions.';
+  var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Start: '+startTime+' | LL plan: '+ll+' | Must-rides: '+mustRides+'\nDATES: Sun Jun 28, Mon Jun 29 (VIP Tour 10AM-5PM), Tue Jun 30\n\nCreate a Lightning Lane strategy for each park day:\n\n**LLMP Booking Order (each day):**\n- First ride to book at park open (or 7AM on-site)\n- Exact sequence: ride name â target time â expected return window\n- How many devices to use for '+size+' people and who books what\n- Which rides to skip LL and ride standby instead\n\n**Lightning Lane Single (Individual Attractions):**\n- Which ILL rides are worth paying for (Rise of Resistance, RSR, etc)\n- Recommended purchase time\n\n**Key Rules for this group:**\n- How group size of '+size+' affects booking\n- The #1 LL mistake to avoid\n\nBe extremely specific with ride names and times. Bold the most critical actions.';
   try{
     var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:800,system:'You are a Disneyland Lightning Lane expert. Search current sources like TouringPlans, AllEars, and the Disney Tourist Blog for the most current June 2026 Lightning Lane strategies, pricing, and booking tips before responding. LL rules and best practices change frequently   always use the most current verified information. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits   popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only   never as a current strategy recommendation.',messages:[{role:'user',content:prompt}]});
     var data=await r.json();
@@ -3754,11 +3756,11 @@ function closeSetupFinal(){
         <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">( Generating your personalized trip summary...</div>
       </div>
       <div style="background:rgba(27,47,160,0.05);border:1.5px solid rgba(27,47,160,0.2);border-radius:14px;padding:14px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">Ã°ÂÂÂ¤ Share with your group</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">ð¤ Share with your group</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Send this link to everyone coming   they'll see the full schedule, live wait times, and AI features.</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">Ã°ÂÂÂ Copy Link</button>
-          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">Ã°ÂÂÂ¤ Share</button>
+          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">ð Copy Link</button>
+          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">ð¤ Share</button>
         </div>
       </div>
       <button class="setup-btn" onclick="closeSetupFinal()">  Let's Go Plan!</button>
