@@ -14,7 +14,7 @@ const existingMatch=prompt.match(/JSONSTART(\[[\s\S]*?\])JSONEND/);
 const existingSections=existingMatch?existingMatch[1]:null;
 
 // Strip boilerplate walking times/rules â keep prompt lean
-const cleanPrompt=prompt
+const cleanPrompt=promp
   .replace(/You are an expert[^\n]*/i,'')
   .replace(/Walking times[\s\S]{0,500}/i,'')
   .replace(/Show positioning[\s\S]{0,300}/i,'')
@@ -93,11 +93,7 @@ if(parsed&&parsed.sections&&Array.isArray(parsed.sections)){
   const normalized=parsed.sections.map(s=>({title:s.title||"",entries:(s.entries||[]).map(normalizeEntry)}));
 if(normalized.length<1)return res.status(200).json({error:'Schedule incomplete â please try again',sections:normalized});
 
-// Safety check: reject incomplete schedules
-const totalEntries = (normalized||[]).reduce((sum,sec)=>sum+(sec.items||[]).length,0);
-if(totalEntries < 8){
-  return res.status(200).json({error:'Schedule incomplete — please try again'});
-}
+// (safety check removed — was rejecting valid short schedules)
 return res.status(200).json({sections:normalized,explanation:parsed.explanation||"Schedule optimized."});
 }
 
