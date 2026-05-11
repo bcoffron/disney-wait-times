@@ -3101,25 +3101,16 @@ function openPreTrip(){
   }
   var drs=[];
   try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
-  var drItemsHtml='';
+  var drListHtml='<div id="pt_dining_list" style="margin-bottom:12px">';
   if(!drs.length){
-    drItemsHtml+='<p style="color:var(--text-muted);font-size:13px;margin:0 0 8px">No reservations added yet.</p>';
-  }else{
-    drs.forEach(function(r,i){
-      drItemsHtml+='<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">';
-      drItemsHtml+='<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>';
-      drItemsHtml+='<div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div>';
-      drItemsHtml+='<button data-dridx="'+i+'" onclick="removeDiningRes(+this.dataset.dridx)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px">&#128465;</button>';
-      drItemsHtml+='</div>';
-    });
+    drListHtml+='<p style="color:var(--text-muted);font-size:13px;margin:0 0 8px">No reservations added yet.</p>';
+  } else {
+    drListHtml+=drs.map(function(r,i){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div><div style="font-weight:600;font-size:14px">'+r.name+'</div><div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div><button data-dridx="'+i+'" ontouchend="event.preventDefault();removeDiningRes(+this.dataset.dridx);" onclick="removeDiningRes(+this.dataset.dridx);" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;touch-action:manipulation;padding:0 4px">&#128465;</button></div>';
+    }).join('');
   }
-  var drListHtml='<div id="pt_dining_list" style="margin-bottom:12px">'+drItemsHtml+'</div>';
-  var addResBtnHtml='<div style="display:flex;gap:8px;margin-bottom:8px">';
-  addResBtnHtml+='<input id="pt_new_rest" type="text" autocomplete="off" autocorrect="off" inputmode="text" placeholder="Restaurant name" style="flex:1;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">';
-  addResBtnHtml+='<input id="pt_new_time" type="text" autocomplete="off" inputmode="none" placeholder="6:30 PM" style="width:110px;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">';
-  addResBtnHtml+='</div>';
-  addResBtnHtml+='<button id="pt_save_res_btn" onclick="addDiningReservation()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px">Save Reservation</button>';
-  addResBtnHtml+='<button onclick="getDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land)" data-rest="Cafe Orleans" data-elid="pt_dining_recs_result" data-land="" style="width:100%;padding:12px;background:var(--magic);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer">&#10024; Get AI Dining Tips</button>';
+  drListHtml+='</div>';
+  var addResBtnHtml='<div style="display:flex;gap:8px;margin-bottom:8px"><input id="pt_new_rest" type="text" autocomplete="off" autocorrect="off" inputmode="text" placeholder="Restaurant name" style="flex:1;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)"><input id="pt_new_time" type="text" autocomplete="off" inputmode="none" placeholder="6:30 PM" style="width:110px;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)"></div><button id="pt_save_res_btn" ontouchend="event.preventDefault();addDiningReservation();" onclick="addDiningReservation();" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation;margin-bottom:10px">Save Reservation</button><button ontouchend="event.preventDefault();getDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land);" onclick="getDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land);" style="width:100%;padding:12px;background:var(--magic);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation" data-rest="Cafe Orleans" data-elid="pt_dining_recs_result" data-land="">&#10024; Get AI Dining Tips</button>';
 
   p.innerHTML=''
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
@@ -3327,7 +3318,7 @@ function saveDiningReservations(){
 
 function renderDiningReservationsList(){
   var list=document.getElementById('pt_dining_list');
-  if(!list)return;
+  if(!list) return;
   var drs=[];
   try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
   if(!drs.length){
@@ -3335,12 +3326,7 @@ function renderDiningReservationsList(){
     return;
   }
   list.innerHTML=drs.map(function(r,i){
-    var card='<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">';
-    card+='<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>';
-    card+='<div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div>';
-    card+='<button data-dridx="'+i+'" onclick="removeDiningRes(+this.dataset.dridx)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px">&#128465;</button>';
-    card+='</div>';
-    return card;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div><div style="font-weight:600;font-size:14px">'+r.name+'</div><div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div><button data-dridx="'+i+'" ontouchend="event.preventDefault();removeDiningRes(+this.dataset.dridx);" onclick="removeDiningRes(+this.dataset.dridx);" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;touch-action:manipulation;padding:0 4px">&#128465;</button></div>';
   }).join('');
 }
 
@@ -3348,20 +3334,20 @@ function addDiningReservation(){
   var nameEl=document.getElementById('pt_new_rest');
   var timeEl=document.getElementById('pt_new_time');
   var btn=document.getElementById('pt_save_res_btn');
-  if(!nameEl||!timeEl)return;
+  if(!nameEl||!timeEl) return;
   var name=nameEl.value.trim();
   var time=timeEl.value.trim();
-  if(!name)return;
+  if(!name) return;
   var drs=[];
   try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
-  drs.push({name:name,date:'',time:time||'',conf:''});
+  drs.push({name:name,date:'',time:time||''});
   try{localStorage.setItem('dining_reservations',JSON.stringify(drs));}catch(e){}
   nameEl.value='';
   timeEl.value='';
   if(btn){
     var orig=btn.textContent;
-    btn.textContent='\u2705 Saved!';
     btn.style.background='#22c55e';
+    btn.textContent='Saved!';
     setTimeout(function(){btn.textContent=orig;btn.style.background='';},1000);
   }
   renderDiningReservationsList();
