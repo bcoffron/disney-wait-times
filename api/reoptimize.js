@@ -13,20 +13,20 @@ if(!prompt)return res.status(400).json({error:"Missing prompt"});
 const existingMatch=prompt.match(/JSONSTART(\[[\s\S]*?\])JSONEND/);
 const existingSections=existingMatch?existingMatch[1]:null;
 
-// Strip boilerplate walking times/rules — keep prompt lean
+// Strip boilerplate walking times/rules â keep prompt lean
 const cleanPrompt=prompt
   .replace(/You are an expert[^\n]*/i,'')
   .replace(/Walking times[\s\S]{0,500}/i,'')
   .replace(/Show positioning[\s\S]{0,300}/i,'')
   .replace(/DINING TIMING RULES[\s\S]{0,300}/i,'')
   .trim()
-  .substring(0,800);
+  .substring(0,2000);
 
 const model="claude-sonnet-4-6";
 const system='You are a Disneyland schedule optimizer. You MUST output ONLY a raw JSON object with zero additional text. Do not use markdown. Do not explain. Just JSON. Required structure: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence summary"}';
 
 const userMsg=existingSections
-  ?"Optimize this schedule for minimum waits. JSON only, no other text.\nCurrent:"+existingSections+"\nContext:"+cleanPrompt.substring(0,400)
+  ?"Optimize this schedule for minimum waits. JSON only, no other text.\nCurrent:"+existingSections+"\nContext:"+cleanPrompt.substring(0,6000)
   :"Build an optimized day plan. JSON only, no other text.\n"+cleanPrompt;
 
 function normalizeEntry(e){
@@ -63,7 +63,7 @@ if(!text){
   });
 }
 
-// Robust JSON extraction — strip any accidental markdown
+// Robust JSON extraction â strip any accidental markdown
 const clean=text.replace(/```json[\s\S]*?```/g,"").replace(/```/g,"").trim();
 
 let parsed=null;
@@ -91,7 +91,13 @@ if(!text.trim().endsWith(']')){
 
 if(parsed&&parsed.sections&&Array.isArray(parsed.sections)){
   const normalized=parsed.sections.map(s=>({title:s.title||"",entries:(s.entries||[]).map(normalizeEntry)}));
-if(normalized.length<1)return res.status(200).json({error:'Schedule incomplete — please try again',sections:normalized});
+if(normalized.length<1)return res.status(200).json({error:'Schedule incomplete â please try again',sections:normalized});
+
+// Safety check: reject incomplete schedules
+const totalEntries = (normalized||[]).reduce((sum,sec)=>sum+(sec.items||[]).length,0);
+if(totalEntries < 8){
+  return res.status(200).json({error:'Schedule incomplete — please try again'});
+}
 return res.status(200).json({sections:normalized,explanation:parsed.explanation||"Schedule optimized."});
 }
 
