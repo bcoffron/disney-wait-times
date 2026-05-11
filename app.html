@@ -2436,7 +2436,7 @@ function renderSched(){
           +'</div>'
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'">&#10003; Saved!</div>'
           +'</div>'
-          +'<button class="dining-btn" data-name=\''+safeName+'\' data-land=\''+safeLandCtx+'\'>🍽️ Get Dining Recommendations</button>'
+          +'<button class="dining-btn" data-name=\''+dname.split("'").join('\u2019')+'\' data-land=\''+safeLandCtx+'\'>🍽️ Get Dining Recommendations</button>'
           +'<div class="dining-result"></div>';
       }
       var reroute='';
