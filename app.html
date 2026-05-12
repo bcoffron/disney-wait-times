@@ -3872,9 +3872,14 @@ function enterSplash(skipAnim) {
   var main = document.getElementById('mainApp');
   if (!splash || !main) return;
   sessionStorage.setItem('splashSeen', '1');
+  function _initApp() {
+    if (typeof showApp === 'function') showApp();
+    else if (typeof setDay === 'function') setDay(1);
+  }
   if (skipAnim) {
     splash.style.display = 'none';
     main.style.display = '';
+    _initApp();
     return;
   }
   splash.style.transition = 'opacity .4s ease';
@@ -3882,11 +3887,10 @@ function enterSplash(skipAnim) {
   setTimeout(function() {
     splash.style.display = 'none';
     main.style.display = '';
+    _initApp();
   }, 400);
 }
 
-/* --- Bottom nav switching --- */
-var _currentNav = 'schedule';
 function switchNav(tabKey) {
   // Update bottom nav items
   var items = document.querySelectorAll('.nav-item');
