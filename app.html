@@ -3873,8 +3873,22 @@ function enterSplash(skipAnim) {
   if (!splash || !main) return;
   sessionStorage.setItem('splashSeen', '1');
   function _initApp() {
-    if (typeof showApp === 'function') showApp();
-    else if (typeof setDay === 'function') setDay(1);
+    if (typeof loadKey === 'function') loadKey();
+    if (typeof checkLock === 'function') checkLock();
+    if (typeof applyRoleUI === 'function') applyRoleUI();
+    if (typeof startScheduleSync === 'function') startScheduleSync();
+    else if (typeof pullSchedule === 'function') pullSchedule(1);
+    if (typeof scheduleLLPrompts === 'function') scheduleLLPrompts();
+    if (typeof startWazeChecks === 'function') startWazeChecks();
+    if (typeof renderDayInfoBar === 'function') renderDayInfoBar(1);
+    if (typeof scheduleMorningCheck === 'function') scheduleMorningCheck();
+    if (typeof scheduleWeatherCheck === 'function') scheduleWeatherCheck();
+    if (typeof startNotesSync === 'function') startNotesSync();
+    if (typeof warmCachesFromServer === 'function') warmCachesFromServer();
+    if (typeof renderCountdown === 'function') renderCountdown();
+    setTimeout(function() {
+      if (typeof renderSched === 'function') renderSched(1);
+    }, 300);
   }
   if (skipAnim) {
     splash.style.display = 'none';
