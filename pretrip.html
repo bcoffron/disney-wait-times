@@ -1157,7 +1157,9 @@ function generateFromSetup(params, callback) {
       if(sections && sections.length > 0) callback(null, sections);
       else callback('Empty schedule');
     }catch(e){callback('Parse error: '+e.message);}
-  }
+  })
+  .catch(function(e){callback('Network error: '+e.message);});
+
 function confirmLLSetup(){
   if(llState.multiPass===null){alert('Please select whether you have Lightning Lane Multi Pass.');return;}
   document.getElementById('llModal').style.display='none';
