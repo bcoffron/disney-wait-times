@@ -17,29 +17,48 @@
 <title>Coffron/Woods Disneyland Trip</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ===== SECTION 1: CSS CUSTOM PROPERTIES ===== */
 :root{
-  --magic:#1B2FA0;--magic-light:#3D56D6;--magic-dim:rgba(27,47,160,0.1);
+  /* Brand */
+  --magic:#1B2FA0;--magic-light:#3D56D6;--magic-dim:rgba(27,47,160,0.10);
   --gold:#C9860A;--gold-light:#E8A020;--gold-dim:rgba(201,134,10,0.12);
-  --bg:#FFF8F0;--card:#FFFFFF;--border:rgba(0,0,0,0.08);
+  /* Coral — AI Optimize ONLY — never use elsewhere */
+  --coral:#FF5A3D;--coral-dark:#D9421D;--coral-dim:rgba(255,90,61,0.10);
+  /* Amber — active nav dot */
+  --amber:#F59E0B;
+  /* Surfaces */
+  --bg:#FFF8F0;--card:#FFFFFF;--border:rgba(0,0,0,0.08);--border-md:rgba(0,0,0,0.14);
+  /* Typography */
   --text:#1A1235;--text-muted:#5A526E;--text-dim:#A09AB5;
-  --green:#15803D;--green-bg:rgba(21,128,61,0.1);
-  --yellow:#B45309;--yellow-bg:rgba(180,83,9,0.1);
-  --red:#C41E1E;--red-bg:rgba(196,30,30,0.1);
-  --blue:#1B2FA0;--blue-bg:rgba(27,47,160,0.1);
-  --purple:#6D28D9;--purple-bg:rgba(109,40,217,0.1);
-  --orange:#C2410C;--orange-bg:rgba(194,65,12,0.1);
-  --radius:16px;--radius-sm:10px;
-  --shadow:0 2px 12px rgba(27,47,160,0.08);
-  --shadow-md:0 4px 20px rgba(27,47,160,0.12);
+  /* Status */
+  --green:#15803D;--green-bg:rgba(21,128,61,0.10);
+  --yellow:#B45309;--yellow-bg:rgba(180,83,9,0.10);
+  --red:#C41E1E;--red-bg:rgba(196,30,30,0.10);
+  --blue:#1B2FA0;--blue-bg:rgba(27,47,160,0.10);
+  --purple:#6D28D9;--purple-bg:rgba(109,40,217,0.10);
+  --orange:#C2410C;--orange-bg:rgba(194,65,12,0.10);
+  --teal:#0D7377;--teal-bg:rgba(13,115,119,0.10);
+  /* Shape */
+  --radius:16px;--radius-sm:10px;--radius-xs:6px;
+  --shadow:0 2px 12px rgba(27,47,160,0.08);--shadow-md:0 4px 20px rgba(27,47,160,0.12);--shadow-lg:0 8px 32px rgba(27,47,160,0.16);
+  /* Layout */
+  --nav-h:68px;--safe-bottom:env(safe-area-inset-bottom,0px);
+  /* Legacy (keep for JS compatibility) */
+  --navy:var(--bg);--navy-border:var(--border);--bg-card:var(--card);
+  --gold-border:var(--gold);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;color-scheme:light only}
-.app{position:relative;z-index:1;max-width:430px;margin:0 auto;padding-bottom:90px;background:var(--bg);min-height:100vh}
-.header{padding:28px 20px 12px;position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(255,248,240,1) 0%,rgba(255,248,240,0.96) 75%,transparent 100%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;color-scheme:light only;-webkit-font-smoothing:antialiased}
+
+/* ===== SECTION 2: LAYOUT ===== */
+.app{position:relative;z-index:1;max-width:430px;margin:0 auto;padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 16px);background:var(--bg);min-height:100vh}
+
+/* ===== SECTION 6: HEADER BAR & DAY TABS ===== */
+.header{padding:28px 20px 10px;position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(255,248,240,1) 0%,rgba(255,248,240,0.96) 75%,transparent 100%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
 .header-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;background:linear-gradient(135deg,#1B2FA0,#6D28D9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.25}
 .header-sub{font-size:12px;color:var(--text-muted);margin-top:3px;letter-spacing:0.02em}
-.day-tabs{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
+.day-tabs{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px;padding-bottom:2px}
 .day-tabs::-webkit-scrollbar{display:none}
 .day-tab{flex-shrink:0;padding:8px 14px;border-radius:99px;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);transition:all .25s;display:flex;align-items:center;gap:7px;box-shadow:var(--shadow)}
 .day-tab-icon{font-size:22px;line-height:1}
@@ -47,13 +66,267 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .day-tab-name{font-size:12px;font-weight:600}
 .day-tab-date{font-size:10px;opacity:.7}
 .day-tab.active{background:linear-gradient(135deg,rgba(27,47,160,0.12),rgba(109,40,217,0.08));border-color:rgba(27,47,160,0.35);color:var(--magic);font-weight:600;box-shadow:0 2px 8px rgba(27,47,160,0.15)}
-#day-tab-1.active{background:linear-gradient(135deg,rgba(201,134,10,0.12),rgba(232,160,32,0.08))!important;border-color:rgba(201,134,10,0.4)!important;box-shadow:0 2px 8px rgba(201,134,10,0.2)!important}
+/* VIP day tab (gold treatment) */
+#day-tab-1.active,
+.day-tab.vip-tab.active{background:linear-gradient(135deg,rgba(201,134,10,0.13),rgba(232,160,32,0.07))!important;border-color:rgba(201,134,10,0.4)!important;box-shadow:0 2px 8px rgba(201,134,10,0.20)!important;color:var(--gold)!important}
+.day-tab.vip-tab{border-color:rgba(201,134,10,0.25)!important}
+.day-tab.vip-tab .day-tab-name::after{content:'VIP';font-size:8px;background:linear-gradient(135deg,#C9860A,#E8A020);color:#fff;border-radius:99px;padding:1px 4px;margin-left:4px;font-weight:700;vertical-align:middle}
+
+/* ===== SECTION 2: BOTTOM NAVIGATION BAR ===== */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  height:calc(var(--nav-h) + var(--safe-bottom));
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-around;
+  padding-top:8px;padding-bottom:var(--safe-bottom);
+  z-index:200;box-shadow:0 -4px 24px rgba(27,47,160,0.08);
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:4px 12px;border-radius:var(--radius-sm);
+  border:none;background:none;font-family:inherit;
+  color:var(--text-dim);transition:color .2s;
+  position:relative;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.nav-item.active{color:var(--magic)}
+.nav-item svg{width:24px;height:24px;transition:transform .2s}
+.nav-item.active svg{transform:translateY(-1px)}
+.nav-label{font-size:10px;font-weight:600;letter-spacing:0.02em}
+/* Amber dot — active state indicator */
+.nav-dot{
+  position:absolute;top:2px;right:10px;
+  width:6px;height:6px;border-radius:50%;
+  background:var(--amber);
+  display:none;
+}
+.nav-item.active .nav-dot{display:block}
+
+/* ===== SECTION 3: SCHEDULE CARDS ===== */
+.content{padding:0 20px}
+.sec-hdr{display:flex;align-items:center;gap:8px;margin:13px 0 7px}
+.sec-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--magic);white-space:nowrap;opacity:0.7}
+.sec-line{flex:1;height:.5px;background:var(--border-md)}
+
+/* Card base */
+.ride-block{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;
+  transition:all .2s;position:relative;box-shadow:var(--shadow);
+  width:100%;box-sizing:border-box;
+}
+/* Time column + body layout */
+.ride-main{display:flex;align-items:flex-start;gap:0;padding:0}
+.ride-time-col{
+  min-width:64px;padding:11px 8px 11px 12px;
+  display:flex;flex-direction:column;align-items:flex-start;
+  border-right:1px solid var(--border);flex-shrink:0;
+}
+.ride-time{font-size:13px;font-weight:700;color:var(--magic);line-height:1.2;white-space:nowrap}
+.ride-time-end{font-size:10px;color:var(--text-dim);line-height:1.2;margin-top:1px}
+.ride-body{flex:1;min-width:0;overflow:hidden;padding:10px 12px}
+.ride-title-row{display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap;margin-bottom:2px}
+.ride-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.ride-note{font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:2px}
+
+/* Type badges */
+.tb{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;flex-shrink:0;letter-spacing:0.01em}
+.tb-ride{background:var(--green-bg);color:var(--green)}
+.tb-show{background:var(--purple-bg);color:var(--purple)}
+.tb-food,.tb-dining{background:var(--gold-dim);color:var(--gold)}
+.tb-hop{background:var(--blue-bg);color:var(--blue)}
+.tb-vip{background:linear-gradient(135deg,#C9860A,#E8A020);color:#FFFFFF!important;font-weight:700}
+.tb-tip{background:rgba(139,143,168,.1);color:var(--text-muted)}
+.tb-break,.tb-rest{background:rgba(100,180,255,.15);color:#2980b9}
+.tb-photo{background:rgba(124,58,237,0.12);color:#7c3aed}
+.tb-snack{background:var(--green-bg);color:var(--green)}
+.tb-ll{background:var(--orange-bg);color:var(--orange)}
+
+/* Live wait pill */
+.wait-pill{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;
+  flex-shrink:0;
+}
+.wait-low{background:var(--green-bg);color:var(--green)}
+.wait-med{background:var(--yellow-bg);color:var(--yellow)}
+.wait-high{background:var(--red-bg);color:var(--red)}
+.wait-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 1.4s ease-in-out infinite}
+
+/* Card type variants */
+.ride-block.is-show{border-left:3px solid var(--purple)}
+.ride-block.is-food,.ride-block.is-dining{border-left:3px solid var(--gold)}
+.ride-block.is-hop{border-style:dashed;background:rgba(27,47,160,0.02)}
+.ride-block.is-tip{border-left:3px solid var(--text-dim);background:rgba(160,154,181,0.04)}
+.ride-block.is-vip{border-left:4px solid #C9860A!important;background:linear-gradient(135deg,#FFFBF0,#FFF8E6)!important;border-color:#D4A017!important}
+.ride-block.is-break,.ride-block.is-rest{border-left:4px solid #2980b9!important;background:linear-gradient(135deg,#EBF5FB,#D6EAF8)!important}
+.ride-block.is-photo{border-left:4px solid #7c3aed!important;background:linear-gradient(135deg,#F5F3FF,#EDE9FE)!important}
+.ride-block.is-snack{border-left:4px solid #27ae60!important;background:linear-gradient(135deg,#EAFAF1,#D5F5E3)!important}
+.ride-block.is-lls{border-left:3px solid var(--orange)}
+
+/* VIP skip-line badge */
+.skip-line-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;
+  background:linear-gradient(135deg,#C9860A,#E8A020);color:#fff;
+  flex-shrink:0;text-transform:uppercase;letter-spacing:0.05em;
+}
+
+/* LL / LLS banners */
+.ll-banner{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;background:rgba(251,146,60,.06);border-top:1px solid rgba(251,146,60,.15)}
+.lls-banner{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;background:rgba(251,146,60,.10);border-top:1px solid rgba(251,146,60,.25)}
+.ll-txt,.lls-txt{font-size:12px;color:var(--orange);line-height:1.5}
+.ll-txt b,.lls-txt b{font-weight:600}
+
+/* Edit mode */
+.ride-block.edit-mode{border-color:rgba(201,168,76,.3);cursor:grab}
+.ride-block.edit-mode:active{cursor:grabbing}
+.ride-block.dragging{opacity:.4;border-style:dashed}
+.ride-block.drag-over{border-color:var(--gold);transform:scale(1.01)}
+.del-btn{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--red-bg);border:1px solid rgba(248,113,113,.4);color:var(--red);font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center;font-family:inherit;padding:0;line-height:1}
+.edit-mode .del-btn{display:flex}
+.add-btn{width:100%;padding:10px;border-radius:var(--radius-sm);border:1.5px dashed rgba(27,47,160,0.25);background:rgba(27,47,160,0.02);color:var(--magic);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;margin-top:4px}
+.add-btn:active{background:var(--gold-dim)}
+
+/* Changed card highlight (AI optimize) */
+.ride-block.ai-changed{border-color:rgba(255,90,61,0.4)!important;box-shadow:0 2px 12px rgba(255,90,61,0.15)!important}
+
+/* ===== SECTION 4: AI OPTIMIZE BUTTON ===== */
+.ai-opt-hero{
+  width:100%;margin-bottom:12px;
+  background:linear-gradient(135deg,var(--coral),var(--coral-dark));
+  border:none;border-radius:var(--radius);
+  padding:15px 20px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  box-shadow:0 4px 20px rgba(255,90,61,0.35);
+  transition:all .2s;font-family:inherit;
+  color:#fff;
+}
+.ai-opt-hero:active{transform:scale(.98);box-shadow:0 2px 12px rgba(255,90,61,0.25)}
+.ai-opt-label{font-size:16px;font-weight:700;letter-spacing:0.01em;display:flex;align-items:center;gap:8px}
+.ai-opt-sub{font-size:11px;opacity:0.85;letter-spacing:0.01em}
+
+/* Legacy AI opt button (small) — kept for inline use */
+.ai-opt-btn{padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;border:1.5px solid rgba(109,40,217,0.25);background:rgba(109,40,217,0.07);color:var(--purple)}
+
+/* ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== */
+.reopt-box{display:none;margin-bottom:12px;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-md)}
+.reopt-box.show{display:block}
+.reopt-summary-bar{
+  background:linear-gradient(135deg,var(--coral),var(--coral-dark));
+  padding:12px 16px;display:flex;align-items:center;gap:10px;
+}
+.reopt-summary-icon{width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.reopt-summary-text{flex:1}
+.reopt-summary-title{font-size:13px;font-weight:700;color:#fff}
+.reopt-summary-sub{font-size:11px;color:rgba(255,255,255,0.8);margin-top:1px}
+.reopt-body{background:var(--card);padding:14px 16px;border:1.5px solid rgba(255,90,61,0.2);border-top:none;border-bottom-left-radius:var(--radius);border-bottom-right-radius:var(--radius)}
+.reopt-label{font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--coral);margin-bottom:6px;text-transform:uppercase}
+.reopt-text{font-size:13px;color:var(--text-muted);line-height:1.6}
+.reopt-btns{gap:8px;margin-top:12px;display:none}
+.reopt-btns.show{display:flex}
+.reopt-apply{flex:2;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--coral),var(--coral-dark));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+.reopt-dismiss{flex:1;padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer}
+
+/* ===== SECTION 9: ONE-TOUCH ALTERNATIVES SHEET ===== */
+.alt-sheet{position:fixed;inset:0;z-index:400;display:none;align-items:flex-end;backdrop-filter:blur(4px);background:rgba(0,0,0,.45)}
+.alt-sheet.show{display:flex}
+.alt-sheet-inner{
+  width:100%;max-width:430px;margin:0 auto;
+  background:var(--card);border-radius:var(--radius) var(--radius) 0 0;
+  overflow:hidden;box-shadow:var(--shadow-lg);
+  padding-bottom:var(--safe-bottom);
+}
+.alt-sheet-handle{width:36px;height:4px;background:var(--border-md);border-radius:99px;margin:12px auto 0}
+.alt-sheet-title{font-size:16px;font-weight:700;color:var(--text);padding:12px 20px 4px}
+.alt-sheet-sub{font-size:12px;color:var(--text-muted);padding:0 20px 12px;border-bottom:1px solid var(--border)}
+.alt-option{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:13px 20px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .15s;
+}
+.alt-option:hover{background:var(--magic-dim)}
+.alt-option:last-child{border-bottom:none}
+.alt-rank{
+  width:24px;height:24px;border-radius:50%;
+  background:var(--magic-dim);color:var(--magic);
+  font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.alt-rank.rank-1{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#fff}
+.alt-info{flex:1}
+.alt-name{font-size:14px;font-weight:600;color:var(--text)}
+.alt-meta{font-size:12px;color:var(--text-muted);margin-top:2px}
+.alt-note{font-size:11px;color:var(--text-dim);margin-top:6px;padding:6px 10px;background:var(--magic-dim);border-radius:var(--radius-xs)}
+.alt-close-btn{display:block;width:calc(100% - 40px);margin:12px 20px;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center}
+
+/* ===== SECTION 10: VIP DAY SYSTEM ===== */
+.vip-banner{
+  background:linear-gradient(135deg,#C9860A,#E8A020);
+  padding:10px 16px;border-radius:var(--radius-sm);
+  margin-bottom:10px;display:flex;align-items:center;gap:10px;
+}
+.vip-banner-icon{width:28px;height:28px;flex-shrink:0}
+.vip-banner-text{flex:1}
+.vip-banner-title{font-size:13px;font-weight:700;color:#fff}
+.vip-banner-sub{font-size:11px;color:rgba(255,255,255,0.85);margin-top:1px}
+
+/* ===== SECTION 11: SHARED VIP NOTES ===== */
+.vip-notes-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E6);border:1.5px solid #D4A017;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:0 3px 12px rgba(201,134,10,0.15)}
+.vip-notes-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px 5px;border-bottom:1px solid rgba(212,160,23,0.2)}
+.vip-notes-lbl{font-size:13px;font-weight:700;background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex:1}
+.vip-notes-sub{font-size:11px;color:#7A6020;padding:0 12px 7px;line-height:1.5}
+.vip-notes-meta{display:flex;align-items:center;gap:8px;padding:6px 12px;border-top:1px solid rgba(212,160,23,0.2)}
+.vip-author{font-size:10px;color:var(--gold-text);font-weight:600}
+.vip-presence{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-dim)}
+.vip-presence-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
+.vip-sync-badge{font-size:9px;background:var(--gold-dim);color:var(--gold);padding:2px 6px;border-radius:99px;font-weight:600}
+.vip-ta{width:100%;background:#FFFDF8;border:none;border-top:1px solid rgba(212,160,23,0.2);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;line-height:1.6;resize:none;min-height:120px;outline:none;display:block}
+.vip-ta::placeholder{color:var(--text-dim)}
+
+/* ===== SECTION 7: SPLASH SCREEN ===== */
+.splash-screen{
+  position:fixed;inset:0;z-index:9999;
+  background:#1A1235;
+  display:flex;align-items:stretch;
+  overflow:hidden;
+}
+.splash-left{
+  flex:1;display:flex;flex-direction:column;justify-content:space-between;
+  padding:48px 32px 40px;min-width:0;
+}
+.splash-eyebrow{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);margin-bottom:12px}
+.splash-title{font-family:'Playfair Display',serif;font-size:clamp(28px,8vw,44px);font-weight:700;color:#fff;line-height:1.1;margin-bottom:16px}
+.splash-title span{background:linear-gradient(135deg,#F59E0B,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.splash-desc{font-size:14px;color:rgba(255,255,255,0.65);line-height:1.6;max-width:280px}
+.splash-countdown{margin-top:20px}
+.splash-countdown-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.splash-countdown-val{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#fff}
+.splash-countdown-unit{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px}
+.splash-enter-btn{
+  margin-top:28px;padding:14px 28px;border-radius:var(--radius);
+  background:linear-gradient(135deg,#C9860A,#E8A020);
+  border:none;color:#fff;font-size:15px;font-weight:700;font-family:inherit;
+  cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+  box-shadow:0 4px 20px rgba(201,134,10,0.4);transition:all .2s;
+}
+.splash-enter-btn:active{transform:scale(.97)}
+.splash-right{
+  width:140px;flex-shrink:0;position:relative;overflow:hidden;
+  background:linear-gradient(180deg,rgba(27,47,160,0.3) 0%,rgba(201,134,10,0.1) 100%);
+}
+.splash-skyline{position:absolute;bottom:0;left:0;right:0}
+.splash-stars{position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden}
+
+/* ===== MISC / COMPATIBILITY STYLES ===== */
 .action-bar{display:flex;gap:8px;margin-bottom:12px}
 .action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;border:1px solid}
 .action-btn:active{transform:scale(.97)}
 .btn-waittimes{background:linear-gradient(135deg,#1B2FA0,#3D56D6);border-color:transparent;color:#FFFFFF;box-shadow:0 3px 12px rgba(27,47,160,0.3)}
 .btn-ll{background:linear-gradient(135deg,#C9860A,#E8A020);border-color:transparent;color:#FFFFFF;box-shadow:0 3px 12px rgba(201,134,10,0.3)}
-.content{padding:0 20px}
 .closed-banner{padding:11px 13px;background:rgba(196,30,30,0.04);border:1.5px solid rgba(196,30,30,0.18);border-radius:var(--radius);margin-bottom:12px}
 .closed-title{font-size:12px;font-weight:600;color:var(--red);margin-bottom:5px}
 .closed-list{display:flex;flex-direction:column;gap:4px}
@@ -63,7 +336,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .api-setup-title{font-size:13px;font-weight:600;color:#1D4ED8;margin-bottom:3px}
 .api-setup-sub{font-size:12px;color:var(--text-muted);margin-bottom:9px;line-height:1.5}
 .api-row{display:flex;gap:8px}
-.api-input{flex:1;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.api-input{flex:1;background:var(--bg);border:1px solid var(--border-md);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
 .api-input:focus{border-color:rgba(201,168,76,.4)}
 .api-btn{background:linear-gradient(135deg,var(--magic),var(--purple));border:none;color:#FFFFFF;border-radius:var(--radius-sm);padding:8px 14px;font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
 .api-ok{font-size:11px;color:var(--green);margin-top:5px;display:none}
@@ -71,67 +344,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .edit-bar{display:flex;gap:7px;margin-bottom:12px}
 .edit-toggle{flex:1;padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;transition:all .2s;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);box-shadow:var(--shadow)}
 .edit-toggle.active{background:linear-gradient(135deg,rgba(27,47,160,0.1),rgba(109,40,217,0.07));border-color:rgba(27,47,160,0.35);color:var(--magic);font-weight:600}
-.ai-opt-btn{padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;border:1.5px solid rgba(109,40,217,0.25);background:rgba(109,40,217,0.07);color:var(--purple)}
 .reset-btn{padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;border:1.5px solid rgba(196,30,30,0.25);background:rgba(196,30,30,0.06);color:var(--red)}
-.reopt-box{padding:14px;background:linear-gradient(135deg,rgba(109,40,217,0.06),rgba(27,47,160,0.04));border:1.5px solid rgba(109,40,217,0.2);border-radius:var(--radius);margin-bottom:12px;display:none;box-shadow:var(--shadow)}
-.reopt-label{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--purple);margin-bottom:6px}
-.reopt-text{font-size:13px;color:var(--text-muted);line-height:1.6}
-.reopt-btns{display:none;gap:8px;margin-top:10px}
-.reopt-btns.show{display:flex}
-.reopt-apply{flex:2;padding:9px;border-radius:var(--radius-sm);border:1px solid rgba(124,58,237,0.4);background:rgba(124,58,237,0.08);color:#7C3AED;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
-.reopt-dismiss{flex:1;padding:9px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;font-family:inherit;cursor:pointer}
-.sec-hdr{display:flex;align-items:center;gap:8px;margin:13px 0 7px}
-.sec-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--magic);white-space:nowrap;opacity:0.7}
-.sec-line{flex:1;height:.5px;background:var(--navy-border)}
-.ride-block{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;transition:all .2s;position:relative;box-shadow:var(--shadow);width:100%;box-sizing:border-box}
-.ride-block.is-show{border-left:3px solid var(--purple)}
-.ride-block.is-food{border-left:3px solid var(--gold)}
-.ride-block.is-hop{border-style:dashed;background:rgba(27,47,160,0.02)}
-.ride-block.is-vip{border-left:4px solid #C9860A!important;background:linear-gradient(135deg,#FFFBF0,#FFF8E6)!important;border-color:#D4A017!important}
-.ride-block.is-break{border-left:4px solid #2980b9!important;background:linear-gradient(135deg,#EBF5FB,#D6EAF8)!important}
-.ride-block.is-photo{border-left:4px solid #7c3aed!important;background:linear-gradient(135deg,#F5F3FF,#EDE9FE)!important}
-  .ride-block.is-photo .ride-time{color:#7c3aed!important}
-.ride-block.is-snack{border-left:4px solid #27ae60!important;background:linear-gradient(135deg,#EAFAF1,#D5F5E3)!important}
-.ride-block.is-vip .ride-time{color:#B8860B!important}
-.ride-block.is-vip .ride-note{color:#7A6020!important}
-.ride-block.is-lls{border-left:3px solid var(--orange)}
-.ride-block.edit-mode{border-color:rgba(201,168,76,.3);cursor:grab}
-.ride-block.edit-mode:active{cursor:grabbing}
-.ride-block.dragging{opacity:.4;border-style:dashed}
-.ride-block.drag-over{border-color:var(--gold);transform:scale(1.01)}
-.ride-main{display:flex;align-items:flex-start;gap:10px;padding:10px 12px}
-.ride-time{min-width:58px;font-size:13px;font-weight:700;color:var(--magic);flex-shrink:0;padding-top:1px;white-space:nowrap}
-.ride-body{flex:1;min-width:0;overflow:hidden}
-.ride-title-row{display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap;margin-bottom:2px}
-.ride-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
-.ride-note{font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:2px}
-.ll-banner{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;background:rgba(251,146,60,.06);border-top:1px solid rgba(251,146,60,.15)}
-.lls-banner{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;background:rgba(251,146,60,.1);border-top:1px solid rgba(251,146,60,.25)}
-.ll-txt,.lls-txt{font-size:12px;color:var(--orange);line-height:1.5}
-.ll-txt b,.lls-txt b{font-weight:600}
-.tb{font-size:10px;font-weight:500;padding:1px 6px;border-radius:99px;flex-shrink:0}
-.tb-ride{background:var(--green-bg);color:var(--green)}
-.tb-show{background:var(--purple-bg);color:var(--purple)}
-.tb-food{background:var(--gold-dim);color:var(--gold)}
-.tb-hop{background:var(--blue-bg);color:var(--blue)}
-.tb-vip{background:linear-gradient(135deg,#C9860A,#E8A020);color:#FFFFFF!important;font-weight:700}
-.tb-tip{background:rgba(139,143,168,.1);color:var(--text-muted)}.tb-break{background:rgba(100,180,255,.15);color:#2980b9}.tb-photo{background:rgba(124,58,237,0.12);color:#7c3aed}
-.tb-ll{background:var(--orange-bg);color:var(--orange)}
-.del-btn{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--red-bg);border:1px solid rgba(248,113,113,.4);color:var(--red);font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center;font-family:inherit;padding:0;line-height:1}
-.edit-mode .del-btn{display:flex}
-.add-btn{width:100%;padding:10px;border-radius:var(--radius-sm);border:1.5px dashed rgba(27,47,160,0.25);background:rgba(27,47,160,0.02);color:var(--magic);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;margin-top:4px}
-.add-btn:active{background:var(--gold-dim)}
 .reroute-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:5px 11px;background:linear-gradient(135deg,rgba(109,40,217,0.08),rgba(27,47,160,0.06));border:1.5px solid rgba(109,40,217,0.25);border-radius:99px;color:var(--purple);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer}
 .reroute-btn:active{transform:scale(.95)}
 .reroute-result{margin-top:7px;padding:9px 11px;background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(96,165,250,.04));border:1px solid rgba(167,139,250,.2);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6;display:none}
 .reroute-result.show{display:block}
 .rr-hdr{font-size:10px;font-weight:600;color:var(--purple);letter-spacing:.04em;margin-bottom:4px}
-.vip-notes-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E6);border:1.5px solid #D4A017;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:0 3px 12px rgba(201,134,10,0.15)}
-.vip-notes-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px 5px;border-bottom:1px solid rgba(212,160,23,0.2)}
-.vip-notes-lbl{font-size:13px;font-weight:700;background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex:1}
-.vip-notes-sub{font-size:11px;color:#7A6020;padding:0 12px 7px;line-height:1.5}
-.vip-ta{width:100%;background:#FFFDF8;border:none;border-top:1px solid rgba(212,160,23,0.2);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;line-height:1.6;resize:none;min-height:120px;outline:none;display:block}
-.vip-ta::placeholder{color:var(--text-dim)}
 .show-card{padding:14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:10px;box-shadow:var(--shadow)}
 .show-card.hl{border-color:rgba(27,47,160,0.25);background:linear-gradient(135deg,rgba(27,47,160,0.04),rgba(109,40,217,0.03));box-shadow:0 3px 12px rgba(27,47,160,0.1)}
 .show-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px}
@@ -154,24 +372,80 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .chat-suggest{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation}
 .setup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:800;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
 #setupOverlay{z-index:850}
-.setup-panel{background:var(--bg);border-radius:24px 24px 0 0;padding:20px 18px 100px;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.setup-step{display:none}.setup-step.active{display:block}
-.setup-progress{display:flex;gap:6px;margin-bottom:18px}
-.setup-dot{flex:1;height:3px;border-radius:2px;background:var(--border)}.setup-dot.done{background:var(--magic)}.setup-dot.active{background:linear-gradient(90deg,var(--magic),var(--purple))}
-.setup-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;margin-top:14px}
-.setup-chips{display:flex;flex-wrap:wrap;gap:7px}
-.setup-chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;transition:all .2s}
-.setup-chip.selected{border-color:var(--magic);background:rgba(27,47,160,0.1);color:var(--magic);font-weight:600}
-.setup-chip.skip{border-color:rgba(220,38,38,0.3);background:rgba(220,38,38,0.05);color:#EF4444}
-.setup-chip.skip.selected{border-color:#EF4444;background:rgba(220,38,38,0.12)}
-.setup-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:16px;position:sticky;bottom:0;box-shadow:0 -8px 20px var(--bg)}
-.setup-back{background:none;border:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;padding:0;margin-bottom:12px}
-.setup-banner{background:linear-gradient(135deg,rgba(27,47,160,0.08),rgba(109,40,217,0.05));border:1.5px solid rgba(27,47,160,0.2);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px}
-.tink-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1B2FA0,#6D28D9);z-index:9998;pointer-events:none;opacity:0;transition:opacity .5s ease}
-.tink-overlay.active{opacity:1}
-.tink-overlay.fadeout{opacity:0;transition:opacity .6s ease .4s}
-.tink-fairy{position:fixed;z-index:9999;pointer-events:none;width:36px;height:36px;filter:drop-shadow(0 0 8px rgba(255,220,50,0.9))}
-.tink-body{font-size:28px;line-height:1;animation:tinkWing .15s ease-in-out infinite alternate}
+@keyframes tinkWing{from{transform:scaleY(1) rotate(-5deg)}to{transform:scaleY(0.85) rotate(5deg)}}
+.dust-particle{position:fixed;z-index:9997;pointer-events:none;border-radius:50%;animation:dustFade 1.2s ease-out forwards}
+@keyframes dustFade{0%{opacity:1;transform:scale(1) translateY(0)}100%{opacity:0;transform:scale(0.2) translateY(20px)}}
+.lock-enter-btn{width:100%;max-width:280px;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFFFFF;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 20px rgba(201,134,10,0.5);letter-spacing:.02em;margin-top:8px}
+.lock-enter-btn:active{transform:scale(.97)}
+.ll-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:850;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.ll-modal-inner{width:100%;max-width:430px;background:#FFFFFF;border-radius:var(--radius) var(--radius) 0 0;padding:20px 20px 40px;border-top:2px solid rgba(27,47,160,0.2);box-shadow:0 -8px 30px rgba(27,47,160,0.15)}
+.ll-modal-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--magic);margin-bottom:4px}
+.ll-modal-sub{font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.5}
+.ll-option{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all .2s}
+.ll-option.selected{border-color:rgba(27,47,160,0.4);background:rgba(27,47,160,0.06)}
+.ll-option-icon{font-size:20px;flex-shrink:0}
+.ll-option-text{flex:1}
+.ll-option-title{font-size:13px;font-weight:600;color:var(--text)}
+.ll-option-desc{font-size:11px;color:var(--text-muted);margin-top:1px}
+.ll-checkbox{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px}
+.ll-option.selected .ll-checkbox{background:var(--magic);border-color:var(--magic);color:#FFFFFF}
+.ll-individual-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px}
+.ll-individual-check{width:22px;height:22px;border-radius:4px;border:2px solid var(--border);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s}
+.ll-individual-check.checked{background:var(--magic);border-color:var(--magic);color:#FFFFFF}
+.ll-confirm-btn{width:100%;padding:13px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#FFFFFF;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px}
+.ll-banner-got{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:99px;background:rgba(21,128,61,0.1);border:1px solid rgba(21,128,61,0.3);color:#15803D;font-size:10px;font-weight:600;cursor:pointer}
+.ll-time-input{width:80px;padding:3px 7px;border-radius:6px;border:1.5px solid var(--border);font-size:12px;font-family:inherit;color:var(--text);background:var(--card);margin-left:4px}
+.waze-card{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;background:#FFFFFF;border:2px solid #1B2FA0;border-radius:var(--radius);box-shadow:0 8px 32px rgba(27,47,160,0.25);z-index:800;overflow:hidden;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.waze-hdr{display:flex;align-items:center;gap:8px;padding:11px 14px 8px;background:linear-gradient(135deg,#1B2FA0,#6D28D9)}
+.waze-hdr-icon{font-size:18px}
+.waze-hdr-title{font-size:12px;font-weight:700;color:#FFFFFF;letter-spacing:.04em;text-transform:uppercase}
+.waze-hdr-close{margin-left:auto;font-size:16px;color:rgba(255,255,255,0.7);cursor:pointer;padding:0 4px}
+.waze-body{padding:12px 14px}
+.waze-opportunity{font-size:13px;font-weight:600;color:var(--magic);margin-bottom:6px}
+.waze-detail{font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:10px}
+.waze-stats{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.waze-stat{padding:5px 10px;border-radius:99px;font-size:11px;font-weight:600}
+.waze-stat-save{background:#DCFCE7;color:#15803D}
+.waze-stat-walk{background:#DBEAFE;color:#1E40AF}
+.waze-stat-wait{background:#FEE2E2;color:#C41E1E}
+.waze-btns{display:flex;gap:8px}
+.waze-accept{flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#1B2FA0,#6D28D9);color:#FFFFFF;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+.waze-dismiss{flex:1;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.waze-loading{padding:14px;text-align:center;font-size:12px;color:var(--text-muted)}
+.ride-block.edit-mode .ride-time{cursor:pointer;border-bottom:1.5px dashed rgba(27,47,160,0.3);min-width:58px}
+.ride-block.edit-mode .ride-name{cursor:pointer;border-bottom:1.5px dashed rgba(27,47,160,0.3)}
+.inline-edit-input{background:rgba(27,47,160,0.06);border:1.5px solid rgba(27,47,160,0.3);border-radius:6px;padding:2px 6px;font-size:13px;font-family:inherit;color:var(--text);outline:none;width:100%}
+.inline-edit-time{width:80px!important}
+.edit-hint{font-size:10px;color:var(--text-dim);text-align:center;padding:5px 0 8px;font-style:italic}
+.day-tips-card{background:linear-gradient(135deg,rgba(27,47,160,0.05),rgba(109,40,217,0.03));border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);margin-bottom:12px;overflow:hidden}
+.day-tips-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;cursor:pointer;user-select:none}
+.day-tips-hdr-left{display:flex;align-items:center;gap:8px}
+.day-tips-title{font-size:13px;font-weight:700;color:var(--magic)}
+.day-tips-arrow{font-size:11px;color:var(--text-dim);transition:transform .2s}
+.day-tips-body{display:none;padding:0 13px 13px}
+.day-tips-body.open{display:block}
+.day-tips-hdr.open .day-tips-arrow{transform:rotate(180deg)}
+.tip-item{display:flex;gap:9px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(27,47,160,0.08)}
+.tip-item:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.tip-icon{font-size:18px;flex-shrink:0;line-height:1.3}
+.tip-body{}
+.tip-label{font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
+.tip-text{font-size:12px;color:var(--text-muted);line-height:1.6}
+.dining-btn{display:block;width:100%;margin-top:8px;padding:10px;border-radius:var(--radius-sm);border:1.5px solid #F59E0B;background:#FEF3C7;color:#92400E;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center;touch-action:manipulation}
+.dining-btn:active{transform:scale(.97)}
+.dining-result{margin-top:8px;padding:11px 12px;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--radius-sm);font-size:13px;color:var(--text);line-height:1.6;display:none;word-wrap:break-word;overflow-wrap:break-word;width:100%;box-sizing:border-box}
+.dining-result.show{display:block}
+.day-info-bar{display:flex;gap:8px;margin-bottom:12px}
+.park-hours-card{flex:1;padding:7px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow)}
+.ph-title{font-size:9px;font-weight:700;color:var(--magic);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.ph-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:2px}
+.ph-park{font-weight:600;color:var(--text)}
+.ph-time{color:var(--text-muted)}
+.weather-card{width:76px;flex-shrink:0;padding:7px 6px;background:linear-gradient(135deg,rgba(27,47,160,0.07),rgba(109,40,217,0.04));border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center}
+.wx-icon{font-size:22px;line-height:1}
+.wx-temp{font-size:14px;font-weight:700;color:var(--magic)}
+.wx-desc{font-size:10px;color:var(--text-muted);line-height:1.3}
 @keyframes tinkWing{from{transform:scaleY(1) rotate(-5deg)}to{transform:scaleY(0.85) rotate(5deg)}}
 .dust-particle{position:fixed;z-index:9997;pointer-events:none;border-radius:50%;animation:dustFade 1.2s ease-out forwards}
 @keyframes dustFade{0%{opacity:1;transform:scale(1) translateY(0)}100%{opacity:0;transform:scale(0.2) translateY(20px)}}
@@ -329,274 +603,356 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .md-btn{padding:15px 36px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFF;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;z-index:2;animation:mdBtnPulse 2s ease-in-out infinite}
 @keyframes mdBtnPulse{0%,100%{box-shadow:0 4px 24px rgba(201,134,10,.6)}50%{box-shadow:0 4px 40px rgba(201,134,10,.9)}}
 </style>
-</head>
+</style>
+<!-- ===================================================
+     BODY: New UI Structure  
+     =================================================== -->
 <body>
-<!-- LL Morning Popup -->
-<div class="ll-modal" id="llModal" style="display:none">
-  <div class="ll-modal-inner">
-    <div class="ll-modal-title">&#9889; Lightning Lane Setup</div>
-    <div class="ll-modal-sub" id="llModalSub">Let's optimize your day based on your Lightning Lane passes.</div>
-    <div id="llModalContent"></div>
-    <button class="ll-confirm-btn" id="llConfirmBtn" onclick="confirmLLSetup()">Apply & Optimize Day</button>
-  </div>
-</div>
 
-<!-- Waze-style suggestion card -->
-<div class="waze-card" id="wazeCard" style="display:none">
-  <div class="waze-hdr">
-    <span class="waze-hdr-icon">&#9889;</span>
-    <span class="waze-hdr-title">Smart Suggestion</span>
-    <span class="waze-hdr-close" onclick="dismissWaze()">&#10005;</span>
-  </div>
-  <div id="wazeBody" class="waze-body">
-    <div class="waze-loading">Analyzing wait times...</div>
-  </div>
-</div>
-
-<!-- Magic Day celebration screen Jun 28 -->
-<div id="magicDayScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#0D1B6E,#1B2FA0 40%,#6D28D9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 24px;box-sizing:border-box;overflow:hidden">
-  <canvas id="fwCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0"></canvas>
-  <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%">
-    <div style="font-size:20px;letter-spacing:10px;animation:sparkPulse 1s ease-in-out infinite alternate;color:#FFF">&#10022; &#10022; &#10022;</div>
-    <div style="font-size:72px;animation:castleGlow 1.5s ease-in-out infinite alternate;line-height:1">&#127984;</div>
-    <div style="font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:#FFF;line-height:1.2;text-shadow:0 0 30px rgba(232,160,32,.8)">The magic begins<br>today!</div>
-    <div style="font-size:15px;color:#FFFFFF;font-weight:600;line-height:1.7;margin-top:4px;text-shadow:0 1px 8px rgba(0,0,0,0.8)">June 28, 2026 &mdash; Coffron/Woods Family<br><span style="font-size:14px;font-weight:500;color:#FFFFFF;text-shadow:0 1px 8px rgba(0,0,0,0.8)">Welcome to the Happiest Place on Earth!</span></div>
-    <button onclick="closeMagicDay()" style="margin-top:12px;padding:15px 36px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFF;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 24px rgba(201,134,10,.6)">Let the magic begin! &#10024;</button>
-  </div>
-</div>
-
-<!-- Tinkerbell transition overlay -->
-<div class="tink-overlay" id="tinkOverlay"></div>
-<div class="tink-fairy" id="tinkFairy" style="display:none">
-  <div class="tink-body">🧚</div>
-</div>
-
-<div class="lock-screen" id="lockScreen">
-  <!-- Starfield -->
-  <div class="lock-bg-stars" id="lockStars"></div>
-  <!-- Purple glow blob -->
-  <div class="lock-glow"></div>
-
-  <div class="lock-content">
-    <div class="lock-castle">&#127984;</div>
-    <div class="lock-sparkle-row" style="color:#FFFFFF;font-size:14px;letter-spacing:12px;opacity:0.6;margin-bottom:14px">&#10022; &#10022; &#10022;</div>
-    <div class="lock-title">Coffron/Woods<br>Disneyland Trip</div>
-    <div class="lock-sub">June 28&#8211;30 &middot; Anaheim, CA</div>
-
-    <!-- Countdown box -->
-    <div id="lockCountdown" class="lock-countdown-box" style="display:none">
-      <div id="lockCountdownNum" style="font-size:26px;font-weight:700;color:#FFFFFF;line-height:1"></div>
-      <div id="lockCountdownMsg" style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:3px"></div>
+<!-- ===== SECTION 7: SPLASH SCREEN ===== -->
+<div id="splashScreen" class="splash-screen">
+  <div class="splash-left">
+    <div>
+      <div class="splash-eyebrow">Your Adventure Awaits</div>
+      <h1 class="splash-title">Coffron/<span>Woods</span><br>Disneyland</h1>
+      <p class="splash-desc">Your personalized AI-powered trip guide. Live wait times, smart scheduling, and magic for everyone.</p>
     </div>
-
-    <!-- Password card - first visit only -->
-    <div class="lock-card" id="lockPasswordCard">
-      <div class="lock-card-label">&#128273; Trip Access</div>
-      <input class="lock-input" type="password" id="lockInput" placeholder="password" maxlength="20" onkeydown="if(event.key===\'Enter\')tryUnlock()" />
-      <button class="lock-btn" onclick="tryUnlock()">Enter the Magic &#10024;</button>
+    <div>
+      <div class="splash-countdown">
+        <div class="splash-countdown-label">Days Until Magic</div>
+        <div class="splash-countdown-val" id="splashCountdown">--</div>
+        <div class="splash-countdown-unit">days to go</div>
+      </div>
+      <button class="splash-enter-btn" onclick="enterSplash()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Enter the Magic
+      </button>
     </div>
-    <!-- Enter the Magic button after first unlock -->
-    <button class="lock-enter-btn" id="lockEnterBtn" style="display:none" onclick="enterMagic()">&#10024; Enter the Magic &#10024;</button>
-    <div class="lock-error" id="lockError"></div>
+  </div>
+  <div class="splash-right">
+    <div class="splash-stars" id="splashStars"></div>
+    <!-- Skyline SVG illustration -->
+    <svg class="splash-skyline" viewBox="0 0 140 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Castle towers -->
+      <rect x="50" y="200" width="40" height="120" fill="rgba(255,255,255,0.08)" rx="2"/>
+      <rect x="58" y="180" width="24" height="40" fill="rgba(255,255,255,0.10)" rx="2"/>
+      <polygon points="70,140 58,180 82,180" fill="rgba(201,134,10,0.7)"/>
+      <!-- Turrets -->
+      <rect x="45" y="210" width="12" height="110" fill="rgba(255,255,255,0.07)" rx="1"/>
+      <polygon points="51,195 45,210 57,210" fill="rgba(201,134,10,0.5)"/>
+      <rect x="83" y="210" width="12" height="110" fill="rgba(255,255,255,0.07)" rx="1"/>
+      <polygon points="89,195 83,210 95,210" fill="rgba(201,134,10,0.5)"/>
+      <!-- Side buildings -->
+      <rect x="20" y="240" width="30" height="80" fill="rgba(255,255,255,0.05)" rx="1"/>
+      <rect x="90" y="250" width="30" height="70" fill="rgba(255,255,255,0.05)" rx="1"/>
+      <!-- Ground -->
+      <rect x="0" y="315" width="140" height="5" fill="rgba(255,255,255,0.06)"/>
+      <!-- Stars dots -->
+      <circle cx="20" cy="30" r="1.5" fill="rgba(249,168,37,0.8)"/>
+      <circle cx="60" cy="15" r="1" fill="rgba(255,255,255,0.6)"/>
+      <circle cx="100" cy="40" r="1.5" fill="rgba(255,255,255,0.5)"/>
+      <circle cx="30" cy="60" r="1" fill="rgba(249,168,37,0.6)"/>
+      <circle cx="115" cy="20" r="1" fill="rgba(255,255,255,0.7)"/>
+      <circle cx="80" cy="55" r="1.5" fill="rgba(201,134,10,0.8)"/>
+      <circle cx="10" cy="80" r="1" fill="rgba(255,255,255,0.4)"/>
+      <circle cx="130" cy="70" r="1" fill="rgba(249,168,37,0.5)"/>
+    </svg>
   </div>
 </div>
 
+<!-- ===== MAIN APP ===== -->
 <div class="app" id="mainApp" style="display:none">
 
-<div class="header">
-  <div style="text-align:center;font-size:14px;letter-spacing:4px;margin-bottom:4px;opacity:0.5">✨✨✨</div>
-  <div class="header-top">
-    <div>
-      <div class="header-title"><svg width="26" height="22" viewBox="0 0 52 44" style="vertical-align:middle;margin-right:5px;flex-shrink:0" fill="#1B2FA0"><circle cx="12" cy="14" r="12"/><circle cx="40" cy="14" r="12"/><circle cx="26" cy="30" r="16"/></svg>Coffron/Woods Disneyland Trip</div>
-      <div class="header-sub">June 28&#8211;30 &middot; Anaheim, CA</div>
-      <div id="headerCountdown" style="font-size:12px;color:#6D28D9;font-weight:700;margin-top:4px;display:none;letter-spacing:0.01em"></div>
-      <div id="adminBadge" style="display:none;margin-top:3px"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(201,134,10,0.15);color:#C9860A;letter-spacing:.05em">&#9733; ADMIN</span></div>
+  <!-- Magic Day Screen -->
+  <div id="magicDayScreen" style="display:none;position:fixed;inset:0;z-index:9000;background:linear-gradient(135deg,#0a0f2e 0%,#1B2FA0 50%,#6D28D9 100%);overflow:hidden;display:none">
+    <canvas id="fwCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+    <div id="tinkOverlay" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+    <div id="tinkFairy" style="position:absolute;pointer-events:none"></div>
+    <div style="position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:40px 32px">
+      <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:16px">It's Magic Day!</div>
+      <div style="font-size:16px;color:rgba(255,255,255,0.8);line-height:1.6;margin-bottom:32px">Time to make memories that last a lifetime.</div>
+      <button onclick="closeMagicDay()" style="padding:14px 32px;border-radius:var(--radius);background:linear-gradient(135deg,#C9860A,#E8A020);border:none;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer">Let's Go!</button>
     </div>
   </div>
-  <div id="preTripBanner" style="margin-bottom:10px;">
-  <div onclick="window.location.href='pretrip.html?v=3'" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
-    <div style="font-size:24px;">✨ </div>
-    <div style="flex:1;">
-      <div style="font-size:14px;font-weight:700;color:var(--text);">✅ Do This First: Pre-Trip Planning</div>
-      <div style="font-size:12px;color:var(--gold,#C9860A);" id="preTripBannerSub">Weather • Packing • Dining • Group Setup</div>
+
+  <!-- Lock Screen -->
+  <div id="lockScreen" style="display:none;position:fixed;inset:0;z-index:8000;background:linear-gradient(180deg,#0D1B2A 0%,#1B2FA0 100%);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px">
+    <div id="lockStars"></div>
+    <div id="lockCountdown" style="text-align:center;margin-bottom:32px">
+      <div id="lockCountdownNum" style="font-family:'Playfair Display',serif;font-size:56px;font-weight:700;color:#fff;line-height:1"></div>
+      <div id="lockCountdownMsg" style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:6px"></div>
     </div>
-    <div style="font-size:18px;color:var(--gold,#C9860A);">:</div>
+    <div id="lockPasswordCard" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius);padding:20px 24px;width:100%;max-width:320px">
+      <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase;font-weight:600">Enter magic code</div>
+      <div style="display:flex;gap:8px">
+        <input id="lockInput" type="password" placeholder="Code" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:var(--radius-sm);padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none">
+        <button id="lockEnterBtn" onclick="tryUnlock()" style="padding:10px 16px;border-radius:var(--radius-sm);background:linear-gradient(135deg,#C9860A,#E8A020);border:none;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Enter</button>
+      </div>
+      <div id="lockError" style="font-size:12px;color:var(--red);margin-top:8px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- LL Modal -->
+  <div id="llModal" class="modal-bg hidden">
+    <div id="llModalSub" style="background:var(--card);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:430px;margin:0 auto;overflow-y:auto;max-height:85vh;padding-bottom:var(--safe-bottom)">
+      <div style="display:flex;align-items:center;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--border)">
+        <div style="flex:1;font-size:16px;font-weight:700;color:var(--text)">Lightning Lane Plan</div>
+        <button onclick="dismissLLModal()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="llModalContent" style="padding:16px 20px"></div>
+      <div style="padding:12px 20px;border-top:1px solid var(--border)">
+        <button id="llConfirmBtn" onclick="confirmLLSetup()" style="width:100%;padding:12px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--gold),var(--gold-light));border:none;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Confirm Lightning Lane Plan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waze Card -->
+  <div id="wazeCard" style="display:none;position:fixed;bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px);left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:390px;z-index:300;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-lg);border:1.5px solid var(--border)">
+    <div id="wazeBody" style="padding:14px 16px"></div>
+  </div>
+
+  <!-- ===== SECTION 6: HEADER BAR ===== -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-title">CW Disneyland</div>
+        <div class="header-sub" id="headerCountdown"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="adminBadge" style="display:none;font-size:9px;font-weight:700;padding:3px 7px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#fff;border-radius:99px;letter-spacing:.04em">ADMIN</span>
+        <button onclick="doShareText()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;display:flex">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Pre-trip banner -->
+    <div id="preTripBanner" style="display:none;background:var(--magic-dim);border:1px solid rgba(27,47,160,0.2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:8px;cursor:pointer" onclick="openSetup()">
+      <div id="preTripBannerSub" style="font-size:12px;color:var(--magic);font-weight:600"></div>
+    </div>
+    <!-- Day tabs -->
+    <div class="day-tabs" id="dayTabsContainer">
+      <div class="day-tab vip-tab" id="day-tab-1" onclick="setDay(1)" role="tab">
+        <div class="day-tab-text">
+          <span class="day-tab-name">Day 1</span>
+          <span class="day-tab-date">Mon Jun 9</span>
+        </div>
+      </div>
+      <div class="day-tab" id="day-tab-2" onclick="setDay(2)" role="tab">
+        <div class="day-tab-text">
+          <span class="day-tab-name">Day 2</span>
+          <span class="day-tab-date">Tue Jun 10</span>
+        </div>
+      </div>
+      <div class="day-tab" id="day-tab-3" onclick="setDay(3)" role="tab">
+        <div class="day-tab-text">
+          <span class="day-tab-name">Day 3</span>
+          <span class="day-tab-date">Wed Jun 11</span>
+        </div>
+      </div>
+    </div>
+    <!-- Tab strip -->
+    <div style="display:flex;gap:0;border-bottom:1.5px solid var(--border);margin:0 -20px;padding:0 20px;overflow-x:auto;scrollbar-width:none">
+      <button class="tab-btn active" onclick="setTab('schedule')" data-tab="schedule">Schedule</button>
+      <button class="tab-btn" onclick="setTab('waits')" data-tab="waits">Wait Times</button>
+      <button class="tab-btn" onclick="setTab('shows')" data-tab="shows">Shows</button>
+      <button class="tab-btn" onclick="setTab('chat')" data-tab="chat">AI Chat</button>
+      <button class="tab-btn" onclick="setTab('closures')" data-tab="closures">Closures</button>
+      <button class="tab-btn" onclick="setTab('info')" data-tab="info">Park Info</button>
+    </div>
+  </div>
+  <!-- Tab button styles -->
+  <style>.tab-btn{flex-shrink:0;padding:8px 14px;border:none;background:none;font-family:inherit;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;transition:all .2s;white-space:nowrap}.tab-btn.active{color:var(--magic);border-bottom-color:var(--magic);font-weight:600}</style>
+
+  <!-- ===== CONTENT AREA ===== -->
+  <div class="content">
+
+    <!-- SCHEDULE TAB -->
+    <div id="tabSchedule">
+
+      <!-- Day info bar -->
+      <div id="dayInfoBar" style="margin-bottom:10px"></div>
+
+      <!-- Guest sync note -->
+      <div id="guestSyncNote" style="display:none;font-size:11px;color:var(--text-dim);text-align:center;padding:6px;margin-bottom:6px"></div>
+
+      <!-- ===== SECTION 4: AI OPTIMIZE HERO BUTTON ===== -->
+      <button class="ai-opt-hero" id="aiOptBtn" onclick="reoptimize()">
+        <div class="ai-opt-label">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          AI Optimize My Day
+        </div>
+        <div class="ai-opt-sub">Analyzes live wait times to minimize total wait</div>
+      </button>
+
+      <!-- ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== -->
+      <div class="reopt-box" id="reoptBox">
+        <div class="reopt-summary-bar">
+          <div class="reopt-summary-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="reopt-summary-text">
+            <div class="reopt-summary-title">AI Schedule Optimized</div>
+            <div class="reopt-summary-sub" id="reoptSummarySub">Saving estimated wait time</div>
+          </div>
+        </div>
+        <div class="reopt-body">
+          <div class="reopt-label">What Changed</div>
+          <div class="reopt-text" id="reoptText"></div>
+          <div class="reopt-btns" id="reoptBtns">
+            <button class="reopt-apply" onclick="applyReopt()">Accept Changes</button>
+            <button class="reopt-dismiss" onclick="dismissReopt()">Keep Original</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit bar -->
+      <div class="edit-bar">
+        <button class="edit-toggle" id="editToggle" onclick="toggleEdit()">Edit Schedule</button>
+        <button class="reset-btn" onclick="resetSched()">Reset</button>
+      </div>
+
+      <!-- Closed attractions banner -->
+      <div id="closedBanner" class="closed-banner" style="display:none">
+        <div class="closed-title">Closed / Refurbishment Today</div>
+        <div class="closed-list" id="closedList"></div>
+      </div>
+
+      <!-- Schedule content -->
+      <div id="schedContent"></div>
+
+      <!-- Add entry modal trigger -->
+      <div id="apiSetup" class="api-setup" style="display:none">
+        <div class="api-setup-title">Add AI Key for Optimization</div>
+        <div class="api-setup-sub">Add your Claude API key to unlock AI schedule optimization and personalized recommendations.</div>
+        <div class="api-row">
+          <input id="apiKeyInput" class="api-input" type="password" placeholder="sk-ant-...">
+          <button class="api-btn" onclick="pushApiKey()">Save</button>
+        </div>
+        <div class="api-ok" id="apiSaved">Key saved!</div>
+      </div>
+    </div>
+
+    <!-- WAIT TIMES TAB -->
+    <div id="tabWaits" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div id="waitStatus" style="font-size:12px;color:var(--text-muted)"></div>
+        <button id="waitRefreshBtn" onclick="doRefreshWaits()" style="font-size:12px;color:var(--magic);background:none;border:1px solid rgba(27,47,160,0.2);padding:5px 12px;border-radius:99px;font-family:inherit;cursor:pointer;font-weight:600">Refresh</button>
+      </div>
+      <div id="waitTabContent"></div>
+    </div>
+
+    <!-- SHOWS TAB -->
+    <div id="tabShows" style="display:none">
+      <div id="showsContent"></div>
+    </div>
+
+    <!-- CHAT TAB -->
+    <div id="tabChat" class="chat-tab-container" style="display:none">
+      <div id="chatSuggestions" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+      <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;min-height:120px"></div>
+      <div style="display:flex;gap:8px">
+        <input id="chatInput" type="text" placeholder="Ask about your trip..." style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()" style="padding:10px 16px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--magic),var(--purple));border:none;color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Send</button>
+      </div>
+    </div>
+
+    <!-- CLOSURES TAB -->
+    <div id="tabClosures" style="display:none">
+      <div id="closedBannerInfo" class="closed-banner"></div>
+    </div>
+
+    <!-- INFO TAB -->
+    <div id="tabInfo" style="display:none">
+      <div id="apiSetup2" class="api-setup" style="display:none;margin-bottom:16px">
+        <div class="api-setup-title">Claude API Key</div>
+        <div class="api-setup-sub">Used for AI Optimize, chat, and personalized recommendations.</div>
+        <div class="api-row">
+          <input id="apiKeyInput2" class="api-input" type="password" placeholder="sk-ant-...">
+          <button class="api-btn" onclick="pushApiKey()">Save</button>
+        </div>
+        <div class="api-ok" id="apiSaved2">Key saved!</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- ===== SECTION 9: ONE-TOUCH ALTERNATIVES SHEET ===== -->
+  <div class="alt-sheet" id="altSheet">
+    <div class="alt-sheet-inner">
+      <div class="alt-sheet-handle"></div>
+      <div class="alt-sheet-title" id="altSheetTitle">Alternative Options</div>
+      <div class="alt-sheet-sub">AI-ranked by wait time and your preferences</div>
+      <div id="altSheetOptions"></div>
+      <div class="alt-note" style="margin:0 20px 8px;font-size:11px;color:var(--text-dim);background:var(--magic-dim);padding:8px 12px;border-radius:var(--radius-xs)">AI will re-insert your original into the next available slot</div>
+      <button class="alt-close-btn" onclick="closeAltSheet()">Cancel</button>
+    </div>
+  </div>
+
+</div><!-- /mainApp -->
+
+<!-- Add entry modal -->
+<div id="addModal" class="modal-bg hidden">
+  <div style="background:var(--card);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:430px;margin:0 auto;padding:20px;padding-bottom:calc(20px + var(--safe-bottom))">
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px">Add Schedule Entry</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input id="newTime" type="time" style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none">
+      <input id="newTitle" type="text" placeholder="Activity name" style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none">
+      <textarea id="newNote" placeholder="Notes (optional)" rows="2" style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;resize:none"></textarea>
+      <div style="display:flex;gap:8px">
+        <button onclick="saveEntry()" style="flex:2;padding:12px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--magic),var(--magic-light));border:none;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Add Entry</button>
+        <button onclick="closeModal()" style="flex:1;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:14px;font-family:inherit;cursor:pointer">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="day-tabs">
-    <div class="day-tab active" onclick="if(curTab==='schedule')setDay(0)">
-      <div class="day-tab-icon">&#127984;</div>
-      <div class="day-tab-text"><div class="day-tab-name">Sunday</div><div class="day-tab-date">Jun 28</div></div>
-    </div>
-    <div class="day-tab" id="day-tab-1" onclick="if(curTab==='schedule')setDay(1)" style="border-color:rgba(201,134,10,0.3)">
-      <div class="day-tab-icon">&#11088;</div>
-      <div class="day-tab-text"><div class="day-tab-name" style="background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:700">Monday VIP</div><div class="day-tab-date">Jun 29</div></div>
-    </div>
-    <div class="day-tab" onclick="if(curTab==='schedule')setDay(2)">
-      <div class="day-tab-icon">&#127878;</div>
-      <div class="day-tab-text"><div class="day-tab-name">Tuesday</div><div class="day-tab-date">Jun 30</div></div>
-    </div>
-  </div>
-</div>
+<!-- ===== SECTION 2: BOTTOM NAVIGATION BAR ===== -->
+<nav class="bottom-nav" id="bottomNav" role="navigation" aria-label="Main navigation">
 
-<div class="content">
-  <div id="tabSchedule">
-    <!-- API Key setup -->
-    <div class="api-setup" id="apiSetup">
-      <div class="api-setup-title">&#128273; Anthropic API Key <span style="font-size:10px;color:var(--text-dim);font-weight:400">(optional)</span></div>
-      <div class="api-setup-sub">Only needed for AI reroute &amp; schedule optimization features. Get yours at console.anthropic.com (~$0.10 total trip cost).</div>
-      <div class="api-row">
-        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." />
-        <button class="api-btn" onclick="saveKey()">Save</button>
-      </div>
-      <div class="api-ok" id="apiSaved">&#10003; Saved &#8212; <span onclick="resetKey()" style="color:var(--text-dim);text-decoration:underline;cursor:pointer">Reset</span></div>
-    </div>
+  <button class="nav-item active" id="nav-schedule" onclick="switchNav('schedule')" aria-label="Schedule">
+    <span class="nav-dot"></span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    <span class="nav-label">Schedule</span>
+  </button>
 
-    <!-- Deep link buttons -->
+  <button class="nav-item" id="nav-waits" onclick="switchNav('waits')" aria-label="Wait Times">
+    <span class="nav-dot"></span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <span class="nav-label">Waits</span>
+  </button>
 
+  <button class="nav-item" id="nav-shows" onclick="switchNav('shows')" aria-label="Shows">
+    <span class="nav-dot"></span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+    </svg>
+    <span class="nav-label">Shows</span>
+  </button>
 
-    <!-- Closed rides banner -->
+  <button class="nav-item" id="nav-chat" onclick="switchNav('chat')" aria-label="AI Chat">
+    <span class="nav-dot"></span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <path d="M8 10h.01M12 10h.01M16 10h.01" stroke-width="2.5"/>
+    </svg>
+    <span class="nav-label">AI Chat</span>
+  </button>
 
+  <button class="nav-item" id="nav-info" onclick="switchNav('info')" aria-label="Park Info">
+    <span class="nav-dot"></span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2.5"/>
+    </svg>
+    <span class="nav-label">Info</span>
+  </button>
 
-
-    <div class="day-info-bar" id="dayInfoBar"></div>
-    <!-- Guest sync note -->
-    <div id="guestSyncNote" style="display:none;padding:7px 12px;background:rgba(27,47,160,0.06);border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);margin-bottom:10px;font-size:11px;color:var(--magic);text-align:center">
-      &#128274; Read-only schedule • Auto-syncs every 2 min
-    </div>
-    <!-- Edit / AI Optimize / Reset bar -->
-    <div class="edit-bar">
-      <button class="edit-toggle" id="editToggle" onclick="if(isAdmin())toggleEdit()">&#9998; Edit Schedule</button>
-      <button class="ai-opt-btn" id="aiOptBtn" onclick="reoptimize()">&#10024; AI Optimize Your Schedule</button>
-    </div>
-
-    <!-- AI Reoptimize result box -->
-    <div class="reopt-box" id="reoptBox">
-      <div class="reopt-label">&#10024; AI SCHEDULE OPTIMIZATION</div>
-      <div class="reopt-text" id="reoptText"></div>
-      <div class="reopt-btns" id="reoptBtns">
-        <button class="reopt-apply" onclick="applyReopt()">Apply New Schedule</button>
-        <button class="reopt-dismiss" onclick="dismissReopt()">Keep Current</button>
-      </div>
-    </div>
-
-        <div id="schedContent"></div>
-  </div>
-
-  <div id="tabWaits" class="hidden">
-    <div class="wait-status-bar">
-      <div style="font-size:18px">&#127906;</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--magic)">Live Wait Times</div>
-        <div id="waitStatus" style="font-size:11px;color:var(--text-muted)">Loading...</div>
-      </div>
-      <button class="wait-refresh-btn" id="waitRefreshBtn" onclick="doRefreshWaits()">🔄  Refresh</button>
-    </div>
-    <div id="waitTabContent"><div style="text-align:center;padding:30px;color:var(--text-muted)">Loading wait times...</div></div>
-    <div style="margin-top:10px;font-size:11px;color:var(--text-dim);text-align:center">Powered by ParkSavers.com &middot; Updates every 5 min</div>
-  </div>
-  <div id="tabShows" class="hidden"><div id="showsContent"></div></div>
-
-  <div id="tabChat" class="hidden">
-    <div style="padding:14px 14px 0">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">&#128172; Ask your Disney AI</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Ask anything about your trip.</div>
-      <div id="chatSuggestions" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">
-        <button onclick="sendSuggested(this)" class="chat-suggest">Nearest bathroom to Space Mountain?</button>
-        <button onclick="sendSuggested(this)" class="chat-suggest">Where can I get a Dole Whip?</button>
-        <button onclick="sendSuggested(this)" class="chat-suggest">Where are the churro carts?</button>
-        <button onclick="sendSuggested(this)" class="chat-suggest">When should we ride Rise of the Resistance?</button>
-        <button onclick="sendSuggested(this)" class="chat-suggest">Best rope drop strategy for today?</button>
-      </div>
-    </div>
-    <div id="chatMessages" style="padding:0 14px 120px;display:flex;flex-direction:column;gap:10px;min-height:80px"></div>
-    <div style="position:sticky;bottom:72px;padding:8px 14px 16px;border-top:1px solid var(--border);background:var(--bg);z-index:300">
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="text" id="chatInput" placeholder="Ask anything about your trip..."
-          style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:99px;padding:10px 16px;font-size:14px;font-family:inherit;color:var(--text);outline:none"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();sendChat();}">
-        <button onclick="sendChat()" style="padding:10px 16px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent">Send</button>
-      </div>
-      <div style="font-size:10px;color:var(--text-dim);margin-top:4px;text-align:center">Powered by Claude AI</div>
-    </div>
-  </div>
-  <div id="tabClosures" class="hidden">
-    <div id="closedBanner" style="padding:0"></div>
-  </div>
-  <div id="tabInfo" class="hidden">
-    <!-- Rendered dynamically by renderInfoTab() -->
-  </div>
-  <div id="tabClosures" class="hidden">
-    <div id="closedBanner" style="padding:0"></div>
-  </div>
-  <div id="tabInfo" class="hidden">
-    <div class="sec-hdr"><div class="sec-lbl">Trip Info</div><div class="sec-line"></div></div>
-    <div id="closedBannerInfo"></div>
-    <div class="info-sec"><div class="info-title">&#128679; Confirmed June 2026 Closures</div>
-      <div class="info-card" style="border-color:rgba(248,113,113,.25)">
-        <b style="color:var(--red)">Pirates of the Caribbean</b> &#8212; Closed since May 4. No confirmed reopening for late June.<br><br>
-        <b style="color:var(--red)">Buzz Lightyear Astro Blasters</b> &#8212; Closed since April 13.<br><br>
-        <b style="color:var(--red)">Silly Symphony Swings (DCA)</b> &#8212; Closed since April 27.<br><br>
-        <b style="color:var(--yellow)">Blue Bayou Restaurant</b> &#8212; Open but obstructed views during Pirates refurb. Skip it &#8212; Caf&eacute; Orleans is the better choice right now.
-      </div>
-    </div>
-    <div class="info-sec"><div class="info-title">&#9889; Lightning Lane Guide</div>
-      <div class="info-card"><b>Single Pass</b> (~$15&#8211;35/person): Rise of the Resistance &middot; Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones &middot; Matterhorn &middot; Space Mountain &middot; Haunted Mansion &middot; Big Thunder &middot; Smugglers Run &middot; Tiana&rsquo;s &middot; Guardians &middot; Incredicoaster &middot; Web Slingers &middot; Soarin&rsquo; &middot; Toy Story<br><br><b>No LL needed Tuesday</b> &#8212; VIP tour handles everything.</div>
-      <div class="info-card"><b>Rules:</b> Buy after scanning into park &middot; Book next LL after 2 hrs OR right after scanning into current ride &middot; Book while standing in the current LL line! &middot; Each ride once per day &middot; For 2nd park: book once return time shows 11AM+</div>
-    </div>
-    <div class="info-sec"><div class="info-title">&#128222; Important Numbers</div>
-      <div class="info-card"><b>VIP Tour:</b> (714) 300-7710<br><b>Disneyland main:</b> (714) 781-4565</div>
-    </div>
-  
-  <div class="info-sec"><div class="info-title">&#127869; Dining to Book Ahead</div>
-      <div class="info-card"><b>Carthay Circle</b> &middot; <b>Lamplight Lounge</b> &middot; <b>Caf&eacute; Orleans</b> &middot; <b>River Belle Terrace</b> &#8212; Disneyland app<br>Skip Blue Bayou this trip &#8212; Pirates refurb affects the atmosphere.</div>
-    </div>
-    <div class="info-sec"><div class="info-title">&#127915; Park Hopper</div>
-      <div class="info-card">Hopping opens at <b>11:00 AM</b> daily. Book LL for 2nd park before you hop &#8212; once return time shows 11AM+.</div>
-    </div>
-    <div class="info-sec"><div class="info-title">&#128273; Update API Key</div>
-      <div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com &middot; ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>
-    </div>
-    <div class="info-sec"><div class="info-title">&#8505;&#65039; About This App</div>
-      <div class="info-card">Schedule editor with drag-reorder &middot; AI optimization uses historical wait time patterns &middot; Per-ride AI reroute on demand &middot; Deep links to official Disneyland app<br><br><b>Add to iPhone:</b> Safari &#8594; Share &#8594; Add to Home Screen</div>
-    </div>
-  </div>
-</div>
-
-<!-- Add Entry Modal -->
-<div class="modal-bg hidden" id="addModal">
-  <div class="modal-inner">
-    <div class="modal-title">+ Add Schedule Entry</div>
-    <div class="modal-field"><div class="modal-label">Time</div><input class="modal-input" id="newTime" placeholder="e.g. 9:30 AM" /></div>
-    <div class="modal-field"><div class="modal-label">Title</div><input class="modal-input" id="newTitle" placeholder="e.g. Space Mountain" /></div>
-    <div class="modal-field"><div class="modal-label">Notes</div><input class="modal-input" id="newNote" placeholder="Optional..." /></div>
-    <div class="modal-field"><div class="modal-label">Type</div>
-      <select class="modal-input" id="newType">
-        <option value="ride">Ride</option>
-        <option value="food">Dining</option>
-        <option value="show">Show</option>
-        <option value="hop">Park Hop</option>
-        <option value="vip">VIP</option>
-        <option value="tip">Tip / Note</option>
-      </select>
-    </div>
-    <div class="modal-btns">
-      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
-      <button class="modal-save" onclick="saveEntry()">Add to Schedule</button>
-    </div>
-  </div>
-</div>
-
-</div><!-- end .app -->
-
-<div class="bnav">
-  <div class="ni active" id="ni-schedule" onclick="setTab('schedule')"><div class="ni-icon">&#128197;</div><div class="ni-lbl">Schedule</div></div>
-  <div class="ni" id="ni-waits" onclick="setTab('waits')"><div class="ni-icon">&#127906;</div><div class="ni-lbl">Wait Times</div></div>
-  <div class="ni" id="ni-shows" onclick="setTab('shows')"><div class="ni-icon">&#127908;</div><div class="ni-lbl">Shows</div></div>
-  <div class="ni" id="ni-chat" onclick="setTab('chat')"><div class="ni-icon">&#128172;</div><div class="ni-lbl">Ask AI</div></div>
-  <div class="ni" id="ni-info" onclick="setTab('info')"><div class="ni-icon">&#8505;&#65039;</div><div class="ni-lbl">Info</div></div>
-</div>
+</nav>
 
 <script>
 // v202605101200 cache bust=99
@@ -3445,6 +3801,188 @@ function closeSetupFinal(){
 }
 
 
+
+/* ===================================================
+   NEW UI COMPONENTS JS
+   =================================================== */
+var TRIP_CONFIG = {
+  tripName: 'Coffron/Woods Disneyland',
+  party: ['Dad', 'Mom', 'Kids'],
+  days: [
+    {num: 1, label: 'Day 1', date: 'Mon Jun 9',  park: 'Disneyland', isVip: true},
+    {num: 2, label: 'Day 2', date: 'Tue Jun 10', park: 'California Adventure', isVip: false},
+    {num: 3, label: 'Day 3', date: 'Wed Jun 11', park: 'Disneyland', isVip: false},
+  ],
+  firstParkDate: new Date('2026-06-09T08:00:00-07:00'),
+};
+
+/* --- Splash screen --- */
+function initSplash() {
+  // Countdown
+  var target = TRIP_CONFIG.firstParkDate;
+  var now = new Date();
+  var diff = Math.ceil((target - now) / 86400000);
+  var el = document.getElementById('splashCountdown');
+  if (el) {
+    if (diff > 0) {
+      el.textContent = diff;
+    } else if (diff === 0) {
+      el.textContent = 'TODAY';
+      el.closest('.splash-countdown').querySelector('.splash-countdown-unit').textContent = "It's magic day!";
+    } else {
+      el.textContent = Math.abs(diff);
+      el.closest('.splash-countdown').querySelector('.splash-countdown-unit').textContent = 'days of memories';
+    }
+  }
+  // Stars
+  generateSplashStars();
+  // Check if already shown this session
+  if (sessionStorage.getItem('splashSeen')) {
+    enterSplash(true);
+  }
+}
+
+function generateSplashStars() {
+  var c = document.getElementById('splashStars');
+  if (!c) return;
+  var html = '';
+  for (var i = 0; i < 20; i++) {
+    var x = Math.random() * 100;
+    var y = Math.random() * 100;
+    var s = 1 + Math.random() * 2;
+    var d = Math.random() * 3;
+    html += '<div style="position:absolute;left:'+x+'%;top:'+y+'%;width:'+s+'px;height:'+s+'px;border-radius:50%;background:rgba(255,255,255,'+(0.3+Math.random()*0.5)+');animation:twinkle '+(2+d)+'s ease-in-out infinite '+d+'s"></div>';
+  }
+  c.innerHTML = html;
+}
+
+function enterSplash(skipAnim) {
+  var splash = document.getElementById('splashScreen');
+  var main = document.getElementById('mainApp');
+  if (!splash || !main) return;
+  sessionStorage.setItem('splashSeen', '1');
+  if (skipAnim) {
+    splash.style.display = 'none';
+    main.style.display = '';
+    return;
+  }
+  splash.style.transition = 'opacity .4s ease';
+  splash.style.opacity = '0';
+  setTimeout(function() {
+    splash.style.display = 'none';
+    main.style.display = '';
+  }, 400);
+}
+
+/* --- Bottom nav switching --- */
+var _currentNav = 'schedule';
+function switchNav(tabKey) {
+  // Update nav items
+  var items = document.querySelectorAll('.nav-item');
+  items.forEach(function(el) { el.classList.remove('active'); });
+  var active = document.getElementById('nav-' + tabKey);
+  if (active) active.classList.add('active');
+  _currentNav = tabKey;
+  // Map nav to tab
+  var tabMap = {
+    schedule: 'schedule',
+    waits: 'waits',
+    shows: 'shows',
+    chat: 'chat',
+    info: 'info',
+  };
+  var tab = tabMap[tabKey] || tabKey;
+  setTab(tab);
+}
+
+/* --- Alt sheet --- */
+var _altSheetRide = null;
+function openAltSheet(rideName, options) {
+  _altSheetRide = rideName;
+  var title = document.getElementById('altSheetTitle');
+  if (title) title.textContent = 'Alternatives for: ' + rideName;
+  var container = document.getElementById('altSheetOptions');
+  if (!container) return;
+  var html = '';
+  (options || []).forEach(function(opt, i) {
+    var rankClass = i === 0 ? 'rank-1' : '';
+    var waitClass = opt.wait < 20 ? 'wait-low' : opt.wait < 45 ? 'wait-med' : 'wait-high';
+    html += '<div class="alt-option" onclick="selectAlt(' + JSON.stringify(opt.name) + ')">';
+    html += '<div class="alt-rank ' + rankClass + '">' + (i+1) + '</div>';
+    html += '<div class="alt-info">';
+    html += '<div class="alt-name">' + opt.name + '</div>';
+    html += '<div class="alt-meta">Est. wait: <span class="wait-pill ' + waitClass + '">' + (opt.wait || '--') + ' min</span>' + (opt.note ? ' · ' + opt.note : '') + '</div>';
+    html += '</div></div>';
+  });
+  if (container) container.innerHTML = html;
+  var sheet = document.getElementById('altSheet');
+  if (sheet) sheet.classList.add('show');
+}
+function closeAltSheet() {
+  var sheet = document.getElementById('altSheet');
+  if (sheet) sheet.classList.remove('show');
+}
+function selectAlt(name) {
+  closeAltSheet();
+  showToast('Switched to ' + name + '. Original re-inserted into schedule.');
+}
+
+/* --- VIP day banner --- */
+function renderVipBanner(dayNum) {
+  var cfg = (TRIP_CONFIG.days || []).find(function(d) { return d.num === dayNum; });
+  var container = document.getElementById('schedContent');
+  if (!container) return;
+  var existing = container.querySelector('.vip-banner');
+  if (existing) existing.remove();
+  if (cfg && cfg.isVip) {
+    var banner = document.createElement('div');
+    banner.className = 'vip-banner';
+    banner.innerHTML = '<svg class="vip-banner-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M14 4L16.5 10H23L17.8 13.8L19.8 20L14 16.3L8.2 20L10.2 13.8L5 10H11.5L14 4Z" fill="rgba(255,255,255,0.9)"/></svg><div class="vip-banner-text"><div class="vip-banner-title">VIP Day — Lightning Lane Multi Pass Included</div><div class="vip-banner-sub">Priority access and skip-the-line benefits active</div></div>';
+    container.insertBefore(banner, container.firstChild);
+  }
+}
+
+/* --- AI Optimize result sheet helpers --- */
+function showReoptResult(summaryText, changeText) {
+  var box = document.getElementById('reoptBox');
+  var sub = document.getElementById('reoptSummarySub');
+  var text = document.getElementById('reoptText');
+  if (!box) return;
+  if (sub) sub.textContent = summaryText || 'Analyzing your schedule...';
+  if (text) text.textContent = changeText || '';
+  box.classList.add('show');
+  var btns = document.getElementById('reoptBtns');
+  if (btns) btns.classList.add('show');
+}
+
+/* --- Tab switching updated to also update bottom nav --- */
+var _origSetTab = typeof setTab === 'function' ? setTab : null;
+
+/* --- Highlight AI-changed cards --- */
+function highlightAiChanged(entryTitles) {
+  document.querySelectorAll('.ride-block').forEach(function(el) { el.classList.remove('ai-changed'); });
+  (entryTitles || []).forEach(function(title) {
+    document.querySelectorAll('.ride-block').forEach(function(el) {
+      if (el.textContent.indexOf(title) > -1) el.classList.add('ai-changed');
+    });
+  });
+}
+
+/* --- Init new UI components on load --- */
+document.addEventListener('DOMContentLoaded', function() {
+  initSplash();
+  // Update day tabs with VIP markers
+  (TRIP_CONFIG.days || []).forEach(function(d) {
+    var tab = document.getElementById('day-tab-' + d.num);
+    if (tab && d.isVip) tab.classList.add('vip-tab');
+    if (tab) {
+      var nameEl = tab.querySelector('.day-tab-name');
+      if (nameEl) nameEl.textContent = d.label;
+      var dateEl = tab.querySelector('.day-tab-date');
+      if (dateEl) dateEl.textContent = d.date;
+    }
+  });
+});
 </script>
 
 <!-- Setup Overlay -->
