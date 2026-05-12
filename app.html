@@ -2849,7 +2849,7 @@ function renderSched(){
         +'<div class="ride-main">'
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
-        +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+e.h+'</span>'+(tbmap[e.type]||'')+wPill+llb+(e.ride?(function(){var b=wbHTML(e.ride);if(!b)return '';var isHigh=b.indexOf('wb-high')>-1;return isHigh?b.replace('<span class="wb','<span class="wb wb-tappable" title="Tap for alternatives" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this.nextElementSibling)" style="cursor:pointer"'):b;}()):'')+'</div>'
+        +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+e.h.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+(e.ride?(function(){var b=wbHTML(e.ride);if(!b)return '';var isHigh=b.indexOf('wb-high')>-1;return isHigh?b.replace('<span class="wb','<span class="wb wb-tappable" title="Tap for alternatives" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this.nextElementSibling)" style="cursor:pointer"'):b;}()):'')+'</div>'
         +'<div class="ride-note">'+e.n+'</div>'+diningRec
         +reroute
         +'</div></div>';
