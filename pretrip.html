@@ -835,6 +835,7 @@ var _isAdmin = false;
   if (k !== 'guest' && k !== 'admin') { window.location.href = 'app.html'; return; }
   if (k === 'admin') { _isAdmin = true; userRole = 'admin'; }
   renderPTCountdowns();
+  warmCachesFromServer();
   setTimeout(function(){ renderPreTripChecklist(); loadDiningReservations(); }, 50);
 })();
 
@@ -982,7 +983,7 @@ async function _aiProxy(body, cacheCtx){
 }
 function serverCacheGet(key,cb){fetch(SYNC_BASE+"/api/cache?key="+key+"&t="+Date.now()).then(function(r){return r.json();}).then(function(d){if(d.hit&&d.data){try{localStorage.setItem(key,typeof d.data==="string"?d.data:JSON.stringify(d.data));localStorage.setItem(key+"_ts",String(d.ts));}catch(e){}cb(null,d.data,d.ts);}else{cb(null,null,0);}}).catch(function(e){cb(e,null,0);});}
 function serverCacheSet(key,value,ts){fetch(SYNC_BASE+"/api/cache?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:value,ts:ts||Date.now()})}).then(function(r){return r.json();}).then(function(d){console.log("Server cache set "+key+":",(d.ok?"OK":"FAILED"));}).catch(function(e){console.warn("Server cache write failed:",e);});try{localStorage.setItem(key,typeof value==="string"?value:JSON.stringify(value));localStorage.setItem(key+"_ts",String(ts||Date.now()));}catch(e){}}
-function warmCachesFromServer(){var keys=["park_intel","dining_intel","events_intel","park_hours_intel"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;console.log("Server cache HIT:",key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}});});}
+async function warmCachesFromServer(){try{var r=await fetch(SYNC_BASE+'/api/config');var d=await r.json();if(d.apiKey)apiKey=d.apiKey;}catch(e){}var keys=["park_intel","dining_intel","events_intel","park_hours_intel"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;console.log("Server cache HIT:",key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}});});}
 function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<PARK_INTEL_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
 function setParkIntel(t){parkIntelCache=t;serverCacheSet('park_intel',t);}
 function getParkHoursIntel(){if(parkHoursCache)return parkHoursCache;try{var s=localStorage.getItem('park_hours_intel');if(s){parkHoursCache=JSON.parse(s);return parkHoursCache;}}catch(e){}return null;}
