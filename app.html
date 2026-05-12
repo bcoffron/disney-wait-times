@@ -67,7 +67,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .day-tab-date{font-size:10px;opacity:.7}
 .day-tab.active{background:linear-gradient(135deg,rgba(27,47,160,0.12),rgba(109,40,217,0.08));border-color:rgba(27,47,160,0.35);color:var(--magic);font-weight:600;box-shadow:0 2px 8px rgba(27,47,160,0.15)}
 /* VIP day tab (gold treatment) */
-#day-tab-1.active,
+#day-tab-2.active,
 .day-tab.vip-tab.active{background:linear-gradient(135deg,rgba(201,134,10,0.13),rgba(232,160,32,0.07))!important;border-color:rgba(201,134,10,0.4)!important;box-shadow:0 2px 8px rgba(201,134,10,0.20)!important;color:var(--gold)!important}
 .day-tab.vip-tab{border-color:rgba(201,134,10,0.25)!important}
 .day-tab.vip-tab .day-tab-name::after{content:'VIP';font-size:8px;background:linear-gradient(135deg,#C9860A,#E8A020);color:#fff;border-radius:99px;padding:1px 4px;margin-left:4px;font-weight:700;vertical-align:middle}
@@ -162,7 +162,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .ride-block.is-food,.ride-block.is-dining{border-left:3px solid var(--gold)}
 .ride-block.is-hop{border-style:dashed;background:rgba(27,47,160,0.02)}
 .ride-block.is-tip{border-left:3px solid var(--text-dim);background:rgba(160,154,181,0.04)}
-.ride-block.is-vip{border-left:4px solid #C9860A!important;background:linear-gradient(135deg,#FFFBF0,#FFF8E6)!important;border-color:#D4A017!important}
+.ride-block.is-vip{border-left:4px solid #D4A830!important;background:#FFFBF0!important;border:1px solid #D4A830!important;position:relative}
+.is-vip::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#D4A830,#E8C060);border-radius:var(--radius) var(--radius) 0 0}
+.is-vip .ride-time{color:#B8860B!important}
+.is-vip .ride-note{color:#8A6820!important}
 .ride-block.is-break,.ride-block.is-rest{border-left:4px solid #2980b9!important;background:linear-gradient(135deg,#EBF5FB,#D6EAF8)!important}
 .ride-block.is-photo{border-left:4px solid #7c3aed!important;background:linear-gradient(135deg,#F5F3FF,#EDE9FE)!important}
 .ride-block.is-snack{border-left:4px solid #27ae60!important;background:linear-gradient(135deg,#EAFAF1,#D5F5E3)!important}
@@ -278,7 +281,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .vip-banner-sub{font-size:11px;color:rgba(255,255,255,0.85);margin-top:1px}
 
 /* ===== SECTION 11: SHARED VIP NOTES ===== */
-.vip-notes-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E6);border:1.5px solid #D4A017;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:0 3px 12px rgba(201,134,10,0.15)}
+.vip-notes-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E6);border:1.5px solid #D4A017;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:0 3px 12px rgba(201,134,10,0.15);overflow:hidden}
 .vip-notes-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px 5px;border-bottom:1px solid rgba(212,160,23,0.2)}
 .vip-notes-lbl{font-size:13px;font-weight:700;background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex:1}
 .vip-notes-sub{font-size:11px;color:#7A6020;padding:0 12px 7px;line-height:1.5}
@@ -307,14 +310,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .splash-desc{font-size:14px;color:rgba(255,255,255,0.65);line-height:1.6;max-width:280px}
 .splash-countdown{margin-top:20px}
 .splash-countdown-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
-.splash-countdown-val{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#fff}
+.splash-countdown-val{font-family:'Playfair Display',serif;font-size:52px;font-weight:900;color:#fff}
 .splash-countdown-unit{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px}
 .splash-enter-btn{
   margin-top:28px;padding:14px 28px;border-radius:var(--radius);
-  background:linear-gradient(135deg,#C9860A,#E8A020);
+  background:#C86030;
   border:none;color:#fff;font-size:15px;font-weight:700;font-family:inherit;
   cursor:pointer;display:inline-flex;align-items:center;gap:8px;
-  box-shadow:0 4px 20px rgba(201,134,10,0.4);transition:all .2s;
+  box-shadow:0 4px 20px rgba(200,96,48,0.4);transition:all .2s;
 }
 .splash-enter-btn:active{transform:scale(.97)}
 .splash-right{
@@ -348,7 +351,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .edit-toggle{flex:1;padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;transition:all .2s;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);box-shadow:var(--shadow)}
 .edit-toggle.active{background:linear-gradient(135deg,rgba(27,47,160,0.1),rgba(109,40,217,0.07));border-color:rgba(27,47,160,0.35);color:var(--magic);font-weight:600}
 .reset-btn{padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;border:1.5px solid rgba(196,30,30,0.25);background:rgba(196,30,30,0.06);color:var(--red)}
-.reroute-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:5px 11px;background:linear-gradient(135deg,rgba(109,40,217,0.08),rgba(27,47,160,0.06));border:1.5px solid rgba(109,40,217,0.25);border-radius:99px;color:var(--purple);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer}
+.reroute-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:5px 11px;background:rgba(26,104,96,0.07);border:1.5px solid rgba(26,104,96,0.3);border-radius:99px;color:#1A6860;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer}
 .reroute-btn:active{transform:scale(.95)}
 .reroute-result{margin-top:7px;padding:9px 11px;background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(96,165,250,.04));border:1px solid rgba(167,139,250,.2);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6;display:none}
 .reroute-result.show{display:block}
@@ -435,7 +438,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .tip-body{}
 .tip-label{font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
 .tip-text{font-size:12px;color:var(--text-muted);line-height:1.6}
-.dining-btn{display:block;width:100%;margin-top:8px;padding:10px;border-radius:var(--radius-sm);border:1.5px solid #F59E0B;background:#FEF3C7;color:#92400E;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center;touch-action:manipulation}
+.dining-btn{display:block;width:100%;margin-top:8px;padding:10px;border-radius:var(--radius-sm);border:1.5px solid #1A6860;background:rgba(0,115,104,0.06);color:#1A6860;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center}
 .dining-btn:active{transform:scale(.97)}
 .dining-result{margin-top:8px;padding:11px 12px;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--radius-sm);font-size:13px;color:var(--text);line-height:1.6;display:none;word-wrap:break-word;overflow-wrap:break-word;width:100%;box-sizing:border-box}
 .dining-result.show{display:block}
@@ -546,6 +549,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .wb-low{background:#DCFCE7;color:#15803D;border:1px solid rgba(21,128,61,0.2)}
 .wb-med{background:#FEF3C7;color:#B45309;border:1px solid rgba(180,83,9,0.2)}
 .wb-high{background:#FEE2E2;color:#C41E1E;border:1px solid rgba(196,30,30,0.2)}
+
+.wb-tappable:active{transform:scale(.92)}
 .wb-closed{background:#F3F4F6;color:#9CA3AF;border:1px solid rgba(0,0,0,0.1)}
 .wait-tab-row{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px;box-shadow:var(--shadow);gap:8px}
 .wait-tab-row.wt-high{border-color:rgba(196,30,30,0.3);background:#FFF5F5}
@@ -734,24 +739,24 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div id="preTripBanner" style="display:none;background:var(--magic-dim);border:1px solid rgba(27,47,160,0.2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:8px;cursor:pointer" onclick="openSetup()">
       <div id="preTripBannerSub" style="font-size:12px;color:var(--magic);font-weight:600"></div>
     </div>
-    <!-- Day tabs -->
+    <!-- Day tabs — auto-updated from TRIP_CONFIG -->
     <div class="day-tabs" id="dayTabsContainer">
-      <div class="day-tab vip-tab" id="day-tab-1" onclick="setDay(1)" role="tab">
+      <div class="day-tab" id="day-tab-1" onclick="setDay(1)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 1</span>
-          <span class="day-tab-date">Mon Jun 9</span>
+          <span class="day-tab-date">Sun Jun 28</span>
         </div>
       </div>
-      <div class="day-tab" id="day-tab-2" onclick="setDay(2)" role="tab">
+      <div class="day-tab vip-tab" id="day-tab-2" onclick="setDay(2)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 2</span>
-          <span class="day-tab-date">Tue Jun 10</span>
+          <span class="day-tab-date">Mon Jun 29</span>
         </div>
       </div>
       <div class="day-tab" id="day-tab-3" onclick="setDay(3)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 3</span>
-          <span class="day-tab-date">Wed Jun 11</span>
+          <span class="day-tab-date">Tue Jun 30</span>
         </div>
       </div>
     </div>
@@ -796,8 +801,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           </div>
           <div class="reopt-summary-text">
-            <div class="reopt-summary-title">AI Schedule Optimized</div>
-            <div class="reopt-summary-sub" id="reoptSummarySub">Saving estimated wait time</div>
+            <div class="reopt-summary-title">Smoothed out your next few hours</div>
+            <div class="reopt-summary-sub" id="reoptSummarySub">Rides reordered around live waits</div>
           </div>
         </div>
         <div class="reopt-body">
@@ -2380,9 +2385,12 @@ async function reoptimize(){
   // Check cache - if schedule hasn't changed, reuse last result
   var data=getCurDay();
   var hash=scheduleHash(data)+'_'+curDay;
-  if(reoptCache[hash]){
-    txt.innerHTML='<b style="color:var(--text)">Changes made:</b><br><br>'+stripMd(reoptCache[hash].explanation)+' <span style="font-size:11px;color:var(--text-dim)">(cached)</span>';
-    pendingReopt=reoptCache[hash].result;
+  if(reoptCache[hash]||reoptCache[hash+'_v2']){
+    var cached=reoptCache[hash+'_v2']||reoptCache[hash];
+    txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+stripMd(cached.explanation)+'<span style="font-size:11px;color:var(--text-dim);margin-left:6px">(cached)</span></div>';
+    pendingReopt=cached.result;
+    var subEl=document.getElementById('reoptSummarySub');
+    if(subEl)subEl.textContent='From earlier optimization';
     btns.classList.add('show');
     return;
   }
@@ -2400,7 +2408,6 @@ async function reoptimize(){
   var tripStart=new Date('2026-06-28T00:00:00');
   var tripEnd=new Date('2026-07-01T00:00:00');
   var tripStartDate=new Date('2026-06-28');var tripEndDate=new Date('2026-07-01');var todayDate=new Date();todayDate.setHours(0,0,0,0);var atPark=todayDate>=tripStartDate&&todayDate<tripEndDate;
-  var preTrip=!atPark;
   var preTrip=!atPark;
 
   // Build live wait times context
@@ -2488,6 +2495,10 @@ async function reoptimize(){
       txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+stripMd(expText)+'</div>'
         ;
       reoptCache[hash+'_v2']={explanation:expText,result:pendingReopt};
+      // Update summary bar with ride count
+      var rideCount=0;if(newSecs)newSecs.forEach(function(s){s.entries&&s.entries.forEach(function(e){if(e.type==='ride')rideCount++;});});
+      var subEl=document.getElementById('reoptSummarySub');
+      if(subEl)subEl.textContent=(rideCount>0?rideCount+' ride'+(rideCount===1?'':'s')+' reordered':'Schedule optimized')+' around live waits';
       btns.classList.add('show');
     }else{
       txt.textContent=explanation||text;
@@ -2593,7 +2604,7 @@ async function fetchDiningRecs(e){
   resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">⏳ Loading…</span>';
   resultEl.classList.add('show');
   var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:'You are a Disneyland dining expert. Be concise. 2–3 sentences max. No markdown.',messages:[{role:'user',content:'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.'}]});
-  if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px">⚠️ '+r.error.message+'</span>';}
+  if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> '+r.error.message+'</span>';}
   else if(r&&r.content&&r.content.length){resultEl.innerHTML='<div style="font-size:13px;line-height:1.6">'+stripMd(r.content[0].text.trim())+'</div>';}
   else{resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">No result.</span>';}
   btn.disabled=false;
@@ -2743,16 +2754,16 @@ function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
-    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">📅</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
+    document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
     return;
   }
   day.sections.forEach(function(sec,si){
     if(!sec.entries||sec.entries.length===0)return;
     var isVipSec=sec.title&&sec.title.indexOf('VIP Tour')>-1;
     if(isVipSec){
-      h+='<div class="sec-hdr" style="margin-top:12px"><div class="sec-lbl" style="background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:11px;font-weight:700;letter-spacing:.1em">&#11088; '+sec.title+'</div><div class="sec-line" style="background:linear-gradient(90deg,#D4A017,transparent)"></div></div>';
+      h+='<div class="sec-hdr" style="margin-top:12px"><div class="sec-lbl" style="background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:11px;font-weight:700;letter-spacing:.1em"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle;margin-right:3px;fill:url(#sg);"><defs><linearGradient id=\'sg\'><stop offset=\'0%\' stop-color=\'#C9860A\'/><stop offset=\'100%\' stop-color=\'#E8A020\'/></linearGradient></defs><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> '+sec.title+'</div><div class="sec-line" style="background:linear-gradient(90deg,#D4A017,transparent)"></div></div>';
     }else{
-      h+='<div class="sec-hdr"><div class="sec-lbl">'+sec.title+'</div><div class="sec-line"></div></div>';
+      h+='<div class="sec-hdr"><div class="sec-lbl">'+sec.title.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\u20E3\u200D]+/gu,'').trim()+'</div><div class="sec-line"></div></div>';
     }
     sec.entries.forEach(function(e,ei){
       // VIP Notes special card
@@ -2775,7 +2786,7 @@ function renderSched(){
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
-      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',break:'<span class="tb tb-break">🚴</span>',photo:'<span class="tb tb-photo">📷</span>'};
+      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
       var diningRec='';
       if(e.type==='food'&&e.h){
@@ -2796,21 +2807,21 @@ function renderSched(){
           +'</div>'
           +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'" style="display:none">&#10003; Saved!</div>'
           +'</div>'
-          +'<button class="dining-btn" data-name=\''+dname.split("'").join('\u2019')+'\' data-land=\''+safeLandCtx+'\'>🍽️ Get Dining Recommendations</button>'
+          +'<button class="dining-btn" data-name=\''+dname.split("'").join('\u2019')+'\' data-land=\''+safeLandCtx+'\'>Get Dining Recommendations</button>'
           +'<div class="dining-result"></div>';
       }
       var reroute='';
       if(e.type==='ride'&&e.ride){
         var safeRide=(e.ride||'').split("'").join('\\u2019');
         var safeLand=((e.land||'Unknown')).split("'").join('\\u2019')
-        reroute='<button class="reroute-btn" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this)">\u26A1 AI Wait Checkreroute</button><div class="reroute-result"></div>';
+        reroute='<button class="reroute-btn" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> AI alternatives</button><div class="reroute-result"></div>'
       }
       h+='<div class="'+bc+'"'+drag+'>'
         +(editMode?'<button class="del-btn" onclick="deleteEntry('+curDay+','+si+','+ei+')">&times;</button>':'')
         +'<div class="ride-main">'
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
-        +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+e.h+'</span>'+(tbmap[e.type]||'')+llb+(e.ride?(function(){var b=wbHTML(e.ride);return b?b+'<span style="font-size:9px;color:var(--text-dim);margin-left:3px;vertical-align:middle;">current wait</span>':'';}()):'')+'</div>'
+        +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+e.h+'</span>'+(tbmap[e.type]||'')+llb+(e.ride?(function(){var b=wbHTML(e.ride);if(!b)return '';var isHigh=b.indexOf('wb-high')>-1;return isHigh?b.replace('<span class="wb','<span class="wb wb-tappable" title="Tap for alternatives" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this.nextElementSibling)" style="cursor:pointer"'):b;}()):'')+'</div>'
         +'<div class="ride-note">'+e.n+'</div>'+diningRec
         +reroute
         +'</div></div>';
@@ -2866,7 +2877,7 @@ function renderWaitTab(){
     });
     return h;
   }
-  el.innerHTML=renderGroup('🏰 Disneyland Park',dlRides)+renderGroup('🌊 Disney California Adventure',dcaRides);
+  el.innerHTML=renderGroup('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21V9l4-4 4 4 4-4 4 4v12"/><path d="M9 21v-6h6v6"/></svg> Disneyland Park',dlRides)+renderGroup('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg> Disney California Adventure',dcaRides);
   if(typeof renderClosuresFromWaits==='function') renderClosuresFromWaits();
 }
 function toggleAccordion(id){
@@ -3102,11 +3113,12 @@ function renderShows(){
 function setDay(d){
   window.scrollTo(0,0);
   curDay=d;
-  document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
+  document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d-1);});
   editMode=false;
-  var et=document.getElementById('editToggle');et.textContent='\u270E Edit Schedule';et.classList.remove('active');
+  var et=document.getElementById('editToggle');et.textContent='✎ Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
-renderClosed();renderSched();renderDayInfoBar();
+  renderClosed();renderSched();renderDayInfoBar();
+  if(typeof renderVipBanner==='function')renderVipBanner(d);
 }
 function setTab(t){
   ['tabSchedule','tabWaits','tabShows','tabChat','tabClosures','tabInfo'].forEach(function(id){
@@ -3644,7 +3656,7 @@ async function loadCrowdPrediction(){
     }catch(pe){
       html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0">'+stripMd(text)+'</p></div>';
     }
-    html+='<button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">⟳  Refresh</button>';
+    html+='<button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh</button>';
     el.innerHTML=html;
     try{localStorage.setItem('crowd_pred',html);localStorage.setItem('crowd_pred_date',new Date().toDateString());}catch(e){}
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
@@ -3823,11 +3835,11 @@ var TRIP_CONFIG = {
   tripName: 'Coffron/Woods Disneyland',
   party: ['Dad', 'Mom', 'Kids'],
   days: [
-    {num: 1, label: 'Day 1', date: 'Mon Jun 9',  park: 'Disneyland', isVip: true},
-    {num: 2, label: 'Day 2', date: 'Tue Jun 10', park: 'California Adventure', isVip: false},
-    {num: 3, label: 'Day 3', date: 'Wed Jun 11', park: 'Disneyland', isVip: false},
+    {num: 1, label: 'Day 1', date: 'Sun Jun 28', park: 'Disneyland',            isVip: false},
+    {num: 2, label: 'Day 2', date: 'Mon Jun 29', park: 'California Adventure',  isVip: true},
+    {num: 3, label: 'Day 3', date: 'Tue Jun 30', park: 'Disneyland',            isVip: false},
   ],
-  firstParkDate: new Date('2026-06-09T08:00:00-07:00'),
+  firstParkDate: new Date('2026-06-28T08:00:00-07:00'),
 };
 
 /* --- Splash screen --- */
@@ -3973,10 +3985,13 @@ function renderVipBanner(dayNum) {
   if (!container) return;
   var existing = container.querySelector('.vip-banner');
   if (existing) existing.remove();
+  // Show/hide AI optimize hero based on VIP status
+  var aiHero = document.getElementById('aiOptHero');
+  if (aiHero) aiHero.style.display = (cfg && cfg.isVip) ? 'none' : '';
   if (cfg && cfg.isVip) {
     var banner = document.createElement('div');
     banner.className = 'vip-banner';
-    banner.innerHTML = '<svg class="vip-banner-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M14 4L16.5 10H23L17.8 13.8L19.8 20L14 16.3L8.2 20L10.2 13.8L5 10H11.5L14 4Z" fill="rgba(255,255,255,0.9)"/></svg><div class="vip-banner-text"><div class="vip-banner-title">VIP Day — Lightning Lane Multi Pass Included</div><div class="vip-banner-sub">Priority access and skip-the-line benefits active</div></div>';
+    banner.innerHTML = '<svg class="vip-banner-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M14 4L16.5 10H23L17.8 13.8L19.8 20L14 16.3L8.2 20L10.2 13.8L5 10H11.5L14 4Z" fill="rgba(255,255,255,0.9)"/></svg><div class="vip-banner-text"><div class="vip-banner-title">VIP Tour Day — 10:00 AM to 5:00 PM</div><div class="vip-banner-sub">Your guide handles all skip-the-line access.</div></div>';
     container.insertBefore(banner, container.firstChild);
   }
 }
@@ -4216,11 +4231,11 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">( Generating your personalized trip summary...</div>
       </div>
       <div style="background:rgba(27,47,160,0.05);border:1.5px solid rgba(27,47,160,0.2);border-radius:14px;padding:14px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">📤 Share with your group</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Share with your group</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Send this link to everyone coming   they'll see the full schedule, live wait times, and AI features.</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔗 Copy Link</button>
-          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📤 Share</button>
+          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Copy Link</button>
+          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Share</button>
         </div>
       </div>
       <button class="setup-btn" onclick="closeSetupFinal()">  Let's Go Plan!</button>
