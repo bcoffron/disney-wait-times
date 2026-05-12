@@ -832,8 +832,8 @@ var _isAdmin = false;
   var stored = localStorage.getItem('disney_unlocked');
   if (!stored) { window.location.href = 'app.html'; return; }
   var k = stored.trim().toLowerCase();
-  if (k !== PASS_GUEST && k !== PASS_ADMIN) { window.location.href = 'app.html'; return; }
-  if (k === PASS_ADMIN) { _isAdmin = true; userRole = 'admin'; }
+  if (k !== 'guest' && k !== 'admin') { window.location.href = 'app.html'; return; }
+  if (k === 'admin') { _isAdmin = true; userRole = 'admin'; }
   renderPTCountdowns();
   setTimeout(function(){ renderPreTripChecklist(); loadDiningReservations(); }, 50);
 })();
