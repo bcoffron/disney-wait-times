@@ -722,6 +722,8 @@ var userRole='guest'; // 'admin' or 'guest'
 // ============================================================
 // TRIP DATA
 // ============================================================
+var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
+var apiKey='';
 const DAYS=[
 {label:'Sunday Jun 28',sub:'Disneyland " Fireworks Night',sections:[
   {title:'Sunday Jun 28   Disneyland',entries:[
@@ -1358,6 +1360,22 @@ async function loadLLPlanner(){
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
 }
 function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadLLPlanner();}
+var PRE_TRIP_CHECKLIST=[
+  {weeks:8, label:'Book dining reservations (opens 60 days before trip)'},
+  {weeks:7, label:'Purchase park tickets if not already done'},
+  {weeks:6, label:'Book hotel if not already booked'},
+  {weeks:5, label:'Research Lightning Lane Multi Pass strategy'},
+  {weeks:4, label:'Check refurbishment schedules and plan alternatives'},
+  {weeks:3, label:'Download the official Disneyland app and log in'},
+  {weeks:3, label:'Add your park tickets to the Disneyland app'},
+  {weeks:2, label:'Book Lightning Lane Individual Selections (7 days before)'},
+  {weeks:2, label:'Check weather forecast and pack accordingly'},
+  {weeks:1, label:'Confirm all dining reservations'},
+  {weeks:1, label:'Charge all electronics and power banks the night before'},
+  {weeks:1, label:'Screenshot your park tickets and dining confirmations'},
+  {weeks:1, label:'Review your ThemeParkWize daily schedule'},
+  {weeks:0, label:'Arrive at park gates 45-60 min before opening'},
+];
 function renderPreTripChecklist(){
   var el=document.getElementById('pt_checklist_content');
   if(!el)return;
