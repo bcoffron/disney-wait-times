@@ -337,8 +337,8 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
 .page-header h1{margin:0;font-size:20px;font-weight:700;color:var(--text);flex:1;}
 .page-content{padding:16px;padding-bottom:100px;max-width:600px;margin:0 auto;}
 .bottom-tabs{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--card);border-top:1px solid var(--border);display:flex;height:60px;}
-.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;color:var(--text-muted);font-size:10px;font-family:inherit;padding:6px 0;-webkit-tap-highlight-color:transparent;}
-.tab-btn.active{color:var(--magic);}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;color:#999;font-size:10px;font-family:inherit;padding:6px 0;-webkit-tap-highlight-color:transparent;}
+.tab-btn.active{color:#1a1a6e;}
 .pt-accordion{background:var(--card);border:0.5px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
 .pt-accordion-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
 .pt-accordion-hdr:active{opacity:.75;}
@@ -358,7 +358,7 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
 <!-- Header -->
 <div class="page-header">
   <button class="back-btn" onclick="window.location.href='app.html'" ontouchend="event.preventDefault();window.location.href='app.html'">&#8592;</button>
-  <h1>&#127921; Pre-Trip Planning</h1>
+  <h1>Pre-Trip Planning</h1>
 </div>
 
 <!-- Page content -->
@@ -374,7 +374,7 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
   <!-- Section 1: Setup -->
   <div class="pt-accordion">
     <div class="pt-accordion-hdr" onclick="ptToggle('setup')" ontouchend="event.preventDefault();ptToggle('setup')">
-      <div class="pt-accordion-title">&#9881;&#65039; Setup Your Park Visit</div>
+      <div class="pt-accordion-title">&#9881;&#65039; Setup your park visit</div>
       <span class="pt-accordion-arr" id="pt_arr_setup">&#9660;</span>
     </div>
     <div class="pt-accordion-body" id="pt_body_setup">
@@ -386,7 +386,7 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
   <!-- Section 2: Park Hours -->
   <div class="pt-accordion">
     <div class="pt-accordion-hdr" onclick="ptToggle('hours')" ontouchend="event.preventDefault();ptToggle('hours')">
-      <div class="pt-accordion-title">&#127984; Park Hours</div>
+      <div class="pt-accordion-title">&#127984; Park hours</div>
       <span class="pt-accordion-arr" id="pt_arr_hours">&#9660;</span>
     </div>
     <div class="pt-accordion-body" id="pt_body_hours">
@@ -420,7 +420,7 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
   <!-- Section 5: Know Before You Go -->
   <div class="pt-accordion">
     <div class="pt-accordion-hdr" onclick="ptToggle('kbyg')" ontouchend="event.preventDefault();ptToggle('kbyg')">
-      <div class="pt-accordion-title">&#128161; Know Before You Go</div>
+      <div class="pt-accordion-title">&#128161; Know before you go</div>
       <span class="pt-accordion-arr" id="pt_arr_kbyg">&#9660;</span>
     </div>
     <div class="pt-accordion-body" id="pt_body_kbyg">
@@ -432,7 +432,7 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
   <!-- Section 6: Day-by-Day Strategy -->
   <div class="pt-accordion">
     <div class="pt-accordion-hdr" onclick="ptToggle('strategy')" ontouchend="event.preventDefault();ptToggle('strategy')">
-      <div class="pt-accordion-title">&#128197; Day-by-Day Strategy</div>
+      <div class="pt-accordion-title">&#128197; Day-by-day strategy</div>
       <span class="pt-accordion-arr" id="pt_arr_strategy">&#9660;</span>
     </div>
     <div class="pt-accordion-body" id="pt_body_strategy">
@@ -444,7 +444,7 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
   <!-- Section 7: Lightning Lane Planner -->
   <div class="pt-accordion">
     <div class="pt-accordion-hdr" onclick="ptToggle('ll')" ontouchend="event.preventDefault();ptToggle('ll')">
-      <div class="pt-accordion-title">&#9889; Lightning Lane Planner</div>
+      <div class="pt-accordion-title">&#9889; Lightning lane planner</div>
       <span class="pt-accordion-arr" id="pt_arr_ll">&#9660;</span>
     </div>
     <div class="pt-accordion-body" id="pt_body_ll">
@@ -456,7 +456,7 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
   <!-- Section 8: Dining Reservations -->
   <div class="pt-accordion">
     <div class="pt-accordion-hdr" onclick="ptToggle('dining')" ontouchend="event.preventDefault();ptToggle('dining')">
-      <div class="pt-accordion-title">&#127869;&#65039; Dining Reservations</div>
+      <div class="pt-accordion-title">&#127869;&#65039; Dining reservations</div>
       <span class="pt-accordion-arr" id="pt_arr_dining">&#9660;</span>
     </div>
     <div class="pt-accordion-body" id="pt_body_dining">
@@ -474,7 +474,7 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
   <!-- Section 9: Checklist -->
   <div class="pt-accordion">
     <div class="pt-accordion-hdr" onclick="ptToggle('checklist')" ontouchend="event.preventDefault();ptToggle('checklist')">
-      <div class="pt-accordion-title">&#9989; Pre-Trip Checklist</div>
+      <div class="pt-accordion-title">&#9989; Pre-trip checklist</div>
       <span class="pt-accordion-arr" id="pt_arr_checklist">&#9660;</span>
     </div>
     <div class="pt-accordion-body" id="pt_body_checklist">
@@ -491,19 +491,19 @@ body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playf
 <!-- Bottom tab bar -->
 <div class="bottom-tabs">
   <button class="tab-btn" onclick="window.location.href='app.html'" ontouchend="event.preventDefault();window.location.href='app.html'">
-    <span style="font-size:20px">&#128197;</span><span>Schedule</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Schedule</span>
   </button>
   <button class="tab-btn" onclick="window.location.href='app.html#waittimes'" ontouchend="event.preventDefault();window.location.href='app.html#waittimes'">
-    <span style="font-size:20px">&#9201;</span><span>Wait Times</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><span>Wait Times</span>
   </button>
   <button class="tab-btn active">
-    <span style="font-size:20px">&#128081;</span><span>Pre-Trip</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="11" y2="16"/></svg><span>Pre-Trip</span>
   </button>
   <button class="tab-btn" onclick="window.location.href='app.html#askai'" ontouchend="event.preventDefault();window.location.href='app.html#askai'">
-    <span style="font-size:20px">&#129302;</span><span>Ask AI</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Ask AI</span>
   </button>
   <button class="tab-btn" onclick="window.location.href='app.html#info'" ontouchend="event.preventDefault();window.location.href='app.html#info'">
-    <span style="font-size:20px">&#8505;&#65039;</span><span>Info</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Info</span>
   </button>
 </div>
 
@@ -1280,25 +1280,28 @@ async function loadCrowdPrediction(){
   el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Analyzing crowd patterns...</div>';
   var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
   var size=sd.groupSize||4;
-  var prompt='Analyze crowd levels for Disneyland Resort for the full week of June 25 - July 2 2026. Cover all 8 days: Thu Jun 25, Fri Jun 26, Sat Jun 27 (travel day), Sun Jun 28 (PARK DAY 1 Disneyland), Mon Jun 29 (PARK DAY 2 VIP Tour), Tue Jun 30 (PARK DAY 3 DCA + DL evening), Wed Jul 1 (departure), Thu Jul 2 (pre-4th of July buildup). For each day: 1. **Crowd Level** 1-10 with descriptor. 2. Which park is less crowded. 3. Best window for headliners. 4. One key note (events, holiday buildup, school-out patterns). For non-park days give shorter entries showing whether it would have been worth visiting instead. End with a **WEEK SUMMARY** noting best/worst days and key patterns. Base on historical late June/early July Disneyland patterns. Group size: '+size+'.';
+  var prompt='For Disneyland Resort, provide crowd level scores for 3 park days: Sun Jun 28, Mon Jun 29, Tue Jun 30 2026. Return ONLY a JSON array: [{"date":"Sun Jun 28","score":7,"label":"Heavy","note":"brief note"}]. Use scores 1-10 based on late June historical patterns.';
   try{
-    var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:400,system:'Return ONLY a JSON array of 8 objects for Jun 25-Jul 2. Each: {"date":"Thu Jun 25","score":7,"label":"Heavy","note":"brief"}. No other text.',messages:[{role:'user',content:prompt}]});
+    var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:300,system:'Return ONLY a valid JSON array of 3 objects for Sun Jun 28, Mon Jun 29, Tue Jun 30. Each: {"date":"Sun Jun 28","score":7,"label":"Heavy","note":"brief"}. No markdown, no other text.',messages:[{role:'user',content:prompt}]});
     var data=r;
     if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
     var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
     var html;
     try{var crowd=JSON.parse(text.replace(/^[\s\S]*?(\[)/,'$1').replace(/(\]).*$/,'$1'));
-      var cH='<div class="crowd-scores" style="padding:4px 0">';
+      var cH='<div style="padding:4px 0">';
       crowd.forEach(function(d){
         var s=Math.max(1,Math.min(10,+d.score||5));
-        var pct=s*10;
-        var col=s<=3?'#22c55e':s<=5?'#eab308':s<=7?'#f97316':'#ef4444';
-        cH+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">'
-          +'<div style="min-width:75px;font-size:11px;font-weight:600;color:var(--text-muted)">'+(d.date||'?')+'</div>'
-          +'<div style="flex:1;height:7px;background:rgba(0,0,0,0.07);border-radius:99px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:99px"></div></div>'
-          +'<div style="min-width:28px;font-size:16px;font-weight:800;color:'+col+'">'+ s+'</div>'
-          +'<div style="min-width:55px;font-size:10px;color:var(--text-muted)">'+(d.label||'')+'</div>'
-        +'</div>';
+        var pct=(s/10)*100;
+        var col=s<=4?'#22c55e':s<=6?'#eab308':s<=8?'#f97316':'#ef4444';
+        cH+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border,rgba(0,0,0,0.08))">';
+        cH+='<div style="min-width:90px;font-size:12px;font-weight:600;color:var(--text-muted)">'+(d.date||'?')+'</div>';
+        cH+='<div style="flex:1;position:relative">';
+        cH+='<div style="height:8px;background:#f0ece4;border-radius:4px;overflow:hidden">';
+        cH+='<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:4px;transition:width .4s"></div>';
+        cH+='</div></div>';
+        cH+='<div style="min-width:36px;font-size:12px;font-weight:700;color:'+col+';text-align:right">'+s+'/10</div>';
+        cH+='<div style="min-width:55px;font-size:10px;color:var(--text-muted)">'+(d.label||'')+'</div>';
+        cH+='</div>';
       });
       cH+='</div>';
       if(!crowd.length)throw new Error('empty');
