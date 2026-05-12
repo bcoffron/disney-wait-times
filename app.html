@@ -213,6 +213,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 /* Legacy AI opt button (small) — kept for inline use */
 .ai-opt-btn{padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;border:1.5px solid rgba(109,40,217,0.25);background:rgba(109,40,217,0.07);color:var(--purple)}
 
+
+/* Always show the AI optimize hero button */
+#aiOptHero{display:flex!important}
 /* ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== */
 .reopt-box{display:none;margin-bottom:12px;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-md)}
 .reopt-box.show{display:block}
@@ -778,7 +781,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div id="guestSyncNote" style="display:none;font-size:11px;color:var(--text-dim);text-align:center;padding:6px;margin-bottom:6px"></div>
 
       <!-- ===== SECTION 4: AI OPTIMIZE HERO BUTTON ===== -->
-      <button class="ai-opt-hero" id="aiOptBtn" onclick="reoptimize()">
+      <button class="ai-opt-hero" id="aiOptHero" onclick="reoptimize()">
         <div class="ai-opt-label">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           AI Optimize My Day
