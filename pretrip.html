@@ -1159,6 +1159,7 @@ function generateFromSetup(params, callback) {
     }catch(e){callback('Parse error: '+e.message);}
   })
   .catch(function(e){callback('Network error: '+e.message);});
+}
 
 async function confirmLLSetup(){
   if(llState.multiPass===null){alert('Please select whether you have Lightning Lane Multi Pass.');return;}
