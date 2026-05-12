@@ -218,7 +218,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
 
 /* Always show the AI optimize hero button */
-#aiOptHero{display:flex!important}
+#aiOptHero{display:flex}
 /* ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== */
 .reopt-box{display:none;margin-bottom:12px;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-md)}
 .reopt-box.show{display:block}
@@ -1408,13 +1408,19 @@ function scheduleWeatherCheck(){
 }
 
 function wxIcon(code){
-  if(code===0) return '&#9728;&#65039;';
-  if(code<=2) return '&#127780;&#65039;';
-  if(code<=3) return '&#9925;';
-  if(code<=48) return '&#127787;&#65039;';
-  if(code<=67) return '&#127783;&#65039;';
-  if(code<=82) return '&#127782;&#65039;';
-  return '&#9889;';
+  // SVG weather icons — no emoji
+  var sun='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+  var cloud='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>';
+  var partlyCloud='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><line x1="19" y1="4" x2="19" y2="4.01"/><line x1="22" y1="7" x2="22.01" y2="7"/><line x1="16" y1="7" x2="16.01" y2="7"/></svg>';
+  var rain='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg>';
+  var storm='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>';
+  if(code===0) return sun;
+  if(code<=2) return partlyCloud;
+  if(code<=3) return cloud;
+  if(code<=48) return cloud;
+  if(code<=67) return rain;
+  if(code<=82) return rain;
+  return storm;
 }
 
 function getCountdown(){
@@ -1448,24 +1454,24 @@ function renderCountdown(){
 function renderDayInfoBar(){
   var el=document.getElementById('dayInfoBar');
   if(!el) return;
-  var ph=PARK_HOURS[curDay]||PARK_HOURS[0];
+  var ph=PARK_HOURS[curDay-1]||PARK_HOURS[0];
   var days=['Sun Jun 28','Mon Jun 29','Tue Jun 30'];
   var waitStatusTxt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live   just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+'m ago'):'Loading wait times...';
   var waitColor=waitLastFetch?'#15803D':'var(--text-dim)';
   var hoursHTML='<div class="park-hours-card">'
-    +'<div class="ph-title">&#127984; Park Hours   '+days[curDay]+'</div>'
+    +'<div class="ph-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:3px"><path d="M3 21V9l4-4 4 4 4-4 4 4v12"/><path d="M9 21v-6h6v6"/></svg> PARK HOURS '+days[curDay-1]+'</div>'
     +'<div class="ph-row"><span class="ph-park">Disneyland</span><span class="ph-time">'+ph.dl+'</span></div>'
     +'<div class="ph-row"><span class="ph-park">DCA</span><span class="ph-time">'+ph.dca+'</span></div>'
     
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">'
-    +'<span style="font-size:11px;font-weight:600;color:'+waitColor+'">&#127906; '+waitStatusTxt+'</span>'
+    +'<span style="font-size:11px;font-weight:600;color:'+waitColor+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:3px"><path d="M2 20h20"/><path d="M6 20V10l4-4 4 4 4-4 4 4v10"/></svg>'+waitStatusTxt+'</span>'
     +'<button onclick="setTab(\'waits\')" style="padding:3px 9px;border-radius:99px;border:1.5px solid rgba(27,47,160,0.2);background:rgba(27,47,160,0.06);color:var(--magic);font-size:10px;font-weight:600;font-family:inherit;cursor:pointer">View All</button>'
     +'</div>'
     +'</div>';
-  var wxHTML='<div class="weather-card"><div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;">&#127757; Anaheim, CA</div>';
+  var wxHTML='<div class="weather-card"><div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:middle;margin-right:2px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Anaheim, CA</div>';
   if(weatherData&&weatherData.time){
-    var hi=Math.round(weatherData.temperature_2m_max[curDay]);
-    var lo=Math.round(weatherData.temperature_2m_min[curDay]);
+    var hi=Math.round(weatherData.temperature_2m_max[curDay-1]);
+    var lo=Math.round(weatherData.temperature_2m_min[curDay-1]);
     wxHTML+='<div class="wx-icon">'+wxIcon(weatherData.weathercode[curDay])+'</div>'
       +'<div class="wx-temp">'+hi+'&#176;F</div>'
       +'<div class="wx-desc">Lo '+lo+'&#176;</div>';
@@ -1766,11 +1772,11 @@ function showLLPlanningPrompt(){
   var indivForDay=LL_INDIVIDUAL.filter(function(r){return r.day===curDay;});
   var html='<div style="font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">Lightning Lane Multi Pass</div>';
   html+='<div class="ll-option" id="ll-yes" onclick="selectLLOption(true)">'
-    +'<div class="ll-option-icon">&#9889;</div>'
+    +'<div class="ll-option-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>'
     +'<div class="ll-option-text"><div class="ll-option-title">Yes &#8212; buying Multi Pass today</div><div class="ll-option-desc">~$30-40/person. Book one ride at a time, chains throughout the day.</div></div>'
     +'<div class="ll-checkbox" id="ll-yes-check"></div></div>';
   html+='<div class="ll-option" id="ll-no" onclick="selectLLOption(false)">'
-    +'<div class="ll-option-icon">&#127939;</div>'
+    +'<div class="ll-option-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/></svg></div>'
     +'<div class="ll-option-text"><div class="ll-option-title">No &#8212; standby only today</div><div class="ll-option-desc">Schedule will be optimized for standby queues with no LL references.</div></div>'
     +'<div class="ll-checkbox" id="ll-no-check"></div></div>';
 
@@ -1828,7 +1834,7 @@ function showLLConfirmedPrompt(){
 
   sub.textContent='You\u2019re at the park! Did you buy Lightning Lane Multi Pass after scanning in?';
   var html='<div class="ll-option selected" id="ll-conf-yes" onclick="confirmAtPark(true)">'
-    +'<div class="ll-option-icon">&#9989;</div>'
+    +'<div class="ll-option-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>'
     +'<div class="ll-option-text"><div class="ll-option-title">Yes &#8212; bought Multi Pass!</div><div class="ll-option-desc">Great! Book Indiana Jones or Space Mountain first.</div></div>'
     +'<div class="ll-checkbox checked" id="ll-conf-check">&#10003;</div></div>';
   html+='<div class="ll-option" id="ll-conf-no" onclick="confirmAtPark(false)">'
@@ -1909,7 +1915,7 @@ function llGotIt(rideKey, bannerEl){
     var diff=Math.abs(parseTime(returnTime)-parseTime(scheduledTime));
     if(diff>=20){
       // Prompt to reoptimize
-      bannerEl.parentNode.innerHTML='<div style="font-size:12px;color:var(--green);padding:4px 0">&#10003; LL booked for '+returnTime+'! Your scheduled time differs by '+diff+' min. <button onclick="reoptimize()" style="padding:3px 10px;border-radius:99px;border:1.5px solid var(--magic);background:rgba(27,47,160,0.08);color:var(--magic);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;margin-left:4px">Reoptimize &#10024;</button></div>';
+      bannerEl.parentNode.innerHTML='<div style="font-size:12px;color:var(--green);padding:4px 0">&#10003; LL booked for '+returnTime+'! Your scheduled time differs by '+diff+' min. <button onclick="reoptimize()" style="padding:3px 10px;border-radius:99px;border:1.5px solid var(--magic);background:rgba(27,47,160,0.08);color:var(--magic);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;margin-left:4px">Reoptimize <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M19 16l.5 1.5L21 18l-1.5.5L19 20l-.5-1.5L17 18l1.5-.5z"/><path d="M5 4l.5 1.5L7 6l-1.5.5L5 8l-.5-1.5L3 6l1.5-.5z"/></svg></button></div>';
     }else{
       bannerEl.parentNode.innerHTML='<div style="font-size:12px;color:var(--green);padding:4px 0">&#10003; LL booked for '+returnTime+'! Schedule looks good.</div>';
     }
@@ -2178,7 +2184,7 @@ function showWazeSuggestion(sug, opportunities){
   if(!card||!body) return;
 
   var saveHTML=sug.timeSaved>0?'<span class="waze-stat waze-stat-save">~'+sug.timeSaved+' min saved</span>':'';
-  var walkHTML=sug.walkMins>0?'<span class="waze-stat waze-stat-walk">&#127939; '+sug.walkMins+' min walk</span>':'';
+  var walkHTML=sug.walkMins>0?'<span class="waze-stat waze-stat-walk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/></svg> '+sug.walkMins+' min walk</span>':'';
 
   body.innerHTML='<div class="waze-opportunity">'+stripMd(sug.headline)+'</div>'
     +'<div class="waze-detail">'+stripMd(sug.detail)+'</div>'
@@ -2194,7 +2200,7 @@ function showWazeSuggestion(sug, opportunities){
 async function acceptWaze(){
   var card=document.getElementById('wazeCard');
   var body=document.getElementById('wazeBody');
-  body.innerHTML='<div class="waze-loading">&#9889; Updating schedule and reoptimizing...</div>';
+  body.innerHTML='<div class="waze-loading"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Updating schedule and reoptimizing...</div>';
 
   // Run full reoptimize which will account for the current wait data
   card.style.display='none';
@@ -2541,7 +2547,7 @@ function renderLLBanner(e,dayIdx){
   }
   var saved='';
   try{var o=JSON.parse(localStorage.getItem('ll_state_'+dayIdx)||'{}');saved=(o.bookedTimes&&o.bookedTimes[rideKey])||'';}catch(x){}
-  var icon=isS?'&#127919;':'&#9889;';
+  var icon=isS?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
   var cls=isS?'lls-banner':'ll-banner';
   var tc=isS?'lls-txt':'ll-txt';
   var lbl=isS?'Single Pass':'Multi Pass';
@@ -2563,7 +2569,7 @@ function renderLLBanner(e,dayIdx){
 function diningCacheKey(r){return 'dining_'+r.toLowerCase().replace(/[^a-z0-9]/g,'_');}
 
 function buildDiningHTML(restaurant, text){
-  var html='<div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:8px">&#127869; '+restaurant+'</div>';
+  var html='<div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> '+restaurant+'</div>';
   var sections={must:[],kids:[],veggie:[]};
   var lines=text.split('\n');
   var cur=null;
@@ -2770,7 +2776,7 @@ function renderSched(){
       if(e.isVipNotes){
         var notes=loadVipNotes(curDay);
         h+='<div class="vip-notes-card">'
-          +'<div class="vip-notes-hdr"><span class="tb tb-vip">&#11088; VIP</span><span class="vip-notes-lbl">&#11088; VIP Tour Notes & Ride Wishlist</span></div>'
+          +'<div class="vip-notes-hdr"><span class="tb tb-vip"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle;margin-right:3px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> VIP</span><span class="vip-notes-lbl"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle;margin-right:3px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> VIP Tour Notes & Ride Wishlist</span></div>'
           +'<div class=class="vip-notes-sub">Write your ride wishlist, dining requests, and must-dos for your VIP host. Saves automatically to your phone.</div><div class="vip-notes-meta"><span class="vip-author">Shared notes</span><span class="vip-presence"><span class="vip-presence-dot"></span> Live sync</span><span class="vip-sync-badge">Auto-save</span></div>'
           +'<textarea class="vip-ta" placeholder="e.g. Must do: Rise of the Resistance, Indiana Jones, Radiator Springs. Want to eat at Blue Bayou. Love Haunted Mansion. Please avoid spinning rides..." oninput="saveVipNotes('+curDay+',this.value)">'+notes.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</textarea>'
           +'</div>';
@@ -2799,7 +2805,7 @@ function renderSched(){
         var dslotRest=dslot?dslot.restaurant:'';
         var dslotTime=dslot?dslot.time:'';
         diningRec='<div class="dining-slot">'
-          +'<div class="dining-slot-lbl">&#128197; Your Reservation</div>'
+          +'<div class="dining-slot-lbl"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Your Reservation</div>'
           +'<div class="dining-slot-row">'
           +'<input class="dining-slot-input" style="font-size:16px" id="ds_rest_'+curDay+'_'+si+'_'+ei+'" placeholder="Restaurant name" autocomplete="off" autocorrect="off" value="'+dslotRest.replace(/"/g,'&quot;')+'"/>'
           +'<input class="dining-slot-input" style="max-width:110px;font-size:16px" id="ds_time_'+curDay+'_'+si+'_'+ei+'" placeholder="Time..." autocomplete="off" autocorrect="off" value="'+dslotTime.replace(/"/g,'&quot;')+'"/>'
@@ -2896,28 +2902,28 @@ function renderInfoTab(){
   if(!tab) return;
 
   var sections=[
-    {id:'share',title:'&#128279; Share With Your Group',html:function(){
-      return '<div class="info-card"><div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Send this to everyone in the group.</div><div style="background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">Link</div><div style="font-size:14px;font-weight:600;color:var(--magic)">themeparkwize.com</div><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-top:10px;margin-bottom:4px">Guest Password</div><div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:.06em">CW9Dis2026</div></div><div style="display:flex;gap:8px"><button onclick="doShareText()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">&#128172; Share via Text</button><button onclick="doCopyLink()" id="copyBtn" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">&#128203; Copy Info</button></div><div style="margin-top:10px;padding:8px 10px;background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.2);border-radius:var(--radius-sm);font-size:11px;color:var(--text-muted)">&#128161; Open in Safari &#8594; Share &#8594; Add to Home Screen for best experience.</div></div>';
+    {id:'share',title:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Share With Your Group',html:function(){
+      return '<div class="info-card"><div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Send this to everyone in the group.</div><div style="background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">Link</div><div style="font-size:14px;font-weight:600;color:var(--magic)">themeparkwize.com</div><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-top:10px;margin-bottom:4px">Guest Password</div><div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:.06em">CW9Dis2026</div></div><div style="display:flex;gap:8px"><button onclick="doShareText()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Share via Text</button><button onclick="doCopyLink()" id="copyBtn" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="4" rx="1"/><rect x="3" y="6" width="18" height="16" rx="2"/></svg> Copy Info</button></div><div style="margin-top:10px;padding:8px 10px;background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.2);border-radius:var(--radius-sm);font-size:11px;color:var(--text-muted)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="21" x2="12" y2="13"/><path d="M6 8a6 6 0 0 1 12 0c0 2-1 3.5-3 5H9c-2-1.5-3-3-3-5z"/></svg> Open in Safari &#8594; Share &#8594; Add to Home Screen for best experience.</div></div>';
     }},
-    {id:'general_tips',title:'&#128161; General Park Tips',html:function(){
+    {id:'general_tips',title:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="21" x2="12" y2="13"/><path d="M6 8a6 6 0 0 1 12 0c0 2-1 3.5-3 5H9c-2-1.5-3-3-3-5z"/></svg> General Park Tips',html:function(){
       var tips=[
-        {icon:'&#127878;',label:'Wondrous Journeys Fireworks   Best Spots',text:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near It s a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland   you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
-        {icon:'&#127882;',label:'Paint the Night Parade   Best Spots',text:'Main Street USA is the best overall location   the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot   floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
-        {icon:'&#127917;',label:'Fantasmic!   Best Viewing',text:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded   often by 50%.'},
-        {icon:'&#127753;',label:'World of Color   Best Viewing',text:'Paradise Gardens lagoon   center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday you re already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
-        {icon:'&#127775;',label:'Tapestry of Happiness   It s a Small World',text:'Runs automatically at dusk every night. No reserved viewing needed   just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
-        {icon:'&#127939;',label:'Rope Drop Strategy',text:'Arrive at the turnstiles 5-10 min before official opening. Cast Members let people through in waves. Be in the first wave to get a 10-15 min head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly   don t run   to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
-        {icon:'&#9889;',label:'Lightning Lane Strategy',text:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line   this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, Tiana s early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
-        {icon:'&#128336;',label:'Crowd Flow by Time of Day',text:'6-9 AM: Empty   best time for headliners. 9-11 AM: Building   finish Tomorrowland and Fantasyland. 11 AM-2 PM: Peak   use for dining, shows, or Galaxy s Edge (it handles crowds better). 2-4 PM: Slightly easier, good for Adventureland. 4-6 PM: Busy but manageable. 7 PM onwards: Crowds thin noticeably as families leave   great for second rides on favorites.'},
-        {icon:'&#127951;',label:'What to Bring',text:'Phone charger/power bank (essential   Disneyland app drains battery fast). Comfortable walking shoes   expect 8-12 miles per day. Light layers for evening (Anaheim cools down after 8 PM). Sunscreen. Reusable water bottle   free water at any counter service. Snacks for the group to avoid long food lines at peak times.'},
-        {icon:'&#128241;',label:'Disneyland App Must-Knows',text:'Download before you go and log in. Mobile Order is a game changer   order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes   use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
-        {icon:'&#127869;',label:'Best Times to Eat   Avoid the Rush',text:'Peak meal times are 12:00 1:30 PM (lunch) and 6:00 7:30 PM (dinner)   restaurants are packed and waits are long. Best lunch: 11:00 11:30 AM (before the rush) or 2:00 3:00 PM (after it). Best dinner: 5:00 5:30 PM (early bird) or 8:00 8:30 PM (late, after shows). Counter service is least busy 2:00 4:00 PM and right before park close.'},
-        {icon:'&#128241;',label:'Mobile Order   Use It Every Time',text:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30 45 min before you want to eat, then tap  I m here  when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20 30 min just to order.'},
-        {icon:'&#127869;',label:'Walk-up List   Your Secret Weapon',text:'Can t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day   people regularly snag same-day spots at Lamplight Lounge, Café Orleans, and Carthay Circle this way. Keep checking the app   spots open up frequently.'},
-        {icon:'&#127860;',label:'Must-Order Dishes   Don t Miss These',text:'Café Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers   fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand   much shorter line. Galaxy s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
-        {icon:'&#127381;',label:'Share Portions   Save Money & Try More',text:'Portions at Disneyland are large. Lamplight s Lobster Nachos, Plaza Inn s fried chicken, and Café Orleans  Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5 6 items instead of 9 and share around the table.'},
-        {icon:'&#127869;',label:'Dining Package Tip   Fantasmic!',text:'Café Orleans offers a Fantasmic! Dining Package   includes a reserved Fantasmic! viewing area with your meal. If you re eating at Café Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy s Edge fireworks also have dining packages. Book 60 days ahead   same window as regular reservations.'},
-        {icon:'&#127879;',label:'Hidden Gems & Local Tips',text:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square   look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle   short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Walt s personal apartment windows   a light is always kept on in his honor.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',label:'Wondrous Journeys Fireworks   Best Spots',text:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near It s a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland   you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>',label:'Paint the Night Parade   Best Spots',text:'Main Street USA is the best overall location   the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot   floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M17 7V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>',label:'Fantasmic!   Best Viewing',text:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded   often by 50%.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',label:'World of Color   Best Viewing',text:'Paradise Gardens lagoon   center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday you re already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>',label:'Tapestry of Happiness   It s a Small World',text:'Runs automatically at dusk every night. No reserved viewing needed   just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/></svg>',label:'Rope Drop Strategy',text:'Arrive at the turnstiles 5-10 min before official opening. Cast Members let people through in waves. Be in the first wave to get a 10-15 min head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly   don t run   to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
+        {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',label:'Lightning Lane Strategy',text:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line   this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, Tiana s early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',label:'Crowd Flow by Time of Day',text:'6-9 AM: Empty   best time for headliners. 9-11 AM: Building   finish Tomorrowland and Fantasyland. 11 AM-2 PM: Peak   use for dining, shows, or Galaxy s Edge (it handles crowds better). 2-4 PM: Slightly easier, good for Adventureland. 4-6 PM: Busy but manageable. 7 PM onwards: Crowds thin noticeably as families leave   great for second rides on favorites.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',label:'What to Bring',text:'Phone charger/power bank (essential   Disneyland app drains battery fast). Comfortable walking shoes   expect 8-12 miles per day. Light layers for evening (Anaheim cools down after 8 PM). Sunscreen. Reusable water bottle   free water at any counter service. Snacks for the group to avoid long food lines at peak times.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',label:'Disneyland App Must-Knows',text:'Download before you go and log in. Mobile Order is a game changer   order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes   use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
+        {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Best Times to Eat   Avoid the Rush',text:'Peak meal times are 12:00 1:30 PM (lunch) and 6:00 7:30 PM (dinner)   restaurants are packed and waits are long. Best lunch: 11:00 11:30 AM (before the rush) or 2:00 3:00 PM (after it). Best dinner: 5:00 5:30 PM (early bird) or 8:00 8:30 PM (late, after shows). Counter service is least busy 2:00 4:00 PM and right before park close.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',label:'Mobile Order   Use It Every Time',text:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30 45 min before you want to eat, then tap  I m here  when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20 30 min just to order.'},
+        {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Walk-up List   Your Secret Weapon',text:'Can t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day   people regularly snag same-day spots at Lamplight Lounge, Café Orleans, and Carthay Circle this way. Keep checking the app   spots open up frequently.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Must-Order Dishes   Don t Miss These',text:'Café Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers   fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand   much shorter line. Galaxy s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',label:'Share Portions   Save Money & Try More',text:'Portions at Disneyland are large. Lamplight s Lobster Nachos, Plaza Inn s fried chicken, and Café Orleans  Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5 6 items instead of 9 and share around the table.'},
+        {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Dining Package Tip   Fantasmic!',text:'Café Orleans offers a Fantasmic! Dining Package   includes a reserved Fantasmic! viewing area with your meal. If you re eating at Café Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy s Edge fireworks also have dining packages. Book 60 days ahead   same window as regular reservations.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',label:'Hidden Gems & Local Tips',text:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square   look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle   short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Walt s personal apartment windows   a light is always kept on in his honor.'},
       ];
       var h='';
       tips.forEach(function(t){
@@ -2926,21 +2932,21 @@ function renderInfoTab(){
       return h;
     }},
     
-    {id:'hours',title:'&#9889; Lightning Lane Guide',html:function(){
+    {id:'hours',title:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Lightning Lane Guide',html:function(){
       return '<div class="info-card"><b>Single Pass</b> (~$15 35/person): Rise of the Resistance → Radiator Springs Racers<br><br><b>Multi Pass</b>: Indiana Jones → Matterhorn → Space Mountain → Haunted Mansion → Big Thunder → Smugglers Run → Tiana s → Guardians → Incredicoaster → Web Slingers → Soarin  " Toy Story<br><br><b>No LL needed Tuesday</b>   VIP tour handles everything.</div>'
         +'<div class="info-card"><b>Rules:</b> Buy after scanning into park " Book next LL after 2 hrs OR right after scanning into current ride " Book while standing in the current LL line! " Each ride once per day " For 2nd park: book once return time shows 11AM+</div>';
     }},
     
-    {id:'bathrooms',title:'&#128698; Bathroom Guide',html:function(){
+    {id:'bathrooms',title:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Bathroom Guide',html:function(){
       var areas=[{n:'Main Street USA',l:['End of Main Street near Plaza Hub','Inside City Hall (left side)']},{n:'Adventureland/Frontierland',l:['Near Jungle Cruise entrance','Behind Golden Horseshoe','Near Big Thunder Mountain']},{n:'Fantasyland',l:['Behind Its a Small World','Near Matterhorn entrance']},{n:'Tomorrowland',l:['Left of Space Mountain entrance','Near Autopia']},{n:"Galaxy's Edge",l:['Near Ogas Cantina','Near Millennium Falcon entrance']},{n:'New Orleans Square',l:['Behind Pirates of the Caribbean','Near Blue Bayou']},{n:'DCA Avengers Campus',l:['Near Web Slingers','Behind Pym Test Kitchen']},{n:'DCA Cars Land',l:['Near Radiator Springs Racers','Behind Flo V8 Cafe']},{n:'DCA Pixar Pier',l:['Near Incredicoaster','End of Pixar Pier near lagoon']},{n:'DCA Grizzly Peak',l:['Near Soarin entrance','Near Grizzly River Run exit']}];
       var h='<div class="info-card"><div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Family restrooms throughout both parks. Ask any cast member.</div>';
-      areas.forEach(function(a){h+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">&#128205; '+a.n+'</div>';a.l.forEach(function(l){h+='<div style="font-size:12px;color:var(--text-muted);padding:2px 0 2px 8px;border-left:2px solid var(--border)">'+l+'</div>';});h+='</div>';});
+      areas.forEach(function(a){h+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> '+a.n+'</div>';a.l.forEach(function(l){h+='<div style="font-size:12px;color:var(--text-muted);padding:2px 0 2px 8px;border-left:2px solid var(--border)">'+l+'</div>';});h+='</div>';});
       return h+'</div>';
     }},
-    {id:'ai_dining',title:'&#127869; Dining Guide   All Restaurants',html:function(){
+    {id:'ai_dining',title:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> Dining Guide   All Restaurants',html:function(){
       return buildFullDiningGuide();
     }},
-    {id:'hopper',title:'&#127915; Park Hopper',html:function(){
+    {id:'hopper',title:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg> Park Hopper',html:function(){
       return '<div class="info-card" style="line-height:1.8">'
         +'<b>When:</b> Park hopping opens at <b>11:00 AM</b> daily<br>'
         +'<b>How to enter 2nd park:</b> Tap the QR code icon in the Disneyland app \u2014 it auto-switches to the 2nd park ticket<br>'
@@ -2950,35 +2956,35 @@ function renderInfoTab(){
         +'<b>Monday tip:</b> Your VIP guide handles all park transitions \u2014 no need to worry about hopping logistics'
         +'</div>';
     }},
-    {id:'numbers',title:'&#128222; Important Numbers',html:function(){
+    {id:'numbers',title:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 15.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.77 4.34h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 10a16 16 0 0 0 6 6l1.27-.95a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 17.2z"/></svg> Important Numbers',html:function(){
       return '<div class="info-card"><b>VIP Tour:</b> (714) 300-7710<br><b>Disneyland main:</b> (714) 781-4565</div>';
     }},
     
-    {id:'heights',title:'&#128207; Group Heights',html:function(){
+    {id:'heights',title:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Group Heights',html:function(){
       var heights=typeof getGroupHeights==='function'?getGroupHeights():[];
       var rows=heights.map(function(h,i){return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:13px;color:var(--text-muted)">Person '+(i+1)+'</span><input type="number" min="24" max="84" value="'+h+'" placeholder="inches" onchange="updateHeight('+i+',this.value)" style="width:80px;padding:6px 8px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit"><span style="font-size:12px;color:var(--text-muted)">('+Math.floor(h/12)+'ft '+Math.round(h%12)+'in)</span><button onclick="removeHeight('+i+')" style="padding:3px 8px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:inherit">Remove</button></div>';}).join('');
       return '<div class="info-card"><div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Enter heights for anyone under 48 inches. Rides with requirements will show a badge on the schedule.</div>'+rows+'<button onclick="addHeight()" style="padding:8px 16px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px">+ Add person</button><div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);line-height:1.8">Space Mountain 40in &#183; Matterhorn 42in &#183; Big Thunder 40in &#183; Indiana Jones 46in &#183; Rise of Resistance 40in &#183; Incredicoaster 48in &#183; Guardians 40in &#183; Radiator Springs 40in &#183; Grizzly River 42in &#183; Millennium Falcon 38in</div></div>';
     }},
-    {id:'closures',title:'&#128679; June 2026 Closures',html:function(){
+    {id:'closures',title:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> June 2026 Closures',html:function(){
       var live=typeof getLiveClosures==='function'?getLiveClosures():null;var refurb=live?live.refurb:[];var tempDown=live?live.tempDown:[];
       var known=[{name:'Pirates of the Caribbean',note:'Closed May 4. No confirmed reopening.'},{name:'Buzz Lightyear Astro Blasters',note:'Closed April 13. No confirmed reopening.'},{name:'Silly Symphony Swings (DCA)',note:'Closed April 27.'},{name:'Avengers to Cars Land walkway',note:'Use Performance Corridor instead.'}];
       var h='<div class="info-card">';
-      if(refurb.length||tempDown.length){h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px">&#128308; Live from Wait Times</div>';refurb.forEach(function(name){h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center">Refurb</div><div style="font-size:13px;color:var(--text)">'+name+'</div></div>';});h+='<div style="border-top:1px solid var(--border);margin:10px 0"></div>';}
-      h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">&#128197; Confirmed June 2026</div>';
+      if(refurb.length||tempDown.length){h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="#C41E1E" stroke="none"><circle cx="12" cy="12" r="10"/></svg> Live from Wait Times</div>';refurb.forEach(function(name){h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center">Refurb</div><div style="font-size:13px;color:var(--text)">'+name+'</div></div>';});h+='<div style="border-top:1px solid var(--border);margin:10px 0"></div>';}
+      h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Confirmed June 2026</div>';
       known.forEach(function(item){h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Refurb</div><div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+item.note+'</div></div></div>';});
       var wlf=typeof waitLastFetch!=='undefined'?waitLastFetch:0;var ts=wlf?'Updated '+Math.round((Date.now()-wlf)/60000)+' min ago':'Tap Wait Times to load live data';
-      h+='<div style="font-size:11px;color:var(--text-dim);margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">&#128308; '+ts+' &#183; Auto-checks every 5 min</div>';
+      h+='<div style="font-size:11px;color:var(--text-dim);margin-top:6px;padding-top:8px;border-top:1px solid var(--border)"><svg width="10" height="10" viewBox="0 0 24 24" fill="#C41E1E" stroke="none"><circle cx="12" cy="12" r="10"/></svg> '+ts+' &#183; Auto-checks every 5 min</div>';
       return h+'</div>';
     }},
-    {id:'apikey',title:'&#128273; Update API Key',html:function(){
+    {id:'apikey',title:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Update API Key',html:function(){
       return '<div class="info-card"><div style="margin-bottom:8px;font-size:12px">console.anthropic.com " ~$0.10 total trip cost</div><div class="api-row"><input class="api-input" type="password" id="apiKeyInput2" placeholder="sk-ant-..."/><button class="api-btn" onclick="saveKey2()">Save</button></div><div class="api-ok" id="apiSaved2" style="margin-top:5px">&#10003; Saved</div></div>';
     }},
     
     
-    {id:'about',title:'&#8505;&#65039; About This App',html:function(){
+    {id:'about',title:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> About This App',html:function(){
       var testBtn=isAdmin()?'<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">'
-        +'<div style="font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">&#9733; Admin Test Tools</div>'
-        +'<button onclick="testMagicDay()" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:1.5px solid rgba(27,47,160,0.3);background:rgba(27,47,160,0.06);color:var(--magic);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">&#127984; Preview June 28 Celebration Screen</button>'
+        +'<div style="font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> Admin Test Tools</div>'
+        +'<button onclick="testMagicDay()" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:1.5px solid rgba(27,47,160,0.3);background:rgba(27,47,160,0.06);color:var(--magic);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21V9l4-4 4 4 4-4 4 4v12"/><path d="M9 21v-6h6v6"/></svg> Preview June 28 Celebration Screen</button>'
         +'</div>':'';
       return '<div class="info-card">Schedule editor with drag-reorder \u00b7 AI optimization uses historical wait time patterns \u00b7 Per-ride AI wait check \u00b7 Live wait times via ParkSavers.com<br><br><b>Add to iPhone:</b> Safari \u2192 Share \u2192 Add to Home Screen'+testBtn+'</div>';
     }},
@@ -3213,10 +3219,10 @@ function renderLockCountdowns(){
   var html='';
   var s1='background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
   var s2='background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
-  if(now<diningOpen){var d=Math.ceil((diningOpen-now)/(864e5));html+='<div style="'+s1+'">&#127869; Dining opens in <b style="color:#F0C462">'+d+' days</b></div>';}
-  else if(now<tripStart){html+='<div style="'+s2+'">&#127869; Dining reservations <b style="color:#F0C462">open now!</b></div>';}
-  if(now<llOpen){var l=Math.ceil((llOpen-now)/(864e5));html+='<div style="'+s1+'">&#9889; Lightning Lane opens in <b style="color:#F0C462">'+l+' days</b></div>';}
-  else if(now<tripStart){html+='<div style="'+s2+'">&#9889; Lightning Lane <b style="color:#F0C462">open now!</b></div>';}
+  if(now<diningOpen){var d=Math.ceil((diningOpen-now)/(864e5));html+='<div style="'+s1+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> Dining opens in <b style="color:#F0C462">'+d+' days</b></div>';}
+  else if(now<tripStart){html+='<div style="'+s2+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> Dining reservations <b style="color:#F0C462">open now!</b></div>';}
+  if(now<llOpen){var l=Math.ceil((llOpen-now)/(864e5));html+='<div style="'+s1+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Lightning Lane opens in <b style="color:#F0C462">'+l+' days</b></div>';}
+  else if(now<tripStart){html+='<div style="'+s2+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Lightning Lane <b style="color:#F0C462">open now!</b></div>';}
   el.innerHTML=html;
 }
 
@@ -3259,7 +3265,7 @@ async function completeSetup(){
   closeSetup();var b=document.getElementById('setupBanner');if(b)b.style.display='none';
   if(apiKey){showSetupGeneratePrompt();}else{showToast('Ride Style saved!');}
 }
-function showSetupGeneratePrompt(){var card=document.createElement('div');card.id='sgc';card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">&#10024; Generate personalized schedule?</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Claude can rebuild your schedule based on your Ride Style.</div><div style="display:flex;gap:8px"><button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild</button><button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button></div>';document.body.appendChild(card);}
+function showSetupGeneratePrompt(){var card=document.createElement('div');card.id='sgc';card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M19 16l.5 1.5L21 18l-1.5.5L19 20l-.5-1.5L17 18l1.5-.5z"/><path d="M5 4l.5 1.5L7 6l-1.5.5L5 8l-.5-1.5L3 6l1.5-.5z"/></svg> Generate personalized schedule?</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Claude can rebuild your schedule based on your Ride Style.</div><div style="display:flex;gap:8px"><button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild</button><button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button></div>';document.body.appendChild(card);}
 function dismissGenCard(){var c=document.getElementById('sgc');if(c)c.remove();showToast('Ride Style saved!');}
 function generateFromSetup(params, callback) {
   var context = [
@@ -3507,7 +3513,7 @@ async function loadKnowBeforeYouGo(){
     var formatted='<p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p>';
     var note=setupDone
       ?'<div style="font-size:11px;color:#34D399;margin-bottom:10px;display:flex;align-items:center;gap:4px;"><span>&#10003;</span> Personalized to your group setup</div>'
-      :'<div style="font-size:11px;color:var(--gold,#C9860A);margin-bottom:10px;">&#9888; Complete Ride Style setup for a more tailored briefing</div>';
+      :'<div style="font-size:11px;color:var(--gold,#C9860A);margin-bottom:10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Complete Ride Style setup for a more tailored briefing</div>';
     el.innerHTML=note+'<div style="font-size:13px;color:var(--text);line-height:1.8;">'+formatted+'</div>'
       +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;"> Regenerate</button>';
     try{localStorage.setItem('kbyg_text',el.innerHTML);localStorage.setItem('kbyg_date',new Date().toDateString());localStorage.setItem('kbyg_setup_hash',JSON.stringify(sd));}catch(e){}
@@ -3587,7 +3593,7 @@ function renderDiningReservationsList(){
     return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">'
       +'<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>'
       +'<div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div>'
-      +'<button data-dridx="'+i+'" ontouchend="event.preventDefault();removeDiningRes(+this.dataset.dridx);" onclick="removeDiningRes(+this.dataset.dridx);" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:0 4px">&#128465;</button>'
+      +'<button data-dridx="'+i+'" ontouchend="event.preventDefault();removeDiningRes(+this.dataset.dridx);" onclick="removeDiningRes(+this.dataset.dridx);" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:0 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'
       +'</div>';
   }).join('');
 }
@@ -4119,7 +4125,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div style="margin-top:14px;padding:12px;background:rgba(27,47,160,0.06);border:1px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);text-align:center">
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Not sure? Let Claude pick the best mix.</div>
-        <button id="aiChooseBtn" onclick="aiChooseRides()" style="padding:8px 18px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">&#10024; Let AI Choose for Me</button>
+        <button id="aiChooseBtn" onclick="aiChooseRides()" style="padding:8px 18px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M19 16l.5 1.5L21 18l-1.5.5L19 20l-.5-1.5L17 18l1.5-.5z"/><path d="M5 4l.5 1.5L7 6l-1.5.5L5 8l-.5-1.5L3 6l1.5-.5z"/></svg> Let AI Choose for Me</button>
         <div id="aiChooseStatus" style="font-size:12px;color:var(--text-muted);margin-top:6px;display:none"></div>
       </div>
       <button class="setup-btn" onclick="setupNext(2)">Next: Your Plan</button>
@@ -4220,7 +4226,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="setup-label">What would make this trip perfect? (optional)</div>
         <textarea id="dreamOutcome" placeholder="e.g. My kids see their favorite characters, we ride everything without huge waits..." style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit;resize:none;height:80px;outline:none;margin-top:4px;"></textarea>
       </div>
-      <button class="setup-btn" onclick="completeSetupAndSummarize()">&#10024; Save &amp; Generate My Trip Summary</button>
+      <button class="setup-btn" onclick="completeSetupAndSummarize()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M19 16l.5 1.5L21 18l-1.5.5L19 20l-.5-1.5L17 18l1.5-.5z"/><path d="M5 4l.5 1.5L7 6l-1.5.5L5 8l-.5-1.5L3 6l1.5-.5z"/></svg> Save &amp; Generate My Trip Summary</button>
     </div>
 
     <!-- Step 5: Trip Summary + Share -->
