@@ -1454,12 +1454,12 @@ function renderCountdown(){
 function renderDayInfoBar(){
   var el=document.getElementById('dayInfoBar');
   if(!el) return;
-  var ph=PARK_HOURS[curDay-1]||PARK_HOURS[0];
+  var ph=PARK_HOURS[Math.max(0,curDay-1)]||PARK_HOURS[0];
   var days=['Sun Jun 28','Mon Jun 29','Tue Jun 30'];
   var waitStatusTxt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live   just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+'m ago'):'Loading wait times...';
   var waitColor=waitLastFetch?'#15803D':'var(--text-dim)';
   var hoursHTML='<div class="park-hours-card">'
-    +'<div class="ph-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:3px"><path d="M3 21V9l4-4 4 4 4-4 4 4v12"/><path d="M9 21v-6h6v6"/></svg> PARK HOURS '+days[curDay-1]+'</div>'
+    +'<div class="ph-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:3px"><path d="M3 21V9l4-4 4 4 4-4 4 4v12"/><path d="M9 21v-6h6v6"/></svg> PARK HOURS '+days[Math.max(0,curDay-1)]+'</div>'
     +'<div class="ph-row"><span class="ph-park">Disneyland</span><span class="ph-time">'+ph.dl+'</span></div>'
     +'<div class="ph-row"><span class="ph-park">DCA</span><span class="ph-time">'+ph.dca+'</span></div>'
     
@@ -1470,8 +1470,8 @@ function renderDayInfoBar(){
     +'</div>';
   var wxHTML='<div class="weather-card"><div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:middle;margin-right:2px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Anaheim, CA</div>';
   if(weatherData&&weatherData.time){
-    var hi=Math.round(weatherData.temperature_2m_max[curDay-1]);
-    var lo=Math.round(weatherData.temperature_2m_min[curDay-1]);
+    var hi=Math.round(weatherData.temperature_2m_max[Math.max(0,curDay-1)]);
+    var lo=Math.round(weatherData.temperature_2m_min[Math.max(0,curDay-1)]);
     wxHTML+='<div class="wx-icon">'+wxIcon(weatherData.weathercode[curDay])+'</div>'
       +'<div class="wx-temp">'+hi+'&#176;F</div>'
       +'<div class="wx-desc">Lo '+lo+'&#176;</div>';
