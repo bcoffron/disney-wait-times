@@ -1160,7 +1160,7 @@ function generateFromSetup(params, callback) {
   })
   .catch(function(e){callback('Network error: '+e.message);});
 
-function confirmLLSetup(){
+async function confirmLLSetup(){
   if(llState.multiPass===null){alert('Please select whether you have Lightning Lane Multi Pass.');return;}
   document.getElementById('llModal').style.display='none';
   saveLLState();
@@ -1225,7 +1225,7 @@ function generateTripSummary(){
   })
   .catch(function(){el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved!</div>';});
 }
-function loadKnowBeforeYouGo(){
+async function loadKnowBeforeYouGo(){
   if(!apiKey){document.getElementById('pt_kbyg_content').innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:8px;">Please add your API key in the Info tab first.</div>';return;}
   var el=document.getElementById('pt_kbyg_content');
   el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">( Generating your personalized briefing...</div>';
@@ -1268,7 +1268,7 @@ function regenerateKBYG(){
   try{localStorage.removeItem('kbyg_text');localStorage.removeItem('kbyg_date');}catch(e){}
   loadKnowBeforeYouGo();
 }
-function loadCrowdPrediction(){
+async function loadCrowdPrediction(){
   var el=document.getElementById('pt_crowds_content');
   if(!el) return;
   console.log('loadCrowdPrediction: starting fetch, apiKey='+(apiKey?'set':'MISSING'));
@@ -1309,7 +1309,7 @@ function loadCrowdPrediction(){
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
 }
 function refreshCrowds(){try{localStorage.removeItem('crowd_pred');}catch(e){}loadCrowdPrediction();}
-function loadDayStrategy(){
+async function loadDayStrategy(){
   var el=document.getElementById('pt_daystrategy_content');
   if(!el) return;
   try{var cached=localStorage.getItem('day_strategy');var cachedHash=localStorage.getItem('day_strategy_hash');var cur=localStorage.getItem('setup_data')||'{}';if(cached&&cachedHash===cur){el.innerHTML=cached;return;}}catch(e){}
@@ -1334,7 +1334,7 @@ function loadDayStrategy(){
   }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
 }
 function refreshDayStrategy(){try{localStorage.removeItem('day_strategy');}catch(e){}loadDayStrategy();}
-function loadLLPlanner(){
+async function loadLLPlanner(){
   var el=document.getElementById('pt_llplanner_content');
   if(!el) return;
   try{var cached=localStorage.getItem('ll_plan');var cachedHash=localStorage.getItem('ll_plan_hash');var cur=localStorage.getItem('setup_data')||'{}';if(cached&&cachedHash===cur){el.innerHTML=cached;return;}}catch(e){}
