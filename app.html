@@ -2757,7 +2757,7 @@ function renderSched(){
         var notes=loadVipNotes(curDay);
         h+='<div class="vip-notes-card">'
           +'<div class="vip-notes-hdr"><span class="tb tb-vip">&#11088; VIP</span><span class="vip-notes-lbl">&#11088; VIP Tour Notes & Ride Wishlist</span></div>'
-          +'<div class="vip-notes-sub">Write your ride wishlist, dining requests, and must-dos for your VIP host. Saves automatically to your phone.</div>'
+          +'<div class=class="vip-notes-sub">Write your ride wishlist, dining requests, and must-dos for your VIP host. Saves automatically to your phone.</div><div class="vip-notes-meta"><span class="vip-author">Shared notes</span><span class="vip-presence"><span class="vip-presence-dot"></span> Live sync</span><span class="vip-sync-badge">Auto-save</span></div>'
           +'<textarea class="vip-ta" placeholder="e.g. Must do: Rise of the Resistance, Indiana Jones, Radiator Springs. Want to eat at Blue Bayou. Love Haunted Mansion. Please avoid spinning rides..." oninput="saveVipNotes('+curDay+',this.value)">'+notes.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</textarea>'
           +'</div>';
         return;
@@ -3105,18 +3105,29 @@ function setDay(d){
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
 renderClosed();renderSched();renderDayInfoBar();
 }
-function setTab(tab){
-  curTab=tab;
-  if(tab==='info') setTimeout(renderInfoTab,0);
-  ['schedule','waits','shows','chat','info'].forEach(function(t){
-    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('hidden',t!==tab);
-    document.getElementById('ni-'+t).classList.toggle('active',t===tab);
+function setTab(t){
+  ['tabSchedule','tabWaits','tabShows','tabChat','tabClosures','tabInfo'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.style.display='none';
   });
-  if(tab==='waits'){if(typeof fetchWaits==='function')fetchWaits();}
+  var targetId='tab'+t.charAt(0).toUpperCase()+t.slice(1);
+  var target=document.getElementById(targetId);
+  if(target)target.style.display='';
+  // Update header tab strip
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.classList.toggle('active',b.dataset.tab===t);
+  });
+  // Sync bottom nav active state
+  var navMap={schedule:'schedule',waits:'waits',shows:'shows',chat:'chat',closures:'info',info:'info'};
+  var navKey=navMap[t]||t;
+  document.querySelectorAll('.nav-item').forEach(function(el){el.classList.remove('active');});
+  var navEl=document.getElementById('nav-'+navKey);
+  if(navEl)navEl.classList.add('active');
+  if(t==='waits')renderWaitTab&&renderWaitTab();
+  if(t==='shows')renderShows&&renderShows();
+  if(t==='info')renderInfoTab&&renderInfoTab();
+  if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
 }
-
-//    Init                                                                   
-generateStars();renderLockCountdowns();checkLock();loadKey();loadCustom();renderShows();renderClosed();renderSched();renderDayInfoBar();renderCountdown();startWaitRefresh();scheduleWeatherCheck();scheduleMorningCheck();startScheduleSync();startNotesSync();startWazeChecks();scheduleLLPrompts();
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
   await _doChat(directMsg);
@@ -3877,7 +3888,7 @@ function enterSplash(skipAnim) {
 /* --- Bottom nav switching --- */
 var _currentNav = 'schedule';
 function switchNav(tabKey) {
-  // Update nav items
+  // Update bottom nav items
   var items = document.querySelectorAll('.nav-item');
   items.forEach(function(el) { el.classList.remove('active'); });
   var active = document.getElementById('nav-' + tabKey);
@@ -3892,7 +3903,14 @@ function switchNav(tabKey) {
     info: 'info',
   };
   var tab = tabMap[tabKey] || tabKey;
+  // Also update the header tab strip
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(function(b) {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
   setTab(tab);
+  // Scroll to top of content
+  window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 /* --- Alt sheet --- */
