@@ -414,7 +414,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </div>
   </div>
   <div id="preTripBanner" style="margin-bottom:10px;">
-  <div onclick="openPreTrip()" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+  <div onclick="window.location.href='pretrip.html?v=1'" style="background:linear-gradient(135deg,rgba(201,134,10,0.1),rgba(201,134,10,0.06));border:1.5px solid rgba(201,134,10,0.4);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
     <div style="font-size:24px;">✨ </div>
     <div style="flex:1;">
       <div style="font-size:14px;font-weight:700;color:var(--text);">✅ Do This First: Pre-Trip Planning</div>
@@ -3040,136 +3040,6 @@ var PACK_ITEMS=[
 function loadPackItems(){try{var s=localStorage.getItem('pack_items');if(s){var p=JSON.parse(s);if(Array.isArray(p)&&p.length>0)PACK_ITEMS=p;}}catch(e){}}
 function savePackItems(){try{localStorage.setItem('pack_items',JSON.stringify(PACK_ITEMS));}catch(e){}}
 
-function openPreTrip(){
-  var o=document.getElementById('preTripOverlay');
-  if(!o)return;
-  o.classList.remove('hidden');
-  var p=o.querySelector('.setup-panel');
-  if(!p)return;
-  var tripDates=['2026-06-28','2026-06-29','2026-06-30'];
-  var tripStart=new Date('2026-06-28T00:00:00');
-  var now=new Date();
-  var daysUntilDining=Math.max(0,Math.ceil((new Date(tripStart.getTime()-60*86400000)-now)/86400000));
-  var daysUntilLL=Math.max(0,Math.ceil((new Date(tripStart.getTime()-7*86400000)-now)/86400000));
-  function wxEmoji(c){if(c<=1)return '☀️';if(c<=3)return '⛅';if(c<=67)return '🌧️';if(c<=77)return '❄️';if(c<=82)return '🌦️';return '⚡';}
-  function fmtH(h){return (h%12||12)+(h>=12?' PM':' AM');}
-  var dayLbls=['Sun Jun 28','Mon Jun 29','Tue Jun 30'];
-  var hoursHtml='';
-  tripDates.forEach(function(ds,di){
-    var dlH=getParkHoursForDate(ds,'dl');
-    var dcaH=getParkHoursForDate(ds,'dca');
-    hoursHtml+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;'+(di<2?'border-bottom:1px solid var(--border)':'')+'">'
-      +'<span style="font-weight:600;font-size:13px">'+dayLbls[di]+'</span>'
-      +'<span style="font-size:12px;color:var(--text-muted)">'
-      +(dlH?'DL '+fmtH(dlH.open)+'–'+fmtH(dlH.close):'DL n/a')
-      +'   '
-      +(dcaH?'DCA '+fmtH(dcaH.open)+'–'+fmtH(dcaH.close):'DCA n/a')
-      +'</span></div>';
-  });
-  var wxHtml='';
-  if(weatherData&&weatherData.time){
-    var tripTimes=tripDates.map(function(d){return weatherData.time.indexOf(d);});
-    wxHtml=tripDates.map(function(ds,di){
-      var wi=tripTimes[di];
-      if(wi<0)return '<div style="flex:1"></div>';
-      var hi=Math.round(weatherData.temperature_2m_max[wi]);
-      var lo=Math.round(weatherData.temperature_2m_min[wi]);
-      var code=weatherData.weathercode?weatherData.weathercode[wi]:0;
-      return '<div style="flex:1;text-align:center;padding:10px 4px;background:var(--card);border-radius:12px;margin:0 3px">'
-        +'<div style="font-size:10px;font-weight:600;color:var(--text-muted);margin-bottom:4px">'+dayLbls[di]+'</div>'
-        +'<div style="font-size:22px;margin-bottom:4px">'+wxEmoji(code)+'</div>'
-        +'<div style="font-size:13px;font-weight:700">'+hi+'°</div>'
-        +'<div style="font-size:11px;color:var(--text-muted)">'+lo+'°</div>'
-        +'</div>';
-    }).join('');
-  } else {
-    wxHtml='<div style="color:var(--text-muted);font-size:13px">Loading…</div>';
-  }
-  function acc(id,title,body,open){
-    return '<div style="border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:12px">'
-      +'<button id="pt_hdr_'+id+'" data-ptid="'+id+'"'
-      +' onclick="ptToggle(this.dataset.ptid)"'
-      +' ontouchstart="event.preventDefault();"'
-      +' ontouchend="event.preventDefault();ptToggle(this.dataset.ptid);"'
-      +' style="width:100%;text-align:left;padding:14px 16px;background:var(--card);border:none;font-size:15px;font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer;touch-action:manipulation">'
-      +'<span>'+title+'</span>'
-      +'<span id="pt_arr_'+id+'" style="font-size:11px;color:var(--text-muted)">'+(open?'▲':'▼')+'</span>'
-      +'</button>'
-      +'<div id="pt_body_'+id+'" style="'+(open?'':'display:none;')+'padding:14px 16px;border-top:1px solid var(--border)">'
-      +body
-      +'</div>'
-      +'</div>';
-  }
-  var drs=[];try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
-  var drListHtml='<div id="pt_dining_list" style="margin-bottom:12px">';
-  if(!drs.length){drListHtml+='<p style="color:var(--text-muted);font-size:13px;margin:0 0 8px">No reservations added yet.</p>';}
-  else{drListHtml+=drs.map(function(r,i){
-    return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">'
-      +'<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>'
-      +'<div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div>'
-      +'<button data-dridx="'+i+'" ontouchend="event.preventDefault();removeDiningRes(+this.dataset.dridx);" onclick="removeDiningRes(+this.dataset.dridx);" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:0 4px">&#128465;</button>'
-      +'</div>';
-  }).join('');}
-  drListHtml+='</div>';
-  var addResBtnHtml=''
-    +'<div style="display:flex;gap:8px;margin-bottom:8px">'
-    +'<input id="pt_new_rest" type="text" autocomplete="off" autocorrect="off" inputmode="text" placeholder="Restaurant name" style="flex:1;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">'
-    +'<input id="pt_new_time" type="text" autocomplete="off" inputmode="none" placeholder="6:30 PM" style="width:110px;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">'
-    +'</div>'
-    +'<button id="pt_save_res_btn" ontouchend="event.preventDefault();addDiningReservation();" onclick="addDiningReservation();" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px">Save Reservation</button>'
-    +'<button ontouchend="event.preventDefault();fetchDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land);" onclick="gfetchDiningRecs(his.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land);" style="width:100%;padding:12px;background:var(--magic);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer" data-rest="Cafe Orleans" data-elid="pt_dining_recs_result" data-land="">&#10024; Get AI Dining Tips</button>';<div id="pt_dining_recs_result" style="margin-top:10px"></div>
-  p.innerHTML=''
-    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
-    +'<h2 style="margin:0;font-size:20px;font-weight:700">📋 Pre-Trip Planning</h2>'
-    +'<button id="pt_done_btn"'
-    +' onclick="document.getElementById(this.dataset.oid).classList.add(this.dataset.cls)"'
-    +' ontouchstart="event.preventDefault();"'
-    +' ontouchend="event.preventDefault();document.getElementById(this.dataset.oid).classList.add(this.dataset.cls);"'
-    +' data-oid="preTripOverlay" data-cls="hidden"'
-    +' style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 16px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation">Done</button>'
-    +'</div>'
-    +'<div style="display:flex;gap:10px;margin-bottom:16px">'
-    +'<div style="flex:1;background:var(--card);border-radius:14px;padding:14px;text-align:center">'
-    +'<div style="font-size:28px;font-weight:800;color:var(--magic)">'+daysUntilDining+'</div>'
-    +'<div style="font-size:11px;color:var(--text-muted);margin-top:2px">days until Dining Reservations open</div>'
-    +'</div>'
-    +'<div style="flex:1;background:var(--card);border-radius:14px;padding:14px;text-align:center">'
-    +'<div style="font-size:28px;font-weight:800;color:var(--purple)">'+daysUntilLL+'</div>'
-    +'<div style="font-size:11px;color:var(--text-muted);margin-top:2px">days until Lightning Lane opens</div>'
-    +'</div>'
-    +'</div>'
-    +'<div style="background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:12px">'
-    +'<div style="font-size:15px;font-weight:700;margin-bottom:8px">🏡 Park Hours</div>'
-    +hoursHtml
-    +'</div>'
-    +'<div style="background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:12px">'
-    +'<div style="font-size:15px;font-weight:700;margin-bottom:10px">⛅ Weather — Anaheim Jun 28–30</div>'
-    +'<div style="display:flex;margin:0 -3px">'+wxHtml+'</div>'
-    +(weatherData&&weatherData.isTypical?'<div style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center">Typical June averages</div>':'')
-    +'</div>'
-    +acc('setup','⚙️ Setup Your Park Visit',
-      '<div style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Configure your group, park preferences, and schedule.</div>'
-      +'<button onclick="openSetup&&openSetup();"'
-      +' ontouchstart="event.preventDefault();"'
-      +' ontouchend="event.preventDefault();openSetup&&openSetup();"'
-      +' style="width:100%;padding:10px;background:var(--magic);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation">⚙️ Open Setup</button>',
-      false)
-    +acc('kbyg','💡 Know Before You Go',
-      '<div id="pt_kbyg_content"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px">Tap to expand for AI insights</div></div>',
-      false)
-    +acc('crowds','👥 Crowd Prediction',
-      '<div id="pt_crowds_content"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px">Tap to expand for crowd forecast</div></div>',
-      false)
-    +acc('daystrategy','🗓️ Day-by-Day Strategy',
-      '<div id="pt_daystrategy_content"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px">Tap to expand for strategy</div></div>',
-      false)
-    +acc('llplanner','⚡ Lightning Lane Planner',
-      '<div id="pt_llplanner_content"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px">Tap to expand for LL plan</div></div>',
-      false)
-    +acc('dining','🍽️ Dining Reservations',drListHtml+addResBtnHtml,false)
-    +acc('checklist','✅ Pre-Trip Checklist','<div id="pt_checklist_content"></div>',true);
-  renderPreTripChecklist();
-}
 
 function ptToggle(id){
   var body=document.getElementById('pt_body_'+id);
@@ -3784,10 +3654,6 @@ function closeSetupFinal(){
 
 
 
-<div id="preTripOverlay" class="setup-overlay hidden">
-  <div class="setup-panel">
-  </div>
-</div>
 
 
 </body>
