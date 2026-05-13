@@ -3227,8 +3227,7 @@ function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getE
 async function sendChatMsg(directMsg){
   await _doChat(directMsg);
 }
-async 
-function sendSugChat(msg){
+async function sendSugChat(msg){
   var bubblesEl=document.getElementById('chatSugBubbles');
   if(bubblesEl)bubblesEl.style.display='none';
   var inp=document.getElementById('chatInput');
