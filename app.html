@@ -1529,7 +1529,7 @@ async function _aiProxy(body, cacheCtx){
     var userMsg=body.messages[body.messages.length-1];
     prompt=typeof userMsg.content==='string'?userMsg.content:(JSON.stringify(userMsg.content));
   }
-  var ctx=cacheCtx||(parkIntelCache?(parkIntelCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';
+  const MAX_CACHE_CONTEXT=4000;const trimmedCache=(parkIntelCache||'').substring(0,MAX_CACHE_CONTEXT);var ctx=cacheCtx||(trimmedCache?(trimmedCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';
   try{
     var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6'})});
