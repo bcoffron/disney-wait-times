@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605121200-v102">
+<meta name="version" content="202605121200-v103">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -294,7 +294,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .vip-ta::placeholder{color:var(--text-dim)}
 
 /* ===== SECTION 7: SPLASH SCREEN ===== */
-.splash-screen{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;min-height:100dvh;padding:0 18px 32px;overflow:hidden;background:linear-gradient(176deg,#071E25 0%,#0D3A45 16%,#1A6860 38%,#B85825 65%,#ECA050 83%,#F8CC80 100%) no-repeat top / 100% 240px, #071E25}
+.splash-screen{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;height:100dvh;min-height:100dvh;padding:0 18px 32px;overflow:hidden;background:linear-gradient(176deg,#071E25 0%,#0D3A45 16%,#1A6860 38%,#B85825 65%,#ECA050 83%,#F8CC80 100%) no-repeat top / 100% 240px, #071E25}
 .splash-left{width:100%;display:flex;flex-direction:column;gap:12px}
 .splash-eyebrow{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px}
 .splash-title{font-family:'Outfit',sans-serif;font-size:21px;font-weight:800;color:#FFFFFF;letter-spacing:-0.3px;line-height:1.15;margin-bottom:8px}
@@ -578,7 +578,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   }
   body { background:#FFF8F0 !important; color:#1A1235 !important; }
   .app { background:#FFF8F0 !important; }
-  .ride-block, .show-card, .info-card, .api-setup, .day-tab, .edit-toggle { background:#FFFFFF !important; }
+  .ride-block, .show-card, .info-card, .api-setup { background:#FFFFFF !important; }
   input, select, textarea { background:#FFFFFF !important; color:#1A1235 !important; }
 }
 
@@ -603,7 +603,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
 <!-- ===== SECTION 7: SPLASH SCREEN ===== -->
 <div id="splashScreen" class="splash-screen">
-  <svg style="position:absolute;top:42px;left:0;width:100%;height:198px;pointer-events:none" viewBox="0 0 390 198" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="80" width="44" height="54" fill="rgba(255,255,255,0.06)"/><rect x="10" y="64" width="10" height="20" fill="rgba(255,255,255,0.08)"/><rect x="38" y="64" width="10" height="20" fill="rgba(255,255,255,0.08)"/><rect x="24" y="52" width="10" height="32" fill="rgba(255,255,255,0.09)"/><polygon points="29,36 24,52 34,52" fill="#C86030"/><ellipse cx="70" cy="90" rx="8" ry="14" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" fill="none"/><line x1="70" y1="104" x2="70" y2="118" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/><ellipse cx="80" cy="86" rx="7" ry="12" stroke="rgba(255,255,255,0.07)" stroke-width="1.5" fill="none"/><line x1="80" y1="98" x2="80" y2="112" stroke="rgba(255,255,255,0.07)" stroke-width="1.5"/><ellipse cx="90" cy="92" rx="7" ry="12" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" fill="none"/><line x1="90" y1="104" x2="90" y2="118" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/><path d="M100,118 Q120,60 140,90 Q155,110 165,75 Q175,50 192,80" stroke="rgba(255,255,255,0.22)" stroke-width="2" fill="none"/><line x1="120" y1="88" x2="120" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><line x1="150" y1="96" x2="150" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><line x1="178" y1="88" x2="178" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><rect x="160" y="70" width="14" height="7" rx="2" fill="#ECA050"/><rect x="0" y="134" width="390" height="64" fill="#071E25"/></svg>
+  <svg style="position:absolute;top:42px;left:0;width:100%;height:198px;pointer-events:none" viewBox="0 0 390 198" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="80" width="44" height="54" fill="rgba(255,255,255,0.20)"/><rect x="10" y="64" width="10" height="20" fill="rgba(255,255,255,0.20)"/><rect x="38" y="64" width="10" height="20" fill="rgba(255,255,255,0.20)"/><rect x="24" y="52" width="10" height="32" fill="rgba(255,255,255,0.22)"/><polygon points="29,36 24,52 34,52" fill="#C86030"/><ellipse cx="70" cy="90" rx="8" ry="14" stroke="rgba(255,255,255,0.16)" stroke-width="1.5" fill="none"/><line x1="70" y1="104" x2="70" y2="118" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/><ellipse cx="80" cy="86" rx="7" ry="12" stroke="rgba(255,255,255,0.17)" stroke-width="1.5" fill="none"/><line x1="80" y1="98" x2="80" y2="112" stroke="rgba(255,255,255,0.17)" stroke-width="1.5"/><ellipse cx="90" cy="92" rx="7" ry="12" stroke="rgba(255,255,255,0.18)" stroke-width="1.5" fill="none"/><line x1="90" y1="104" x2="90" y2="118" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/><path d="M100,118 Q120,60 140,90 Q155,110 165,75 Q175,50 192,80" stroke="rgba(255,255,255,0.22)" stroke-width="2" fill="none"/><line x1="120" y1="88" x2="120" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><line x1="150" y1="96" x2="150" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><line x1="178" y1="88" x2="178" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><rect x="160" y="70" width="14" height="7" rx="2" fill="#ECA050"/><rect x="0" y="134" width="390" height="64" fill="#071E25"/></svg>
   <div class="splash-left">
     <div>
       <div class="splash-eyebrow">THEME PARK CO-PILOT</div>
@@ -618,7 +618,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
         </div>
         <div style="font-size:9px;color:rgba(255,255,255,0.28);margin-top:4px">Park opens 8:00 AM</div>
       </div>
-      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:9px;color:rgba(255,255,255,0.50);font-weight:500">Jun 28–30, 2025</div><div style="font-size:9px;color:rgba(255,255,255,0.50)">Anaheim, CA</div></div><div style="display:flex;gap:5px"><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DL</span><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DCA</span></div></div>
+      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:9px;color:rgba(255,255,255,0.50);font-weight:500">Jun 28–30, 2026</div><div style="font-size:9px;color:rgba(255,255,255,0.50)">Anaheim, CA</div></div><div style="display:flex;gap:5px"><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DL</span><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DCA</span></div></div>
       <button class="splash-enter-btn" onclick="enterSplash()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         Enter your adventure →
