@@ -3235,7 +3235,7 @@ function sendSugChat(msg){
   if(inp)inp.value=msg;
   sendChat();
 }
-function sendChat(){
+async function sendChat(){
   var input=document.getElementById('chatInput');
   var msg=input?input.value.trim():'';
   if(!msg) return;
