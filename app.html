@@ -3326,7 +3326,7 @@ var setupData={};
 function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
 function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}
 function isSetupDone(){try{return localStorage.getItem('setup_done')==='yes';}catch(e){return false;}}
-
+function checkShowSetupBanner(){if(!isAdmin()||isSetupDone()||curTab!=='schedule')return;var sk=getSetupSkips();var b=document.getElementById('setupBanner');if(!b)return;if(sk>=5){openSetup();return;}b.style.display='block';if(sk>0){var s=document.getElementById('setupBannerSub');if(s)s.textContent='Personalize the AI ('+(5-sk)+' reminders left)';}}
 function skipSetup(){setSetupSkips(getSetupSkips()+1);var b=document.getElementById('setupBanner');if(b)b.style.display='none';}
 function openSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.remove('hidden');setupGoTo(0);}
 function closeSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.add('hidden');}
@@ -3960,6 +3960,7 @@ function submitTripCode(){
 }
 function initSplash() {
   // Countdown
+  if(!TRIP_CONFIG || !TRIP_CONFIG.firstParkDate) { if(typeof renderSplashCtas === "function") renderSplashCtas(); return; }
   var target = TRIP_CONFIG.firstParkDate;
   var now = new Date();
   var diff = Math.ceil((target - now) / 86400000);
