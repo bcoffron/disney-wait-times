@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605121200-v104b">
+<meta name="version" content="202605130900-v105a">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -120,7 +120,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 /* Card base */
 .ride-block{
   background:var(--card);border:1.5px solid var(--border);
-  border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;
+  border-radius:var(--radius-sm);margin-bottom:8px;overflow:visible;
   transition:all .2s;position:relative;box-shadow:var(--shadow);
   width:100%;box-sizing:border-box;
 }
@@ -131,18 +131,42 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   display:flex;flex-direction:column;align-items:flex-start;
   border-right:1px solid var(--border);flex-shrink:0;
 }
-.ride-time{font-size:10px;font-weight:800;color:#1A6860;line-height:1.2;white-space:nowrap;width:36px;flex-shrink:0}
-.ride-time-end{font-size:10px;color:var(--text-dim);line-height:1.2;margin-top:1px}
+.ride-time{font-size:12px;font-weight:800;color:#1A6860;line-height:1.2;white-space:nowrap;width:36px;flex-shrink:0;overflow:visible}
+.ride-time-end{font-size:9px;color:var(--text-dim);line-height:1.2;margin-top:1px}
 .ride-body{flex:1;min-width:0;overflow:hidden;padding:10px 12px}
 .ride-title-row{display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap;margin-bottom:2px}
-.ride-name{font-size:11px;font-weight:700;color:#071E25;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Outfit',sans-serif}
-.ride-note{font-size:9px;color:#4A7A7C;line-height:1.35;margin-top:2px}
+.ride-name{font-size:13px;font-weight:700;color:#071E25;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Outfit',sans-serif}
+.ride-note{font-size:11px;color:#4A7A7C;line-height:1.35;margin-top:2px}
 
 /* Type badges */
-.tb{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;flex-shrink:0;letter-spacing:0.01em}
+.tb{font-size:8px;font-weight:600;padding:2px 7px;border-radius:99px;flex-shrink:0;letter-spacing:0.01em}
 .tb-ride{background:var(--green-bg);color:var(--green)}
 .tb-show{background:var(--purple-bg);color:var(--purple)}
 .tb-food,.tb-dining{background:#FFF4E0;color:#8A5800;font-size:7px;font-weight:700}
+.dining-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(212,137,58,0.07);border:1px solid rgba(212,137,58,0.35);border-radius:20px;padding:4px 10px;cursor:pointer;margin-top:6px}
+.dining-chip span{font-size:9px;font-weight:600;color:#A06020;font-family:'Outfit',sans-serif}
+.dining-saved-pill{display:flex;align-items:center;gap:5px;background:#E0F5E8;border:1px solid rgba(15,104,48,0.20);border-radius:20px;padding:4px 10px;cursor:pointer;margin-top:6px}
+.dining-panel{background:#FDF8F0;border-radius:8px;border:0.5px solid rgba(180,120,40,0.15);margin-top:8px;overflow:hidden}
+.dp-ai-header{display:flex;align-items:center;gap:6px;padding:8px 10px 4px;border-bottom:0.5px solid rgba(180,120,40,0.15)}
+.dp-ai-lbl{font-size:8px;font-weight:700;color:#C86030;text-transform:uppercase;letter-spacing:.08em;font-family:'Outfit',sans-serif}
+.dp-suggestion-list{padding:8px;display:flex;flex-direction:column;gap:6px}
+.dp-sug-card{background:#FFFFFF;border-radius:8px;border:0.5px solid rgba(180,120,40,0.20);padding:7px 9px;display:flex;gap:7px;align-items:flex-start;cursor:pointer}
+.dp-rank{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;flex-shrink:0;font-family:'Outfit',sans-serif}
+.dp-sug-body{flex:1;min-width:0}
+.dp-sug-name{font-size:10px;font-weight:700;color:#071E25;font-family:'Outfit',sans-serif;line-height:1.2}
+.dp-sug-note{font-size:9px;color:#4A7A7C;margin-top:2px;line-height:1.35;font-family:'Outfit',sans-serif}
+.dp-sug-detail{font-size:8px;color:#8AACAE;margin-top:2px;font-family:'Outfit',sans-serif}
+.dp-top-badge{font-size:7px;font-weight:700;color:#C86030;background:rgba(200,96,48,0.1);border-radius:20px;padding:1px 5px;margin-left:4px}
+.dp-res-section{padding:8px;border-top:0.5px solid rgba(180,120,40,0.15)}
+.dp-res-lbl{font-size:8px;font-weight:700;color:#A06020;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;font-family:'Outfit',sans-serif}
+.dp-res-row{display:flex;gap:6px;align-items:center}
+.dp-res-input{flex:1;border-radius:8px;border:1px solid rgba(180,120,40,0.25);background:#fffbf5;padding:6px 8px;font-size:10px;color:#071E25;font-family:'Outfit',sans-serif;outline:none}
+.dp-res-input-time{width:62px;flex-shrink:0;border-radius:8px;border:1px solid rgba(180,120,40,0.25);background:#fffbf5;padding:6px 8px;font-size:10px;color:#071E25;font-family:'Outfit',sans-serif;outline:none}
+.dp-save-btn{background:#C86030;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:9px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;flex-shrink:0}
+.dp-res-hint{font-size:8px;color:#8AACAE;margin-top:5px;font-family:'Outfit',sans-serif}
+.chat-sug-bubble{background:#FFFFFF;border:1px solid rgba(7,30,37,0.10);border-radius:20px;padding:8px 12px;font-size:10px;font-weight:600;color:#071E25;cursor:pointer;text-align:left;font-family:'Outfit',sans-serif;line-height:1.3}
+.chat-sug-bubble:active{background:#f0f4f4}
+
 .tb-hop{background:var(--blue-bg);color:var(--blue)}
 .tb-vip{background:linear-gradient(135deg,#C9860A,#E8A020);color:#FFFFFF!important;font-weight:700}
 .tb-tip{background:rgba(139,143,168,.1);color:var(--text-muted)}
@@ -154,7 +178,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 /* Live wait pill */
 .wait-pill{
   display:inline-flex;align-items:center;gap:3px;
-  font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;
+  font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;
   flex-shrink:0;
 }
 .wait-low{background:#E0F5E8;color:#0F6830}
@@ -164,7 +188,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
 /* Card type variants */
 .ride-block.is-show{border-left:3px solid var(--purple)}
-.ride-block.is-food,.ride-block.is-dining{border-left:none}
+.ride-block.is-food,.ride-block.is-dining{background:#FDF8F0!important;border-radius:0 11px 11px 0!important;border:0.5px solid rgba(180,120,40,0.20)!important;border-left:3px solid #D4893A!important;}
 .ride-block.is-hop{border-style:dashed;background:rgba(27,47,160,0.02)}
 .ride-block.is-tip{border-left:3px solid var(--text-dim);background:rgba(160,154,181,0.04)}
 .ride-block.is-vip{background:#FFFBF0!important;border:1px solid #D4A830!important;border-radius:11px;position:relative;overflow:hidden}
@@ -281,10 +305,10 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .vip-banner-sub{font-size:11px;color:rgba(255,255,255,0.85);margin-top:1px}
 
 /* ===== SECTION 11: SHARED VIP NOTES ===== */
-.vip-notes-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E6);border:1.5px solid #D4A017;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:0 3px 12px rgba(201,134,10,0.15);overflow:hidden}
+.vip-notes-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E6);border:1.5px solid #D4A017;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:0 3px 12px rgba(201,134,10,0.15);font-family:'Outfit',sans-serif}
 .vip-notes-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px 5px;border-bottom:1px solid rgba(212,160,23,0.2)}
-.vip-notes-lbl{font-size:13px;font-weight:700;background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex:1}
-.vip-notes-sub{font-size:11px;color:#7A6020;padding:0 12px 7px;line-height:1.5}
+.vip-notes-lbl{font-size:10px;font-weight:800;color:#3A2800;font-family:'Outfit',sans-serif;flex:1;letter-spacing:.04em}
+.vip-notes-sub{font-size:9px;font-weight:400;color:#8A6820;font-family:'Outfit',sans-serif;padding:0 12px 7px;line-height:1.5}
 .vip-notes-meta{display:flex;align-items:center;gap:8px;padding:6px 12px;border-top:1px solid rgba(212,160,23,0.2)}
 .vip-author{font-size:10px;color:var(--gold-text);font-weight:600}
 .vip-presence{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-dim)}
@@ -603,7 +627,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
 <!-- ===== SECTION 7: SPLASH SCREEN ===== -->
 <div id="splashScreen" class="splash-screen">
-  <svg style="position:absolute;top:42px;left:0;width:100%;height:198px;pointer-events:none" viewBox="0 0 390 198" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="80" width="44" height="54" fill="rgba(255,255,255,0.20)"/><rect x="10" y="64" width="10" height="20" fill="rgba(255,255,255,0.20)"/><rect x="38" y="64" width="10" height="20" fill="rgba(255,255,255,0.20)"/><rect x="24" y="52" width="10" height="32" fill="rgba(255,255,255,0.22)"/><polygon points="29,36 24,52 34,52" fill="#C86030"/><ellipse cx="70" cy="90" rx="8" ry="14" stroke="rgba(255,255,255,0.16)" stroke-width="1.5" fill="none"/><line x1="70" y1="104" x2="70" y2="118" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/><ellipse cx="80" cy="86" rx="7" ry="12" stroke="rgba(255,255,255,0.17)" stroke-width="1.5" fill="none"/><line x1="80" y1="98" x2="80" y2="112" stroke="rgba(255,255,255,0.17)" stroke-width="1.5"/><ellipse cx="90" cy="92" rx="7" ry="12" stroke="rgba(255,255,255,0.18)" stroke-width="1.5" fill="none"/><line x1="90" y1="104" x2="90" y2="118" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/><path d="M100,118 Q120,60 140,90 Q155,110 165,75 Q175,50 192,80" stroke="rgba(255,255,255,0.22)" stroke-width="2" fill="none"/><line x1="120" y1="88" x2="120" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><line x1="150" y1="96" x2="150" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><line x1="178" y1="88" x2="178" y2="118" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><rect x="160" y="70" width="14" height="7" rx="2" fill="#ECA050"/><rect x="0" y="134" width="390" height="64" fill="#071E25"/></svg>
+  <svg style="position:absolute;top:42px;left:0;width:100%;height:260px;pointer-events:none" viewBox="0 0 390 260" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="110" width="62" height="76" fill="rgba(255,255,255,0.20)"/><rect x="7" y="88" width="14" height="28" fill="rgba(255,255,255,0.20)"/><rect x="53" y="88" width="14" height="28" fill="rgba(255,255,255,0.20)"/><rect x="31" y="72" width="14" height="44" fill="rgba(255,255,255,0.22)"/><polygon points="38,50 31,72 45,72" fill="#C86030"/><ellipse cx="92" cy="116" rx="10" ry="18" stroke="rgba(255,255,255,0.18)" stroke-width="2" fill="none"/><line x1="92" y1="134" x2="92" y2="154" stroke="rgba(255,255,255,0.18)" stroke-width="2"/><ellipse cx="108" cy="110" rx="9" ry="16" stroke="rgba(255,255,255,0.19)" stroke-width="2" fill="none"/><line x1="108" y1="126" x2="108" y2="148" stroke="rgba(255,255,255,0.19)" stroke-width="2"/><ellipse cx="124" cy="118" rx="9" ry="16" stroke="rgba(255,255,255,0.20)" stroke-width="2" fill="none"/><line x1="124" y1="134" x2="124" y2="152" stroke="rgba(255,255,255,0.20)" stroke-width="2"/><path d="M148,154 Q175,72 210,112 Q235,138 255,90 Q275,52 310,95 Q340,125 365,85 Q378,65 390,90" stroke="rgba(255,255,255,0.25)" stroke-width="3" fill="none"/><line x1="175" y1="106" x2="175" y2="154" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/><line x1="220" y1="122" x2="220" y2="154" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/><line x1="260" y1="108" x2="260" y2="154" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/><line x1="310" y1="118" x2="310" y2="154" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/><rect x="220" y="94" width="16" height="8" rx="2" fill="#ECA050"/><rect x="0" y="180" width="390" height="80" fill="#071E25"/></svg>
   <div class="splash-left">
     <div>
       <div class="splash-eyebrow">THEME PARK CO-PILOT</div>
@@ -616,14 +640,14 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
           <span id="splashCountdown" style="font-size:52px;font-weight:900;color:#FFFFFF;line-height:1">--</span>
           <span style="font-size:11px;font-weight:700;color:#ECA050;line-height:1.2">days to go</span>
         </div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.28);margin-top:4px">Park opens 8:00 AM</div>
+        
       </div>
       <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:9px;color:rgba(255,255,255,0.50);font-weight:500">Jun 28–30, 2026</div><div style="font-size:9px;color:rgba(255,255,255,0.50)">Anaheim, CA</div></div><div style="display:flex;gap:5px"><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DL</span><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DCA</span></div></div>
       <button class="splash-enter-btn" onclick="enterSplash()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         Enter your adventure →
       </button>
-      <button style="margin-top:8px;padding:10px 16px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.50);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;width:100%">Have a trip code?</button>
+      <div id="splashCtaArea"></div>
     </div>
   </div>
   <div class="splash-right">
@@ -821,6 +845,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
       <!-- Schedule content -->
       <div class="vip-notes-section" id="vipNotesSection" style="display:none"><div class="vip-notes-header"><div><div style="display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3A2800" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="vip-notes-header-title">Group Wishlist &amp; Notes</span></div><div style="font-size:8px;color:rgba(58,40,0,0.55)">Everyone can add &amp; edit</div></div><div style="background:rgba(58,40,0,0.15);padding:3px 7px;border-radius:20px;font-size:8px;color:#3A2800;font-weight:600">2 viewing</div></div><div class="vip-notes-body"><div class="vip-notes-empty">Tap to add your notes…</div></div><div class="vip-notes-footer">No one is currently editing</div></div>
+      <div id="tripSetupBanner" style="display:none;background:#FFFFFF;border-radius:11px;border:1.5px solid #C86030;padding:11px 13px;align-items:center;gap:11px;margin:8px 10px 0"><div style="width:36px;height:36px;background:rgba(200,96,48,0.10);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C86030" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#071E25">Complete your trip setup</div><div style="font-size:9px;color:#4A7A7C;line-height:1.35;margin-top:2px">Your schedule is a starting point — tell us about your group so the AI can personalise it.</div></div><a href="/pretrip.html" style="background:#C86030;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:6px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0">Set up →</a></div>
       <div id="schedContent"></div>
 
       <!-- Add entry modal trigger -->
@@ -851,8 +876,15 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
     <!-- CHAT TAB -->
     <div id="tabChat" class="chat-tab-container" style="display:none">
-      <div id="chatSuggestions" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
-      <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;min-height:120px"></div>
+      <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;min-height:80px;padding-top:16px"></div>
+      <div id="chatSugBubbles" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <button class="chat-sug-bubble" onclick="sendSugChat('What\'s the wait like at Space Mountain right now?')">What's the wait like at Space Mountain right now?</button>
+        <button class="chat-sug-bubble" onclick="sendSugChat('Best order to hit Fantasyland this morning?')">Best order to hit Fantasyland this morning?</button>
+        <button class="chat-sug-bubble" onclick="sendSugChat('What should we do in the next 2 hours?')">What should we do in the next 2 hours?</button>
+        <button class="chat-sug-bubble" onclick="sendSugChat('Any tips for riding with young kids today?')">Any tips for riding with young kids today?</button>
+      </div>
+      <div style="font-size:9px;color:#8AACAE;text-align:center;margin-bottom:10px">Or ask me anything about your trip</div>
+      <div id="chatSuggestions" style="display:none"></div>
       <div style="display:flex;gap:8px">
         <input id="chatInput" type="text" placeholder="Ask about your trip..." style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendChat()">
         <button onclick="sendChat()" style="padding:10px 16px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--magic),var(--purple));border:none;color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Send</button>
@@ -971,7 +1003,7 @@ function stripMd(t){
   return s.trim();
 }
 function renderLockCountdowns(){}
-function checkShowSetupBanner(){try{if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&localStorage.getItem('setup_done')!=='yes'){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
+function checkShowSetupBanner(){try{var isSetupDone=localStorage.getItem('tripSetupComplete')==='true'||localStorage.getItem('setup_done')==='yes';var banner=document.getElementById('tripSetupBanner');if(banner){banner.style.display=isSetupDone?'none':'flex';}if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&!isSetupDone){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
 
@@ -1013,11 +1045,11 @@ const DAYS=[
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near Matterhorn/Fantasyland entrance on your way toward Tomorrowland.',land:'Fantasyland'},
     {t:'10:30 AM',h:'Morning Snack: Matterhorn Macaroon',type:'tip',n:'Pick up a Matterhorn Macaroon at the Fantasyland cart near the Matterhorn. Iconic Disneyland treat.',land:'Fantasyland'},
     {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
-    {t:'12:00 PM',h:'Lunch   Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou is inside Pirates   book ahead. River Belle is walk-up friendly.',land:'New Orleans Square'},
+    {t:'12:00 PM',h:'Lunch   Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou: reservations via Disneyland app. River Belle is walk-up friendly.',land:'New Orleans Square'},
     {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park   use Lightning Lane if available.',land:'Tomorrowland'},
     {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
     {t:'2:30 PM',h:'Afternoon Snack: Dole Whip',type:'tip',n:'Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room. Right on your path from Indiana Jones toward Frontierland.',land:'Adventureland'},
-    {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms near Pirates of the Caribbean entrance in New Orleans Square.',land:'New Orleans Square'},
+    {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms in New Orleans Square near Haunted Mansion.',land:'New Orleans Square'},
     {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness   great for all ages.',land:'Frontierland'},
     {t:'6:30 PM',h:'Return to Park   Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
     {t:'8:00 PM',h:'Fantasyland Evening Rides',type:'tip',n:'Evening is the best time for Fantasyland   lighter crowds after 8pm.',land:'Fantasyland'},
@@ -1740,7 +1772,7 @@ var LL_INDIVIDUAL=[
 
 var LL_MULTIPASS_BY_DAY=[
   // Sunday - Disneyland
-  [{ride:'Indiana Jones Adventure',land:'Adventureland',backup:'Haunted Mansion'},{ride:'Matterhorn Bobsleds',land:'Fantasyland',backup:'Space Mountain'},{ride:'Space Mountain',land:'Tomorrowland',backup:'Star Tours'},{ride:"Tiana's Bayou Adventure",land:'Fantasyland',backup:"Peter Pan's Flight"},{ride:'Haunted Mansion',land:'New Orleans Square',backup:'Pirates of the Caribbean'},{ride:'Millennium Falcon: Smugglers Run',land:"Galaxy's Edge",backup:'Star Tours'}],
+  [{ride:'Indiana Jones Adventure',land:'Adventureland',backup:'Haunted Mansion'},{ride:'Matterhorn Bobsleds',land:'Fantasyland',backup:'Space Mountain'},{ride:'Space Mountain',land:'Tomorrowland',backup:'Star Tours'},{ride:"Tiana's Bayou Adventure",land:'Fantasyland',backup:"Peter Pan's Flight"},{ride:'Haunted Mansion',land:'New Orleans Square',backup:'Royal Hall'},{ride:'Millennium Falcon: Smugglers Run',land:"Galaxy's Edge",backup:'Star Tours'}],
   // Monday - VIP Tour, no LL needed
   [],
   // Tuesday - DCA + Disneyland
@@ -2749,6 +2781,53 @@ function renderDayTipsCard(dayIdx){
   h+='</div></div>';
   return h;
 }
+
+function openDiningPanel(dayIdx,si,ei,dname,landCtx){
+  var panelId='dp_'+dayIdx+'_'+si+'_'+ei;
+  var panel=document.getElementById(panelId);
+  if(!panel)return;
+  var isOpen=panel.style.display==='block';
+  if(isOpen){panel.style.display='none';return;}
+  panel.style.display='block';
+  var dslot=loadDiningSlot(dayIdx,si,ei);
+  var dslotRest=dslot?dslot.restaurant:'';
+  var dslotTime=dslot?dslot.time:'';
+  var suggestions=[
+    {rank:1,name:'Blue Bayou Restaurant',note:'Iconic waterfront setting. Book via Disneyland app.',detail:'Reservations available \u00b7 New Orleans Square'},
+    {rank:2,name:'River Belle Terrace',note:'Walk-up friendly, great views of Rivers of America.',detail:'Walk-up \u00b7 Frontierland'},
+    {rank:3,name:'Caf\u00e9 Orl\u00e9ans',note:'Monte Cristo sandwich is a must. Walk-up counter.',detail:'Walk-up \u00b7 New Orleans Square'}
+  ];
+  var rankColors=['#1A6860','#4A7A7C','#8AACAE'];
+  var sugHtml='';
+  suggestions.forEach(function(s){
+    var n2=s.name.replace(/'/g,'\u2019');
+    sugHtml+='<div class="dp-sug-card" onclick="fillDiningFromSug('+dayIdx+','+si+','+ei+',\''+n2+'\')">'
+      +'<div class="dp-rank" style="background:'+rankColors[s.rank-1]+'">'+s.rank+'</div>'
+      +'<div class="dp-sug-body"><div class="dp-sug-name">'+s.name+(s.rank===1?'<span class="dp-top-badge">top pick</span>':'')+'</div>'
+      +'<div class="dp-sug-note">'+s.note+'</div><div class="dp-sug-detail">'+s.detail+'</div></div></div>';
+  });
+  panel.innerHTML='<div class="dp-ai-header"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C86030" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dp-ai-lbl">AI picks for your group</span></div>'
+    +'<div class="dp-suggestion-list">'+sugHtml+'</div>'
+    +'<div class="dp-res-section"><div class="dp-res-lbl">Your Reservation</div><div class="dp-res-row">'
+    +'<input class="dp-res-input" id="dp_rest_'+dayIdx+'_'+si+'_'+ei+'" placeholder="Restaurant name" value="'+dslotRest.replace(/"/g,'&quot;')+'" autocomplete="off">'
+    +'<input class="dp-res-input-time" id="dp_time_'+dayIdx+'_'+si+'_'+ei+'" placeholder="Time" value="'+dslotTime.replace(/"/g,'&quot;')+'" autocomplete="off">'
+    +'<button class="dp-save-btn" onclick="saveDiningFromPanel('+dayIdx+','+si+','+ei+')">Save</button></div>'
+    +'<div class="dp-res-hint">Tap a suggestion above to auto-fill</div></div>';
+}
+function fillDiningFromSug(dayIdx,si,ei,name){
+  var rEl=document.getElementById('dp_rest_'+dayIdx+'_'+si+'_'+ei);
+  if(rEl)rEl.value=name;
+}
+function saveDiningFromPanel(dayIdx,si,ei){
+  var rEl=document.getElementById('dp_rest_'+dayIdx+'_'+si+'_'+ei);
+  var tEl=document.getElementById('dp_time_'+dayIdx+'_'+si+'_'+ei);
+  if(!rEl)return;
+  var rest=rEl.value.trim();
+  var time=tEl?tEl.value.trim():'';
+  if(!rest)return;
+  saveDiningSlot(dayIdx,si,ei,rest,time);
+  setTimeout(function(){renderSched();},50);
+}
 function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
@@ -2780,7 +2859,8 @@ function renderSched(){
       if(e.type==='show')bc+=' is-show';
       else if(e.type==='food')bc+=' is-food';
       else if(e.type==='hop')bc+=' is-hop';
-      else if(e.type==='vip')bc+=' is-vip';if(TRIP_CONFIG.days[curDay].isVip&&e.type!=='vip'&&e.type!=='break'&&e.type!=='restroom')bc+=' is-vip';if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
+      else if(e.type==='vip')bc+=' is-vip';
+      if(TRIP_CONFIG.days[curDay].isVip&&e.type!=='vip'&&e.type!=='break'&&e.type!=='restroom'){var _ch=0;try{var _tp=e.t||'';var _pa=_tp.replace(' AM','').replace(' PM','').split(':');_ch=parseInt(_pa[0])||0;if(_tp.indexOf('PM')>-1&&_ch!==12)_ch+=12;if(_tp.indexOf('AM')>-1&&_ch===12)_ch=0;}catch(ex){}if(_ch>=10&&_ch<=17)bc+=' is-vip';}if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
       if(e.type==='tip'&&e.h&&e.h.indexOf('Snack')>-1)bc+=' is-snack';
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
@@ -2797,21 +2877,18 @@ function renderSched(){
         var dslot=loadDiningSlot(curDay,si,ei);
         var dslotRest=dslot?dslot.restaurant:'';
         var dslotTime=dslot?dslot.time:'';
-        diningRec='<div class="dining-slot">'
-          +'<div class="dining-slot-lbl"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Your Reservation</div>'
-          +'<div class="dining-slot-row">'
-          +'<input class="dining-slot-input" style="font-size:16px" id="ds_rest_'+curDay+'_'+si+'_'+ei+'" placeholder="Restaurant name" autocomplete="off" autocorrect="off" value="'+dslotRest.replace(/"/g,'&quot;')+'"/>'
-          +'<input class="dining-slot-input" style="max-width:110px;font-size:16px" id="ds_time_'+curDay+'_'+si+'_'+ei+'" placeholder="Time..." autocomplete="off" autocorrect="off" value="'+dslotTime.replace(/"/g,'&quot;')+'"/>'
-          +'<button class="dining-slot-save" onclick="saveDiningSlot('+curDay+','+si+','+ei+')">Save</button>'
-          +'</div>'
-          +'<div class="dining-slot-saved" id="ds_saved_'+curDay+'_'+si+'_'+ei+'" style="display:none">&#10003; Saved!</div>'
-          +'</div>'
-          +'<button class="dining-btn" data-name=\''+dname.split("'").join('\u2019')+'\' data-land=\''+safeLandCtx+'\'>Get Dining Recommendations</button>'
-          +'<div class="dining-result"></div>';
+        var _dslotSaved=dslot&&dslot.restaurant;
+        if(_dslotSaved){
+          diningRec='<div class="dining-saved-pill" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+safeDname+'\',\''+safeLandCtx+'\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0F6830" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:9px;font-weight:600;color:#0F6830">'+dslotRest.replace(/&quot;/g,'"')+(dslotTime?' \u00b7 '+dslotTime:'')+'</span><span style="font-size:8px;color:#1A8880;margin-left:auto">edit</span></div>';
+        }else{
+          diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+safeDname+'\',\''+safeLandCtx+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
+        }
+        diningRec+='<div class="dining-panel" id="dp_'+curDay+'_'+si+'_'+ei+'" style="display:none"></div>';
+      
       }
       var reroute='';
-      if(e.type==='ride'&&e.ride&&!TRIP_CONFIG.days[curDay].isVip){
-        var safeRide=(e.ride||'').split("'").join('\\u2019');
+      if(e.type==='ride'&&!TRIP_CONFIG.days[curDay].isVip){
+        var safeRide=(e.ride||e.h||'').split("'").join('\\u2019');
         var safeLand=((e.land||'Unknown')).split("'").join('\\u2019')
         reroute='<button class="reroute-btn" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> AI alternatives</button><div class="reroute-result"></div>'
       }
@@ -2891,6 +2968,8 @@ function toggleAccordion(id){
   hdr.querySelector('.accordion-arrow').innerHTML=isOpen?'&#8964;':'&#8963;';
 }
 
+
+function buildFullDiningGuide(){var restaurants=[{name:'Blue Bayou Restaurant',area:'New Orleans Square',type:'Table Service',price:'$$$',note:'Iconic waterfront setting. Book via Disneyland app.'},{name:'Caf\u00e9 Orl\u00e9ans',area:'New Orleans Square',type:'Quick Service',price:'$$',note:'Monte Cristo sandwich is a must. Walk-up counter.'},{name:'River Belle Terrace',area:'Frontierland',type:'Quick Service',price:'$$',note:'Walk-up friendly, great views of Rivers of America.'},{name:'Carnation Caf\u00e9',area:'Main Street U.S.A.',type:'Table Service',price:'$$',note:'Classic American fare. Great for breakfast.'},{name:'Jolly Holiday Bakery',area:'Main Street U.S.A.',type:'Quick Service',price:'$',note:'Sandwiches and treats on Main Street.'},{name:'Galactic Grill',area:'Tomorrowland',type:'Quick Service',price:'$$',note:'Star Wars-themed. Cosmic Onion Rings are a must.'},{name:'Bengal Barbecue',area:'Adventureland',type:'Quick Service',price:'$',note:'Skewers near Indiana Jones. Walk-up window.'},{name:'Rancho del Zocalo',area:'Frontierland',type:'Quick Service',price:'$$',note:'Mexican cuisine near Big Thunder.'},{name:'Village Haus Restaurant',area:'Fantasyland',type:'Quick Service',price:'$$',note:'Pizzas and pastas with Matterhorn views.'},{name:'Harbour Galley',area:'Frontierland',type:'Quick Service',price:'$',note:'Clam chowder by the Rivers of America.'},{name:'Carthay Circle Restaurant',area:'DCA \u2014 Buena Vista St',type:'Table Service',price:'$$$',note:'Upscale dining. Reservations recommended.'},{name:'Lamplight Lounge',area:'DCA \u2014 Pixar Pier',type:'Table Service',price:'$$$',note:'Seafood with Pixar Pier views. Book in advance.'},{name:'Pacific Wharf Caf\u00e9',area:'DCA \u2014 Pacific Wharf',type:'Quick Service',price:'$$',note:'Clam chowder in sourdough bread bowls.'},{name:'Smokejumpers Grill',area:'DCA \u2014 Grizzly Peak',type:'Quick Service',price:'$$',note:'Burgers and fries. Mobile order recommended.'},{name:"Flo's V8 Caf\u00e9",area:'DCA \u2014 Cars Land',type:'Quick Service',price:'$$',note:'Route 66-themed diner.'},{name:'Shawarma Palace',area:'DCA \u2014 Avengers Campus',type:'Quick Service',price:'$$',note:'Shawarma wrap is excellent.'},{name:'Pym Test Kitchen',area:'DCA \u2014 Avengers Campus',type:'Quick Service',price:'$$',note:'Marvel-themed creative menu.'}];var byArea={};restaurants.forEach(function(r){if(!byArea[r.area])byArea[r.area]=[];byArea[r.area].push(r);});var h='<div class="info-card"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:12px">Disneyland Resort Dining</div>';Object.keys(byArea).forEach(function(area){h+='<div style="font-size:10px;font-weight:700;color:#1A6860;letter-spacing:.06em;text-transform:uppercase;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)">'+area+'</div>';byArea[area].forEach(function(r){h+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="font-size:12px;font-weight:600;color:var(--text)">'+r.name+'</div><div style="display:flex;gap:4px;flex-shrink:0"><span style="font-size:9px;background:rgba(26,104,96,0.1);color:#1A6860;padding:2px 7px;border-radius:99px;font-weight:600">'+r.type+'</span><span style="font-size:9px;background:rgba(180,120,40,0.1);color:#8A5800;padding:2px 7px;border-radius:99px;font-weight:700">'+r.price+'</span></div></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.4">'+r.note+'</div></div>';});});h+='<div style="font-size:9px;color:var(--text-dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><b style="color:var(--text)">Note:</b> Check the Disneyland app for current hours and reservation availability.</div></div>';return h;}
 function renderInfoTab(){
   // Rebuild info tab with accordions
   var tab=document.getElementById('tabInfo');
@@ -2964,7 +3043,7 @@ function renderInfoTab(){
       var live=typeof getLiveClosures==='function'?getLiveClosures():null;var refurb=live?live.refurb:[];var tempDown=live?live.tempDown:[];
       var known=[{name:'Pirates of the Caribbean',note:'Closed May 4. No confirmed reopening.'},{name:'Buzz Lightyear Astro Blasters',note:'Closed April 13. No confirmed reopening.'},{name:'Silly Symphony Swings (DCA)',note:'Closed April 27.'},{name:'Avengers to Cars Land walkway',note:'Use Performance Corridor instead.'}];
       var h='<div class="info-card">';
-      if(refurb.length||tempDown.length){h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="#C41E1E" stroke="none"><circle cx="12" cy="12" r="10"/></svg> Live from Wait Times</div>';refurb.forEach(function(name){h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center">Refurb</div><div style="font-size:13px;color:var(--text)">'+name+'</div></div>';});h+='<div style="border-top:1px solid var(--border);margin:10px 0"></div>';}
+      if(refurb.length||tempDown.length){h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:8px"><svg width="10" height="10" viewBox="0 0 24 24" fill="#C41E1E" stroke="none"><circle cx="12" cy="12" r="10"/></svg> Live from Wait Times</div>';refurb.forEach(function(name){if(!name||name==='null')return;h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center">Refurb</div><div style="font-size:13px;color:var(--text)">'+name+'</div></div>';});h+='<div style="border-top:1px solid var(--border);margin:10px 0"></div>';}
       h+='<div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Confirmed June 2026</div>';
       known.forEach(function(item){h+='<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="min-width:56px;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,0.1);color:#EF4444;font-size:10px;font-weight:700;text-align:center;flex-shrink:0">Refurb</div><div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.name+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+item.note+'</div></div></div>';});
       var wlf=typeof waitLastFetch!=='undefined'?waitLastFetch:0;var ts=wlf?'Updated '+Math.round((Date.now()-wlf)/60000)+' min ago':'Tap Wait Times to load live data';
@@ -3148,7 +3227,15 @@ function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getE
 async function sendChatMsg(directMsg){
   await _doChat(directMsg);
 }
-async function sendChat(){
+async 
+function sendSugChat(msg){
+  var bubblesEl=document.getElementById('chatSugBubbles');
+  if(bubblesEl)bubblesEl.style.display='none';
+  var inp=document.getElementById('chatInput');
+  if(inp)inp.value=msg;
+  sendChat();
+}
+function sendChat(){
   var input=document.getElementById('chatInput');
   var msg=input?input.value.trim():'';
   if(!msg) return;
@@ -3844,6 +3931,34 @@ var TRIP_CONFIG = {
 };
 
 /* --- Splash screen --- */
+
+function renderSplashCtas(){
+  var area=document.getElementById('splashCtaArea');
+  if(!area)return;
+  var isRet=localStorage.getItem('tripSetupComplete')==='true';
+  if(isRet){
+    area.innerHTML='<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px"><span id="tripCodeLink" style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);cursor:pointer" onclick="showTripCodeInput()">Have a trip code?</span><span style="color:rgba(255,255,255,0.20)">\u00b7</span><a href="/pretrip.html?edit=true" style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-decoration:none">Edit trip setup</a></div><div id="tripCodeInputArea" style="display:none;margin-top:10px"></div>';
+  }else{
+    area.innerHTML='<div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-top:8px" onclick="window.location.href=\'/pretrip.html\'"><div><div style="font-size:11px;font-weight:600;color:#FFFFFF">Set up your trip first</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:2px">Takes 3 minutes \u00b7 personalises your schedule</div></div><span style="font-size:13px;color:rgba(255,255,255,0.50)">\u2192</span></div><div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:10px"><span id="tripCodeLink" style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);cursor:pointer" onclick="showTripCodeInput()">Have a trip code?</span><span style="color:rgba(255,255,255,0.20)">\u00b7</span><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);cursor:pointer" onclick="enterSplash()">Already set up? Sign in</span></div><div id="tripCodeInputArea" style="display:none;margin-top:10px"></div>';
+  }
+}
+function showTripCodeInput(){
+  var area=document.getElementById('tripCodeInputArea');
+  if(!area)return;
+  if(area.style.display==='block'){area.style.display='none';return;}
+  area.style.display='block';
+  area.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:\'Outfit\',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div><div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>';
+  setTimeout(function(){var inp=document.getElementById('tripCodeInput');if(inp)inp.focus();},50);
+}
+function submitTripCode(){
+  var inp=document.getElementById('tripCodeInput');
+  var err=document.getElementById('tripCodeError');
+  if(!inp)return;
+  var code=inp.value.trim().toUpperCase();
+  var knownCodes={'CW2026':true,'COFFRONWOODS':true,'DISNEYLAND2026':true};
+  if(knownCodes[code]){localStorage.setItem('tripSetupComplete','true');enterSplash();}
+  else{if(err){err.textContent='Code not found \u2014 check with your trip organiser';err.style.display='block';}}
+}
 function initSplash() {
   // Countdown
   var target = TRIP_CONFIG.firstParkDate;
@@ -3863,6 +3978,8 @@ function initSplash() {
   }
   // Stars
   generateSplashStars();
+  // Render CTAs based on setup state
+  renderSplashCtas();
   // Check if already shown this session
   if (sessionStorage.getItem('splashSeen')) {
     enterSplash(true);
@@ -3901,6 +4018,7 @@ function enterSplash(skipAnim) {
     if (typeof scheduleWeatherCheck === 'function') scheduleWeatherCheck();
     if (typeof startNotesSync === 'function') startNotesSync();
     if (typeof warmCachesFromServer === 'function') warmCachesFromServer();
+    if (typeof doRefreshWaits === 'function') setTimeout(doRefreshWaits, 2000);
     if (typeof renderCountdown === 'function') renderCountdown();
     setTimeout(function() {
       if (typeof renderSched === 'function') renderSched(1);
@@ -4251,6 +4369,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <script>
-(function(){function u(){var s=document.getElementById("vipNotesSection");if(!s)return;var t=document.querySelector(".day-tab.active");s.style.display=(t&&(t.id==="day-tab-2"||t.classList.contains("vip-tab")))?"block":"none"}document.addEventListener("DOMContentLoaded",function(){u();document.querySelectorAll(".day-tab").forEach(function(t){t.addEventListener("click",function(){setTimeout(u,100)})});var c=document.getElementById("dayTabsContainer");if(c){var o=new MutationObserver(u);o.observe(c,{attributes:true,subtree:true})}});setTimeout(u,500)})();
+(function(){function u(){var s=document.getElementById("vipNotesSection");if(!s)return;var t=document.querySelector(".day-tab.active");s.style.display="none"}document.addEventListener("DOMContentLoaded",function(){u();document.querySelectorAll(".day-tab").forEach(function(t){t.addEventListener("click",function(){setTimeout(u,100)})});var c=document.getElementById("dayTabsContainer");if(c){var o=new MutationObserver(u);o.observe(c,{attributes:true,subtree:true})}});setTimeout(u,500)})();
 </script></body>
 </html>
