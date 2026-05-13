@@ -1,1518 +1,602 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en" style="color-scheme:light">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<meta name="version" content="202605101200-v99">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
-<meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CW Disneyland Trip">
 <meta name="color-scheme" content="light">
-<base target="_blank">
-<title>Coffron/Woods Disneyland Trip</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<title>Pre-Trip Planning — ThemeParkWize</title>
+<meta name="version" content="202605130900-v105a">
+<title>Set Up Your Trip &mdash; Theme Park Co-Pilot</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{
-  --magic:#1B2FA0;--magic-light:#3D56D6;--magic-dim:rgba(27,47,160,0.1);
-  --gold:#C9860A;--gold-light:#E8A020;--gold-dim:rgba(201,134,10,0.12);
-  --bg:#FFF8F0;--card:#FFFFFF;--border:rgba(0,0,0,0.08);
-  --text:#1A1235;--text-muted:#5A526E;--text-dim:#A09AB5;
-  --green:#15803D;--green-bg:rgba(21,128,61,0.1);
-  --yellow:#B45309;--yellow-bg:rgba(180,83,9,0.1);
-  --red:#C41E1E;--red-bg:rgba(196,30,30,0.1);
-  --blue:#1B2FA0;--blue-bg:rgba(27,47,160,0.1);
-  --purple:#6D28D9;--purple-bg:rgba(109,40,217,0.1);
-  --orange:#C2410C;--orange-bg:rgba(194,65,12,0.1);
-  --radius:16px;--radius-sm:10px;
-  --shadow:0 2px 12px rgba(27,47,160,0.08);
-  --shadow-md:0 4px 20px rgba(27,47,160,0.12);
-}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;color-scheme:light only}
-.app{position:relative;z-index:1;max-width:430px;margin:0 auto;padding-bottom:90px;background:var(--bg);min-height:100vh}
-.header{padding:28px 20px 12px;position:sticky;top:0;z-index:100;background:linear-gradient(180deg,rgba(255,248,240,1) 0%,rgba(255,248,240,0.96) 75%,transparent 100%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-.header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
-.header-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;background:linear-gradient(135deg,#1B2FA0,#6D28D9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.25}
-.header-sub{font-size:12px;color:var(--text-muted);margin-top:3px;letter-spacing:0.02em}
-.day-tabs{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
-.day-tabs::-webkit-scrollbar{display:none}
-.day-tab{flex-shrink:0;padding:8px 14px;border-radius:99px;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);transition:all .25s;display:flex;align-items:center;gap:7px;box-shadow:var(--shadow)}
-.day-tab-icon{font-size:22px;line-height:1}
-.day-tab-text{display:flex;flex-direction:column;line-height:1.25}
-.day-tab-name{font-size:12px;font-weight:600}
-.day-tab-date{font-size:10px;opacity:.7}
-.day-tab.active{background:linear-gradient(135deg,rgba(27,47,160,0.12),rgba(109,40,217,0.08));border-color:rgba(27,47,160,0.35);color:var(--magic);font-weight:600;box-shadow:0 2px 8px rgba(27,47,160,0.15)}
-#day-tab-1.active{background:linear-gradient(135deg,rgba(201,134,10,0.12),rgba(232,160,32,0.08))!important;border-color:rgba(201,134,10,0.4)!important;box-shadow:0 2px 8px rgba(201,134,10,0.2)!important}
-.action-bar{display:flex;gap:8px;margin-bottom:12px}
-.action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;border:1px solid}
-.action-btn:active{transform:scale(.97)}
-.btn-waittimes{background:linear-gradient(135deg,#1B2FA0,#3D56D6);border-color:transparent;color:#FFFFFF;box-shadow:0 3px 12px rgba(27,47,160,0.3)}
-.btn-ll{background:linear-gradient(135deg,#C9860A,#E8A020);border-color:transparent;color:#FFFFFF;box-shadow:0 3px 12px rgba(201,134,10,0.3)}
-.content{padding:0 20px}
-.closed-banner{padding:11px 13px;background:rgba(196,30,30,0.04);border:1.5px solid rgba(196,30,30,0.18);border-radius:var(--radius);margin-bottom:12px}
-.closed-title{font-size:12px;font-weight:600;color:var(--red);margin-bottom:5px}
-.closed-list{display:flex;flex-direction:column;gap:4px}
-.closed-item{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--text-muted);line-height:1.4}
-.closed-name{color:var(--red);font-weight:500}
-.api-setup{padding:14px;background:var(--card);border:1.5px solid rgba(27,47,160,0.2);border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow)}
-.api-setup-title{font-size:13px;font-weight:600;color:#1D4ED8;margin-bottom:3px}
-.api-setup-sub{font-size:12px;color:var(--text-muted);margin-bottom:9px;line-height:1.5}
-.api-row{display:flex;gap:8px}
-.api-input{flex:1;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
-.api-input:focus{border-color:rgba(201,168,76,.4)}
-.api-btn{background:linear-gradient(135deg,var(--magic),var(--purple));border:none;color:#FFFFFF;border-radius:var(--radius-sm);padding:8px 14px;font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
-.api-ok{font-size:11px;color:var(--green);margin-top:5px;display:none}
-.api-ok.show{display:block}
-.edit-bar{display:flex;gap:7px;margin-bottom:12px}
-.edit-toggle{flex:1;padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;transition:all .2s;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);box-shadow:var(--shadow)}
-.edit-toggle.active{background:linear-gradient(135deg,rgba(27,47,160,0.1),rgba(109,40,217,0.07));border-color:rgba(27,47,160,0.35);color:var(--magic);font-weight:600}
-.ai-opt-btn{padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;border:1.5px solid rgba(109,40,217,0.25);background:rgba(109,40,217,0.07);color:var(--purple)}
-.reset-btn{padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;border:1.5px solid rgba(196,30,30,0.25);background:rgba(196,30,30,0.06);color:var(--red)}
-.reopt-box{padding:14px;background:linear-gradient(135deg,rgba(109,40,217,0.06),rgba(27,47,160,0.04));border:1.5px solid rgba(109,40,217,0.2);border-radius:var(--radius);margin-bottom:12px;display:none;box-shadow:var(--shadow)}
-.reopt-label{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--purple);margin-bottom:6px}
-.reopt-text{font-size:13px;color:var(--text-muted);line-height:1.6}
-.reopt-btns{display:none;gap:8px;margin-top:10px}
-.reopt-btns.show{display:flex}
-.reopt-apply{flex:2;padding:9px;border-radius:var(--radius-sm);border:1px solid rgba(124,58,237,0.4);background:rgba(124,58,237,0.08);color:#7C3AED;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
-.reopt-dismiss{flex:1;padding:9px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;font-family:inherit;cursor:pointer}
-.sec-hdr{display:flex;align-items:center;gap:8px;margin:13px 0 7px}
-.sec-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--magic);white-space:nowrap;opacity:0.7}
-.sec-line{flex:1;height:.5px;background:var(--navy-border)}
-.ride-block{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;transition:all .2s;position:relative;box-shadow:var(--shadow);width:100%;box-sizing:border-box}
-.ride-block.is-show{border-left:3px solid var(--purple)}
-.ride-block.is-food{border-left:3px solid var(--gold)}
-.ride-block.is-hop{border-style:dashed;background:rgba(27,47,160,0.02)}
-.ride-block.is-vip{border-left:4px solid #C9860A!important;background:linear-gradient(135deg,#FFFBF0,#FFF8E6)!important;border-color:#D4A017!important}
-.ride-block.is-break{border-left:4px solid #2980b9!important;background:linear-gradient(135deg,#EBF5FB,#D6EAF8)!important}
-.ride-block.is-photo{border-left:4px solid #7c3aed!important;background:linear-gradient(135deg,#F5F3FF,#EDE9FE)!important}
-  .ride-block.is-photo .ride-time{color:#7c3aed!important}
-.ride-block.is-snack{border-left:4px solid #27ae60!important;background:linear-gradient(135deg,#EAFAF1,#D5F5E3)!important}
-.ride-block.is-vip .ride-time{color:#B8860B!important}
-.ride-block.is-vip .ride-note{color:#7A6020!important}
-.ride-block.is-lls{border-left:3px solid var(--orange)}
-.ride-block.edit-mode{border-color:rgba(201,168,76,.3);cursor:grab}
-.ride-block.edit-mode:active{cursor:grabbing}
-.ride-block.dragging{opacity:.4;border-style:dashed}
-.ride-block.drag-over{border-color:var(--gold);transform:scale(1.01)}
-.ride-main{display:flex;align-items:flex-start;gap:10px;padding:10px 12px}
-.ride-time{min-width:58px;font-size:13px;font-weight:700;color:var(--magic);flex-shrink:0;padding-top:1px;white-space:nowrap}
-.ride-body{flex:1;min-width:0;overflow:hidden}
-.ride-title-row{display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap;margin-bottom:2px}
-.ride-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
-.ride-note{font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:2px}
-.ll-banner{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;background:rgba(251,146,60,.06);border-top:1px solid rgba(251,146,60,.15)}
-.lls-banner{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;background:rgba(251,146,60,.1);border-top:1px solid rgba(251,146,60,.25)}
-.ll-txt,.lls-txt{font-size:12px;color:var(--orange);line-height:1.5}
-.ll-txt b,.lls-txt b{font-weight:600}
-.tb{font-size:10px;font-weight:500;padding:1px 6px;border-radius:99px;flex-shrink:0}
-.tb-ride{background:var(--green-bg);color:var(--green)}
-.tb-show{background:var(--purple-bg);color:var(--purple)}
-.tb-food{background:var(--gold-dim);color:var(--gold)}
-.tb-hop{background:var(--blue-bg);color:var(--blue)}
-.tb-vip{background:linear-gradient(135deg,#C9860A,#E8A020);color:#FFFFFF!important;font-weight:700}
-.tb-tip{background:rgba(139,143,168,.1);color:var(--text-muted)}.tb-break{background:rgba(100,180,255,.15);color:#2980b9}.tb-photo{background:rgba(124,58,237,0.12);color:#7c3aed}
-.tb-ll{background:var(--orange-bg);color:var(--orange)}
-.del-btn{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--red-bg);border:1px solid rgba(248,113,113,.4);color:var(--red);font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center;font-family:inherit;padding:0;line-height:1}
-.edit-mode .del-btn{display:flex}
-.add-btn{width:100%;padding:10px;border-radius:var(--radius-sm);border:1.5px dashed rgba(27,47,160,0.25);background:rgba(27,47,160,0.02);color:var(--magic);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;margin-top:4px}
-.add-btn:active{background:var(--gold-dim)}
-.reroute-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:5px 11px;background:linear-gradient(135deg,rgba(109,40,217,0.08),rgba(27,47,160,0.06));border:1.5px solid rgba(109,40,217,0.25);border-radius:99px;color:var(--purple);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer}
-.reroute-btn:active{transform:scale(.95)}
-.reroute-result{margin-top:7px;padding:9px 11px;background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(96,165,250,.04));border:1px solid rgba(167,139,250,.2);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6;display:none}
-.reroute-result.show{display:block}
-.rr-hdr{font-size:10px;font-weight:600;color:var(--purple);letter-spacing:.04em;margin-bottom:4px}
-.vip-notes-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E6);border:1.5px solid #D4A017;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:0 3px 12px rgba(201,134,10,0.15)}
-.vip-notes-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px 5px;border-bottom:1px solid rgba(212,160,23,0.2)}
-.vip-notes-lbl{font-size:13px;font-weight:700;background:linear-gradient(135deg,#C9860A,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex:1}
-.vip-notes-sub{font-size:11px;color:#7A6020;padding:0 12px 7px;line-height:1.5}
-.vip-ta{width:100%;background:#FFFDF8;border:none;border-top:1px solid rgba(212,160,23,0.2);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;line-height:1.6;resize:none;min-height:120px;outline:none;display:block}
-.vip-ta::placeholder{color:var(--text-dim)}
-.show-card{padding:14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:10px;box-shadow:var(--shadow)}
-.show-card.hl{border-color:rgba(27,47,160,0.25);background:linear-gradient(135deg,rgba(27,47,160,0.04),rgba(109,40,217,0.03));box-shadow:0 3px 12px rgba(27,47,160,0.1)}
-.show-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px}
-.show-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
-.show-tag{font-size:11px;padding:2px 8px;border-radius:99px}
-.show-desc{font-size:12px;color:var(--text-muted);line-height:1.6}
-.info-sec{margin-bottom:16px}
-.info-title{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold-light);margin-bottom:7px}
-.info-card{padding:12px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:8px;box-shadow:var(--shadow)}
-.info-card b{color:var(--text);font-weight:500}
-.ll-legend{display:flex;flex-direction:column;gap:5px;margin-top:4px}
-.ll-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
-.modal-bg.hidden{display:none!important}
-.pt-accordion-open{display:block!important}
-.chat-tab-container.hidden{display:none!important}
-.chat-msg{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.6;word-wrap:break-word}
-.chat-msg.user{background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-.chat-msg.ai{background:var(--card);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border)}
-.chat-suggest{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation}
-.setup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:800;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
-#setupOverlay{z-index:850}
-.setup-panel{background:var(--bg);border-radius:24px 24px 0 0;padding:20px 18px 100px;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.setup-step{display:none}.setup-step.active{display:block}
-.setup-progress{display:flex;gap:6px;margin-bottom:18px}
-.setup-dot{flex:1;height:3px;border-radius:2px;background:var(--border)}.setup-dot.done{background:var(--magic)}.setup-dot.active{background:linear-gradient(90deg,var(--magic),var(--purple))}
-.setup-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;margin-top:14px}
-.setup-chips{display:flex;flex-wrap:wrap;gap:7px}
-.setup-chip{padding:7px 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;transition:all .2s}
-.setup-chip.selected{border-color:var(--magic);background:rgba(27,47,160,0.1);color:var(--magic);font-weight:600}
-.setup-chip.skip{border-color:rgba(220,38,38,0.3);background:rgba(220,38,38,0.05);color:#EF4444}
-.setup-chip.skip.selected{border-color:#EF4444;background:rgba(220,38,38,0.12)}
-.setup-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:16px;position:sticky;bottom:0;box-shadow:0 -8px 20px var(--bg)}
-.setup-back{background:none;border:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer;padding:0;margin-bottom:12px}
-.setup-banner{background:linear-gradient(135deg,rgba(27,47,160,0.08),rgba(109,40,217,0.05));border:1.5px solid rgba(27,47,160,0.2);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px}
-.tink-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1B2FA0,#6D28D9);z-index:9998;pointer-events:none;opacity:0;transition:opacity .5s ease}
-.tink-overlay.active{opacity:1}
-.tink-overlay.fadeout{opacity:0;transition:opacity .6s ease .4s}
-.tink-fairy{position:fixed;z-index:9999;pointer-events:none;width:36px;height:36px;filter:drop-shadow(0 0 8px rgba(255,220,50,0.9))}
-.tink-body{font-size:28px;line-height:1;animation:tinkWing .15s ease-in-out infinite alternate}
-@keyframes tinkWing{from{transform:scaleY(1) rotate(-5deg)}to{transform:scaleY(0.85) rotate(5deg)}}
-.dust-particle{position:fixed;z-index:9997;pointer-events:none;border-radius:50%;animation:dustFade 1.2s ease-out forwards}
-@keyframes dustFade{0%{opacity:1;transform:scale(1) translateY(0)}100%{opacity:0;transform:scale(0.2) translateY(20px)}}
-.lock-enter-btn{width:100%;max-width:280px;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFFFFF;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 4px 20px rgba(201,134,10,0.5);letter-spacing:.02em;margin-top:8px}
-.lock-enter-btn:active{transform:scale(.97)}
-.ll-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:850;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
-.ll-modal-inner{width:100%;max-width:430px;background:#FFFFFF;border-radius:var(--radius) var(--radius) 0 0;padding:20px 20px 40px;border-top:2px solid rgba(27,47,160,0.2);box-shadow:0 -8px 30px rgba(27,47,160,0.15)}
-.ll-modal-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--magic);margin-bottom:4px}
-.ll-modal-sub{font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.5}
-.ll-option{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all .2s}
-.ll-option.selected{border-color:rgba(27,47,160,0.4);background:rgba(27,47,160,0.06)}
-.ll-option-icon{font-size:20px;flex-shrink:0}
-.ll-option-text{flex:1}
-.ll-option-title{font-size:13px;font-weight:600;color:var(--text)}
-.ll-option-desc{font-size:11px;color:var(--text-muted);margin-top:1px}
-.ll-checkbox{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px}
-.ll-option.selected .ll-checkbox{background:var(--magic);border-color:var(--magic);color:#FFFFFF}
-.ll-individual-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px}
-.ll-individual-check{width:22px;height:22px;border-radius:4px;border:2px solid var(--border);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s}
-.ll-individual-check.checked{background:var(--magic);border-color:var(--magic);color:#FFFFFF}
-.ll-confirm-btn{width:100%;padding:13px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#FFFFFF;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px}
-.ll-banner-got{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:99px;background:rgba(21,128,61,0.1);border:1px solid rgba(21,128,61,0.3);color:#15803D;font-size:10px;font-weight:600;cursor:pointer}
-.ll-time-input{width:80px;padding:3px 7px;border-radius:6px;border:1.5px solid var(--border);font-size:12px;font-family:inherit;color:var(--text);background:var(--card);margin-left:4px}
-.waze-card{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;background:#FFFFFF;border:2px solid #1B2FA0;border-radius:var(--radius);box-shadow:0 8px 32px rgba(27,47,160,0.25);z-index:800;overflow:hidden;animation:slideUp .3s ease}
-@keyframes slideUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
-.waze-hdr{display:flex;align-items:center;gap:8px;padding:11px 14px 8px;background:linear-gradient(135deg,#1B2FA0,#6D28D9)}
-.waze-hdr-icon{font-size:18px}
-.waze-hdr-title{font-size:12px;font-weight:700;color:#FFFFFF;letter-spacing:.04em;text-transform:uppercase}
-.waze-hdr-close{margin-left:auto;font-size:16px;color:rgba(255,255,255,0.7);cursor:pointer;padding:0 4px}
-.waze-body{padding:12px 14px}
-.waze-opportunity{font-size:13px;font-weight:600;color:var(--magic);margin-bottom:6px}
-.waze-detail{font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:10px}
-.waze-stats{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.waze-stat{padding:5px 10px;border-radius:99px;font-size:11px;font-weight:600}
-.waze-stat-save{background:#DCFCE7;color:#15803D}
-.waze-stat-walk{background:#DBEAFE;color:#1E40AF}
-.waze-stat-wait{background:#FEE2E2;color:#C41E1E}
-.waze-btns{display:flex;gap:8px}
-.waze-accept{flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,#1B2FA0,#6D28D9);color:#FFFFFF;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
-.waze-dismiss{flex:1;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
-.waze-loading{padding:14px;text-align:center;font-size:12px;color:var(--text-muted)}
-.ride-block.edit-mode .ride-time{cursor:pointer;border-bottom:1.5px dashed rgba(27,47,160,0.3);min-width:58px}
-.ride-block.edit-mode .ride-name{cursor:pointer;border-bottom:1.5px dashed rgba(27,47,160,0.3)}
-.inline-edit-input{background:rgba(27,47,160,0.06);border:1.5px solid rgba(27,47,160,0.3);border-radius:6px;padding:2px 6px;font-size:13px;font-family:inherit;color:var(--text);outline:none;width:100%}
-.inline-edit-time{width:80px!important}
-.edit-hint{font-size:10px;color:var(--text-dim);text-align:center;padding:5px 0 8px;font-style:italic}
-.day-tips-card{background:linear-gradient(135deg,rgba(27,47,160,0.05),rgba(109,40,217,0.03));border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);margin-bottom:12px;overflow:hidden}
-.day-tips-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;cursor:pointer;user-select:none}
-.day-tips-hdr-left{display:flex;align-items:center;gap:8px}
-.day-tips-title{font-size:13px;font-weight:700;color:var(--magic)}
-.day-tips-arrow{font-size:11px;color:var(--text-dim);transition:transform .2s}
-.day-tips-body{display:none;padding:0 13px 13px}
-.day-tips-body.open{display:block}
-.day-tips-hdr.open .day-tips-arrow{transform:rotate(180deg)}
-.tip-item{display:flex;gap:9px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(27,47,160,0.08)}
-.tip-item:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
-.tip-icon{font-size:18px;flex-shrink:0;line-height:1.3}
-.tip-body{}
-.tip-label{font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
-.tip-text{font-size:12px;color:var(--text-muted);line-height:1.6}
-.dining-btn{display:block;width:100%;margin-top:8px;padding:10px;border-radius:var(--radius-sm);border:1.5px solid #F59E0B;background:#FEF3C7;color:#92400E;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center;touch-action:manipulation}
-.dining-btn:active{transform:scale(.97)}
-.dining-result{margin-top:8px;padding:11px 12px;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--radius-sm);font-size:13px;color:var(--text);line-height:1.6;display:none;word-wrap:break-word;overflow-wrap:break-word;width:100%;box-sizing:border-box}
-.dining-result.show{display:block}
-.day-info-bar{display:flex;gap:8px;margin-bottom:12px}
-.park-hours-card{flex:1;padding:7px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow)}
-.ph-title{font-size:9px;font-weight:700;color:var(--magic);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
-.ph-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:2px}
-.ph-park{font-weight:600;color:var(--text)}
-.ph-time{color:var(--text-muted)}
-.weather-card{width:76px;flex-shrink:0;padding:7px 6px;background:linear-gradient(135deg,rgba(27,47,160,0.07),rgba(109,40,217,0.04));border:1.5px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center}
-.wx-icon{font-size:22px;line-height:1}
-.wx-temp{font-size:14px;font-weight:700;color:var(--magic)}
-.wx-desc{font-size:10px;color:var(--text-muted);line-height:1.3}
-.lock-screen{position:fixed;inset:0;z-index:9990;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 30px;overflow:hidden;background:#0D1B6E}
-.lock-bg-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.lock-star{position:absolute;border-radius:50%;background:#FFFFFF;box-shadow:0 0 4px #FFFFFF,0 0 8px rgba(255,255,255,0.5);animation:twinkle 3s infinite}
-@keyframes twinkle{0%,100%{opacity:.15;transform:scale(1)}50%{opacity:.8;transform:scale(1.3)}}
-.lock-glow{position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(109,40,217,0.5) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-60%);pointer-events:none}
-.lock-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:320px}
-.lock-castle{font-size:64px;line-height:1;margin-bottom:4px;filter:drop-shadow(0 0 20px rgba(232,160,32,0.6))}
-.lock-sparkle-row{font-size:14px;letter-spacing:12px;margin-bottom:14px;opacity:0.7;color:#FFFFFF}
-.lock-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#FFFFFF;text-align:center;line-height:1.25;margin-bottom:4px;text-shadow:0 2px 20px rgba(109,40,217,0.8)}
-.lock-sub{font-size:13px;color:rgba(255,255,255,0.55);text-align:center;letter-spacing:.05em;margin-bottom:20px}
-.lock-countdown-box{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:14px;padding:10px 24px;text-align:center;margin-bottom:20px;backdrop-filter:blur(8px)}
-.lock-card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:24px 24px 20px;width:100%;backdrop-filter:blur(12px)}
-.lock-card-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);text-align:center;margin-bottom:10px}
-.lock-input{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#FFFFFF;font-size:18px;font-family:inherit;text-align:center;outline:none;letter-spacing:6px;margin-bottom:12px;transition:border-color .2s}
-.lock-input::placeholder{color:rgba(255,255,255,0.3);letter-spacing:2px;font-size:14px}
-.lock-input:focus{border-color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.15)}
-.lock-btn{width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFFFFF;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.03em;box-shadow:0 4px 20px rgba(201,134,10,0.4)}
-.lock-btn:active{transform:scale(.98)}
-.lock-error{font-size:12px;color:rgba(255,180,180,0.9);text-align:center;margin-top:10px;min-height:18px}
-.wb{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0;margin-left:4px}
-.wb-low{background:#DCFCE7;color:#15803D;border:1px solid rgba(21,128,61,0.2)}
-.wb-med{background:#FEF3C7;color:#B45309;border:1px solid rgba(180,83,9,0.2)}
-.wb-high{background:#FEE2E2;color:#C41E1E;border:1px solid rgba(196,30,30,0.2)}
-.wb-closed{background:#F3F4F6;color:#9CA3AF;border:1px solid rgba(0,0,0,0.1)}
-.wait-tab-row{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px;box-shadow:var(--shadow);gap:8px}
-.wait-tab-row.wt-high{border-color:rgba(196,30,30,0.3);background:#FFF5F5}
-.wait-tab-row.wt-closed{opacity:0.5}
-.wt-name{font-size:13px;font-weight:500;color:var(--text);flex:1;line-height:1.3}
-.wait-status-bar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px;box-shadow:var(--shadow)}
-.wait-refresh-btn{padding:5px 12px;border-radius:99px;border:1.5px solid rgba(27,47,160,0.2);background:rgba(27,47,160,0.06);color:var(--magic);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer}
-.modal-inner{width:100%;max-width:430px;margin:0 auto;background:#FFFFFF;border-radius:var(--radius) var(--radius) 0 0;padding:20px 20px 40px;border-top:1px solid rgba(0,0,0,0.1);box-shadow:0 -4px 20px rgba(0,0,0,0.12)}
-.modal-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:14px}
-.modal-field{margin-bottom:11px}
-.modal-label{font-size:11px;font-weight:600;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
-.modal-input{width:100%;background:var(--navy);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:9px 11px;color:var(--text);font-size:14px;font-family:inherit;outline:none}
-.modal-input:focus{border-color:rgba(201,168,76,.4)}
-.modal-btns{display:flex;gap:8px;margin-top:14px}
-.modal-cancel{flex:1;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--navy-border);background:transparent;color:var(--text-muted);font-size:14px;font-family:inherit;cursor:pointer}
-.modal-save{flex:2;padding:11px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#FFFFFF;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 3px 12px rgba(27,47,160,0.3)}
-.blink span{animation:blink 1.4s infinite;font-size:16px}
-.blink span:nth-child(2){animation-delay:.2s}
-.blink span:nth-child(3){animation-delay:.4s}
-@keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
-.sec-hdr-inner{display:flex;align-items:center;gap:8px;width:100%}
-.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(255,255,255,0.98);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1.5px solid rgba(27,47,160,0.1);box-shadow:0 -4px 20px rgba(27,47,160,0.1);display:flex;padding:6px 0 24px;z-index:200}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:2px}
-.ni:active{opacity:.6}
-.ni-icon{font-size:19px}
-.ni-lbl{font-size:10px;font-weight:500;color:var(--text-dim)}
-.ni.active .ni-lbl{color:var(--magic);font-weight:600}
-.hidden{display:none!important}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --gold:#C9860A;--gold-light:#E8A020;--gold-dim:rgba(201,134,10,0.12);
-    --bg:#FFF8F0;--card:#FFFFFF;--border:rgba(0,0,0,0.08);
-    --text:#1A1235;--text-muted:#5A526E;--text-dim:#A09AB5;
-    --green:#15803D;--green-bg:rgba(21,128,61,0.1);
-    --yellow:#B45309;--yellow-bg:rgba(180,83,9,0.1);
-    --red:#C41E1E;--red-bg:rgba(196,30,30,0.1);
-    --blue:#1B2FA0;--blue-bg:rgba(27,47,160,0.1);
-    --purple:#6D28D9;--purple-bg:rgba(109,40,217,0.1);
-    --orange:#C2410C;--orange-bg:rgba(194,65,12,0.1);
-    --magic:#1B2FA0;--magic-light:#3D56D6;--magic-dim:rgba(27,47,160,0.1);
-  }
-  body { background:#FFF8F0 !important; color:#1A1235 !important; }
-  .app { background:#FFF8F0 !important; }
-  .ride-block, .show-card, .info-card, .api-setup, .day-tab, .edit-toggle { background:#FFFFFF !important; }
-  input, select, textarea { background:#FFFFFF !important; color:#1A1235 !important; }
-}
-
-/* Magic Day celebration screen */
-.magic-day-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(160deg,#0D1B6E,#1B2FA0 40%,#6D28D9);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;overflow:hidden;box-sizing:border-box}
-#fwCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
-.md-sparkles{font-size:22px;letter-spacing:10px;color:#FFF;position:relative;z-index:2;margin-bottom:8px;animation:mdSparkPulse 1s ease-in-out infinite alternate}
-@keyframes mdSparkPulse{from{opacity:.6;transform:scale(1)}to{opacity:1;transform:scale(1.1)}}
-.md-castle{font-size:80px;position:relative;z-index:2;margin-bottom:8px;animation:mdCastleGlow 1.5s ease-in-out infinite alternate}
-@keyframes mdCastleGlow{from{filter:drop-shadow(0 0 20px rgba(232,160,32,.6))}to{filter:drop-shadow(0 0 50px rgba(232,160,32,1))}}
-.md-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:#FFF;text-align:center;line-height:1.2;margin-bottom:8px;text-shadow:0 0 30px rgba(232,160,32,.8);position:relative;z-index:2}
-.md-sub{font-size:14px;color:rgba(255,255,255,.8);text-align:center;line-height:1.7;margin-bottom:24px;position:relative;z-index:2}
-.md-btn{padding:15px 36px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFF;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;z-index:2;animation:mdBtnPulse 2s ease-in-out infinite}
-@keyframes mdBtnPulse{0%,100%{box-shadow:0 4px 24px rgba(201,134,10,.6)}50%{box-shadow:0 4px 40px rgba(201,134,10,.9)}}
-</style>
-<style id="pretrip-page-css">
-body{margin:0;padding:0;background:var(--bg);min-height:100vh;font-family:'Playfair Display',serif;}
-.page-header{position:sticky;top:0;z-index:100;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
-.page-header .back-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text);padding:2px 6px;border-radius:8px;line-height:1;-webkit-tap-highlight-color:transparent;}
-.page-header h1{margin:0;font-size:20px;font-weight:700;color:var(--text);flex:1;}
-.page-content{padding:16px;padding-bottom:100px;max-width:600px;margin:0 auto;}
-.bottom-tabs{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--card);border-top:1px solid var(--border);display:flex;height:60px;}
-.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;cursor:pointer;color:#999;font-size:10px;font-family:inherit;padding:6px 0;-webkit-tap-highlight-color:transparent;}
-.tab-btn.active{color:#1a1a6e;}
-.pt-accordion{background:var(--card);border:0.5px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
-.pt-accordion-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
-.pt-accordion-hdr:active{opacity:.75;}
-.pt-accordion-title{font-size:15px;font-weight:700;color:var(--text);margin:0;}
-.pt-accordion-arr{font-size:14px;color:var(--text-muted);}
-.pt-accordion-body{padding:0 16px 16px;display:none;}
-.pt-loading{color:var(--text-muted);font-size:13px;padding:8px 0;font-style:italic;}
-.pt-refresh-btn{border:none;background:var(--accent);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;margin-top:8px;font-family:inherit;}
-.countdown-row{display:flex;gap:10px;margin-bottom:16px;}
-.countdown-tile{flex:1;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
-.countdown-tile .tile-num{font-size:28px;font-weight:700;color:var(--magic);}
-.countdown-tile .tile-lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
-#setupOverlay{z-index:900;}
+body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+.pt-wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#EEF5F4}
+/* Header */
+.pt-header{background:#071E25;padding:12px 16px 0;position:sticky;top:0;z-index:100}
+.pt-eyebrow{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:3px}
+.pt-header-title{font-size:13px;font-weight:800;color:#FFFFFF;line-height:1.2}
+.pt-step-indicator{font-size:9px;color:rgba(255,255,255,0.45);margin-top:2px;padding-bottom:10px}
+.pt-progress-bar{height:3px;background:rgba(255,255,255,0.15);width:100%;position:relative}
+.pt-progress-fill{height:100%;background:#1A6860;transition:width .3s ease}
+/* Back button */
+.pt-back{position:absolute;top:12px;left:16px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
+/* Content area */
+.pt-content{flex:1;padding:16px;overflow-y:auto}
+.pt-section-title{font-size:16px;font-weight:800;color:#071E25;margin-bottom:4px}
+.pt-section-sub{font-size:12px;color:#4A7A7C;margin-bottom:16px;line-height:1.4}
+/* Labels and inputs */
+.pt-label{font-size:10px;font-weight:700;color:#071E25;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:block}
+.pt-input{width:100%;border:1px solid rgba(7,30,37,0.15);border-radius:8px;padding:10px 12px;font-size:14px;color:#071E25;font-family:'Outfit',sans-serif;background:#FFFFFF;outline:none;margin-bottom:12px}
+.pt-input:focus{border-color:#1A6860;box-shadow:0 0 0 2px rgba(26,104,96,0.12)}
+/* Segmented pills */
+.pt-pill-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pt-pill{border:1.5px solid rgba(7,30,37,0.15);border-radius:20px;padding:6px 12px;font-size:11px;font-weight:600;color:#4A7A7C;cursor:pointer;background:#FFFFFF;font-family:'Outfit',sans-serif;transition:all .15s}
+.pt-pill.active{background:#1A6860;border-color:#1A6860;color:#FFFFFF}
+.pt-pill:active{transform:scale(.97)}
+/* Chip grid */
+.pt-chip-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pt-chip{border:1.5px solid rgba(7,30,37,0.15);border-radius:20px;padding:5px 11px;font-size:11px;font-weight:600;color:#4A7A7C;cursor:pointer;background:#FFFFFF;font-family:'Outfit',sans-serif;transition:all .15s}
+.pt-chip.selected{background:#1A6860;border-color:#1A6860;color:#FFFFFF}
+.pt-chip.never-selected{background:#C41E1E;border-color:#C41E1E;color:#FFFFFF}
+.pt-chip:active{transform:scale(.97)}
+/* Member rows */
+.pt-member-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.pt-member-name{flex:1}
+.pt-member-age{width:60px;flex-shrink:0}
+.pt-member-remove{background:none;border:none;cursor:pointer;font-size:18px;color:#C41E1E;padding:0 4px;font-family:inherit}
+.pt-add-link{font-size:12px;font-weight:600;color:#1A6860;cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
+/* Day sections */
+.pt-day-section{background:#FFFFFF;border-radius:12px;border:1px solid rgba(7,30,37,0.08);padding:12px;margin-bottom:12px}
+.pt-day-label{font-size:13px;font-weight:700;color:#071E25;margin-bottom:10px}
+.pt-toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pt-toggle-lbl{font-size:12px;font-weight:600;color:#071E25}
+.pt-toggle{width:40px;height:22px;background:rgba(7,30,37,0.15);border-radius:11px;position:relative;cursor:pointer;transition:background .2s;border:none;padding:0;flex-shrink:0}
+.pt-toggle.on{background:#1A6860}
+.pt-toggle-dot{width:18px;height:18px;background:#FFFFFF;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+.pt-toggle.on .pt-toggle-dot{left:20px}
+/* Checklist */
+.pt-checklist-section{background:#FFFFFF;border-radius:12px;border:1px solid rgba(7,30,37,0.08);margin-bottom:10px;overflow:hidden}
+.pt-checklist-header{display:flex;align-items:center;justify-content:space-between;padding:12px;cursor:pointer;user-select:none}
+.pt-checklist-title{font-size:13px;font-weight:700;color:#071E25}
+.pt-checklist-count{font-size:10px;color:#1A6860;font-weight:600}
+.pt-checklist-body{padding:0 12px 12px;display:none}
+.pt-check-item{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:0.5px solid rgba(7,30,37,0.06);cursor:pointer}
+.pt-check-item:last-child{border-bottom:none}
+.pt-check-box{width:18px;height:18px;border-radius:4px;border:1.5px solid rgba(7,30,37,0.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s;background:#FFFFFF}
+.pt-check-item.checked .pt-check-box{background:#1A6860;border-color:#1A6860}
+.pt-check-item.checked .pt-check-box::after{content:'';display:block;width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
+.pt-check-text{font-size:12px;color:#4A7A7C;line-height:1.4;flex:1}
+.pt-check-item.checked .pt-check-text{color:#8AACAE;text-decoration:line-through}
+/* Expandable info block */
+.pt-expand-block{background:rgba(26,104,96,0.06);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.pt-expand-title{font-size:12px;font-weight:700;color:#071E25;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.pt-expand-body{font-size:11px;color:#4A7A7C;line-height:1.5;margin-top:8px;display:none}
+.pt-expand-body.open{display:block}
+/* CTA */
+.pt-cta-wrap{padding:12px 16px;background:#EEF5F4;border-top:1px solid rgba(7,30,37,0.08)}
+.pt-cta{width:100%;padding:13px 20px;border-radius:10px;background:#C86030;border:none;color:#fff;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;letter-spacing:.02em}
+.pt-cta:active{transform:scale(.97)}
+/* Step visibility */
+.pt-step{display:none}
+.pt-step.active{display:block}
+/* Textarea */
+.pt-textarea{width:100%;border:1px solid rgba(7,30,37,0.15);border-radius:8px;padding:10px 12px;font-size:13px;color:#071E25;font-family:'Outfit',sans-serif;background:#FFFFFF;outline:none;resize:vertical;min-height:70px;margin-bottom:12px}
+/* Section headers in steps */
+.pt-sub-header{font-size:11px;font-weight:700;color:#1A6860;text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid rgba(26,104,96,0.15)}
 </style>
 </head>
 <body>
-<!-- Header -->
-<div class="page-header">
-  <button class="back-btn" onclick="window.location.href='app.html'" ontouchend="event.preventDefault();window.location.href='app.html'">&#8592;</button>
-  <h1>Pre-Trip Planning</h1>
+<div class="pt-wrap">
+
+<!-- HEADER (rendered by JS) -->
+<div class="pt-header" id="ptHeader">
+  <div style="position:relative;padding-bottom:10px">
+    <button class="pt-back" id="ptBack" onclick="ptBack()" style="display:none">&#8592; Back</button>
+    <div style="text-align:center">
+      <div class="pt-eyebrow">THEME PARK CO-PILOT</div>
+      <div class="pt-header-title" id="ptStepTitle">Set Up Your Trip</div>
+      <div class="pt-step-indicator" id="ptStepIndicator">Step 1 of 5</div>
+    </div>
+  </div>
+  <div class="pt-progress-bar"><div class="pt-progress-fill" id="ptProgress" style="width:20%"></div></div>
+</div>
+<!-- STEP 1: Your Group -->
+<div class="pt-step active" id="ptStep0">
+  <div class="pt-content">
+    <div class="pt-section-title">Your Group</div>
+    <div class="pt-section-sub">Tell us who is coming so we can personalise your schedule.</div>
+    
+    <label class="pt-label">Trip name</label>
+    <input class="pt-input" id="tripName" placeholder="e.g. Coffron/Woods" type="text">
+    
+    <label class="pt-label">Trip dates</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input class="pt-input" id="tripStart" type="date" style="margin-bottom:0;flex:1">
+      <span style="line-height:38px;color:#4A7A7C;font-size:12px">to</span>
+      <input class="pt-input" id="tripEnd" type="date" style="margin-bottom:0;flex:1">
+    </div>
+    
+    <label class="pt-label">Home park</label>
+    <div class="pt-pill-row" id="parkPills">
+      <button class="pt-pill active" data-val="Disneyland" onclick="selectPill(this,'park')">Disneyland</button>
+      <button class="pt-pill" data-val="Walt Disney World" onclick="selectPill(this,'park')">Walt Disney World</button>
+      <button class="pt-pill" data-val="Universal" onclick="selectPill(this,'park')">Universal</button>
+      <button class="pt-pill" data-val="Other" onclick="selectPill(this,'park')">Other</button>
+    </div>
+    
+    <label class="pt-label">Group members</label>
+    <div id="memberList"></div>
+    <button class="pt-add-link" onclick="addMember()">+ Add another person</button>
+  </div>
 </div>
 
-<!-- Page content -->
-<div class="page-content">
-
-  <!-- Countdown tiles -->
-  <div class="countdown-row">
-    <div class="countdown-tile"><div class="tile-num" id="ptcd_dining">&#8212;</div><div class="tile-lbl">Days to ADR</div></div>
-    <div class="countdown-tile"><div class="tile-num" id="ptcd_ll">&#8212;</div><div class="tile-lbl">Days to LL</div></div>
-    <div class="countdown-tile"><div class="tile-num" id="ptcd_trip">&#8212;</div><div class="tile-lbl">Days to Trip</div></div>
-  </div>
-
-  <!-- Section 1: Setup -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('setup')" ontouchend="event.preventDefault();ptToggle('setup')">
-      <div class="pt-accordion-title">&#9881;&#65039; Setup your park visit</div>
-      <span class="pt-accordion-arr" id="pt_arr_setup">&#9660;</span>
+<!-- STEP 2: Ride Preferences -->
+<div class="pt-step" id="ptStep1">
+  <div class="pt-content">
+    <div class="pt-section-title">What does your group love?</div>
+    <div class="pt-section-sub">Help us build the perfect schedule for your group.</div>
+    
+    <div class="pt-sub-header">Thrill level</div>
+    <div class="pt-pill-row" id="thrillPills">
+      <button class="pt-pill" data-val="Thrills only" onclick="selectPill(this,'thrill')">Thrills only</button>
+      <button class="pt-pill active" data-val="Mix of everything" onclick="selectPill(this,'thrill')">Mix of everything</button>
+      <button class="pt-pill" data-val="Mostly gentle" onclick="selectPill(this,'thrill')">Mostly gentle</button>
+      <button class="pt-pill" data-val="Little ones first" onclick="selectPill(this,'thrill')">Little ones first</button>
     </div>
-    <div class="pt-accordion-body" id="pt_body_setup">
-      <p style="font-size:14px;color:var(--text-muted);margin:0 0 12px">Configure your group, park preferences, and schedule.</p>
-      <button style="background:var(--magic);color:#fff;border:none;padding:12px 20px;border-radius:20px;font-size:14px;font-family:inherit;cursor:pointer;width:100%;font-weight:600" onclick="openSetup&&openSetup()" ontouchend="event.preventDefault();openSetup&&openSetup()">&#9881;&#65039; Open Setup Wizard</button>
-    </div>
-  </div>
-
-  <!-- Section 2: Park Hours -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('hours')" ontouchend="event.preventDefault();ptToggle('hours')">
-      <div class="pt-accordion-title">&#127984; Park hours</div>
-      <span class="pt-accordion-arr" id="pt_arr_hours">&#9660;</span>
-    </div>
-    <div class="pt-accordion-body" id="pt_body_hours">
-      <div id="pt_hours_content"><div class="pt-loading">Loading park hours...</div></div>
-    </div>
-  </div>
-
-  <!-- Section 3: Weather -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('weather')" ontouchend="event.preventDefault();ptToggle('weather')">
-      <div class="pt-accordion-title">&#127780;&#65039; Weather</div>
-      <span class="pt-accordion-arr" id="pt_arr_weather">&#9660;</span>
-    </div>
-    <div class="pt-accordion-body" id="pt_body_weather">
-      <div id="pt_weather_content"><div class="pt-loading">Loading weather...</div></div>
-    </div>
-  </div>
-
-  <!-- Section 4: Crowd Prediction -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('crowd')" ontouchend="event.preventDefault();ptToggle('crowd')">
-      <div class="pt-accordion-title">&#128101; Crowd Prediction</div>
-      <span class="pt-accordion-arr" id="pt_arr_crowd">&#9660;</span>
-    </div>
-    <div class="pt-accordion-body" id="pt_body_crowd">
-      <div id="pt_crowds_content"><div class="pt-loading">&#8987; Analyzing crowd patterns...</div></div>
-      <button class="pt-refresh-btn" onclick="refreshCrowds()" ontouchend="event.preventDefault();refreshCrowds()">&#128260; Refresh</button>
-    </div>
-  </div>
-
-  <!-- Section 5: Know Before You Go -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('kbyg')" ontouchend="event.preventDefault();ptToggle('kbyg')">
-      <div class="pt-accordion-title">&#128161; Know before you go</div>
-      <span class="pt-accordion-arr" id="pt_arr_kbyg">&#9660;</span>
-    </div>
-    <div class="pt-accordion-body" id="pt_body_kbyg">
-      <div id="pt_kbyg_content"><div class="pt-loading">&#8987; Loading tips...</div></div>
-      <button class="pt-refresh-btn" onclick="regenerateKBYG()" ontouchend="event.preventDefault();regenerateKBYG()">&#128260; Regenerate</button>
-    </div>
-  </div>
-
-  <!-- Section 6: Day-by-Day Strategy -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('strategy')" ontouchend="event.preventDefault();ptToggle('strategy')">
-      <div class="pt-accordion-title">&#128197; Day-by-day strategy</div>
-      <span class="pt-accordion-arr" id="pt_arr_strategy">&#9660;</span>
-    </div>
-    <div class="pt-accordion-body" id="pt_body_strategy">
-      <div id="pt_daystrategy_content"><div class="pt-loading">&#8987; Building strategy...</div></div>
-      <button class="pt-refresh-btn" onclick="refreshDayStrategy()" ontouchend="event.preventDefault();refreshDayStrategy()">&#128260; Refresh</button>
-    </div>
-  </div>
-
-  <!-- Section 7: Lightning Lane Planner -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('ll')" ontouchend="event.preventDefault();ptToggle('ll')">
-      <div class="pt-accordion-title">&#9889; Lightning lane planner</div>
-      <span class="pt-accordion-arr" id="pt_arr_ll">&#9660;</span>
-    </div>
-    <div class="pt-accordion-body" id="pt_body_ll">
-      <div id="pt_llplanner_content"><div class="pt-loading">&#8987; Planning Lightning Lane...</div></div>
-      <button class="pt-refresh-btn" onclick="refreshLLPlan()" ontouchend="event.preventDefault();refreshLLPlan()">&#128260; Refresh</button>
-    </div>
-  </div>
-
-  <!-- Section 8: Dining Reservations -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('dining')" ontouchend="event.preventDefault();ptToggle('dining')">
-      <div class="pt-accordion-title">&#127869;&#65039; Dining reservations</div>
-      <span class="pt-accordion-arr" id="pt_arr_dining">&#9660;</span>
-    </div>
-    <div class="pt-accordion-body" id="pt_body_dining">
-      <div id="pt_dining_reservations_list"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <input id="pt_new_rest" type="text" autocomplete="off" placeholder="Restaurant name" style="flex:1;min-width:140px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:15px">
-        <input id="pt_new_time" type="text" autocomplete="off" inputmode="none" placeholder="6:30 PM" style="width:110px;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text)">
-      </div>
-      <button id="pt_save_res_btn" onclick="addDiningReservation()" ontouchend="event.preventDefault();addDiningReservation()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;margin:8px 0">+ Save Reservation</button>
-      <button onclick="fetchDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land)" ontouchend="event.preventDefault();fetchDiningRecs(this.dataset.rest,document.getElementById(this.dataset.elid),this,this.dataset.land)" style="width:100%;padding:12px;background:var(--magic);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer" data-rest="Cafe Orleans" data-elid="pt_dining_recs_result" data-land="">&#10024; Get AI Dining Tips</button>
-      <div id="pt_dining_recs_result" style="margin-top:10px"></div>
-    </div>
-  </div>
-
-  <!-- Section 9: Checklist -->
-  <div class="pt-accordion">
-    <div class="pt-accordion-hdr" onclick="ptToggle('checklist')" ontouchend="event.preventDefault();ptToggle('checklist')">
-      <div class="pt-accordion-title">&#9989; Pre-trip checklist</div>
-      <span class="pt-accordion-arr" id="pt_arr_checklist">&#9660;</span>
-    </div>
-    <div class="pt-accordion-body" id="pt_body_checklist">
-      <div id="pt_checklist_content"></div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <input id="pt_checklist_new" type="text" placeholder="Add checklist item..." style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:14px;font-family:inherit">
-        <button onclick="addChecklistItem()" ontouchend="event.preventDefault();addChecklistItem()" style="background:var(--accent);color:#fff;border:none;padding:10px 16px;border-radius:10px;cursor:pointer;font-size:14px">+</button>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /page-content -->
-
-<!-- Bottom tab bar -->
-<div class="bottom-tabs">
-  <button class="tab-btn" onclick="window.location.href='app.html'" ontouchend="event.preventDefault();window.location.href='app.html'">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Schedule</span>
-  </button>
-  <button class="tab-btn" onclick="window.location.href='app.html#waittimes'" ontouchend="event.preventDefault();window.location.href='app.html#waittimes'">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><span>Wait Times</span>
-  </button>
-  <button class="tab-btn active">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="11" y2="16"/></svg><span>Pre-Trip</span>
-  </button>
-  <button class="tab-btn" onclick="window.location.href='app.html#askai'" ontouchend="event.preventDefault();window.location.href='app.html#askai'">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Ask AI</span>
-  </button>
-  <button class="tab-btn" onclick="window.location.href='app.html#info'" ontouchend="event.preventDefault();window.location.href='app.html#info'">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Info</span>
-  </button>
-</div>
-
-<!-- Setup Wizard Overlay (verbatim from app.html) -->
-<div class="setup-overlay hidden" id="setupOverlay">
-  <div class="setup-panel">
-    <div class="setup-progress"><div class="setup-dot active" id="sp0"></div><div class="setup-dot" id="sp1"></div><div class="setup-dot" id="sp2"></div><div class="setup-dot" id="sp3"></div><div class="setup-dot" id="sp4"></div><div class="setup-dot" id="sp5"></div></div>
-    <div class="setup-step active" id="setupStep0">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Your Group</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Tell us who is coming so we can personalize your experience.</div>
-      <div class="setup-label">Group size: <span id="groupSizeVal" style="color:var(--magic)">9</span></div>
-      <input type="range" min="1" max="20" value="9" style="width:100%;margin-bottom:4px" oninput="document.getElementById('groupSizeVal').textContent=this.value" id="groupSize">
-      <div class="setup-label">Who is in the group?</div>
-      <div class="setup-chips" id="ageChips">
-        <div class="setup-chip" onclick="toggleChip(this,'ages')">Little kids (under 7)</div>
-        <div class="setup-chip" onclick="toggleChip(this,'ages')">Tweens (7-12)</div>
-        <div class="setup-chip" onclick="toggleChip(this,'ages')">Teens (13-17)</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'ages')">Adults</div>
-      </div>
-      <div class="setup-label">Kids under 48 inches?</div>
-      <div class="setup-chips">
-        <div class="setup-chip" id="hasKidsYes" onclick="toggleHeightKids(true)">Yes</div>
-        <div class="setup-chip selected" id="hasKidsNo" onclick="toggleHeightKids(false)">No</div>
-      </div>
-      <div id="kidsHeightArea" style="display:none;margin-top:8px"><div id="kidsHeightInputs"></div><button onclick="addKidHeight()" style="padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;margin-top:6px">+ Add child</button></div>
-      <button class="setup-btn" onclick="setupNext(1)">Next: Ride Style</button>
-    </div>
-    <div class="setup-step" id="setupStep1">
-      <button class="setup-back" onclick="setupGoTo(0)">Back</button>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Ride Style</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">What does your group love and want to skip?</div>
-      <div class="setup-label">Thrill level</div>
-      <div class="setup-chips" id="thrillChips">
-        <div class="setup-chip" onclick="toggleChip(this,'thrill')">Max thrills</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'thrill')">Mix of both</div>
-        <div class="setup-chip" onclick="toggleChip(this,'thrill')">Family friendly</div>
-      </div>
-      <div class="setup-label">Start time</div>
-      <div class="setup-chips" id="startChips">
-        <div class="setup-chip selected" onclick="toggleChip(this,'start')">Rope drop warriors</div>
-        <div class="setup-chip" onclick="toggleChip(this,'start')">Mid-morning start</div>
-        <div class="setup-chip" onclick="toggleChip(this,'start')">Relaxed start</div>
-      </div>
-      <div class="setup-label">Must-ride</div>
-      <div class="setup-chips" id="mustRideChips">
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Space Mountain</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Rise of the Resistance</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Indiana Jones Adventure</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Matterhorn Bobsleds</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Big Thunder Mountain</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Haunted Mansion</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Radiator Springs Racers</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Guardians of the Galaxy</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Incredicoaster</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Millennium Falcon</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Tianas Bayou Adventure</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Jungle Cruise</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Star Tours</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Peter Pans Flight</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Its a Small World</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Mickey Minnies Runaway Railway</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Web Slingers</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Grizzly River Run</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Soarin Over California</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Toy Story Midway Mania</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Turtle Talk with Crush</div>
-        <div class="setup-chip" onclick="toggleChip(this,'must')">Pixar Pal-A-Round</div>
-      </div>
-      <div class="setup-label">Skip list</div>
-      <div class="setup-chips" id="skipRideChips">
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Space Mountain</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Rise of the Resistance</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Indiana Jones Adventure</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Matterhorn Bobsleds</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Grizzly River Run</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Incredicoaster</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Star Tours</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Tianas Bayou Adventure</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Its a Small World</div>
-        <div class="setup-chip skip" onclick="toggleChip(this,'skip')">Pixar Pal-A-Round</div>
-      </div>
-      <div style="margin-top:14px;padding:12px;background:rgba(27,47,160,0.06);border:1px solid rgba(27,47,160,0.15);border-radius:var(--radius-sm);text-align:center">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Not sure? Let Claude pick the best mix.</div>
-        <button id="aiChooseBtn" onclick="aiChooseRides()" style="padding:8px 18px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">&#10024; Let AI Choose for Me</button>
-        <div id="aiChooseStatus" style="font-size:12px;color:var(--text-muted);margin-top:6px;display:none"></div>
-      </div>
-      <button class="setup-btn" onclick="setupNext(2)">Next: Your Plan</button>
-    </div>
-    <div class="setup-step" id="setupStep2">
-      <button class="setup-back" onclick="setupGoTo(1)">Back</button>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Your Plan</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Lightning Lane and dining preferences.</div>
-      <div class="setup-label">Lightning Lane</div>
-      <div class="setup-chips" id="llChips">
-        <div class="setup-chip" onclick="toggleChip(this,'ll')">Getting Multi Pass</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'ll')">Undecided</div>
-        <div class="setup-chip" onclick="toggleChip(this,'ll')">Skipping LL</div>
-      </div>
-      <div class="setup-label">Dining preference</div>
-      <div class="setup-chips" id="diningChips">
-        <div class="setup-chip" onclick="toggleChip(this,'dining')">Quick service only</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'dining')">Mix of both</div>
-        <div class="setup-chip" onclick="toggleChip(this,'dining')">Sit-down meals</div>
-      </div>
-      <div class="setup-label">Pace</div>
-      <div class="setup-chips" id="paceChips">
-        <div class="setup-chip" onclick="toggleChip(this,'pace')">Pack it in</div>
-        <div class="setup-chip selected" onclick="toggleChip(this,'pace')">Balanced</div>
-        <div class="setup-chip" onclick="toggleChip(this,'pace')">Relaxed</div>
-      </div>
-      <button class="setup-btn" onclick="setupNext(3)">Next: Characters</button>
-    </div>
-    <div class="setup-step" id="setupStep3">
-      <button class="setup-back" onclick="setupGoTo(2)">Back</button>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">Character Meets</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Want to meet characters? We will build time into your schedule.</div>
-      <div class="setup-chips">
-        <div class="setup-chip" id="charYes" onclick="toggleCharMeets(true)">Yes! We love characters</div>
-        <div class="setup-chip selected" id="charNo" onclick="toggleCharMeets(false)">No thanks</div>
-      </div>
-      <div id="charSelectArea" style="display:none;margin-top:12px">
-        <div class="setup-label">Disneyland characters</div>
-        <div class="setup-chips" id="charDLChips">
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Mickey and Minnie</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Cinderella</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Rapunzel</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Tiana</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Rey Star Wars</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Chewbacca</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDL')">Woody and Jessie</div>
-        </div>
-        <div class="setup-label">DCA characters</div>
-        <div class="setup-chips" id="charDCAChips">
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Spider-Man</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Black Panther</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Iron Man</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charDCA')">Lightning McQueen</div>
-        </div>
-        <div class="setup-label">Priority</div>
-        <div class="setup-chips" id="charPriorityChips">
-          <div class="setup-chip selected" onclick="toggleChip(this,'charPri')">Fit in when convenient</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charPri')">High priority</div>
-          <div class="setup-chip" onclick="toggleChip(this,'charPri')">First thing in the morning</div>
-        </div>
-      </div>
-      <button class="setup-btn" onclick="setupGoTo(4)">Next :</button>
-    </div>
-    <!-- Step 4: Smart Profile Questions -->
-    <div class="setup-step" id="setupStep4">
-      <button class="setup-close" onclick="closeSetup()">&#10005;</button>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;">Almost done! (</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">A few quick questions to personalize your AI advice.</div>
-      <div class="setup-section">
-        <div class="setup-label">Has anyone in your group been to Disneyland before?</div>
-        <div class="setup-chips" id="experienceChips">
-          <div class="setup-chip selected" onclick="toggleChip(this,'exp')">First timers</div>
-          <div class="setup-chip" onclick="toggleChip(this,'exp')">Some have, some haven't</div>
-          <div class="setup-chip" onclick="toggleChip(this,'exp')">We're veterans</div>
-        </div>
-      </div>
-      <div class="setup-section">
-        <div class="setup-label">Any mobility or accessibility considerations?</div>
-        <div class="setup-chips" id="mobilityChips">
-          <div class="setup-chip selected" onclick="toggleChip(this,'mob')">None</div>
-          <div class="setup-chip" onclick="toggleChip(this,'mob')">Stroller</div>
-          <div class="setup-chip" onclick="toggleChip(this,'mob')">Wheelchair / ECV</div>
-          <div class="setup-chip" onclick="toggleChip(this,'mob')">Limited walking</div>
-        </div>
-      </div>
-      <div class="setup-section">
-        <div class="setup-label">What's your biggest concern about the trip?</div>
-        <div class="setup-chips" id="fearChips">
-          <div class="setup-chip selected" onclick="toggleChip(this,'fear')">Long wait times</div>
-          <div class="setup-chip" onclick="toggleChip(this,'fear')">Missing must-do rides</div>
-          <div class="setup-chip" onclick="toggleChip(this,'fear')">Kids getting overwhelmed</div>
-          <div class="setup-chip" onclick="toggleChip(this,'fear')">Keeping everyone together</div>
-          <div class="setup-chip" onclick="toggleChip(this,'fear')">Cost getting out of hand</div>
-          <div class="setup-chip" onclick="toggleChip(this,'fear')">Not knowing what to do next</div>
-        </div>
-      </div>
-      <div class="setup-section">
-        <div class="setup-label">What would make this trip perfect? (optional)</div>
-        <textarea id="dreamOutcome" placeholder="e.g. My kids see their favorite characters, we ride everything without huge waits..." style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit;resize:none;height:80px;outline:none;margin-top:4px;"></textarea>
-      </div>
-      <button class="setup-btn" onclick="completeSetupAndSummarize()">&#10024; Save &amp; Generate My Trip Summary</button>
-    </div>
-
-    <!-- Step 5: Trip Summary + Share -->
-    <div class="setup-step" id="setupStep5">
-      <button class="setup-close" onclick="closeSetup()">&#10005;</button>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px;">Your Trip is Ready! (</div>
-      <div id="tripSummaryContent" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;min-height:80px;">
-        <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">( Generating your personalized trip summary...</div>
-      </div>
-      <div style="background:rgba(27,47,160,0.05);border:1.5px solid rgba(27,47,160,0.2);border-radius:14px;padding:14px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">📤 Share with your group</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Send this link to everyone coming   they'll see the full schedule, live wait times, and AI features.</div>
-        <div style="display:flex;gap:8px;">
-          <button onclick="copyTripLink()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(27,47,160,0.3);background:none;color:var(--magic,#1B2FA0);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">🔗 Copy Link</button>
-          <button onclick="shareTripLink()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;">📤 Share</button>
-        </div>
-      </div>
-      <button class="setup-btn" onclick="closeSetupFinal()">  Let's Go Plan!</button>
+    
+    <div class="pt-sub-header">Must-do rides</div>
+    <div class="pt-chip-grid" id="mustDoChips"></div>
+    
+    <div class="pt-sub-header">Rides to skip entirely</div>
+    <div class="pt-chip-grid" id="skipChips"></div>
+    
+    <div class="pt-sub-header">Accessibility needs</div>
+    <div class="pt-chip-grid" id="accessChips">
+      <button class="pt-chip" data-val="Mobility aid / wheelchair" onclick="toggleChip(this,'access')">Mobility aid / wheelchair</button>
+      <button class="pt-chip" data-val="Height restrictions" onclick="toggleChip(this,'access')">Height restrictions</button>
+      <button class="pt-chip" data-val="Avoid spinning rides" onclick="toggleChip(this,'access')">Avoid spinning rides</button>
+      <button class="pt-chip" data-val="Avoid loud/dark rides" onclick="toggleChip(this,'access')">Avoid loud/dark rides</button>
+      <button class="pt-chip" data-val="Service animal with us" onclick="toggleChip(this,'access')">Service animal with us</button>
     </div>
   </div>
 </div>
 
+<!-- STEP 3: Dining -->
+<div class="pt-step" id="ptStep2">
+  <div class="pt-content">
+    <div class="pt-section-title">How does your group like to eat?</div>
+    <div class="pt-section-sub">We'll show dining options and AI suggestions that fit your style.</div>
+    
+    <div class="pt-sub-header">Dining style</div>
+    <div class="pt-pill-row" id="diningStylePills">
+      <button class="pt-pill active" data-val="Quick service mostly" onclick="selectPill(this,'diningStyle')">Quick service mostly</button>
+      <button class="pt-pill" data-val="Mix of table service and quick" onclick="selectPill(this,'diningStyle')">Mix of table &amp; quick</button>
+      <button class="pt-pill" data-val="Special dining experiences" onclick="selectPill(this,'diningStyle')">Special experiences</button>
+    </div>
+    
+    <div class="pt-sub-header">Budget</div>
+    <div class="pt-pill-row" id="budgetPills">
+      <button class="pt-pill" data-val="$" onclick="selectPill(this,'budget')">$</button>
+      <button class="pt-pill active" data-val="$$" onclick="selectPill(this,'budget')">$$</button>
+      <button class="pt-pill" data-val="$$$" onclick="selectPill(this,'budget')">$$$</button>
+      <button class="pt-pill" data-val="No preference" onclick="selectPill(this,'budget')">No preference</button>
+    </div>
+    
+    <div class="pt-sub-header">Dietary needs</div>
+    <div class="pt-chip-grid" id="dietaryChips">
+      <button class="pt-chip" data-val="Vegetarian" onclick="toggleChip(this,'dietary')">Vegetarian</button>
+      <button class="pt-chip" data-val="Vegan" onclick="toggleChip(this,'dietary')">Vegan</button>
+      <button class="pt-chip" data-val="Gluten-free" onclick="toggleChip(this,'dietary')">Gluten-free</button>
+      <button class="pt-chip" data-val="Nut allergy" onclick="toggleChip(this,'dietary')">Nut allergy</button>
+      <button class="pt-chip" data-val="Dairy-free" onclick="toggleChip(this,'dietary')">Dairy-free</button>
+      <button class="pt-chip" data-val="Kosher" onclick="toggleChip(this,'dietary')">Kosher</button>
+      <button class="pt-chip" data-val="Halal" onclick="toggleChip(this,'dietary')">Halal</button>
+      <button class="pt-chip" data-val="No restrictions" onclick="toggleChip(this,'dietary')">No restrictions</button>
+    </div>
+    
+    <div class="pt-sub-header">Reservation approach</div>
+    <div class="pt-pill-row" id="diningRecPills">
+      <button class="pt-pill" data-val="self" onclick="selectPill(this,'diningRec')">I'll handle bookings myself</button>
+      <button class="pt-pill active" data-val="ai" onclick="selectPill(this,'diningRec')">Show me AI suggestions</button>
+    </div>
+    
+    <div class="pt-sub-header">Restaurants you definitely want (optional)</div>
+    <textarea class="pt-textarea" id="wantedRestaurants" placeholder="e.g. Blue Bayou, Carthay Circle"></textarea>
+  </div>
+</div>
+
+<!-- STEP 4: Day-by-Day -->
+<div class="pt-step" id="ptStep3">
+  <div class="pt-content">
+    <div class="pt-section-title">Day-by-Day Setup</div>
+    <div class="pt-section-sub">Configure each day of your trip.</div>
+    <div id="daySetupList"></div>
+  </div>
+</div>
+
+<!-- STEP 5: Pre-Trip Checklist -->
+<div class="pt-step" id="ptStep4">
+  <div class="pt-content">
+    <div class="pt-section-title">Pre-Trip Prep</div>
+    <div class="pt-section-sub">Work through this checklist before you go. Tap items to mark them done.</div>
+    
+    <div id="checklistContainer"></div>
+    
+    <div style="margin-top:16px;padding:12px;background:rgba(26,104,96,0.08);border-radius:10px;font-size:11px;color:#1A6860;line-height:1.5">
+      <strong>You're almost ready!</strong> When you tap the button below, your personalised schedule will be waiting for you in the app.
+    </div>
+  </div>
+</div>
+
+</div><!-- /pt-wrap CTA is outside for sticky positioning -->
+
+<div class="pt-cta-wrap">
+  <button class="pt-cta" id="ptCtaBtn" onclick="ptNext()">Continue →</button>
+</div>
 <script>
 // ============================================================
-// AUTH CONSTANTS
+// Pre-trip setup flow
 // ============================================================
-var PASS_GUEST='cw9dis2026';
-var PASS_ADMIN='cwdis2026admin';
-var userRole='guest'; // 'admin' or 'guest'
 
-// ============================================================
-// TRIP DATA
-// ============================================================
-var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
-var apiKey='';
-const DAYS=[
-{label:'Sunday Jun 28',sub:'Disneyland " Fireworks Night',sections:[
-  {title:'Sunday Jun 28   Disneyland',entries:[
-    {t:'8:00 AM',h:'Rope Drop   Head to Fantasyland',type:'tip',n:'Arrive at the main gate 45 min before opening. Position at the Fantasyland rope for best access.',land:'Main Street U.S.A.'},
-    {t:'8:15 AM',h:"Peter Pan's Flight",type:'ride',n:'First ride of the trip   lines build fast, do this at rope drop.',land:'Fantasyland'},
-    {t:'9:00 AM',h:'Matterhorn Bobsleds',type:'ride',n:'Hit this before the 10am crowds arrive.',land:'Fantasyland'},
-    {t:'9:15 AM',h:'Photo Op: Sleeping Beauty Castle',type:'photo',n:'Perfect time for a castle shot before the hub fills up. Position on Main Street hub for the iconic front view.',land:'Main Street'},
-    {t:'9:45 AM',h:'Space Mountain',type:'ride',n:'Morning is the best time   waits under 30 min before 10am.',land:'Tomorrowland'},
-    {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near Matterhorn/Fantasyland entrance on your way toward Tomorrowland.',land:'Fantasyland'},
-    {t:'10:30 AM',h:'Morning Snack: Matterhorn Macaroon',type:'tip',n:'Pick up a Matterhorn Macaroon at the Fantasyland cart near the Matterhorn. Iconic Disneyland treat.',land:'Fantasyland'},
-    {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
-    {t:'12:00 PM',h:'Lunch   Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou is inside Pirates   book ahead. River Belle is walk-up friendly.',land:'New Orleans Square'},
-    {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park   use Lightning Lane if available.',land:'Tomorrowland'},
-    {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
-    {t:'2:30 PM',h:'Afternoon Snack: Dole Whip',type:'tip',n:'Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room. Right on your path from Indiana Jones toward Frontierland.',land:'Adventureland'},
-    {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms near Pirates of the Caribbean entrance in New Orleans Square.',land:'New Orleans Square'},
-    {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness   great for all ages.',land:'Frontierland'},
-    {t:'6:30 PM',h:'Return to Park   Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
-    {t:'8:00 PM',h:'Fantasyland Evening Rides',type:'tip',n:'Evening is the best time for Fantasyland   lighter crowds after 8pm.',land:'Fantasyland'},
-    {t:'8:30 PM',h:'Photo Op: Matterhorn at Night',type:'photo',n:'The Matterhorn lit up at night from the Fantasyland side — dramatic snow-capped peak with evening lighting. Best viewed from the path near the Matterhorn Bobsleds entrance.',land:'Fantasyland'},
-    {t:'9:30 PM',h:'Wondrous Journeys Fireworks',type:'show',n:'Watch from the hub in front of the castle. Arrive 20 min early for a good spot.',land:'Main Street U.S.A.'},
-  ]},
-]},
-{label:'Monday Jun 29',sub:'VIP Tour \u00b7 Paint the Night Reserved \u00b7 World of Color Reserved',sections:[
-  {title:'\u{1F3F0} Disneyland \u2014 before the tour',entries:[
-    {t:'7:55 AM',h:'Arrive at Disneyland gates',n:'Be at the turnstiles before 8 AM. Scan in immediately and head to your first rides before the VIP tour begins.',type:'tip'},
-    {t:'8:00 AM',h:'\u{1F3AB} Buy Lightning Lane Multi Pass',n:'Purchase in the Disneyland app the moment you scan in. Book Space Mountain first.',type:'tip'},
-    {t:'8:05 AM',h:'Space Mountain',n:'First ride of the day \u2014 short wait at rope drop.',type:'ride',ride:'Space Mountain',land:'Tomorrowland',ll:{t:'multi',a:'Book LL immediately at park open'}},
-    {t:'8:30 AM',h:'Big Thunder Mountain Railroad',n:'Frontierland. Short wait this early.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland',ll:{t:'multi',a:'Book LL after Space Mountain'}},
-    {t:'8:45 AM',h:'Photo Op: Big Thunder Mountain',type:'photo',n:'Iconic red rock formation from the Rivers of America. Perfect Frontierland backdrop before heading to New Orleans Square.',land:'Frontierland'},
-    {t:'8:55 AM',h:'Haunted Mansion',n:'New Orleans Square. Morning walk-on or close to it.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
-    {t:'9:10 AM',h:'Morning Snack: Near New Orleans Square',type:'tip',n:'Fresh-squeezed lemonade or a classic Disneyland churro from the cart near New Orleans Square.',land:'New Orleans Square'},
-    {t:'9:40 AM',h:'Head to VIP meeting point',n:'Make your way to the main entrance area. Your guide will brief the group on the full day plan.',type:'vip'},
-    {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near the main entrance before your VIP tour begins.',land:'Main Street'},
-  ]},
-  {title:'\u2B50 VIP Tour \u2014 10:00 AM to 5:00 PM',entries:[
-    {t:'10:00 AM',h:'VIP Tour begins \u2014 Disneyland',n:'Your guide handles all skip-the-line access today. Use the notes below to share your ride wishlist and must-dos.',type:'vip'},
-    {t:'10AM\u20135PM',h:'\u2B50 VIP Tour \u2014 Notes & Ride Wishlist',n:'Write your plans below.',type:'vip',isVipNotes:true},
-    {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Ask your VIP guide for the nearest restroom. Most lands have facilities near major attractions.',land:''},
-    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at Café Orléans',type:'tip',n:'The Monte Cristo sandwich at Café Orléans is a Disneyland bucket-list item — fried sandwich with powdered sugar, served at the counter window. No reservation needed.',land:'New Orleans Square'},
-    {t:'5:00 PM',h:'Dinner & tip your VIP guide',n:'Your guide will recommend a great dinner spot. This is the natural moment to tip \u2014 industry standard is 15\u201320% of tour cost. Cash preferred.',type:'food',land:'Disneyland'},
-    {t:'5:15 PM',h:'Photo Op: New Orleans Square at Dusk',type:'photo',n:'Golden hour on the balconies overlooking the bayou. Beautiful light and atmosphere in New Orleans Square.',land:'New Orleans Square'},
-  ]},
-  {title:'\u2728 Evening Shows \u2014 Paint the Night & World of Color',entries:[
-    {t:'7:45 PM',h:'VIP Reserved Viewing \u2014 Paint the Night setup',n:'Your guide positions your group in the VIP reserved viewing area. Parade starts at 8:30 \u2014 arrive early for best spot.',type:'vip'},
-    {t:'8:30 PM',h:'\u{1F3A1} Paint the Night \u2014 VIP Reserved',n:'Best parade view of the trip. ~17 min. Then head to DCA for World of Color.',type:'show'},
-    {t:'9:15 PM',h:'Walk to DCA through Downtown Disney',n:'Scenic 12-min walk. No bag check re-entry needed within the resort.',type:'hop'},
-    {t:'9:30 PM',h:'\u{1F30A} World of Color \u2014 VIP Reserved',n:'~25 min. Prime lagoon view. Stunning finale to your VIP day.',type:'vip'},
-  ]},
-  {title:'\u{1F3F0} Disneyland \u2014 late night rides',entries:[
-    {t:'10:10 PM',h:'Park hop back to Disneyland',n:'Head back through Downtown Disney. Parks are much less crowded this late \u2014 perfect for re-rides with minimal wait.',type:'hop'},
-    {t:'10:20 PM',h:'Matterhorn Bobsleds',n:'Late night with minimal wait. One of Disneyland\u2019s best after 10 PM.',type:'ride',ride:'Matterhorn Bobsleds',land:'Fantasyland'},
-    {t:'10:45 PM',h:'Indiana Jones Adventure',n:'Adventureland. Late night waits usually under 15 min. Perfect end-of-day ride.',type:'ride',ride:'Indiana Jones Adventure',land:'Adventureland'},
-    {t:'11:10 PM',h:'Haunted Mansion',n:'New Orleans Square. Near walk-on this late. A classic to close out a magical VIP day.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
-  ]},
-]},
-{label:'Tuesday Jun 30',sub:'DCA morning \u2192 Disneyland evening \u00b7 Caf\u00e9 Orleans \u00b7 Fantasmic!',sections:[
-  {title:'\u{1F31F} Disney California Adventure \u2014 rope drop',entries:[
-    {t:'7:00 AM',h:'Arrive at DCA gates',n:'Arrive 1 hour before 8 AM opening. Clear security and be at the DCA turnstiles by 7:55 AM. Tuesday = lightest crowds of the trip.',type:'tip'},
-    {t:'8:05 AM',h:'Radiator Springs Racers',n:'Longest wait in DCA. Hit this first at rope drop for a near walk-on. Cars Land is straight ahead from the DCA entrance.',type:'ride',ride:'Radiator Springs Racers',land:'Cars Land',ll:{t:'single',a:'Book LL immediately at park open if wait climbs past 45 min'}},
-    {t:'8:30 AM',h:'Toy Story Midway Mania!',n:'Walk from Cars Land to Pixar Pier (8 min). Gets slammed fast \u2014 hit it now while waits are still short. Interactive shooting game.',type:'ride',ride:"Toy Story Midway Mania!",land:'Pixar Pier',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
-    {t:'8:55 AM',h:'Guardians of the Galaxy \u2014 Mission: Breakout',n:'From Pixar Pier to Avengers Campus (5 min). Drop Tower-style ride, very high demand. Early morning is your best shot at a short wait.',type:'ride',ride:'Guardians of the Galaxy - Mission: BREAKOUT!',land:'Avengers Campus'},
-    {t:'9:20 AM',h:'Incredicoaster',n:'Stay in Pixar Pier. Fast and fun. Short wait right after Guardians while crowds are still spreading out.',type:'ride',ride:'Incredicoaster',land:'Pixar Pier'},
-    {t:'9:35 AM',h:'Photo Op: Radiator Springs',type:'photo',n:'Red rock canyon formations at Cars Land — best light in the morning before crowds fill in. Shoot from near Flo\'s V8 Cafe looking toward the Cozy Cone for the full Cars Land panorama.',land:'Cars Land'},
-    {t:'9:45 AM',h:'Web Slingers: A Spider-Man Adventure',n:'Back to Avengers Campus (5 min). Interactive ride, great for all ages. Book LL if waits exceed 30 min.',type:'ride',ride:'WEB SLINGERS: A Spider-Man Adventure',land:'Avengers Campus',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
-    {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms at Avengers Campus near Web Slingers entrance, on your way to Soarin.',land:'Avengers Campus'},
-    {t:'10:05 AM',h:'Morning Snack: Pym Test Kitchen',type:'tip',n:'Try the Impossible Spoonful or a giant pretzel at Pym Test Kitchen, Avengers Campus.',land:'Avengers Campus'},
-    {t:'10:15 AM',h:'Soarin\u2019 Over California',n:'Head to Grizzly Peak (7 min from Avengers Campus). Iconic DCA ride. Book LL if wait exceeds 40 min.',type:'ride',ride:"Soarin' Over California",land:'Grizzly Peak',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
-    {t:'11:00 AM',h:'Luigi\u2019s Rollickin\u2019 Roadsters',n:'Back to Cars Land (8 min). Fun and low wait. Good transition before lunch.',type:'ride',ride:"Luigi's Rollickin' Roadsters",land:'Cars Land'},
-    {t:'11:25 AM',h:'Mater\u2019s Junkyard Jamboree',n:'Stay in Cars Land. Short wait, great fun.',type:'ride',ride:"Mater's Junkyard Jamboree",land:'Cars Land'},
-    {t:'12:00 PM',h:'\u{1F374} Lunch in DCA',n:'Flo\u2019s V8 Cafe right in Cars Land for quick service, or walk to Lamplight Lounge at Pixar Pier if you have a reservation.',type:'food',land:'Cars Land'},
-    {t:'1:00 PM',h:'Grizzly River Run',n:'Head to Grizzly Peak (8 min). June heat peaks in the afternoon \u2014 perfect timing to get wet. Waits are moderate at this hour.',type:'ride',ride:'Grizzly River Run',land:'Grizzly Peak'},
-    {t:'1:45 PM',h:'Monsters, Inc. Mike & Sulley to the Rescue!',n:'Hollywood Land (10 min). Air-conditioned and low wait. Good midday break from the heat.',type:'ride',ride:"Monsters, Inc. Mike & Sulley to the Rescue!",land:'Hollywood Land'},
-    {t:'2:15 PM',h:'Mickey\u2019s PhilharMagic',n:'Stay in Hollywood Land. Air-conditioned show, great break from the heat.',type:'ride',ride:"Mickey's PhilharMagic",land:'Hollywood Land'},
-    {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms in Hollywood Land near the exit of Mickey PhilharMagic, before heading to Pixar Pier.',land:'Hollywood Land'},
-    {t:'3:05 PM',h:'Afternoon Snack: Adorable Snowman Frosted Treats',type:'tip',n:'Lemon or raspberry soft serve from the Adorable Snowman Frosted Treats cart at Pixar Pier.',land:'Pixar Pier'},
-    {t:'3:00 PM',h:'Pixar Pier freestyle + snacks',n:'Grab Adorable Snowman Frosted Treats or revisit a favorite. Wind down before the park hop.',type:'tip'},
-    {t:'4:15 PM',h:'Park hop to Disneyland',n:'Head through the main gate. You\u2019ll have 2+ hours before your Caf\u00e9 Orleans reservation.',type:'hop'},
-  ]},
-  {title:'\u{1F3F0} Disneyland \u2014 evening & Fantasmic!',entries:[
-    {t:'4:30 PM',h:'Indiana Jones Adventure',n:'Start in Adventureland \u2014 right near the Disneyland entrance. Evening waits are usually 30-40 min, better than daytime peaks.',type:'ride',ride:'Indiana Jones Adventure',land:'Adventureland',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
-    {t:'5:05 PM',h:'Haunted Mansion',n:'New Orleans Square (4 min walk). Classic Disneyland. One of the best-themed rides in the park.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
-    {t:'5:40 PM',h:'Millennium Falcon: Smugglers Run',n:"Galaxy's Edge (8 min walk). Evening waits drop significantly. Great way to kick off the Disneyland evening.",type:'ride',ride:'Millennium Falcon: Smugglers Run',land:"Galaxy's Edge"},
-    {t:'6:30 PM',h:'\u{1F374} Dinner \u2014 Caf\u00e9 Orleans',n:'Your reservation. Arrive 5 min early. Must-orders: Monte Cristo sandwich and beignets for the table. Ask for a patio table. Perfectly positioned for Fantasmic! after dinner.',type:'food',land:'New Orleans Square'},
-    {t:'7:45 PM',h:'Big Thunder Mountain Railroad',n:'Frontierland (3 min from Caf\u00e9 Orleans). Great ride after dinner while Fantasmic! spot isn\u2019t needed yet.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland'},
-    {t:'8:10 PM',h:'Peter Pan\u2019s Flight',n:'Fantasyland (6 min). Classic ride. Evening waits are manageable.',type:'ride',ride:"Peter Pan's Flight",land:'Fantasyland'},
-    {t:'8:30 PM',h:'Secure Fantasmic! viewing spot',n:'Head to the Rivers of America amphitheater. Arrive 30 min before the show. Center section, upper rows for best sight lines.',type:'tip'},
-    {t:'9:00 PM',h:'\u{1F3AD} Fantasmic! \u2014 1st show',n:'Your last Fantasmic! of the trip. The dragon finale is incredible. Stay for the full ending.',type:'show'},
-    {t:'9:30 PM',h:'Space Mountain',n:'Tomorrowland (8 min from amphitheater). Post-show crowds thin quickly. Night ride on Space Mountain is a must.',type:'ride',ride:'Space Mountain',land:'Tomorrowland'},
-    {t:'10:00 PM',h:'Matterhorn Bobsleds',n:'Fantasyland (5 min from Space Mountain). End the trip here. Then grab a churro or Dole Whip on Main Street before heading out.',type:'ride',ride:'Matterhorn Bobsleds',land:'Fantasyland'},
-  ]},
-]},
-];
-var curDayIdx = 0;
+var curStep = 0;
+var totalSteps = 5;
+var FORM_DATA = {
+  tripName: '', tripStart: '', tripEnd: '', location: 'Disneyland',
+  members: [{name:'', age:''}],
+  thrillLevel: 'Mix of everything',
+  mustDo: [], neverSchedule: [], accessibility: [],
+  diningStyle: 'Quick service mostly', diningBudget: '$$',
+  dietaryNeeds: [], diningRecs: 'ai', wantedRestaurants: '',
+  days: []
+};
 
-// ============================================================
-// STATE
-// ============================================================
-var _ptInited = {};
-var _isAdmin = false;
+var RIDE_LIST = ['Space Mountain','Matterhorn Bobsleds','Big Thunder Mountain Railroad','Haunted Mansion','Indiana Jones Adventure','Tiana\u2019s Bayou Adventure','Millennium Falcon: Smugglers Run','Rise of the Resistance','Star Tours','Splash Mountain (future)','Finding Nemo Submarine','Roger Rabbit\u2019s Car Toon Spin','Mickey & Minnie\u2019s Runaway Railway','Peter Pan\u2019s Flight','Incredicoaster','Radiator Springs Racers','Guardians of the Galaxy \u2013 Mission: BREAKOUT!','Soarin\u2019 Around the World','World of Color','Grizzly River Run'];
 
-// ============================================================
-// PAGE INIT — AUTH GATE
-// ============================================================
-(function initPage() {
-  var stored = localStorage.getItem('disney_unlocked');
-  if (!stored) { window.location.href = 'app.html'; return; }
-  var k = stored.trim().toLowerCase();
-  if (k !== 'guest' && k !== 'admin') { window.location.href = 'app.html'; return; }
-  if (k === 'admin') { _isAdmin = true; userRole = 'admin'; }
-  renderPTCountdowns();
-  warmCachesFromServer();
-  setTimeout(function(){ renderPreTripChecklist(); loadDiningReservations(); }, 50);
-})();
+var STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day-by-Day Setup','Pre-Trip Prep'];
+var STEP_CTAS = ['Continue →','Continue →','Continue →','Continue →','I\u2019m ready \u2014 show my schedule →'];
 
-// ============================================================
-// ACCORDION TOGGLE + LAZY LOAD
-// ============================================================
-function stripMd(t){ if(!t) return ''; return t.replace(/#{1,6}\s+/g,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/`([^`]+)`/g,'$1').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/^\s*[-*+]\s+/gm,'').replace(/^\s*\d+\.\s+/gm,'').replace(/\n{3,}/g,'\n\n').trim(); }
-
-function ptToggle(id) {
-  var body = document.getElementById('pt_body_' + id);
-  var arr  = document.getElementById('pt_arr_' + id);
-  if (!body) return;
-  var isOpen = body.style.display === 'block';
-  body.style.display = isOpen ? 'none' : 'block';
-  if (arr) arr.textContent = isOpen ? '▼' : '▲';
-  if (!isOpen && !_ptInited[id]) {
-    _ptInited[id] = true;
-    if (id === 'hours')    renderParkHours();
-    else if (id === 'weather')  renderWeather();
-    else if (id === 'crowd')    loadCrowdPrediction();
-    else if (id === 'kbyg')     loadKnowBeforeYouGo();
-    else if (id === 'strategy') loadDayStrategy();
-    else if (id === 'll')       loadLLPlanner();
-    else if (id === 'dining')   loadDiningReservations();
-  }
-}
-
-// ============================================================
-// COUNTDOWN TILES
-// ============================================================
-function renderPTCountdowns() {
-  var now     = new Date();
-  var tripDate = new Date('2026-06-28T00:00:00');
-  var adrDate  = new Date('2026-04-29T00:00:00');
-  var llDate   = new Date('2026-06-25T00:00:00');
-  function daysUntil(d) {
-    var diff = Math.ceil((d - now) / 86400000);
-    return diff < 0 ? '✓' : String(diff);
-  }
-  var dTrip = document.getElementById('ptcd_trip');
-  var dAdr  = document.getElementById('ptcd_dining');
-  var dLL   = document.getElementById('ptcd_ll');
-  if (dTrip) dTrip.textContent = daysUntil(tripDate);
-  if (dAdr)  dAdr.textContent  = daysUntil(adrDate);
-  if (dLL)   dLL.textContent   = daysUntil(llDate);
-}
-
-// ============================================================
-// PARK HOURS
-// ============================================================
-function renderParkHours() {
-  var el = document.getElementById('pt_hours_content');
-  if (!el) return;
-  var rows = [
-    {label:'Sun Jun 28', dl:'8 AM - 11 PM', dca:'9 AM - 10 PM'},
-    {label:'Mon Jun 29', dl:'8 AM - 11 PM', dca:'9 AM - 10 PM'},
-    {label:'Tue Jun 30', dl:'8 AM - 11 PM', dca:'9 AM - 10 PM'},
-  ];
+function ptInit() {
+  // Load any existing data
   try {
-    var intel = getParkHoursIntel();
-    if (intel) {
-      rows = DAYS.map(function(d) {
-        var dlH  = getParkHoursForDate(d.dateStr, 'dl');
-        var dcaH = getParkHoursForDate(d.dateStr, 'dca');
-        function fmtH(h) {
-          if (!h) return 'TBD';
-          function fmt12(n) { var ap = n >= 12 ? 'PM' : 'AM'; return (n % 12 || 12) + ' ' + ap; }
-          return fmt12(h.open) + ' - ' + fmt12(h.close);
-        }
-        return {label: d.shortLabel || d.dateStr, dl: fmtH(dlH), dca: fmtH(dcaH)};
-      });
+    var saved = localStorage.getItem('tripSetupData');
+    if (saved) {
+      var d = JSON.parse(saved);
+      Object.assign(FORM_DATA, d);
     }
   } catch(e) {}
-  el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
-    + '<tr style="font-weight:700;border-bottom:1px solid var(--border)">'
-    + '<th style="text-align:left;padding:6px 4px">Date</th>'
-    + '<th style="text-align:left;padding:6px 4px">Disneyland</th>'
-    + '<th style="text-align:left;padding:6px 4px">DCA</th></tr>'
-    + rows.map(function(r) {
-        return '<tr style="border-bottom:0.5px solid var(--border)">'
-          + '<td style="padding:8px 4px;font-weight:600">' + r.label + '</td>'
-          + '<td style="padding:8px 4px;color:var(--magic)">' + r.dl + '</td>'
-          + '<td style="padding:8px 4px;color:var(--accent)">' + r.dca + '</td></tr>';
-      }).join('')
-    + '</table>';
+  
+  // Check for edit mode
+  var isEdit = window.location.search.includes('edit=true');
+  
+  renderStep(0);
+  buildMemberList();
+  buildRideChips();
+  buildDaySetup();
+  buildChecklist();
 }
 
-// ============================================================
-// WEATHER
-// ============================================================
-function renderWeather() {
-  var el = document.getElementById('pt_weather_content');
+function renderStep(step) {
+  curStep = step;
+  // Hide all steps
+  document.querySelectorAll('.pt-step').forEach(function(el) { el.classList.remove('active'); });
+  // Show current
+  var el = document.getElementById('ptStep' + step);
+  if (el) el.classList.add('active');
+  // Update header
+  document.getElementById('ptStepTitle').textContent = STEP_TITLES[step];
+  document.getElementById('ptStepIndicator').textContent = 'Step ' + (step+1) + ' of ' + totalSteps;
+  document.getElementById('ptProgress').style.width = ((step+1)/totalSteps*100) + '%';
+  // Show/hide back button
+  document.getElementById('ptBack').style.display = step > 0 ? 'block' : 'none';
+  // Update CTA
+  document.getElementById('ptCtaBtn').textContent = STEP_CTAS[step];
+  // Pre-fill fields
+  if (step === 0) prefillStep0();
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+function ptNext() {
+  // Save current step data
+  saveStepData(curStep);
+  if (curStep < totalSteps - 1) {
+    renderStep(curStep + 1);
+  } else {
+    // Final step - complete setup
+    completeSetup();
+  }
+}
+
+function ptBack() {
+  saveStepData(curStep);
+  if (curStep > 0) renderStep(curStep - 1);
+}
+
+function saveStepData(step) {
+  if (step === 0) {
+    FORM_DATA.tripName = (document.getElementById('tripName') || {}).value || '';
+    FORM_DATA.tripStart = (document.getElementById('tripStart') || {}).value || '';
+    FORM_DATA.tripEnd = (document.getElementById('tripEnd') || {}).value || '';
+    // members saved by addMember/removeMember
+  }
+  if (step === 2) {
+    FORM_DATA.wantedRestaurants = (document.getElementById('wantedRestaurants') || {}).value || '';
+  }
+  // Save to localStorage
+  try { localStorage.setItem('tripSetupData', JSON.stringify(FORM_DATA)); } catch(e) {}
+}
+
+function prefillStep0() {
+  var tn = document.getElementById('tripName');
+  var ts = document.getElementById('tripStart');
+  var te = document.getElementById('tripEnd');
+  if (tn && FORM_DATA.tripName) tn.value = FORM_DATA.tripName;
+  if (ts && FORM_DATA.tripStart) ts.value = FORM_DATA.tripStart;
+  if (te && FORM_DATA.tripEnd) te.value = FORM_DATA.tripEnd;
+}
+
+function selectPill(btn, group) {
+  var parent = btn.closest('[id$="Pills"]') || btn.parentNode;
+  parent.querySelectorAll('.pt-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  var val = btn.getAttribute('data-val');
+  if (group === 'park') FORM_DATA.location = val;
+  if (group === 'thrill') FORM_DATA.thrillLevel = val;
+  if (group === 'diningStyle') FORM_DATA.diningStyle = val;
+  if (group === 'budget') FORM_DATA.diningBudget = val;
+  if (group === 'diningRec') FORM_DATA.diningRecs = val;
+}
+
+function toggleChip(btn, group) {
+  btn.classList.toggle('selected');
+  var val = btn.getAttribute('data-val');
+  var arr = group === 'access' ? FORM_DATA.accessibility : group === 'dietary' ? FORM_DATA.dietaryNeeds : group === 'mustDo' ? FORM_DATA.mustDo : FORM_DATA.neverSchedule;
+  var idx = arr.indexOf(val);
+  if (idx >= 0) arr.splice(idx, 1); else arr.push(val);
+}
+
+function buildMemberList() {
+  var el = document.getElementById('memberList');
   if (!el) return;
-  var cards = '';
-  try {
-    var intel = getParkIntel();
-    if (intel && intel.weather && intel.weather.days) {
-      cards = intel.weather.days.map(function(d) {
-        return '<div style="flex:1;background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:12px;text-align:center">'
-          + '<div style="font-size:11px;font-weight:700;color:var(--text-muted)">' + (d.label || d.date || '') + '</div>'
-          + '<div style="font-size:28px;margin:6px 0">' + (d.icon || '☀️') + '</div>'
-          + '<div style="font-size:14px;font-weight:700;color:var(--text)">' + (d.high || '--') + '°</div>'
-          + '<div style="font-size:11px;color:var(--text-muted)">' + (d.low || '--') + '° low</div>'
-          + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + (d.desc || '') + '</div>'
-          + '</div>';
-      }).join('');
-    }
-  } catch(e) {}
-  if (!cards) {
-    cards = DAYS.map(function(d) {
-      return '<div style="flex:1;background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:12px;text-align:center">'
-        + '<div style="font-size:11px;font-weight:700;color:var(--text-muted)">' + (d.shortLabel || d.dateStr || '') + '</div>'
-        + '<div style="font-size:28px;margin:6px 0">☀️</div>'
-        + '<div style="font-size:14px;font-weight:700;color:var(--text)">~90°</div>'
-        + '<div style="font-size:11px;color:var(--text-muted)">-- low</div>'
-        + '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">Sunny &amp; warm</div>'
-        + '</div>';
-    }).join('');
-  }
-  el.innerHTML = '<div style="display:flex;gap:8px">' + cards + '</div>';
+  if (!FORM_DATA.members || !FORM_DATA.members.length) FORM_DATA.members = [{name:'',age:''}];
+  var h = '';
+  FORM_DATA.members.forEach(function(m, i) {
+    h += '<div class="pt-member-row">'
+      + '<input class="pt-input pt-member-name" style="margin-bottom:0" placeholder="First name" value="' + (m.name||'').replace(/"/g,'&quot;') + '" oninput="updateMember(' + i + ',\'name\',this.value)">'
+      + '<input class="pt-input pt-member-age" style="margin-bottom:0" type="number" placeholder="Age" min="0" max="120" value="' + (m.age||'') + '" oninput="updateMember(' + i + ',\'age\',this.value)">'
+      + (i > 0 ? '<button class="pt-member-remove" onclick="removeMember(' + i + ')">\u00d7</button>' : '<span style="width:28px"></span>')
+      + '</div>';
+  });
+  el.innerHTML = h;
 }
 
-// ============================================================
-// VERBATIM FUNCTIONS FROM app.html
-// ============================================================
-
-
-async function _aiProxy(body, cacheCtx){
-  var sys=body.system||'You are a helpful Disneyland assistant.';
-  var prompt='';
-  if(body.prompt){prompt=body.prompt;}
-  else if(body.messages&&body.messages.length){
-    var userMsg=body.messages[body.messages.length-1];
-    prompt=typeof userMsg.content==='string'?userMsg.content:(JSON.stringify(userMsg.content));
-  }
-  var ctx=cacheCtx||(parkIntelCache?(parkIntelCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';
-  try{
-    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6'})});
-    var d;
-    try{d=await r.json();}catch(jsonErr){return{error:{message:'AI response parse error: '+r.status}};}
-    if(d.ok)return{content:[{type:'text',text:d.text}]};
-    return{error:{message:d.error||'AI proxy error ('+r.status+')'}};
-  }catch(fetchErr){
-    return{error:{message:'AI fetch error: '+fetchErr.message}};
-  }
-}
-function serverCacheGet(key,cb){fetch(SYNC_BASE+"/api/cache?key="+key+"&t="+Date.now()).then(function(r){return r.json();}).then(function(d){if(d.hit&&d.data){try{localStorage.setItem(key,typeof d.data==="string"?d.data:JSON.stringify(d.data));localStorage.setItem(key+"_ts",String(d.ts));}catch(e){}cb(null,d.data,d.ts);}else{cb(null,null,0);}}).catch(function(e){cb(e,null,0);});}
-function serverCacheSet(key,value,ts){fetch(SYNC_BASE+"/api/cache?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:value,ts:ts||Date.now()})}).then(function(r){return r.json();}).then(function(d){console.log("Server cache set "+key+":",(d.ok?"OK":"FAILED"));}).catch(function(e){console.warn("Server cache write failed:",e);});try{localStorage.setItem(key,typeof value==="string"?value:JSON.stringify(value));localStorage.setItem(key+"_ts",String(ts||Date.now()));}catch(e){}}
-async function warmCachesFromServer(){try{var r=await fetch(SYNC_BASE+'/api/config');var d=await r.json();if(d.apiKey)apiKey=d.apiKey;}catch(e){}var keys=["park_intel","dining_intel","events_intel","park_hours_intel"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;console.log("Server cache HIT:",key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel")parkHoursIntelCache=value});});}
-function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<PARK_INTEL_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
-function setParkIntel(t){parkIntelCache=t;serverCacheSet('park_intel',t);}
-function getParkHoursIntel(){if(parkHoursCache)return parkHoursCache;try{var s=localStorage.getItem('park_hours_intel');if(s){parkHoursCache=JSON.parse(s);return parkHoursCache;}}catch(e){}return null;}
-function setParkHoursIntel(d){parkHoursCache=d;serverCacheSet('park_hours_intel',d);}
-function parkHoursNeedsUpdate(){try{var ts=parseInt(localStorage.getItem('park_hours_intel_ts')||'0');return(Date.now()-ts)/864e5>=HOURS_INTEL_DAYS;}catch(e){return true;}}
-function getParkHoursForDate(ds,park){var def=park==='dca'?{open:9,close:22}:{open:8,close:23};try{var intel=getParkHoursIntel();if(!intel||!intel[ds])return def;var day=intel[ds],p=park==='dca'?day.dca:day.dl;if(!p)return def;var o=p.open.split(':'),c=p.close.split(':');return{open:parseInt(o[0])+(parseInt(o[1]||0)/60),close:parseInt(c[0])+(parseInt(c[1]||0)/60)};}catch(e){return def;}}
-function buildParkIntel(){if(!apiKey||getParkIntel())return;console.log('Building Park Intel...');_aiProxy({model:'claude-sonnet-4-6',max_tokens:1000,system:'Disneyland expert. 2024-2026 only. No Genie+/MaxPass.',messages:[{role:'user',content:'Search TouringPlans AllEars MiceChat 2024-2026 Disneyland strategies: rope drop, LLMP sequence, late June crowds, top 5 tips, mistakes, DL vs DCA. Dense summary.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setParkIntel(t);}).catch(function(e){console.warn('Park Intel:',e);});}
-function buildParkHoursIntel(){if(!apiKey)return;var existing=getParkHoursIntel(),needsUpdate=parkHoursNeedsUpdate();if(existing&&!needsUpdate)return;var isInc=!!existing,now=new Date(),sd,ed;if(isInc){sd=new Date(now);ed=new Date(now);ed.setDate(ed.getDate()+60);}else{sd=new Date(now);sd.setDate(1);ed=new Date(sd);ed.setFullYear(ed.getFullYear()+1);}var s=sd.toISOString().split('T')[0],e=ed.toISOString().split('T')[0];_aiProxy({model:'claude-sonnet-4-6',max_tokens:2000,system:'Return ONLY valid JSON park hours.',messages:[{role:'user',content:'Disneyland park hours '+s+' to '+e+'. ONLY JSON: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}}. Default dl 08:00-23:00 dca 09:00-22:00.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});var m=t.replace(/```json|```/g,'').match(/[{][\s\S]+[}]/);if(m){try{var h=JSON.parse(m[0]);setParkHoursIntel(isInc&&existing?Object.assign({},existing,h):h);}catch(ex){}}}).catch(function(e){console.warn('Park Hours:',e);});}
-function getDayParkWindow(ds){if(!ds){try{var n=nowPT();ds=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}catch(e){ds=new Date().toISOString().split('T')[0];}}var dl=getParkHoursForDate(ds,'dl'),dca=getParkHoursForDate(ds,'dca');return{open:Math.min(dl.open,dca.open),close:Math.max(dl.close,dca.close)};}
-function getDiningIntel(){if(diningIntelCache)return diningIntelCache;try{var s=localStorage.getItem('dining_intel'),ts=parseInt(localStorage.getItem('dining_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<DINING_INTEL_DAYS){diningIntelCache=s;return s;}}catch(e){}return null;}
-function setDiningIntel(t){diningIntelCache=t;serverCacheSet('dining_intel',t);}
-function buildDiningIntel(){if(!apiKey||getDiningIntel())return;console.log('Building Dining Intel...');_aiProxy({model:'claude-sonnet-4-6',max_tokens:1200,system:'Disneyland dining expert. 2024-2026 reviews only.',members:[{role:'user',content:'Search Disney Food Blog AllEars TripAdvisor 2024-2026 Disneyland dining. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Lamplight Flo V8 Award Wieners (DCA). Earl Sandwich Salt Straw (DTD). Rating, must-orders, tip each.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setDiningIntel(t);}).catch(function(e){console.warn('Dining Intel:',e);});}
-function buildEventsIntel(){if(!apiKey||getEventsIntel())return;console.log('Building Events Intel...');_aiProxy({model:'claude-sonnet-4-6',max_tokens:600,system:'Disneyland events expert.',messages:[{role:'user',content:'Special events Disneyland June 25-July 5 2026: ticketed events, early closures, July 4th weekend. Brief factual summary with dates.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>100)setEventsIntel(t);}).catch(function(e){console.warn('Events Intel:',e);});}
-function diningSlotKey(dayIdx, secIdx, entryIdx){
-  return 'dslot_'+dayIdx+'_'+secIdx+'_'+entryIdx;
-}
-function parseTimeMins(t){
-  if(!t) return null;
-  var s=t.trim().toUpperCase().replace('.','');
-  var m=s.match(/(\d+)(?::(\d+))?\s*(AM|PM)?/);
-  if(!m) return null;
-  var h=parseInt(m[1]),mn=m[2]?parseInt(m[2]):0,per=m[3];
-  if(per==='PM'&&h!==12) h+=12;
-  if(per==='AM'&&h===12) h=0;
-  return h*60+mn;
-}
-function fmtMins(mins){
-  var h=Math.floor(mins/60),m=mins%60;
-  var per=h>=12?'PM':'AM';
-  var h12=h>12?h-12:(h===0?12:h);
-  return h12+':'+(m<10?'0':'')+m+' '+per;
-}
-function saveDiningSlot(dayIdx, secIdx, entryIdx){
-  var rest=document.getElementById('ds_rest_'+dayIdx+'_'+secIdx+'_'+entryIdx);
-  var time=document.getElementById('ds_time_'+dayIdx+'_'+secIdx+'_'+entryIdx);
-  var saved=document.getElementById('ds_saved_'+dayIdx+'_'+secIdx+'_'+entryIdx);
-  if(!rest||!time) return;
-  var restName=rest.value.trim();
-  var resTime=time.value.trim();
-  var val={restaurant:restName,time:resTime};
-  try{localStorage.setItem(diningSlotKey(dayIdx,secIdx,entryIdx),JSON.stringify(val));}catch(e){}
-
-  // Auto-adjust schedule times if reservation time entered
-  if(resTime&&resTime.length>2){
-    var resMins=parseTimeMins(resTime);
-    if(resMins){
-      var day=JSON.parse(JSON.stringify(customSched[dayIdx]||getCurDay()));
-      var sec=day.sections[secIdx];
-      if(sec){
-        var entry=sec.entries[entryIdx];
-        var oldTimeMins=parseTimeMins(entry.t);
-        if(oldTimeMins&&Math.abs(resMins-oldTimeMins)>=5){
-          var diff=resMins-oldTimeMins;
-          // Move dining entry to reservation time
-          entry.t=resTime;
-          // Estimate dining duration (~60 min for table service, 30 for counter)
-          var diningDur=60;
-          var doneTime=resMins+diningDur;
-          // Adjust the next entry's time based on walk from restaurant to its land
-          if(entryIdx+1<sec.entries.length){
-            var nextEntry=sec.entries[entryIdx+1];
-            var nextLand=nextEntry.land||'';
-            var walkMins=walkBetween(restName,nextLand);
-            var newNextTime=doneTime+walkMins;
-            nextEntry.t=fmtMins(newNextTime);
-            // Cascade: shift all subsequent entries by the same delta
-            var cascade=newNextTime-parseTimeMins(sec.entries[entryIdx+1].t||fmtMins(newNextTime));
-            // cascade is 0 since we just set it, but shift further entries by diff
-            var totalDiff=diff;
-            for(var i=entryIdx+2;i<sec.entries.length;i++){
-              var em=parseTimeMins(sec.entries[i].t);
-              if(em) sec.entries[i].t=fmtMins(em+totalDiff);
-            }
-          }
-          customSched[dayIdx]=day;
-          saveCustom(dayIdx);
-          renderSched();
-          renderDayInfoBar();
-          if(saved){
-            saved.style.display='block';
-            saved.textContent='\u2713 Saved! Schedule adjusted to '+resTime;
-            setTimeout(function(){saved.style.display='none';},3000);
-          }
-          return;
-        }
-      }
-    }
-  }
-
-  if(saved){saved.classList.add('show');setTimeout(function(){saved.classList.remove('show');},2000);}
-}
-function loadDiningSlot(dayIdx, secIdx, entryIdx){
-  try{
-    var s=localStorage.getItem(diningSlotKey(dayIdx,secIdx,entryIdx));
-    return s?JSON.parse(s):null;
-  }catch(e){return null;}
-}
-function showToast(msg,bg){var t=document.createElement('div');t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:'+(bg||'linear-gradient(135deg,var(--magic),var(--purple))')+';color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:900;white-space:nowrap';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove();},2500);}
-function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
-function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}
-function isSetupDone(){try{return localStorage.getItem('setup_done')==='yes';}catch(e){return false;}}
-function skipSetup(){setSetupSkips(getSetupSkips()+1);var b=document.getElementById('setupBanner');if(b)b.style.display='none';}
-function openSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.remove('hidden');setupGoTo(0);}
-function closeSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.add('hidden');}
-function setupGoTo(s){document.querySelectorAll('.setup-step').forEach(function(el,i){el.classList.toggle('active',i===s);});[0,1,2,3].forEach(function(i){var d=document.getElementById('sp'+i);if(d){d.classList.toggle('done',i<s);d.classList.toggle('active',i===s);}});}
-function setupNext(s){setupGoTo(s);}
-function toggleChip(el,g){if(g==='must'||g==='skip'||g==='ages'||g==='charDL'||g==='charDCA'){el.classList.toggle('selected');}else{el.parentNode.querySelectorAll('.setup-chip').forEach(function(c){c.classList.remove('selected');});el.classList.add('selected');}}
-function getChipSelections(id){return Array.from(document.querySelectorAll('#'+id+' .setup-chip.selected')).map(function(c){return c.textContent.trim();});}
-function aiChooseRides(params, callback) {
-  var context = parkIntelCache ? '=== PARK STRATEGY & RIDE INTEL ===\n' + parkIntelCache : '';
-  var prompt = 'Choose the best rides for this group and return ONLY a JSON array of ride name strings. Group: ' + JSON.stringify(params);
-  fetch(SYNC_BASE + '/api/ai', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      prompt: prompt,
-      system: 'Disneyland ride expert. Use the provided park intelligence to choose optimal rides. Return ONLY a JSON array of ride name strings, no other text.',
-      context: context,
-      maxTokens: 300
-    })
-  })
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.ok||!d.text){callback('AI error: '+(d.error||'no response'));return;}
-    try{
-      var m=d.text.match(/\[[\s\S]+\]/);
-      var rides=m?JSON.parse(m[0]):null;
-      if(rides)callback(null,rides);
-      else callback('Could not parse rides from response');
-    }catch(e){callback('Parse error: '+e.message);}
-  })
-  .catch(function(e){callback('Network error: '+e.message);});
-}
-function completeSetup(){
-  var wc=document.getElementById('charYes')&&document.getElementById('charYes').classList.contains('selected');
-  setupData={groupSize:parseInt(document.getElementById('groupSize').value),ages:getChipSelections('ageChips'),thrill:getChipSelections('thrillChips')[0]||'Mix',startTime:getChipSelections('startChips')[0]||'Rope drop',mustRides:getChipSelections('mustRideChips'),skipRides:getChipSelections('skipRideChips'),ll:getChipSelections('llChips')[0]||'Undecided',dining:getChipSelections('diningChips')[0]||'Mix',pace:getChipSelections('paceChips')[0]||'Balanced',wantsChars:wc,charsDL:wc?getChipSelections('charDLChips'):[],charsDCA:wc?getChipSelections('charDCAChips'):[],charPriority:wc?(getChipSelections('charPriorityChips')[0]||'Fit in when convenient'):'none'};
-  var ki=document.querySelectorAll('#kidsHeightInputs input');if(ki.length){saveGroupHeights(Array.from(ki).map(function(i){return parseInt(i.value)||44;}));}
-  try{localStorage.setItem('setup_data',JSON.stringify(setupData));localStorage.setItem('setup_done','yes');}catch(e){}
-  closeSetup();var b=document.getElementById('setupBanner');if(b)b.style.display='none';
-  if(apiKey){showSetupGeneratePrompt();}else{showToast('Ride Style saved!');}
-}
-function showSetupGeneratePrompt(){var card=document.createElement('div');card.id='sgc';card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">&#10024; Generate personalized schedule?</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Claude can rebuild your schedule based on your Ride Style.</div><div style="display:flex;gap:8px"><button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild</button><button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button></div>';document.body.appendChild(card);}
-function dismissGenCard(){var c=document.getElementById('sgc');if(c)c.remove();showToast('Ride Style saved!');}
-function generateFromSetup(params, callback) {
-  var context = [
-    parkIntelCache ? '=== PARK STRATEGY ===\n' + parkIntelCache : '',
-    eventsIntelCache ? '=== EVENTS ===\n' + eventsIntelCache : '',
-    parkHoursCache ? '=== PARK HOURS ===\n' + JSON.stringify(parkHoursCache) : ''
-  ].filter(Boolean).join('\n\n');
-  var prompt = 'Build a complete Disneyland day schedule. Return ONLY a raw JSON array (no markdown, no explanation) of objects with fields: t (time like "8:00 AM"), h (activity name), type (ride|show|dining|break|tip), n (brief note), land (land name). Group info: ' + JSON.stringify(params);
-  fetch(SYNC_BASE + '/api/ai', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      prompt: prompt,
-      system: 'Expert Disneyland planner. Return ONLY a raw JSON array starting with [ and ending with ]. No markdown, no backticks, no explanation. Each entry must have: t, h, type, n, land fields. Include the following in every generated schedule placed at geographically logical positions: one restroom break around 10:00 AM near whatever land the group is in at that time using type:break; one restroom break around 3:00 PM using type:break; one morning snack stop around 10:30 AM at a real park snack location near surrounding rides using type:tip; one afternoon snack stop around 3:30 PM at a real park snack location using type:tip; two photo ops per day at real park locations geographic to surrounding rides one before noon and one after 5 PM using type:photo.' + (typeof constraintRules !== 'undefined' ? ' Schedule rules: ' + constraintRules : ''),
-      context: context,
-      maxTokens: 3000
-    })
-  })
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.ok||!d.text){callback('AI error: '+(d.error||'no response'));return;}
-    try{
-      var text = d.text.trim();
-      // Find JSON array   may be truncated, so try to find and close it
-      var start = text.indexOf('[');
-      var end = text.lastIndexOf('}');
-      if(start === -1){callback('No JSON array found');return;}
-      // Try to parse what we have, closing array if truncated
-      var attempt = text.substring(start);
-      if(!attempt.endsWith(']')) attempt = attempt.substring(0, end+1) + '\n]';
-      var sections = JSON.parse(attempt);
-      if(sections && sections.length > 0) callback(null, sections);
-      else callback('Empty schedule');
-    }catch(e){callback('Parse error: '+e.message);}
-  })
-  .catch(function(e){callback('Network error: '+e.message);});
+function addMember() {
+  FORM_DATA.members.push({name:'', age:''});
+  buildMemberList();
 }
 
-async function confirmLLSetup(){
-  if(llState.multiPass===null){alert('Please select whether you have Lightning Lane Multi Pass.');return;}
-  document.getElementById('llModal').style.display='none';
-  saveLLState();
-  // Reoptimize with LL knowledge
-  await reoptimize();
+function removeMember(i) {
+  FORM_DATA.members.splice(i, 1);
+  buildMemberList();
 }
-function completeSetupAndSummarize(){
-  var wc=document.getElementById('charYes')&&document.getElementById('charYes').classList.contains('selected');
-  setupData={
-    groupSize:parseInt(document.getElementById('groupSize').value),
-    ages:getChipSelections('ageChips'),
-    thrill:getChipSelections('thrillChips')[0]||'Mix',
-    startTime:getChipSelections('startChips')[0]||'Rope drop',
-    mustRides:getChipSelections('mustRideChips'),
-    skipRides:getChipSelections('skipRideChips'),
-    ll:getChipSelections('llChips')[0]||'Undecided',
-    dining:getChipSelections('diningChips')[0]||'Mix',
-    pace:getChipSelections('paceChips')[0]||'Balanced',
-    wantsChars:wc,
-    charsDL:wc?getChipSelections('charDLChips'):[],
-    charsDCA:wc?getChipSelections('charDCAChips'):[],
-    charPriority:wc?(getChipSelections('charPriorityChips')[0]||'Fit in when convenient'):'none',
-    experience:getChipSelections('experienceChips')[0]||'First timers',
-    mobility:getChipSelections('mobilityChips')[0]||'None',
-    fears:getChipSelections('fearChips'),
-    dreamOutcome:document.getElementById('dreamOutcome')?document.getElementById('dreamOutcome').value.trim():''
-  };
-  var ki=document.querySelectorAll('#kidsHeightInputs input');
-  if(ki.length){saveGroupHeights(Array.from(ki).map(function(i){return parseInt(i.value)||44;}));}
-  try{localStorage.setItem('setup_data',JSON.stringify(setupData));localStorage.setItem('setup_done','yes');}catch(e){}
-  var b=document.getElementById('setupBanner');if(b)b.style.display='none';
-  setupGoTo(5);
-  generateTripSummary();
+
+function updateMember(i, field, val) {
+  if (!FORM_DATA.members[i]) FORM_DATA.members[i] = {};
+  FORM_DATA.members[i][field] = val;
 }
-function generateTripSummary(){
-  var el=document.getElementById('tripSummaryContent');
-  if(!el) return;
-  if(!apiKey){
-    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.7;">Your Ride Style is saved! Open Pre-Trip Planning to generate your full AI briefing.</div>';
-    return;
-  }
-  var sd=setupData||{};
-  var size=sd.groupSize||4;
-  var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed ages';
-  var thrill=sd.thrill||'Mix';
-  var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'not specified';
-  var experience=sd.experience||'First timers';
-  var fears=sd.fears&&sd.fears.length?sd.fears.join(', '):'none';
-  var dream=sd.dreamOutcome||'';
-  var prompt='Write a warm 3-4 sentence personalized trip summary for this group visiting Disneyland Resort June 28-30 2026. '
-    +'GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Must-rides: '+mustRides
-    +' | Experience: '+experience+' | Biggest concerns: '+fears
-    +(dream?' | Dream outcome: '+dream:'')
-    +'. End with one specific tip addressing their biggest concern. Bold the most important insight.';
-  _aiProxy({model:'claude-sonnet-4-6',max_tokens:300,system:'Warm expert Disneyland trip advisor. Write personalized summaries that excite and reassure families. Bold one key insight.',messages:[{role:'user',content:prompt}]})
-  .then(function(r){return r;})
-  .then(function(d){
-    if(d.error){el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved! Open Pre-Trip Planning for your full AI briefing.</div>';return;}
-    var text='';if(d.content)d.content.forEach(function(b){if(b.type==='text')text+=b.text;});
-    el.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.8;">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:8px 0">').replace(/\n/g,'<br>')+'</div>';
-    try{localStorage.removeItem('kbyg_text');localStorage.removeItem('kbyg_date');}catch(e){}
-  })
-  .catch(function(){el.innerHTML='<div style="font-size:13px;color:var(--text);">Your Ride Style is saved!</div>';});
-}
-async function loadKnowBeforeYouGo(){
-  if(!apiKey){document.getElementById('pt_kbyg_content').innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:8px;">Please add your API key in the Info tab first.</div>';return;}
-  var el=document.getElementById('pt_kbyg_content');
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">( Generating your personalized briefing...</div>';
-  var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
-  var setupDone=localStorage.getItem('setup_done')==='yes';
-  var size=sd.groupSize||4;
-  var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'adults and kids (typical family)';
-  var thrill=sd.thrill||'Mix of thrill and family rides';
-  var pace=sd.pace||'Balanced';
-  var startTime=sd.startTime||'Rope drop';
-  var ll=sd.ll||'Undecided on Lightning Lane';
-  var dining=sd.dining||'Mix of quick service and table service';
-  var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'not specified yet';
-  var skipRides=sd.skipRides&&sd.skipRides.length?sd.skipRides.join(', '):'none specified';
-  var chars=sd.wantsChars?'Yes':'No';
-  var charList='';
-  if(sd.charsDL&&sd.charsDL.length)charList+=sd.charsDL.join(', ');
-  if(sd.charsDCA&&sd.charsDCA.length)charList+=(charList?', ':'')+sd.charsDCA.join(', ');
-  var groupCtx='GROUP: '+size+' people | Ages: '+ages+' | Ride style: '+thrill+' | Pace: '+pace
-    +' | Arrival: '+startTime+' | Lightning Lane: '+ll+' | Dining: '+dining
-    +' | Must-rides: '+mustRides+' | Skip list: '+skipRides
-    +' | Character meets: '+chars+(charList?' ('+charList+')':'')+'\nTRIP: Disneyland Resort, June 28-30 2026, Anaheim CA\n';
-  var prompt=groupCtx+'Write a Know Before You Go briefing HIGHLY SPECIFIC to this exact group. Every tip must address their group size, ages, preferences, and pace. Cover:\n\n1. **Crowd & Timing Reality** - late June crowds and how '+size+' people affects wait times\n2. **Morning Strategy** - exactly how to execute their arrival to hit must-rides before crowds\n3. **Group Logistics** - keeping '+size+' people together: meeting points, splitting up, communication, the group slowdown factor\n4. **Lightning Lane Strategy** - specific LL advice for their plan and group size\n5. **Energy & Pacing** - realistic pacing for their preference and dining style\n6. **The #1 Mistake Groups of '+size+' Make** - the most common error and how to avoid it\n7. **Your Group Secret Weapon** - one specific advantage their profile gives them\n\nBold all key actions and ride names. Be brutally specific - no generic advice.'
-  try{
-    var resp=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,
-        messages:[{role:'user',content:'Give 5 Disneyland tips for a family visiting June 28-30 2026. Format EXACTLY as: 1. [tip] 2. [tip] 3. [tip] 4. [tip] 5. [tip]. Each tip must be under 15 words. No intro text.'}]});
-    var data=resp;
-    if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
-    var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='Could not load briefing.';
-    var formatted='<p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p>';
-    var note=setupDone
-      ?'<div style="font-size:11px;color:#34D399;margin-bottom:10px;display:flex;align-items:center;gap:4px;"><span>&#10003;</span> Personalized to your group setup</div>'
-      :'<div style="font-size:11px;color:var(--gold,#C9860A);margin-bottom:10px;">&#9888; Complete Ride Style setup for a more tailored briefing</div>';
-    el.innerHTML=note+'<div style="font-size:13px;color:var(--text);line-height:1.8;">'+formatted+'</div>'
-      +'<button onclick="regenerateKBYG()" style="margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;"> Regenerate</button>';
-    try{localStorage.setItem('kbyg_text',el.innerHTML);localStorage.setItem('kbyg_date',new Date().toDateString());localStorage.setItem('kbyg_setup_hash',JSON.stringify(sd));}catch(e){}
-  }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Network error: '+err.message+'</div>';}
-}
-function regenerateKBYG(){
-  try{localStorage.removeItem('kbyg_text');localStorage.removeItem('kbyg_date');}catch(e){}
-  loadKnowBeforeYouGo();
-}
-async function loadCrowdPrediction(){
-  var el=document.getElementById('pt_crowds_content');
-  if(!el) return;
-  console.log('loadCrowdPrediction: starting fetch, apiKey='+(apiKey?'set':'MISSING'));
-  try{var cached=localStorage.getItem('crowd_pred');var cachedDate=localStorage.getItem('crowd_pred_date');if(cached){el.innerHTML=cached;return;}}catch(e){}
-  if(!apiKey){el.innerHTML='<div style="color:var(--text-muted);font-size:13px;">Add your API key in the Info tab first.</div>';return;}
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Analyzing crowd patterns...</div>';
-  var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
-  var size=sd.groupSize||4;
-  var prompt='For Disneyland Resort, provide crowd level scores for 3 park days: Sun Jun 28, Mon Jun 29, Tue Jun 30 2026. Return ONLY a JSON array: [{"date":"Sun Jun 28","score":7,"label":"Heavy","note":"brief note"}]. Use scores 1-10 based on late June historical patterns.';
-  try{
-    var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:300,system:'Return ONLY a valid JSON array of 3 objects for Sun Jun 28, Mon Jun 29, Tue Jun 30. Each: {"date":"Sun Jun 28","score":7,"label":"Heavy","note":"brief"}. No markdown, no other text.',messages:[{role:'user',content:prompt}]});
-    var data=r;
-    if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
-    var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html;
-    try{var crowd=JSON.parse(text.replace(/^[\s\S]*?(\[)/,'$1').replace(/(\]).*$/,'$1'));
-      var cH='<div style="padding:4px 0">';
-      crowd.forEach(function(d){
-        var s=Math.max(1,Math.min(10,+d.score||5));
-        var pct=(s/10)*100;
-        var col=s<=4?'#22c55e':s<=6?'#eab308':s<=8?'#f97316':'#ef4444';
-        cH+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border,rgba(0,0,0,0.08))">';
-        cH+='<div style="min-width:90px;font-size:12px;font-weight:600;color:var(--text-muted)">'+(d.date||'?')+'</div>';
-        cH+='<div style="flex:1;position:relative">';
-        cH+='<div style="height:8px;background:#f0ece4;border-radius:4px;overflow:hidden">';
-        cH+='<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:4px;transition:width .4s"></div>';
-        cH+='</div></div>';
-        cH+='<div style="min-width:36px;font-size:12px;font-weight:700;color:'+col+';text-align:right">'+s+'/10</div>';
-        cH+='<div style="min-width:55px;font-size:10px;color:var(--text-muted)">'+(d.label||'')+'</div>';
-        cH+='</div>';
-      });
-      cH+='</div>';
-      if(!crowd.length)throw new Error('empty');
-      html=cH;
-    }catch(pe){
-      html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0">'+stripMd(text)+'</p></div>';
-    }
-    html+='<button onclick="refreshCrowds()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">⟳  Refresh</button>';
-    el.innerHTML=html;
-    try{localStorage.setItem('crowd_pred',html);localStorage.setItem('crowd_pred_date',new Date().toDateString());}catch(e){}
-  }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
-}
-function refreshCrowds(){try{localStorage.removeItem('crowd_pred');}catch(e){}loadCrowdPrediction();}
-async function loadDayStrategy(){
-  var el=document.getElementById('pt_daystrategy_content');
-  if(!el) return;
-  try{var cached=localStorage.getItem('day_strategy');var cachedHash=localStorage.getItem('day_strategy_hash');var cur=localStorage.getItem('setup_data')||'{}';if(cached&&cachedHash===cur){el.innerHTML=cached;return;}}catch(e){}
-  if(!apiKey){el.innerHTML='<div style="color:var(--text-muted);font-size:13px;">Add your API key in the Info tab first.</div>';return;}
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Building your strategy...</div>';
-  var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
-  var size=sd.groupSize||4;var thrill=sd.thrill||'Mix';var pace=sd.pace||'Balanced';
-  var startTime=sd.startTime||'Rope drop';var ll=sd.ll||'Undecided';
-  var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'main headliners';
-  var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed';
-  var schedSummary='';
-  try{for(var d=0;d<3;d++){var dn=['Sun Jun 28 (Disneyland)','Mon Jun 29 (VIP Tour 10AM-5PM)','Tue Jun 30 (DCA + DL evening)'][d];var sc=JSON.parse(localStorage.getItem('schedule_v2_day'+d)||'[]');if(sc.length)schedSummary+=dn+': '+sc.slice(0,3).map(function(i){return(i.t||'')+(i.e?i.e.h:i.h||'');}).join(', ')+'\n';}}catch(e){}
-  var prompt='For a group of '+size+' people visiting Disneyland June 28-30, 2026: in 2 sentences maximum per day, give the single most important strategy for each of the 3 days. Be extremely brief. Day 1 Jun 28 Disneyland, Day 2 Jun 29 VIP Tour, Day 3 Jun 30 DCA+DL.';
-  try{
-    var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:150,system:'You are a brief Disneyland trip strategist. Give the single most important strategy for each park day in 2 sentences or less. No markdown, no headers, no bullet points.',messages:[{role:'user',content:prompt}]});
-    var data=r;
-    if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
-    var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshDayStrategy()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Regenerate</button>';
-    el.innerHTML=html;
-    try{localStorage.setItem('day_strategy',html);localStorage.setItem('day_strategy_hash',localStorage.getItem('setup_data')||'{}');}catch(e){}
-  }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
-}
-function refreshDayStrategy(){try{localStorage.removeItem('day_strategy');}catch(e){}loadDayStrategy();}
-async function loadLLPlanner(){
-  var el=document.getElementById('pt_llplanner_content');
-  if(!el) return;
-  try{var cached=localStorage.getItem('ll_plan');var cachedHash=localStorage.getItem('ll_plan_hash');var cur=localStorage.getItem('setup_data')||'{}';if(cached&&cachedHash===cur){el.innerHTML=cached;return;}}catch(e){}
-  if(!apiKey){el.innerHTML='<div style="color:var(--text-muted);font-size:13px;">Add your API key in the Info tab first.</div>';return;}
-  el.innerHTML='<div style="text-align:center;padding:16px;color:var(--gold,#C9860A);font-size:13px;">Building your LL strategy...</div>';
-  var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
-  var size=sd.groupSize||4;var ll=sd.ll||'Considering Lightning Lane Multi Pass';
-  var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'the main headliners';
-  var thrill=sd.thrill||'Mix';var startTime=sd.startTime||'Rope drop';
-  var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'mixed';
-  var prompt='GROUP: '+size+' people | Ages: '+ages+' | Style: '+thrill+' | Start: '+startTime+' | LL plan: '+ll+' | Must-rides: '+mustRides+'\nDATES: Sun Jun 28, Mon Jun 29 (VIP Tour 10AM-5PM), Tue Jun 30\n\nCreate a Lightning Lane strategy for each park day:\n\n**LLMP Booking Order (each day):**\n- First ride to book at park open (or 7AM on-site)\n- Exact sequence: ride name → target time → expected return window\n- How many devices to use for '+size+' people and who books what\n- Which rides to skip LL and ride standby instead\n\n**Lightning Lane Single (Individual Attractions):**\n- Which ILL rides are worth paying for (Rise of Resistance, RSR, etc)\n- Recommended purchase time\n\n**Key Rules for this group:**\n- How group size of '+size+' affects booking\n- The #1 LL mistake to avoid\n\nBe extremely specific with ride names and times. Bold the most critical actions.';
-  try{
-    var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:800,system:'You are a Disneyland Lightning Lane expert. Search current sources like TouringPlans, AllEars, and the Disney Tourist Blog for the most current June 2026 Lightning Lane strategies, pricing, and booking tips before responding. LL rules and best practices change frequently   always use the most current verified information. CRITICAL INSTRUCTIONS FOR ACCURACY: (1) Only use strategies and tips from 2025-2026 sources. Discard any advice referencing Genie+, MaxPass, or other retired systems. (2) For ride-specific rope drop recommendations, VERIFY the ride currently has long waits (60+ min by midday) before recommending it as a rope drop priority. Do NOT recommend rides like Millennium Falcon Smugglers Run as rope drop targets unless current data confirms they still have long waits   popular rides from 2019-2022 may no longer warrant that strategy. (3) Use evergreen principles as your foundation (arrive early, ride headliners first and after 8PM, midday 11AM-3PM is always busiest, start at back of park, split large groups for boarding) and layer current 2025-2026 specific data on top. (4) If a web search result is older than 2024, treat it as background context only   never as a current strategy recommendation.',messages:[{role:'user',content:prompt}]});
-    var data=r;
-    if(data.error){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+data.error.message+'</div>';return;}
-    var text='';if(data.content&&data.content.length){data.content.forEach(function(b){if(b.type==='text')text+=b.text;});}if(!text)text='';
-    var html='<div style="font-size:13px;color:var(--text);line-height:1.8;"><p style="margin:0 0 10px">'+stripMd(text).replace(/\n\n/g,'</p><p style="margin:10px 0">').replace(/\n/g,'<br>')+'</p></div><button onclick="refreshLLPlan()" style="margin-top:10px;padding:8px 16px;border-radius:99px;border:1px solid rgba(201,134,10,0.3);background:none;color:var(--gold,#C9860A);font-size:12px;font-family:inherit;cursor:pointer;touch-action:manipulation;">=  Regenerate</button>';
-    el.innerHTML=html;
-    try{localStorage.setItem('ll_plan',html);localStorage.setItem('ll_plan_hash',localStorage.getItem('setup_data')||'{}');}catch(e){}
-  }catch(err){el.innerHTML='<div style="color:#EF4444;font-size:13px;">Error: '+err.message+'</div>';}
-}
-function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadLLPlanner();}
-var PRE_TRIP_CHECKLIST=[
-  {weeks:8, label:'Book dining reservations (opens 60 days before trip)'},
-  {weeks:7, label:'Purchase park tickets if not already done'},
-  {weeks:6, label:'Book hotel if not already booked'},
-  {weeks:5, label:'Research Lightning Lane Multi Pass strategy'},
-  {weeks:4, label:'Check refurbishment schedules and plan alternatives'},
-  {weeks:3, label:'Download the official Disneyland app and log in'},
-  {weeks:3, label:'Add your park tickets to the Disneyland app'},
-  {weeks:2, label:'Book Lightning Lane Individual Selections (7 days before)'},
-  {weeks:2, label:'Check weather forecast and pack accordingly'},
-  {weeks:1, label:'Confirm all dining reservations'},
-  {weeks:1, label:'Charge all electronics and power banks the night before'},
-  {weeks:1, label:'Screenshot your park tickets and dining confirmations'},
-  {weeks:1, label:'Review your ThemeParkWize daily schedule'},
-  {weeks:0, label:'Arrive at park gates 45-60 min before opening'},
-];
-function renderPreTripChecklist(){
-  var el=document.getElementById('pt_checklist_content');
-  if(!el)return;
-  if(!PRE_TRIP_CHECKLIST||!PRE_TRIP_CHECKLIST.length){el.innerHTML='';return;}
-  var checked={};
-  try{checked=JSON.parse(localStorage.getItem('checklist_checked'))||{};}catch(e){}
-  var custom=[];
-  try{custom=JSON.parse(localStorage.getItem('checklist_custom'))||[];}catch(e){}
-  var allItems=PRE_TRIP_CHECKLIST.map(function(item,i){return {label:item.label,globalIdx:i,custom:false};})
-    .concat(custom.map(function(item,i){return {label:item.label,globalIdx:i,custom:true};}));
-  el.innerHTML=allItems.map(function(item){
-    var key=item.custom?'custom_'+item.globalIdx:'item_'+item.globalIdx;
-    var isCk=!!checked[key];
-    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;touch-action:manipulation">'
-      +'<input type="checkbox"'+(isCk?' checked':'')+' data-ckkey="'+key+'" onchange="toggleChecklistCheck(this.dataset.ckkey,this.checked)" style="width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--magic)">'
-      +'<span style="font-size:14px;'+(isCk?'text-decoration:line-through;color:var(--text-muted)':'color:var(--text)')+'">'
-      +item.label+'</span>'
-      +(item.custom
-        ?'<button data-cidx="'+item.globalIdx+'"'
-          +' onclick="removeChecklistItem(+this.dataset.cidx)"'
-          +' ontouchstart="event.preventDefault();"'
-          +' ontouchend="event.preventDefault();removeChecklistItem(+this.dataset.cidx);"'
-          +' style="margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;touch-action:manipulation;padding:0 4px">×</button>'
-        :'')
-      +'</label>';
-  }).join('')
-  +'<div style="display:flex;gap:8px;margin-top:12px">'
-  +'<input id="pt_checklist_new" type="text" placeholder="Add custom item…"'
-  +' style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--card)">'
-  +'<button onclick="addChecklistItem()"'
-  +' ontouchstart="event.preventDefault();"'
-  +' ontouchend="event.preventDefault();addChecklistItem();"'
-  +' style="padding:8px 14px;background:var(--magic);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation">Add</button>'
-  +'</div>';
-}
-function toggleChecklistCheck(key,val){
-  var checked={};
-  try{checked=JSON.parse(localStorage.getItem('checklist_checked')||'{}');}catch(e){}
-  if(val) checked[key]=true; else delete checked[key];
-  try{localStorage.setItem('checklist_checked',JSON.stringify(checked));}catch(e){}
-}
-function addChecklistItem(){
-  var input=document.getElementById('pt_checklist_input');
-  var weekSel=document.getElementById('pt_checklist_week');
-  var val=input?input.value.trim():'';
-  if(!val) return;
-  var weeks=weekSel?parseFloat(weekSel.value):1.5;
-  var items=[];
-  try{items=JSON.parse(localStorage.getItem('checklist_custom')||'[]');}catch(e){}
-  items.push({label:val,weeks:weeks});
-  try{localStorage.setItem('checklist_custom',JSON.stringify(items));}catch(e){}
-  if(input)input.value='';
-  renderPreTripChecklist();
-}
-function removeChecklistItem(i){
-  var items=[];
-  try{items=JSON.parse(localStorage.getItem('checklist_custom')||'[]');}catch(e){}
-  items.splice(i,1);
-  try{localStorage.setItem('checklist_custom',JSON.stringify(items));}catch(e){}
-  renderPreTripChecklist();
-}
-function loadDiningReservations(){
-  try{diningReservations=JSON.parse(localStorage.getItem('dining_reservations')||'[]');}catch(e){diningReservations=[];}
-}
-function saveDiningReservations(){
-  try{localStorage.setItem('dining_reservations',JSON.stringify(diningReservations));}catch(e){}
-}
-function renderDiningReservationsList(){
-  var list=document.getElementById('pt_dining_list');
-  if(!list) return;
-  var drs=[];
-  try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
-  if(!drs.length){
-    list.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:0 0 8px">No reservations added yet.</p>';
-    return;
-  }
-  list.innerHTML=drs.map(function(r,i){
-    return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">'
-      +'<div><div style="font-weight:600;font-size:14px">'+r.name+'</div>'
-      +'<div style="font-size:12px;color:var(--text-muted)">'+r.time+'</div></div>'
-      +'<button data-dridx="'+i+'" ontouchend="event.preventDefault();removeDiningRes(+this.dataset.dridx);" onclick="removeDiningRes(+this.dataset.dridx);" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:0 4px">&#128465;</button>'
-      +'</div>';
-  }).join('');
-}
-function addDiningReservation(){
-  var nameEl=document.getElementById('pt_new_rest');
-  var timeEl=document.getElementById('pt_new_time');
-  var btn=document.getElementById('pt_save_res_btn');
-  if(!nameEl||!timeEl||!nameEl.value.trim()) return;
-  var drs=[];
-  try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
-  drs.push({name:nameEl.value.trim(),time:timeEl.value.trim()||''});
-  try{localStorage.setItem('dining_reservations',JSON.stringify(drs));}catch(e){}
-  nameEl.value='';
-  timeEl.value='';
-  if(btn){
-    var orig=btn.textContent;
-    btn.style.background='#22c55e';
-    btn.textContent='Saved!';
-    setTimeout(function(){btn.textContent=orig;btn.style.background='';},1000);
-  }
-  renderDiningReservationsList();
-}
-function removeDiningRes(i){
-  loadDiningReservations();
-  diningReservations.splice(i,1);
-  saveDiningReservations();
-  renderDiningReservationsList();
-}
-async function fetchDiningRecs(e){
-  if(e) e.preventDefault();
-  var btn=this;
-  var name=btn.dataset.name||'';
-  var land=btn.dataset.land||'';
-  var resultEl=btn.nextElementSibling;
-  if(!resultEl) return;
-  btn.disabled=true;
-  resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">⏳ Loading…</span>';
-  resultEl.classList.add('show');
-  var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:'You are a Disneyland dining expert. Be concise. 2–3 sentences max. No markdown.',messages:[{role:'user',content:'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.'}]});
-  if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px">⚠️ '+r.error.message+'</span>';}
-  else if(r&&r.content&&r.content.length){resultEl.innerHTML='<div style="font-size:13px;line-height:1.6">'+stripMd(r.content[0].text.trim())+'</div>';}
-  else{resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">No result.</span>';}
-  btn.disabled=false;
-}
-function attachDiningListeners(){
-  document.querySelectorAll('.dining-btn').forEach(function(btn){
-    btn.removeEventListener('touchend',fetchDiningRecs);btn.removeEventListener('click',fetchDiningRecs);
-    btn.addEventListener('touchend',fetchDiningRecs);btn.addEventListener('click',fetchDiningRecs);
+
+function buildRideChips() {
+  ['mustDoChips', 'skipChips'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var isMustDo = id === 'mustDoChips';
+    var h = '';
+    RIDE_LIST.forEach(function(ride) {
+      var selectedClass = isMustDo && FORM_DATA.mustDo.includes(ride) ? 'selected' : (!isMustDo && FORM_DATA.neverSchedule.includes(ride) ? 'never-selected' : '');
+      var group = isMustDo ? 'mustDo' : 'neverSchedule';
+      h += '<button class="pt-chip ' + selectedClass + '" data-val="' + ride.replace(/"/g,'&quot;') + '" onclick="toggleRideChip(this,\'' + group + '\')">' + ride + '</button>';
+    });
+    el.innerHTML = h;
   });
 }
+
+function toggleRideChip(btn, group) {
+  var isNever = group === 'neverSchedule';
+  btn.classList.toggle(isNever ? 'never-selected' : 'selected');
+  var val = btn.getAttribute('data-val');
+  var arr = isNever ? FORM_DATA.neverSchedule : FORM_DATA.mustDo;
+  var idx = arr.indexOf(val);
+  if (idx >= 0) arr.splice(idx, 1); else arr.push(val);
+}
+
+function buildDaySetup() {
+  var el = document.getElementById('daySetupList');
+  if (!el) return;
+  // Calculate days from dates
+  var days = [];
+  var s = FORM_DATA.tripStart ? new Date(FORM_DATA.tripStart + 'T00:00:00') : null;
+  var e = FORM_DATA.tripEnd ? new Date(FORM_DATA.tripEnd + 'T00:00:00') : null;
+  if (s && e && !isNaN(s) && !isNaN(e)) {
+    var d = new Date(s);
+    var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    while (d <= e) {
+      days.push(dayNames[d.getDay()] + ' ' + monthNames[d.getMonth()] + ' ' + d.getDate());
+      d.setDate(d.getDate() + 1);
+    }
+  } else {
+    days = ['Day 1', 'Day 2', 'Day 3'];
+  }
+  // Init FORM_DATA.days if needed
+  while (FORM_DATA.days.length < days.length) FORM_DATA.days.push({});
+  var parkOptions = ['Disneyland','DCA','Both'];
+  var h = '';
+  days.forEach(function(label, i) {
+    var d = FORM_DATA.days[i] || {};
+    h += '<div class="pt-day-section" id="daySection' + i + '">'
+      + '<div class="pt-day-label">' + label + '</div>'
+      + '<label class="pt-label" style="font-size:9px">Primary park</label>'
+      + '<div class="pt-pill-row" id="dayParkPills' + i + '">';
+    parkOptions.forEach(function(p) {
+      var active = (d.park || 'Disneyland') === p ? ' active' : '';
+      h += '<button class="pt-pill' + active + '" data-val="' + p + '" onclick="selectDayPill(' + i + ',this,\'park\')">' + p + '</button>';
+    });
+    h += '</div>'
+      + '<div class="pt-toggle-row"><span class="pt-toggle-lbl">Park hopper?</span>'
+      + '<button class="pt-toggle' + (d.hopTo ? ' on' : '') + '" id="hopToggle' + i + '" onclick="toggleDay(' + i + ',\'hop\',this)"><div class="pt-toggle-dot"></div></button></div>'
+      + '<div id="hopDetail' + i + '" style="display:' + (d.hopTo ? 'block' : 'none') + '">'
+      + '<label class="pt-label" style="font-size:9px">Second park &amp; from what time?</label>'
+      + '<div style="display:flex;gap:8px;margin-bottom:12px"><input class="pt-input" style="margin-bottom:0;flex:1" placeholder="2nd park name" value="' + (d.hopTo||'') + '" oninput="updateDay(' + i + ',\'hopTo\',this.value)"><input class="pt-input" style="margin-bottom:0;width:80px" type="time" value="' + (d.hopTime||'11:00') + '" oninput="updateDay(' + i + ',\'hopTime\',this.value)"></div>'
+      + '</div>'
+      + '<label class="pt-label" style="font-size:9px">Arrival time (at gates)</label>'
+      + '<input class="pt-input" type="time" value="' + (d.arrivalTime||'07:45') + '" oninput="updateDay(' + i + ',\'arrivalTime\',this.value)">'
+      + '<div class="pt-toggle-row"><span class="pt-toggle-lbl">VIP tour this day?</span>'
+      + '<button class="pt-toggle' + (d.isVip ? ' on' : '') + '" id="vipToggle' + i + '" onclick="toggleDay(' + i + ',\'vip\',this)"><div class="pt-toggle-dot"></div></button></div>'
+      + '<div id="vipDetail' + i + '" style="display:' + (d.isVip ? 'block' : 'none') + '">'
+      + '<div style="display:flex;gap:8px;margin-bottom:12px"><div><label class="pt-label" style="font-size:9px">Tour start</label><input class="pt-input" type="time" style="margin-bottom:0" value="' + (d.vipStart||'10:00') + '" oninput="updateDay(' + i + ',\'vipStart\',this.value)"></div><div><label class="pt-label" style="font-size:9px">Tour end</label><input class="pt-input" type="time" style="margin-bottom:0" value="' + (d.vipEnd||'17:00') + '" oninput="updateDay(' + i + ',\'vipEnd\',this.value)"></div></div>'
+      + '</div>'
+      + '<label class="pt-label" style="font-size:9px">Day notes (optional)</label>'
+      + '<textarea class="pt-textarea" style="min-height:50px" placeholder="e.g. Grandma joining us this day only" oninput="updateDay(' + i + ',\'notes\',this.value)">' + (d.notes||'') + '</textarea>'
+      + '</div>';
+  });
+  el.innerHTML = h;
+}
+
+function selectDayPill(i, btn, field) {
+  var parent = btn.parentNode;
+  parent.querySelectorAll('.pt-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  updateDay(i, field, btn.getAttribute('data-val'));
+}
+
+function toggleDay(i, type, btn) {
+  btn.classList.toggle('on');
+  var isOn = btn.classList.contains('on');
+  if (type === 'hop') {
+    updateDay(i, 'hopTo', isOn ? 'DCA' : '');
+    document.getElementById('hopDetail' + i).style.display = isOn ? 'block' : 'none';
+  }
+  if (type === 'vip') {
+    updateDay(i, 'isVip', isOn);
+    document.getElementById('vipDetail' + i).style.display = isOn ? 'block' : 'none';
+  }
+}
+
+function updateDay(i, field, val) {
+  if (!FORM_DATA.days[i]) FORM_DATA.days[i] = {};
+  FORM_DATA.days[i][field] = val;
+}
+
+var CHECKLIST = [
+  {section:'Before you arrive', items:[
+    'Download the Disneyland app and create an account for each adult',
+    'Link your park tickets to the Disneyland app',
+    'Set up Mobile Order in the app (add a payment method)',
+    'Enable location services for the app',
+    'Screenshot your park tickets as backup'
+  ]},
+  {section:'Lightning Lane \u2014 how it works', expandable: true, content:'Multi Pass: included with most tickets. Book your first ride at park open, then book another after each return time.\n\nIndividual Lightning Lane: costs extra per ride. Only for the biggest headliners. Book these the moment the park opens.\n\nStrategy: book your first Multi Pass for the ride with the shortest walk from the entrance, then walk to your top priority and ride standby.', items:[]},
+  {section:'Park hopper rules', items:[
+    'Park hopping opens at 11:00 AM daily (not at park open)',
+    'To hop: tap the QR icon in the Disneyland app',
+    'Book your first Lightning Lane for the 2nd park before you hop',
+    'Fastest DL \u2192 DCA: exit main gate, walk through Downtown Disney (~12 min)'
+  ]},
+  {section:'What to pack', items:[
+    'Portable phone charger',
+    'Ponchos (not umbrellas)',
+    'Sunscreen',
+    'Comfortable shoes \u2014 expect 8\u201312 miles of walking per day',
+    'Snacks in a bag (outside food is allowed)',
+    'Autograph book and marker if kids want signatures',
+    'Small backpack or hip pack'
+  ]},
+  {section:'Mobile order strategy', items:[
+    'Open Mobile Order before you\'re hungry \u2014 windows sell out',
+    'Best window: place order 45\u201360 min before you want to eat',
+    'Top quick-service: Galactic Grill, Jolly Holiday, Smokejumpers'
+  ]},
+  {section:'Photo pass', items:[
+    'Photo pass photographers are at major landmarks \u2014 they scan your ticket automatically',
+    'Ride photos: scan your ticket near the exit screen immediately'
+  ]},
+  {section:'On the day', items:[
+    'Arrive 30\u201345 min before official park open for rope drop',
+    'First 90 min = lowest waits of the day. Hit your top priority rides immediately.',
+    'Check the AI Optimize button in the app each morning',
+    'Use the AI Chat tab for real-time questions during the day'
+  ]}
+];
+
+var checkProgress = {};
+
+function buildChecklist() {
+  try { checkProgress = JSON.parse(localStorage.getItem('checklistProgress') || '{}'); } catch(e) {}
+  var el = document.getElementById('checklistContainer');
+  if (!el) return;
+  var h = '';
+  CHECKLIST.forEach(function(sec, si) {
+    h += '<div class="pt-checklist-section">';
+    h += '<div class="pt-checklist-header" onclick="toggleSection(' + si + ')">';
+    h += '<div class="pt-checklist-title">' + sec.section + '</div>';
+    if (sec.expandable) {
+      h += '<span style="font-size:11px;color:#1A6860" id="secToggle' + si + '">\u25bc</span>';
+    } else {
+      var done = (sec.items||[]).filter(function(_,ii){return checkProgress[si+'_'+ii];}).length;
+      h += '<div class="pt-checklist-count">' + done + '/' + sec.items.length + '</div>';
+    }
+    h += '</div>';
+    h += '<div class="pt-checklist-body" id="secBody' + si + '">';
+    if (sec.expandable) {
+      h += '<div style="font-size:11px;color:#4A7A7C;line-height:1.6;white-space:pre-line;padding-bottom:4px">' + sec.content + '</div>';
+    } else {
+      (sec.items||[]).forEach(function(item, ii) {
+        var done = checkProgress[si+'_'+ii] ? 'checked' : '';
+        h += '<div class="pt-check-item ' + done + '" onclick="toggleCheck(' + si + ',' + ii + ')">'
+          + '<div class="pt-check-box"></div>'
+          + '<div class="pt-check-text">' + item + '</div></div>';
+      });
+    }
+    h += '</div></div>';
+  });
+  el.innerHTML = h;
+}
+
+function toggleSection(i) {
+  var body = document.getElementById('secBody' + i);
+  if (body) {
+    var isOpen = body.style.display === 'block';
+    body.style.display = isOpen ? 'none' : 'block';
+    var toggle = document.getElementById('secToggle' + i);
+    if (toggle) toggle.textContent = isOpen ? '\u25bc' : '\u25b2';
+  }
+}
+
+function toggleCheck(si, ii) {
+  var key = si + '_' + ii;
+  checkProgress[key] = !checkProgress[key];
+  try { localStorage.setItem('checklistProgress', JSON.stringify(checkProgress)); } catch(e) {}
+  buildChecklist();
+}
+
+function completeSetup() {
+  // Save all data
+  saveStepData(curStep);
+  // Mark setup complete
+  localStorage.setItem('tripSetupComplete', 'true');
+  localStorage.setItem('checklistProgress', JSON.stringify(checkProgress));
+  // Merge into TRIP_CONFIG if accessible
+  // Navigate to app.html
+  window.location.href = 'app.html';
+}
+
+// Initialize on load
+window.addEventListener('DOMContentLoaded', function() {
+  ptInit();
+});
 </script>
 </body>
 </html>
