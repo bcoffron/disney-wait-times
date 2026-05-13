@@ -1,602 +1,858 @@
 <!DOCTYPE html>
-<html lang="en" style="color-scheme:light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="color-scheme" content="light">
-<meta name="version" content="202605130900-v105a">
-<title>Set Up Your Trip &mdash; Theme Park Co-Pilot</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Trip Setup — Theme Park Co-Pilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
-.pt-wrap{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#EEF5F4}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflow-x:hidden;}
 /* Header */
-.pt-header{background:#071E25;padding:12px 16px 0;position:sticky;top:0;z-index:100}
-.pt-eyebrow{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:3px}
-.pt-header-title{font-size:13px;font-weight:800;color:#FFFFFF;line-height:1.2}
-.pt-step-indicator{font-size:9px;color:rgba(255,255,255,0.45);margin-top:2px;padding-bottom:10px}
-.pt-progress-bar{height:3px;background:rgba(255,255,255,0.15);width:100%;position:relative}
-.pt-progress-fill{height:100%;background:#1A6860;transition:width .3s ease}
+.pt-header{background:#071E25;padding:14px 16px 0;position:sticky;top:0;z-index:100;}
+.pt-eyebrow{font-size:9px;font-weight:700;letter-spacing:0.12em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:3px;}
+.pt-title{font-size:17px;font-weight:800;color:#fff;margin-bottom:2px;}
+.pt-step-indicator{font-size:10px;font-weight:500;color:rgba(255,255,255,0.45);margin-bottom:10px;}
+.pt-progress-bar{height:3px;background:rgba(255,255,255,0.10);border-radius:2px;margin:0 -16px;position:relative;}
+.pt-progress-fill{height:100%;background:linear-gradient(90deg,#1A8880,#2AAFA6);border-radius:2px;transition:width 0.4s ease;}
 /* Back button */
-.pt-back{position:absolute;top:12px;left:16px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
-/* Content area */
-.pt-content{flex:1;padding:16px;overflow-y:auto}
-.pt-section-title{font-size:16px;font-weight:800;color:#071E25;margin-bottom:4px}
-.pt-section-sub{font-size:12px;color:#4A7A7C;margin-bottom:16px;line-height:1.4}
-/* Labels and inputs */
-.pt-label{font-size:10px;font-weight:700;color:#071E25;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:block}
-.pt-input{width:100%;border:1px solid rgba(7,30,37,0.15);border-radius:8px;padding:10px 12px;font-size:14px;color:#071E25;font-family:'Outfit',sans-serif;background:#FFFFFF;outline:none;margin-bottom:12px}
-.pt-input:focus{border-color:#1A6860;box-shadow:0 0 0 2px rgba(26,104,96,0.12)}
-/* Segmented pills */
-.pt-pill-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.pt-pill{border:1.5px solid rgba(7,30,37,0.15);border-radius:20px;padding:6px 12px;font-size:11px;font-weight:600;color:#4A7A7C;cursor:pointer;background:#FFFFFF;font-family:'Outfit',sans-serif;transition:all .15s}
-.pt-pill.active{background:#1A6860;border-color:#1A6860;color:#FFFFFF}
-.pt-pill:active{transform:scale(.97)}
-/* Chip grid */
-.pt-chip-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.pt-chip{border:1.5px solid rgba(7,30,37,0.15);border-radius:20px;padding:5px 11px;font-size:11px;font-weight:600;color:#4A7A7C;cursor:pointer;background:#FFFFFF;font-family:'Outfit',sans-serif;transition:all .15s}
-.pt-chip.selected{background:#1A6860;border-color:#1A6860;color:#FFFFFF}
-.pt-chip.never-selected{background:#C41E1E;border-color:#C41E1E;color:#FFFFFF}
-.pt-chip:active{transform:scale(.97)}
-/* Member rows */
-.pt-member-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.pt-member-name{flex:1}
-.pt-member-age{width:60px;flex-shrink:0}
-.pt-member-remove{background:none;border:none;cursor:pointer;font-size:18px;color:#C41E1E;padding:0 4px;font-family:inherit}
-.pt-add-link{font-size:12px;font-weight:600;color:#1A6860;cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
-/* Day sections */
-.pt-day-section{background:#FFFFFF;border-radius:12px;border:1px solid rgba(7,30,37,0.08);padding:12px;margin-bottom:12px}
-.pt-day-label{font-size:13px;font-weight:700;color:#071E25;margin-bottom:10px}
-.pt-toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.pt-toggle-lbl{font-size:12px;font-weight:600;color:#071E25}
-.pt-toggle{width:40px;height:22px;background:rgba(7,30,37,0.15);border-radius:11px;position:relative;cursor:pointer;transition:background .2s;border:none;padding:0;flex-shrink:0}
-.pt-toggle.on{background:#1A6860}
-.pt-toggle-dot{width:18px;height:18px;background:#FFFFFF;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
-.pt-toggle.on .pt-toggle-dot{left:20px}
-/* Checklist */
-.pt-checklist-section{background:#FFFFFF;border-radius:12px;border:1px solid rgba(7,30,37,0.08);margin-bottom:10px;overflow:hidden}
-.pt-checklist-header{display:flex;align-items:center;justify-content:space-between;padding:12px;cursor:pointer;user-select:none}
-.pt-checklist-title{font-size:13px;font-weight:700;color:#071E25}
-.pt-checklist-count{font-size:10px;color:#1A6860;font-weight:600}
-.pt-checklist-body{padding:0 12px 12px;display:none}
-.pt-check-item{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:0.5px solid rgba(7,30,37,0.06);cursor:pointer}
-.pt-check-item:last-child{border-bottom:none}
-.pt-check-box{width:18px;height:18px;border-radius:4px;border:1.5px solid rgba(7,30,37,0.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s;background:#FFFFFF}
-.pt-check-item.checked .pt-check-box{background:#1A6860;border-color:#1A6860}
-.pt-check-item.checked .pt-check-box::after{content:'';display:block;width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
-.pt-check-text{font-size:12px;color:#4A7A7C;line-height:1.4;flex:1}
-.pt-check-item.checked .pt-check-text{color:#8AACAE;text-decoration:line-through}
-/* Expandable info block */
-.pt-expand-block{background:rgba(26,104,96,0.06);border-radius:8px;padding:10px 12px;margin-bottom:10px}
-.pt-expand-title{font-size:12px;font-weight:700;color:#071E25;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-.pt-expand-body{font-size:11px;color:#4A7A7C;line-height:1.5;margin-top:8px;display:none}
-.pt-expand-body.open{display:block}
-/* CTA */
-.pt-cta-wrap{padding:12px 16px;background:#EEF5F4;border-top:1px solid rgba(7,30,37,0.08)}
-.pt-cta{width:100%;padding:13px 20px;border-radius:10px;background:#C86030;border:none;color:#fff;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;letter-spacing:.02em}
-.pt-cta:active{transform:scale(.97)}
-/* Step visibility */
-.pt-step{display:none}
-.pt-step.active{display:block}
+.pt-back{position:absolute;top:14px;left:16px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);background:none;border:none;cursor:pointer;padding:2px 0;display:flex;align-items:center;gap:4px;}
+.pt-back svg{opacity:0.5;}
+/* Content */
+.pt-content{padding:20px 16px 120px;max-width:430px;margin:0 auto;}
+/* Step */
+.pt-step{display:none;}
+.pt-step.active{display:block;}
+/* Section label */
+.pt-section-label{font-size:9px;font-weight:700;letter-spacing:0.10em;color:#1A8880;text-transform:uppercase;margin-bottom:8px;margin-top:20px;}
+.pt-section-label:first-child{margin-top:0;}
+/* Input group */
+.pt-input{width:100%;background:#fff;border:1px solid rgba(7,30,37,0.12);border-radius:10px;padding:10px 12px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;color:#071E25;outline:none;-webkit-appearance:none;}
+.pt-input:focus{border-color:#1A8880;box-shadow:0 0 0 3px rgba(26,136,128,0.10);}
+.pt-input::placeholder{color:rgba(7,30,37,0.30);}
+.pt-input-row{display:flex;gap:8px;margin-bottom:10px;}
+.pt-input-row .pt-input:first-child{flex:1;}
+.pt-input-row .pt-input.short{width:72px;flex:none;}
+.pt-label{font-size:11px;font-weight:600;color:#071E25;margin-bottom:5px;}
+.pt-hint{font-size:9px;color:#4A7A7C;margin-top:4px;}
+.pt-field{margin-bottom:12px;}
+/* Segmented control */
+.pt-seg{display:flex;gap:4px;background:rgba(7,30,37,0.06);padding:3px;border-radius:10px;}
+.pt-seg-btn{flex:1;padding:7px 4px;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:#4A7A7C;background:none;border:none;border-radius:7px;cursor:pointer;text-align:center;transition:all 0.18s;}
+.pt-seg-btn.active{background:#fff;color:#071E25;box-shadow:0 1px 3px rgba(7,30,37,0.12);}
+/* Members list */
+.pt-members-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+.pt-member-row{display:flex;gap:8px;align-items:center;}
+.pt-member-row .pt-input{flex:1;}
+.pt-member-row .pt-input.age-input{width:60px;flex:none;}
+.pt-remove-btn{width:28px;height:28px;background:rgba(200,96,48,0.08);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;}
+.pt-add-link{font-size:11px;font-weight:600;color:#1A8880;background:none;border:none;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:4px;}
+/* Single select tiles */
+.pt-tiles{display:flex;flex-direction:column;gap:7px;}
+.pt-tile{background:#fff;border:1.5px solid rgba(7,30,37,0.08);border-radius:11px;padding:11px 13px;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:space-between;}
+.pt-tile.selected{border-color:#1A8880;background:#F0FAF9;}
+.pt-tile-label{font-size:12px;font-weight:600;color:#071E25;}
+.pt-tile-sub{font-size:10px;color:#4A7A7C;margin-top:1px;}
+.pt-tile-check{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(7,30,37,0.15);display:flex;align-items:center;justify-content:center;flex:none;transition:all 0.18s;}
+.pt-tile.selected .pt-tile-check{background:#1A8880;border-color:#1A8880;}
+/* Chips */
+.pt-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.pt-chip{background:#fff;border:1.5px solid rgba(7,30,37,0.10);border-radius:20px;padding:5px 12px;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:#4A7A7C;cursor:pointer;transition:all 0.18s;}
+.pt-chip.selected{background:#1A8880;border-color:#1A8880;color:#fff;}
+/* Checkbox rows */
+.pt-check-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(7,30,37,0.05);}
+.pt-check-row:last-child{border-bottom:none;}
+.pt-check-box{width:20px;height:20px;border-radius:5px;border:1.5px solid rgba(7,30,37,0.18);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:all 0.18s;}
+.pt-check-box.checked{background:#1A8880;border-color:#1A8880;}
+.pt-check-label{font-size:12px;font-weight:500;color:#071E25;cursor:pointer;}
+/* Day card */
+.pt-day-card{background:#fff;border-radius:13px;border:1px solid rgba(7,30,37,0.08);padding:14px;margin-bottom:12px;}
+.pt-day-card-header{font-size:12px;font-weight:700;color:#071E25;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(7,30,37,0.06);}
+.pt-day-date{font-size:10px;font-weight:500;color:#4A7A7C;margin-top:1px;}
+/* Toggle */
+.pt-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;}
+.pt-toggle-label{font-size:12px;font-weight:500;color:#071E25;}
+.pt-toggle{width:38px;height:22px;background:rgba(7,30,37,0.12);border-radius:11px;position:relative;cursor:pointer;transition:background 0.2s;flex:none;}
+.pt-toggle.on{background:#1A8880;}
+.pt-toggle-knob{position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.pt-toggle.on .pt-toggle-knob{left:19px;}
+/* Checklist step */
+.pt-cl-section{background:#fff;border-radius:11px;margin-bottom:8px;overflow:hidden;border:1px solid rgba(7,30,37,0.07);}
+.pt-cl-section-header{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.pt-cl-section-title{font-size:12px;font-weight:700;color:#071E25;}
+.pt-cl-section-count{font-size:10px;color:#4A7A7C;}
+.pt-cl-section-body{padding:0 14px 10px;display:none;}
+.pt-cl-section-body.open{display:block;}
+.pt-cl-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(7,30,37,0.05);}
+.pt-cl-item:last-child{border-bottom:none;}
+.pt-cl-item-check{width:20px;height:20px;border-radius:5px;border:1.5px solid rgba(7,30,37,0.18);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px;transition:all 0.18s;}
+.pt-cl-item-check.checked{background:#0F6830;border-color:#0F6830;}
+.pt-cl-item-text{font-size:11px;font-weight:500;color:#4A7A7C;line-height:1.4;}
+/* CTA bar */
+.pt-cta-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(to top,#EEF5F4 60%,transparent);padding:16px 16px 28px;max-width:430px;margin:0 auto;}
+.pt-cta-btn{width:100%;background:#C86030;border:none;border-radius:13px;padding:14px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 16px rgba(200,96,48,0.30);}
+.pt-cta-btn:active{transform:scale(0.98);}
+.pt-cta-btn.teal{background:#1A8880;box-shadow:0 4px 16px rgba(26,136,128,0.30);}
+/* Date inputs side by side */
+.pt-date-row{display:flex;gap:8px;}
+.pt-date-row .pt-field{flex:1;}
 /* Textarea */
-.pt-textarea{width:100%;border:1px solid rgba(7,30,37,0.15);border-radius:8px;padding:10px 12px;font-size:13px;color:#071E25;font-family:'Outfit',sans-serif;background:#FFFFFF;outline:none;resize:vertical;min-height:70px;margin-bottom:12px}
-/* Section headers in steps */
-.pt-sub-header{font-size:11px;font-weight:700;color:#1A6860;text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid rgba(26,104,96,0.15)}
+.pt-textarea{width:100%;background:#fff;border:1px solid rgba(7,30,37,0.12);border-radius:10px;padding:10px 12px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:400;color:#071E25;outline:none;resize:none;min-height:72px;-webkit-appearance:none;}
+.pt-textarea:focus{border-color:#1A8880;}
+.pt-textarea::placeholder{color:rgba(7,30,37,0.30);}
+/* VIP sub-fields */
+.pt-vip-sub{margin-top:10px;display:none;}
+.pt-vip-sub.visible{display:block;}
+.pt-time-row{display:flex;gap:8px;align-items:center;}
+.pt-time-row .pt-input{flex:1;}
+.pt-time-label{font-size:10px;font-weight:600;color:#4A7A7C;width:32px;flex:none;}
 </style>
 </head>
 <body>
-<div class="pt-wrap">
 
-<!-- HEADER (rendered by JS) -->
 <div class="pt-header" id="ptHeader">
-  <div style="position:relative;padding-bottom:10px">
-    <button class="pt-back" id="ptBack" onclick="ptBack()" style="display:none">&#8592; Back</button>
-    <div style="text-align:center">
-      <div class="pt-eyebrow">THEME PARK CO-PILOT</div>
-      <div class="pt-header-title" id="ptStepTitle">Set Up Your Trip</div>
-      <div class="pt-step-indicator" id="ptStepIndicator">Step 1 of 5</div>
+  <div style="position:relative;padding-bottom:10px;">
+    <button class="pt-back" id="ptBackBtn" onclick="ptBack()" style="display:none;">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M6 1L1 6L6 11" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back
+    </button>
+    <div style="text-align:center;">
+      <div class="pt-eyebrow">Theme Park Co-Pilot</div>
+      <div class="pt-title" id="ptStepTitle">Your Group</div>
+      <div class="pt-step-indicator" id="ptStepInd">Step 1 of 5</div>
     </div>
   </div>
-  <div class="pt-progress-bar"><div class="pt-progress-fill" id="ptProgress" style="width:20%"></div></div>
-</div>
-<!-- STEP 1: Your Group -->
-<div class="pt-step active" id="ptStep0">
-  <div class="pt-content">
-    <div class="pt-section-title">Your Group</div>
-    <div class="pt-section-sub">Tell us who is coming so we can personalise your schedule.</div>
-    
-    <label class="pt-label">Trip name</label>
-    <input class="pt-input" id="tripName" placeholder="e.g. Coffron/Woods" type="text">
-    
-    <label class="pt-label">Trip dates</label>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <input class="pt-input" id="tripStart" type="date" style="margin-bottom:0;flex:1">
-      <span style="line-height:38px;color:#4A7A7C;font-size:12px">to</span>
-      <input class="pt-input" id="tripEnd" type="date" style="margin-bottom:0;flex:1">
-    </div>
-    
-    <label class="pt-label">Home park</label>
-    <div class="pt-pill-row" id="parkPills">
-      <button class="pt-pill active" data-val="Disneyland" onclick="selectPill(this,'park')">Disneyland</button>
-      <button class="pt-pill" data-val="Walt Disney World" onclick="selectPill(this,'park')">Walt Disney World</button>
-      <button class="pt-pill" data-val="Universal" onclick="selectPill(this,'park')">Universal</button>
-      <button class="pt-pill" data-val="Other" onclick="selectPill(this,'park')">Other</button>
-    </div>
-    
-    <label class="pt-label">Group members</label>
-    <div id="memberList"></div>
-    <button class="pt-add-link" onclick="addMember()">+ Add another person</button>
+  <div class="pt-progress-bar">
+    <div class="pt-progress-fill" id="ptProgressFill" style="width:20%;"></div>
   </div>
 </div>
 
-<!-- STEP 2: Ride Preferences -->
-<div class="pt-step" id="ptStep1">
-  <div class="pt-content">
-    <div class="pt-section-title">What does your group love?</div>
-    <div class="pt-section-sub">Help us build the perfect schedule for your group.</div>
-    
-    <div class="pt-sub-header">Thrill level</div>
-    <div class="pt-pill-row" id="thrillPills">
-      <button class="pt-pill" data-val="Thrills only" onclick="selectPill(this,'thrill')">Thrills only</button>
-      <button class="pt-pill active" data-val="Mix of everything" onclick="selectPill(this,'thrill')">Mix of everything</button>
-      <button class="pt-pill" data-val="Mostly gentle" onclick="selectPill(this,'thrill')">Mostly gentle</button>
-      <button class="pt-pill" data-val="Little ones first" onclick="selectPill(this,'thrill')">Little ones first</button>
+<div class="pt-content">
+
+<!-- STEP 1: YOUR GROUP -->
+<div class="pt-step active" id="ptStep1">
+  <div class="pt-section-label">Trip name</div>
+  <div class="pt-field">
+    <input class="pt-input" id="tripName" type="text" placeholder="e.g. Coffron Family Trip 2026" autocomplete="off">
+  </div>
+
+  <div class="pt-section-label">Trip dates</div>
+  <div class="pt-date-row">
+    <div class="pt-field">
+      <div class="pt-label">Start date</div>
+      <input class="pt-input" id="tripStart" type="date" value="2026-06-28">
     </div>
-    
-    <div class="pt-sub-header">Must-do rides</div>
-    <div class="pt-chip-grid" id="mustDoChips"></div>
-    
-    <div class="pt-sub-header">Rides to skip entirely</div>
-    <div class="pt-chip-grid" id="skipChips"></div>
-    
-    <div class="pt-sub-header">Accessibility needs</div>
-    <div class="pt-chip-grid" id="accessChips">
-      <button class="pt-chip" data-val="Mobility aid / wheelchair" onclick="toggleChip(this,'access')">Mobility aid / wheelchair</button>
-      <button class="pt-chip" data-val="Height restrictions" onclick="toggleChip(this,'access')">Height restrictions</button>
-      <button class="pt-chip" data-val="Avoid spinning rides" onclick="toggleChip(this,'access')">Avoid spinning rides</button>
-      <button class="pt-chip" data-val="Avoid loud/dark rides" onclick="toggleChip(this,'access')">Avoid loud/dark rides</button>
-      <button class="pt-chip" data-val="Service animal with us" onclick="toggleChip(this,'access')">Service animal with us</button>
+    <div class="pt-field">
+      <div class="pt-label">End date</div>
+      <input class="pt-input" id="tripEnd" type="date" value="2026-06-30">
     </div>
   </div>
+
+  <div class="pt-section-label">Home park</div>
+  <div class="pt-seg" id="parkSeg" style="margin-bottom:12px;">
+    <button class="pt-seg-btn active" onclick="ptSegSelect('parkSeg',this,'Disneyland')">Disneyland</button>
+    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'WDW')">WDW</button>
+    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'Universal')">Universal</button>
+    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'Other')">Other</button>
+  </div>
+
+  <div class="pt-section-label">Group members</div>
+  <div class="pt-members-list" id="membersList"></div>
+  <button class="pt-add-link" onclick="ptAddMember()">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#1A8880" stroke-width="1.5"/><path d="M7 4V10M4 7H10" stroke="#1A8880" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Add another person
+  </button>
 </div>
 
-<!-- STEP 3: Dining -->
+<!-- STEP 2: RIDE PREFERENCES -->
 <div class="pt-step" id="ptStep2">
-  <div class="pt-content">
-    <div class="pt-section-title">How does your group like to eat?</div>
-    <div class="pt-section-sub">We'll show dining options and AI suggestions that fit your style.</div>
-    
-    <div class="pt-sub-header">Dining style</div>
-    <div class="pt-pill-row" id="diningStylePills">
-      <button class="pt-pill active" data-val="Quick service mostly" onclick="selectPill(this,'diningStyle')">Quick service mostly</button>
-      <button class="pt-pill" data-val="Mix of table service and quick" onclick="selectPill(this,'diningStyle')">Mix of table &amp; quick</button>
-      <button class="pt-pill" data-val="Special dining experiences" onclick="selectPill(this,'diningStyle')">Special experiences</button>
+  <div class="pt-section-label">Thrill level</div>
+  <div class="pt-tiles" id="thrillTiles">
+    <div class="pt-tile selected" onclick="ptTileSelect('thrillTiles',this,'Mix of everything')">
+      <div>
+        <div class="pt-tile-label">Mix of everything</div>
+        <div class="pt-tile-sub">Balance of thrills and family rides</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
-    
-    <div class="pt-sub-header">Budget</div>
-    <div class="pt-pill-row" id="budgetPills">
-      <button class="pt-pill" data-val="$" onclick="selectPill(this,'budget')">$</button>
-      <button class="pt-pill active" data-val="$$" onclick="selectPill(this,'budget')">$$</button>
-      <button class="pt-pill" data-val="$$$" onclick="selectPill(this,'budget')">$$$</button>
-      <button class="pt-pill" data-val="No preference" onclick="selectPill(this,'budget')">No preference</button>
+    <div class="pt-tile" onclick="ptTileSelect('thrillTiles',this,'Thrills only')">
+      <div>
+        <div class="pt-tile-label">Thrills only</div>
+        <div class="pt-tile-sub">Rollercoasters and intense attractions</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
-    
-    <div class="pt-sub-header">Dietary needs</div>
-    <div class="pt-chip-grid" id="dietaryChips">
-      <button class="pt-chip" data-val="Vegetarian" onclick="toggleChip(this,'dietary')">Vegetarian</button>
-      <button class="pt-chip" data-val="Vegan" onclick="toggleChip(this,'dietary')">Vegan</button>
-      <button class="pt-chip" data-val="Gluten-free" onclick="toggleChip(this,'dietary')">Gluten-free</button>
-      <button class="pt-chip" data-val="Nut allergy" onclick="toggleChip(this,'dietary')">Nut allergy</button>
-      <button class="pt-chip" data-val="Dairy-free" onclick="toggleChip(this,'dietary')">Dairy-free</button>
-      <button class="pt-chip" data-val="Kosher" onclick="toggleChip(this,'dietary')">Kosher</button>
-      <button class="pt-chip" data-val="Halal" onclick="toggleChip(this,'dietary')">Halal</button>
-      <button class="pt-chip" data-val="No restrictions" onclick="toggleChip(this,'dietary')">No restrictions</button>
+    <div class="pt-tile" onclick="ptTileSelect('thrillTiles',this,'Mostly gentle')">
+      <div>
+        <div class="pt-tile-label">Mostly gentle</div>
+        <div class="pt-tile-sub">Relaxed pacing, lower intensity</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
-    
-    <div class="pt-sub-header">Reservation approach</div>
-    <div class="pt-pill-row" id="diningRecPills">
-      <button class="pt-pill" data-val="self" onclick="selectPill(this,'diningRec')">I'll handle bookings myself</button>
-      <button class="pt-pill active" data-val="ai" onclick="selectPill(this,'diningRec')">Show me AI suggestions</button>
+    <div class="pt-tile" onclick="ptTileSelect('thrillTiles',this,'Little ones first')">
+      <div>
+        <div class="pt-tile-label">Little ones first</div>
+        <div class="pt-tile-sub">Kid-friendly, avoid scary or fast rides</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
-    
-    <div class="pt-sub-header">Restaurants you definitely want (optional)</div>
-    <textarea class="pt-textarea" id="wantedRestaurants" placeholder="e.g. Blue Bayou, Carthay Circle"></textarea>
+  </div>
+
+  <div class="pt-section-label" style="margin-top:20px;">Must-do rides</div>
+  <div class="pt-hint" style="margin-bottom:8px;">Tap to select — we'll make sure to fit these in</div>
+  <div class="pt-chips" id="mustDoChips">
+    <div class="pt-chip" onclick="ptChipToggle(this)">Matterhorn</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Space Mountain</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Indiana Jones</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Haunted Mansion</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Big Thunder Mountain</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Star Wars: Rise of the Resistance</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Radiator Springs Racers</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Incredicoaster</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Guardians of the Galaxy</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Splash Mountain</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Finding Nemo</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">It's a Small World</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Fantasmic!</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">World of Color</div>
+  </div>
+
+  <div class="pt-section-label" style="margin-top:16px;">Never schedule these</div>
+  <div class="pt-hint" style="margin-bottom:8px;">We'll remove these from your itinerary</div>
+  <div class="pt-chips" id="neverChips">
+    <div class="pt-chip" onclick="ptChipToggle(this)">Matterhorn</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Space Mountain</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Indiana Jones</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Haunted Mansion</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Big Thunder Mountain</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Star Wars: Rise of the Resistance</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Radiator Springs Racers</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Incredicoaster</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Guardians of the Galaxy</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Splash Mountain</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Finding Nemo</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Roger Rabbit's Car Toon Spin</div>
+  </div>
+
+  <div class="pt-section-label" style="margin-top:16px;">Accessibility needs</div>
+  <div id="accessChkList">
+    <div class="pt-check-row" onclick="ptCheckToggle('acc_mobility')">
+      <div class="pt-check-box" id="acc_mobility"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pt-check-label">Mobility aid (wheelchair/ECV)</div>
+    </div>
+    <div class="pt-check-row" onclick="ptCheckToggle('acc_height')">
+      <div class="pt-check-box" id="acc_height"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pt-check-label">Height restrictions in our group</div>
+    </div>
+    <div class="pt-check-row" onclick="ptCheckToggle('acc_spin')">
+      <div class="pt-check-box" id="acc_spin"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pt-check-label">Avoid spinning rides</div>
+    </div>
+    <div class="pt-check-row" onclick="ptCheckToggle('acc_dark')">
+      <div class="pt-check-box" id="acc_dark"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pt-check-label">Avoid loud or very dark rides</div>
+    </div>
+    <div class="pt-check-row" onclick="ptCheckToggle('acc_service')">
+      <div class="pt-check-box" id="acc_service"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pt-check-label">Service animal in our group</div>
+    </div>
   </div>
 </div>
 
-<!-- STEP 4: Day-by-Day -->
+<!-- STEP 3: DINING -->
 <div class="pt-step" id="ptStep3">
-  <div class="pt-content">
-    <div class="pt-section-title">Day-by-Day Setup</div>
-    <div class="pt-section-sub">Configure each day of your trip.</div>
-    <div id="daySetupList"></div>
+  <div class="pt-section-label">Dining style</div>
+  <div class="pt-tiles" id="diningStyleTiles">
+    <div class="pt-tile selected" onclick="ptTileSelect('diningStyleTiles',this,'Mix of table service and quick')">
+      <div>
+        <div class="pt-tile-label">Mix of quick service and table service</div>
+        <div class="pt-tile-sub">Balance of convenience and experience</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="pt-tile" onclick="ptTileSelect('diningStyleTiles',this,'Quick service mostly')">
+      <div>
+        <div class="pt-tile-label">Quick service mostly</div>
+        <div class="pt-tile-sub">Fast, flexible — more time for rides</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="pt-tile" onclick="ptTileSelect('diningStyleTiles',this,'Special dining experiences')">
+      <div>
+        <div class="pt-tile-label">Special dining experiences</div>
+        <div class="pt-tile-sub">Character dining, signature restaurants</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
   </div>
+
+  <div class="pt-section-label" style="margin-top:16px;">Budget per meal</div>
+  <div class="pt-seg" id="budgetSeg" style="margin-bottom:12px;">
+    <button class="pt-seg-btn" onclick="ptSegSelect('budgetSeg',this,'$')">$</button>
+    <button class="pt-seg-btn" onclick="ptSegSelect('budgetSeg',this,'$$')">$$</button>
+    <button class="pt-seg-btn" onclick="ptSegSelect('budgetSeg',this,'$$$')">$$$</button>
+    <button class="pt-seg-btn active" onclick="ptSegSelect('budgetSeg',this,'No preference')">No pref</button>
+  </div>
+
+  <div class="pt-section-label">Dietary needs</div>
+  <div class="pt-hint" style="margin-bottom:8px;">Select all that apply</div>
+  <div class="pt-chips" id="dietChips">
+    <div class="pt-chip" onclick="ptChipToggle(this)">No restrictions</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Vegetarian</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Vegan</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Gluten-free</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Nut allergy</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Dairy-free</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Kosher</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Halal</div>
+  </div>
+
+  <div class="pt-section-label" style="margin-top:16px;">Reservation approach</div>
+  <div class="pt-tiles" id="diningRecTiles">
+    <div class="pt-tile selected" onclick="ptTileSelect('diningRecTiles',this,'Show me AI suggestions')">
+      <div>
+        <div class="pt-tile-label">Show me AI suggestions</div>
+        <div class="pt-tile-sub">AI picks restaurants that match your group</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="pt-tile" onclick="ptTileSelect('diningRecTiles',this,'I'll handle bookings myself')">
+      <div>
+        <div class="pt-tile-label">I'll handle bookings myself</div>
+        <div class="pt-tile-sub">Just show me reservation info cards</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+  </div>
+
+  <div class="pt-section-label" style="margin-top:16px;">Restaurants you want to try</div>
+  <textarea class="pt-textarea" id="wantedRestaurants" placeholder="e.g. Blue Bayou, Carnation Cafe, Lamplight Lounge..."></textarea>
 </div>
 
-<!-- STEP 5: Pre-Trip Checklist -->
+<!-- STEP 4: DAY-BY-DAY -->
 <div class="pt-step" id="ptStep4">
-  <div class="pt-content">
-    <div class="pt-section-title">Pre-Trip Prep</div>
-    <div class="pt-section-sub">Work through this checklist before you go. Tap items to mark them done.</div>
-    
-    <div id="checklistContainer"></div>
-    
-    <div style="margin-top:16px;padding:12px;background:rgba(26,104,96,0.08);border-radius:10px;font-size:11px;color:#1A6860;line-height:1.5">
-      <strong>You're almost ready!</strong> When you tap the button below, your personalised schedule will be waiting for you in the app.
+  <div class="pt-section-label" style="margin-top:0;">Day by day details</div>
+  <div class="pt-hint" style="margin-bottom:14px;">Set up each day of your trip individually</div>
+
+  <!-- Day 1 -->
+  <div class="pt-day-card">
+    <div class="pt-day-card-header">
+      <div>Day 1</div>
+      <div class="pt-day-date" id="day1DateLabel">Jun 28, 2026</div>
+    </div>
+    <div class="pt-field">
+      <div class="pt-label">Park</div>
+      <div class="pt-seg" id="day1ParkSeg" style="margin-bottom:0;">
+        <button class="pt-seg-btn active" onclick="ptSegSelect('day1ParkSeg',this,'Disneyland')">Disneyland</button>
+        <button class="pt-seg-btn" onclick="ptSegSelect('day1ParkSeg',this,'California Adventure')">DCA</button>
+        <button class="pt-seg-btn" onclick="ptSegSelect('day1ParkSeg',this,'Both')">Both</button>
+      </div>
+    </div>
+    <div class="pt-toggle-row" style="margin-top:10px;">
+      <div class="pt-toggle-label">Park hopper</div>
+      <div class="pt-toggle" id="day1Hopper" onclick="ptToggle('day1Hopper')"><div class="pt-toggle-knob"></div></div>
+    </div>
+    <div class="pt-field" style="margin-top:10px;">
+      <div class="pt-label">Wake-up time</div>
+      <input class="pt-input" id="day1Wake" type="time" value="06:30">
+    </div>
+    <div class="pt-toggle-row">
+      <div class="pt-toggle-label">VIP tour this day</div>
+      <div class="pt-toggle" id="day1Vip" onclick="ptToggle('day1Vip');ptVipToggle(1)"><div class="pt-toggle-knob"></div></div>
+    </div>
+    <div class="pt-vip-sub" id="day1VipSub">
+      <div class="pt-label" style="margin-bottom:6px;">Tour window</div>
+      <div class="pt-time-row">
+        <div class="pt-time-label">Start</div>
+        <input class="pt-input" id="day1VipStart" type="time" value="10:00">
+        <div class="pt-time-label" style="text-align:center;">to</div>
+        <input class="pt-input" id="day1VipEnd" type="time" value="17:00">
+      </div>
+    </div>
+    <div class="pt-field" style="margin-top:10px;">
+      <div class="pt-label">Day notes</div>
+      <textarea class="pt-textarea" id="day1Notes" placeholder="Any special plans for this day..." style="min-height:52px;"></textarea>
+    </div>
+  </div>
+
+  <!-- Day 2 -->
+  <div class="pt-day-card">
+    <div class="pt-day-card-header">
+      <div>Day 2</div>
+      <div class="pt-day-date" id="day2DateLabel">Jun 29, 2026</div>
+    </div>
+    <div class="pt-field">
+      <div class="pt-label">Park</div>
+      <div class="pt-seg" id="day2ParkSeg" style="margin-bottom:0;">
+        <button class="pt-seg-btn active" onclick="ptSegSelect('day2ParkSeg',this,'Disneyland')">Disneyland</button>
+        <button class="pt-seg-btn" onclick="ptSegSelect('day2ParkSeg',this,'California Adventure')">DCA</button>
+        <button class="pt-seg-btn" onclick="ptSegSelect('day2ParkSeg',this,'Both')">Both</button>
+      </div>
+    </div>
+    <div class="pt-toggle-row" style="margin-top:10px;">
+      <div class="pt-toggle-label">Park hopper</div>
+      <div class="pt-toggle" id="day2Hopper" onclick="ptToggle('day2Hopper')"><div class="pt-toggle-knob"></div></div>
+    </div>
+    <div class="pt-field" style="margin-top:10px;">
+      <div class="pt-label">Wake-up time</div>
+      <input class="pt-input" id="day2Wake" type="time" value="06:00">
+    </div>
+    <div class="pt-toggle-row">
+      <div class="pt-toggle-label">VIP tour this day</div>
+      <div class="pt-toggle on" id="day2Vip" onclick="ptToggle('day2Vip');ptVipToggle(2)"><div class="pt-toggle-knob"></div></div>
+    </div>
+    <div class="pt-vip-sub visible" id="day2VipSub">
+      <div class="pt-label" style="margin-bottom:6px;">Tour window</div>
+      <div class="pt-time-row">
+        <div class="pt-time-label">Start</div>
+        <input class="pt-input" id="day2VipStart" type="time" value="10:00">
+        <div class="pt-time-label" style="text-align:center;">to</div>
+        <input class="pt-input" id="day2VipEnd" type="time" value="17:00">
+      </div>
+    </div>
+    <div class="pt-field" style="margin-top:10px;">
+      <div class="pt-label">Day notes</div>
+      <textarea class="pt-textarea" id="day2Notes" placeholder="Any special plans for this day..." style="min-height:52px;"></textarea>
+    </div>
+  </div>
+
+  <!-- Day 3 -->
+  <div class="pt-day-card">
+    <div class="pt-day-card-header">
+      <div>Day 3</div>
+      <div class="pt-day-date" id="day3DateLabel">Jun 30, 2026</div>
+    </div>
+    <div class="pt-field">
+      <div class="pt-label">Park</div>
+      <div class="pt-seg" id="day3ParkSeg" style="margin-bottom:0;">
+        <button class="pt-seg-btn active" onclick="ptSegSelect('day3ParkSeg',this,'Disneyland')">Disneyland</button>
+        <button class="pt-seg-btn" onclick="ptSegSelect('day3ParkSeg',this,'California Adventure')">DCA</button>
+        <button class="pt-seg-btn" onclick="ptSegSelect('day3ParkSeg',this,'Both')">Both</button>
+      </div>
+    </div>
+    <div class="pt-toggle-row" style="margin-top:10px;">
+      <div class="pt-toggle-label">Park hopper</div>
+      <div class="pt-toggle on" id="day3Hopper" onclick="ptToggle('day3Hopper')"><div class="pt-toggle-knob"></div></div>
+    </div>
+    <div class="pt-field" style="margin-top:10px;">
+      <div class="pt-label">Wake-up time</div>
+      <input class="pt-input" id="day3Wake" type="time" value="07:00">
+    </div>
+    <div class="pt-toggle-row">
+      <div class="pt-toggle-label">VIP tour this day</div>
+      <div class="pt-toggle" id="day3Vip" onclick="ptToggle('day3Vip');ptVipToggle(3)"><div class="pt-toggle-knob"></div></div>
+    </div>
+    <div class="pt-vip-sub" id="day3VipSub">
+      <div class="pt-label" style="margin-bottom:6px;">Tour window</div>
+      <div class="pt-time-row">
+        <div class="pt-time-label">Start</div>
+        <input class="pt-input" id="day3VipStart" type="time" value="10:00">
+        <div class="pt-time-label" style="text-align:center;">to</div>
+        <input class="pt-input" id="day3VipEnd" type="time" value="17:00">
+      </div>
+    </div>
+    <div class="pt-field" style="margin-top:10px;">
+      <div class="pt-label">Day notes</div>
+      <textarea class="pt-textarea" id="day3Notes" placeholder="Any special plans for this day..." style="min-height:52px;"></textarea>
     </div>
   </div>
 </div>
 
-</div><!-- /pt-wrap CTA is outside for sticky positioning -->
+<!-- STEP 5: PRE-TRIP CHECKLIST -->
+<div class="pt-step" id="ptStep5">
+  <div class="pt-section-label" style="margin-top:0;">Your pre-trip checklist</div>
+  <div class="pt-hint" style="margin-bottom:14px;">Work through these before your trip for the smoothest day possible</div>
 
-<div class="pt-cta-wrap">
-  <button class="pt-cta" id="ptCtaBtn" onclick="ptNext()">Continue →</button>
+  <div class="pt-cl-section">
+    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
+      <div class="pt-cl-section-title">Before you arrive</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pt-cl-section-count" id="cl_s1_count">0/4</div>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="pt-cl-section-body" id="cl_s1_body">
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s1_count',4)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Download the Disneyland app and link your tickets</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s1_count',4)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Make dining reservations 60 days in advance</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s1_count',4)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Check height requirements for your group members</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s1_count',4)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Book parking or arrange hotel transportation</div></div>
+    </div>
+  </div>
+
+  <div class="pt-cl-section">
+    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
+      <div class="pt-cl-section-title">Lightning Lane strategy</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pt-cl-section-count" id="cl_s2_count">0/3</div>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="pt-cl-section-body" id="cl_s2_body">
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s2_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Lightning Lane Multi Pass is available from 7am day-of — buy early for best ride selection</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s2_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Individual Lightning Lane for Star Wars and Radiator Springs sells out fastest — have payment ready</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s2_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Book new LL passes as soon as your current one is scanned, not when the window opens</div></div>
+    </div>
+  </div>
+
+  <div class="pt-cl-section">
+    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
+      <div class="pt-cl-section-title">Park hopper rules</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pt-cl-section-count" id="cl_s3_count">0/2</div>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="pt-cl-section-body" id="cl_s3_body">
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s3_count',2)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Park hopping is available after 11am — you must have entered your original park first</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s3_count',2)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Confirm your ticket type includes park hopper — single-day tickets typically do not</div></div>
+    </div>
+  </div>
+
+  <div class="pt-cl-section">
+    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
+      <div class="pt-cl-section-title">What to pack</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pt-cl-section-count" id="cl_s4_count">0/5</div>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="pt-cl-section-body" id="cl_s4_body">
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Comfortable walking shoes — you'll average 8-12 miles per day</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Portable battery pack — your phone will be working hard all day</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Sunscreen, hats, and rain ponchos (Southern California can surprise you)</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Refillable water bottle — free water is available at quick service locations</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Small backpack or crossbody — lockers are available but slow you down</div></div>
+    </div>
+  </div>
+
+  <div class="pt-cl-section">
+    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
+      <div class="pt-cl-section-title">Mobile order strategy</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pt-cl-section-count" id="cl_s5_count">0/3</div>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="pt-cl-section-body" id="cl_s5_body">
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s5_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Place mobile orders 30-45 minutes before you want to eat — arrival windows fill up fast at peak times</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s5_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Set up payment in the Disneyland app before your trip to avoid fumbling at mealtime</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s5_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Avoid ordering from Galactic Grill and Rancho del Zocalo at noon — extremely busy</div></div>
+    </div>
+  </div>
+
+  <div class="pt-cl-section">
+    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
+      <div class="pt-cl-section-title">PhotoPass & memories</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pt-cl-section-count" id="cl_s6_count">0/2</div>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="pt-cl-section-body" id="cl_s6_body">
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s6_count',2)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Disney PhotoPass photographers are found at icon locations — scan your ticket to link photos</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s6_count',2)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Memory Maker / PhotoPass+ bundle saves money if you plan to buy photos — purchase before your trip</div></div>
+    </div>
+  </div>
+
+  <div class="pt-cl-section">
+    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
+      <div class="pt-cl-section-title">On the day</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pt-cl-section-count" id="cl_s7_count">0/3</div>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="pt-cl-section-body" id="cl_s7_body">
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s7_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Arrive at park gates 30 minutes before official opening for rope drop advantage</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s7_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Head to back of park first — most guests rush toward the front at opening</div></div>
+      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s7_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Take a mid-afternoon break at your hotel — return after 5pm when crowds thin</div></div>
+    </div>
+  </div>
 </div>
+
+</div><!-- end .pt-content -->
+
+<!-- CTA BAR -->
+<div class="pt-cta-bar">
+  <button class="pt-cta-btn" id="ptCtaBtn" onclick="ptNext()">Continue <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M8 3L13 8L8 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+
 <script>
-// ============================================================
-// Pre-trip setup flow
-// ============================================================
+// ── State ───────────────────────────────────────────────
+var ptCurrentStep = 1;
+var ptTotalSteps = 5;
+var ptSegValues = {};
+var ptMemberCount = 0;
 
-var curStep = 0;
-var totalSteps = 5;
-var FORM_DATA = {
-  tripName: '', tripStart: '', tripEnd: '', location: 'Disneyland',
-  members: [{name:'', age:''}],
-  thrillLevel: 'Mix of everything',
-  mustDo: [], neverSchedule: [], accessibility: [],
-  diningStyle: 'Quick service mostly', diningBudget: '$$',
-  dietaryNeeds: [], diningRecs: 'ai', wantedRestaurants: '',
-  days: []
-};
+var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Pre-Trip Checklist'];
 
-var RIDE_LIST = ['Space Mountain','Matterhorn Bobsleds','Big Thunder Mountain Railroad','Haunted Mansion','Indiana Jones Adventure','Tiana\u2019s Bayou Adventure','Millennium Falcon: Smugglers Run','Rise of the Resistance','Star Tours','Splash Mountain (future)','Finding Nemo Submarine','Roger Rabbit\u2019s Car Toon Spin','Mickey & Minnie\u2019s Runaway Railway','Peter Pan\u2019s Flight','Incredicoaster','Radiator Springs Racers','Guardians of the Galaxy \u2013 Mission: BREAKOUT!','Soarin\u2019 Around the World','World of Color','Grizzly River Run'];
+// ── Init ────────────────────────────────────────────────
+(function(){
+  // Check if edit mode
+  var isEdit = (new URLSearchParams(window.location.search)).get('edit') === 'true';
+  if(isEdit){ ptLoadFromStorage(); }
 
-var STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day-by-Day Setup','Pre-Trip Prep'];
-var STEP_CTAS = ['Continue →','Continue →','Continue →','Continue →','I\u2019m ready \u2014 show my schedule →'];
+  // Add initial members
+  ptAddMember('', '');
+  ptAddMember('', '');
 
-function ptInit() {
-  // Load any existing data
-  try {
-    var saved = localStorage.getItem('tripSetupData');
-    if (saved) {
-      var d = JSON.parse(saved);
-      Object.assign(FORM_DATA, d);
-    }
-  } catch(e) {}
-  
-  // Check for edit mode
-  var isEdit = window.location.search.includes('edit=true');
-  
-  renderStep(0);
-  buildMemberList();
-  buildRideChips();
-  buildDaySetup();
-  buildChecklist();
+  // Update day labels from trip dates
+  ptUpdateDayLabels();
+})();
+
+// ── Navigation ──────────────────────────────────────────
+function ptNext(){
+  ptSaveCurrentStep();
+  if(ptCurrentStep < ptTotalSteps){
+    ptGoToStep(ptCurrentStep + 1);
+  } else {
+    ptFinish();
+  }
 }
 
-function renderStep(step) {
-  curStep = step;
-  // Hide all steps
-  document.querySelectorAll('.pt-step').forEach(function(el) { el.classList.remove('active'); });
-  // Show current
-  var el = document.getElementById('ptStep' + step);
-  if (el) el.classList.add('active');
+function ptBack(){
+  if(ptCurrentStep > 1){
+    ptGoToStep(ptCurrentStep - 1);
+  }
+}
+
+function ptGoToStep(n){
+  // Hide current
+  var cur = document.getElementById('ptStep' + ptCurrentStep);
+  if(cur) cur.classList.remove('active');
+  ptCurrentStep = n;
+  // Show new
+  var next = document.getElementById('ptStep' + n);
+  if(next){ next.classList.add('active'); window.scrollTo(0,0); }
   // Update header
-  document.getElementById('ptStepTitle').textContent = STEP_TITLES[step];
-  document.getElementById('ptStepIndicator').textContent = 'Step ' + (step+1) + ' of ' + totalSteps;
-  document.getElementById('ptProgress').style.width = ((step+1)/totalSteps*100) + '%';
-  // Show/hide back button
-  document.getElementById('ptBack').style.display = step > 0 ? 'block' : 'none';
-  // Update CTA
-  document.getElementById('ptCtaBtn').textContent = STEP_CTAS[step];
-  // Pre-fill fields
-  if (step === 0) prefillStep0();
-  // Scroll to top
-  window.scrollTo(0, 0);
-}
-
-function ptNext() {
-  // Save current step data
-  saveStepData(curStep);
-  if (curStep < totalSteps - 1) {
-    renderStep(curStep + 1);
+  document.getElementById('ptStepTitle').textContent = PT_STEP_TITLES[n-1];
+  document.getElementById('ptStepInd').textContent = 'Step ' + n + ' of ' + ptTotalSteps;
+  document.getElementById('ptProgressFill').style.width = ((n/ptTotalSteps)*100) + '%';
+  // Back button
+  var backBtn = document.getElementById('ptBackBtn');
+  backBtn.style.display = n > 1 ? 'flex' : 'none';
+  // CTA label
+  var ctaBtn = document.getElementById('ptCtaBtn');
+  if(n === ptTotalSteps){
+    ctaBtn.innerHTML = 'I\'m ready — show my schedule <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M8 3L13 8L8 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    ctaBtn.className = 'pt-cta-btn teal';
   } else {
-    // Final step - complete setup
-    completeSetup();
+    ctaBtn.innerHTML = 'Continue <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M8 3L13 8L8 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    ctaBtn.className = 'pt-cta-btn';
   }
 }
 
-function ptBack() {
-  saveStepData(curStep);
-  if (curStep > 0) renderStep(curStep - 1);
-}
-
-function saveStepData(step) {
-  if (step === 0) {
-    FORM_DATA.tripName = (document.getElementById('tripName') || {}).value || '';
-    FORM_DATA.tripStart = (document.getElementById('tripStart') || {}).value || '';
-    FORM_DATA.tripEnd = (document.getElementById('tripEnd') || {}).value || '';
-    // members saved by addMember/removeMember
-  }
-  if (step === 2) {
-    FORM_DATA.wantedRestaurants = (document.getElementById('wantedRestaurants') || {}).value || '';
-  }
-  // Save to localStorage
-  try { localStorage.setItem('tripSetupData', JSON.stringify(FORM_DATA)); } catch(e) {}
-}
-
-function prefillStep0() {
-  var tn = document.getElementById('tripName');
-  var ts = document.getElementById('tripStart');
-  var te = document.getElementById('tripEnd');
-  if (tn && FORM_DATA.tripName) tn.value = FORM_DATA.tripName;
-  if (ts && FORM_DATA.tripStart) ts.value = FORM_DATA.tripStart;
-  if (te && FORM_DATA.tripEnd) te.value = FORM_DATA.tripEnd;
-}
-
-function selectPill(btn, group) {
-  var parent = btn.closest('[id$="Pills"]') || btn.parentNode;
-  parent.querySelectorAll('.pt-pill').forEach(function(p) { p.classList.remove('active'); });
+// ── Segmented controls ──────────────────────────────────
+function ptSegSelect(segId, btn, value){
+  var seg = document.getElementById(segId);
+  if(!seg) return;
+  seg.querySelectorAll('.pt-seg-btn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
-  var val = btn.getAttribute('data-val');
-  if (group === 'park') FORM_DATA.location = val;
-  if (group === 'thrill') FORM_DATA.thrillLevel = val;
-  if (group === 'diningStyle') FORM_DATA.diningStyle = val;
-  if (group === 'budget') FORM_DATA.diningBudget = val;
-  if (group === 'diningRec') FORM_DATA.diningRecs = val;
+  ptSegValues[segId] = value;
 }
 
-function toggleChip(btn, group) {
-  btn.classList.toggle('selected');
-  var val = btn.getAttribute('data-val');
-  var arr = group === 'access' ? FORM_DATA.accessibility : group === 'dietary' ? FORM_DATA.dietaryNeeds : group === 'mustDo' ? FORM_DATA.mustDo : FORM_DATA.neverSchedule;
-  var idx = arr.indexOf(val);
-  if (idx >= 0) arr.splice(idx, 1); else arr.push(val);
+// ── Single-select tiles ─────────────────────────────────
+function ptTileSelect(groupId, tile, value){
+  var group = document.getElementById(groupId);
+  if(!group) return;
+  group.querySelectorAll('.pt-tile').forEach(function(t){ t.classList.remove('selected'); });
+  tile.classList.add('selected');
 }
 
-function buildMemberList() {
-  var el = document.getElementById('memberList');
-  if (!el) return;
-  if (!FORM_DATA.members || !FORM_DATA.members.length) FORM_DATA.members = [{name:'',age:''}];
-  var h = '';
-  FORM_DATA.members.forEach(function(m, i) {
-    h += '<div class="pt-member-row">'
-      + '<input class="pt-input pt-member-name" style="margin-bottom:0" placeholder="First name" value="' + (m.name||'').replace(/"/g,'&quot;') + '" oninput="updateMember(' + i + ',\'name\',this.value)">'
-      + '<input class="pt-input pt-member-age" style="margin-bottom:0" type="number" placeholder="Age" min="0" max="120" value="' + (m.age||'') + '" oninput="updateMember(' + i + ',\'age\',this.value)">'
-      + (i > 0 ? '<button class="pt-member-remove" onclick="removeMember(' + i + ')">\u00d7</button>' : '<span style="width:28px"></span>')
-      + '</div>';
-  });
-  el.innerHTML = h;
+// ── Multi-select chips ──────────────────────────────────
+function ptChipToggle(chip){
+  chip.classList.toggle('selected');
 }
 
-function addMember() {
-  FORM_DATA.members.push({name:'', age:''});
-  buildMemberList();
+// ── Checkboxes ──────────────────────────────────────────
+function ptCheckToggle(id){
+  var box = document.getElementById(id);
+  if(!box) return;
+  box.classList.toggle('checked');
 }
 
-function removeMember(i) {
-  FORM_DATA.members.splice(i, 1);
-  buildMemberList();
+// ── Toggle switches ─────────────────────────────────────
+function ptToggle(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.classList.toggle('on');
 }
 
-function updateMember(i, field, val) {
-  if (!FORM_DATA.members[i]) FORM_DATA.members[i] = {};
-  FORM_DATA.members[i][field] = val;
+function ptVipToggle(day){
+  var tog = document.getElementById('day'+day+'Vip');
+  var sub = document.getElementById('day'+day+'VipSub');
+  if(!tog || !sub) return;
+  sub.classList.toggle('visible', tog.classList.contains('on'));
 }
 
-function buildRideChips() {
-  ['mustDoChips', 'skipChips'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var isMustDo = id === 'mustDoChips';
-    var h = '';
-    RIDE_LIST.forEach(function(ride) {
-      var selectedClass = isMustDo && FORM_DATA.mustDo.includes(ride) ? 'selected' : (!isMustDo && FORM_DATA.neverSchedule.includes(ride) ? 'never-selected' : '');
-      var group = isMustDo ? 'mustDo' : 'neverSchedule';
-      h += '<button class="pt-chip ' + selectedClass + '" data-val="' + ride.replace(/"/g,'&quot;') + '" onclick="toggleRideChip(this,\'' + group + '\')">' + ride + '</button>';
+// ── Members ─────────────────────────────────────────────
+function ptAddMember(name, age){
+  ptMemberCount++;
+  var id = ptMemberCount;
+  var list = document.getElementById('membersList');
+  var row = document.createElement('div');
+  row.className = 'pt-member-row';
+  row.id = 'memberRow_' + id;
+  row.innerHTML = '<input class="pt-input" type="text" placeholder="First name" value="' + (name||'') + '" id="mName_'+id+'" autocomplete="off">' +
+    '<input class="pt-input age-input" type="number" placeholder="Age" value="' + (age||'') + '" id="mAge_'+id+'" min="1" max="99">' +
+    (id > 1 ? '<button class="pt-remove-btn" onclick="ptRemoveMember('+id+')" title="Remove"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2L8 8M8 2L2 8" stroke="#C86030" stroke-width="1.5" stroke-linecap="round"/></svg></button>' : '<div style="width:28px;flex:none;"></div>');
+  list.appendChild(row);
+}
+
+function ptRemoveMember(id){
+  var row = document.getElementById('memberRow_' + id);
+  if(row) row.remove();
+}
+
+// ── Checklist sections ──────────────────────────────────
+function ptToggleSection(header){
+  var body = header.nextElementSibling;
+  if(!body) return;
+  body.classList.toggle('open');
+  var arrow = header.querySelector('svg');
+  if(arrow){ arrow.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : ''; }
+}
+
+function ptClCheck(box, countId, total){
+  box.classList.toggle('checked');
+  var section = box.closest('.pt-cl-section-body');
+  if(!section) return;
+  var checked = section.querySelectorAll('.pt-cl-item-check.checked').length;
+  var countEl = document.getElementById(countId);
+  if(countEl) countEl.textContent = checked + '/' + total;
+  if(countEl && checked === total){ countEl.style.color = '#0F6830'; }
+  else if(countEl){ countEl.style.color = '#4A7A7C'; }
+}
+
+// ── Day labels ───────────────────────────────────────────
+function ptUpdateDayLabels(){
+  var startInput = document.getElementById('tripStart');
+  if(!startInput) return;
+  var start = new Date(startInput.value + 'T12:00:00');
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for(var i=0; i<3; i++){
+    var d = new Date(start);
+    d.setDate(d.getDate() + i);
+    var lbl = document.getElementById('day'+(i+1)+'DateLabel');
+    if(lbl) lbl.textContent = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+}
+
+// ── Collect data ────────────────────────────────────────
+function ptCollectData(){
+  // Members
+  var members = [];
+  var list = document.getElementById('membersList');
+  if(list){
+    list.querySelectorAll('.pt-member-row').forEach(function(row){
+      var nameEl = row.querySelector('input[type="text"]');
+      var ageEl = row.querySelector('input[type="number"]');
+      if(nameEl && nameEl.value.trim()){
+        members.push({name: nameEl.value.trim(), age: ageEl ? parseInt(ageEl.value)||0 : 0});
+      }
     });
-    el.innerHTML = h;
-  });
+  }
+  // Chips helper
+  function getChips(id){ var a=[]; document.querySelectorAll('#'+id+' .pt-chip.selected').forEach(function(c){a.push(c.textContent.trim());}); return a; }
+  // Tile helper
+  function getTile(id){ var t=document.querySelector('#'+id+' .pt-tile.selected'); return t ? t.querySelector('.pt-tile-label').textContent.trim() : ''; }
+  // Check helper
+  function getChecks(prefix,keys){ var r=[]; keys.forEach(function(k){ if(document.getElementById(prefix+k) && document.getElementById(prefix+k).classList.contains('checked')) r.push(k); }); return r; }
+  // Day data
+  function getDayData(n){
+    var parkSeg = document.getElementById('day'+n+'ParkSeg');
+    var park = ptSegValues['day'+n+'ParkSeg'] || (parkSeg ? parkSeg.querySelector('.pt-seg-btn.active').textContent.trim() : 'Disneyland');
+    return {
+      park: park,
+      hopTo: document.getElementById('day'+n+'Hopper') ? document.getElementById('day'+n+'Hopper').classList.contains('on') : false,
+      arrivalTime: document.getElementById('day'+n+'Wake') ? document.getElementById('day'+n+'Wake').value : '06:30',
+      isVip: document.getElementById('day'+n+'Vip') ? document.getElementById('day'+n+'Vip').classList.contains('on') : false,
+      vipStart: document.getElementById('day'+n+'VipStart') ? document.getElementById('day'+n+'VipStart').value : '10:00',
+      vipEnd: document.getElementById('day'+n+'VipEnd') ? document.getElementById('day'+n+'VipEnd').value : '17:00',
+      notes: document.getElementById('day'+n+'Notes') ? document.getElementById('day'+n+'Notes').value : ''
+    };
+  }
+  return {
+    tripName: document.getElementById('tripName') ? document.getElementById('tripName').value.trim() : '',
+    dates: { start: document.getElementById('tripStart') ? document.getElementById('tripStart').value : '', end: document.getElementById('tripEnd') ? document.getElementById('tripEnd').value : '' },
+    location: ptSegValues['parkSeg'] || 'Disneyland',
+    members: members,
+    thrillLevel: getTile('thrillTiles'),
+    mustDo: getChips('mustDoChips'),
+    neverSchedule: getChips('neverChips'),
+    accessibility: getChecks('acc_', ['mobility','height','spin','dark','service']),
+    diningStyle: getTile('diningStyleTiles'),
+    diningBudget: ptSegValues['budgetSeg'] || 'No preference',
+    dietaryNeeds: getChips('dietChips'),
+    diningRecs: getTile('diningRecTiles'),
+    wantedRestaurants: document.getElementById('wantedRestaurants') ? document.getElementById('wantedRestaurants').value : '',
+    days: [getDayData(1), getDayData(2), getDayData(3)]
+  };
 }
 
-function toggleRideChip(btn, group) {
-  var isNever = group === 'neverSchedule';
-  btn.classList.toggle(isNever ? 'never-selected' : 'selected');
-  var val = btn.getAttribute('data-val');
-  var arr = isNever ? FORM_DATA.neverSchedule : FORM_DATA.mustDo;
-  var idx = arr.indexOf(val);
-  if (idx >= 0) arr.splice(idx, 1); else arr.push(val);
+// ── Save current step ───────────────────────────────────
+function ptSaveCurrentStep(){
+  // Live-save to localStorage on each step advance
+  try {
+    var d = ptCollectData();
+    localStorage.setItem('pretripData', JSON.stringify(d));
+  } catch(e){}
 }
 
-function buildDaySetup() {
-  var el = document.getElementById('daySetupList');
-  if (!el) return;
-  // Calculate days from dates
-  var days = [];
-  var s = FORM_DATA.tripStart ? new Date(FORM_DATA.tripStart + 'T00:00:00') : null;
-  var e = FORM_DATA.tripEnd ? new Date(FORM_DATA.tripEnd + 'T00:00:00') : null;
-  if (s && e && !isNaN(s) && !isNaN(e)) {
-    var d = new Date(s);
-    var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    while (d <= e) {
-      days.push(dayNames[d.getDay()] + ' ' + monthNames[d.getMonth()] + ' ' + d.getDate());
-      d.setDate(d.getDate() + 1);
+// ── Load from storage ───────────────────────────────────
+function ptLoadFromStorage(){
+  try {
+    var raw = localStorage.getItem('pretripData');
+    if(!raw) return;
+    var d = JSON.parse(raw);
+    // Trip name
+    if(d.tripName && document.getElementById('tripName')) document.getElementById('tripName').value = d.tripName;
+    if(d.dates){
+      if(d.dates.start && document.getElementById('tripStart')) document.getElementById('tripStart').value = d.dates.start;
+      if(d.dates.end && document.getElementById('tripEnd')) document.getElementById('tripEnd').value = d.dates.end;
     }
-  } else {
-    days = ['Day 1', 'Day 2', 'Day 3'];
-  }
-  // Init FORM_DATA.days if needed
-  while (FORM_DATA.days.length < days.length) FORM_DATA.days.push({});
-  var parkOptions = ['Disneyland','DCA','Both'];
-  var h = '';
-  days.forEach(function(label, i) {
-    var d = FORM_DATA.days[i] || {};
-    h += '<div class="pt-day-section" id="daySection' + i + '">'
-      + '<div class="pt-day-label">' + label + '</div>'
-      + '<label class="pt-label" style="font-size:9px">Primary park</label>'
-      + '<div class="pt-pill-row" id="dayParkPills' + i + '">';
-    parkOptions.forEach(function(p) {
-      var active = (d.park || 'Disneyland') === p ? ' active' : '';
-      h += '<button class="pt-pill' + active + '" data-val="' + p + '" onclick="selectDayPill(' + i + ',this,\'park\')">' + p + '</button>';
-    });
-    h += '</div>'
-      + '<div class="pt-toggle-row"><span class="pt-toggle-lbl">Park hopper?</span>'
-      + '<button class="pt-toggle' + (d.hopTo ? ' on' : '') + '" id="hopToggle' + i + '" onclick="toggleDay(' + i + ',\'hop\',this)"><div class="pt-toggle-dot"></div></button></div>'
-      + '<div id="hopDetail' + i + '" style="display:' + (d.hopTo ? 'block' : 'none') + '">'
-      + '<label class="pt-label" style="font-size:9px">Second park &amp; from what time?</label>'
-      + '<div style="display:flex;gap:8px;margin-bottom:12px"><input class="pt-input" style="margin-bottom:0;flex:1" placeholder="2nd park name" value="' + (d.hopTo||'') + '" oninput="updateDay(' + i + ',\'hopTo\',this.value)"><input class="pt-input" style="margin-bottom:0;width:80px" type="time" value="' + (d.hopTime||'11:00') + '" oninput="updateDay(' + i + ',\'hopTime\',this.value)"></div>'
-      + '</div>'
-      + '<label class="pt-label" style="font-size:9px">Arrival time (at gates)</label>'
-      + '<input class="pt-input" type="time" value="' + (d.arrivalTime||'07:45') + '" oninput="updateDay(' + i + ',\'arrivalTime\',this.value)">'
-      + '<div class="pt-toggle-row"><span class="pt-toggle-lbl">VIP tour this day?</span>'
-      + '<button class="pt-toggle' + (d.isVip ? ' on' : '') + '" id="vipToggle' + i + '" onclick="toggleDay(' + i + ',\'vip\',this)"><div class="pt-toggle-dot"></div></button></div>'
-      + '<div id="vipDetail' + i + '" style="display:' + (d.isVip ? 'block' : 'none') + '">'
-      + '<div style="display:flex;gap:8px;margin-bottom:12px"><div><label class="pt-label" style="font-size:9px">Tour start</label><input class="pt-input" type="time" style="margin-bottom:0" value="' + (d.vipStart||'10:00') + '" oninput="updateDay(' + i + ',\'vipStart\',this.value)"></div><div><label class="pt-label" style="font-size:9px">Tour end</label><input class="pt-input" type="time" style="margin-bottom:0" value="' + (d.vipEnd||'17:00') + '" oninput="updateDay(' + i + ',\'vipEnd\',this.value)"></div></div>'
-      + '</div>'
-      + '<label class="pt-label" style="font-size:9px">Day notes (optional)</label>'
-      + '<textarea class="pt-textarea" style="min-height:50px" placeholder="e.g. Grandma joining us this day only" oninput="updateDay(' + i + ',\'notes\',this.value)">' + (d.notes||'') + '</textarea>'
-      + '</div>';
-  });
-  el.innerHTML = h;
-}
-
-function selectDayPill(i, btn, field) {
-  var parent = btn.parentNode;
-  parent.querySelectorAll('.pt-pill').forEach(function(p) { p.classList.remove('active'); });
-  btn.classList.add('active');
-  updateDay(i, field, btn.getAttribute('data-val'));
-}
-
-function toggleDay(i, type, btn) {
-  btn.classList.toggle('on');
-  var isOn = btn.classList.contains('on');
-  if (type === 'hop') {
-    updateDay(i, 'hopTo', isOn ? 'DCA' : '');
-    document.getElementById('hopDetail' + i).style.display = isOn ? 'block' : 'none';
-  }
-  if (type === 'vip') {
-    updateDay(i, 'isVip', isOn);
-    document.getElementById('vipDetail' + i).style.display = isOn ? 'block' : 'none';
-  }
-}
-
-function updateDay(i, field, val) {
-  if (!FORM_DATA.days[i]) FORM_DATA.days[i] = {};
-  FORM_DATA.days[i][field] = val;
-}
-
-var CHECKLIST = [
-  {section:'Before you arrive', items:[
-    'Download the Disneyland app and create an account for each adult',
-    'Link your park tickets to the Disneyland app',
-    'Set up Mobile Order in the app (add a payment method)',
-    'Enable location services for the app',
-    'Screenshot your park tickets as backup'
-  ]},
-  {section:'Lightning Lane \u2014 how it works', expandable: true, content:'Multi Pass: included with most tickets. Book your first ride at park open, then book another after each return time.\n\nIndividual Lightning Lane: costs extra per ride. Only for the biggest headliners. Book these the moment the park opens.\n\nStrategy: book your first Multi Pass for the ride with the shortest walk from the entrance, then walk to your top priority and ride standby.', items:[]},
-  {section:'Park hopper rules', items:[
-    'Park hopping opens at 11:00 AM daily (not at park open)',
-    'To hop: tap the QR icon in the Disneyland app',
-    'Book your first Lightning Lane for the 2nd park before you hop',
-    'Fastest DL \u2192 DCA: exit main gate, walk through Downtown Disney (~12 min)'
-  ]},
-  {section:'What to pack', items:[
-    'Portable phone charger',
-    'Ponchos (not umbrellas)',
-    'Sunscreen',
-    'Comfortable shoes \u2014 expect 8\u201312 miles of walking per day',
-    'Snacks in a bag (outside food is allowed)',
-    'Autograph book and marker if kids want signatures',
-    'Small backpack or hip pack'
-  ]},
-  {section:'Mobile order strategy', items:[
-    'Open Mobile Order before you\'re hungry \u2014 windows sell out',
-    'Best window: place order 45\u201360 min before you want to eat',
-    'Top quick-service: Galactic Grill, Jolly Holiday, Smokejumpers'
-  ]},
-  {section:'Photo pass', items:[
-    'Photo pass photographers are at major landmarks \u2014 they scan your ticket automatically',
-    'Ride photos: scan your ticket near the exit screen immediately'
-  ]},
-  {section:'On the day', items:[
-    'Arrive 30\u201345 min before official park open for rope drop',
-    'First 90 min = lowest waits of the day. Hit your top priority rides immediately.',
-    'Check the AI Optimize button in the app each morning',
-    'Use the AI Chat tab for real-time questions during the day'
-  ]}
-];
-
-var checkProgress = {};
-
-function buildChecklist() {
-  try { checkProgress = JSON.parse(localStorage.getItem('checklistProgress') || '{}'); } catch(e) {}
-  var el = document.getElementById('checklistContainer');
-  if (!el) return;
-  var h = '';
-  CHECKLIST.forEach(function(sec, si) {
-    h += '<div class="pt-checklist-section">';
-    h += '<div class="pt-checklist-header" onclick="toggleSection(' + si + ')">';
-    h += '<div class="pt-checklist-title">' + sec.section + '</div>';
-    if (sec.expandable) {
-      h += '<span style="font-size:11px;color:#1A6860" id="secToggle' + si + '">\u25bc</span>';
-    } else {
-      var done = (sec.items||[]).filter(function(_,ii){return checkProgress[si+'_'+ii];}).length;
-      h += '<div class="pt-checklist-count">' + done + '/' + sec.items.length + '</div>';
+    ptUpdateDayLabels();
+    // Members - clear defaults and load saved
+    if(d.members && d.members.length){
+      var list = document.getElementById('membersList');
+      if(list) list.innerHTML = '';
+      ptMemberCount = 0;
+      d.members.forEach(function(m){ ptAddMember(m.name, m.age); });
     }
-    h += '</div>';
-    h += '<div class="pt-checklist-body" id="secBody' + si + '">';
-    if (sec.expandable) {
-      h += '<div style="font-size:11px;color:#4A7A7C;line-height:1.6;white-space:pre-line;padding-bottom:4px">' + sec.content + '</div>';
-    } else {
-      (sec.items||[]).forEach(function(item, ii) {
-        var done = checkProgress[si+'_'+ii] ? 'checked' : '';
-        h += '<div class="pt-check-item ' + done + '" onclick="toggleCheck(' + si + ',' + ii + ')">'
-          + '<div class="pt-check-box"></div>'
-          + '<div class="pt-check-text">' + item + '</div></div>';
-      });
+    // Days
+    if(d.days){
+      for(var i=0;i<3;i++){
+        var day = d.days[i];
+        if(!day) continue;
+        var n = i+1;
+        if(day.hopTo && document.getElementById('day'+n+'Hopper')) document.getElementById('day'+n+'Hopper').classList.add('on');
+        if(day.arrivalTime && document.getElementById('day'+n+'Wake')) document.getElementById('day'+n+'Wake').value = day.arrivalTime;
+        if(day.isVip && document.getElementById('day'+n+'Vip')){ document.getElementById('day'+n+'Vip').classList.add('on'); ptVipToggle(n); }
+        if(day.vipStart && document.getElementById('day'+n+'VipStart')) document.getElementById('day'+n+'VipStart').value = day.vipStart;
+        if(day.vipEnd && document.getElementById('day'+n+'VipEnd')) document.getElementById('day'+n+'VipEnd').value = day.vipEnd;
+        if(day.notes && document.getElementById('day'+n+'Notes')) document.getElementById('day'+n+'Notes').value = day.notes;
+      }
     }
-    h += '</div></div>';
-  });
-  el.innerHTML = h;
+    if(d.wantedRestaurants && document.getElementById('wantedRestaurants')) document.getElementById('wantedRestaurants').value = d.wantedRestaurants;
+  } catch(e){}
 }
 
-function toggleSection(i) {
-  var body = document.getElementById('secBody' + i);
-  if (body) {
-    var isOpen = body.style.display === 'block';
-    body.style.display = isOpen ? 'none' : 'block';
-    var toggle = document.getElementById('secToggle' + i);
-    if (toggle) toggle.textContent = isOpen ? '\u25bc' : '\u25b2';
-  }
-}
-
-function toggleCheck(si, ii) {
-  var key = si + '_' + ii;
-  checkProgress[key] = !checkProgress[key];
-  try { localStorage.setItem('checklistProgress', JSON.stringify(checkProgress)); } catch(e) {}
-  buildChecklist();
-}
-
-function completeSetup() {
-  // Save all data
-  saveStepData(curStep);
-  // Mark setup complete
-  localStorage.setItem('tripSetupComplete', 'true');
-  localStorage.setItem('checklistProgress', JSON.stringify(checkProgress));
-  // Merge into TRIP_CONFIG if accessible
-  // Navigate to app.html
+// ── Finish / final step CTA ─────────────────────────────
+function ptFinish(){
+  ptSaveCurrentStep();
+  try {
+    var d = ptCollectData();
+    localStorage.setItem('pretripData', JSON.stringify(d));
+    localStorage.setItem('tripSetupComplete', 'true');
+    // Merge into TRIP_CONFIG if available
+    if(typeof window.TRIP_CONFIG !== 'undefined'){
+      Object.assign(window.TRIP_CONFIG, d);
+    }
+  } catch(e){}
   window.location.href = 'app.html';
 }
-
-// Initialize on load
-window.addEventListener('DOMContentLoaded', function() {
-  ptInit();
-});
 </script>
 </body>
 </html>
