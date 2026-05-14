@@ -697,23 +697,24 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .settings-row-sub{font-size:11px;color:var(--color-teal-mid);margin-top:2px}
 
 /* Fix 6 — Uniform card alignment */
-.sched-card,[class*="is-ride"],[class*="is-photo"],[class*="is-snack"],[class*="is-restroom"],[class*="is-dining"],[class*="is-tip"] {
+/* Remove extra padding from is-snack/is-photo outer containers */
+[class*="is-snack"],[class*="is-photo"],[class*="is-restroom"],[class*="is-dining"],[class*="is-tip"] {
+  padding: 0 !important;
+}
+/* Compensate for thicker accent border so titles align with normal ride cards */
+.ride-block.is-snack .ride-main,
+.ride-block.is-photo .ride-main,
+.ride-block.is-restroom .ride-main,
+.ride-block.is-dining .ride-main,
+.ride-block.is-tip .ride-main {
+  margin-left: -2px;
+}
+/* Ensure ride-main is always flex */
+.ride-main {
   display: flex;
-  gap: 12px;
   align-items: flex-start;
-  padding: 9px 11px;
-}
-.time-col,
-.entry-time {
-  width: 52px;
-  flex-shrink: 0;
-  text-align: right;
-}
-.card-body,
-.entry-body {
-  flex: 1;
-  min-width: 0;
-  padding-left: 0;
+  gap: 0;
+  padding: 0;
 }
 
 /* Fix 2 — Trip Weather Forecast */
