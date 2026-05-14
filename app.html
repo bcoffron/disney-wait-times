@@ -4019,19 +4019,7 @@ function toggleChecklistCheck(key,val){
   if(val) checked[key]=true; else delete checked[key];
   try{localStorage.setItem('checklist_checked',JSON.stringify(checked));}catch(e){}
 }
-function addChecklistItem(){
-  var input=document.getElementById('pt_checklist_input');
-  var weekSel=document.getElementById('pt_checklist_week');
-  var val=input?input.value.trim():'';
-  if(!val) return;
-  var weeks=weekSel?parseFloat(weekSel.value):1.5;
-  var items=[];
-  try{items=JSON.parse(localStorage.getItem('checklist_custom')||'[]');}catch(e){}
-  items.push({label:val,weeks:weeks});
-  try{localStorage.setItem('checklist_custom',JSON.stringify(items));}catch(e){}
-  if(input)input.value='';
-  renderPreTripChecklist();
-}
+
 
 function removeChecklistItem(i){
   var items=[];
