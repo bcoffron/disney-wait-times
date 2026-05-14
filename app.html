@@ -2,11 +2,12 @@
   
 <html lang="en" style="color-scheme:light">
 <head>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605130900-v105a">
+<meta name="version" content="202605140600-v106a">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -16,7 +17,7 @@
 <meta name="color-scheme" content="light">
 <base target="_blank">
 <title>Coffron/Woods Disneyland Trip</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
 /* ===== SECTION 1: CSS CUSTOM PROPERTIES ===== */
 :root{
@@ -79,9 +80,11 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .day-tab-name{font-size:10px;font-weight:700;font-family:'Outfit',sans-serif;color:rgba(255,255,255,0.38)}
 .day-tab-date{font-size:8px;font-weight:400;font-family:'Outfit',sans-serif;color:rgba(255,255,255,0.20)}
 .day-tab.active{background:#EEF5F4;border:none;color:#071E25}.day-tab.active .day-tab-name{color:#071E25;font-size:10px;font-weight:700}.day-tab.active .day-tab-date{color:#4A7A7C;font-size:8px;font-weight:400}
+.day-tab:not(.active):not(.vip-tab) .day-tab-name{color:rgba(255,255,255,0.38)}
+.day-tab:not(.active):not(.vip-tab) .day-tab-date{color:rgba(255,255,255,0.20)}
 /* VIP day tab (gold treatment) */
 #day-tab-2.active,
-.day-tab.vip-tab.active{background:linear-gradient(180deg,#2A1E00,#1E1600)!important;border-color:#D4A830!important;box-shadow:0 2px 12px rgba(212,168,48,0.35)!important;position:relative}.day-tab.vip-tab.active .day-tab-name{color:#F5D070!important}.day-tab.vip-tab.active .day-tab-date{color:rgba(245,208,112,0.55)!important}.day-tab.vip-tab.active::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#D4A830;border-radius:99px 99px 0 0;pointer-events:none}
+.day-tab.vip-tab.active{background:linear-gradient(180deg,#2A1E00,#1E1600)!important;border-color:#D4A830!important;border-bottom:2px solid #FDF6E3!important;box-shadow:0 2px 12px rgba(212,168,48,0.35)!important;position:relative}.day-tab.vip-tab.active .day-tab-name{color:#F5D070!important}.day-tab.vip-tab.active .day-tab-date{color:rgba(245,208,112,0.55)!important}.day-tab.vip-tab.active::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#D4A830;border-radius:99px 99px 0 0;pointer-events:none}
 .day-tab.vip-tab{border-color:rgba(201,134,10,0.25)!important}
 .day-tab.vip-tab .day-tab-name::after{content:'VIP';font-size:8px;background:linear-gradient(135deg,#C9860A,#E8A020);color:#fff;border-radius:99px;padding:1px 4px;margin-left:4px;font-weight:700;vertical-align:middle}
 
@@ -136,7 +139,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .ride-body{flex:1;min-width:0;overflow:hidden;padding:10px 12px}
 .ride-title-row{display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap;margin-bottom:2px}
 .ride-name{font-size:13px!important;font-weight:700;color:#071E25;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Outfit',sans-serif}
-.ride-note{font-size:11px!important;color:#4A7A7C;line-height:1.35;margin-top:2px}
+.ride-note{font-size:10px!important;color:#4A7A7C;line-height:1.35;margin-top:2px}
 
 /* Type badges */
 .tb{font-size:8px;font-weight:600;padding:2px 7px;border-radius:99px;flex-shrink:0;letter-spacing:0.01em}
@@ -164,8 +167,12 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .dp-res-input-time{width:62px;flex-shrink:0;border-radius:8px;border:1px solid rgba(180,120,40,0.25);background:#fffbf5;padding:6px 8px;font-size:10px;color:#071E25;font-family:'Outfit',sans-serif;outline:none}
 .dp-save-btn{background:#C86030;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:9px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;flex-shrink:0}
 .dp-res-hint{font-size:8px;color:#8AACAE;margin-top:5px;font-family:'Outfit',sans-serif}
-.chat-sug-bubble{background:#FFFFFF;border:1px solid rgba(7,30,37,0.10);border-radius:20px;padding:8px 12px;font-size:10px;font-weight:600;color:#071E25;cursor:pointer;text-align:left;font-family:'Outfit',sans-serif;line-height:1.3}
-.chat-sug-bubble:active{background:#f0f4f4}
+.chat-sug-bubble{background:#FFFFFF;border:1px solid rgba(7,30,37,0.12);border-radius:14px;padding:14px 16px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:#071E25;line-height:1.35;cursor:pointer;width:100%;text-align:left;min-height:64px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
+.chat-sug-bubble:active{background:#EEF5F4}
+.ask-ai-suggestions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px;margin-bottom:16px}
+.ask-ai-hint{font-size:12px;font-weight:400;color:rgba(7,30,37,0.35);text-align:center;padding:0 20px 12px}
+.ask-ai-send-btn{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;padding:12px 20px;border-radius:22px;background:#1A6860;color:#FFFFFF;border:none;min-height:46px;cursor:pointer}
+.ask-ai-input{font-family:'Outfit',sans-serif;font-size:15px;padding:12px 16px;border-radius:22px;border:1px solid rgba(7,30,37,0.12);background:#FFFFFF;flex:1;min-height:46px;color:#071E25}
 
 .tb-hop{background:var(--blue-bg);color:var(--blue)}
 .tb-vip{background:linear-gradient(135deg,#C9860A,#E8A020);color:#FFFFFF!important;font-weight:700}
@@ -189,6 +196,11 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 /* Card type variants */
 .ride-block.is-show{border-left:3px solid var(--purple)}
 .ride-block.is-food,.ride-block.is-dining{background:#FDF8F0!important;border-radius:0 11px 11px 0!important;border:0.5px solid rgba(180,120,40,0.20)!important;border-left:3px solid #D4893A!important;}
+.dining-meal-list{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.dining-meal-row{display:flex;align-items:flex-start;gap:5px;line-height:1.4}
+.dining-meal-icon{flex-shrink:0;margin-top:2px}
+.dining-meal-label{font-size:10px;font-weight:700;color:#D4893A;white-space:nowrap;flex-shrink:0}
+.dining-meal-text{font-size:10px;font-weight:400;color:#4A7A7C;line-height:1.4}
 .ride-block.is-hop{border-style:dashed;background:rgba(27,47,160,0.02)}
 .ride-block.is-tip{border-left:3px solid var(--text-dim);background:rgba(160,154,181,0.04)}
 .ride-block.is-vip{background:#FFFBF0!important;border:1px solid #D4A830!important;border-radius:11px;position:relative;overflow:hidden}
@@ -307,17 +319,22 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 /* ===== SECTION 11: SHARED VIP NOTES ===== */
 .vip-notes-card{background:linear-gradient(135deg,#FFFBF0,#FFF8E6);border:1.5px solid #D4A017;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;box-shadow:0 3px 12px rgba(201,134,10,0.15);font-family:'Outfit',sans-serif}
 .vip-notes-hdr{display:flex;align-items:center;gap:8px;padding:10px 12px 5px;border-bottom:1px solid rgba(212,160,23,0.2)}
-.vip-notes-lbl{font-size:10px;font-weight:800;color:#3A2800;font-family:'Outfit',sans-serif;flex:1;letter-spacing:.04em}
+.vip-notes-lbl{font-size:11px;font-weight:800;color:#3A2800;font-family:'Outfit',sans-serif;flex:1;letter-spacing:.04em}
 .vip-notes-sub{font-size:9px;font-weight:400;color:#8A6820;font-family:'Outfit',sans-serif;padding:0 12px 7px;line-height:1.5}
 .vip-notes-meta{display:flex;align-items:center;gap:8px;padding:6px 12px;border-top:1px solid rgba(212,160,23,0.2)}
 .vip-author{font-size:10px;color:var(--gold-text);font-weight:600}
 .vip-presence{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-dim)}
 .vip-presence-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
 .vip-sync-badge{font-size:9px;background:var(--gold-dim);color:var(--gold);padding:2px 6px;border-radius:99px;font-weight:600}
-.vip-ta{width:100%;background:#FFFDF8;border:none;border-top:1px solid rgba(212,160,23,0.2);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;line-height:1.6;resize:none;min-height:120px;outline:none;display:block}
-.vip-ta::placeholder{color:var(--text-dim)}
+.vip-ta{width:100%;background:transparent;border:none;outline:none;padding:10px 12px;color:#2A1E00;font-size:14px;font-family:'Outfit',sans-serif;font-weight:400;line-height:1.5;resize:none;min-height:80px;display:block;border-top:1px solid rgba(212,160,23,0.2)}
+.vip-ta::placeholder{font-family:'Outfit',sans-serif;font-size:9px;font-style:italic;color:#C0A030}
+.vip-notes-card,.vip-notes-card *{font-family:'Outfit',sans-serif}
+.vip-notes-component,.vip-notes-component *{font-family:'Outfit',sans-serif}
 
 /* ===== SECTION 7: SPLASH SCREEN ===== */
+.splash-bg-gradient{position:relative;z-index:0;min-height:240px}
+.splash-skyline-svg{position:absolute;top:42px;left:0;right:0;z-index:1;pointer-events:none}
+.splash-content-stack{position:relative;z-index:3}
 .splash-screen{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;height:100dvh;min-height:100dvh;padding:0 18px 32px;overflow:hidden;background:linear-gradient(176deg,#071E25 0%,#0D3A45 16%,#1A6860 38%,#B85825 65%,#ECA050 83%,#F8CC80 100%) no-repeat top / 100% 240px, #071E25}
 .splash-left{width:100%;display:flex;flex-direction:column;gap:12px}
 .splash-eyebrow{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px}
@@ -328,8 +345,9 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .splash-countdown-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
 .splash-countdown-val{font-family:'Outfit',sans-serif;font-size:52px;font-weight:900;color:#fff}
 .splash-countdown-unit{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px}
-.splash-enter-btn{margin-top:16px;padding:13px 20px;border-radius:10px;background:#C86030;border:none;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;letter-spacing:0.02em}
+.splash-enter-btn{margin-top:16px;padding:13px 20px;border-radius:10px;background:#C86030;border:none;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;letter-spacing:0.02em;min-height:44px}
 .splash-enter-btn:active{transform:scale(.97)}
+.splash-cta-secondary{display:block;width:100%;background:transparent;border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:11px 16px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.50);text-align:center;cursor:pointer;margin-top:8px;min-height:44px;-webkit-tap-highlight-color:transparent}
 .splash-right{display:none}
 .splash-skyline{position:absolute;bottom:0;left:0;right:0}
 .splash-stars{position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden}
@@ -351,7 +369,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .api-row{display:flex;gap:8px}
 .api-input{flex:1;background:var(--bg);border:1px solid var(--border-md);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
 .api-input:focus{border-color:rgba(201,168,76,.4)}
-.api-btn{background:linear-gradient(135deg,var(--magic),var(--purple));border:none;color:#FFFFFF;border-radius:var(--radius-sm);padding:8px 14px;font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+.api-btn{background:#1A6860;border:none;color:#FFFFFF;border-radius:var(--radius-sm);padding:8px 14px;font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
 .api-ok{font-size:11px;color:var(--green);margin-top:5px;display:none}
 .api-ok.show{display:block}
 .edit-bar{display:flex;margin:4px 10px 6px;align-items:flex-start}
@@ -627,9 +645,9 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
 <!-- ===== SECTION 7: SPLASH SCREEN ===== -->
 <div id="splashScreen" class="splash-screen">
-  <svg viewBox="0 0 390 198" width="100%" height="198" preserveAspectRatio="none" style="position:absolute;top:42px;left:0;right:0;" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 390 198" width="100%" height="198" preserveAspectRatio="none" style="position:absolute;top:42px;left:0;right:0;z-index:1;pointer-events:none" xmlns="http://www.w3.org/2000/svg">
   <!-- Ground fill -->
-  <rect x="0" y="134" width="390" height="64" fill="#071E25"/>
+  <rect x="0" y="155" width="390" height="43" fill="#071E25"/>
   <!-- CASTLE (left side, x: 8&ndash;52) -->
   <!-- Castle body -->
   <rect x="14" y="98" width="38" height="36" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.20)" stroke-width="0.5"/>
@@ -689,10 +707,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
         
       </div>
       <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:9px;color:rgba(255,255,255,0.50);font-weight:500">Jun 28&ndash;30, 2026</div><div style="font-size:9px;color:rgba(255,255,255,0.50)">Anaheim, CA</div></div><div style="display:flex;gap:5px"><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DL</span><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DCA</span></div></div>
-      <button class="splash-enter-btn" onclick="enterSplash()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        Enter your adventure &rarr;
-      </button>
+      <button class="splash-enter-btn" onclick="enterSplash()">Enter your adventure &rarr;</button>
       <div id="splashCtaArea"></div>
     </div>
   </div>
@@ -915,17 +930,17 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
     <!-- CHAT TAB -->
     <div id="tabChat" class="chat-tab-container" style="display:none">
       <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;min-height:80px;padding-top:16px"></div>
-      <div id="chatSugBubbles" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div id="chatSugBubbles" class="ask-ai-suggestions-grid">
         <button class="chat-sug-bubble" onclick="sendSugChat('What\'s the wait like at Space Mountain right now?')">What's the wait like at Space Mountain right now?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Best order to hit Fantasyland this morning?')">Best order to hit Fantasyland this morning?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('What should we do in the next 2 hours?')">What should we do in the next 2 hours?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Any tips for riding with young kids today?')">Any tips for riding with young kids today?</button>
       </div>
-      <div style="font-size:9px;color:#8AACAE;text-align:center;margin-bottom:10px">Or ask me anything about your trip</div>
+      <div class="ask-ai-hint">Or ask me anything about your trip</div>
       <div id="chatSuggestions" style="display:none"></div>
       <div style="display:flex;gap:8px">
-        <input id="chatInput" type="text" placeholder="Ask about your trip..." style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendChat()">
-        <button onclick="sendChat()" style="padding:10px 16px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--magic),var(--purple));border:none;color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Send</button>
+        <input id="chatInput" type="text" placeholder="Ask about your trip..." class="ask-ai-input" onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()" class="ask-ai-send-btn">Send</button>
       </div>
     </div>
 
@@ -1075,7 +1090,7 @@ const DAYS=[
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near Matterhorn/Fantasyland entrance on your way toward Tomorrowland.',land:'Fantasyland'},
     {t:'10:30 AM',h:'Morning Snack: Matterhorn Macaroon',type:'tip',n:'Pick up a Matterhorn Macaroon at the Fantasyland cart near the Matterhorn. Iconic Disneyland treat.',land:'Fantasyland'},
     {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
-    {t:'12:00 PM',h:'Lunch   Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou: reservations via Disneyland app. River Belle is walk-up friendly.',land:'New Orleans Square'},
+    {t:'12:00 PM',h:'Lunch — Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou: reservations via Disneyland app. River Belle is walk-up friendly.',land:'New Orleans Square',dining:{topPick:'Monte Cristo Sandwich (Blue Bayou) — the classic Disneyland lunch',vegOption:'Plant-Based Ratatouille — available at River Belle Terrace',kidsOption:'Mac & Cheese Kids Plate — available at both locations'}},
     {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park   use Lightning Lane if available.',land:'Tomorrowland'},
     {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
     {t:'2:30 PM',h:'Afternoon Snack: Dole Whip',type:'tip',n:'Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room. Right on your path from Indiana Jones toward Frontierland.',land:'Adventureland'},
@@ -1103,8 +1118,8 @@ const DAYS=[
     {t:'10:00 AM',h:'VIP Tour begins \u2014 Disneyland',n:'Your guide handles all skip-the-line access today. Use the notes below to share your ride wishlist and must-dos.',type:'vip'},
     {t:'10AM\u20135PM',h:'\u2B50 VIP Tour \u2014 Notes & Ride Wishlist',n:'Write your plans below.',type:'vip',isVipNotes:true},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Ask your VIP guide for the nearest restroom. Most lands have facilities near major attractions.',land:''},
-    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at CafÃ© OrlÃ©ans',type:'tip',n:'The Monte Cristo sandwich at CafÃ© OrlÃ©ans is a Disneyland bucket-list item &mdash; fried sandwich with powdered sugar, served at the counter window. No reservation needed.',land:'New Orleans Square'},
-    {t:'5:00 PM',h:'Dinner & tip your VIP guide',n:'Your guide will recommend a great dinner spot. This is the natural moment to tip \u2014 industry standard is 15\u201320% of tour cost. Cash preferred.',type:'food',land:'Disneyland'},
+    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at CafÃÂ© OrlÃÂ©ans',type:'tip',n:'The Monte Cristo sandwich at CafÃÂ© OrlÃÂ©ans is a Disneyland bucket-list item &mdash; fried sandwich with powdered sugar, served at the counter window. No reservation needed.',land:'New Orleans Square'},
+    {t:'5:00 PM',h:'Dinner & tip your VIP guide',n:'Your guide will recommend a great dinner spot. This is the natural moment to tip \u2014 industry standard is 15\u201320% of tour cost. Cash preferred.',type:'food',land:'Disneyland',dining:{topPick:'Blue Bayou Monte Cristo \u2014 ask your VIP guide to book this for you',vegOption:'River Belle Ratatouille \u2014 plant-based option with fresh seasonal vegetables',kidsOption:'Mac & Cheese Kids Plate \u2014 available at multiple Disneyland locations'}},
     {t:'5:15 PM',h:'Photo Op: New Orleans Square at Dusk',type:'photo',n:'Golden hour on the balconies overlooking the bayou. Beautiful light and atmosphere in New Orleans Square.',land:'New Orleans Square'},
   ]},
   {title:'\u2728 Evening Shows \u2014 Paint the Night & World of Color',entries:[
@@ -1134,7 +1149,7 @@ const DAYS=[
     {t:'10:15 AM',h:'Soarin\u2019 Over California',n:'Head to Grizzly Peak (7 min from Avengers Campus). Iconic DCA ride. Book LL if wait exceeds 40 min.',type:'ride',ride:"Soarin' Over California",land:'Grizzly Peak',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
     {t:'11:00 AM',h:'Luigi\u2019s Rollickin\u2019 Roadsters',n:'Back to Cars Land (8 min). Fun and low wait. Good transition before lunch.',type:'ride',ride:"Luigi's Rollickin' Roadsters",land:'Cars Land'},
     {t:'11:25 AM',h:'Mater\u2019s Junkyard Jamboree',n:'Stay in Cars Land. Short wait, great fun.',type:'ride',ride:"Mater's Junkyard Jamboree",land:'Cars Land'},
-    {t:'12:00 PM',h:'\u{1F374} Lunch in DCA',n:'Flo\u2019s V8 Cafe right in Cars Land for quick service, or walk to Lamplight Lounge at Pixar Pier if you have a reservation.',type:'food',land:'Cars Land'},
+    {t:'12:00 PM',h:'\u{1F374} Lunch in DCA',n:'Flo\u2019s V8 Cafe right in Cars Land for quick service, or walk to Lamplight Lounge at Pixar Pier if you have a reservation.',type:'food',land:'Cars Land',dining:{topPick:'Lobster Nachos (Lamplight Lounge) \u2014 Pixar Pier\'s most popular shareable',vegOption:'Impossible Tostada (Flo\'s V8 Caf\u00e9) \u2014 plant-based option in Cars Land',kidsOption:'Kids PB&J (Flo\'s V8 Caf\u00e9) \u2014 classic kids meal in the Cars theming'}}
     {t:'1:00 PM',h:'Grizzly River Run',n:'Head to Grizzly Peak (8 min). June heat peaks in the afternoon \u2014 perfect timing to get wet. Waits are moderate at this hour.',type:'ride',ride:'Grizzly River Run',land:'Grizzly Peak'},
     {t:'1:45 PM',h:'Monsters, Inc. Mike & Sulley to the Rescue!',n:'Hollywood Land (10 min). Air-conditioned and low wait. Good midday break from the heat.',type:'ride',ride:"Monsters, Inc. Mike & Sulley to the Rescue!",land:'Hollywood Land'},
     {t:'2:15 PM',h:'Mickey\u2019s PhilharMagic',n:'Stay in Hollywood Land. Air-conditioned show, great break from the heat.',type:'ride',ride:"Mickey's PhilharMagic",land:'Hollywood Land'},
@@ -1147,7 +1162,7 @@ const DAYS=[
     {t:'4:30 PM',h:'Indiana Jones Adventure',n:'Start in Adventureland \u2014 right near the Disneyland entrance. Evening waits are usually 30-40 min, better than daytime peaks.',type:'ride',ride:'Indiana Jones Adventure',land:'Adventureland',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
     {t:'5:05 PM',h:'Haunted Mansion',n:'New Orleans Square (4 min walk). Classic Disneyland. One of the best-themed rides in the park.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
     {t:'5:40 PM',h:'Millennium Falcon: Smugglers Run',n:"Galaxy's Edge (8 min walk). Evening waits drop significantly. Great way to kick off the Disneyland evening.",type:'ride',ride:'Millennium Falcon: Smugglers Run',land:"Galaxy's Edge"},
-    {t:'6:30 PM',h:'\u{1F374} Dinner \u2014 Caf\u00e9 Orleans',n:'Your reservation. Arrive 5 min early. Must-orders: Monte Cristo sandwich and beignets for the table. Ask for a patio table. Perfectly positioned for Fantasmic! after dinner.',type:'food',land:'New Orleans Square'},
+    {t:'6:30 PM',h:'\u{1F374} Dinner \u2014 Caf\u00e9 Orleans',n:'Your reservation. Arrive 5 min early. Must-orders: Monte Cristo sandwich and beignets for the table. Ask for a patio table. Perfectly positioned for Fantasmic! after dinner.',type:'food',land:'New Orleans Square',dining:{topPick:'Monte Cristo Sandwich \u2014 the Disneyland bucket-list sandwich with powdered sugar',vegOption:'French Onion Soup \u2014 rich vegetarian option, ask for no beef broth',kidsOption:'Mac & Cheese Kids Plate \u2014 available on the kids menu at Caf\u00e9 Orleans'}}
     {t:'7:45 PM',h:'Big Thunder Mountain Railroad',n:'Frontierland (3 min from Caf\u00e9 Orleans). Great ride after dinner while Fantasmic! spot isn\u2019t needed yet.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland'},
     {t:'8:10 PM',h:'Peter Pan\u2019s Flight',n:'Fantasyland (6 min). Classic ride. Evening waits are manageable.',type:'ride',ride:"Peter Pan's Flight",land:'Fantasyland'},
     {t:'8:30 PM',h:'Secure Fantasmic! viewing spot',n:'Head to the Rivers of America amphitheater. Arrive 30 min before the show. Center section, upper rows for best sight lines.',type:'tip'},
@@ -2662,7 +2677,7 @@ async function fetchDiningRecs(e){
   var resultEl=btn.nextElementSibling;
   if(!resultEl) return;
   btn.disabled=true;
-  resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">â³ Loading&hellip;</span>';
+  resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">Ã¢ÂÂ³ Loading&hellip;</span>';
   resultEl.classList.add('show');
   var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:'You are a Disneyland dining expert. Be concise. 2&ndash;3 sentences max. No markdown.',messages:[{role:'user',content:'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.'}]});
   if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> '+r.error.message+'</span>';}
@@ -2931,7 +2946,7 @@ function renderSched(){
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+e.h.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+(e.ride?(function(){var b=wbHTML(e.ride);if(!b)return '';var isHigh=b.indexOf('wb-high')>-1;return isHigh?b.replace('<span class="wb','<span class="wb wb-tappable" title="Tap for alternatives" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this.nextElementSibling)" style="cursor:pointer"'):b;}()):'')+'</div>'
-        +'<div class="ride-note">'+e.n+'</div>'+diningRec
+        +'<div class="ride-note">'+e.n+'</div>'+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+e.dining.topPick+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+e.dining.vegOption+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+e.dining.kidsOption+'</span></div></div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -3024,10 +3039,10 @@ function renderInfoTab(){
         {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',label:'Disneyland App Must-Knows',text:'Download before you go and log in. Mobile Order is a game changer   order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes   use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
         {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Best Times to Eat   Avoid the Rush',text:'Peak meal times are 12:00 1:30 PM (lunch) and 6:00 7:30 PM (dinner)   restaurants are packed and waits are long. Best lunch: 11:00 11:30 AM (before the rush) or 2:00 3:00 PM (after it). Best dinner: 5:00 5:30 PM (early bird) or 8:00 8:30 PM (late, after shows). Counter service is least busy 2:00 4:00 PM and right before park close.'},
         {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',label:'Mobile Order   Use It Every Time',text:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30 45 min before you want to eat, then tap  I m here  when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20 30 min just to order.'},
-        {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Walk-up List   Your Secret Weapon',text:'Can t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day   people regularly snag same-day spots at Lamplight Lounge, CafÃ© Orleans, and Carthay Circle this way. Keep checking the app   spots open up frequently.'},
-        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Must-Order Dishes   Don t Miss These',text:'CafÃ© Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers   fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand   much shorter line. Galaxy s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
-        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',label:'Share Portions   Save Money & Try More',text:'Portions at Disneyland are large. Lamplight s Lobster Nachos, Plaza Inn s fried chicken, and CafÃ© Orleans  Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5 6 items instead of 9 and share around the table.'},
-        {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Dining Package Tip   Fantasmic!',text:'CafÃ© Orleans offers a Fantasmic! Dining Package   includes a reserved Fantasmic! viewing area with your meal. If you re eating at CafÃ© Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy s Edge fireworks also have dining packages. Book 60 days ahead   same window as regular reservations.'},
+        {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Walk-up List   Your Secret Weapon',text:'Can t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day   people regularly snag same-day spots at Lamplight Lounge, CafÃÂ© Orleans, and Carthay Circle this way. Keep checking the app   spots open up frequently.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Must-Order Dishes   Don t Miss These',text:'CafÃÂ© Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers   fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand   much shorter line. Galaxy s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
+        {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',label:'Share Portions   Save Money & Try More',text:'Portions at Disneyland are large. Lamplight s Lobster Nachos, Plaza Inn s fried chicken, and CafÃÂ© Orleans  Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5 6 items instead of 9 and share around the table.'},
+        {icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',label:'Dining Package Tip   Fantasmic!',text:'CafÃÂ© Orleans offers a Fantasmic! Dining Package   includes a reserved Fantasmic! viewing area with your meal. If you re eating at CafÃÂ© Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy s Edge fireworks also have dining packages. Book 60 days ahead   same window as regular reservations.'},
         {icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',label:'Hidden Gems & Local Tips',text:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square   look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle   short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Walt s personal apartment windows   a light is always kept on in his honor.'},
       ];
       var h='';
@@ -3111,7 +3126,7 @@ function renderInfoTab(){
 }
 
 var ALL_RESTAURANTS=[
-  {name:'CafÃ© Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended'},
+  {name:'CafÃÂ© Orleans',park:'Disneyland',type:'Table Service',area:'New Orleans Square',res:'Recommended'},
   {name:'Carnation Cafe',park:'Disneyland',type:'Table Service',area:'Main Street USA',res:'Recommended'},
   {name:'River Belle Terrace',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
   {name:'Rancho del Zocalo',park:'Disneyland',type:'Counter Service',area:'Frontierland',res:'Not needed'},
@@ -3223,7 +3238,7 @@ function setDay(d){
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
   editMode=false;
-  var et=document.getElementById('editToggle');et.textContent='â Edit Schedule';et.classList.remove('active');
+  var et=document.getElementById('editToggle');et.textContent='Ã¢ÂÂ Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
   renderClosed();renderSched();renderDayInfoBar();
   if(typeof renderVipBanner==='function')renderVipBanner(d);
@@ -3544,7 +3559,7 @@ function ptToggle(id){
   if(!body)return;
   var isOpen=body.style.display!=='none';
   body.style.display=isOpen?'none':'block';
-  if(arr)arr.textContent=isOpen?'â¼':'â²';
+  if(arr)arr.textContent=isOpen?'Ã¢ÂÂ¼':'Ã¢ÂÂ²';
   if(!isOpen){
     if(id==='kbyg')loadKnowBeforeYouGo();
     else if(id==='crowds')loadCrowdPrediction();
@@ -3957,6 +3972,15 @@ var TRIP_CONFIG = {
   firstParkDate: new Date('2026-06-28T08:00:00-07:00'),
 };
 
+function getInitialActiveDay() {
+  var today = new Date();
+  var tripStart = new Date('2026-06-28T00:00:00');
+  var diffDays = Math.floor((today - tripStart) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return 0;
+  if (diffDays >= TRIP_CONFIG.days.length) return TRIP_CONFIG.days.length - 1;
+  return diffDays;
+}
+
 /* --- Splash screen --- */
 
 function renderSplashCtas(){
@@ -3964,9 +3988,9 @@ function renderSplashCtas(){
   if(!area)return;
   var isRet=localStorage.getItem('tripSetupComplete')==='true';
   if(isRet){
-    area.innerHTML='<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px"><span id="tripCodeLink" style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);cursor:pointer" onclick="showTripCodeInput()">Have a trip code?</span><span style="color:rgba(255,255,255,0.20)">\u00b7</span><a href="/pretrip.html?edit=true" style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-decoration:none">Edit trip setup</a></div><div id="tripCodeInputArea" style="display:none;margin-top:10px"></div>';
+    area.innerHTML='<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px"><button class="splash-cta-secondary" id="tripCodeLink" onclick="showTripCodeInput()">Have a trip code?</button><span style="color:rgba(255,255,255,0.20)">\u00b7</span><a href="/pretrip.html?edit=true" style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-decoration:none">Edit trip setup</a></div><div id="tripCodeInputArea" style="display:none;margin-top:10px"></div>';
   }else{
-    area.innerHTML='<div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-top:8px" onclick="window.location.href=\'/pretrip.html\'"><div><div style="font-size:11px;font-weight:600;color:#FFFFFF">Set up your trip first</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:2px">Takes 3 minutes \u00b7 personalises your schedule</div></div><span style="font-size:13px;color:rgba(255,255,255,0.50)">\u2192</span></div><div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:10px"><span id="tripCodeLink" style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);cursor:pointer" onclick="showTripCodeInput()">Have a trip code?</span><span style="color:rgba(255,255,255,0.20)">\u00b7</span><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);cursor:pointer" onclick="enterSplash()">Already set up? Sign in</span></div><div id="tripCodeInputArea" style="display:none;margin-top:10px"></div>';
+    area.innerHTML='<div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-top:8px" onclick="window.location.href=\'/pretrip.html\'"><div><div style="font-size:11px;font-weight:600;color:#FFFFFF">Set up your trip first</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:2px">Takes 3 minutes \u00b7 personalises your schedule</div></div><span style="font-size:13px;color:rgba(255,255,255,0.50)">\u2192</span></div><div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:10px"><button class="splash-cta-secondary" id="tripCodeLink" onclick="showTripCodeInput()">Have a trip code?</button><span style="color:rgba(255,255,255,0.20)">\u00b7</span><span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);cursor:pointer" onclick="enterSplash()">Already set up? Sign in</span></div><div id="tripCodeInputArea" style="display:none;margin-top:10px"></div>';
   }
 }
 function showTripCodeInput(){
@@ -4109,7 +4133,7 @@ function openAltSheet(rideName, options) {
     html += '<div class="alt-rank ' + rankClass + '">' + (i+1) + '</div>';
     html += '<div class="alt-info">';
     html += '<div class="alt-name">' + opt.name + '</div>';
-    html += '<div class="alt-meta">Est. wait: <span class="wait-pill ' + waitClass + '">' + (opt.wait || '--') + ' min</span>' + (opt.note ? ' Â· ' + opt.note : '') + '</div>';
+    html += '<div class="alt-meta">Est. wait: <span class="wait-pill ' + waitClass + '">' + (opt.wait || '--') + ' min</span>' + (opt.note ? ' ÃÂ· ' + opt.note : '') + '</div>';
     html += '</div></div>';
   });
   if (container) container.innerHTML = html;
@@ -4183,6 +4207,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (dateEl) dateEl.textContent = d.date;
     }
   });
+  // Set active day tab based on trip progress
+  var _initDay = getInitialActiveDay();
+  setDay(_initDay);
 });
 </script>
 
