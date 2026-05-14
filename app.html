@@ -697,24 +697,22 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .settings-row-sub{font-size:11px;color:var(--color-teal-mid);margin-top:2px}
 
 /* Fix 6 — Uniform card alignment */
-/* Remove extra padding from is-snack/is-photo outer containers */
-[class*="is-snack"],[class*="is-photo"],[class*="is-restroom"],[class*="is-dining"],[class*="is-tip"] {
+/* Remove extra padding from accent-border card outer containers */
+[class*="is-snack"],[class*="is-photo"],[class*="is-restroom"],
+[class*="is-dining"],[class*="is-tip"],[class*="is-break"],
+[class*="is-food"],[class*="is-show"] {
   padding: 0 !important;
 }
-/* Compensate for thicker accent border so titles align with normal ride cards */
+/* Compensate for 4px accent border (vs 1.5px normal) so titles align */
 .ride-block.is-snack .ride-main,
 .ride-block.is-photo .ride-main,
-.ride-block.is-restroom .ride-main,
-.ride-block.is-dining .ride-main,
-.ride-block.is-tip .ride-main {
+.ride-block.is-break .ride-main {
   margin-left: -2px;
 }
-/* Ensure ride-main is always flex */
-.ride-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
-  padding: 0;
+/* Compensate for 3px accent border (vs 1.5px normal) */
+.ride-block.is-food .ride-main,
+.ride-block.is-show .ride-main {
+  margin-left: -1px;
 }
 
 /* Fix 2 — Trip Weather Forecast */
