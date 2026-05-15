@@ -3260,16 +3260,8 @@ function renderSched(){
       h+='<div class="sec-hdr"><div class="sec-lbl">'+sec.title.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\u20E3\u200D]+/gu,'').trim()+'</div><div class="sec-line"></div></div>';
     }
     sec.entries.forEach(function(e,ei){
-      // VIP Notes special card
-      if(e.isVipNotes){
-        var notes=loadVipNotes(curDay);
-        h+='<div class="vip-notes-card">'
-          +'<div class="vip-notes-hdr"><span class="tb tb-vip"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle;margin-right:3px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> VIP</span><span class="vip-notes-lbl"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle;margin-right:3px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> VIP Tour Notes & Ride Wishlist</span></div>'
-          +'<div class=class="vip-notes-sub">Write your ride wishlist, dining requests, and must-dos for your VIP host. Saves automatically to your phone.</div><div class="vip-notes-meta"><span class="vip-author">Shared notes</span><span class="vip-presence"><span class="vip-presence-dot"></span> Live sync</span><span class="vip-sync-badge">Auto-save</span></div>'
-          +'<textarea class="vip-ta" placeholder="e.g. Must do: Rise of the Resistance, Indiana Jones, Radiator Springs. Want to eat at Blue Bayou. Love Haunted Mansion. Please avoid spinning rides..." oninput="saveVipNotes('+curDay+',this.value)">'+notes.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</textarea>'
-          +'</div>';
-        return;
-      }
+      // VIP Notes: static component in DOM handles display — skip entry
+      if(e.isVipNotes){ return; }
       // Regular card
       var bc='ride-block';
       if(e.type==='show')bc+=' is-show';
@@ -5028,6 +5020,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <script>
-(function(){function u(){var s=document.getElementById("vipNotesSection");if(!s)return;var t=document.querySelector(".day-tab.active");s.style.display="none"}document.addEventListener("DOMContentLoaded",function(){u();document.querySelectorAll(".day-tab").forEach(function(t){t.addEventListener("click",function(){setTimeout(u,100)})});var c=document.getElementById("dayTabsContainer");if(c){var o=new MutationObserver(u);o.observe(c,{attributes:true,subtree:true})}});setTimeout(u,500)})();
+(function(){
+  function u(){
+    var s=document.getElementById("vipNotesSection");
+    if(!s)return;
+    var activeTab=document.querySelector(".day-tab.active");
+    var isVipDay=activeTab && activeTab.classList.contains("vip-tab");
+    if(isVipDay){
+      s.style.display="";
+      if(typeof vnInit==="function") setTimeout(vnInit,0);
+    } else {
+      s.style.display="none";
+    }
+  }
+  document.addEventListener("DOMContentLoaded",function(){
+    u();
+    document.querySelectorAll(".day-tab").forEach(function(t){
+      t.addEventListener("click",function(){setTimeout(u,50);});
+    });
+    var c=document.getElementById("dayTabsContainer");
+    if(c){var o=new MutationObserver(u);o.observe(c,{attributes:true,subtree:true});}
+  });
+  setTimeout(u,500);
+})();
 </script></body>
 </html>
