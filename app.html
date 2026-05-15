@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605150903-v108d">
+<meta name="version" content="202605151200-v109a">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -1084,12 +1084,12 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
       <!-- Part 6: Add new entry trigger -->
       <div class="vn-add-trigger" id="vnAddTrigger" onclick="vnOpenInput()">
-        <span class="vn-add-placeholder">Tap to add your notesÃÂ¢ÃÂÃÂ¦</span>
+        <span class="vn-add-placeholder">Tap to add your notes…</span>
       </div>
 
       <!-- Inline input (hidden until triggered) -->
       <div class="vn-input-area" id="vnInputArea" style="display:none">
-        <textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notesÃÂ¢ÃÂÃÂ¦" rows="3"></textarea>
+        <textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notes…" rows="3"></textarea>
         <div class="vn-input-actions">
           <button type="button" class="vn-btn-save" onclick="vnSaveEntry()">Save</button>
           <button type="button" class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button>
@@ -1860,6 +1860,7 @@ async function pullSchedule(){
     customSched=data.schedule;
     renderSched();
     renderDayInfoBar();
+    if(typeof renderVipBanner==='function')renderVipBanner(curDay);
   }catch(e){console.warn('Pull schedule:',e);}
 }
 
@@ -1966,6 +1967,7 @@ async function initPusher(){
       if(data && data.notes) {
         try{localStorage.setItem('vn_entries_2',JSON.stringify(data.notes));}catch(e){}
         var vnEl=document.getElementById('vnEntryList');
+      if(typeof renderVipBanner==='function')renderVipBanner(curDay);
         if(vnEl && typeof vnRenderEntries === 'function') vnRenderEntries();
       }
     });
