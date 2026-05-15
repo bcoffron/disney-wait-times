@@ -3844,7 +3844,7 @@ function setDay(d){
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
   editMode=false;
-  var et=document.getElementById('editToggle');et.textContent='ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Edit Schedule';et.classList.remove('active');
+  var et=document.getElementById('editToggle');et.textContent='✎ Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
   renderClosed();renderSched();renderDayInfoBar();
   if(typeof renderVipBanner==='function')renderVipBanner(d);
@@ -4662,6 +4662,8 @@ function submitTripCode(){
     sessionStorage.setItem('twRole','guest');
     enterSplash();
   } else {
+    inp.style.animation='';
+    void inp.offsetWidth;
     inp.style.animation='twShake 400ms ease';
     setTimeout(function(){inp.style.animation='';},420);
     if(errEl){errEl.textContent='Incorrect code — try again';errEl.style.display='block';}
