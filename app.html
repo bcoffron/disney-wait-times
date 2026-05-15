@@ -4891,7 +4891,7 @@ function selectAlt(name) {
 
 /* --- VIP day banner --- */
 function renderVipBanner(dayNum) {
-  var cfg = (TRIP_CONFIG.days || [])[dayNum]; // 0-indexed
+  var cfg = TRIP_CONFIG.days[dayNum]; // 0-indexed
   var container = document.getElementById('schedContent');
   if (!container) return;
   var existing = container.querySelector('.vip-banner');
@@ -4900,29 +4900,32 @@ function renderVipBanner(dayNum) {
   var aiHero = document.getElementById('aiOptHero');
   if (aiHero) aiHero.style.display = (cfg && cfg.isVip) ? 'none' : '';
   if (cfg && cfg.isVip) {
+    // Insert gold VIP Tour Day banner at top
     var banner = document.createElement('div');
     banner.className = 'vip-banner';
     banner.innerHTML = '<svg class="vip-banner-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M14 4L16.5 10H23L17.8 13.8L19.8 20L14 16.3L8.2 20L10.2 13.8L5 10H11.5L14 4Z" fill="rgba(255,255,255,0.9)"/></svg><div class="vip-banner-text"><div class="vip-banner-title">VIP Tour Day &mdash; 10:00 AM to 5:00 PM</div><div class="vip-banner-sub">Your guide handles all skip-the-line access.</div></div>';
     container.insertBefore(banner, container.firstChild);
-  
-  // Show VN notes section and init
-  if (cfg && cfg.isVip) {
+    // Show VN notes section - create dynamically if renderSched destroyed it
     var vnSec = document.getElementById('vipNotesSection');
-    if (vnSec) {
-      vnSec.style.display = '';
-      var secHdrs = container.querySelectorAll('.sec-hdr');
-      var vipHdr = null;
-      for (var si = 0; si < secHdrs.length; si++) {
-        if (secHdrs[si].textContent.indexOf('VIP Tour') !== -1) { vipHdr = secHdrs[si]; break; }
-      }
-      if (vipHdr) container.insertBefore(vnSec, vipHdr.nextSibling);
+    if (!vnSec) {
+      vnSec = document.createElement('div');
+      vnSec.className = 'vip-notes-section';
+      vnSec.id = 'vipNotesSection';
+      vnSec.innerHTML = '<div class="vn-collapsed" id="vnCollapsed" style="display:none" onclick="vnExpand()"></div><div class="vn-full" id="vnFull"><div class="vn-header"><div class="vn-header-left"><div class="vn-header-title-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><div class="vn-title-stack"><div class="vn-title">Group Wishlist &amp; Notes</div><div class="vn-subtitle">Everyone can add &amp; edit</div></div></div></div></div><div class="vn-body"><div class="vn-instruction">Tell your host your must-dos, dining wishes, and anything the group needs. Edits sync live for everyone.</div><div id="vnEntryList"></div><div class="vn-add-trigger" id="vnAddTrigger" onclick="vnOpenInput()"><span class="vn-add-placeholder">Tap to add your notes…</span></div><div class="vn-input-area" id="vnInputArea" style="display:none"><textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notes…" rows="3"></textarea><div class="vn-input-actions"><button type="button" class="vn-btn-save" onclick="vnSaveEntry()">Save</button><button type="button" class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button></div></div><div class="vn-footer" id="vnFooter" style="display:none"><span class="vn-footer-label">Currently editing:</span><span class="vn-footer-member" id="vnFooterMember"></span></div></div></div>';
     }
+    vnSec.style.display = '';
+    // Insert after the VIP Tour section header
+    var secHdrs = container.querySelectorAll('.sec-hdr');
+    var vipHdr = null;
+    for (var si = 0; si < secHdrs.length; si++) {
+      if (secHdrs[si].textContent.indexOf('VIP Tour') > -1) { vipHdr = secHdrs[si]; break; }
+    }
+    if (vipHdr) container.insertBefore(vnSec, vipHdr.nextSibling);
     if (typeof vnInit === 'function') setTimeout(vnInit, 0);
   } else {
     var vnSec2 = document.getElementById('vipNotesSection');
     if (vnSec2) vnSec2.style.display = 'none';
   }
-}
 }
 
 /* --- AI Optimize result sheet helpers --- */
