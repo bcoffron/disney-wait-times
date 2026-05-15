@@ -653,12 +653,13 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .weather-detail-row{font-size:11px;color:#4A7A8C;margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
 .weather-tip{font-size:11px;color:#2A5A6C;margin-top:10px;line-height:1.4;font-style:italic}
 /* Crowd bars */
-.crowd-bars-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:flex-end}
+.crowd-bars-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:flex-end;margin-bottom:10px}
 .crowd-bar-item{display:flex;flex-direction:column;align-items:center;gap:4px}
-.crowd-bar-track{width:28px;height:72px;background:rgba(7,30,37,0.06);border-radius:6px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.crowd-bar-track{width:100%;max-width:56px;height:72px;background:rgba(7,30,37,0.06);border-radius:6px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
 .crowd-bar-fill{width:100%;border-radius:6px 6px 0 0;transition:height 0.4s ease}
-.crowd-bar-label{font-size:9px;font-weight:600;color:var(--color-teal-mid);text-align:center}
-.crowd-bar-level{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em}
+.crowd-bar-label{font-size:10px;font-weight:700;color:var(--color-bg-dark);text-align:center}
+.crowd-bar-date{font-size:8px;color:var(--color-teal-light);text-align:center}
+.crowd-bar-level{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;text-align:center}
 .crowd-insight{font-size:11px;color:#2A5A5C;line-height:1.5;margin-top:12px;padding:9px 11px;background:#F0FAF8;border-radius:8px;border-left:3px solid var(--color-teal-active)}
 /* Hours */
 .hours-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid rgba(7,30,37,0.06)}
@@ -703,16 +704,18 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 [class*="is-food"],[class*="is-show"] {
   padding: 0 !important;
 }
-/* Compensate for 4px accent border (vs 1.5px normal) so titles align */
-.ride-block.is-snack .ride-main,
-.ride-block.is-photo .ride-main,
-.ride-block.is-break .ride-main {
-  margin-left: -2px;
+/* Fix 3 Pass5 — Push time-col clear of the accent left border on photo/snack/restroom cards */
+.ride-block.is-photo .ride-time-col,
+.ride-block.is-snack .ride-time-col,
+.ride-block.is-break .ride-time-col {
+  padding-left: 6px;
 }
-/* Compensate for 3px accent border (vs 1.5px normal) */
-.ride-block.is-food .ride-main,
-.ride-block.is-show .ride-main {
-  margin-left: -1px;
+/* Fix 4 Pass5 — Consistent gap on all card types; remove old negative margin hacks */
+.ride-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: 0;
 }
 
 /* Fix 2 — Trip Weather Forecast */
@@ -727,19 +730,15 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .forecast-lo { font-size: 12px; font-weight: 400; color: #6A9AAC; }
 .forecast-divider { height: 0.5px; background: rgba(26,74,92,0.10); margin: 0 14px; }
 .forecast-tip { font-size: 11px; color: #2A5A6C; margin-top: 10px; line-height: 1.4; font-style: italic; }
-/* Fix 3 — Crowd Forecast */
-.crowd-bars { display: flex; flex-direction: column; gap: 10px; }
-.crowd-bar-wrap { display: flex; flex-direction: column; gap: 3px; }
-.crowd-bar-label { font-size: 11px; font-weight: 700; color: #1A4A5C; text-align: center; }
-.crowd-bar-date { font-size: 8px; color: var(--color-teal-light, #6A9AAC); text-align: center; }
-.crowd-bar-track { background: rgba(26,74,92,0.10); border-radius: 4px; height: 8px; overflow: hidden; }
-.crowd-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
-.crowd-bar-pct { font-size: 10px; color: #4A7A8C; text-align: center; }
-.crowd-insight { font-size: 11px; color: #2A5A6C; margin-top: 10px; line-height: 1.4; font-style: italic; }
-/* Fix 6 — Uniform card alignment */
-.sched-card,[class*="is-ride"],[class*="is-photo"],[class*="is-snack"],[class*="is-restroom"],[class*="is-dining"],[class*="is-tip"] { display: flex; gap: 12px; align-items: flex-start; padding: 9px 11px; }
-.time-col,.entry-time { width: 52px; flex-shrink: 0; text-align: right; }
+/* Fix 1 Pass5 — Crowd Forecast vertical bars */
+/* (old horizontal .crowd-bars rules removed; .crowd-bars-grid handles layout above) */
+/* Fix 4 Pass5 — Uniform card alignment (sched-card type only) */
+/* ride-block cards use .ride-main > .ride-time-col + .ride-body — not affected here */
+.sched-card { display: flex; gap: 12px; align-items: flex-start; padding: 9px 11px; }
+.time-col,.entry-time { width: 52px; min-width: 52px; flex-shrink: 0; text-align: right; }
 .card-body,.entry-body { flex: 1; min-width: 0; padding-left: 0; }
+/* Ensure ride-main has consistent flex layout on all card types */
+.ride-main { display: flex !important; align-items: flex-start; gap: 0; padding: 0; }
 /* Fix 7 — Custom checklist input */
 .checklist-add-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; border-top: 1px dashed rgba(7,30,37,0.10); padding-top: 10px; }
 .checklist-custom-input { flex: 1; min-width: 0; font-family: 'Outfit',sans-serif; font-size: 13px; color: var(--color-bg-dark); border: 1px solid rgba(7,30,37,0.15); border-radius: 8px; padding: 8px 10px; background: #FAFAFA; outline: none; min-height: 38px; }
@@ -3227,6 +3226,11 @@ function renderChecklist() {
   container.innerHTML = html;
   var prog = document.getElementById('checklist-progress');
   if (prog) prog.textContent = totalDone + ' of ' + totalItems + ' complete';
+  // Refresh section body max-height so add-row stays visible after items are added
+  var bodyEl = document.getElementById('body-checklist');
+  if (bodyEl && bodyEl.style.maxHeight && bodyEl.style.maxHeight !== '0px') {
+    bodyEl.style.maxHeight = bodyEl.scrollHeight + 'px';
+  }
 }
 function addChecklistItem() {
   var input = document.getElementById('checklist-custom-input');
@@ -3343,30 +3347,33 @@ function renderInfoTab(){
   // Section 3: Crowd Forecast
   function crowdContent() {
     var fallbackCrowds = [
-      {pct: 45, label: 'Moderate', color: '#ECA050'},
-      {pct: 75, label: 'High',     color: '#C86030'},
-      {pct: 30, label: 'Low',      color: '#1A6860'}
+      {pct: 45, label: 'Moderate', color: '#ECA050', levelColor: '#9A5800'},
+      {pct: 75, label: 'High',     color: '#C86030', levelColor: '#A02020'},
+      {pct: 30, label: 'Low',      color: '#1A6860', levelColor: '#1A6860'}
     ];
     var bars = DAYS.map(function(day, i) {
       var intel = (window.parkIntel && window.parkIntel[i]) || null;
-      var pct   = intel ? intel.crowdPct   : (fallbackCrowds[i] ? fallbackCrowds[i].pct   : 50);
-      var lbl   = intel ? intel.crowdLabel : (fallbackCrowds[i] ? fallbackCrowds[i].label : 'Moderate');
-      var color = intel ? intel.crowdColor : (fallbackCrowds[i] ? fallbackCrowds[i].color : '#ECA050');
-      var dayName = day.shortDay || (day.label ? day.label.split(' ')[0].slice(0,3) : ('Day '+(i+1)));
-      var dayDate = day.shortDate || day.date || (day.label ? day.label.split(' ').slice(1).join(' ') : '');
-      return '<div class="crowd-bar-wrap">'
+      var pct        = intel ? intel.crowdPct   : (fallbackCrowds[i] ? fallbackCrowds[i].pct   : 50);
+      var lbl        = intel ? intel.crowdLabel : (fallbackCrowds[i] ? fallbackCrowds[i].label : 'Moderate');
+      var color      = intel ? intel.crowdColor : (fallbackCrowds[i] ? fallbackCrowds[i].color : '#ECA050');
+      var levelColor = fallbackCrowds[i] ? fallbackCrowds[i].levelColor : '#9A5800';
+      var dayName    = day.shortDay || (day.label ? day.label.split(' ')[0].slice(0,3) : ('Day '+(i+1)));
+      var dayDate    = day.shortDate || day.date || (day.label ? day.label.split(' ').slice(1).join(' ') : '');
+      return '<div class="crowd-bar-item">'
+        + '<div class="crowd-bar-track">'
+        + '<div class="crowd-bar-fill" style="height:'+pct+'%;background:'+color+';"></div>'
+        + '</div>'
         + '<div class="crowd-bar-label">'+dayName+'</div>'
         + '<div class="crowd-bar-date">'+dayDate+'</div>'
-        + '<div class="crowd-bar-track"><div class="crowd-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'
-        + '<div class="crowd-bar-pct">'+lbl+' ('+pct+'%)</div>'
+        + '<div class="crowd-bar-level" style="color:'+levelColor+';">'+lbl+'</div>'
         + '</div>';
     }).join('');
     return '<div style="padding: 0 14px 14px;">'
-      + '<div class="crowd-bars">'+bars+'</div>'
-      + '<div class="crowd-insight">Monday is your busiest day — good thing that’s your VIP tour day, so you’re covered. Tuesday looks light.</div>'
+      + '<div class="crowd-bars-grid">'+bars+'</div>'
+      + '<div class="crowd-insight">Monday is your busiest day — good thing that\'s your VIP tour day, so you\'re covered. Tuesday looks light.</div>'
       + '</div>';
   }
-  // Section 4: Park Hours
+    // Section 4: Park Hours
   var ph=PARK_HOURS[curDay]||PARK_HOURS[0];
   var dlParts=ph.dl.split(' — ');
   var dcaParts=ph.dca.split(' — ');
