@@ -179,7 +179,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .tb-tip{background:rgba(139,143,168,.1);color:var(--text-muted)}
 .tb-break,.tb-rest{background:rgba(100,180,255,.15);color:#2980b9}
 .tb-photo{background:rgba(124,58,237,0.12);color:#7c3aed}
-.tb-snack{background:var(--green-bg);color:var(--green)}
+.tb-snack{background:#FFF0E8;color:#903820}
 .tb-ll{background:var(--orange-bg);color:var(--orange)}
 
 /* Live wait pill */
@@ -209,7 +209,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .is-vip .ride-note{color:#8A6820!important}
 .ride-block.is-break,.ride-block.is-rest{border-left:4px solid #2980b9!important;background:linear-gradient(135deg,#EBF5FB,#D6EAF8)!important}
 .ride-block.is-photo{border-left:4px solid #1A6860!important;background:linear-gradient(135deg,#F0FAFA,#E0F5F4)!important}
-.ride-block.is-snack{border-left:4px solid #27ae60!important;background:linear-gradient(135deg,#EAFAF1,#D5F5E3)!important}
+.ride-block.is-snack{border-left:3px solid #C86030!important;border-radius:0 11px 11px 0;background:linear-gradient(135deg,#FFF4F0,#FFE8E0)!important}
 .ride-block.is-lls{border-left:3px solid var(--orange)}
 .skip-line-badge{display:inline-flex;align-items:center;gap:3px;font-size:7px;font-weight:700;padding:2px 6px;border-radius:20px;background:#F5EDD0;color:#8A6820;flex-shrink:0;white-space:nowrap}
 /* LL / LLS banners */
@@ -1038,7 +1038,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
     <!-- CHAT TAB -->
     <div id="tabChat" class="chat-tab-container" style="display:none">
-      <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;min-height:80px;padding-top:16px"></div>
+      <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding-top:16px"></div>
       <div id="chatSugBubbles" class="ask-ai-suggestions-grid">
         <button class="chat-sug-bubble" onclick="sendSugChat('What\'s the wait like at Space Mountain right now?')">What's the wait like at Space Mountain right now?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Best order to hit Fantasyland this morning?')">Best order to hit Fantasyland this morning?</button>
@@ -1224,12 +1224,12 @@ const DAYS=[
     {t:'9:15 AM',h:'Photo Op: Sleeping Beauty Castle',type:'photo',n:'Perfect time for a castle shot before the hub fills up. Position on Main Street hub for the iconic front view.',land:'Main Street'},
     {t:'9:45 AM',h:'Space Mountain',type:'ride',n:'Morning is the best time   waits under 30 min before 10am.',land:'Tomorrowland'},
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near Matterhorn/Fantasyland entrance on your way toward Tomorrowland.',land:'Fantasyland'},
-    {t:'10:30 AM',h:'Morning Snack: Matterhorn Macaroon',type:'tip',n:'Pick up a Matterhorn Macaroon at the Fantasyland cart near the Matterhorn. Iconic Disneyland treat.',land:'Fantasyland'},
+    {t:'10:30 AM',h:'Morning Snack: Matterhorn Macaroon',type:'snack',n:'Pick up a Matterhorn Macaroon at the Fantasyland cart near the Matterhorn. Iconic Disneyland treat.',land:'Fantasyland'},
     {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
     {t:'12:00 PM',h:'Lunch — Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou: reservations via Disneyland app. River Belle is walk-up friendly.',land:'New Orleans Square',dining:{topPick:'Monte Cristo Sandwich (Blue Bayou) — the classic Disneyland lunch',vegOption:'Plant-Based Ratatouille — available at River Belle Terrace',kidsOption:'Mac & Cheese Kids Plate — available at both locations'}},
     {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park   use Lightning Lane if available.',land:'Tomorrowland'},
     {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
-    {t:'2:30 PM',h:'Afternoon Snack: Dole Whip',type:'tip',n:'Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room. Right on your path from Indiana Jones toward Frontierland.',land:'Adventureland'},
+    {t:'2:30 PM',h:'Afternoon Snack: Dole Whip',type:'snack',n:'Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room. Right on your path from Indiana Jones toward Frontierland.',land:'Adventureland'},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms in New Orleans Square near Haunted Mansion.',land:'New Orleans Square'},
     {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness   great for all ages.',land:'Frontierland'},
     {t:'6:30 PM',h:'Return to Park   Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
@@ -1246,7 +1246,7 @@ const DAYS=[
     {t:'8:30 AM',h:'Big Thunder Mountain Railroad',n:'Frontierland. Short wait this early.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland',ll:{t:'multi',a:'Book LL after Space Mountain'}},
     {t:'8:45 AM',h:'Photo Op: Big Thunder Mountain',type:'photo',n:'Iconic red rock formation from the Rivers of America. Perfect Frontierland backdrop before heading to New Orleans Square.',land:'Frontierland'},
     {t:'8:55 AM',h:'Haunted Mansion',n:'New Orleans Square. Morning walk-on or close to it.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
-    {t:'9:10 AM',h:'Morning Snack: Near New Orleans Square',type:'tip',n:'Fresh-squeezed lemonade or a classic Disneyland churro from the cart near New Orleans Square.',land:'New Orleans Square'},
+    {t:'9:10 AM',h:'Morning Snack: Near New Orleans Square',type:'snack',n:'Fresh-squeezed lemonade or a classic Disneyland churro from the cart near New Orleans Square.',land:'New Orleans Square'},
     {t:'9:40 AM',h:'Head to VIP meeting point',n:'Make your way to the main entrance area. Your guide will brief the group on the full day plan.',type:'vip'},
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near the main entrance before your VIP tour begins.',land:'Main Street'},
   ]},
@@ -1254,7 +1254,7 @@ const DAYS=[
     {t:'10:00 AM',h:'VIP Tour begins \u2014 Disneyland',n:'Your guide handles all skip-the-line access today. Use the notes below to share your ride wishlist and must-dos.',type:'vip'},
     {t:'10AM\u20135PM',h:'\u2B50 VIP Tour \u2014 Notes & Ride Wishlist',n:'Write your plans below.',type:'vip',isVipNotes:true},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Ask your VIP guide for the nearest restroom. Most lands have facilities near major attractions.',land:''},
-    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at Café Orléans',type:'tip',n:'The Monte Cristo sandwich at Café Orléans is a Disneyland bucket-list item &mdash; fried sandwich with powdered sugar, served at the counter window. No reservation needed.',land:'New Orleans Square'},
+    {t:'3:30 PM',h:'Afternoon Snack: Monte Cristo at Café Orléans',type:'snack',n:'The Monte Cristo sandwich at Café Orléans is a Disneyland bucket-list item &mdash; fried sandwich with powdered sugar, served at the counter window. No reservation needed.',land:'New Orleans Square'},
     {t:'5:00 PM',h:'Dinner & tip your VIP guide',n:'Your guide will recommend a great dinner spot. This is the natural moment to tip \u2014 industry standard is 15\u201320% of tour cost. Cash preferred.',type:'food',land:'Disneyland',dining:{topPick:'Blue Bayou Monte Cristo \u2014 ask your VIP guide to book this for you',vegOption:'River Belle Ratatouille \u2014 plant-based option with fresh seasonal vegetables',kidsOption:'Mac & Cheese Kids Plate \u2014 available at multiple Disneyland locations'}},
     {t:'5:15 PM',h:'Photo Op: New Orleans Square at Dusk',type:'photo',n:'Golden hour on the balconies overlooking the bayou. Beautiful light and atmosphere in New Orleans Square.',land:'New Orleans Square'},
   ]},
@@ -1281,7 +1281,7 @@ const DAYS=[
     {t:'9:35 AM',h:'Photo Op: Radiator Springs',type:'photo',n:'Red rock canyon formations at Cars Land &mdash; best light in the morning before crowds fill in. Shoot from near Flo\'s V8 Cafe looking toward the Cozy Cone for the full Cars Land panorama.',land:'Cars Land'},
     {t:'9:45 AM',h:'Web Slingers: A Spider-Man Adventure',n:'Back to Avengers Campus (5 min). Interactive ride, great for all ages. Book LL if waits exceed 30 min.',type:'ride',ride:'WEB SLINGERS: A Spider-Man Adventure',land:'Avengers Campus',ll:{t:'multi',a:'Book LL if wait is 30+ min'}},
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms at Avengers Campus near Web Slingers entrance, on your way to Soarin.',land:'Avengers Campus'},
-    {t:'10:05 AM',h:'Morning Snack: Pym Test Kitchen',type:'tip',n:'Try the Impossible Spoonful or a giant pretzel at Pym Test Kitchen, Avengers Campus.',land:'Avengers Campus'},
+    {t:'10:05 AM',h:'Morning Snack: Pym Test Kitchen',type:'snack',n:'Try the Impossible Spoonful or a giant pretzel at Pym Test Kitchen, Avengers Campus.',land:'Avengers Campus'},
     {t:'10:15 AM',h:'Soarin\u2019 Over California',n:'Head to Grizzly Peak (7 min from Avengers Campus). Iconic DCA ride. Book LL if wait exceeds 40 min.',type:'ride',ride:"Soarin' Over California",land:'Grizzly Peak',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
     {t:'11:00 AM',h:'Luigi\u2019s Rollickin\u2019 Roadsters',n:'Back to Cars Land (8 min). Fun and low wait. Good transition before lunch.',type:'ride',ride:"Luigi's Rollickin' Roadsters",land:'Cars Land'},
     {t:'11:25 AM',h:'Mater\u2019s Junkyard Jamboree',n:'Stay in Cars Land. Short wait, great fun.',type:'ride',ride:"Mater's Junkyard Jamboree",land:'Cars Land'},
@@ -1290,7 +1290,7 @@ const DAYS=[
     {t:'1:45 PM',h:'Monsters, Inc. Mike & Sulley to the Rescue!',n:'Hollywood Land (10 min). Air-conditioned and low wait. Good midday break from the heat.',type:'ride',ride:"Monsters, Inc. Mike & Sulley to the Rescue!",land:'Hollywood Land'},
     {t:'2:15 PM',h:'Mickey\u2019s PhilharMagic',n:'Stay in Hollywood Land. Air-conditioned show, great break from the heat.',type:'ride',ride:"Mickey's PhilharMagic",land:'Hollywood Land'},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms in Hollywood Land near the exit of Mickey PhilharMagic, before heading to Pixar Pier.',land:'Hollywood Land'},
-    {t:'3:05 PM',h:'Afternoon Snack: Adorable Snowman Frosted Treats',type:'tip',n:'Lemon or raspberry soft serve from the Adorable Snowman Frosted Treats cart at Pixar Pier.',land:'Pixar Pier'},
+    {t:'3:05 PM',h:'Afternoon Snack: Adorable Snowman Frosted Treats',type:'snack',n:'Lemon or raspberry soft serve from the Adorable Snowman Frosted Treats cart at Pixar Pier.',land:'Pixar Pier'},
     {t:'3:00 PM',h:'Pixar Pier freestyle + snacks',n:'Grab Adorable Snowman Frosted Treats or revisit a favorite. Wind down before the park hop.',type:'tip'},
     {t:'4:15 PM',h:'Park hop to Disneyland',n:'Head through the main gate. You\u2019ll have 2+ hours before your Caf\u00e9 Orleans reservation.',type:'hop'},
   ]},
@@ -3032,11 +3032,11 @@ function renderSched(){
       else if(e.type==='vip')bc+=' is-vip';
       var cardHour=(function(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]);if(m[3].toUpperCase()==="PM"&&h!==12)h+=12;if(m[3].toUpperCase()==="AM"&&h===12)h=0;return h;})(e.t);var isVipWindow=cardHour>=10&&cardHour<=17;
       if(TRIP_CONFIG.days[curDay].isVip&&isVipWindow&&e.type!=='vip'&&e.type!=='break'&&e.type!=='restroom'){var _ch=0;try{var _tp=e.t||'';var _pa=_tp.replace(' AM','').replace(' PM','').split(':');_ch=parseInt(_pa[0])||0;if(_tp.indexOf('PM')>-1&&_ch!==12)_ch+=12;if(_tp.indexOf('AM')>-1&&_ch===12)_ch=0;}catch(ex){}if(_ch>=10&&_ch<=17)bc+=' is-vip';}if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
-      if(e.type==='tip'&&e.h&&e.h.indexOf('Snack')>-1)bc+=' is-snack';
+      else if(e.type==='snack')bc+=' is-snack';
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
-      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>'};
+      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',snack:'<span class="tb tb-snack">snack</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
       var diningRec='';
       if(e.type==='food'&&e.h){
@@ -3071,7 +3071,7 @@ function renderSched(){
         +'<div class="ride-main">'
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
-        +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+(e.ride?(function(){var b=wbHTML(e.ride);if(!b)return '';var isHigh=b.indexOf('wb-high')>-1;return isHigh?b.replace('<span class="wb','<span class="wb wb-tappable" title="Tap for alternatives" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this.nextElementSibling)" style="cursor:pointer"'):b;}()):'')+'</div>'
+        +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
         +'<div class="ride-note">'+fixEncoding(e.n)+'</div>'+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+diningRec
         +reroute
         +'</div></div>';
