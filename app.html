@@ -1090,8 +1090,8 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
       <div class="vn-input-area" id="vnInputArea" style="display:none">
         <textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notes…" rows="3"></textarea>
         <div class="vn-input-actions">
-          <button class="vn-btn-save" onclick="vnSaveEntry()">Save</button>
-          <button class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button>
+          <button type="button" class="vn-btn-save" onclick="vnSaveEntry()">Save</button>
+          <button type="button" class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button>
         </div>
       </div>
 
@@ -4754,7 +4754,15 @@ function renderVipBanner(dayNum) {
   // Show VN notes section and init
   if (cfg && cfg.isVip) {
     var vnSec = document.getElementById('vipNotesSection');
-    if (vnSec) vnSec.style.display = '';
+    if (vnSec) {
+      vnSec.style.display = '';
+      var secHdrs = container.querySelectorAll('.sec-hdr');
+      var vipHdr = null;
+      for (var si = 0; si < secHdrs.length; si++) {
+        if (secHdrs[si].textContent.indexOf('VIP Tour') !== -1) { vipHdr = secHdrs[si]; break; }
+      }
+      if (vipHdr) container.insertBefore(vnSec, vipHdr.nextSibling);
+    }
     if (typeof vnInit === 'function') setTimeout(vnInit, 0);
   } else {
     var vnSec2 = document.getElementById('vipNotesSection');
