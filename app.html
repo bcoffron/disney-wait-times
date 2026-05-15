@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605150902-v108c">
+<meta name="version" content="202605150903-v108d">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -2015,11 +2015,11 @@ function wbHTML(rideName){
     return '<span class="wb wb-closed">Closed</span>';
   }
   var cls=d.w===0?'wb-low':d.w<30?'wb-low':d.w<45?'wb-med':'wb-high';
-  return '<span class="wb '+cls+'">'+(d.w===0?'Walk on':(d.w===null||d.w===undefined)?'Ã¢ÂÂ':d.w+' min')+'</span>';
+  return '<span class="wb '+cls+'">'+(d.w===0?'Walk on':(d.w===null||d.w===undefined)?'—':d.w+' min')+'</span>';
 }
 
 function updateWaitStatus(){
-  var txt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live Ã¢ÂÂ Just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago'):'Loading wait times...';
+  var txt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live — Just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago'):'Loading wait times...';
   var col=waitLastFetch?'#15803D':'#5A526E';
   var el=document.getElementById('waitStatus');if(el){el.textContent=txt;el.style.color=col;}renderDayInfoBar();
 }
@@ -3376,7 +3376,7 @@ function renderWaitTab(){
       var cls='wait-tab-row';
       if(r.s!=='OPERATING') cls+=' wt-closed';
       else if(r.w>=45) cls+=' wt-high';
-      var badge=r.s!=='OPERATING'?'<span class="wb wb-closed">Closed</span>':r.w===0?'<span class="wb wb-low">Walk on</span>':(r.w===null||r.w===undefined)?'<span class="wb wb-closed">Ã¢ÂÂ</span>':'<span class="wb '+(r.w<30?'wb-low':r.w<45?'wb-med':'wb-high')+'">'+r.w+' min</span>';
+      var badge=r.s!=='OPERATING'?'<span class="wb wb-closed">Closed</span>':r.w===0?'<span class="wb wb-low">Walk on</span>':(r.w===null||r.w===undefined)?'<span class="wb wb-closed">—</span>':'<span class="wb '+(r.w<30?'wb-low':r.w<45?'wb-med':'wb-high')+'">'+r.w+' min</span>';
       h+='<div class="'+cls+'"><div class="wt-name">'+r.name+'</div>'+badge+'</div>';
     });
     return h;
@@ -4664,7 +4664,7 @@ function submitTripCode(){
   } else {
     inp.style.animation='twShake 400ms ease';
     setTimeout(function(){inp.style.animation='';},420);
-    if(errEl){errEl.textContent='Incorrect code Ã¢ÂÂ try again';errEl.style.display='block';}
+    if(errEl){errEl.textContent='Incorrect code — try again';errEl.style.display='block';}
   }
 }
 
