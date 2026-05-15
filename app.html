@@ -1948,15 +1948,25 @@ function showScheduleToast(){
   setTimeout(function(){if(toast.parentNode)toast.parentNode.removeChild(toast);}, 3000);
 }
 
-function initPusher(){
+async function initPusher(){
   if(typeof Pusher === 'undefined') return;
+  if(!window.PUSHER_KEY || !window.PUSHER_CLUSTER) {
+    try {
+      var cfgR=await fetch(SYNC_BASE+'/api/config?t='+Date.now());
+      var cfgD=await cfgR.json();
+      if(cfgD.pusherKey) window.PUSHER_KEY=cfgD.pusherKey;
+      if(cfgD.pusherCluster) window.PUSHER_CLUSTER=cfgD.pusherCluster;
+    } catch(e) {}
+  }
   if(!window.PUSHER_KEY || !window.PUSHER_CLUSTER) return;
   try{
     var pusherClient = new Pusher(window.PUSHER_KEY, {cluster: window.PUSHER_CLUSTER});
     var tripChannel = pusherClient.subscribe('trip-sync');
     tripChannel.bind('notes-updated', function(data){
-      if(data && data.notes && typeof vnApplySync === 'function'){
-        vnApplySync(data.notes);
+      if(data && data.notes) {
+        try{localStorage.setItem('vn_entries_2',JSON.stringify(data.notes));}catch(e){}
+        var vnEl=document.getElementById('vnEntryList');
+        if(vnEl && typeof vnRenderEntries === 'function') vnRenderEntries();
       }
     });
     tripChannel.bind('schedule-updated', function(data){
