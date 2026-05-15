@@ -624,7 +624,36 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .md-btn{padding:15px 36px;border-radius:12px;border:none;background:linear-gradient(135deg,#E8A020,#C9860A);color:#FFF;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;z-index:2;animation:mdBtnPulse 2s ease-in-out infinite}
 @keyframes mdBtnPulse{0%,100%{box-shadow:0 4px 24px rgba(201,134,10,.6)}50%{box-shadow:0 4px 40px rgba(201,134,10,.9)}}
 
-.vip-notes-section{margin:8px 10px 6px;border-radius:12px;border:1.5px solid #D4A830;overflow:hidden;background:#FFFBF0}.vip-notes-header{background:#D4A830;padding:8px 12px;display:flex;justify-content:space-between;align-items:center}.vip-notes-header-title{font-size:10px;font-weight:800;color:#3A2800}.vip-notes-body{padding:8px 12px}.vip-notes-entry{margin-bottom:6px;padding:6px 8px;background:#FFF8E0;border-radius:6px}.vip-notes-author{font-size:8px;font-weight:700;color:#B8860B;margin-bottom:2px}.vip-notes-empty{border:1.5px dashed #D4A830;border-radius:8px;padding:14px;text-align:center;color:rgba(58,40,0,0.40);font-size:9px;cursor:pointer}.vip-notes-footer{font-size:8px;color:rgba(58,40,0,0.45);padding:4px 12px 8px}
+.vip-notes-section{margin:8px 10px 6px;overflow:hidden;font-family:Outfit,sans-serif}
+.vn-collapsed{background:#FDF6E3;border:0.5px solid #D4A830;border-radius:8px;padding:7px 11px;margin:0 0 8px;font-size:9px;color:#8A6820;cursor:pointer;font-family:Outfit,sans-serif}
+.vn-header{background:#D4A830;padding:7px 13px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0}
+.vn-header-left{display:flex;flex-direction:column;gap:1px}
+.vn-header-title-row{display:flex;align-items:center;gap:5px}
+.vn-header-label{font-size:10px;font-weight:800;color:#3A2800}
+.vn-header-sub{font-size:8px;color:rgba(58,40,0,0.55)}
+.vn-viewing-pill{background:#3A2800;border-radius:20px;padding:3px 8px;display:flex;align-items:center;gap:4px}
+.vn-dot{width:5px;height:5px;background:#4AE080;border-radius:50%;flex-shrink:0}
+#vnViewingCount{font-size:8px;font-weight:700;color:#F5D070}
+.vn-body{background:#FFFBF0;border:1.5px solid #D4A830;border-top:none;border-radius:0 0 12px 12px;overflow:hidden}
+.vn-inner-header{background:rgba(212,168,48,0.15);padding:8px 11px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid rgba(212,168,48,0.4)}
+.vn-inner-label{font-size:11px;font-weight:800;color:#3A2800}
+.vn-avatars{display:flex;align-items:center}
+.vn-avatar{width:18px;height:18px;border-radius:50%;border:1.5px solid #D4A830;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;margin-left:-5px;flex-shrink:0}
+.vn-avatars .vn-avatar:first-child{margin-left:0}
+.vn-instruction{padding:10px 11px 6px;font-size:9px;color:#8A6820;line-height:1.4}
+.vn-entry-block{padding:0 11px 8px}
+.vn-entry-author{font-size:8px;font-weight:700;color:#B8860B}
+.vn-entry-text{background:#FFF8E0;border-radius:6px;padding:5px 8px;margin-top:2px;font-size:10px;color:#2A1E00;line-height:1.4}
+.vn-add-trigger{border:1px dashed #D4A830;background:#FDF6E3;border-radius:8px;padding:10px 11px;margin:0 11px 10px;cursor:pointer}
+.vn-add-placeholder{font-size:9px;font-style:italic;color:#C0A030}
+.vn-input-area{padding:0 11px 10px}
+.vn-textarea{width:100%;box-sizing:border-box;background:#FFF8E0;border:1px solid #D4A830;border-radius:6px;padding:6px 8px;font-size:10px;color:#2A1E00;font-family:Outfit,sans-serif;resize:none;outline:none}
+.vn-input-actions{display:flex;gap:6px;margin-top:6px}
+.vn-btn-save{background:#D4A830;color:#3A2800;border:none;border-radius:99px;padding:5px 14px;font-size:9px;font-weight:700;font-family:Outfit,sans-serif;cursor:pointer}
+.vn-btn-cancel{background:none;color:#8A6820;border:1px solid rgba(212,168,48,0.4);border-radius:99px;padding:5px 14px;font-size:9px;font-weight:600;font-family:Outfit,sans-serif;cursor:pointer}
+.vn-footer{border-top:0.5px solid rgba(212,168,48,0.3);padding:6px 11px;display:flex;gap:4px;align-items:center}
+.vn-footer-label{font-size:8px;color:#8A6820}
+.vn-footer-member{font-size:8px;font-weight:700;color:#B8860B}
 /* ===== INFO TAB ACCORDION ===== */
 .info-tab-wrap{background:var(--color-app-bg);padding-bottom:80px}
 .info-tab-header{padding:10px 14px 6px}
@@ -1014,7 +1043,67 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
       </div>
 
       <!-- Schedule content -->
-      <div class="vip-notes-section" id="vipNotesSection" style="display:none"><div class="vip-notes-header"><div><div style="display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3A2800" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="vip-notes-header-title">Group Wishlist &amp; Notes</span></div><div style="font-size:8px;color:rgba(58,40,0,0.55)">Everyone can add &amp; edit</div></div><div style="background:rgba(58,40,0,0.15);padding:3px 7px;border-radius:20px;font-size:8px;color:#3A2800;font-weight:600">2 viewing</div></div><div class="vip-notes-body"><div class="vip-notes-empty">Tap to add your notes&hellip;</div></div><div class="vip-notes-footer">No one is currently editing</div></div>
+      <div class="vip-notes-section" id="vipNotesSection" style="display:none">
+
+  <!-- Collapsed strip (shown when scrolled past) -->
+  <div class="vn-collapsed" id="vnCollapsed" style="display:none" onclick="vnExpand()"></div>
+
+  <!-- Full component -->
+  <div class="vn-full" id="vnFull">
+
+    <!-- Part 1: Gold strip header -->
+    <div class="vn-header">
+      <div class="vn-header-left">
+        <div class="vn-header-title-row">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span class="vn-header-label">Group Wishlist &amp; Notes</span>
+        </div>
+        <div class="vn-header-sub">Everyone can add &amp; edit</div>
+      </div>
+      <div class="vn-viewing-pill" id="vnViewingPill">
+        <div class="vn-dot"></div>
+        <span id="vnViewingCount">1 viewing</span>
+      </div>
+    </div>
+
+    <!-- Part 2+3: Card body -->
+    <div class="vn-body">
+
+      <!-- Part 3: Inner header row -->
+      <div class="vn-inner-header">
+        <span class="vn-inner-label">Ride wishlist &amp; notes for your VIP host</span>
+        <div class="vn-avatars" id="vnAvatars"></div>
+      </div>
+
+      <!-- Part 4: Instruction text -->
+      <div class="vn-instruction">Tell your host your must-dos, dining wishes, and anything the group needs. Edits sync live for everyone.</div>
+
+      <!-- Part 5: Entry list -->
+      <div id="vnEntryList"></div>
+
+      <!-- Part 6: Add new entry trigger -->
+      <div class="vn-add-trigger" id="vnAddTrigger" onclick="vnOpenInput()">
+        <span class="vn-add-placeholder">Tap to add your notes…</span>
+      </div>
+
+      <!-- Inline input (hidden until triggered) -->
+      <div class="vn-input-area" id="vnInputArea" style="display:none">
+        <textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notes…" rows="3"></textarea>
+        <div class="vn-input-actions">
+          <button class="vn-btn-save" onclick="vnSaveEntry()">Save</button>
+          <button class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Part 7: Presence footer -->
+      <div class="vn-footer" id="vnFooter" style="display:none">
+        <span class="vn-footer-label">Currently editing:</span>
+        <span class="vn-footer-member" id="vnFooterMember"></span>
+      </div>
+
+    </div>
+  </div>
+</div>
       <div id="tripSetupBanner" style="display:none;background:#FFFFFF;border-radius:11px;border:1.5px solid #C86030;padding:11px 13px;align-items:center;gap:11px;margin:8px 10px 0"><div style="width:36px;height:36px;background:rgba(200,96,48,0.10);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C86030" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#071E25">Complete your trip setup</div><div style="font-size:9px;color:#4A7A7C;line-height:1.35;margin-top:2px">Your schedule is a starting point &mdash; tell us about your group so the AI can personalise it.</div></div><a href="/pretrip.html" style="background:#C86030;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:6px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0">Set up &rarr;</a></div>
       <div id="schedContent"></div>
 
@@ -1816,6 +1905,7 @@ async function pullVipNotes(){
     Object.keys(data.notes).forEach(function(d){
       try{localStorage.setItem('vip_notes_'+d,data.notes[d]);}catch(e){}
     });
+    if(typeof vnApplySync==='function' && data.notes && data.notes[2])vnApplySync(data.notes[2]);
   }catch(e){}
 }
 
@@ -2498,6 +2588,162 @@ function onDrop(e,d,s,i){e.preventDefault();e.currentTarget.classList.remove('dr
 function openModal(si){addSecIdx=si;document.getElementById('newTime').value='';document.getElementById('newTitle').value='';document.getElementById('newNote').value='';document.getElementById('newType').value='ride';document.getElementById('addModal').classList.remove('hidden');setTimeout(function(){document.getElementById('newTime').focus();},100);}
 function closeModal(){document.getElementById('addModal').classList.add('hidden');addSecIdx=null;}
 function saveEntry(){if(addSecIdx===null)return;var t=document.getElementById('newTime').value.trim();var h=document.getElementById('newTitle').value.trim();if(!t||!h){alert('Time and Title required');return;}var data=JSON.parse(JSON.stringify(getCurDay()));data.sections[addSecIdx].entries.push({t:t,h:h,n:document.getElementById('newNote').value.trim()||'\u00a0',type:document.getElementById('newType').value});customSched[curDay]=data;saveCustom(curDay);closeModal();renderSched();}
+
+/* ===== VIP NOTES COMPONENT (vn-*) ===== */
+
+// Member identity: index stored in localStorage (0=Brandon,1=Emily,2=Parker,3=Megan)
+function vnGetMember(){
+  var idx=parseInt(localStorage.getItem('vn_member_idx')||'0',10);
+  var members=(TRIP_CONFIG.members||[]);
+  return members[idx]||members[0]||{firstName:'Guest',lastName:'',lastInitial:'',color:'#D4A830'};
+}
+
+// Render avatar stack
+function vnRenderAvatars(){
+  var el=document.getElementById('vnAvatars');
+  if(!el)return;
+  var members=TRIP_CONFIG.members||[];
+  el.innerHTML=members.map(function(m){
+    return '<div class="vn-avatar" style="background:'+m.color+'">'+(m.firstName[0]||'')+(m.lastInitial||m.lastName[0]||'')+'</div>';
+  }).join('');
+}
+
+// Load/save entries via localStorage
+function vnLoadEntries(){
+  try{return JSON.parse(localStorage.getItem('vn_entries_2')||'[]');}catch(e){return [];}
+}
+function vnPersist(entries){
+  try{localStorage.setItem('vn_entries_2',JSON.stringify(entries));}catch(e){}
+  if(typeof pushVipNotes==='function') pushVipNotes(2,JSON.stringify(entries));
+}
+
+// Escape HTML for entry text
+function vnEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// Render entry list
+function vnRenderEntries(){
+  var list=document.getElementById('vnEntryList');
+  if(!list)return;
+  var entries=vnLoadEntries();
+  if(!entries.length){list.innerHTML='';return;}
+  list.innerHTML=entries.map(function(e){
+    return '<div class="vn-entry-block"><div class="vn-entry-author">'+vnEsc(e.authorName)+'</div><div class="vn-entry-text">'+vnEsc(e.text)+'</div></div>';
+  }).join('');
+}
+
+// Open inline input
+function vnOpenInput(){
+  var trigger=document.getElementById('vnAddTrigger');
+  var area=document.getElementById('vnInputArea');
+  var ta=document.getElementById('vnTextarea');
+  if(trigger)trigger.style.display='none';
+  if(area)area.style.display='';
+  if(ta){ta.value='';ta.focus();}
+  vnShowFooter();
+}
+
+// Cancel input
+function vnCancelInput(){
+  var trigger=document.getElementById('vnAddTrigger');
+  var area=document.getElementById('vnInputArea');
+  if(area)area.style.display='none';
+  if(trigger)trigger.style.display='';
+  vnHideFooter();
+}
+
+// Save entry
+function vnSaveEntry(){
+  var ta=document.getElementById('vnTextarea');
+  if(!ta)return;
+  var text=ta.value.trim();
+  if(!text){vnCancelInput();return;}
+  var m=vnGetMember();
+  var entries=vnLoadEntries();
+  entries.push({authorName:m.firstName+' '+m.lastInitial+'.',text:text,ts:Date.now()});
+  vnPersist(entries);
+  vnRenderEntries();
+  vnUpdateCollapsed();
+  vnCancelInput();
+}
+
+// Presence footer
+function vnShowFooter(){
+  var footer=document.getElementById('vnFooter');
+  var name=document.getElementById('vnFooterMember');
+  var m=vnGetMember();
+  if(name)name.textContent=m.firstName+' '+m.lastInitial+'.';
+  if(footer)footer.style.display='';
+}
+function vnHideFooter(){
+  var footer=document.getElementById('vnFooter');
+  if(footer)footer.style.display='none';
+}
+
+// Collapsed state text
+function vnUpdateCollapsed(){
+  var collapsed=document.getElementById('vnCollapsed');
+  if(!collapsed)return;
+  var entries=vnLoadEntries();
+  if(entries.length>0){
+    var seen={};
+    entries.forEach(function(e){seen[e.authorName]=1;});
+    var n=Object.keys(seen).length;
+    collapsed.textContent='Group wishlist · '+n+' member'+(n===1?'':'s')+' added notes · tap to expand';
+  } else {
+    collapsed.textContent='Group wishlist · tap to add your notes';
+  }
+}
+
+// Expand from collapsed
+function vnExpand(){
+  var full=document.getElementById('vnFull');
+  var collapsed=document.getElementById('vnCollapsed');
+  if(full)full.style.display='';
+  if(collapsed)collapsed.style.display='none';
+}
+
+// Scroll-based collapse
+function vnCheckScroll(){
+  var section=document.getElementById('vipNotesSection');
+  var full=document.getElementById('vnFull');
+  var collapsed=document.getElementById('vnCollapsed');
+  if(!section||!full||!collapsed)return;
+  var rect=section.getBoundingClientRect();
+  var container=document.getElementById('tabSchedule');
+  var contRect=container?container.getBoundingClientRect():{top:0};
+  if(rect.bottom < contRect.top){
+    full.style.display='none';
+    collapsed.style.display='';
+  } else {
+    if(full.style.display==='none'){full.style.display='';collapsed.style.display='none';}
+  }
+}
+
+// Apply synced entries from server
+function vnApplySync(rawNotes){
+  if(!rawNotes)return;
+  try{
+    var parsed=JSON.parse(rawNotes);
+    if(!Array.isArray(parsed))return;
+    var existing=vnLoadEntries();
+    var existingTs=existing.map(function(e){return e.ts;});
+    var merged=existing.slice();
+    parsed.forEach(function(e){if(existingTs.indexOf(e.ts)===-1)merged.push(e);});
+    merged.sort(function(a,b){return a.ts-b.ts;});
+    try{localStorage.setItem('vn_entries_2',JSON.stringify(merged));}catch(ex){}
+    vnRenderEntries();
+    vnUpdateCollapsed();
+  }catch(e){}
+}
+
+// Initialize component (called when Day 2 VIP tab is shown)
+function vnInit(){
+  vnRenderAvatars();
+  vnRenderEntries();
+  vnUpdateCollapsed();
+  var container=document.getElementById('tabSchedule');
+  if(container)container.addEventListener('scroll',vnCheckScroll,{passive:true});
+}
 
 //    Per-ride AI reroute                                                    
 async function getReroute(ride,land,btn){
@@ -4312,6 +4558,12 @@ var TRIP_CONFIG = {
   firstParkDate: new Date('2026-06-28T08:00:00-07:00'),
   guestPassword: 'CW9Dis2026',
   officialHoursUrl: 'https://disneyland.disney.go.com/calendars/',
+  members: [
+    {firstName: 'Brandon', lastName: 'Coffron', lastInitial: 'C', color: '#C86030'},
+    {firstName: 'Emily',   lastName: 'Coffron', lastInitial: 'C', color: '#1A6860'},
+    {firstName: 'Parker',  lastName: 'Woods',   lastInitial: 'W', color: '#071E25'},
+    {firstName: 'Megan',   lastName: 'Woods',   lastInitial: 'W', color: '#7040D0'},
+  ],
 };
 
 function getInitialActiveDay() {
@@ -4506,7 +4758,17 @@ function renderVipBanner(dayNum) {
     banner.className = 'vip-banner';
     banner.innerHTML = '<svg class="vip-banner-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M14 4L16.5 10H23L17.8 13.8L19.8 20L14 16.3L8.2 20L10.2 13.8L5 10H11.5L14 4Z" fill="rgba(255,255,255,0.9)"/></svg><div class="vip-banner-text"><div class="vip-banner-title">VIP Tour Day &mdash; 10:00 AM to 5:00 PM</div><div class="vip-banner-sub">Your guide handles all skip-the-line access.</div></div>';
     container.insertBefore(banner, container.firstChild);
+  
+  // Show VN notes section and init
+  if (cfg && cfg.isVip) {
+    var vnSec = document.getElementById('vipNotesSection');
+    if (vnSec) vnSec.style.display = '';
+    if (typeof vnInit === 'function') setTimeout(vnInit, 0);
+  } else {
+    var vnSec2 = document.getElementById('vipNotesSection');
+    if (vnSec2) vnSec2.style.display = 'none';
   }
+}
 }
 
 /* --- AI Optimize result sheet helpers --- */
