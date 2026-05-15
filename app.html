@@ -17,6 +17,8 @@
 <meta name="color-scheme" content="light">
 <base target="_blank">
 <title>Coffron/Woods Disneyland Trip</title>
+<script src="https://js.pusher.com/8.2/pusher.min.js"></script>
+<script src="https://js.pusher.com/8.2/pusher.min.js"></script>
 
 <style>
 /* ===== SECTION 1: CSS CUSTOM PROPERTIES ===== */
@@ -1063,11 +1065,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
         </div>
         <div class="vn-header-sub">Everyone can add &amp; edit</div>
       </div>
-      <div class="vn-viewing-pill" id="vnViewingPill">
-        <div class="vn-dot"></div>
-        <span id="vnViewingCount">1 viewing</span>
-      </div>
-    </div>
+          </div>
 
     <!-- Part 2+3: Card body -->
     <div class="vn-body">
@@ -1075,7 +1073,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
       <!-- Part 3: Inner header row -->
       <div class="vn-inner-header">
         <span class="vn-inner-label">Ride wishlist &amp; notes for your VIP host</span>
-        <div class="vn-avatars" id="vnAvatars"></div>
+        
       </div>
 
       <!-- Part 4: Instruction text -->
@@ -1827,6 +1825,8 @@ async function pullApiKey(){
     if(data.apiKey&&!apiKey){
       apiKey=data.apiKey;
       try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}
+      if(data.pusherKey){window.PUSHER_KEY=data.pusherKey;}if(data.pusherCluster){window.PUSHER_CLUSTER=data.pusherCluster;}
+      if(data.pusherKey){window.PUSHER_KEY=data.pusherKey;}if(data.pusherCluster){window.PUSHER_CLUSTER=data.pusherCluster;}
       console.log('API key pulled from server');
       // Hide the API setup card for guests
       var setup=document.getElementById('apiSetupCard');
@@ -1918,6 +1918,57 @@ function startNotesSync(){
   pullVipNotes();
   notesSyncInterval=setInterval(pullVipNotes,30*1000);
 }
+
+function applyScheduleUpdate(day, schedule){
+  // Update in-memory schedule for the specified day and re-render if needed
+  if(typeof scheduleData !== 'undefined' && scheduleData){
+    // Merge the updated day into local schedule data
+    if(Array.isArray(scheduleData)){
+      scheduleData[day] = schedule && schedule[day] !== undefined ? schedule[day] : schedule;
+    } else {
+      scheduleData = schedule;
+    }
+  }
+  // Re-render if we're currently viewing that day
+  if(typeof renderSchedule === 'function') renderSchedule();
+  else if(typeof renderDay === 'function'){
+    var currentDay = typeof activeDay !== 'undefined' ? activeDay : 0;
+    if(currentDay === day) renderDay(day);
+  }
+}
+
+function showScheduleToast(){
+  var existing = document.getElementById('scheduleToast');
+  if(existing) existing.remove();
+  var toast = document.createElement('div');
+  toast.id = 'scheduleToast';
+  toast.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:500;background:#1A6860;color:white;font-family:Outfit,sans-serif;font-size:10px;font-weight:600;padding:7px 14px;border-radius:0 0 8px 8px;text-align:center;';
+  toast.textContent = 'Schedule updated by your trip admin';
+  document.body.appendChild(toast);
+  setTimeout(function(){if(toast.parentNode)toast.parentNode.removeChild(toast);}, 3000);
+}
+
+function initPusher(){
+  if(typeof Pusher === 'undefined') return;
+  if(!window.PUSHER_KEY || !window.PUSHER_CLUSTER) return;
+  try{
+    var pusherClient = new Pusher(window.PUSHER_KEY, {cluster: window.PUSHER_CLUSTER});
+    var tripChannel = pusherClient.subscribe('trip-sync');
+    tripChannel.bind('notes-updated', function(data){
+      if(data && data.notes && typeof vnApplySync === 'function'){
+        vnApplySync(data.notes);
+      }
+    });
+    tripChannel.bind('schedule-updated', function(data){
+      if(isAdmin()) return; // admin doesn't re-apply their own changes
+      if(data && typeof applyScheduleUpdate === 'function'){
+        applyScheduleUpdate(data.day, data.schedule);
+        showScheduleToast();
+      }
+    });
+  }catch(e){console.error('Pusher init error',e);}
+}
+
 
 function todayPT(){var d=new Date();var pt=new Date(d.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));var y=pt.getFullYear(),m=String(pt.getMonth()+1).padStart(2,'0'),day=String(pt.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
 async function fetchWaits(){
@@ -2630,7 +2681,7 @@ function vnLoadEntries(){
 }
 function vnPersist(entries){
   try{localStorage.setItem('vn_entries_2',JSON.stringify(entries));}catch(e){}
-  if(typeof pushVipNotes==='function') pushVipNotes(2,JSON.stringify(entries));
+  if(typeof pushVipNotes==='function') pushVipNotes(entries);
 }
 
 // Escape HTML for entry text
@@ -2639,15 +2690,32 @@ function vnEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 // Render entry list
 function vnRenderEntries(){
   var list=document.getElementById('vnEntryList');
-  if(!list)return;
+  if(!list) return;
   var entries=vnLoadEntries();
-  if(!entries.length){list.innerHTML='';return;}
-  list.innerHTML=entries.map(function(e){
-    return '<div class="vn-entry-block"><div class="vn-entry-author">'+vnEsc(e.authorName)+'</div><div class="vn-entry-text">'+vnEsc(e.text)+'</div></div>';
+  if(!entries.length){list.innerHTML='<div style="font-size:11px;color:#8A6820;padding:8px 4px;text-align:center">No notes yet — tap + to add one</div>';return;}
+  list.innerHTML=entries.map(function(e,i){
+    return '<div class="vn-entry-block" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+      +'<div class="vn-text" style="font-size:13px;color:#3A2800;flex:1;line-height:1.45">'+e.text+'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">'
+      +'<span onclick="vnEditEntry('+i+')" style="cursor:pointer;" title="Edit">'
+        +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+      +'</span>'
+      +'<span onclick="vnDeleteEntry('+i+')" style="cursor:pointer;" title="Delete">'
+        +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A02020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>'
+      +'</span>'
+      +'</div>'
+    +'</div>';
   }).join('');
+  // Update collapsed state
+  var n=entries.length;
+  var collapsed=document.getElementById('vnCollapsed');
+  if(collapsed){
+    if(n>0){collapsed.textContent='\u2605 '+n+' note'+(n===1?'':'s')+' \u2014 tap to expand';}
+    else{collapsed.textContent='Group wishlist \u2605 tap to add your notes';}
+  }
 }
 
-// Open inline input
+
 function vnOpenInput(){
   var trigger=document.getElementById('vnAddTrigger');
   var area=document.getElementById('vnInputArea');
@@ -2659,6 +2727,7 @@ function vnOpenInput(){
 }
 
 // Cancel input
+
 function vnCancelInput(){
   var trigger=document.getElementById('vnAddTrigger');
   var area=document.getElementById('vnInputArea');
@@ -2668,21 +2737,20 @@ function vnCancelInput(){
 }
 
 // Save entry
-function vnSaveEntry(){
+
+async function vnSaveEntry(){
   var ta=document.getElementById('vnTextarea');
-  if(!ta)return;
+  if(!ta) return;
   var text=ta.value.trim();
   if(!text){vnCancelInput();return;}
-  var m=vnGetMember();
   var entries=vnLoadEntries();
-  entries.push({authorName:m.firstName+' '+m.lastInitial+'.',text:text,ts:Date.now()});
-  vnPersist(entries);
+  entries.push({text:text,ts:Date.now()});
+  vnSaveEntries(entries);
   vnRenderEntries();
-  vnUpdateCollapsed();
   vnCancelInput();
+  await pushVipNotes(entries);
 }
 
-// Presence footer
 function vnShowFooter(){
   var footer=document.getElementById('vnFooter');
   var name=document.getElementById('vnFooterMember');
@@ -2690,12 +2758,14 @@ function vnShowFooter(){
   if(name)name.textContent=m.firstName+' '+m.lastInitial+'.';
   if(footer)footer.style.display='';
 }
+
 function vnHideFooter(){
   var footer=document.getElementById('vnFooter');
   if(footer)footer.style.display='none';
 }
 
 // Collapsed state text
+
 function vnUpdateCollapsed(){
   var collapsed=document.getElementById('vnCollapsed');
   if(!collapsed)return;
@@ -2711,6 +2781,55 @@ function vnUpdateCollapsed(){
 }
 
 // Expand from collapsed
+function vnSaveEntries(entries){
+  try{localStorage.setItem('vn_entries_2',JSON.stringify(entries));}catch(e){}
+}
+function vnEditEntry(i){
+  var entries=vnLoadEntries();
+  var e=entries[i];
+  if(!e) return;
+  var list=document.getElementById('vnEntryList');
+  var items=list.querySelectorAll('.vn-entry-block');
+  var row=items[i];
+  if(!row) return;
+  row.innerHTML='<div style="flex:1;">'
+    +'<textarea id="vnEditTA" style="width:100%;font-size:13px;font-family:Outfit,sans-serif;padding:6px;border:1px solid #D4A830;border-radius:6px;color:#3A2800;resize:vertical;">'+e.text+'</textarea>'
+    +'<div style="display:flex;gap:6px;margin-top:6px;">'
+      +'<span onclick="vnSaveEdit('+i+')" style="cursor:pointer;font-size:11px;font-weight:600;color:#1A6860;padding:3px 8px;background:#E8F5F3;border-radius:6px;">Save</span>'
+      +'<span onclick="vnRenderEntries()" style="cursor:pointer;font-size:11px;font-weight:600;color:#666;padding:3px 8px;background:#F0F0F0;border-radius:6px;">Cancel</span>'
+    +'</div>'
+  +'</div>';
+}
+async function vnSaveEdit(i){
+  var ta=document.getElementById('vnEditTA');
+  if(!ta) return;
+  var newText=ta.value.trim();
+  if(!newText) return;
+  var entries=vnLoadEntries();
+  entries[i].text=newText;
+  vnSaveEntries(entries);
+  vnRenderEntries();
+  await pushVipNotes(entries);
+}
+function vnDeleteEntry(i){
+  var entries=vnLoadEntries();
+  var list=document.getElementById('vnEntryList');
+  var items=list.querySelectorAll('.vn-entry-block');
+  var row=items[i];
+  if(!row) return;
+  row.innerHTML='<div style="flex:1;font-size:11px;color:#A02020;">Delete this note?'
+    +'<span onclick="vnConfirmDelete('+i+')" style="cursor:pointer;font-size:10px;font-weight:600;color:#A02020;margin-left:8px;padding:2px 6px;background:#FFF0F0;border-radius:4px;">Yes, delete</span>'
+    +'<span onclick="vnRenderEntries()" style="cursor:pointer;font-size:10px;font-weight:600;color:#1A6860;margin-left:6px;padding:2px 6px;background:#E8F5F3;border-radius:4px;">Cancel</span>'
+  +'</div>';
+}
+async function vnConfirmDelete(i){
+  var entries=vnLoadEntries();
+  entries.splice(i,1);
+  vnSaveEntries(entries);
+  vnRenderEntries();
+  await pushVipNotes(entries);
+}
+
 function vnExpand(){
   var full=document.getElementById('vnFull');
   var collapsed=document.getElementById('vnCollapsed');
@@ -2737,22 +2856,13 @@ function vnCheckScroll(){
 
 // Apply synced entries from server
 function vnApplySync(rawNotes){
-  if(!rawNotes)return;
-  try{
-    var parsed=JSON.parse(rawNotes);
-    if(!Array.isArray(parsed))return;
-    var existing=vnLoadEntries();
-    var existingTs=existing.map(function(e){return e.ts;});
-    var merged=existing.slice();
-    parsed.forEach(function(e){if(existingTs.indexOf(e.ts)===-1)merged.push(e);});
-    merged.sort(function(a,b){return a.ts-b.ts;});
-    try{localStorage.setItem('vn_entries_2',JSON.stringify(merged));}catch(ex){}
-    vnRenderEntries();
-    vnUpdateCollapsed();
-  }catch(e){}
+  if(!rawNotes) return;
+  var parsed = Array.isArray(rawNotes) ? rawNotes : (typeof rawNotes === 'string' ? (function(){try{return JSON.parse(rawNotes);}catch(e){return [];}}()) : []);
+  if(!Array.isArray(parsed)) return;
+  // Merge with local - server is source of truth
+  try{localStorage.setItem('vn_entries_2', JSON.stringify(parsed));}catch(e){}
+  vnRenderEntries();
 }
-
-// Initialize component (called when Day 2 VIP tab is shown)
 function vnInit(){
   vnRenderAvatars();
   vnRenderEntries();
@@ -4687,6 +4797,7 @@ function enterSplash(skipAnim) {
     if (typeof scheduleMorningCheck === 'function') scheduleMorningCheck();
     if (typeof scheduleWeatherCheck === 'function') scheduleWeatherCheck();
     if (typeof startNotesSync === 'function') startNotesSync();
+    if (typeof initPusher === 'function') initPusher();
     if (typeof warmCachesFromServer === 'function') warmCachesFromServer();
     if (typeof doRefreshWaits === 'function') setTimeout(doRefreshWaits, 2000);
     if (typeof startWaitRefresh === 'function') setTimeout(startWaitRefresh, 10000);
