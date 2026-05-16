@@ -11,10 +11,11 @@ export default async function handler(req, res) {
   const { prompt, system, context, maxTokens = 1000, model = 'claude-sonnet-4-6' } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-  // Build system prompt â inject cache context if provided
+  // Build system prompt — inject cache context if provided, capped at 4000 chars
   let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant.';
   if (context) {
-    systemPrompt += '\n\n=== CURRENT DISNEYLAND INTELLIGENCE (use this instead of searching) ===\n' + context;
+    const trimmedContext = typeof context === 'string' ? context.substring(0, 4000) : String(context).substring(0, 4000);
+    systemPrompt += '\n\n=== CURRENT DISNEYLAND INTELLIGENCE (use this instead of searching) ===\n' + trimmedContext;
   }
 
   try {
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ ok: true, text, model: data.model });
-  } catch(e) {
+  } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 }
