@@ -3194,9 +3194,14 @@ async function fetchDiningRecs(e){
   resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ³ Loading&hellip;</span>';
   resultEl.classList.add('show');
   await ensureApiKey();
-  var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:'You are a Disneyland dining expert. Be concise. 2&ndash;3 sentences max. No markdown.',messages:[{role:'user',content:'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.'}]});
-  if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> '+r.error.message+'</span>';}
-  else if(r&&r.content&&r.content.length){resultEl.innerHTML='<div style="font-size:13px;line-height:1.6">'+stripMd(r.content[0].text.trim())+'</div>';}
+  var resp=await fetch('https://disney-wait-times-lupt.vercel.app/api/dining', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ prompt: 'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.', park: 'DL' })
+  });
+  var r=await resp.json();
+  if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> '+(r.error&&r.error.message?r.error.message:r.error)+'</span>';}
+  else if(r&&r.text){resultEl.innerHTML='<div style="font-size:13px;line-height:1.6">'+stripMd(r.text.trim())+'</div>';}
   else{resultEl.innerHTML='<span style="color:var(--text-muted);font-size:12px">No result.</span>';}
   btn.disabled=false;
 }
@@ -4138,14 +4143,13 @@ function generateFromSetup(params, callback) {
     parkHoursCache ? '=== PARK HOURS ===\n' + JSON.stringify(parkHoursCache) : ''
   ].filter(Boolean).join('\n\n');
   var prompt = 'Build a complete Disneyland day schedule. Return ONLY a raw JSON array (no markdown, no explanation) of objects with fields: t (time like "8:00 AM"), h (activity name), type (ride|show|dining|break|tip), n (brief note), land (land name). Group info: ' + JSON.stringify(params);
-  fetch(SYNC_BASE + '/api/ai', {
+  fetch('https://disney-wait-times-lupt.vercel.app/api/generateschedule', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       prompt: prompt,
-      system: 'Expert Disneyland planner. Return ONLY a raw JSON array starting with [ and ending with ]. No markdown, no backticks, no explanation. Each entry must have: t, h, type, n, land fields. Include the following in every generated schedule placed at geographically logical positions: one restroom break around 10:00 AM near whatever land the group is in at that time using type:break; one restroom break around 3:00 PM using type:break; one morning snack stop around 10:30 AM at a real park snack location near surrounding rides using type:tip; one afternoon snack stop around 3:30 PM at a real park snack location using type:tip; two photo ops per day at real park locations geographic to surrounding rides one before noon and one after 5 PM using type:photo.' + (typeof constraintRules !== 'undefined' ? ' Schedule rules: ' + constraintRules : ''),
-      context: context,
-      maxTokens: 3000
+      mode: 'setup',
+      maxTokens: 4000
     })
   })
   .then(function(r){return r.json();})
@@ -4170,14 +4174,13 @@ function generateFromSetup(params, callback) {
 function aiChooseRides(params, callback) {
   var context = parkIntelCache ? '=== PARK STRATEGY & RIDE INTEL ===\n' + parkIntelCache : '';
   var prompt = 'Choose the best rides for this group and return ONLY a JSON array of ride name strings. Group: ' + JSON.stringify(params);
-  fetch(SYNC_BASE + '/api/ai', {
+  fetch('https://disney-wait-times-lupt.vercel.app/api/generateschedule', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       prompt: prompt,
-      system: 'Disneyland ride expert. Use the provided park intelligence to choose optimal rides. Return ONLY a JSON array of ride name strings, no other text.',
-      context: context,
-      maxTokens: 300
+      mode: 'rides',
+      maxTokens: 4000
     })
   })
   .then(function(r){return r.json();})
