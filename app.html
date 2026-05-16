@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605151200-v114a
+<meta name="version" content="202605151200-v115a
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -2966,7 +2966,7 @@ async function reoptimize(){
   box.style.display='block';
   btns.classList.remove('show');
   txt.innerHTML='<span>'+(atPark?'Analyzing with live wait times':'Researching strategies and optimizing schedule')+'</span> <span class="blink"><span>\u00b7</span><span>\u00b7</span><span>\u00b7</span></span>';
-  if(!apiKey){txt.textContent='An API key is required for AI optimization. Add it in the Info tab.';return;}
+  await ensureApiKey();
 
   // Check cache - if schedule hasn't changed, reuse last result
   var data=getCurDay();
