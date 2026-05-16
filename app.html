@@ -1301,6 +1301,7 @@ function isWithinParkWindow(){
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
 const CLOSED=[
+  {n:'Pirates of the Caribbean',d:'Closed for refurbishment — no reopening date announced'},
   {n:'Buzz Lightyear Astro Blasters',d:'Closed since April 13   no reopening date'},
   {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27   no reopening date'},
 ];
@@ -1308,20 +1309,23 @@ const CLOSED=[
 const DAYS=[
 {label:'Sunday Jun 28',sub:'Disneyland " Fireworks Night',sections:[
   {title:'Sunday Jun 28   Disneyland',entries:[
-    {t:'8:00 AM',h:'Rope Drop   Head to Fantasyland',type:'tip',n:'Arrive at the main gate 45 min before opening. Position at the Fantasyland rope for best access.',land:'Main Street U.S.A.'},
+        {t:'7:15 AM',h:'Arrive at Disneyland gates',type:'tip',n:'Be at the front gate 45 min before the 8:00 AM opening. Per park strategy: get through security and line up at the Fantasyland rope before park opens.',land:'Main Street U.S.A.'},
+{t:'8:00 AM',h:'Rope Drop   Head to Fantasyland',type:'tip',n:'Arrive at the main gate 45 min before opening. Position at the Fantasyland rope for best access.',land:'Main Street U.S.A.'},
     {t:'8:15 AM',h:"Peter Pan's Flight",type:'ride',n:'First ride of the trip   lines build fast, do this at rope drop.',land:'Fantasyland'},
     {t:'9:00 AM',h:'Matterhorn Bobsleds',type:'ride',n:'Hit this before the 10am crowds arrive.',land:'Fantasyland'},
     {t:'9:15 AM',h:'Photo Op: Sleeping Beauty Castle',type:'photo',n:'Perfect time for a castle shot before the hub fills up. Position on Main Street hub for the iconic front view.',land:'Main Street'},
     {t:'9:45 AM',h:'Space Mountain',type:'ride',n:'Morning is the best time   waits under 30 min before 10am.',land:'Tomorrowland'},
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near Matterhorn/Fantasyland entrance on your way toward Tomorrowland.',land:'Fantasyland'},
+    {t:'10:15 AM',h:"it's a Small World",type:'ride',n:'Low-wait classic in Fantasyland. Perfect while waits are still short in the mid-morning window before Haunted Mansion.',land:'Fantasyland'},
     {t:'10:30 AM',h:'Morning Snack: Matterhorn Macaroon',type:'snack',n:'Pick up a Matterhorn Macaroon at the Fantasyland cart near the Matterhorn. Iconic Disneyland treat.',land:'Fantasyland'},
     {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
-    {t:'12:00 PM',h:'Lunch — Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou: reservations via Disneyland app. River Belle is walk-up friendly.',land:'New Orleans Square',dining:{topPick:'Monte Cristo Sandwich (Blue Bayou) — the classic Disneyland lunch',vegOption:'Plant-Based Ratatouille — available at River Belle Terrace',kidsOption:'Mac & Cheese Kids Plate — available at both locations'}},
+    {t:'11:30 AM',h:'Lunch — Blue Bayou or River Belle Terrace',type:'food',n:'Off-peak lunch (per park tips: eat 11:00–11:30 AM before the rush). Blue Bayou: reservations via app. River Belle is walk-up friendly.',land:'New Orleans Square',dining:{topPick:'Monte Cristo Sandwich (Blue Bayou) — the classic Disneyland lunch',vegOption:'Plant-Based Ratatouille — available at River Belle Terrace',kidsOption:'Mac & Cheese Kids Plate — available at both locations'}},
     {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park   use Lightning Lane if available.',land:'Tomorrowland'},
     {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
     {t:'2:30 PM',h:'Afternoon Snack: Dole Whip',type:'snack',n:'Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room. Right on your path from Indiana Jones toward Frontierland.',land:'Adventureland'},
     {t:'3:00 PM',h:'Restroom Break',type:'break',n:'Restrooms in New Orleans Square near Haunted Mansion.',land:'New Orleans Square'},
     {t:'4:00 PM',h:'Big Thunder Mountain Railroad',type:'ride',n:'The wildest ride in the wilderness   great for all ages.',land:'Frontierland'},
+    {t:'5:00 PM',h:'Dinner — Early Seating',type:'food',n:'Eat before the peak dinner rush (6:00–7:30 PM). Blue Bayou (reservations), Cafe Orleans (walk-up), or River Belle Terrace. Per park tips: 5:00–5:30 PM is the sweet spot.',land:'New Orleans Square',dining:{topPick:'Cafe Orleans Monte Cristo or Blue Bayou gumbo',vegOption:'Plant-Based Ratatouille at River Belle Terrace',kidsOption:'Mac & Cheese Kids Plate at River Belle Terrace'}},
     {t:'6:30 PM',h:'Return to Park   Main Street Dinner',type:'tip',n:'Grab dinner on Main Street or nearby. Evening crowds thin out after dinner.',land:'Main Street U.S.A.'},
     {t:'8:00 PM',h:'Fantasyland Evening Rides',type:'tip',n:'Evening is the best time for Fantasyland   lighter crowds after 8pm.',land:'Fantasyland'},
     {t:'8:30 PM',h:'Photo Op: Matterhorn at Night',type:'photo',n:'The Matterhorn lit up at night from the Fantasyland side &mdash; dramatic snow-capped peak with evening lighting. Best viewed from the path near the Matterhorn Bobsleds entrance.',land:'Fantasyland'},
@@ -3829,7 +3833,10 @@ function renderInfoTab(){
     +'</div>';
 
   var warnIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-  var closuresHtml=CLOSED.length?CLOSED.map(function(c){return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--divider)"><span style="font-size:18px">🔒</span><div><div style="font-weight:600;color:var(--text)">' + c.n + '</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">' + c.d + '</div></div></div>';}).join('')+'<div style="font-size:12px;color:var(--text-muted);margin-top:12px">Always check the Disneyland app the morning of your visit for any additional same-day closures.</div>':'<div style="color:var(--text-muted);padding:12px 0">No current closures reported.</div>';
+  var liveRefurbNames=(getStoredRefurbs()||[]);
+  var closureEntries=CLOSED.slice();
+  liveRefurbNames.forEach(function(nm){if(!closureEntries.some(function(e){return e.n===nm;})){closureEntries.push({n:nm,d:'Closed for refurbishment — no reopening date announced'});}});
+  var closuresHtml=closureEntries.length?closureEntries.map(function(c){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider)"><span style="font-size:16px">&#128274;</span><div><div style="font-weight:600;color:var(--text)">'+c.n+'</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">'+c.d+'</div></div></div>';}).join('')+'<div style="font-size:12px;color:var(--text-muted);margin-top:12px">Always check the Disneyland app the morning of your visit for any additional same-day closures.</div>':'<div style="color:var(--text-muted);padding:12px 0">No current closures on record.</div>';
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
     +'<div class="info-tab-header"><div class="info-tab-eyebrow">Trip Info</div></div>'
@@ -3840,8 +3847,8 @@ function renderInfoTab(){
     +buildInfoSection('tips','General Park Tips',bulbIcon,tipsHtml)
     +buildInfoSection('restrooms','Restroom Locations',pinIcon,restroomsHtml)
     +buildInfoSection('checklist','Pre-Trip Checklist',checkIcon,checklistHtml)
+    +(CLOSED.length ? buildInfoSection('closures','Ride & Restaurant Closures',warnIcon,closuresHtml) : '')
     +buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml)
-    +(CLOSED.length ? buildInfoSection('closures','🚧 Ride & Restaurant Closures',warnIcon,closuresHtml) : '')
     +'</div>';
 
   container.innerHTML=html;
