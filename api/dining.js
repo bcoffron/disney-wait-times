@@ -21,6 +21,20 @@ async function getCacheSlice(key, maxChars = 4000) {
   }
 }
 
+function extractJSON(text) {
+  // Try 1: extract from inside code fences if present
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)```/);
+  if (fenceMatch) {
+    try { return JSON.parse(fenceMatch[1].trim()); } catch(e) {}
+  }
+  // Try 2: raw parse
+  try { return JSON.parse(text.trim()); } catch(e) {}
+  // Try 3: find first { ... }
+  const objMatch = text.match(/\{[\s\S]+\}/);
+  if (objMatch) try { return JSON.parse(objMatch[0]); } catch(e) {}
+  return null;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -59,15 +73,9 @@ module.exports = async function handler(req, res) {
 
     if (!text) return res.status(200).json({ error: 'Empty response' });
 
-    const clean = text.replace(/```json[\s\S]*?```/g, '').replace(/```/g, '').trim();
-    let parsed = null;
-    try { parsed = JSON.parse(clean); }
-    catch (e1) {
-      const m = clean.match(/\{[\s\S]+\}/);
-      if (m) try { parsed = JSON.parse(m[0]); } catch (e2) { }
-    }
-
+    const parsed = extractJSON(text);
     return res.status(200).json({ ok: true, text, parsed, model: data.model });
+
   } catch (e) {
     console.error('dining endpoint error:', e.message);
     return res.status(500).json({ error: e.message });
