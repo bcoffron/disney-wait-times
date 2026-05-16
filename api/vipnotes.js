@@ -17,7 +17,7 @@ async function readFromBlob() {
               const { list } = await import('@vercel/blob');
               const { blobs } = await list({ prefix: BLOB_KEY });
               if (!blobs || blobs.length === 0) return null;
-              const fetchUrl = blobs[0].downloadUrl || blobs[0].url;
+              const fetchUrl = blobs[0].url;
               const resp = await fetch(fetchUrl);
               if (!resp.ok) return null;
               return await resp.json();
@@ -31,7 +31,7 @@ async function writeToBlob(data) {
       const { put } = await import('@vercel/blob');
       const payload = JSON.stringify(data);
       await put(BLOB_KEY, payload, {
-              access: 'private',
+              access: 'public',
               addRandomSuffix: false,
               contentType: 'application/json'
       });
