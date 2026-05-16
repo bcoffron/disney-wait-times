@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605151200-v112a
+<meta name="version" content="202605151200-v113a
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -1833,6 +1833,7 @@ async function pullApiKey(){
       if(setup) setup.style.display='none';
     }
   }catch(e){console.warn('Pull API key:',e);}
+async function ensureApiKey(){if(!apiKey)await pullApiKey();}
 }
 
 async function pushSchedule(){
@@ -3188,6 +3189,7 @@ async function fetchDiningRecs(e){
   btn.disabled=true;
   resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ³ Loading&hellip;</span>';
   resultEl.classList.add('show');
+  await ensureApiKey();
   var r=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:'You are a Disneyland dining expert. Be concise. 2&ndash;3 sentences max. No markdown.',messages:[{role:'user',content:'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.'}]});
   if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> '+r.error.message+'</span>';}
   else if(r&&r.content&&r.content.length){resultEl.innerHTML='<div style="font-size:13px;line-height:1.6">'+stripMd(r.content[0].text.trim())+'</div>';}
@@ -4015,7 +4017,7 @@ async function sendChat(){
 async function _doChat(msg){
   if(!msg) return;
   appendChatMsg('user',msg);
-  if(!apiKey){appendChatMsg('ai','Please add your API key in the Info tab to use AI chat.');return;}
+  await ensureApiKey();
   var ml=msg.toLowerCase();
   var today=todayPT();
   var dm={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};
@@ -4226,7 +4228,7 @@ function isRideInRefurb(rideName){
 }
 
 async function runWeeklyRefurbCheck(){
-  if(!apiKey) return;
+  await ensureApiKey();
   // Only run if no fresh data
   if(getStoredRefurbs()!==null) return;
   console.log('Running weekly refurb check...');
@@ -4333,6 +4335,7 @@ function renderPreTripChecklist(){
 }
 
 async function loadKnowBeforeYouGo(){
+  await ensureApiKey();
   if(!apiKey){document.getElementById('pt_kbyg_content').innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:8px;">Please add your API key in the Info tab first.</div>';return;}
   var el=document.getElementById('pt_kbyg_content');
   el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">( Generating your personalized briefing...</div>';
@@ -4513,6 +4516,7 @@ async function loadDayStrategy(){
   var el=document.getElementById('pt_daystrategy_content');
   if(!el) return;
   try{var cached=localStorage.getItem('day_strategy');var cachedHash=localStorage.getItem('day_strategy_hash');var cur=localStorage.getItem('setup_data')||'{}';if(cached&&cachedHash===cur){el.innerHTML=cached;return;}}catch(e){}
+  await ensureApiKey();
   if(!apiKey){el.innerHTML='<div style="color:var(--text-muted);font-size:13px;">Add your API key in the Info tab first.</div>';return;}
   el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Building your strategy...</div>';
   var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
@@ -4539,6 +4543,7 @@ async function loadLLPlanner(){
   var el=document.getElementById('pt_llplanner_content');
   if(!el) return;
   try{var cached=localStorage.getItem('ll_plan');var cachedHash=localStorage.getItem('ll_plan_hash');var cur=localStorage.getItem('setup_data')||'{}';if(cached&&cachedHash===cur){el.innerHTML=cached;return;}}catch(e){}
+  await ensureApiKey();
   if(!apiKey){el.innerHTML='<div style="color:var(--text-muted);font-size:13px;">Add your API key in the Info tab first.</div>';return;}
   el.innerHTML='<div style="text-align:center;padding:16px;color:var(--gold,#C9860A);font-size:13px;">Building your LL strategy...</div>';
   var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
