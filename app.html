@@ -567,6 +567,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
 .wb-tappable:active{transform:scale(.92)}
 .wb-closed{background:#F3F4F6;color:#9CA3AF;border:1px solid rgba(0,0,0,0.1)}
+.wb-refurb{background:#FFF7ED;color:#C2410C;border:1px solid rgba(194,65,12,0.25)}
 .wait-tab-row{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px;box-shadow:var(--shadow);gap:8px}
 .wait-tab-row.wt-high{border-color:rgba(196,30,30,0.3);background:#FFF5F5}
 .wait-tab-row.wt-closed{opacity:0.5}
@@ -1300,7 +1301,6 @@ function isWithinParkWindow(){
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
 const CLOSED=[
-  {n:'Pirates of the Caribbean',d:'Closed since May 4   no confirmed reopening for late June'},
   {n:'Buzz Lightyear Astro Blasters',d:'Closed since April 13   no reopening date'},
   {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27   no reopening date'},
 ];
@@ -3479,8 +3479,8 @@ function renderWaitTab(){
   keys.forEach(function(k){
     var r=waits[k];
     if(!r) return;
-    if(r.s !== 'OPERATING') return;
-    var isDCA=r.park&&r.park.toLowerCase().indexOf('california')>=0;
+
+    var isDCA = r.park === 'DCA';
     if(isDCA) dcaRides.push(r); else dlRides.push(r);
   });
   if(dlRides.length + dcaRides.length < 3){
@@ -3500,7 +3500,7 @@ function renderWaitTab(){
       var cls='wait-tab-row';
       if(r.s!=='OPERATING') cls+=' wt-closed';
       else if(r.w>=45) cls+=' wt-high';
-      var badge=r.s!=='OPERATING'?'<span class="wb wb-closed">Closed</span>':r.w===0?'<span class="wb wb-low">Walk on</span>':(r.w===null||r.w===undefined)?'<span class="wb wb-closed">—</span>':'<span class="wb '+(r.w<30?'wb-low':r.w<45?'wb-med':'wb-high')+'">'+r.w+' min</span>';
+      var badge=r.s==='REFURBISHMENT'?'<span class="wb wb-refurb">Refurb</span>':r.s!=='OPERATING'?'<span class="wb wb-closed">Closed</span>':r.w===0?'<span class="wb wb-low">Walk on</span>':(r.w===null||r.w===undefined)?'<span class="wb wb-closed">—</span>':'<span class="wb '+(r.w<=30?'wb-low':r.w<=45?'wb-med':'wb-high')+'">'+ r.w+' min</span>'
       h+='<div class="'+cls+'"><div class="wt-name">'+r.name+'</div>'+badge+'</div>';
     });
     return h;
@@ -3783,10 +3783,10 @@ function renderInfoTab(){
     {icon:clockSvg,title:'Disneyland App Must-Knows',body:'Download before you go and log in. Mobile Order is a game changer — order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes — use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
     {icon:clockSvg,title:'Best Times to Eat — Avoid the Rush',body:'Peak meal times are 12:00-1:30 PM (lunch) and 6:00-7:30 PM (dinner) — restaurants are packed and waits are long. Best lunch: 11:00-11:30 AM (before the rush) or 2:00-3:00 PM (after it). Best dinner: 5:00-5:30 PM (early bird) or 8:00-8:30 PM (late, after shows). Counter service is least busy 2:00-4:00 PM and right before park close.'},
     {icon:clockSvg,title:'Mobile Order — Use It Every Time',body:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30-45 min before you want to eat, then tap “I’m here” when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20-30 min just to order.'},
-    {icon:clockSvg,title:'Walk-up List — Your Secret Weapon',body:'Can’t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day — people regularly snag same-day spots at Lamplight Lounge, CafÃÂÃÂ© Orleans, and Carthay Circle this way. Keep checking the app — spots open up frequently.'},
-    {icon:starSvg,title:'Must-Order Dishes — Don’t Miss These',body:'CafÃÂÃÂ© Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers — fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand — much shorter line. Galaxy’s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
-    {icon:starSvg,title:'Share Portions — Save Money & Try More',body:'Portions at Disneyland are large. Lamplight’s Lobster Nachos, Plaza Inn’s fried chicken, and CafÃÂÃÂ© Orleans’ Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5-6 items instead of 9 and share around the table.'},
-    {icon:clockSvg,title:'Dining Package Tip — Fantasmic!',body:'CafÃÂÃÂ© Orleans offers a Fantasmic! Dining Package — includes a reserved Fantasmic! viewing area with your meal. If you’re eating at CafÃÂÃÂ© Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy’s Edge fireworks also have dining packages. Book 60 days ahead — same window as regular reservations.'},
+    {icon:clockSvg,title:'Walk-up List — Your Secret Weapon',body:'Can’t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day — people regularly snag same-day spots at Lamplight Lounge, Café Orleans, and Carthay Circle this way. Keep checking the app — spots open up frequently.'},
+    {icon:starSvg,title:'Must-Order Dishes — Don’t Miss These',body:'Café Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers — fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand — much shorter line. Galaxy’s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
+    {icon:starSvg,title:'Share Portions — Save Money & Try More',body:'Portions at Disneyland are large. Lamplight’s Lobster Nachos, Plaza Inn’s fried chicken, and Café Orleans’ Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5-6 items instead of 9 and share around the table.'},
+    {icon:clockSvg,title:'Dining Package Tip — Fantasmic!',body:'Café Orleans offers a Fantasmic! Dining Package — includes a reserved Fantasmic! viewing area with your meal. If you’re eating at Café Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy’s Edge fireworks also have dining packages. Book 60 days ahead — same window as regular reservations.'},
     {icon:mapSvg,title:'Hidden Gems & Local Tips',body:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square — look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle — short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Walt’s personal apartment windows — a light is always kept on in his honor.'}
   ];
   var tipsHtml='<div class="tip-cards-list">';
@@ -3828,6 +3828,8 @@ function renderInfoTab(){
     +'</div>'
     +'</div>';
 
+  var warnIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  var closuresHtml=CLOSED.length?CLOSED.map(function(c){return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--divider)"><span style="font-size:18px">🔒</span><div><div style="font-weight:600;color:var(--text)">' + c.n + '</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">' + c.d + '</div></div></div>';}).join('')+'<div style="font-size:12px;color:var(--text-muted);margin-top:12px">Always check the Disneyland app the morning of your visit for any additional same-day closures.</div>':'<div style="color:var(--text-muted);padding:12px 0">No current closures reported.</div>';
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
     +'<div class="info-tab-header"><div class="info-tab-eyebrow">Trip Info</div></div>'
@@ -3839,6 +3841,7 @@ function renderInfoTab(){
     +buildInfoSection('restrooms','Restroom Locations',pinIcon,restroomsHtml)
     +buildInfoSection('checklist','Pre-Trip Checklist',checkIcon,checklistHtml)
     +buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml)
+    +(CLOSED.length ? buildInfoSection('closures','🚧 Ride & Restaurant Closures',warnIcon,closuresHtml) : '')
     +'</div>';
 
   container.innerHTML=html;
