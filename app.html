@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="202605151200-v110a
+<meta name="version" content="202605151200-v111a
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
@@ -728,20 +728,20 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .settings-row-title{font-size:13px;font-weight:600;color:var(--color-bg-dark)}
 .settings-row-sub{font-size:11px;color:var(--color-teal-mid);margin-top:2px}
 
-/* Fix 6 ÃÂ¢ÃÂÃÂ Uniform card alignment */
+/* Fix 6 — Uniform card alignment */
 /* Remove extra padding from accent-border card outer containers */
 [class*="is-snack"],[class*="is-photo"],[class*="is-restroom"],
 [class*="is-dining"],[class*="is-tip"],[class*="is-break"],
 [class*="is-food"],[class*="is-show"] {
   padding: 0 !important;
 }
-/* Fix 3 Pass5 ÃÂ¢ÃÂÃÂ Push time-col clear of the accent left border on photo/snack/restroom cards */
+/* Fix 3 Pass5 — Push time-col clear of the accent left border on photo/snack/restroom cards */
 .ride-block.is-photo .ride-time,
 .ride-block.is-snack .ride-time,
 .ride-block.is-break .ride-time {
   padding-left: 6px;
 }
-/* Fix 4 Pass5 ÃÂ¢ÃÂÃÂ Consistent gap on all card types; remove old negative margin hacks */
+/* Fix 4 Pass5 — Consistent gap on all card types; remove old negative margin hacks */
 .ride-main {
   display: flex;
   align-items: flex-start;
@@ -749,7 +749,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   padding: 0;
 }
 
-/* Fix 2 ÃÂ¢ÃÂÃÂ Trip Weather Forecast */
+/* Fix 2 — Trip Weather Forecast */
 .forecast-table { background: linear-gradient(135deg,#E8F4F8 0%,#D0EBF5 100%); border-radius: 10px; padding: 4px 0; overflow: hidden; }
 .forecast-row { display: flex; align-items: center; padding: 10px 14px; gap: 10px; }
 .forecast-day-col { width: 40px; flex-shrink: 0; }
@@ -761,16 +761,16 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .forecast-lo { font-size: 12px; font-weight: 400; color: #6A9AAC; }
 .forecast-divider { height: 0.5px; background: rgba(26,74,92,0.10); margin: 0 14px; }
 .forecast-tip { font-size: 11px; color: #2A5A6C; margin-top: 10px; line-height: 1.4; font-style: italic; }
-/* Fix 1 Pass5 ÃÂ¢ÃÂÃÂ Crowd Forecast vertical bars */
+/* Fix 1 Pass5 — Crowd Forecast vertical bars */
 /* (old horizontal .crowd-bars rules removed; .crowd-bars-grid handles layout above) */
-/* Fix 4 Pass5 ÃÂ¢ÃÂÃÂ Uniform card alignment (sched-card type only) */
-/* ride-block cards use .ride-main > .ride-time-col + .ride-body ÃÂ¢ÃÂÃÂ not affected here */
+/* Fix 4 Pass5 — Uniform card alignment (sched-card type only) */
+/* ride-block cards use .ride-main > .ride-time-col + .ride-body — not affected here */
 .sched-card { display: flex; gap: 12px; align-items: flex-start; padding: 9px 11px; }
 .time-col,.entry-time { width: 52px; min-width: 52px; flex-shrink: 0; text-align: right; }
 .card-body,.entry-body { flex: 1; min-width: 0; padding-left: 0; }
 /* Ensure ride-main has consistent flex layout on all card types */
 .ride-main { display: flex !important; align-items: flex-start; gap: 0; padding: 0; }
-/* Fix 7 ÃÂ¢ÃÂÃÂ Custom checklist input */
+/* Fix 7 — Custom checklist input */
 .checklist-add-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; border-top: 1px dashed rgba(7,30,37,0.10); padding-top: 10px; }
 .checklist-custom-input { flex: 1; min-width: 0; font-family: 'Outfit',sans-serif; font-size: 13px; color: var(--color-bg-dark); border: 1px solid rgba(7,30,37,0.15); border-radius: 8px; padding: 8px 10px; background: #FAFAFA; outline: none; min-height: 38px; }
 .checklist-custom-input::placeholder { color: var(--color-teal-light); font-style: italic; }
@@ -1316,7 +1316,7 @@ const DAYS=[
     {t:'10:00 AM',h:'Restroom Break',type:'break',n:'Restrooms near Matterhorn/Fantasyland entrance on your way toward Tomorrowland.',land:'Fantasyland'},
     {t:'10:30 AM',h:'Morning Snack: Matterhorn Macaroon',type:'snack',n:'Pick up a Matterhorn Macaroon at the Fantasyland cart near the Matterhorn. Iconic Disneyland treat.',land:'Fantasyland'},
     {t:'11:00 AM',h:'Haunted Mansion',type:'ride',n:'Classic must-do. Walk through New Orleans Square on the way.',land:'New Orleans Square'},
-    {t:'12:00 PM',h:'Lunch ÃÂ¢ÃÂÃÂ Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou: reservations via Disneyland app. River Belle is walk-up friendly.',land:'New Orleans Square',dining:{topPick:'Monte Cristo Sandwich (Blue Bayou) ÃÂ¢ÃÂÃÂ the classic Disneyland lunch',vegOption:'Plant-Based Ratatouille ÃÂ¢ÃÂÃÂ available at River Belle Terrace',kidsOption:'Mac & Cheese Kids Plate ÃÂ¢ÃÂÃÂ available at both locations'}},
+    {t:'12:00 PM',h:'Lunch — Blue Bayou or River Belle Terrace',type:'food',n:'Blue Bayou: reservations via Disneyland app. River Belle is walk-up friendly.',land:'New Orleans Square',dining:{topPick:'Monte Cristo Sandwich (Blue Bayou) — the classic Disneyland lunch',vegOption:'Plant-Based Ratatouille — available at River Belle Terrace',kidsOption:'Mac & Cheese Kids Plate — available at both locations'}},
     {t:'1:00 PM',h:"Mickey & Minnie's Runaway Railway",type:'ride',n:'One of the most popular rides in the park   use Lightning Lane if available.',land:'Tomorrowland'},
     {t:'2:00 PM',h:'Indiana Jones Adventure',type:'ride',n:'Use your Lightning Lane booking to skip the mid-afternoon wait.',land:'Adventureland'},
     {t:'2:30 PM',h:'Afternoon Snack: Dole Whip',type:'snack',n:'Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room. Right on your path from Indiana Jones toward Frontierland.',land:'Adventureland'},
@@ -3398,7 +3398,7 @@ function renderSched(){
       h+='<div class="sec-hdr"><div class="sec-lbl">'+sec.title.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\u20E3\u200D]+/gu,'').trim()+'</div><div class="sec-line"></div></div>';
     }
     sec.entries.forEach(function(e,ei){
-      // VIP Notes: static component in DOM handles display ÃÂ¢ÃÂÃÂ skip entry
+      // VIP Notes: static component in DOM handles display — skip entry
       if(e.isVipNotes){ return; }
       // Regular card
       var bc='ride-block';
@@ -3550,7 +3550,7 @@ var CHECKLIST_ITEMS=[
   'Comfortable walking shoes for all-day wear',
   'Pre-book dining reservations (Blue Bayou recommended)',
   'Review Lightning Lane options for your dates',
-  'Pack ponchos ÃÂ¢ÃÂÃÂ Splash Mountain and Grizzly River Run',
+  'Pack ponchos — Splash Mountain and Grizzly River Run',
   'Confirm hotel check-in time and parking plan'
 ];
 var RESTROOM_LOCATIONS=[
@@ -3560,9 +3560,9 @@ var RESTROOM_LOCATIONS=[
   {land:'Tomorrowland',note:'Near Space Mountain entrance, and near Star Wars Launch Bay'},
   {land:'New Orleans Square',note:'Between Pirates of the Caribbean and Haunted Mansion'},
   {land:'Frontierland',note:'Near Big Thunder Mountain, and near the Mark Twain dock'},
-  {land:'DCA ÃÂ¢ÃÂÃÂ Buena Vista St',note:'Near the Carthay Circle Theatre'},
-  {land:'DCA ÃÂ¢ÃÂÃÂ Cars Land',note:"Near RamoneÃÂ¢ÃÂÃÂs House of Body Art"},
-  {land:'DCA ÃÂ¢ÃÂÃÂ Avengers Campus',note:'Near the Avengers Campus entrance'}
+  {land:'DCA — Buena Vista St',note:'Near the Carthay Circle Theatre'},
+  {land:'DCA — Cars Land',note:"Near RamoneÃÂ¢ÃÂÃÂs House of Body Art"},
+  {land:'DCA — Avengers Campus',note:'Near the Avengers Campus entrance'}
 ];
 function loadChecklistState(){try{return JSON.parse(localStorage.getItem('tpcp_checklist_state'))||{};}catch(e){return {};}}
 function saveChecklistState(state){localStorage.setItem('tpcp_checklist_state',JSON.stringify(state));}
@@ -3717,7 +3717,7 @@ function renderInfoTab(){
     }).join('');
     return '<div style="padding: 0 14px 14px;">'
       + '<div class="forecast-table">'+rows+'</div>'
-      + '<div class="forecast-tip">Sunscreen every day ÃÂ¢ÃÂÃÂ June in Anaheim peaks fast.</div>'
+      + '<div class="forecast-tip">Sunscreen every day — June in Anaheim peaks fast.</div>'
       + '</div>';
   }
   // Section 3: Crowd Forecast
@@ -3746,13 +3746,13 @@ function renderInfoTab(){
     }).join('');
     return '<div style="padding: 0 14px 14px;">'
       + '<div class="crowd-bars-grid">'+bars+'</div>'
-      + '<div class="crowd-insight">Monday is your busiest day ÃÂ¢ÃÂÃÂ good thing that\'s your VIP tour day, so you\'re covered. Tuesday looks light.</div>'
+      + '<div class="crowd-insight">Monday is your busiest day — good thing that\'s your VIP tour day, so you\'re covered. Tuesday looks light.</div>'
       + '</div>';
   }
     // Section 4: Park Hours
   var ph=PARK_HOURS[curDay]||PARK_HOURS[0];
-  var dlParts=ph.dl.split(' ÃÂ¢ÃÂÃÂ ');
-  var dcaParts=ph.dca.split(' ÃÂ¢ÃÂÃÂ ');
+  var dlParts=ph.dl.split(' — ');
+  var dcaParts=ph.dca.split(' — ');
   var hoursUrl=(TRIP_CONFIG.officialHoursUrl||'https://disneyland.disney.go.com/calendars/');
   var hoursContent='<div style="padding:0 14px 14px;">'
     +'<div class="hours-row"><span class="hours-park-name">Disneyland</span><span class="hours-time">'+ph.dl+'</span></div>'
@@ -3769,23 +3769,23 @@ function renderInfoTab(){
   var starSvg='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>';
   var mapSvg='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
   var tipsList=[
-    {icon:mapSvg,title:'Wondrous Journeys Fireworks ÃÂ¢ÃÂÃÂ Best Spots',body:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near ItÃÂ¢ÃÂÃÂs a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland ÃÂ¢ÃÂÃÂ you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
-    {icon:starSvg,title:'Paint the Night Parade ÃÂ¢ÃÂÃÂ Best Spots',body:'Main Street USA is the best overall location ÃÂ¢ÃÂÃÂ the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot ÃÂ¢ÃÂÃÂ floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
-    {icon:mapSvg,title:'Fantasmic! ÃÂ¢ÃÂÃÂ Best Viewing',body:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded ÃÂ¢ÃÂÃÂ often by 50%.'},
-    {icon:mapSvg,title:'World of Color ÃÂ¢ÃÂÃÂ Best Viewing',body:'Paradise Gardens lagoon ÃÂ¢ÃÂÃÂ center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday youÃÂ¢ÃÂÃÂre already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
-    {icon:starSvg,title:'Tapestry of Happiness ÃÂ¢ÃÂÃÂ ItÃÂ¢ÃÂÃÂs a Small World',body:'Runs automatically at dusk every night. No reserved viewing needed ÃÂ¢ÃÂÃÂ just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
-    {icon:clockSvg,title:'Rope Drop Strategy',body:'Arrive at the turnstiles 5-10 min before official opening. Cast Members let people through in waves. Be in the first wave to get a 10-15 min head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly ÃÂ¢ÃÂÃÂ donÃÂ¢ÃÂÃÂt run ÃÂ¢ÃÂÃÂ to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
-    {icon:clockSvg,title:'Lightning Lane Strategy',body:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line ÃÂ¢ÃÂÃÂ this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, TianaÃÂ¢ÃÂÃÂs early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
-    {icon:clockSvg,title:'Crowd Flow by Time of Day',body:'6-9 AM: Empty ÃÂ¢ÃÂÃÂ best time for headliners. 9-11 AM: Building ÃÂ¢ÃÂÃÂ finish Tomorrowland and Fantasyland. 11 AM-2 PM: Peak ÃÂ¢ÃÂÃÂ use for dining, shows, or GalaxyÃÂ¢ÃÂÃÂs Edge (it handles crowds better). 2-4 PM: Slightly easier, good for Adventureland. 4-6 PM: Busy but manageable. 7 PM onwards: Crowds thin noticeably as families leave ÃÂ¢ÃÂÃÂ great for second rides on favorites.'},
-    {icon:starSvg,title:'What to Bring',body:'Phone charger/power bank (essential ÃÂ¢ÃÂÃÂ Disneyland app drains battery fast). Comfortable walking shoes ÃÂ¢ÃÂÃÂ expect 8-12 miles per day. Light layers for evening (Anaheim cools down after 8 PM). Sunscreen. Reusable water bottle ÃÂ¢ÃÂÃÂ free water at any counter service. Snacks for the group to avoid long food lines at peak times.'},
-    {icon:clockSvg,title:'Disneyland App Must-Knows',body:'Download before you go and log in. Mobile Order is a game changer ÃÂ¢ÃÂÃÂ order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes ÃÂ¢ÃÂÃÂ use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
-    {icon:clockSvg,title:'Best Times to Eat ÃÂ¢ÃÂÃÂ Avoid the Rush',body:'Peak meal times are 12:00-1:30 PM (lunch) and 6:00-7:30 PM (dinner) ÃÂ¢ÃÂÃÂ restaurants are packed and waits are long. Best lunch: 11:00-11:30 AM (before the rush) or 2:00-3:00 PM (after it). Best dinner: 5:00-5:30 PM (early bird) or 8:00-8:30 PM (late, after shows). Counter service is least busy 2:00-4:00 PM and right before park close.'},
-    {icon:clockSvg,title:'Mobile Order ÃÂ¢ÃÂÃÂ Use It Every Time',body:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30-45 min before you want to eat, then tap ÃÂ¢ÃÂÃÂIÃÂ¢ÃÂÃÂm hereÃÂ¢ÃÂÃÂ when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20-30 min just to order.'},
-    {icon:clockSvg,title:'Walk-up List ÃÂ¢ÃÂÃÂ Your Secret Weapon',body:'CanÃÂ¢ÃÂÃÂt get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day ÃÂ¢ÃÂÃÂ people regularly snag same-day spots at Lamplight Lounge, CafÃÂÃÂ© Orleans, and Carthay Circle this way. Keep checking the app ÃÂ¢ÃÂÃÂ spots open up frequently.'},
-    {icon:starSvg,title:'Must-Order Dishes ÃÂ¢ÃÂÃÂ DonÃÂ¢ÃÂÃÂt Miss These',body:'CafÃÂÃÂ© Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers ÃÂ¢ÃÂÃÂ fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand ÃÂ¢ÃÂÃÂ much shorter line. GalaxyÃÂ¢ÃÂÃÂs Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
-    {icon:starSvg,title:'Share Portions ÃÂ¢ÃÂÃÂ Save Money & Try More',body:'Portions at Disneyland are large. LamplightÃÂ¢ÃÂÃÂs Lobster Nachos, Plaza InnÃÂ¢ÃÂÃÂs fried chicken, and CafÃÂÃÂ© OrleansÃÂ¢ÃÂÃÂ Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5-6 items instead of 9 and share around the table.'},
-    {icon:clockSvg,title:'Dining Package Tip ÃÂ¢ÃÂÃÂ Fantasmic!',body:'CafÃÂÃÂ© Orleans offers a Fantasmic! Dining Package ÃÂ¢ÃÂÃÂ includes a reserved Fantasmic! viewing area with your meal. If youÃÂ¢ÃÂÃÂre eating at CafÃÂÃÂ© Orleans before the show on Tuesday, ask about this when you book. Paint the Night and GalaxyÃÂ¢ÃÂÃÂs Edge fireworks also have dining packages. Book 60 days ahead ÃÂ¢ÃÂÃÂ same window as regular reservations.'},
-    {icon:mapSvg,title:'Hidden Gems & Local Tips',body:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square ÃÂ¢ÃÂÃÂ look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle ÃÂ¢ÃÂÃÂ short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has WaltÃÂ¢ÃÂÃÂs personal apartment windows ÃÂ¢ÃÂÃÂ a light is always kept on in his honor.'}
+    {icon:mapSvg,title:'Wondrous Journeys Fireworks — Best Spots',body:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near ItÃÂ¢ÃÂÃÂs a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland — you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
+    {icon:starSvg,title:'Paint the Night Parade — Best Spots',body:'Main Street USA is the best overall location — the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot — floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
+    {icon:mapSvg,title:'Fantasmic! — Best Viewing',body:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded — often by 50%.'},
+    {icon:mapSvg,title:'World of Color — Best Viewing',body:'Paradise Gardens lagoon — center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday youÃÂ¢ÃÂÃÂre already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
+    {icon:starSvg,title:'Tapestry of Happiness — ItÃÂ¢ÃÂÃÂs a Small World',body:'Runs automatically at dusk every night. No reserved viewing needed — just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
+    {icon:clockSvg,title:'Rope Drop Strategy',body:'Arrive at the turnstiles 5-10 min before official opening. Cast Members let people through in waves. Be in the first wave to get a 10-15 min head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly — donÃÂ¢ÃÂÃÂt run — to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
+    {icon:clockSvg,title:'Lightning Lane Strategy',body:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line — this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, TianaÃÂ¢ÃÂÃÂs early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
+    {icon:clockSvg,title:'Crowd Flow by Time of Day',body:'6-9 AM: Empty — best time for headliners. 9-11 AM: Building — finish Tomorrowland and Fantasyland. 11 AM-2 PM: Peak — use for dining, shows, or GalaxyÃÂ¢ÃÂÃÂs Edge (it handles crowds better). 2-4 PM: Slightly easier, good for Adventureland. 4-6 PM: Busy but manageable. 7 PM onwards: Crowds thin noticeably as families leave — great for second rides on favorites.'},
+    {icon:starSvg,title:'What to Bring',body:'Phone charger/power bank (essential — Disneyland app drains battery fast). Comfortable walking shoes — expect 8-12 miles per day. Light layers for evening (Anaheim cools down after 8 PM). Sunscreen. Reusable water bottle — free water at any counter service. Snacks for the group to avoid long food lines at peak times.'},
+    {icon:clockSvg,title:'Disneyland App Must-Knows',body:'Download before you go and log in. Mobile Order is a game changer — order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes — use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
+    {icon:clockSvg,title:'Best Times to Eat — Avoid the Rush',body:'Peak meal times are 12:00-1:30 PM (lunch) and 6:00-7:30 PM (dinner) — restaurants are packed and waits are long. Best lunch: 11:00-11:30 AM (before the rush) or 2:00-3:00 PM (after it). Best dinner: 5:00-5:30 PM (early bird) or 8:00-8:30 PM (late, after shows). Counter service is least busy 2:00-4:00 PM and right before park close.'},
+    {icon:clockSvg,title:'Mobile Order — Use It Every Time',body:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30-45 min before you want to eat, then tap ÃÂ¢ÃÂÃÂIÃÂ¢ÃÂÃÂm hereÃÂ¢ÃÂÃÂ when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20-30 min just to order.'},
+    {icon:clockSvg,title:'Walk-up List — Your Secret Weapon',body:'CanÃÂ¢ÃÂÃÂt get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day — people regularly snag same-day spots at Lamplight Lounge, CafÃÂÃÂ© Orleans, and Carthay Circle this way. Keep checking the app — spots open up frequently.'},
+    {icon:starSvg,title:'Must-Order Dishes — DonÃÂ¢ÃÂÃÂt Miss These',body:'CafÃÂÃÂ© Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers — fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand — much shorter line. GalaxyÃÂ¢ÃÂÃÂs Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
+    {icon:starSvg,title:'Share Portions — Save Money & Try More',body:'Portions at Disneyland are large. LamplightÃÂ¢ÃÂÃÂs Lobster Nachos, Plaza InnÃÂ¢ÃÂÃÂs fried chicken, and CafÃÂÃÂ© OrleansÃÂ¢ÃÂÃÂ Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5-6 items instead of 9 and share around the table.'},
+    {icon:clockSvg,title:'Dining Package Tip — Fantasmic!',body:'CafÃÂÃÂ© Orleans offers a Fantasmic! Dining Package — includes a reserved Fantasmic! viewing area with your meal. If youÃÂ¢ÃÂÃÂre eating at CafÃÂÃÂ© Orleans before the show on Tuesday, ask about this when you book. Paint the Night and GalaxyÃÂ¢ÃÂÃÂs Edge fireworks also have dining packages. Book 60 days ahead — same window as regular reservations.'},
+    {icon:mapSvg,title:'Hidden Gems & Local Tips',body:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square — look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle — short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has WaltÃÂ¢ÃÂÃÂs personal apartment windows — a light is always kept on in his honor.'}
   ];
   var tipsHtml='<div class="tip-cards-list">';
   tipsList.forEach(function(t){
@@ -3928,7 +3928,7 @@ function renderShows(){
   ];
 
   var html='<div style="padding:4px 0 10px;font-size:12px;color:var(--text-muted);line-height:1.6;padding:10px 0 14px">'
-    +'<b style="color:var(--text)">Tip:</b> Exact show times change daily. Check the <b style="color:var(--blue)">Disneyland app \u2192 Entertainment</b> each morning for today s schedule. Times below are typical but not guaranteed.'
+    +'<b style="color:var(--text)">Tip:</b> Exact show times change daily. Check the <b style="color:var(--blue)">Disneyland app \u2192 Entertainment</b> each morning for today's schedule. Times below are typical but not guaranteed.'
     +'</div>';
 
   sections.forEach(function(sec){
