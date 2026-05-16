@@ -41,20 +41,22 @@ async function handler(req, res) {
       .replace(/Show positioning[\s\S]{0,300}/i, '')
       .replace(/DINING TIMING RULES[\s\S]{0,300}/i, '')
       .trim()
-      .substring(0, 2000);
+      .substring(0, 1500);
 
-    const parkIntel = await getCacheSlice('park_intel', 4000);
+    const parkIntel = await getCacheSlice('park_intel', 3000);
 
-    const model = 'claude-sonnet-4-6';
-    let system = 'You are a Disneyland schedule optimizer. You MUST output ONLY a raw JSON object with zero additional text. Do not use markdown. Do not explain. Just JSON. CRITICAL: You MUST return a complete full-day schedule. Do NOT truncate or abbreviate. Return EVERY time slot from park open to park close. The optimized schedule must have at least as many entries as the original. Required output format: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence summary"} — the sections array must contain ALL entries for the full day with no omissions.';
+    // Use Haiku for speed — full schedule must complete within 30s Vercel limit
+    const model = 'claude-haiku-4-5-20251001';
+    let system = 'You are a Disneyland schedule optimizer. Output ONLY raw JSON, no markdown, no explanation. Required format: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence"} Return ALL entries for the full day — do not truncate.';
 
     if (parkIntel) {
-      system += '\n\n=== DISNEYLAND INTELLIGENCE (use this for wait time patterns and tips) ===\n' + parkIntel;
+      system += '\n\n=== PARK INTELLIGENCE ===\n' + parkIntel;
     }
 
-    const userMsg = existingSections
-      ? 'Optimize this schedule for minimum waits. Return the COMPLETE full-day schedule — every single time slot, no truncation, no omissions. JSON only, no other text.\nCurrent:' + existingSections.substring(0, 6000) + '\nContext:' + cleanPrompt.substring(0, 2000)
-      : 'Build an optimized day plan. Return the COMPLETE full-day schedule — every single time slot from park open to park close, no truncation, no omissions. JSON only, no other text.\n' + cleanPrompt;
+    const existingSectionsStr = existingSections ? existingSections.substring(0, 5000) : null;
+    const userMsg = existingSectionsStr
+      ? 'Optimize for minimum waits. Return COMPLETE full-day schedule, no omissions. JSON only.\nCurrent schedule:' + existingSectionsStr + '\nContext:' + cleanPrompt
+      : 'Build optimized full-day plan. JSON only.\n' + cleanPrompt;
 
     function normalizeEntry(e) {
       return { t: e.t || e.time || '', h: e.h || e.name || e.title || e.attraction || '', type: e.type || 'ride', n: e.n || e.note || e.tip || e.description || '', land: e.land || '' };
@@ -63,7 +65,7 @@ async function handler(req, res) {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model, max_tokens: 6000, system, messages: [{ role: 'user', content: userMsg }] })
+      body: JSON.stringify({ model, max_tokens: 4000, system, messages: [{ role: 'user', content: userMsg }] })
     });
     const data = await anthropicRes.json();
 
@@ -72,37 +74,31 @@ async function handler(req, res) {
       return res.status(500).json({ error: data.error.message || JSON.stringify(data.error) });
     }
 
-    console.log('model:', data.model, 'stop:', data.stop_reason, 'park_intel_injected:', !!parkIntel);
+    console.log('model:', data.model, 'stop:', data.stop_reason, 'park_intel:', !!parkIntel);
 
     let text = '';
     for (const block of (data.content || [])) {
       if (block.type === 'text') text += block.text;
     }
 
-    if (!text) {
-      return res.status(200).json({ error: 'Empty response from model', stop_reason: data.stop_reason, model: data.model, content_types: (data.content || []).map(b => b.type) });
-    }
+    if (!text) return res.status(200).json({ error: 'Empty response', stop_reason: data.stop_reason });
 
-    const clean = text.replace(/```json[\s\S]*?```/g, '').replace(/```/g, '').trim();
-
+    // Extract JSON — handle fences or raw
     let parsed = null;
-    try { parsed = JSON.parse(clean); }
-    catch (e1) {
-      const m = clean.match(/\{[\s\S]+\}/);
-      if (m) try { parsed = JSON.parse(m[0]); } catch (e2) {
-        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-        if (s > -1 && e > s) try { parsed = JSON.parse(clean.substring(s, e + 1)); } catch (e3) { }
-      }
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)```/);
+    if (fenceMatch) try { parsed = JSON.parse(fenceMatch[1].trim()); } catch(e) {}
+    if (!parsed) try { parsed = JSON.parse(text.trim()); } catch(e) {}
+    if (!parsed) {
+      const m = text.match(/\{[\s\S]+\}/);
+      if (m) try { parsed = JSON.parse(m[0]); } catch(e) {}
     }
 
     if (parsed && parsed.sections && Array.isArray(parsed.sections)) {
       const normalized = parsed.sections.map(s => ({ title: s.title || '', entries: (s.entries || []).map(normalizeEntry) }));
-      if (normalized.length < 1) return res.status(200).json({ error: 'Schedule incomplete — please try again', sections: normalized });
       return res.status(200).json({ sections: normalized, explanation: parsed.explanation || 'Schedule optimized.' });
     }
 
-    console.error('Parse failed. clean:', clean.substring(0, 200));
-    return res.status(200).json({ error: 'Parse failed', raw: clean.substring(0, 600) });
+    return res.status(200).json({ error: 'Parse failed', raw: text.substring(0, 600) });
 
   } catch (e) {
     console.error('Handler error:', e.message);
