@@ -2068,7 +2068,7 @@ function wbHTML(rideName){
 }
 
 function updateWaitStatus(){
-  var txt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago'):'Loading wait times...';
+  var txt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live • Just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago'):'Loading wait times...';
   var col=waitLastFetch?'#15803D':'#5A526E';
   var el=document.getElementById('waitStatus');if(el){el.textContent=txt;el.style.color=col;}renderDayInfoBar();
 }
@@ -3493,7 +3493,7 @@ function renderWaitTab(){
       var cls='wait-tab-row';
       if(r.s!=='OPERATING') cls+=' wt-closed';
       else if(r.w>=45) cls+=' wt-high';
-      var badge=r.s==='REFURBISHMENT'?'<span class="wb wb-refurb">Refurb</span>':r.s!=='OPERATING'?'<span class="wb wb-closed">Closed</span>':r.w===0?'<span class="wb wb-low">Walk on</span>':(r.w===null||r.w===undefined)?'<span class="wb wb-closed">ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ</span>':'<span class="wb '+(r.w<=30?'wb-low':r.w<=45?'wb-med':'wb-high')+'">'+ r.w+' min</span>'
+      var badge=r.s==='REFURBISHMENT'?'<span class="wb wb-refurb">Refurb</span>':r.s!=='OPERATING'?'<span class="wb wb-closed">Closed</span>':r.w===0?'<span class="wb wb-low">Walk on</span>':(r.w===null||r.w===undefined)?'<span class="wb wb-closed">—</span>':'<span class="wb '+(r.w<=30?'wb-low':r.w<=45?'wb-med':'wb-high')+'">'+ r.w+' min</span>'
       h+='<div class="'+cls+'"><div class="wt-name">'+r.name+'</div>'+badge+'</div>';
     });
     return h;
