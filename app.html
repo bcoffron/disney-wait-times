@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0
-<meta name="version" content="202605171200-v119">
+<meta name="version" content="202605171200-v120">
 <link rel="apple-touch-icon" href="/assets/icon-512.PNG">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-512.PNG">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/assets/icon-512.PNG">
@@ -794,7 +794,6 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
   <div class="splash-bottom-group">
   <div style="position:absolute;top:0;left:0;right:0;height:55%;overflow:hidden;pointer-events:none;"><img src="/assets/castle-silhouette.png" style="position:absolute;top:50px;left:50%;transform:translateX(-50%);width:52%;height:100%;object-fit:contain;object-position:center bottom;opacity:0.25;mix-blend-mode:screen;" alt="" aria-hidden="true"></div>
-<svg style="position:absolute;top:80px;left:0;right:0;width:100%;height:200px;display:block;z-index:0;pointer-events:none" viewBox="0 0 390 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,200 L0,120 Q195,60 390,120 L390,200 Z" fill="#071E25"/></svg>
   <div class="splash-left">
     <div>
       <div class="splash-eyebrow">THEME PARK CO-PILOT</div>
@@ -3632,7 +3631,8 @@ function deleteCustomItem(index) {
 function buildFullDiningGuide(){var restaurants=[{name:'Blue Bayou Restaurant',area:'New Orleans Square',type:'Table Service',price:'$$$',note:'Iconic waterfront setting. Book via Disneyland app.'},{name:'Caf\u00e9 Orl\u00e9ans',area:'New Orleans Square',type:'Quick Service',price:'$$',note:'Monte Cristo sandwich is a must. Walk-up counter.'},{name:'River Belle Terrace',area:'Frontierland',type:'Quick Service',price:'$$',note:'Walk-up friendly, great views of Rivers of America.'},{name:'Carnation Caf\u00e9',area:'Main Street U.S.A.',type:'Table Service',price:'$$',note:'Classic American fare. Great for breakfast.'},{name:'Jolly Holiday Bakery',area:'Main Street U.S.A.',type:'Quick Service',price:'$',note:'Sandwiches and treats on Main Street.'},{name:'Galactic Grill',area:'Tomorrowland',type:'Quick Service',price:'$$',note:'Star Wars-themed. Cosmic Onion Rings are a must.'},{name:'Bengal Barbecue',area:'Adventureland',type:'Quick Service',price:'$',note:'Skewers near Indiana Jones. Walk-up window.'},{name:'Rancho del Zocalo',area:'Frontierland',type:'Quick Service',price:'$$',note:'Mexican cuisine near Big Thunder.'},{name:'Village Haus Restaurant',area:'Fantasyland',type:'Quick Service',price:'$$',note:'Pizzas and pastas with Matterhorn views.'},{name:'Harbour Galley',area:'Frontierland',type:'Quick Service',price:'$',note:'Clam chowder by the Rivers of America.'},{name:'Carthay Circle Restaurant',area:'DCA \u2014 Buena Vista St',type:'Table Service',price:'$$$',note:'Upscale dining. Reservations recommended.'},{name:'Lamplight Lounge',area:'DCA \u2014 Pixar Pier',type:'Table Service',price:'$$$',note:'Seafood with Pixar Pier views. Book in advance.'},{name:'Pacific Wharf Caf\u00e9',area:'DCA \u2014 Pacific Wharf',type:'Quick Service',price:'$$',note:'Clam chowder in sourdough bread bowls.'},{name:'Smokejumpers Grill',area:'DCA \u2014 Grizzly Peak',type:'Quick Service',price:'$$',note:'Burgers and fries. Mobile order recommended.'},{name:"Flo's V8 Caf\u00e9",area:'DCA \u2014 Cars Land',type:'Quick Service',price:'$$',note:'Route 66-themed diner.'},{name:'Shawarma Palace',area:'DCA \u2014 Avengers Campus',type:'Quick Service',price:'$$',note:'Shawarma wrap is excellent.'},{name:'Pym Test Kitchen',area:'DCA \u2014 Avengers Campus',type:'Quick Service',price:'$$',note:'Marvel-themed creative menu.'}];var byArea={};restaurants.forEach(function(r){if(!byArea[r.area])byArea[r.area]=[];byArea[r.area].push(r);});var h='<div class="info-card"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:12px">Disneyland Resort Dining</div>';Object.keys(byArea).forEach(function(area){h+='<div style="font-size:10px;font-weight:700;color:#1A6860;letter-spacing:.06em;text-transform:uppercase;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)">'+area+'</div>';byArea[area].forEach(function(r){h+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="font-size:12px;font-weight:600;color:var(--text)">'+r.name+'</div><div style="display:flex;gap:4px;flex-shrink:0"><span style="font-size:9px;background:rgba(26,104,96,0.1);color:#1A6860;padding:2px 7px;border-radius:99px;font-weight:600">'+r.type+'</span><span style="font-size:9px;background:rgba(180,120,40,0.1);color:#8A5800;padding:2px 7px;border-radius:99px;font-weight:700">'+r.price+'</span></div></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.4">'+r.note+'</div></div>';});});h+='<div style="font-size:9px;color:var(--text-dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><b style="color:var(--text)">Note:</b> Check the Disneyland app for current hours and reservation availability.</div></div>';return h;}
 function openEditTripModal(){window.location.href='/pretrip.html?edit=true';}
 function confirmRegenerateSchedule(){if(confirm('Rebuild schedule from your preferences?')){window.location.href='/pretrip.html?rebuild=true';}}
-function renderInfoTab(){
+function sanitizeText(s){if(!s)return s;return s.replace(/[\xC0-\xFF][\x80-\xBF]*/g,"").trim();}
+  function renderInfoTab(){
   var container=document.getElementById('tabInfo');
   if(!container) return;
 
@@ -3841,7 +3841,7 @@ function renderInfoTab(){
     +buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml)
     +'</div>';
 
-  container.innerHTML=html;
+  container.innerHTML=sanitizeText(html);
 
   // Open sections 1-4 by default (deferred to ensure DOM is painted)
   setTimeout(function(){
