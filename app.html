@@ -649,14 +649,14 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .vn-instruction{padding:10px 11px 6px;font-size:9px;color:#8A6820;line-height:1.4}
 .vn-entry-block{padding:0 11px 8px}
 .vn-entry-author{font-size:8px;font-weight:700;color:#B8860B}
-.vn-entry-text{background:#FFF8E0;border-radius:6px;padding:5px 8px;margin-top:2px;font-size:10px;color:#2A1E00;line-height:1.4}
+.vn-entry-text{background:#FFF8E0;border-radius:6px;padding:5px 8px;margin-top:2px;font-size:10px;color:#2A1E00;line-height:1.4;font-family:'Outfit',sans-serif!important}
 .vn-add-trigger{border:1px dashed #D4A830;background:#FDF6E3;border-radius:8px;padding:10px 11px;margin:0 11px 10px;cursor:pointer}
-.vn-add-placeholder{font-size:9px;font-style:italic;color:#C0A030}
+.vn-add-placeholder{font-size:9px;font-style:italic;color:#C0A030;font-family:'Outfit',sans-serif!important}
 .vn-input-area{padding:0 11px 10px}
 .vn-textarea{width:100%;box-sizing:border-box;background:#FFF8E0;border:1px solid #D4A830;border-radius:6px;padding:6px 8px;font-size:10px;color:#2A1E00;font-family:'Outfit',sans-serif!important;resize:none;outline:none}
 .vn-input-actions{display:flex;gap:6px;margin-top:6px}
-.vn-btn-save{background:#D4A830;color:#3A2800;border:none;border-radius:99px;padding:5px 14px;font-size:9px;font-weight:700;font-family:Outfit,sans-serif;cursor:pointer}
-.vn-btn-cancel{background:none;color:#8A6820;border:1px solid rgba(212,168,48,0.4);border-radius:99px;padding:5px 14px;font-size:9px;font-weight:600;font-family:Outfit,sans-serif;cursor:pointer}
+.vn-btn-save{background:#D4A830;color:#3A2800;border:none;border-radius:99px;padding:5px 14px;font-size:9px;font-weight:700;font-family:'Outfit',sans-serif!important;cursor:pointer}
+.vn-btn-cancel{background:none;color:#8A6820;border:1px solid rgba(212,168,48,0.4);border-radius:99px;padding:5px 14px;font-size:9px;font-weight:600;font-family:'Outfit',sans-serif!important;cursor:pointer}
 .vn-footer{border-top:0.5px solid rgba(212,168,48,0.3);padding:6px 11px;display:flex;gap:4px;align-items:center}
 .vn-footer-label{font-size:8px;color:#8A6820}
 .vn-footer-member{font-size:8px;font-weight:700;color:#B8860B}
@@ -5200,14 +5200,22 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 (function(){
   function u(){
-    var s=document.getElementById("vipNotesSection");
-    if(!s)return;
     var activeTab=document.querySelector(".day-tab.active");
-    var isVipDay=activeTab && activeTab.classList.contains("vip-tab");
+    var isVipDay=activeTab&&activeTab.classList.contains("vip-tab");
+    var s=document.getElementById("vipNotesSection");
+    if(!s){
+      if(isVipDay&&typeof renderVipBanner==="function"){
+        var tabs=document.querySelectorAll(".day-tab");
+        var dayIdx=0;
+        tabs.forEach(function(t,i){if(t===activeTab)dayIdx=i;});
+        renderVipBanner(dayIdx);
+      }
+      return;
+    }
     if(isVipDay){
       s.style.display="";
-      if(typeof vnInit==="function") setTimeout(vnInit,0);
-    } else {
+      if(typeof vnInit==="function")setTimeout(vnInit,0);
+    }else{
       s.style.display="none";
     }
   }
