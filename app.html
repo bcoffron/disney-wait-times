@@ -1145,6 +1145,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
   </div>
 </div>
 
+<div id="waitSpikeToast" style="display:none; position:fixed; bottom:57px; left:0; right:0; z-index:150; background:#071E25; border:1px solid rgba(255,255,255,0.12); border-radius:14px 14px 0 0; padding:14px 16px 10px; align-items:center; gap:10px; transform:translateY(100%); transition:transform 0.3s ease;"><div style="width:32px; height:32px; border-radius:50%; background:#C86030; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1; min-width:0;"><div id="waitSpikeTitle" style="font-size:11px; font-weight:700; color:#fff; line-height:1.3;"></div><div style="font-size:9px; color:rgba(255,255,255,0.55); margin-top:2px;">Want me to find a better window?</div></div><div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;"><button onclick="handleWaitSpikeReroute()" style="background:#C86030; border:none; border-radius:6px; padding:5px 10px; font-size:9px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit;">Reroute me</button><button onclick="dismissWaitSpikeToast()" style="background:transparent; border:none; padding:5px 10px; font-size:9px; font-weight:600; color:rgba(255,255,255,0.45); cursor:pointer; font-family:inherit;">Ignore</button></div></div>
 <!-- ===== SECTION 2: BOTTOM NAVIGATION BAR ===== -->
 <nav class="bottom-nav" id="bottomNav" role="navigation" aria-label="Main navigation">
 
@@ -5192,5 +5193,102 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   setTimeout(u,500);
 })();
+
+// Wait spike alert system
+const _spikeIgnored = {}; // tracks ignored rides this session
+const _lastKnownWait = {}; // tracks last seen wait times
+let _spikeToastTimer = null;
+
+function checkForWaitSpikes() {
+  // Only run if schedule tab is active and app is visible
+  if (document.hidden) return;
+  const activeTab = document.querySelector('.nav-item.active');
+  if (!activeTab || !activeTab.textContent.includes('Schedule')) return;
+
+  // Get current time
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Find next 2 upcoming ride cards
+  const rideCards = Array.from(document.querySelectorAll('.schedule-card[data-type="ride"]'))
+    .filter(card => {
+      const timeEl = card.querySelector('.card-time, .time-hour');
+      if (!timeEl) return false;
+      const timeText = timeEl.textContent.trim();
+      const cardMinutes = parseTimeToMinutes(timeText);
+      return cardMinutes >= currentMinutes && cardMinutes <= currentMinutes + 120;
+    })
+    .slice(0, 2);
+
+  rideCards.forEach(card => {
+    const rideName = card.querySelector('.card-title, .schedule-title')?.textContent?.trim();
+    const waitEl = card.querySelector('.wait-pill, [class*="wait"]');
+    if (!rideName || !waitEl) return;
+
+    const waitText = waitEl.textContent.replace(/[^0-9]/g, '');
+    const waitMins = parseInt(waitText);
+    if (isNaN(waitMins)) return;
+
+    const lastWait = _lastKnownWait[rideName] || 0;
+    _lastKnownWait[rideName] = waitMins;
+
+    // Spike detected: now >=45 min AND was <=30 min before AND not already ignored
+    if (waitMins >= 45 && lastWait <= 30 && lastWait > 0 && !_spikeIgnored[rideName]) {
+      showWaitSpikeToast(rideName, waitMins);
+    }
+  });
+}
+
+function parseTimeToMinutes(timeStr) {
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1]);
+  const mins = parseInt(match[2]);
+  const period = match[3].toUpperCase();
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + mins;
+}
+
+function showWaitSpikeToast(rideName, waitMins) {
+  const toast = document.getElementById('waitSpikeToast');
+  const title = document.getElementById('waitSpikeTitle');
+  if (!toast || !title) return;
+
+  title.textContent = rideName + ' is spiking \u2014 ' + waitMins + ' min wait';
+  toast.dataset.rideName = rideName;
+
+  // Show toast with slide-up animation
+  toast.style.display = 'flex';
+  requestAnimationFrame(() => {
+    toast.style.transform = 'translateY(0)';
+  });
+
+  // Auto-dismiss after 12 seconds
+  if (_spikeToastTimer) clearTimeout(_spikeToastTimer);
+  _spikeToastTimer = setTimeout(() => dismissWaitSpikeToast(), 12000);
+}
+
+function dismissWaitSpikeToast() {
+  const toast = document.getElementById('waitSpikeToast');
+  if (!toast) return;
+  const rideName = toast.dataset.rideName;
+  if (rideName) _spikeIgnored[rideName] = true;
+  toast.style.transform = 'translateY(100%)';
+  setTimeout(() => { toast.style.display = 'none'; }, 300);
+  if (_spikeToastTimer) clearTimeout(_spikeToastTimer);
+}
+
+function handleWaitSpikeReroute() {
+  dismissWaitSpikeToast();
+  // Trigger the existing AI Optimize flow
+  if (typeof showAIOptimize === 'function') showAIOptimize();
+  else document.getElementById('aiOptimizeBtn')?.click();
+}
+
+// Check every 5 minutes
+setInterval(checkForWaitSpikes, 5 * 60 * 1000);
+// First check after 30 seconds on load (gives wait times time to load)
+setTimeout(checkForWaitSpikes, 30000);
 </script></body>
 </html>
