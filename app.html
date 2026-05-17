@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0
-<meta name="version" content="202605171200-v123">
+<meta name="version" content="202605171200-v124">
 <link rel="apple-touch-icon" href="/assets/icon-512.PNG">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-512.PNG">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/assets/icon-512.PNG">
@@ -631,6 +631,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
 .vip-notes-section{margin:8px 10px 6px;overflow:hidden;font-family:Outfit,sans-serif}
 .vn-collapsed{background:#FDF6E3;border:0.5px solid #D4A830;border-radius:8px;padding:7px 11px;margin:0 0 8px;font-size:9px;color:#8A6820;cursor:pointer;font-family:Outfit,sans-serif}
+.vn-full,.vn-header,.vn-body,.vn-inner-header,.vn-inner-label,.vn-instruction,.vn-entry-text,.vn-add-placeholder{font-family:'Outfit',sans-serif!important}
 .vn-header{background:#D4A830;padding:7px 13px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0}
 .vn-header-left{display:flex;flex-direction:column;gap:1px}
 .vn-header-title-row{display:flex;align-items:center;gap:5px}
@@ -976,6 +977,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
       <!-- ===== SECTION 4: AI OPTIMIZE HERO BUTTON ===== -->
       <button class="ai-opt-hero" id="aiOptHero" onclick="reoptimize()"><div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;background:rgba(255,255,255,0.18);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div style="font-size:11px;font-weight:700;color:#fff">AI Optimize Your Schedule</div><div style="font-size:8px;font-weight:400;color:rgba(255,255,255,0.65);margin-top:1px">Re-routes around live wait times</div></div></div><span style="font-size:14px;color:rgba(255,255,255,0.75)">&rarr;</span></button>
+<button class="ai-opt-hero" id="vipAiOptBtn" onclick="reoptimize()" style="display:none"><div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;background:rgba(255,255,255,0.18);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div style="font-size:11px;font-weight:700;color:#fff">AI Optimize morning &amp; evening</div><div style="font-size:8px;font-weight:400;color:rgba(255,255,255,0.65);margin-top:1px">Re-routes your pre-tour and evening rides</div></div></div><span style="font-size:14px;color:rgba(255,255,255,0.75)">&rarr;</span></button>
 
       <!-- ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== -->
       <div class="reopt-box" id="reoptBox">
@@ -999,7 +1001,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
       </div>
 
       <!-- Edit bar -->
-      <div class="edit-bar"><button class="edit-toggle" id="editToggle" onclick="toggleEdit()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit schedule</button><button class="edit-toggle" id="vipAiOptBtn" onclick="reoptimize()" style="display:none">AI Optimize morning &amp; evening</button></div>
+      <div class="edit-bar"><button class="edit-toggle" id="editToggle" onclick="toggleEdit()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit schedule</button></div>
 
       <!-- Closed attractions banner -->
       <div id="closedBanner" class="closed-banner" style="display:none">
@@ -4922,7 +4924,7 @@ function renderVipBanner(dayNum) {
       vnSec = document.createElement('div');
       vnSec.className = 'vip-notes-section';
       vnSec.id = 'vipNotesSection';
-      vnSec.innerHTML = sanitizeText('<div class="vn-collapsed" id="vnCollapsed" style="display:none" onclick="vnExpand()"></div><div class="vn-full" id="vnFull"><div class="vn-header"><div class="vn-header-left"><div class="vn-header-title-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><div class="vn-title-stack"><div class="vn-title">Group Wishlist &amp; Notes</div><div class="vn-subtitle">Everyone can add &amp; edit</div></div></div></div></div><div class="vn-body"><div class="vn-instruction">Tell your host your must-dos, dining wishes, and anything the group needs. Edits sync live for everyone.</div><div id="vnEntryList"></div><div class="vn-add-trigger" id="vnAddTrigger" onclick="vnOpenInput()"><span class="vn-add-placeholder">Tap to add your notesÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¦</span></div><div class="vn-input-area" id="vnInputArea" style="display:none"><textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notesÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¦" rows="3"></textarea><div class="vn-input-actions"><button type="button" class="vn-btn-save" onclick="vnSaveEntry()">Save</button><button type="button" class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button></div></div><div class="vn-footer" id="vnFooter" style="display:none"><span class="vn-footer-label">Currently editing:</span><span class="vn-footer-member" id="vnFooterMember"></span></div></div></div>');
+      vnSec.innerHTML = sanitizeText('<div class="vn-collapsed" id="vnCollapsed" style="display:none" onclick="vnExpand()"></div><div class="vn-full" id="vnFull"><div class="vn-header"><div class="vn-header-left"><div class="vn-header-title-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><div class="vn-title-stack"><div class="vn-title">Group Wishlist &amp; Notes</div><div class="vn-subtitle">Everyone can add &amp; edit</div></div></div></div></div><div class="vn-body"><div class="vn-instruction">Tell your host your must-dos, dining wishes, and anything the group needs. Edits sync live for everyone.</div><div id="vnEntryList"></div><div class="vn-add-trigger" id="vnAddTrigger" onclick="vnOpenInput()"><span class="vn-add-placeholder">Tap to add your notes</span></div><div class="vn-input-area" id="vnInputArea" style="display:none"><textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notes" rows="3"></textarea><div class="vn-input-actions"><button type="button" class="vn-btn-save" onclick="vnSaveEntry()">Save</button><button type="button" class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button></div></div><div class="vn-footer" id="vnFooter" style="display:none"><span class="vn-footer-label">Currently editing:</span><span class="vn-footer-member" id="vnFooterMember"></span></div></div></div>');
     }
     vnSec.style.display = '';
     // Insert after the VIP Tour section header
