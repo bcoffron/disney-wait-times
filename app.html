@@ -631,7 +631,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
 .vip-notes-section{margin:8px 10px 6px;overflow:hidden;font-family:Outfit,sans-serif}
 .vn-collapsed{background:#FDF6E3;border:0.5px solid #D4A830;border-radius:8px;padding:7px 11px;margin:0 0 8px;font-size:9px;color:#8A6820;cursor:pointer;font-family:Outfit,sans-serif}
-.vn-full,.vn-header,.vn-body,.vn-inner-header,.vn-inner-label,.vn-instruction,.vn-entry-text,.vn-add-placeholder{font-family:'Outfit',sans-serif!important}
+#vnSec,#vnSec *{font-family:'Outfit',sans-serif!important}
 .vn-header{background:#D4A830;padding:7px 13px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0}
 .vn-header-left{display:flex;flex-direction:column;gap:1px}
 .vn-header-title-row{display:flex;align-items:center;gap:5px}
@@ -3828,7 +3828,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var liveRefurbNames=(getStoredRefurbs()||[]);
   var closureEntries=CLOSED.slice();
   liveRefurbNames.forEach(function(nm){if(!closureEntries.some(function(e){return e.n===nm;})){closureEntries.push({n:nm,d:'Closed for refurbishment ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ no reopening date announced'});}});
-  var closuresHtml=closureEntries.length?closureEntries.map(function(c){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider)"><span style="font-size:16px">&#128274;</span><div><div style="font-weight:600;color:var(--text)">'+c.n+'</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">'+c.d+'</div></div></div>';}).join('')+'<div style="font-size:12px;color:var(--text-muted);margin-top:12px">Always check the Disneyland app the morning of your visit for any additional same-day closures.</div>':'<div style="color:var(--text-muted);padding:12px 0">No current closures on record.</div>';
+  var closuresHtml=closureEntries.length?closureEntries.map(function(c){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider)"><div><div style="font-weight:600;color:var(--text)">'+c.n+'</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">'+c.d+'</div></div></div>';}).join('')+'<div style="font-size:12px;color:var(--text-muted);margin-top:12px">Always check the Disneyland app the morning of your visit for any additional same-day closures.</div>':'<div style="color:var(--text-muted);padding:12px 0">No current closures on record.</div>';
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
     +'<div class="info-tab-header"><div class="info-tab-eyebrow">Trip Info</div></div>'
