@@ -1248,15 +1248,36 @@ function isRideInRefurb(rideName){
   return false;
 }
 function renderClosuresFromWaits(){if(typeof waits==='undefined'||!Object.keys(waits).length)return;var r=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify([]));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
-function isWithinParkWindow(){
+function isParkOpen(){
   try{
-    // Disneyland generally open 8AM-midnight any day
-    // Use 7AM-1AM window (with 1hr buffer) to catch early entry and late nights
-    var now=nowPT();
-    var hr=now.getHours()+(now.getMinutes()/60);
-    if(hr>=1&&hr<7) return false;
-    return true;
-  }catch(e){return true;} // default to open if error
+    var w=getDayParkWindow();
+    if(!w||w.open===undefined||w.close===undefined)return true;
+    var now=new Date();
+    var pt=new Date(now.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));
+    var hr=pt.getHours()+(pt.getMinutes()/60);
+    return hr>=(w.open-1)&&hr<=(w.close+1);
+  }catch(e){return true;}
+}
+function isWithinParkWindow(){return isParkOpen();}
+function getNextParkOpenTime(){
+  try{
+    var w=getDayParkWindow();
+    if(!w||w.open===undefined)return null;
+    var h=Math.floor(w.open),m=Math.round((w.open-h)*60);
+    var ampm=h>=12?'PM':'AM',h12=h%12||12;
+    return h12+':'+(m<10?'0':'')+m+' '+ampm;
+  }catch(e){return null;}
+}
+function updateWaitPillVisibility(){
+  var open=isParkOpen();
+  var pills=document.querySelectorAll('.wait-pill');
+  pills.forEach(function(p){p.style.display=open?'':'none';});
+}
+function showParkClosedState(){
+  var el=document.getElementById('waitTabContent');
+  if(!el)return;
+  var nextOpen=getNextParkOpenTime();
+  el.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:12px;padding:24px;text-align:center;"><div style="width:56px;height:56px;border-radius:50%;background:rgba(7,30,37,0.08);display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="font-size:16px;font-weight:700;color:#071E25;">Park is closed</div><div style="font-size:12px;color:#4A7A7C;line-height:1.5;">'+(nextOpen?'Opens at '+nextOpen:'Check back during park hours')+'</div></div>';
 }
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
@@ -2056,6 +2077,7 @@ function startWaitRefresh(){
   fetchWaits();
   var _waitInterval=setInterval(fetchWaits,5*60*1000);
   setInterval(updateWaitStatus,60*1000);
+  setInterval(updateWaitPillVisibility,60*1000);
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible'){
       fetchWaits();
@@ -3431,12 +3453,14 @@ function renderSched(){
   document.getElementById('schedContent').innerHTML=h;
   if(typeof checkShowSetupBanner==='function')checkShowSetupBanner();
   setTimeout(attachDiningListeners,0);
+  updateWaitPillVisibility();
 }
 
 //    Render shows                                                           
 function renderWaitTab(){
   var el=document.getElementById('waitTabContent');
   if(!el) return;
+  if(!isParkOpen()){showParkClosedState();return;}
   var keys=Object.keys(waits);
   var onTripDay=['2026-06-28','2026-06-29','2026-06-30'].indexOf(todayPT())>-1;
   if(!keys.length){
