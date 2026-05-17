@@ -2693,7 +2693,7 @@ function vnRenderEntries(){
   var list=document.getElementById('vnEntryList');
   if(!list) return;
   var entries=vnLoadEntries();
-  if(!entries.length){list.innerHTML='<div style="font-size:11px;color:#8A6820;padding:8px 4px;text-align:center">No notes yet ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ tap + to add one</div>';return;}
+  if(!entries.length){list.innerHTML='<div style="font-size:11px;color:#8A6820;padding:8px 4px;text-align:center">No notes yet<br>tap + to add one</div>';return;}
   list.innerHTML=entries.map(function(e,i){
     return '<div class="vn-entry-block" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
       +'<div class="vn-text" style="font-size:13px;color:#3A2800;flex:1;line-height:1.45">'+e.text+'</div>'
