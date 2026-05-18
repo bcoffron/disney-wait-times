@@ -4992,26 +4992,6 @@ function generateSplashStars() {
   c.innerHTML = html;
 }
 
-function submitTripCode(){
-  var inp=document.getElementById('twPassInput');
-  var errEl=document.getElementById('twLoginError');
-  if(!inp)return;
-  var val=inp.value.trim().toLowerCase();
-  if(val==='cwdis2026admin'){
-    sessionStorage.setItem('twRole','admin');
-    enterSplash();
-  } else if(val==='cw9dis2026'){
-    sessionStorage.setItem('twRole','guest');
-    enterSplash();
-  } else {
-    inp.style.animation='';
-    void inp.offsetWidth;
-    inp.style.animation='twShake 400ms ease';
-    setTimeout(function(){inp.style.animation='';},420);
-    if(errEl){errEl.textContent='Incorrect code ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ try again';errEl.style.display='block';}
-  }
-}
-
 function enterSplash(skipAnim) {
   var splash = document.getElementById('splashScreen');
   var main = document.getElementById('mainApp');
