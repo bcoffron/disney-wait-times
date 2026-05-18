@@ -126,7 +126,7 @@ module.exports = async function handler(req, res) {
       if (body.action === 'seed_trip') {
         // Seed a trip's data blob directly
         const { tripId, tripData } = body;
-        if (!tripId || !tripData) return res.status(400).json({ error: 'Missing tripId or tripData' });
+        if (!tripId || tripData === undefined) return res.status(400).json({ error: 'Missing tripId or tripData' });
         await writeTripBlob(tripId, tripData);
         return res.status(200).json({ ok: true, tripId });
       }
