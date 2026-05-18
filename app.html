@@ -853,6 +853,57 @@ body.tw-guest .ai-opt-hero{display:none!important}
       <div id="lockError" style="font-size:12px;color:var(--red);margin-top:8px;display:none"></div>
     </div>
   </div>
+<!-- ONBOARDING MODAL -->
+<div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:#0D1B2A;overflow-y:auto;font-family:'Outfit',sans-serif;">
+  <div style="max-width:480px;margin:0 auto;padding:24px 20px 48px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-top:12px;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:0.08em;text-transform:uppercase;">Theme Park Co-Pilot</div>
+      <div id="obStepDots" style="display:flex;gap:6px;"></div>
+    </div>
+    <div id="obStep1" class="ob-step">
+      <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Let's plan your trip.</h2>
+      <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 28px;">Tell us the basics and we'll build your perfect park plan.</p>
+      <div class="ob-field"><label class="ob-label">Trip name</label><input type="text" id="obTripName" class="ob-input" placeholder="e.g. Smith Family Disneyland"></div>
+      <div class="ob-field"><label class="ob-label">Parks</label><div id="obParkPills" class="ob-pills"><div class="ob-pill" data-val="Disneyland">Disneyland</div><div class="ob-pill" data-val="DCA">California Adventure</div><div class="ob-pill" data-val="Magic Kingdom">Magic Kingdom</div><div class="ob-pill" data-val="EPCOT">EPCOT</div><div class="ob-pill" data-val="Hollywood Studios">Hollywood Studios</div><div class="ob-pill" data-val="Animal Kingdom">Animal Kingdom</div><div class="ob-pill" data-val="Universal FL">Universal Studios FL</div><div class="ob-pill" data-val="Universal Hollywood">Universal Hollywood</div><div class="ob-pill" data-val="Islands of Adventure">Islands of Adventure</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div class="ob-field"><label class="ob-label">Arrival date</label><input type="date" id="obArrival" class="ob-input"></div><div class="ob-field"><label class="ob-label">Departure date</label><input type="date" id="obDeparture" class="ob-input"></div></div>
+      <div class="ob-field"><label class="ob-label">Home airport/city <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obHomeCity" class="ob-input" placeholder="e.g. Seattle, SEA"></div>
+      <button class="ob-next-btn" onclick="obGoTo(2)">Next: Your Group &#8594;</button>
+    </div>
+    <div id="obStep2" class="ob-step" style="display:none;">
+      <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Who's coming?</h2>
+      <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 28px;">We'll personalize ride routing and Lightning Lane picks.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div class="ob-field"><label class="ob-label">Adults</label><input type="number" id="obAdults" class="ob-input" placeholder="2" min="1" max="20"></div><div class="ob-field"><label class="ob-label">Children</label><input type="number" id="obKids" class="ob-input" placeholder="0" min="0" max="20"></div></div>
+      <div class="ob-field"><label class="ob-label">Kids' ages <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obKidAges" class="ob-input" placeholder="e.g. 4, 7, 12"></div>
+      <div class="ob-field"><label class="ob-label">Group member names <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obNames" class="ob-input" placeholder="e.g. Sarah, Mike, Emma"></div>
+      <button class="ob-next-btn" onclick="obGoTo(3)">Next: Preferences &#8594;</button>
+      <button class="ob-back-btn" onclick="obGoTo(1)">&#8592; Back</button>
+    </div>
+    <div id="obStep3" class="ob-step" style="display:none;">
+      <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Your style.</h2>
+      <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 28px;">This helps us sequence your day perfectly.</p>
+      <div class="ob-field"><label class="ob-label">Thrill level</label><div class="ob-pills ob-single" id="obThrillPills"><div class="ob-pill" data-val="Mild">Mild</div><div class="ob-pill ob-pill-sel" data-val="Moderate">Moderate</div><div class="ob-pill" data-val="Thrills">Full Thrills</div></div></div>
+      <div class="ob-field"><label class="ob-label">Pace</label><div class="ob-pills ob-single" id="obPacePills"><div class="ob-pill" data-val="Relaxed">Relaxed</div><div class="ob-pill ob-pill-sel" data-val="Moderate">Moderate</div><div class="ob-pill" data-val="Power">Power Mode</div></div></div>
+      <div class="ob-field"><label class="ob-label">Must-do rides <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obMustDo" class="ob-input" placeholder="e.g. Space Mountain, Radiator Springs"></div>
+      <div class="ob-field"><label class="ob-label">Dining style</label><div class="ob-pills ob-single" id="obDiningPills"><div class="ob-pill" data-val="Quick service only">Quick Service</div><div class="ob-pill ob-pill-sel" data-val="Mix">Mix it up</div><div class="ob-pill" data-val="Table service">Table Service</div></div></div>
+      <div class="ob-field"><label class="ob-label">Dietary needs <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obDiet" class="ob-input" placeholder="e.g. gluten-free, vegan"></div>
+      <div class="ob-field"><label class="ob-label">Special occasions</label><div class="ob-pills" id="obOccasionPills"><div class="ob-pill" data-val="Birthday">&#127874; Birthday</div><div class="ob-pill" data-val="Anniversary">&#128141; Anniversary</div><div class="ob-pill" data-val="First visit">&#10024; First Visit</div><div class="ob-pill" data-val="Other">Other</div></div></div>
+      <button class="ob-next-btn" onclick="obGoTo(4)">Review my trip &#8594;</button>
+      <button class="ob-back-btn" onclick="obGoTo(3)">&#8592; Back</button>
+    </div>
+    <div id="obStep4" class="ob-step" style="display:none;">
+      <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Ready to build.</h2>
+      <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 24px;">Here's what we'll plan around.</p>
+      <div id="obSummaryCard" style="background:rgba(255,255,255,0.07);border-radius:16px;padding:20px;margin-bottom:24px;color:#fff;font-size:14px;line-height:1.8;"></div>
+      <div id="obGenerateStatus" style="display:none;text-align:center;padding:24px 0;color:rgba(255,255,255,0.7);"><div style="font-size:28px;margin-bottom:10px;">&#10024;</div><div id="obStatusMsg" style="font-size:15px;font-weight:500;">Building your personalized schedule...</div></div>
+      <button id="obBuildBtn" class="ob-build-btn" onclick="obBuildTrip()">Build my trip plan &#8594;</button>
+      <button class="ob-back-btn" onclick="obGoTo(3)">&#8592; Back</button>
+      <div id="obErrorMsg" style="display:none;margin-top:16px;color:#ff6b6b;font-size:13px;text-align:center;cursor:pointer;" onclick="document.getElementById('obBuildBtn').style.display='block';document.getElementById('obGenerateStatus').style.display='none';this.style.display='none';"></div>
+    </div>
+  </div>
+</div>
+<style>
+.ob-field{margin-bottom:20px}.ob-label{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px}.ob-input{width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-size:15px;font-family:'Outfit',sans-serif;outline:none;box-sizing:border-box;-webkit-appearance:none}.ob-input:focus{border-color:rgba(82,195,175,0.7)}.ob-input::placeholder{color:rgba(255,255,255,0.3)}.ob-input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.7)}.ob-pills{display:flex;flex-wrap:wrap;gap:8px}.ob-pill{padding:9px 15px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.6);font-size:13px;font-family:'Outfit',sans-serif;cursor:pointer;transition:all 0.15s;user-select:none;-webkit-user-select:none}.ob-pill:active{transform:scale(0.97)}.ob-pill.ob-pill-sel{background:rgba(82,195,175,0.18);border-color:#52C3AF;color:#52C3AF;font-weight:600}.ob-next-btn{width:100%;background:#52C3AF;color:#0D1B2A;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;transition:opacity 0.15s;display:block}.ob-next-btn:active{opacity:0.85}.ob-back-btn{width:100%;background:transparent;color:rgba(255,255,255,0.4);border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;font-size:14px;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;display:block}.ob-build-btn{width:100%;background:#C86030;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;transition:opacity 0.15s;display:block}.ob-build-btn:active{opacity:0.85}
+</style>
 
   <!-- LL Modal -->
   <div id="llModal" class="modal-bg hidden">
@@ -1398,23 +1449,36 @@ function checkLock(){
   }catch(e){}
   // First time - show password card
 }
-function tryUnlock(){
-  var v=document.getElementById('lockInput').value.toLowerCase();
-  if(v===PASS_ADMIN){
-    userRole='admin';
-    try{localStorage.setItem('disney_unlocked','admin');}catch(e){}
-    pullApiKey();
-    playTinkAnimation();
-  }else if(v===PASS_GUEST){
-    userRole='guest';
-    try{localStorage.setItem('disney_unlocked','guest');}catch(e){}
-    pullApiKey();
-    playTinkAnimation();
-  }else{
-    document.getElementById('lockError').textContent='Incorrect password   try again!';
-    document.getElementById('lockInput').value='';
-    setTimeout(function(){document.getElementById('lockError').textContent='';},1500);
-  }
+function tryUnlock() {
+  var inp = document.getElementById('lockInput');
+  var errEl = document.getElementById('lockError');
+  if (!inp) return;
+  var code = inp.value.trim().toUpperCase();
+  if (!code) { inp.focus(); return; }
+  if (errEl) errEl.style.display = 'none';
+  inp.disabled = true;
+  fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code))
+    .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+    .then(function(result) {
+      inp.disabled = false;
+      if (result.status !== 200 || !result.data.valid) {
+        var msg = result.status === 403 ? 'Code expired or inactive.' : 'Incorrect code. Please try again.';
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+        inp.focus(); return;
+      }
+      var d = result.data;
+      sessionStorage.setItem('tripCode', code);
+      sessionStorage.setItem('tripRole', d.role);
+      sessionStorage.setItem('tripId', d.tripId);
+      sessionStorage.setItem('disney_unlocked', d.role);
+      try { pullApiKey(); } catch(e) {}
+      playTinkAnimation();
+      setTimeout(function() { document.getElementById('lockScreen').style.display = 'none'; }, 800);
+    })
+    .catch(function() {
+      inp.disabled = false;
+      if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
+    });
 }
 
 function enterMagic(){
@@ -4676,7 +4740,7 @@ function getInitialActiveDay() {
 function renderSplashCtas(){
   var area=document.getElementById('splashCtaArea');
   if(!area)return;
-  area.innerHTML='<div id="twLoginArea"><input id="twPassInput" type="password" placeholder="Enter your trip code" style="width:100%;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:13px;font-weight:400;color:#fff;box-sizing:border-box;outline:none;-webkit-appearance:none;" autocomplete="off" /><button onclick="submitTripCode()" style="width:100%;margin-top:8px;background:#C86030;border:none;border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;touch-action:manipulation;">Enter your adventure &rarr;</button><div id="twLoginError" style="display:none;font-size:10px;color:rgba(255,255,255,0.65);margin-top:8px;"></div></div>';
+  area.innerHTML='<div id="twLoginArea"><input id="twPassInput" type="text" placeholder="Enter your trip code" style="width:100%;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:13px;font-weight:400;color:#fff;box-sizing:border-box;outline:none;-webkit-appearance:none;" autocomplete="off" /><button onclick="submitTripCode()" style="width:100%;margin-top:8px;background:#C86030;border:none;border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;touch-action:manipulation;">Enter your adventure &rarr;</button><div id="twLoginError" style="display:none;font-size:10px;color:rgba(255,255,255,0.65);margin-top:8px;"></div></div>';
   document.getElementById('twPassInput').addEventListener('keydown',function(e){if(e.key==='Enter')submitTripCode();});
 }
 function showTripCodeInput(){
@@ -4687,14 +4751,43 @@ function showTripCodeInput(){
   area.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:\'Outfit\',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div><div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>';
   setTimeout(function(){var inp=document.getElementById('tripCodeInput');if(inp)inp.focus();},50);
 }
-function submitTripCode(){
-  var inp=document.getElementById('tripCodeInput');
-  var err=document.getElementById('tripCodeError');
-  if(!inp)return;
-  var code=inp.value.trim().toUpperCase();
-  var knownCodes={'CW2026':true,'COFFRONWOODS':true,'DISNEYLAND2026':true};
-  if(knownCodes[code]){localStorage.setItem('tripSetupComplete','true');enterSplash();}
-  else{if(err){err.textContent='Code not found \u2014 check with your trip organiser';err.style.display='block';}}
+function submitTripCode() {
+  var inp = document.getElementById('twPassInput') || document.getElementById('tripCodeInput');
+  var errEl = document.getElementById('twLoginError') || document.getElementById('tripCodeError');
+  if (!inp) return;
+  var code = inp.value.trim().toUpperCase();
+  if (!code) { inp.focus(); return; }
+  if (errEl) errEl.style.display = 'none';
+  inp.disabled = true;
+  var btn = document.querySelector('#splashCtaArea button') || inp.nextElementSibling;
+  if (btn && btn.tagName === 'BUTTON') { btn.disabled = true; btn.textContent = 'Checking...'; }
+  fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code))
+    .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+    .then(function(result) {
+      inp.disabled = false;
+      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure →'; }
+      if (result.status !== 200 || !result.data.valid) {
+        var msg = result.status === 403 ? 'That code has expired or is inactive.' : "That code wasn't found. Check it and try again.";
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+        inp.focus(); return;
+      }
+      var d = result.data;
+      sessionStorage.setItem('tripCode', code);
+      sessionStorage.setItem('tripRole', d.role);
+      sessionStorage.setItem('tripId', d.tripId);
+      sessionStorage.setItem('disney_unlocked', d.role);
+      if (!d.hasTrip) {
+        launchOnboarding(code, d.role, d.tripId);
+      } else {
+        if (d.tripData && d.tripData.tripConfig) { window._loadedTripData = d.tripData; applyLoadedTripData(); }
+        enterSplash(true);
+      }
+    })
+    .catch(function() {
+      inp.disabled = false;
+      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure →'; }
+      if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
+    });
 }
 function initSplash() {
   // Countdown
@@ -4723,6 +4816,167 @@ function initSplash() {
     enterSplash(true);
   }
 }
+
+// ===== ONBOARDING SYSTEM =====
+var _obCode = '', _obRole = '', _obTripId = '';
+
+function launchOnboarding(code, role, tripId) {
+  _obCode = code; _obRole = role; _obTripId = tripId;
+  var ov = document.getElementById('onboardingOverlay');
+  if (ov) ov.style.display = 'block';
+  obGoTo(1);
+}
+
+function obGoTo(step) {
+  [1,2,3,4].forEach(function(s) {
+    var el = document.getElementById('obStep' + s);
+    if (el) el.style.display = s === step ? 'block' : 'none';
+  });
+  var dots = document.getElementById('obStepDots');
+  if (dots) dots.innerHTML = [1,2,3,4].map(function(s) {
+    return '<div style="width:8px;height:8px;border-radius:50%;background:' + (s <= step ? '#52C3AF' : 'rgba(255,255,255,0.2)') + ';transition:background 0.2s;"></div>';
+  }).join('');
+  if (step === 4) {
+    var card = document.getElementById('obSummaryCard');
+    if (card) card.innerHTML = obBuildSummary();
+  }
+  var ov = document.getElementById('onboardingOverlay');
+  if (ov) ov.scrollTop = 0;
+}
+
+function obGetSelectedPills(containerId) {
+  var c = document.getElementById(containerId);
+  if (!c) return [];
+  return Array.from(c.querySelectorAll('.ob-pill.ob-pill-sel')).map(function(p) { return p.getAttribute('data-val'); });
+}
+
+function obBuildSummary() {
+  var tripName = (document.getElementById('obTripName') || {}).value || 'My Disney Trip';
+  var parks = obGetSelectedPills('obParkPills');
+  var arrival = (document.getElementById('obArrival') || {}).value || '';
+  var departure = (document.getElementById('obDeparture') || {}).value || '';
+  var adults = (document.getElementById('obAdults') || {}).value || '2';
+  var kids = (document.getElementById('obKids') || {}).value || '0';
+  var thrill = obGetSelectedPills('obThrillPills')[0] || 'Moderate';
+  var pace = obGetSelectedPills('obPacePills')[0] || 'Moderate';
+  var dining = obGetSelectedPills('obDiningPills')[0] || 'Mix';
+  var occasions = obGetSelectedPills('obOccasionPills');
+  var lines = [];
+  lines.push('<strong style="color:#52C3AF;font-size:17px;">' + tripName + '</strong>');
+  if (parks.length) lines.push('<span style="color:rgba(255,255,255,0.5)">Parks</span> ' + parks.join(', '));
+  if (arrival && departure) lines.push('<span style="color:rgba(255,255,255,0.5)">Dates</span> ' + arrival + ' – ' + departure);
+  lines.push('<span style="color:rgba(255,255,255,0.5)">Group</span> ' + adults + ' adults' + (parseInt(kids) > 0 ? ', ' + kids + ' children' : ''));
+  lines.push('<span style="color:rgba(255,255,255,0.5)">Vibe</span> ' + thrill + ' · ' + pace + ' · ' + dining);
+  if (occasions.length) lines.push('<span style="color:rgba(255,255,255,0.5)">Occasion</span> ' + occasions.join(', '));
+  return lines.join('<br>');
+}
+
+function obBuildTrip() {
+  var buildBtn = document.getElementById('obBuildBtn');
+  var statusDiv = document.getElementById('obGenerateStatus');
+  var statusMsg = document.getElementById('obStatusMsg');
+  var errMsg = document.getElementById('obErrorMsg');
+  if (buildBtn) buildBtn.style.display = 'none';
+  if (statusDiv) statusDiv.style.display = 'block';
+  if (statusMsg) statusMsg.textContent = 'Building your personalized schedule...';
+  if (errMsg) errMsg.style.display = 'none';
+
+  var tripName = (document.getElementById('obTripName') || {}).value || 'My Disney Trip';
+  var parks = obGetSelectedPills('obParkPills');
+  var arrival = (document.getElementById('obArrival') || {}).value || '';
+  var departure = (document.getElementById('obDeparture') || {}).value || '';
+  var adults = parseInt((document.getElementById('obAdults') || {}).value || '2');
+  var kids = parseInt((document.getElementById('obKids') || {}).value || '0');
+  var kidAges = (document.getElementById('obKidAges') || {}).value || '';
+  var names = (document.getElementById('obNames') || {}).value || '';
+  var thrill = obGetSelectedPills('obThrillPills')[0] || 'Moderate';
+  var pace = obGetSelectedPills('obPacePills')[0] || 'Moderate';
+  var mustDo = (document.getElementById('obMustDo') || {}).value || '';
+  var dining = obGetSelectedPills('obDiningPills')[0] || 'Mix';
+  var diet = (document.getElementById('obDiet') || {}).value || '';
+  var occasions = obGetSelectedPills('obOccasionPills');
+
+  var prompt = 'Generate a complete Disney theme park trip schedule as JSON only. No explanation.\n' +
+    'Trip name: ' + tripName + '\nParks: ' + (parks.join(', ') || 'Disneyland, DCA') +
+    '\nDates: ' + (arrival || 'TBD') + ' to ' + (departure || 'TBD') +
+    '\nGroup: ' + adults + ' adults, ' + kids + ' kids' + (kidAges ? ' (ages: ' + kidAges + ')' : '') +
+    '\nNames: ' + (names || 'not specified') + '\nThrill: ' + thrill + '\nPace: ' + pace +
+    '\nMust-do: ' + (mustDo || 'none') + '\nDining: ' + dining +
+    (diet ? '\nDiet: ' + diet : '') + (occasions.length ? '\nOccasions: ' + occasions.join(', ') : '') +
+    '\nReturn JSON: {"days":[{"dayNum":1,"date":"...","park":"...","items":[{"time":"8:00 AM","type":"ride","name":"...","note":"...","waitMin":20}]}]}';
+
+  fetch(SYNC_BASE + '/api/generateschedule', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ prompt: prompt, mode: 'onboarding', maxTokens: 4000 })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.ok || !data.parsed) throw new Error(data.error || 'No schedule generated');
+    var schedule = data.parsed;
+    var memberNames = names ? names.split(',').map(function(n) { return n.trim(); }).filter(Boolean) : [];
+    var colors = ['#52C3AF','#C86030','#F0B429','#7C6FCD','#E05B8B','#4CAF8F'];
+    var tripConfig = {
+      tripName: tripName,
+      party: (adults > 0 && kids > 0) ? ['Adults','Kids'] : ['Adults'],
+      days: (schedule.days || []).map(function(day, idx) {
+        return { num: idx+1, label: 'Day ' + (idx+1), date: day.date || '', park: day.park || (parks[idx % parks.length] || 'Disneyland'), isVip: false };
+      }),
+      firstParkDate: arrival,
+      members: memberNames.map(function(n, idx) {
+        var parts = n.split(' ');
+        return { firstName: parts[0] || n, lastName: parts[1] || '', lastInitial: (parts[1] || '').charAt(0), color: colors[idx % colors.length] };
+      }),
+      thrillLevel: thrill, pace: pace, diningStyle: dining
+    };
+    var tripData = { tripConfig: tripConfig, schedule: schedule };
+    if (statusMsg) statusMsg.textContent = 'Saving your plan...';
+    return fetch(SYNC_BASE + '/api/trip', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'x-admin-key': 'CWdis2026admin'},
+      body: JSON.stringify({ code: _obCode, tripData: tripData })
+    }).then(function(r) { return r.json(); }).then(function() {
+      window._loadedTripData = tripData;
+      applyLoadedTripData();
+      var ov = document.getElementById('onboardingOverlay');
+      if (ov) ov.style.display = 'none';
+      enterSplash(true);
+    });
+  })
+  .catch(function(e) {
+    if (buildBtn) buildBtn.style.display = 'block';
+    if (statusDiv) statusDiv.style.display = 'none';
+    if (errMsg) { errMsg.style.display = 'block'; errMsg.textContent = 'Something went wrong building your plan. Tap to try again.'; }
+  });
+}
+
+function applyLoadedTripData() {
+  var td = window._loadedTripData;
+  if (!td || !td.tripConfig) return false;
+  try {
+    var tc = td.tripConfig;
+    if (tc.tripName) TRIP_CONFIG.tripName = tc.tripName;
+    if (tc.days && tc.days.length) TRIP_CONFIG.days = tc.days;
+    if (tc.members && tc.members.length) TRIP_CONFIG.members = tc.members;
+    if (tc.party) TRIP_CONFIG.party = tc.party;
+    if (tc.firstParkDate) TRIP_CONFIG.firstParkDate = tc.firstParkDate;
+  } catch(e) { console.warn('applyLoadedTripData', e.message); }
+  return true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.ob-pills').forEach(function(container) {
+    container.addEventListener('click', function(e) {
+      var pill = e.target.closest('.ob-pill');
+      if (!pill) return;
+      if (container.classList.contains('ob-single')) {
+        container.querySelectorAll('.ob-pill').forEach(function(p) { p.classList.remove('ob-pill-sel'); });
+      }
+      pill.classList.toggle('ob-pill-sel');
+    });
+  });
+});
+// ===== END ONBOARDING =====
 
 function generateSplashStars() {
   var c = document.getElementById('splashStars');
