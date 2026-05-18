@@ -886,7 +886,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
       <div class="ob-field"><label class="ob-label">Must-do rides <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obMustDo" class="ob-input" placeholder="e.g. Space Mountain, Radiator Springs"></div>
       <div class="ob-field"><label class="ob-label">Dining style</label><div class="ob-pills ob-single" id="obDiningPills"><div class="ob-pill" data-val="Quick service only">Quick Service</div><div class="ob-pill ob-pill-sel" data-val="Mix">Mix it up</div><div class="ob-pill" data-val="Table service">Table Service</div></div></div>
       <div class="ob-field"><label class="ob-label">Dietary needs <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obDiet" class="ob-input" placeholder="e.g. gluten-free, vegan"></div>
-      <div class="ob-field"><label class="ob-label">Special occasions</label><div class="ob-pills" id="obOccasionPills"><div class="ob-pill" data-val="Birthday">&#127874; Birthday</div><div class="ob-pill" data-val="Anniversary">&#128141; Anniversary</div><div class="ob-pill" data-val="First visit">&#10024; First Visit</div><div class="ob-pill" data-val="Other">Other</div></div></div>
+      <div class="ob-field"><label class="ob-label">Special occasions</label><div class="ob-pills" id="obOccasionPills"><div class="ob-pill" data-val="Birthday">Birthday</div><div class="ob-pill" data-val="Anniversary">Anniversary</div><div class="ob-pill" data-val="First visit">First Visit</div><div class="ob-pill" data-val="Other">Other</div></div></div>
       <button class="ob-next-btn" onclick="obGoTo(4)">Review my trip &#8594;</button>
       <button class="ob-back-btn" onclick="obGoTo(3)">&#8592; Back</button>
     </div>
@@ -894,7 +894,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
       <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Ready to build.</h2>
       <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 24px;">Here's what we'll plan around.</p>
       <div id="obSummaryCard" style="background:rgba(255,255,255,0.07);border-radius:16px;padding:20px;margin-bottom:24px;color:#fff;font-size:14px;line-height:1.8;"></div>
-      <div id="obGenerateStatus" style="display:none;text-align:center;padding:24px 0;color:rgba(255,255,255,0.7);"><div style="font-size:28px;margin-bottom:10px;">&#10024;</div><div id="obStatusMsg" style="font-size:15px;font-weight:500;">Building your personalized schedule...</div></div>
+      <div id="obGenerateStatus" style="display:none;text-align:center;padding:24px 0;color:rgba(255,255,255,0.7);"><div style="font-size:28px;margin-bottom:10px;"></div><div id="obStatusMsg" style="font-size:15px;font-weight:500;">Building your personalized schedule...</div></div>
       <button id="obBuildBtn" class="ob-build-btn" onclick="obBuildTrip()">Build my trip plan &#8594;</button>
       <button class="ob-back-btn" onclick="obGoTo(3)">&#8592; Back</button>
       <div id="obErrorMsg" style="display:none;margin-top:16px;color:#ff6b6b;font-size:13px;text-align:center;cursor:pointer;" onclick="document.getElementById('obBuildBtn').style.display='block';document.getElementById('obGenerateStatus').style.display='none';this.style.display='none';"></div>
@@ -1008,7 +1008,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
       </div>
 
       <!-- Edit bar -->
-      <div class="edit-bar"><button class="edit-toggle" id="editToggle" onclick="toggleEdit()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit schedule</button></div>
+      <div class="edit-bar"><button class="edit-toggle" id="editToggle" onclick="toggleEdit()"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule</button></div>
 
       <!-- Closed attractions banner -->
       <div id="closedBanner" class="closed-banner" style="display:none">
@@ -1394,12 +1394,12 @@ const DAYS=[
 ];
 
 const SHOWS=[
-  {name:'\u{1F30A} World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',hl:true,desc:'A 25-min water, light & projection show hosted by Joy from Inside Out. Best view is Monday VIP night with reserved lagoon-side viewing.'},
-  {name:'\u{1F3AD} Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',hl:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers, projections, and pyrotechnics. The greatest nighttime show at any Disney park.'},
-  {name:'\u{1F3A1} Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights',hl:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. The 2nd show is reversed and far less crowded.'},
-  {name:'\u2728 Wondrous Journeys w/ Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',hl:false,desc:'Disney Animation tribute projected on Sleeping Beauty Castle and beyond with fireworks. Sunday night is the full version.'},
-  {name:'\u2728 Wondrous Journeys \u2014 Projections',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',hl:false,desc:'Same show without fireworks. Beautiful castle projections. Tuesday night will likely be this version.'},
-  {name:'\u{1F30C} Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',hl:false,desc:"The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min. No reserved viewing needed."},
+  {name:'World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',hl:true,desc:'A 25-min water, light & projection show hosted by Joy from Inside Out. Best view is Monday VIP night with reserved lagoon-side viewing.'},
+  {name:'Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',hl:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers, projections, and pyrotechnics. The greatest nighttime show at any Disney park.'},
+  {name:'Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights',hl:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. The 2nd show is reversed and far less crowded.'},
+  {name:'Wondrous Journeys w/ Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',hl:false,desc:'Disney Animation tribute projected on Sleeping Beauty Castle and beyond with fireworks. Sunday night is the full version.'},
+  {name:'Wondrous Journeys \u2014 Projections',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',hl:false,desc:'Same show without fireworks. Beautiful castle projections. Tuesday night will likely be this version.'},
+  {name:'Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',hl:false,desc:"The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min. No reserved viewing needed."},
 ];
 
 //    State                                                                  
@@ -2661,7 +2661,7 @@ function startInlineEdit(el, dayIdx, secIdx, entryIdx, field){
   });
 }
 
-function toggleEdit(){if(!isAdmin()){alert('Sign in as admin to edit the schedule.');return;}editMode=!editMode;var btn=document.getElementById('editToggle');btn.textContent=editMode?'\u2713 Done Editing':'\u270E Edit Schedule';btn.classList.toggle('active',editMode);renderSched();}
+function toggleEdit(){if(!isAdmin()){alert('Sign in as admin to edit the schedule.');return;}editMode=!editMode;var btn=document.getElementById('editToggle');btn.innerHTML=editMode?'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Done Editing':'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';btn.classList.toggle('active',editMode);renderSched();}
 function resetSched(){if(!confirm('Reset this day to the original schedule?'))return;customSched[curDay]=null;try{localStorage.removeItem('sched_day_'+curDay);}catch(e){}renderSched();}
 function deleteEntry(d,s,e){var data=JSON.parse(JSON.stringify(getCurDay()));data.sections[s].entries.splice(e,1);customSched[d]=data;saveCustom(d);renderSched();}
 
@@ -3111,10 +3111,10 @@ function renderClosed(){
     var el=document.getElementById(id);
     if(!el) return;
   var h='<div style="padding:12px 0">'
-    +'<div class="sec-hdr"><div class="sec-lbl">\u{1F6A7} Rides Closed Jun 28\u201330</div><div class="sec-line"></div></div>'
-    +CLOSED.map(function(c){return '<div class="ride-block" style="margin-bottom:7px"><div class="ride-main"><div style="font-size:20px;flex-shrink:0">\u{1F512}</div><div class="ride-body"><div class="ride-name" style="color:var(--red)">'+c.n+'</div><div class="ride-note">'+c.d+'</div></div></div></div>';}).join('')
-    +'<div class="sec-hdr" style="margin-top:16px"><div class="sec-lbl">\u{1F374} Dining Notes</div><div class="sec-line"></div></div>'
-    +'<div class="ride-block"><div class="ride-main"><div style="font-size:20px;flex-shrink:0">\u26A0\uFE0F</div><div class="ride-body"><div class="ride-name" style="color:var(--yellow)">Blue Bayou Restaurant</div><div class="ride-note">Open but obstructed views & possible construction noise during Pirates refurb. Skip it this trip \u2014 Caf\u00e9 Orleans next door is the better choice.</div></div></div></div>'
+    +'<div class="sec-hdr"><div class="sec-lbl">Rides Closed Jun 28\u201330</div><div class="sec-line"></div></div>'
+    +CLOSED.map(function(c){return '<div class="ride-block" style="margin-bottom:7px"><div class="ride-main"><div style="font-size:20px;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-lock"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/></svg></div><div class="ride-body"><div class="ride-name" style="color:var(--red)">'+c.n+'</div><div class="ride-note">'+c.d+'</div></div></div></div>';}).join('')
+    +'<div class="sec-hdr" style="margin-top:16px"><div class="sec-lbl">Dining Notes</div><div class="sec-line"></div></div>'
+    +'<div class="ride-block"><div class="ride-main"><div style="font-size:20px;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-alert-triangle"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.871l-8.106 -13.534a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg></div><div class="ride-body"><div class="ride-name" style="color:var(--yellow)">Blue Bayou Restaurant</div><div class="ride-note">Open but obstructed views & possible construction noise during Pirates refurb. Skip it this trip \u2014 Caf\u00e9 Orleans next door is the better choice.</div></div></div></div>'
     +'<div style="margin-top:16px;padding:11px 13px;background:var(--navy-card);border:1px solid var(--navy-border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6">'
     +'<b style="color:var(--text)">Note:</b> Always check the Disneyland app the morning of your visit for any additional same-day closures or changes.'
     +'</div>'
@@ -3146,7 +3146,7 @@ function renderLLBanner(e,dayIdx){
     out+='<br><div style="display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap">';
     out+='<span style="font-size:11px;color:var(--text-muted)">Return time:</span>';
     out+='<input class="ll-time-input" placeholder="e.g. 2:30 PM"/>';
-    out+='<button class="ll-banner-got" onclick="llGotIt(\''+rideKey+'\',this)">&#10003; Got it</button>';
+    out+='<button class="ll-banner-got" onclick="llGotIt(\''+rideKey+'\',this)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Got it</button>';
     out+='</div>';
   }
   if(backup) out+='<div style="margin-top:4px;font-size:11px;color:var(--text-dim)">If unavailable &#8594; <b style="color:var(--text)">'+backup+'</b></div>';
@@ -3920,33 +3920,33 @@ var ALL_RESTAURANTS=[
 function renderShows(){
   var sections=[
     {
-      label:'\u{1F3AD} Must-See Nighttime Shows',
+      label:'Must-See Nighttime Shows',
       shows:[
-        {name:'\u{1F30A} World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',must:true,desc:'A 25-min water, light & projection show at Paradise Gardens lagoon, hosted by Joy from Inside Out. Celebrates Disney/Pixar with fountains, fire, lasers and music. Your best view is Monday VIP night with reserved lagoon-side viewing. One or two showings per night.'},
-        {name:'\u{1F3AD} Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',must:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers on boats, projections, and pyrotechnics. The greatest nighttime show at any Disney park. Second show has shorter waits for viewing spots.'},
-        {name:'\u{1F3A1} Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights through Aug 9',must:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. Part of the 70th Anniversary celebration. Two shows per night \u2014 2nd show is reversed route and far less crowded. On your schedule for Monday VIP reserved viewing.'},
-        {name:'\u2728 Wondrous Journeys \u2014 Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',must:true,desc:'Disney Animation tribute projected on Sleeping Beauty Castle, Main Street, and beyond with fireworks. Part of the 70th Anniversary celebration through Aug 9. Sunday night is the full fireworks version \u2014 watch from the Castle hub for best view.'},
-        {name:'\u2728 Wondrous Journeys \u2014 Projections Only',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',must:false,desc:'Same beautiful show without fireworks. Tuesday night will likely be this version. Still worth watching from Main Street.'},
+        {name:'World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',must:true,desc:'A 25-min water, light & projection show at Paradise Gardens lagoon, hosted by Joy from Inside Out. Celebrates Disney/Pixar with fountains, fire, lasers and music. Your best view is Monday VIP night with reserved lagoon-side viewing. One or two showings per night.'},
+        {name:'Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',must:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers on boats, projections, and pyrotechnics. The greatest nighttime show at any Disney park. Second show has shorter waits for viewing spots.'},
+        {name:'Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights through Aug 9',must:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. Part of the 70th Anniversary celebration. Two shows per night \u2014 2nd show is reversed route and far less crowded. On your schedule for Monday VIP reserved viewing.'},
+        {name:'Wondrous Journeys \u2014 Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',must:true,desc:'Disney Animation tribute projected on Sleeping Beauty Castle, Main Street, and beyond with fireworks. Part of the 70th Anniversary celebration through Aug 9. Sunday night is the full fireworks version \u2014 watch from the Castle hub for best view.'},
+        {name:'Wondrous Journeys \u2014 Projections Only',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',must:false,desc:'Same beautiful show without fireworks. Tuesday night will likely be this version. Still worth watching from Main Street.'},
       ]
     },
     {
-      label:'\u{1F4AB} Daytime Shows & Parades',
+      label:'Daytime Shows & Parades',
       shows:[
-        {name:'\u{1F38A} Celebrate Happy Cavalcade',park:'Disneyland',time:'Multiple times daily',days:'Through Aug 9, 2026',must:true,desc:'A festive 70th Anniversary cavalcade down Main Street featuring Mickey, Minnie, and their pals in special celebration outfits alongside Duffy and friends. Check the Disneyland app for exact times each morning \u2014 typically 3\u20134 times per day. Short, fun, and great for photos.'},
-                        {name:'\u2728 Tapestry of Happiness',park:'Disneyland',time:'Nightly (dusk)',days:'Nightly through Aug 9',must:true,desc:'Nightly projection show on the facade of "it\u2019s a small world" \u2014 a beautiful tribute to the Sherman Brothers and the iconic song. Runs automatically at dusk, no reserved viewing needed. Easy to catch while walking by in the evening.'},
+        {name:'Celebrate Happy Cavalcade',park:'Disneyland',time:'Multiple times daily',days:'Through Aug 9, 2026',must:true,desc:'A festive 70th Anniversary cavalcade down Main Street featuring Mickey, Minnie, and their pals in special celebration outfits alongside Duffy and friends. Check the Disneyland app for exact times each morning \u2014 typically 3\u20134 times per day. Short, fun, and great for photos.'},
+                        {name:'Tapestry of Happiness',park:'Disneyland',time:'Nightly (dusk)',days:'Nightly through Aug 9',must:true,desc:'Nightly projection show on the facade of "it\u2019s a small world" \u2014 a beautiful tribute to the Sherman Brothers and the iconic song. Runs automatically at dusk, no reserved viewing needed. Easy to catch while walking by in the evening.'},
       ]
     },
     {
-      label:'\u{1F30C} Galaxy\u2019s Edge Shows',
+      label:'Galaxy\u2019s Edge Shows',
       shows:[
-        {name:'\u{1F30C} Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',must:false,desc:'The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min ambient experience. No reserved viewing \u2014 just be in Galaxy\u2019s Edge when it starts. Great for Star Wars fans.'},
-        {name:'\u{1F386} Fire of the Rising Moons',park:'Disneyland',time:'Synced with fireworks ~9:30 PM',days:'Fri\u2013Sun fireworks nights',must:false,desc:'The same Wondrous Journeys fireworks watched from inside Galaxy s Edge with Star Wars music playing. Best for hardcore Star Wars fans. Sunday night you d miss the castle projections from Main Street \u2014 the Main Street view is better for most guests.'},
+        {name:'Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',must:false,desc:'The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min ambient experience. No reserved viewing \u2014 just be in Galaxy\u2019s Edge when it starts. Great for Star Wars fans.'},
+        {name:'Fire of the Rising Moons',park:'Disneyland',time:'Synced with fireworks ~9:30 PM',days:'Fri\u2013Sun fireworks nights',must:false,desc:'The same Wondrous Journeys fireworks watched from inside Galaxy s Edge with Star Wars music playing. Best for hardcore Star Wars fans. Sunday night you d miss the castle projections from Main Street \u2014 the Main Street view is better for most guests.'},
       ]
     },
     {
-      label:'\u{1F3B6} DCA Entertainment',
+      label:'DCA Entertainment',
       shows:[
-        {name:'\u{1F3A4} Live Entertainment \u2014 Avengers Campus & Pixar Pier',park:'DCA',time:'Throughout the day',days:'Daily',must:false,desc:'Various live performances throughout DCA including character moments in Avengers Campus, live music at Pixar Pier, and spontaneous entertainment. Check the Disneyland app each morning for the full schedule.'},
+        {name:'Live Entertainment \u2014 Avengers Campus & Pixar Pier',park:'DCA',time:'Throughout the day',days:'Daily',must:false,desc:'Various live performances throughout DCA including character moments in Avengers Campus, live music at Pixar Pier, and spontaneous entertainment. Check the Disneyland app each morning for the full schedule.'},
       ]
     },
   ];
@@ -3990,7 +3990,7 @@ function setDay(d){
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
   editMode=false;
-  var et=document.getElementById('editToggle');et.textContent='\u270E Edit Schedule';et.classList.remove('active');
+  var et=document.getElementById('editToggle');et.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
   renderClosed();renderSched();renderDayInfoBar();
   if(typeof renderVipBanner==='function')renderVipBanner(d);
@@ -5324,7 +5324,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <!-- Step 4: Smart Profile Questions -->
     <div class="setup-step" id="setupStep4">
-      <button class="setup-close" onclick="closeSetup()">&#10005;</button>
+      <button class="setup-close" onclick="closeSetup()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></button>
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;">Almost done! (</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">A few quick questions to personalize your AI advice.</div>
       <div class="setup-section">
@@ -5364,7 +5364,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <!-- Step 5: Trip Summary + Share -->
     <div class="setup-step" id="setupStep5">
-      <button class="setup-close" onclick="closeSetup()">&#10005;</button>
+      <button class="setup-close" onclick="closeSetup()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></button>
       <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px;">Your Trip is Ready! (</div>
       <div id="tripSummaryContent" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;min-height:80px;">
         <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">( Generating your personalized trip summary...</div>
