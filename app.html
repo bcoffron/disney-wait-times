@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0
-<meta name="version" content="202605171200-v124">
+<meta name="version" content="202605181200-v125">
 <link rel="apple-touch-icon" href="/assets/icon-512.PNG">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-512.PNG">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/assets/icon-512.PNG">
@@ -1099,7 +1099,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
     <div id="tabChat" class="chat-tab-container" style="display:none">
       <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding-top:16px"></div>
       <div id="chatSugBubbles" class="ask-ai-suggestions-grid">
-        <button class="chat-sug-bubble" onclick="sendSugChat('What\'s the wait like at Space Mountain right now?')">What's the wait like at Space Mountain right now?</button>
+        <button class="chat-sug-bubble" onclick="sendSugChat('What\'s the wait like at Space Mountain right now?')">What's the wait like at Hyperspace Mountain right now?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Best order to hit Fantasyland this morning?')">Best order to hit Fantasyland this morning?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('What should we do in the next 2 hours?')">What should we do in the next 2 hours?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Any tips for riding with young kids today?')">Any tips for riding with young kids today?</button>
@@ -1559,7 +1559,7 @@ function playTinkAnimation(){
   }
   requestAnimationFrame(animate);
 }
-function isAdmin(){return sessionStorage.getItem('twRole')==='admin';}
+function isAdmin(){return (sessionStorage.getItem('twRole')||sessionStorage.getItem('tripRole'))==='admin';}
 function showApp(){
   document.getElementById('lockScreen').style.display='none';
   // Never show magic day screen via normal login - only on actual Jun 28
@@ -3683,14 +3683,14 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   }
 
   // Section 1: Share
-  var pw=TRIP_CONFIG.guestPassword||'CW9Dis2026';
+  var pw=TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'CWDIS2026-G';
   var shareContent='<div class="share-body" style="padding:0 14px 14px;">'
     +'<p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4;">Send this to everyone in the group.</p>'
     +'<div class="share-info-box">'
     +'<div class="share-info-row"><span class="share-info-label">LINK</span>'
-    +'<span class="share-info-value" style="color:var(--color-teal-active);">themeparkwize.com</span></div>'
+    +'<span class="share-info-value" style="color:var(--color-teal-active);">themeparkcopilot.com</span></div>'
     +'<div class="share-info-divider"></div>'
-    +'<div class="share-info-row"><span class="share-info-label">GUEST PASSWORD</span>'
+    +'<div class="share-info-row"><span class="share-info-label">GUEST CODE</span>'
     +'<span class="share-info-value" style="font-weight:800;color:var(--color-bg-dark);">'+pw+'</span></div>'
     +'</div>'
     +'<div style="display:flex;gap:8px;margin-top:10px;">'
@@ -4053,7 +4053,7 @@ async function _doChat(msg){
   if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
-  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+ NOTE: Space Mountain and Hyperspace Mountain are the same ride (seasonal rename); treat them as identical when answering questions.' Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(!window.chatHistory)window.chatHistory=[];
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
@@ -4105,8 +4105,8 @@ function renderLockCountdowns(){
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function renderClosuresFromWaits(){if(!waits||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 
-function doShareText(){var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://themeparkwize.com\nPassword: CW9Dis2026\n\nOpen in Safari > Share > Add to Home Screen!';if(navigator.share){navigator.share({title:'ThemeParkWize',text:msg,url:'https://themeparkwize.com'}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
-function doCopyLink(){var text='ThemeParkWize Disneyland App\nLink: https://themeparkwize.com\nPassword: CW9Dis2026';if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
+function doShareText(){var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://themeparkcopilot.com\nCode: '+(TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'CWDIS2026-G')+'\n\nOpen in Safari > Share > Add to Home Screen!';if(navigator.share){navigator.share({title:'ThemeParkWize',text:msg,url:'https://themeparkcopilot.com'}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
+function doCopyLink(){var text='ThemeParkWize Disneyland App\nLink: https://themeparkcopilot.com\nCode: '+(TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'CWDIS2026-G');if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
 
 var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40};
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
@@ -4679,13 +4679,13 @@ function generateTripSummary(){
 }
 
 function copyTripLink(){
-  var url='https://themeparkwize.com';
+  var url='https://themeparkcopilot.com';
   if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){showToast('Link copied!');});}
   else{var el=document.getElementById('shareUrlDisplay');if(el){var r=document.createRange();r.selectNode(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);document.execCommand('copy');window.getSelection().removeAllRanges();showToast('Link copied!');}}
 }
 
 function shareTripLink(){
-  var url='https://themeparkwize.com';
+  var url='https://themeparkcopilot.com';
   if(navigator.share){navigator.share({title:'ThemeParkWize',text:'Join our Disneyland trip on ThemeParkWize!',url:url});}
   else{copyTripLink();}
 }
@@ -4711,7 +4711,7 @@ var TRIP_CONFIG = {
     {num: 3, label: 'Day 3', date: 'Tue Jun 30', park: 'Disneyland',            isVip: false},
   ],
   firstParkDate: new Date('2026-06-28T08:00:00-07:00'),
-  guestPassword: 'CW9Dis2026',
+  guestCode: 'CWDIS2026-G',
   officialHoursUrl: 'https://disneyland.disney.go.com/calendars/',
   members: [
     {firstName: 'Beau',    lastName: 'Coffron', lastInitial: 'C', color: '#C86030'},
