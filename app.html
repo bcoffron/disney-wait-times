@@ -325,26 +325,102 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .vip-notes-component,.vip-notes-component *{font-family:'Outfit',sans-serif}
 
 /* ===== SECTION 7: SPLASH SCREEN ===== */
-.splash-bg-gradient{position:relative;z-index:0;min-height:180px}
-.splash-skyline-svg{position:absolute;top:6%;left:50%;transform:translateX(-50%);width:105%;z-index:1;pointer-events:none}
-.splash-content-stack{position:relative;z-index:3}
-.splash-bottom-group{display:flex;flex-direction:column;width:100%}
-.splash-screen{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;height:100dvh;min-height:100dvh;padding:0 18px 6px;overflow:hidden;background:linear-gradient(176deg,#071E25 0%,#0D3A45 8%,#1A6860 25%,#B85825 45%,#ECA050 62%,#F8CC80 76%) no-repeat top / 100% 55%, #071E25}
-.splash-left{width:100%;display:flex;flex-direction:column;gap:8px}
-.splash-eyebrow{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:4px}
-.splash-title{font-family:'Outfit',sans-serif;font-size:21px;font-weight:800;color:#FFFFFF;letter-spacing:-0.3px;line-height:1.15;margin-bottom:4px}
-.splash-title span{background:linear-gradient(135deg,#F59E0B,#E8A020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.splash-desc{font-size:10px;color:rgba(255,255,255,0.40);line-height:1.5;margin-top:4px}
-.splash-countdown{margin-top:8px}
-.splash-countdown-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
-.splash-countdown-val{font-family:'Outfit',sans-serif;font-size:44px;font-weight:900;color:#fff}
-.splash-countdown-unit{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px}
-.splash-enter-btn{margin-top:6px;padding:13px 20px;border-radius:10px;background:#C86030;border:none;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;letter-spacing:0.02em;min-height:44px}
-.splash-enter-btn:active{transform:scale(.97)}
-.splash-cta-secondary{display:block;width:100%;background:transparent;border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:11px 16px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.50);text-align:center;cursor:pointer;margin-top:8px;min-height:44px;-webkit-tap-highlight-color:transparent}
-.splash-right{display:none}
-.splash-skyline{position:absolute;bottom:0;left:0;right:0}
-.splash-stars{position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden}
+/* ── SPLASH SCREEN ─────────────────────────────────────── */
+#splashScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  background: #0B1A22;
+  overflow: hidden;
+}
+
+/* Hero artwork zone — sky gradient + castle */
+.splash-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 390 / 380;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(
+    180deg,
+    #0B1A22 0%,
+    #15302F 18%,
+    #2A625F 38%,
+    #6E6448 55%,
+    #B66731 72%,
+    #D67E3B 86%,
+    #F1C896 100%
+  );
+}
+
+/* Horizon glow */
+.splash-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 55% at 50% 62%, rgba(255,200,140,0.32) 0%, rgba(255,200,140,0) 55%),
+    radial-gradient(80% 50% at 50% 35%, rgba(80,170,165,0.28) 0%, rgba(80,170,165,0) 60%);
+  pointer-events: none;
+}
+
+/* Top vignette */
+.splash-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7,16,22,0.55) 0%, rgba(7,16,22,0) 25%);
+  pointer-events: none;
+}
+
+/* Castle SVG — anchored to bottom of hero zone */
+.splash-castle {
+  position: absolute;
+  left: 50%;
+  bottom: -2%;
+  transform: translateX(-50%);
+  width: 82%;
+  height: auto;
+  opacity: 0.55;
+  filter: drop-shadow(0 4px 22px rgba(0,0,0,0.18));
+  pointer-events: none;
+}
+
+/* Star twinkles — sky portion only */
+.splash-stars {
+  position: absolute;
+  inset: 0 0 40% 0;
+  pointer-events: none;
+}
+.splash-stars i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  box-shadow: 0 0 4px rgba(255,255,255,0.6);
+  animation: splashTwinkle 5s ease-in-out infinite;
+}
+.splash-stars i.lg { width: 3px; height: 3px; box-shadow: 0 0 6px rgba(255,255,255,0.7); }
+.splash-stars i.sm { width: 1.5px; height: 1.5px; box-shadow: 0 0 3px rgba(255,255,255,0.5); }
+@keyframes splashTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.7); }
+  50% { opacity: 0.85; transform: scale(1); }
+}
+
+/* Content zone — dark, all text + buttons */
+.splash-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px 18px 10px;
+  background: #071E25;
+  gap: 0;
+}
 
 /* ===== MISC / COMPATIBILITY STYLES ===== */
 .action-bar{display:flex;gap:8px;margin-bottom:12px}
@@ -797,9 +873,28 @@ body.tw-guest .ai-opt-hero{display:none!important}
 <!-- ===== SECTION 7: SPLASH SCREEN ===== -->
 <div id="splashScreen" class="splash-screen">
 
-  <div class="splash-bottom-group">
-  <div class="splash-skyline-svg"><img src="/castle.webp" style="width:100%;display:block;" alt="" aria-hidden="true"></div>
-  <div class="splash-left">
+  <!-- Hero: sky gradient + castle artwork -->
+  <section class="splash-hero" aria-hidden="true">
+    <div class="splash-stars">
+      <i class="sm" style="top:8%;left:12%;animation-delay:0.2s"></i>
+      <i style="top:14%;left:28%;animation-delay:1.7s"></i>
+      <i class="lg" style="top:6%;left:46%;animation-delay:3.1s"></i>
+      <i class="sm" style="top:18%;left:64%;animation-delay:0.8s"></i>
+      <i style="top:22%;left:82%;animation-delay:2.4s"></i>
+      <i class="sm" style="top:28%;left:8%;animation-delay:4.0s"></i>
+      <i style="top:34%;left:22%;animation-delay:2.9s"></i>
+      <i class="lg" style="top:38%;left:88%;animation-delay:1.2s"></i>
+      <i class="sm" style="top:44%;left:4%;animation-delay:3.6s"></i>
+      <i style="top:50%;left:76%;animation-delay:0.5s"></i>
+      <i class="sm" style="top:11%;left:90%;animation-delay:4.4s"></i>
+      <i class="sm" style="top:30%;left:52%;animation-delay:2.1s"></i>
+    </div>
+    <img class="splash-castle" src="assets/brand/logo-white.svg" alt="" />
+  </section>
+
+  <!-- Content: eyebrow, trip name, countdown, card, buttons -->
+  <section class="splash-content">
+
     <div>
       <div class="splash-eyebrow">THEME PARK CO-PILOT</div>
       <h1 class="splash-title">Coffron/Woods</h1>
@@ -819,14 +914,9 @@ body.tw-guest .ai-opt-hero{display:none!important}
     </div>
   </div>
 </div>
-  <div class="splash-right">
-    <div class="splash-stars" id="splashStars"></div>
-    <!-- Skyline SVG illustration -->
-    <img src="castle.webp" alt="" aria-hidden="true">
-  </div>
-</div>
+    </section>
 
-<!-- ===== MAIN APP ===== -->
+</div>
 <div class="app" id="mainApp" style="display:none">
 
   <!-- Magic Day Screen -->
