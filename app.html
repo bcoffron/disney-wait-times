@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0
-<meta name="version" content="202605181200-v127">
+<meta name="version" content="202605181200-v128">
 <link rel="apple-touch-icon" href="/assets/icon-512.PNG">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-512.PNG">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/assets/icon-512.PNG">
@@ -3473,7 +3473,9 @@ function renderSched(){
     if(editMode)h+='<button class="add-btn" onclick="openModal('+si+')">+ Add entry here</button>';
   });
   if(editMode)h+='<div class="edit-hint">Tap any time or title to edit inline</div>';
+  var _vnSec=document.getElementById('vipNotesSection');if(_vnSec)_vnSec.remove();
   document.getElementById('schedContent').innerHTML=h;
+  if(_vnSec){var _sc=document.getElementById('schedContent');var _hdrs=Array.from(_sc.querySelectorAll('.sec-hdr'));var _vh=null;for(var _si=0;_si<_hdrs.length;_si++){if(_hdrs[_si].textContent.indexOf('VIP Tour')>-1){_vh=_hdrs[_si];break;}}if(_vh)_sc.insertBefore(_vnSec,_vh.nextSibling);}
   if(typeof checkShowSetupBanner==='function')checkShowSetupBanner();
   setTimeout(attachDiningListeners,0);
   updateWaitPillVisibility();
