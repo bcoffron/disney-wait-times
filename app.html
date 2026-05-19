@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0
-<meta name="version" content="202605181200-v129">
+<meta name="version" content="202605181200-v130">
 <link rel="apple-touch-icon" href="/assets/icon-512.PNG">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-512.PNG">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/assets/icon-512.PNG">
@@ -5128,7 +5128,7 @@ function renderVipBanner(dayNum) {
       if (secHdrs[si].textContent.indexOf('VIP Tour') > -1) { vipHdr = secHdrs[si]; break; }
     }
     if (vipHdr) container.insertBefore(vnSec, vipHdr.nextSibling);
-    if (typeof vnInit === 'function') setTimeout(vnInit, 0);
+    if (typeof vnInit === 'function') document.fonts.ready.then(function(){vnInit();});
   } else {
     var vnSec2 = document.getElementById('vipNotesSection');
     if (vnSec2) vnSec2.style.display = 'none';
@@ -5408,7 +5408,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if(isVipDay){
       s.style.display="";
-      if(typeof vnInit==="function")setTimeout(vnInit,0);
+      if(typeof vnInit==="function")document.fonts.ready.then(function(){vnInit();});
     }else{
       s.style.display="none";
     }
