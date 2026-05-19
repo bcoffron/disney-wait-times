@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Theme Park Co-Pilot — Coffron/Woods</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" />
+<style>
+  :root {
+    --bg:        #0B1A22;
+    --bg-soft:   #122731;
+    --bg-card:   #15262F;
+    --bg-card-2: #13242D;
+
+    --ink:       #FFFFFF;
+    --ink-mute:  #6D8089;
+    --ink-sub:   #5F727B;
+
+    --teal:      #1F4F4E;
+    --teal-ink:  #2DC0A6;
+    --teal-ink-2:#2CBF9E;
+
+    --orange:    #D9651E;
+    --orange-2:  #DC7026;
+    --orange-ink:#E18432;
+
+    --hero-top:    #0B1A22;
+    --hero-teal:   #2D6360;
+    --hero-orange: #C4642A;
+    --hero-cream:  #F4D2A4;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #060d12; }
+  body {
+    font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Phone canvas — matches the screenshot proportions */
+  .phone {
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg);
+    min-height: 100dvh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ─── HERO ───────────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 440 / 470;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        180deg,
+        #0B1A22  0%,
+        #15302F 18%,
+        #2A625F 38%,
+        #6E6448 55%,
+        #B66731 72%,
+        #D67E3B 86%,
+        #F1C896 100%
+      );
+  }
+  /* subtle horizon glow behind the castle */
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 55% at 50% 62%,
+        rgba(255, 200, 140, 0.32) 0%,
+        rgba(255, 200, 140, 0)   55%),
+      radial-gradient(80% 50% at 50% 35%,
+        rgba(80, 170, 165, 0.28) 0%,
+        rgba(80, 170, 165, 0)    60%);
+    pointer-events: none;
+  }
+  /* darker vignette top */
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(7,16,22,0.55) 0%, rgba(7,16,22,0) 25%);
+    pointer-events: none;
+  }
+
+  .castle {
+    position: absolute;
+    left: 50%;
+    bottom: -2%;
+    transform: translateX(-50%);
+    width: 86%;
+    height: auto;
+    opacity: 0.5;
+    filter: drop-shadow(0 4px 22px rgba(0,0,0,0.18));
+  }
+
+  /* ─── CONTENT BLOCK ──────────────────────────────────────── */
+  .content {
+    padding: 36px 28px 40px;
+  }
+
+  .eyebrow {
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+
+  .title {
+    font-family: "Nunito", sans-serif;
+    font-weight: 800;
+    font-size: 44px;
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+
+  .tagline {
+    font-size: 17px;
+    color: #7A8C95;
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .countdown {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin: 44px 0 30px;
+  }
+  .countdown .num {
+    font-size: 86px;
+    font-weight: 900;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+  }
+  .countdown .lbl {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--orange-ink);
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  /* Trip summary card */
+  .trip {
+    background: var(--bg-card);
+    border-radius: 18px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .trip .dates {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+  .trip .loc {
+    font-size: 14px;
+    font-weight: 500;
+    color: #7A8C95;
+    margin: 0;
+  }
+  .pills {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .pill {
+    background: var(--teal);
+    color: var(--teal-ink);
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    padding: 8px 14px;
+    border-radius: 999px;
+    line-height: 1;
+  }
+
+  /* Inputs */
+  .field {
+    width: 100%;
+    background: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 18px 22px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0B1A22;
+    margin-bottom: 12px;
+    outline: none;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .field::placeholder { color: #B5BCC1; font-weight: 500; }
+  .field:focus { box-shadow: 0 0 0 2px var(--orange); }
+
+  .cta {
+    width: 100%;
+    border: none;
+    background: var(--orange);
+    color: #fff;
+    font: inherit;
+    font-weight: 800;
+    font-size: 17px;
+    padding: 19px 22px;
+    border-radius: 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background 120ms ease, transform 120ms ease;
+  }
+  .cta:hover  { background: var(--orange-2); }
+  .cta:active { transform: translateY(1px); }
+  .cta .arr   { display: inline-block; transition: transform 140ms ease; }
+  .cta:hover .arr { transform: translateX(3px); }
+</style>
+</head>
+<body>
+  <main class="phone" data-screen-label="01 Splash">
+    <!-- Hero artwork -->
+    <section class="hero" aria-hidden="true">
+      <img class="castle" src="assets/castle-star-white.svg" alt="" />
+    </section>
+
+    <!-- Content -->
+    <section class="content">
+      <p class="eyebrow">Theme Park Co-Pilot</p>
+      <h1 class="title">Coffron/Woods</h1>
+      <p class="tagline">Smarter days. More magic.</p>
+
+      <div class="countdown">
+        <span class="num">42</span>
+        <span class="lbl">days to go</span>
+      </div>
+
+      <div class="trip">
+        <div>
+          <p class="dates">Jun 28–30, 2026</p>
+          <p class="loc">Anaheim, CA</p>
+        </div>
+        <div class="pills">
+          <span class="pill">DL</span>
+          <span class="pill">DCA</span>
+        </div>
+      </div>
+
+      <input class="field" type="text" placeholder="Enter your trip code" />
+
+      <button class="cta" type="button">
+        Enter your adventure <span class="arr">→</span>
+      </button>
+    </section>
+  </main>
+</body>
+</html>
