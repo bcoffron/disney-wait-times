@@ -979,52 +979,232 @@ body.tw-guest .ai-opt-hero{display:none!important}
     </div>
   </div>
 <!-- ONBOARDING MODAL -->
-<div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:#0D1B2A;overflow-y:auto;font-family:'Outfit',sans-serif;">
-  <div style="max-width:480px;margin:0 auto;padding:24px 20px 48px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-top:12px;">
-      <div style="font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:0.08em;text-transform:uppercase;">Theme Park Co-Pilot</div>
-      <div id="obStepDots" style="display:flex;gap:6px;"></div>
-    </div>
-    <div id="obStep1" class="ob-step">
-      <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Let's plan your trip.</h2>
-      <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 28px;">Tell us the basics and we'll build your perfect park plan.</p>
-      <div class="ob-field"><label class="ob-label">Trip name</label><input type="text" id="obTripName" class="ob-input" placeholder="e.g. Smith Family Disneyland"></div>
-      <div class="ob-field"><label class="ob-label">Parks</label><div id="obParkPills" class="ob-pills"><div class="ob-pill" data-val="Disneyland">Disneyland</div><div class="ob-pill" data-val="DCA">California Adventure</div><div class="ob-pill" data-val="Magic Kingdom">Magic Kingdom</div><div class="ob-pill" data-val="EPCOT">EPCOT</div><div class="ob-pill" data-val="Hollywood Studios">Hollywood Studios</div><div class="ob-pill" data-val="Animal Kingdom">Animal Kingdom</div><div class="ob-pill" data-val="Universal FL">Universal Studios FL</div><div class="ob-pill" data-val="Universal Hollywood">Universal Hollywood</div><div class="ob-pill" data-val="Islands of Adventure">Islands of Adventure</div></div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div class="ob-field"><label class="ob-label">Arrival date</label><input type="date" id="obArrival" class="ob-input"></div><div class="ob-field"><label class="ob-label">Departure date</label><input type="date" id="obDeparture" class="ob-input"></div></div>
-      <div class="ob-field"><label class="ob-label">Home airport/city <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obHomeCity" class="ob-input" placeholder="e.g. Seattle, SEA"></div>
-      <button class="ob-next-btn" onclick="obGoTo(2)">Next: Your Group &#8594;</button>
-    </div>
-    <div id="obStep2" class="ob-step" style="display:none;">
-      <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Who's coming?</h2>
-      <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 28px;">We'll personalize ride routing and Lightning Lane picks.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div class="ob-field"><label class="ob-label">Adults</label><input type="number" id="obAdults" class="ob-input" placeholder="2" min="1" max="20"></div><div class="ob-field"><label class="ob-label">Children</label><input type="number" id="obKids" class="ob-input" placeholder="0" min="0" max="20"></div></div>
-      <div class="ob-field"><label class="ob-label">Kids' ages <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obKidAges" class="ob-input" placeholder="e.g. 4, 7, 12"></div>
-      <div class="ob-field"><label class="ob-label">Group member names <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obNames" class="ob-input" placeholder="e.g. Sarah, Mike, Emma"></div>
-      <button class="ob-next-btn" onclick="obGoTo(3)">Next: Preferences &#8594;</button>
-      <button class="ob-back-btn" onclick="obGoTo(1)">&#8592; Back</button>
-    </div>
-    <div id="obStep3" class="ob-step" style="display:none;">
-      <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Your style.</h2>
-      <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 28px;">This helps us sequence your day perfectly.</p>
-      <div class="ob-field"><label class="ob-label">Thrill level</label><div class="ob-pills ob-single" id="obThrillPills"><div class="ob-pill" data-val="Mild">Mild</div><div class="ob-pill ob-pill-sel" data-val="Moderate">Moderate</div><div class="ob-pill" data-val="Thrills">Full Thrills</div></div></div>
-      <div class="ob-field"><label class="ob-label">Pace</label><div class="ob-pills ob-single" id="obPacePills"><div class="ob-pill" data-val="Relaxed">Relaxed</div><div class="ob-pill ob-pill-sel" data-val="Moderate">Moderate</div><div class="ob-pill" data-val="Power">Power Mode</div></div></div>
-      <div class="ob-field"><label class="ob-label">Must-do rides <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obMustDo" class="ob-input" placeholder="e.g. Space Mountain, Radiator Springs"></div>
-      <div class="ob-field"><label class="ob-label">Dining style</label><div class="ob-pills ob-single" id="obDiningPills"><div class="ob-pill" data-val="Quick service only">Quick Service</div><div class="ob-pill ob-pill-sel" data-val="Mix">Mix it up</div><div class="ob-pill" data-val="Table service">Table Service</div></div></div>
-      <div class="ob-field"><label class="ob-label">Dietary needs <span style="color:rgba(255,255,255,0.35)">(optional)</span></label><input type="text" id="obDiet" class="ob-input" placeholder="e.g. gluten-free, vegan"></div>
-      <div class="ob-field"><label class="ob-label">Special occasions</label><div class="ob-pills" id="obOccasionPills"><div class="ob-pill" data-val="Birthday">Birthday</div><div class="ob-pill" data-val="Anniversary">Anniversary</div><div class="ob-pill" data-val="First visit">First Visit</div><div class="ob-pill" data-val="Other">Other</div></div></div>
-      <button class="ob-next-btn" onclick="obGoTo(4)">Review my trip &#8594;</button>
-      <button class="ob-back-btn" onclick="obGoTo(3)">&#8592; Back</button>
-    </div>
-    <div id="obStep4" class="ob-step" style="display:none;">
-      <h2 style="font-size:26px;font-weight:700;color:#fff;margin:0 0 6px;">Ready to build.</h2>
-      <p style="color:rgba(255,255,255,0.55);font-size:14px;margin:0 0 24px;">Here's what we'll plan around.</p>
-      <div id="obSummaryCard" style="background:rgba(255,255,255,0.07);border-radius:16px;padding:20px;margin-bottom:24px;color:#fff;font-size:14px;line-height:1.8;"></div>
-      <div id="obGenerateStatus" style="display:none;text-align:center;padding:24px 0;color:rgba(255,255,255,0.7);"><div style="font-size:28px;margin-bottom:10px;"></div><div id="obStatusMsg" style="font-size:15px;font-weight:500;">Building your personalized schedule...</div></div>
-      <button id="obBuildBtn" class="ob-build-btn" onclick="obBuildTrip()">Build my trip plan &#8594;</button>
-      <button class="ob-back-btn" onclick="obGoTo(3)">&#8592; Back</button>
-      <div id="obErrorMsg" style="display:none;margin-top:16px;color:#ff6b6b;font-size:13px;text-align:center;cursor:pointer;" onclick="document.getElementById('obBuildBtn').style.display='block';document.getElementById('obGenerateStatus').style.display='none';this.style.display='none';"></div>
+<div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:#EEF5F4;overflow-y:auto;font-family:'Outfit',sans-serif;">
+  <!-- Progress bar + header -->
+  <div id="obHeader" style="position:sticky;top:0;background:#EEF5F4;z-index:2;padding:16px 20px 0;">
+    <!-- Back button -->
+    <button id="obBackBtn" onclick="obBack()" style="display:none;background:none;border:none;cursor:pointer;padding:0;margin-bottom:12px;color:#1A6860;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="vertical-align:middle;margin-right:4px;"><path d="M10 12L6 8l4-4" stroke="#1A6860" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
+    </button>
+    <!-- Step label -->
+    <div id="obStepLabel" style="text-align:center;font-size:11px;color:#1A6860;letter-spacing:0.08em;font-weight:500;margin-bottom:8px;text-transform:uppercase;opacity:0.8;">Step 1 of 8</div>
+    <!-- Progress bar -->
+    <div style="height:3px;background:rgba(26,104,96,0.15);border-radius:2px;overflow:hidden;">
+      <div id="obProgressBar" style="height:100%;background:#1A6860;border-radius:2px;transition:width 0.35s ease;width:12.5%;"></div>
     </div>
   </div>
+
+  <!-- Step content -->
+  <div style="padding:24px 20px 120px;max-width:480px;margin:0 auto;">
+
+    <!-- STEP 1: Trip Basics -->
+    <div id="obStep1" class="ob-step">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Let's plan your trip.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">Tell us the basics and we'll build your park plan.</p>
+
+      <!-- Trip name -->
+      <div class="ob-field">
+        <label class="ob-label" for="obTripNameNew">Trip name</label>
+        <input id="obTripNameNew" type="text" value="Our Disneyland Trip" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;color:#071E25;background:#fff;outline:none;" />
+      </div>
+
+      <!-- Park selection -->
+      <div class="ob-field">
+        <label class="ob-label">Which park(s)?</label>
+        <div id="obParkSelect" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onclick="obTogglePark(this,'Disneyland')" data-park="Disneyland" class="ob-park-btn ob-park-active" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid #1A6860;border-radius:10px;background:#1A6860;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disneyland</button>
+          <button onclick="obTogglePark(this,'DCA')" data-park="DCA" class="ob-park-btn" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid rgba(26,104,96,0.3);border-radius:10px;background:#fff;color:#1A6860;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disney California Adventure</button>
+        </div>
+      </div>
+
+      <!-- Start date -->
+      <div class="ob-field">
+        <label class="ob-label" for="obStartDate">Start date</label>
+        <input id="obStartDate" type="date" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;color:#071E25;background:#fff;outline:none;" />
+      </div>
+
+      <!-- Number of days stepper -->
+      <div class="ob-field">
+        <label class="ob-label">Number of days</label>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <button onclick="obAdjDays(-1)" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
+            <svg width="16" height="2" viewBox="0 0 16 2" fill="none"><rect y="0" width="16" height="2" rx="1" fill="#1A6860"/></svg>
+          </button>
+          <span id="obDayCount" style="font-size:22px;font-weight:700;color:#071E25;min-width:32px;text-align:center;">3</span>
+          <button onclick="obAdjDays(1)" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="7" y="0" width="2" height="16" rx="1" fill="#1A6860"/><rect y="7" width="16" height="2" rx="1" fill="#1A6860"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Per-day park assignment -->
+      <div id="obDayRowsWrap" class="ob-field">
+        <label class="ob-label">Day-by-day park</label>
+        <div id="obDayRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Park hopping toggle (only if both parks) -->
+      <div id="obHopWrap" class="ob-field" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Park hopping</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Visit both parks in one day</div>
+          </div>
+          <button id="obHopToggle" onclick="obToggleHop()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Special events toggle -->
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Special events</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">After Hours, Mickey's Halloween Party, etc.</div>
+          </div>
+          <button id="obEventsToggle" onclick="obToggleEvents()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+        <!-- Events list -->
+        <div id="obEventsArea" style="display:none;margin-top:16px;">
+          <div id="obEventsList" style="display:flex;flex-direction:column;gap:12px;"></div>
+          <button onclick="obAddEvent()" style="margin-top:10px;background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:4px;"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>Add Event
+          </button>
+        </div>
+      </div>
+    </div><!-- /obStep1 -->
+
+    <!-- STEP 2: Your Group -->
+    <div id="obStep2New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Your group.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">We'll personalise ride routing and Lightning Lane picks.</p>
+
+      <!-- Height tier steppers -->
+      <div class="ob-field">
+        <label class="ob-label">Group headcount by height</label>
+
+        <!-- Under 40" -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Under 40 in.</div>
+            <div style="font-size:12px;color:#4A6670;">Little ones, most restricted</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('under40',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg>
+            </button>
+            <span id="obTierUnder40" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
+            <button onclick="obAdjTier('under40',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 40" to 48" -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">40 in. to 48 in.</div>
+            <div style="font-size:12px;color:#4A6670;">Kids, most rides open</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('h40to48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg>
+            </button>
+            <span id="obTierH40to48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
+            <button onclick="obAdjTier('h40to48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 48" and up -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">48 in. and up</div>
+            <div style="font-size:12px;color:#4A6670;">Teens and adults, all rides</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('over48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg>
+            </button>
+            <span id="obTierOver48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">2</span>
+            <button onclick="obAdjTier('over48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Running total -->
+        <div id="obGroupTotal" style="text-align:right;font-size:13px;color:#1A6860;font-weight:600;margin-top:8px;">Total: 2 people</div>
+      </div>
+
+      <!-- Accessibility toggle -->
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Accessibility / mobility needs</div>
+          </div>
+          <button id="obAccessToggle" onclick="obToggleAccess()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+        <div id="obAccessArea" style="display:none;margin-top:12px;">
+          <textarea id="obAccessText" placeholder="Tell us what we should know" rows="3" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;resize:none;"></textarea>
+        </div>
+      </div>
+
+      <!-- Afternoon break toggle -->
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Afternoon break</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Helps AI schedule rest time and plan your evening energy</div>
+          </div>
+          <button id="obBreakToggle" onclick="obToggleBreak()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+      </div>
+    </div><!-- /obStep2 -->
+
+    <!-- STEPS 3-8: Placeholders -->
+    <div id="obStep3New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 3</h2>
+      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
+    </div>
+    <div id="obStep4New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 4</h2>
+      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
+    </div>
+    <div id="obStep5New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 5</h2>
+      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
+    </div>
+    <div id="obStep6New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 6</h2>
+      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
+    </div>
+    <div id="obStep7New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 7</h2>
+      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
+    </div>
+    <div id="obStep8New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 8</h2>
+      <p style="font-size:14px;color:#4A6670;">Coming in session B3.</p>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- Sticky Next button -->
+  <div id="obFooter" style="position:fixed;bottom:0;left:0;right:0;padding:16px 20px;background:#EEF5F4;box-shadow:0 -2px 12px rgba(7,30,37,0.08);">
+    <div style="max-width:480px;margin:0 auto;">
+      <button id="obNextBtn" onclick="obNext()" style="width:100%;padding:16px;background:#1A6860;border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s;">Next</button>
+    </div>
+  </div>
+
 </div>
 <style>
 .ob-field{margin-bottom:20px}.ob-label{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px}.ob-input{width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-size:15px;font-family:'Outfit',sans-serif;outline:none;box-sizing:border-box;-webkit-appearance:none}.ob-input:focus{border-color:rgba(82,195,175,0.7)}.ob-input::placeholder{color:rgba(255,255,255,0.3)}.ob-input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.7)}.ob-pills{display:flex;flex-wrap:wrap;gap:8px}.ob-pill{padding:9px 15px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.6);font-size:13px;font-family:'Outfit',sans-serif;cursor:pointer;transition:all 0.15s;user-select:none;-webkit-user-select:none}.ob-pill:active{transform:scale(0.97)}.ob-pill.ob-pill-sel{background:rgba(82,195,175,0.18);border-color:#52C3AF;color:#52C3AF;font-weight:600}.ob-next-btn{width:100%;background:#52C3AF;color:#0D1B2A;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;transition:opacity 0.15s;display:block}.ob-next-btn:active{opacity:0.85}.ob-back-btn{width:100%;background:transparent;color:rgba(255,255,255,0.4);border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;font-size:14px;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;display:block}.ob-build-btn{width:100%;background:#C86030;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;transition:opacity 0.15s;display:block}.ob-build-btn:active{opacity:0.85}
@@ -1536,7 +1716,7 @@ var PASS_ADMIN='cwdis2026admin';
 var userRole='guest'; // 'admin' or 'guest'
 
 function checkLock(){
-  
+
   // After June 27, skip lock screen entirely
   var now=new Date();
   var tripStart=new Date('2026-06-28T00:00:00');
@@ -1546,37 +1726,93 @@ function checkLock(){
       if(saved==='admin') userRole='admin';
       else userRole='guest';
     }catch(e){}
-    document.getElementById('lockScreen').style.display='none';
     // Show magic day screen on Jun 28 first open only
     var isJun28=now<new Date('2026-06-29T00:00:00');
     var shownMagicDay=false;
     try{shownMagicDay=localStorage.getItem('magic_day_shown')==='yes';}catch(e){}
     if(isJun28&&!shownMagicDay){
       try{localStorage.setItem('magic_day_shown','yes');}catch(e){}
-      var md=document.getElementById('magicDayScreen');
-      if(md){md.style.display='flex';setTimeout(runFwAnimation,100);}
+      document.getElementById('lockScreen').style.display='none';
+      document.getElementById('mainApp').style.display='';
+      applyRoleUI();
       return;
     }
+    document.getElementById('lockScreen').style.display='none';
     document.getElementById('mainApp').style.display='';
     applyRoleUI();
     return;
   }
-  // Before trip - check if already unlocked
+
+  // Before trip — check if already unlocked via tpcp_ keys (localStorage persistence)
   try{
-    var saved=localStorage.getItem('disney_unlocked');
-    if(saved==='admin'||saved==='guest'){
-      // Already unlocked - show Enter the Magic button, hide password
-      userRole=saved;
-      document.getElementById('lockPasswordCard').style.display='none';
-      document.getElementById('lockEnterBtn').style.display='block';
+    var tpcpCode=localStorage.getItem('tpcp_code');
+    var tpcpRole=localStorage.getItem('tpcp_role');
+    var tpcpTripId=localStorage.getItem('tpcp_tripId');
+    var tpcpOnboarding=localStorage.getItem('tpcp_onboardingComplete');
+    if(tpcpCode&&tpcpRole){
+      // Silent re-validation
+      renderSplashCtas(); // render STATE B (no secondary button)
+      fetch(SYNC_BASE+'/api/trip?code='+encodeURIComponent(tpcpCode))
+        .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
+        .then(function(result){
+          if(result.status!==200||!result.data.valid){
+            // Invalid/expired — clear and show splash with error
+            localStorage.removeItem('tpcp_code');
+            localStorage.removeItem('tpcp_role');
+            localStorage.removeItem('tpcp_tripId');
+            localStorage.removeItem('tpcp_onboardingComplete');
+            renderSplashCtas();
+            var area=document.getElementById('splashCtaArea');
+            if(area){var err=document.createElement('div');err.style.cssText='color:#C86030;font-size:13px;text-align:center;margin-top:8px;';err.textContent='Session expired. Please re-enter your code.';area.appendChild(err);}
+            return;
+          }
+          var d=result.data;
+          userRole=d.role;
+          try{localStorage.setItem('disney_unlocked',d.role);}catch(e){}
+          if(d.role==='guest'){
+            // Guests skip onboarding, go straight to schedule
+            document.getElementById('lockScreen').style.display='none';
+            document.getElementById('mainApp').style.display='';
+            applyRoleUI();
+          } else if(d.hasTrip){
+            // Admin with trip — go to schedule
+            document.getElementById('lockScreen').style.display='none';
+            document.getElementById('mainApp').style.display='';
+            applyRoleUI();
+          } else {
+            // Admin without trip — launch onboarding
+            document.getElementById('lockScreen').style.display='none';
+            document.getElementById('mainApp').style.display='';
+            applyRoleUI();
+            launchOnboarding(tpcpCode, d.role, d.tripId||'');
+          }
+        })
+        .catch(function(){
+          // Network error — fall through to show splash
+          renderSplashCtas();
+        });
       return;
     }
   }catch(e){}
-  // First time - show password card
+
+  // Also check legacy disney_unlocked key (backwards compat)
+  try{
+    var saved=localStorage.getItem('disney_unlocked');
+    if(saved==='admin'||saved==='guest'){
+      userRole=saved;
+      document.getElementById('lockScreen').style.display='none';
+      document.getElementById('mainApp').style.display='';
+      applyRoleUI();
+      return;
+    }
+  }catch(e){}
+
+  // First time — show splash with STATE A (secondary button visible)
+  renderSplashCtas();
 }
 function tryUnlock() {
-  var inp = document.getElementById('lockInput');
-  var errEl = document.getElementById('lockError');
+  var inp = document.getElementById('twPassInput');
+  var errEl = document.getElementById('twLoginError');
   if (!inp) return;
   var code = inp.value.trim().toUpperCase();
   if (!code) { inp.focus(); return; }
@@ -1587,25 +1823,43 @@ function tryUnlock() {
     .then(function(result) {
       inp.disabled = false;
       if (result.status !== 200 || !result.data.valid) {
-        var msg = result.status === 403 ? 'Code expired or inactive.' : 'Incorrect code. Please try again.';
+        var msg = (result.data && result.data.message) ? result.data.message : 'Invalid code. Try again.';
         if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
         inp.focus(); return;
       }
       var d = result.data;
-      sessionStorage.setItem('tripCode', code);
-      sessionStorage.setItem('tripRole', d.role);
-      sessionStorage.setItem('tripId', d.tripId);
-      sessionStorage.setItem('disney_unlocked', d.role);
-      try { pullApiKey(); } catch(e) {}
-      playTinkAnimation();
-      setTimeout(function() { document.getElementById('lockScreen').style.display = 'none'; }, 800);
+      // Save to localStorage
+      try {
+        localStorage.setItem('tpcp_code', code);
+        localStorage.setItem('tpcp_role', d.role);
+        localStorage.setItem('tpcp_tripId', d.tripId || '');
+        localStorage.setItem('disney_unlocked', d.role);
+      } catch(e) {}
+      userRole = d.role;
+      applyRoleUI();
+      // Routing logic
+      if (d.role === 'guest') {
+        // Guests skip onboarding
+        document.getElementById('lockScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = '';
+        setTimeout(function() { document.getElementById('lockScreen').style.display = 'none'; }, 800);
+      } else if (d.hasTrip) {
+        // Admin with trip — go to schedule
+        document.getElementById('lockScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = '';
+        setTimeout(function() { document.getElementById('lockScreen').style.display = 'none'; }, 800);
+      } else {
+        // Admin without trip — launch onboarding
+        document.getElementById('lockScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = '';
+        launchOnboarding(code, d.role, d.tripId || '');
+      }
     })
     .catch(function() {
       inp.disabled = false;
       if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
     });
 }
-
 function enterMagic(){
   playTinkAnimation();
 }
@@ -4868,8 +5122,9 @@ function getInitialActiveDay() {
 function renderSplashCtas(){
   var area=document.getElementById('splashCtaArea');
   if(!area)return;
-  area.innerHTML='<div id="twLoginArea"><input id="twPassInput" type="text" placeholder="Enter your trip code" style="width:100%;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:13px;font-weight:400;color:#fff;box-sizing:border-box;outline:none;-webkit-appearance:none;" autocomplete="off" /><button onclick="submitTripCode()" style="width:100%;margin-top:8px;background:#C86030;border:none;border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;touch-action:manipulation;">Enter your adventure &rarr;</button><div id="twLoginError" style="display:none;font-size:10px;color:rgba(255,255,255,0.65);margin-top:8px;"></div></div>';
-  document.getElementById('twPassInput').addEventListener('keydown',function(e){if(e.key==='Enter')submitTripCode();});
+  var hasCode=false;
+  try{hasCode=!!(localStorage.getItem('tpcp_code'));}catch(e){}
+  area.innerHTML='<div id="twLoginArea"><input id="twPassInput" type="text" placeholder="Enter your trip code" style="width:100%;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:15px;color:#fff;box-sizing:border-box;margin-bottom:10px;" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key===\'Enter\')tryUnlock()" /><div id="twLoginError" style="display:none;color:#C86030;font-size:13px;margin-bottom:8px;text-align:center;"></div></div><button onclick="tryUnlock()" style="width:100%;padding:15px;background:#C86030;border:none;border-radius:12px;color:#fff;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:12px;">Enter Your Adventure →</button><button id="splashSecondaryBtn" onclick="document.getElementById(\'twPassInput\').scrollIntoView({behavior:\'smooth\'});document.getElementById(\'twPassInput\').focus();" style="display:'+(hasCode?'none':'block')+';width:100%;padding:12px;background:none;border:1.5px solid rgba(255,255,255,0.3);border-radius:12px;color:rgba(255,255,255,0.75);font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Have a trip code?</button>';
 }
 function showTripCodeInput(){
   var area=document.getElementById('tripCodeInputArea');
@@ -4945,8 +5200,24 @@ function initSplash() {
   }
 }
 
-// ===== ONBOARDING SYSTEM =====
-var _obCode = '', _obRole = '', _obTripId = '';
+
+// ===== ONBOARDING SYSTEM (B1) =====
+
+// Internal state
+var _obCurrentStep = 1;
+var _obTotalSteps = 8;
+var _obSelectedParks = ['Disneyland'];
+var _obDayCount = 3;
+var _obHopEnabled = false;
+var _obEventsEnabled = false;
+var _obEvents = [];
+var _obTiers = { under40: 0, h40to48: 0, over48: 2 };
+var _obAccessEnabled = false;
+var _obBreakEnabled = false;
+
+// TRIP_CONFIG partial (built as user fills screens)
+var _obTripConfig = {};
+var _obDays = [];
 
 function launchOnboarding(code, role, tripId) {
   _obCode = code; _obRole = role; _obTripId = tripId;
@@ -4956,143 +5227,327 @@ function launchOnboarding(code, role, tripId) {
 }
 
 function obGoTo(step) {
-  [1,2,3,4].forEach(function(s) {
-    var el = document.getElementById('obStep' + s);
-    if (el) el.style.display = s === step ? 'block' : 'none';
-  });
-  var dots = document.getElementById('obStepDots');
-  if (dots) dots.innerHTML = [1,2,3,4].map(function(s) {
-    return '<div style="width:8px;height:8px;border-radius:50%;background:' + (s <= step ? '#52C3AF' : 'rgba(255,255,255,0.2)') + ';transition:background 0.2s;"></div>';
-  }).join('');
-  if (step === 4) {
-    var card = document.getElementById('obSummaryCard');
-    if (card) card.innerHTML = obBuildSummary();
+  _obCurrentStep = step;
+  var total = _obTotalSteps;
+
+  // Update progress label and bar
+  var label = document.getElementById('obStepLabel');
+  if (label) label.textContent = 'Step ' + step + ' of ' + total;
+  var bar = document.getElementById('obProgressBar');
+  if (bar) bar.style.width = ((step / total) * 100) + '%';
+
+  // Back button visibility
+  var backBtn = document.getElementById('obBackBtn');
+  if (backBtn) backBtn.style.display = step === 1 ? 'none' : 'block';
+
+  // Next button label
+  var nextBtn = document.getElementById('obNextBtn');
+  if (nextBtn) {
+    if (step === 8) {
+      nextBtn.textContent = 'Build my schedule \u2192';
+      nextBtn.style.background = '#C86030';
+    } else {
+      nextBtn.textContent = 'Next \u2192';
+      nextBtn.style.background = '#1A6860';
+    }
   }
+
+  // Show the right step div
+  var stepMap = {
+    1: 'obStep1',
+    2: 'obStep2New',
+    3: 'obStep3New',
+    4: 'obStep4New',
+    5: 'obStep5New',
+    6: 'obStep6New',
+    7: 'obStep7New',
+    8: 'obStep8New'
+  };
+  Object.values(stepMap).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  var target = document.getElementById(stepMap[step]);
+  if (target) target.style.display = 'block';
+
+  // Scroll to top
   var ov = document.getElementById('onboardingOverlay');
   if (ov) ov.scrollTop = 0;
+
+  // If Step 1, re-render day rows
+  if (step === 1) obRenderDayRows();
+  // If Step 2, update total display
+  if (step === 2) obUpdateGroupTotal();
 }
 
-function obGetSelectedPills(containerId) {
-  var c = document.getElementById(containerId);
-  if (!c) return [];
-  return Array.from(c.querySelectorAll('.ob-pill.ob-pill-sel')).map(function(p) { return p.getAttribute('data-val'); });
+function obNext() {
+  if (_obCurrentStep === 1) {
+    if (!obSaveStep1()) return;
+  } else if (_obCurrentStep === 2) {
+    obSaveStep2();
+  }
+  if (_obCurrentStep < _obTotalSteps) {
+    obGoTo(_obCurrentStep + 1);
+  } else {
+    obFinish();
+  }
 }
 
-function obBuildSummary() {
-  var tripName = (document.getElementById('obTripName') || {}).value || 'My Disney Trip';
-  var parks = obGetSelectedPills('obParkPills');
-  var arrival = (document.getElementById('obArrival') || {}).value || '';
-  var departure = (document.getElementById('obDeparture') || {}).value || '';
-  var adults = (document.getElementById('obAdults') || {}).value || '2';
-  var kids = (document.getElementById('obKids') || {}).value || '0';
-  var thrill = obGetSelectedPills('obThrillPills')[0] || 'Moderate';
-  var pace = obGetSelectedPills('obPacePills')[0] || 'Moderate';
-  var dining = obGetSelectedPills('obDiningPills')[0] || 'Mix';
-  var occasions = obGetSelectedPills('obOccasionPills');
-  var lines = [];
-  lines.push('<strong style="color:#52C3AF;font-size:17px;">' + tripName + '</strong>');
-  if (parks.length) lines.push('<span style="color:rgba(255,255,255,0.5)">Parks</span> ' + parks.join(', '));
-  if (arrival && departure) lines.push('<span style="color:rgba(255,255,255,0.5)">Dates</span> ' + arrival + ' – ' + departure);
-  lines.push('<span style="color:rgba(255,255,255,0.5)">Group</span> ' + adults + ' adults' + (parseInt(kids) > 0 ? ', ' + kids + ' children' : ''));
-  lines.push('<span style="color:rgba(255,255,255,0.5)">Vibe</span> ' + thrill + ' · ' + pace + ' · ' + dining);
-  if (occasions.length) lines.push('<span style="color:rgba(255,255,255,0.5)">Occasion</span> ' + occasions.join(', '));
-  return lines.join('<br>');
+function obBack() {
+  if (_obCurrentStep > 1) obGoTo(_obCurrentStep - 1);
 }
 
-function obBuildTrip() {
-  var buildBtn = document.getElementById('obBuildBtn');
-  var statusDiv = document.getElementById('obGenerateStatus');
-  var statusMsg = document.getElementById('obStatusMsg');
-  var errMsg = document.getElementById('obErrorMsg');
-  if (buildBtn) buildBtn.style.display = 'none';
-  if (statusDiv) statusDiv.style.display = 'block';
-  if (statusMsg) statusMsg.textContent = 'Building your personalized schedule...';
-  if (errMsg) errMsg.style.display = 'none';
+function obFinish() {
+  // Mark onboarding complete
+  try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
+  // Hide overlay, show app
+  var ov = document.getElementById('onboardingOverlay');
+  if (ov) ov.style.display = 'none';
+  showApp();
+}
 
-  var tripName = (document.getElementById('obTripName') || {}).value || 'My Disney Trip';
-  var parks = obGetSelectedPills('obParkPills');
-  var arrival = (document.getElementById('obArrival') || {}).value || '';
-  var departure = (document.getElementById('obDeparture') || {}).value || '';
-  var adults = parseInt((document.getElementById('obAdults') || {}).value || '2');
-  var kids = parseInt((document.getElementById('obKids') || {}).value || '0');
-  var kidAges = (document.getElementById('obKidAges') || {}).value || '';
-  var names = (document.getElementById('obNames') || {}).value || '';
-  var thrill = obGetSelectedPills('obThrillPills')[0] || 'Moderate';
-  var pace = obGetSelectedPills('obPacePills')[0] || 'Moderate';
-  var mustDo = (document.getElementById('obMustDo') || {}).value || '';
-  var dining = obGetSelectedPills('obDiningPills')[0] || 'Mix';
-  var diet = (document.getElementById('obDiet') || {}).value || '';
-  var occasions = obGetSelectedPills('obOccasionPills');
+// ---- Step 1 helpers ----
 
-  var prompt = 'Generate a complete Disney theme park trip schedule as JSON only. No explanation.\n' +
-    'Trip name: ' + tripName + '\nParks: ' + (parks.join(', ') || 'Disneyland, DCA') +
-    '\nDates: ' + (arrival || 'TBD') + ' to ' + (departure || 'TBD') +
-    '\nGroup: ' + adults + ' adults, ' + kids + ' kids' + (kidAges ? ' (ages: ' + kidAges + ')' : '') +
-    '\nNames: ' + (names || 'not specified') + '\nThrill: ' + thrill + '\nPace: ' + pace +
-    '\nMust-do: ' + (mustDo || 'none') + '\nDining: ' + dining +
-    (diet ? '\nDiet: ' + diet : '') + (occasions.length ? '\nOccasions: ' + occasions.join(', ') : '') +
-    '\nReturn JSON: {"days":[{"dayNum":1,"date":"...","park":"...","items":[{"time":"8:00 AM","type":"ride","name":"...","note":"...","waitMin":20}]}]}';
-
-  fetch(SYNC_BASE + '/api/generateschedule', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ prompt: prompt, mode: 'onboarding', maxTokens: 4000 })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (!data.ok || !data.parsed) throw new Error(data.error || 'No schedule generated');
-    var schedule = data.parsed;
-    var memberNames = names ? names.split(',').map(function(n) { return n.trim(); }).filter(Boolean) : [];
-    var colors = ['#52C3AF','#C86030','#F0B429','#7C6FCD','#E05B8B','#4CAF8F'];
-    var tripConfig = {
-      tripName: tripName,
-      party: (adults > 0 && kids > 0) ? ['Adults','Kids'] : ['Adults'],
-      days: (schedule.days || []).map(function(day, idx) {
-        return { num: idx+1, label: 'Day ' + (idx+1), date: day.date || '', park: day.park || (parks[idx % parks.length] || 'Disneyland'), isVip: false };
-      }),
-      firstParkDate: arrival,
-      members: memberNames.map(function(n, idx) {
-        var parts = n.split(' ');
-        return { firstName: parts[0] || n, lastName: parts[1] || '', lastInitial: (parts[1] || '').charAt(0), color: colors[idx % colors.length] };
-      }),
-      thrillLevel: thrill, pace: pace, diningStyle: dining
-    };
-    var tripData = { tripConfig: tripConfig, schedule: schedule };
-    if (statusMsg) statusMsg.textContent = 'Saving your plan...';
-    return fetch(SYNC_BASE + '/api/trip', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'x-admin-key': 'CWdis2026admin'},
-      body: JSON.stringify({ code: _obCode, tripData: tripData })
-    }).then(function(r) { return r.json(); }).then(function() {
-      window._loadedTripData = tripData;
-      applyLoadedTripData();
-      var ov = document.getElementById('onboardingOverlay');
-      if (ov) ov.style.display = 'none';
-      enterSplash(true);
-    });
-  })
-  .catch(function(e) {
-    if (buildBtn) buildBtn.style.display = 'block';
-    if (statusDiv) statusDiv.style.display = 'none';
-    if (errMsg) { errMsg.style.display = 'block'; errMsg.textContent = 'Something went wrong building your plan. Tap to try again.'; }
+function obTogglePark(btn, park) {
+  var idx = _obSelectedParks.indexOf(park);
+  if (idx !== -1) {
+    if (_obSelectedParks.length === 1) return; // must keep at least one
+    _obSelectedParks.splice(idx, 1);
+  } else {
+    _obSelectedParks.push(park);
+  }
+  // Update button styles
+  var btns = document.querySelectorAll('.ob-park-btn');
+  btns.forEach(function(b) {
+    var p = b.getAttribute('data-park');
+    if (_obSelectedParks.indexOf(p) !== -1) {
+      b.style.background = '#1A6860';
+      b.style.borderColor = '#1A6860';
+      b.style.color = '#fff';
+    } else {
+      b.style.background = '#fff';
+      b.style.borderColor = 'rgba(26,104,96,0.3)';
+      b.style.color = '#1A6860';
+    }
   });
+  // Show/hide hop toggle
+  var hopWrap = document.getElementById('obHopWrap');
+  if (hopWrap) hopWrap.style.display = _obSelectedParks.length > 1 ? 'block' : 'none';
+  if (_obSelectedParks.length === 1) _obHopEnabled = false;
+  obRenderDayRows();
 }
 
-function applyLoadedTripData() {
-  var td = window._loadedTripData;
-  if (!td || !td.tripConfig) return false;
-  try {
-    var tc = td.tripConfig;
-    if (tc.tripName) TRIP_CONFIG.tripName = tc.tripName;
-    if (tc.days && tc.days.length) TRIP_CONFIG.days = tc.days;
-    if (tc.members && tc.members.length) TRIP_CONFIG.members = tc.members;
-    if (tc.party) TRIP_CONFIG.party = tc.party;
-    if (tc.firstParkDate) TRIP_CONFIG.firstParkDate = tc.firstParkDate;
-  } catch(e) { console.warn('applyLoadedTripData', e.message); }
+function obAdjDays(delta) {
+  _obDayCount = Math.max(1, Math.min(10, _obDayCount + delta));
+  var el = document.getElementById('obDayCount');
+  if (el) el.textContent = _obDayCount;
+  obRenderDayRows();
+}
+
+function obRenderDayRows() {
+  var wrap = document.getElementById('obDayRows');
+  var wrapOuter = document.getElementById('obDayRowsWrap');
+  if (!wrap) return;
+  var startDate = document.getElementById('obStartDate') ? document.getElementById('obStartDate').value : '';
+  var multiPark = _obSelectedParks.length > 1;
+  
+  // Hide rows if single park
+  if (wrapOuter) wrapOuter.style.display = multiPark ? 'block' : 'none';
+  if (!multiPark) return;
+
+  var html = '';
+  for (var i = 0; i < _obDayCount; i++) {
+    var dayLabel = 'Day ' + (i + 1);
+    var dateStr = '';
+    if (startDate) {
+      var d = new Date(startDate + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dayLabel += ' ' + dateStr;
+    }
+    html += '<div style="display:flex;align-items:center;gap:10px;">';
+    html += '<span style="font-size:13px;color:#4A6670;min-width:90px;">' + dayLabel + '</span>';
+    html += '<select id="obDayPark_' + i + '" style="flex:1;padding:9px 12px;border:1.5px solid rgba(26,104,96,0.3);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;">';
+    _obSelectedParks.forEach(function(p) {
+      html += '<option value="' + p + '">' + p + '</option>';
+    });
+    html += '</select>';
+    if (_obHopEnabled) {
+      var altParks = _obSelectedParks.filter(function(p) { return true; });
+      html += '<select id="obDayHopTo_' + i + '" style="flex:1;padding:9px 12px;border:1.5px solid rgba(26,104,96,0.3);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;">';
+      altParks.forEach(function(p) {
+        html += '<option value="' + p + '">' + p + ' (PM)</option>';
+      });
+      html += '</select>';
+      html += '<input id="obDayHopTime_' + i + '" type="time" value="14:00" style="width:90px;padding:9px 8px;border:1.5px solid rgba(26,104,96,0.3);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;" />';
+    }
+    html += '</div>';
+  }
+  wrap.innerHTML = html;
+}
+
+function obToggleHop() {
+  _obHopEnabled = !_obHopEnabled;
+  var btn = document.getElementById('obHopToggle');
+  if (btn) {
+    btn.style.background = _obHopEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
+    btn.setAttribute('aria-checked', _obHopEnabled ? 'true' : 'false');
+    var knob = btn.querySelector('span');
+    if (knob) knob.style.left = _obHopEnabled ? '22px' : '2px';
+  }
+  obRenderDayRows();
+}
+
+function obToggleEvents() {
+  _obEventsEnabled = !_obEventsEnabled;
+  var btn = document.getElementById('obEventsToggle');
+  if (btn) {
+    btn.style.background = _obEventsEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
+    btn.setAttribute('aria-checked', _obEventsEnabled ? 'true' : 'false');
+    var knob = btn.querySelector('span');
+    if (knob) knob.style.left = _obEventsEnabled ? '22px' : '2px';
+  }
+  var area = document.getElementById('obEventsArea');
+  if (area) area.style.display = _obEventsEnabled ? 'block' : 'none';
+  if (_obEventsEnabled && _obEvents.length === 0) obAddEvent();
+}
+
+function obAddEvent() {
+  var id = Date.now();
+  _obEvents.push({ id: id, name: '', day: 0, time: '20:00' });
+  obRenderEvents();
+}
+
+function obRenderEvents() {
+  var list = document.getElementById('obEventsList');
+  if (!list) return;
+  var html = '';
+  _obEvents.forEach(function(ev, i) {
+    html += '<div style="background:#fff;border:1.5px solid rgba(26,104,96,0.2);border-radius:10px;padding:14px;position:relative;">';
+    html += '<button onclick="obRemoveEvent(' + i + ')" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;color:#C86030;font-size:18px;line-height:1;" aria-label="Remove event">';
+    html += '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#C86030" stroke-width="2" stroke-linecap="round"/></svg></button>';
+    html += '<input placeholder="Event name" value="' + (ev.name || '') + '" oninput="_obEvents[' + i + '].name=this.value" style="width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(26,104,96,0.2);padding:6px 0;font-family:Outfit,sans-serif;font-size:14px;color:#071E25;background:transparent;outline:none;margin-bottom:10px;" />';
+    html += '<div style="display:flex;gap:10px;">';
+    html += '<select oninput="_obEvents[' + i + '].day=parseInt(this.value)" style="flex:1;padding:8px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;">';
+    for (var d = 0; d < _obDayCount; d++) {
+      html += '<option value="' + d + '"' + (ev.day === d ? ' selected' : '') + '>Day ' + (d + 1) + '</option>';
+    }
+    html += '</select>';
+    html += '<input type="time" value="' + ev.time + '" oninput="_obEvents[' + i + '].time=this.value" style="width:100px;padding:8px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;" />';
+    html += '</div></div>';
+  });
+  list.innerHTML = html;
+}
+
+function obRemoveEvent(i) {
+  _obEvents.splice(i, 1);
+  obRenderEvents();
+  if (_obEvents.length === 0) {
+    _obEventsEnabled = false;
+    var btn = document.getElementById('obEventsToggle');
+    if (btn) {
+      btn.style.background = 'rgba(26,104,96,0.2)';
+      btn.setAttribute('aria-checked', 'false');
+      var knob = btn.querySelector('span');
+      if (knob) knob.style.left = '2px';
+    }
+    var area = document.getElementById('obEventsArea');
+    if (area) area.style.display = 'none';
+  }
+}
+
+function obSaveStep1() {
+  var tripName = (document.getElementById('obTripNameNew') || {}).value || 'Our Disneyland Trip';
+  var startDate = (document.getElementById('obStartDate') || {}).value;
+  if (!startDate) {
+    var inp = document.getElementById('obStartDate');
+    if (inp) { inp.style.borderColor = '#C86030'; inp.focus(); }
+    return false;
+  }
+
+  // Build dates array
+  var dates = [];
+  for (var i = 0; i < _obDayCount; i++) {
+    var d = new Date(startDate + 'T00:00:00');
+    d.setDate(d.getDate() + i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+
+  // Build DAYS array
+  _obDays = [];
+  for (var i = 0; i < _obDayCount; i++) {
+    var park = _obSelectedParks.length === 1
+      ? _obSelectedParks[0]
+      : (document.getElementById('obDayPark_' + i) || {}).value || _obSelectedParks[0];
+    var hopTo = null, hopTime = null;
+    if (_obHopEnabled && _obSelectedParks.length > 1) {
+      hopTo = (document.getElementById('obDayHopTo_' + i) || {}).value || null;
+      hopTime = (document.getElementById('obDayHopTime_' + i) || {}).value || null;
+    }
+    _obDays.push({ date: dates[i], park: park, hopTo: hopTo, hopTime: hopTime });
+  }
+
+  // Build TRIP_CONFIG partial
+  _obTripConfig.tripName = tripName;
+  _obTripConfig.parks = _obSelectedParks.slice();
+  _obTripConfig.dates = dates;
+  _obTripConfig.parkHopping = _obHopEnabled;
+  _obTripConfig.specialEvents = _obEventsEnabled ? _obEvents.map(function(e) { return { name: e.name, day: e.day, time: e.time }; }) : [];
+
   return true;
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+// ---- Step 2 helpers ----
+
+function obAdjTier(tier, delta) {
+  _obTiers[tier] = Math.max(0, (_obTiers[tier] || 0) + delta);
+  var idMap = { under40: 'obTierUnder40', h40to48: 'obTierH40to48', over48: 'obTierOver48' };
+  var el = document.getElementById(idMap[tier]);
+  if (el) el.textContent = _obTiers[tier];
+  obUpdateGroupTotal();
+}
+
+function obUpdateGroupTotal() {
+  var total = (_obTiers.under40 || 0) + (_obTiers.h40to48 || 0) + (_obTiers.over48 || 0);
+  var el = document.getElementById('obGroupTotal');
+  if (el) el.textContent = 'Total: ' + total + ' ' + (total === 1 ? 'person' : 'people');
+}
+
+function obToggleAccess() {
+  _obAccessEnabled = !_obAccessEnabled;
+  var btn = document.getElementById('obAccessToggle');
+  if (btn) {
+    btn.style.background = _obAccessEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
+    btn.setAttribute('aria-checked', _obAccessEnabled ? 'true' : 'false');
+    var knob = btn.querySelector('span');
+    if (knob) knob.style.left = _obAccessEnabled ? '22px' : '2px';
+  }
+  var area = document.getElementById('obAccessArea');
+  if (area) area.style.display = _obAccessEnabled ? 'block' : 'none';
+}
+
+function obToggleBreak() {
+  _obBreakEnabled = !_obBreakEnabled;
+  var btn = document.getElementById('obBreakToggle');
+  if (btn) {
+    btn.style.background = _obBreakEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
+    btn.setAttribute('aria-checked', _obBreakEnabled ? 'true' : 'false');
+    var knob = btn.querySelector('span');
+    if (knob) knob.style.left = _obBreakEnabled ? '22px' : '2px';
+  }
+}
+
+function obSaveStep2() {
+  var total = (_obTiers.under40 || 0) + (_obTiers.h40to48 || 0) + (_obTiers.over48 || 0);
+  _obTripConfig.group = {
+    total: total,
+    heightTiers: { under40: _obTiers.under40 || 0, h40to48: _obTiers.h40to48 || 0, over48: _obTiers.over48 || 0 },
+    accessibility: _obAccessEnabled ? ((document.getElementById('obAccessText') || {}).value || '') : '',
+    afternoonBreak: _obBreakEnabled
+  };
+}
+// ===== END ONBOARDING SYSTEM =====
+DOMContentLoaded', function() {
   document.querySelectorAll('.ob-pills').forEach(function(container) {
     container.addEventListener('click', function(e) {
       var pill = e.target.closest('.ob-pill');
