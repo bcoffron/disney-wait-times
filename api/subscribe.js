@@ -1,8 +1,7 @@
 // api/subscribe.js
 // Adds email to Resend audience for TPCP early access list
-// Creates the audience automatically on first run
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -16,16 +15,19 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Valid email required' });
   }
 
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  // Try both possible env var names
+  const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.RESEND_KEY || null;
+
   if (!RESEND_API_KEY) {
-    return res.status(500).json({ error: 'Missing API key' });
+    // Log all available env var names (not values) to help debug
+    const envKeys = Object.keys(process.env).filter(k => !k.includes('npm') && !k.includes('node') && !k.includes('PATH'));
+    console.error('Missing Resend key. Available env vars:', envKeys.join(', '));
+    return res.status(500).json({ error: 'Missing API key', availableKeys: envKeys });
   }
 
   try {
-    // Step 1: Get or create the audience
     const audienceId = await getOrCreateAudience(RESEND_API_KEY);
 
-    // Step 2: Add contact
     const contactRes = await fetch(
       `https://api.resend.com/audiences/${audienceId}/contacts`,
       {
@@ -43,13 +45,12 @@ module.exports = async function handler(req, res) {
 
     const contactData = await contactRes.json();
 
-    // Already subscribed is fine — treat as success
     if (!contactRes.ok) {
       const msg = JSON.stringify(contactData);
       if (msg.includes('already exists') || msg.includes('duplicate')) {
         return res.status(200).json({ success: true });
       }
-      console.error('Resend error:', contactData);
+      console.error('Resend contact error:', contactData);
       return res.status(500).json({ error: 'Could not save email', detail: contactData });
     }
 
@@ -59,12 +60,11 @@ module.exports = async function handler(req, res) {
     console.error('Subscribe exception:', err.message);
     return res.status(500).json({ error: 'Server error', detail: err.message });
   }
-};
+}
 
 async function getOrCreateAudience(apiKey) {
   const AUDIENCE_NAME = 'Theme Park Co-Pilot Early Access';
 
-  // List existing audiences
   const listRes = await fetch('https://api.resend.com/audiences', {
     headers: { 'Authorization': `Bearer ${apiKey}` },
   });
@@ -75,7 +75,6 @@ async function getOrCreateAudience(apiKey) {
     if (existing) return existing.id;
   }
 
-  // Create if not found
   const createRes = await fetch('https://api.resend.com/audiences', {
     method: 'POST',
     headers: {
@@ -86,8 +85,9 @@ async function getOrCreateAudience(apiKey) {
   });
   const created = await createRes.json();
 
-  if (!createRes.ok) {
-    throw new Error('Could not create audience: ' + JSON.stringify(created));
-  }
+  if (!createRes.ok) throw new Error('Could not create audience: ' + JSON.stringify(created));
   return created.id;
 }
+
+handler.config = { maxDuration: 10 };
+module.exports = handler;
