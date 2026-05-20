@@ -981,7 +981,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 <!-- ONBOARDING MODAL -->
 
 <style>
-.ob-field{margin-bottom:20px}.ob-label{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px}.ob-input{width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-size:15px;font-family:'Outfit',sans-serif;outline:none;box-sizing:border-box;-webkit-appearance:none}.ob-input:focus{border-color:rgba(82,195,175,0.7)}.ob-input::placeholder{color:rgba(255,255,255,0.3)}.ob-input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.7)}.ob-pills{display:flex;flex-wrap:wrap;gap:8px}.ob-pill{padding:9px 15px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.6);font-size:13px;font-family:'Outfit',sans-serif;cursor:pointer;transition:all 0.15s;user-select:none;-webkit-user-select:none}.ob-pill:active{transform:scale(0.97)}.ob-pill.ob-pill-sel{background:rgba(82,195,175,0.18);border-color:#52C3AF;color:#52C3AF;font-weight:600}.ob-next-btn{width:100%;background:#52C3AF;color:#0D1B2A;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;transition:opacity 0.15s;display:block}.ob-next-btn:active{opacity:0.85}.ob-back-btn{width:100%;background:transparent;color:rgba(255,255,255,0.4);border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;font-size:14px;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;display:block}.ob-build-btn{width:100%;background:#C86030;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;transition:opacity 0.15s;display:block}.ob-build-btn:active{opacity:0.85}
+.ob-field{margin-bottom:20px}.ob-label{display:block;font-size:12px;font-weight:600;color:#4A6670;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px}.ob-input{width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-size:15px;font-family:'Outfit',sans-serif;outline:none;box-sizing:border-box;-webkit-appearance:none}.ob-input:focus{border-color:rgba(82,195,175,0.7)}.ob-input::placeholder{color:rgba(255,255,255,0.3)}.ob-input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.7)}.ob-pills{display:flex;flex-wrap:wrap;gap:8px}.ob-pill{padding:9px 15px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.6);font-size:13px;font-family:'Outfit',sans-serif;cursor:pointer;transition:all 0.15s;user-select:none;-webkit-user-select:none}.ob-pill:active{transform:scale(0.97)}.ob-pill.ob-pill-sel{background:rgba(82,195,175,0.18);border-color:#52C3AF;color:#52C3AF;font-weight:600}.ob-next-btn{width:100%;background:#52C3AF;color:#0D1B2A;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;transition:opacity 0.15s;display:block}.ob-next-btn:active{opacity:0.85}.ob-back-btn{width:100%;background:transparent;color:rgba(255,255,255,0.4);border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;font-size:14px;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;display:block}.ob-build-btn{width:100%;background:#C86030;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;transition:opacity 0.15s;display:block}.ob-build-btn:active{opacity:0.85}
 </style>
 
   <!-- LL Modal -->
@@ -4998,15 +4998,30 @@ function obGoTo(step) {
   if (target) target.style.display = 'block';
   var ov = document.getElementById('onboardingOverlay');
   if (ov) ov.scrollTop = 0;
+  // Per-step init
   if (step === 1) obRenderDayRows();
   if (step === 2) obUpdateGroupTotal();
+  if (step === 3) obInitStep3();
+  if (step === 4) obInitStep4();
+  if (step === 5) obInitStep5();
+  if (step === 6) obInitStep6();
+  if (step === 7) obInitStep7();
 }
-
 function obNext() {
   if (_obCurrentStep === 1) {
     if (!obSaveStep1()) return;
   } else if (_obCurrentStep === 2) {
     obSaveStep2();
+  } else if (_obCurrentStep === 3) {
+    obSaveStep3();
+  } else if (_obCurrentStep === 4) {
+    obSaveStep4();
+  } else if (_obCurrentStep === 5) {
+    obSaveStep5();
+  } else if (_obCurrentStep === 6) {
+    obSaveStep6();
+  } else if (_obCurrentStep === 7) {
+    obSaveStep7();
   }
   if (_obCurrentStep < _obTotalSteps) {
     obGoTo(_obCurrentStep + 1);
@@ -5014,7 +5029,6 @@ function obNext() {
     obFinish();
   }
 }
-
 function obBack() {
   if (_obCurrentStep > 1) obGoTo(_obCurrentStep - 1);
 }
@@ -5215,6 +5229,618 @@ function obSaveStep2() {
     afternoonBreak: _obBreakEnabled
   };
 }
+
+// ===== SCREENS 3-7 STATE =====
+var _obIntensity = '';
+var _obPace = '';
+var _obMustDo = '';
+var _obAvoid = '';
+
+var _obLLMP = false;
+var _obLLSPEntries = [];
+var _obLLSPRides = null; // cached ride list from park_intel
+
+var _obCharPriority = '';
+var _obCharCategories = [];
+var _obCharData = null; // cached character_intel
+
+var _obReservations = [];
+var _obDiningStyle = '';
+var _obKidsMeals = false;
+var _obDietary = [];
+var _obDietaryOtherText = '';
+var _obDiningPriority = '';
+var _obDiningData = null;
+
+var _obEntertainment = { parades: '', fireworks: '', characterShows: '' };
+var _obMustSeeShows = [];
+var _obPrimeView = false;
+var _obEventsData = null;
+
+// ---- Shared tile renderer ----
+function obRenderTiles(containerId, options, selected, onSelect) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  options.forEach(function(opt) {
+    var btn = document.createElement('button');
+    var isActive = selected === opt.value;
+    btn.style.cssText = 'width:100%;padding:13px 14px;border-radius:10px;border:2px solid ' +
+      (isActive ? '#1A6860' : 'rgba(26,104,96,0.25)') +
+      ';background:' + (isActive ? '#1A6860' : '#fff') +
+      ';color:' + (isActive ? '#fff' : '#071E25') +
+      ';font-family:Outfit,sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-align:left;transition:all 0.15s;';
+    btn.textContent = opt.label;
+    btn.onclick = function() { onSelect(opt.value); obRenderTiles(containerId, options, opt.value, onSelect); };
+    container.appendChild(btn);
+  });
+}
+
+function obRenderToggle(btnId, enabled) {
+  var btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.style.background = enabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
+  btn.setAttribute('aria-checked', String(enabled));
+  var knob = btn.querySelector('span');
+  if (knob) knob.style.left = enabled ? '22px' : '2px';
+}
+
+// ---- SCREEN 3: Ride Preferences ----
+function obInitStep3() {
+  obRenderTiles('obIntensityTiles', [
+    { value: 'mild', label: 'Mild — we skip the big stuff' },
+    { value: 'family', label: 'Family — mix of thrills and easy rides' },
+    { value: 'fullThrottle', label: 'Full throttle — the bigger the better' }
+  ], _obIntensity, function(v) { _obIntensity = v; });
+
+  obRenderTiles('obPaceTiles', [
+    { value: 'relaxed', label: 'Relaxed — we stop and soak it in' },
+    { value: 'balanced', label: 'Balanced — steady but not rushed' },
+    { value: 'powerDay', label: 'Power day — maximise every minute' }
+  ], _obPace, function(v) { _obPace = v; });
+
+  // Restore saved text
+  var mustEl = document.getElementById('obMustDo');
+  var avoidEl = document.getElementById('obAvoid');
+  if (mustEl && _obMustDo) mustEl.value = _obMustDo;
+  if (avoidEl && _obAvoid) avoidEl.value = _obAvoid;
+}
+
+function obSaveStep3() {
+  _obMustDo = (document.getElementById('obMustDo') || {}).value || '';
+  _obAvoid = (document.getElementById('obAvoid') || {}).value || '';
+  _obTripConfig.rides = {
+    intensity: _obIntensity || 'family',
+    pace: _obPace || 'balanced',
+    mustDo: _obMustDo,
+    avoid: _obAvoid
+  };
+}
+
+// ---- SCREEN 4: Lightning Lane ----
+function obInitStep4() {
+  obRenderToggle('obLLMPToggle', _obLLMP);
+  obRenderLLSPEntries();
+  // Fetch LLSP ride list from park_intel if not cached
+  if (!_obLLSPRides) {
+    var loading = document.getElementById('obLLSPLoading');
+    if (loading) loading.style.display = 'block';
+    serverCacheGet('park_intel', function(err, value) {
+      if (loading) loading.style.display = 'none';
+      if (err || !value) {
+        _obLLSPRides = obDefaultLLSPRides();
+      } else {
+        _obLLSPRides = obParseLLSPRides(typeof value === 'string' ? value : JSON.stringify(value));
+      }
+      obRenderLLSPEntries();
+    });
+  }
+}
+
+function obDefaultLLSPRides() {
+  return [
+    "Indiana Jones Adventure", "Star Wars: Rise of the Resistance",
+    "Radiator Springs Racers", "Tiana's Bayou Adventure",
+    "Guardians of the Galaxy: Mission BREAKOUT!", "Web Slingers",
+    "Matterhorn Bobsleds", "Space Mountain", "Big Thunder Mountain",
+    "Incredicoaster", "Mickey & Minnie's Runaway Railway",
+    "Millennium Falcon: Smugglers Run", "Soarin' Over California",
+    "Star Tours – The Adventures Continue"
+  ];
+}
+
+function obParseLLSPRides(text) {
+  // Extract ride names mentioned in park intel text
+  var known = [
+    "Indiana Jones Adventure", "Star Wars: Rise of the Resistance",
+    "Radiator Springs Racers", "Tiana's Bayou Adventure",
+    "Guardians of the Galaxy: Mission BREAKOUT!", "Web Slingers",
+    "Matterhorn Bobsleds", "Space Mountain", "Big Thunder Mountain",
+    "Incredicoaster", "Mickey & Minnie's Runaway Railway",
+    "Millennium Falcon: Smugglers Run", "Soarin' Over California",
+    "Star Tours – The Adventures Continue"
+  ];
+  // Return all known rides found in text, plus any not found
+  var found = known.filter(function(r) { return text.includes(r.split(':')[0].split('–')[0].trim()); });
+  return found.length > 3 ? found : known;
+}
+
+function obToggleLLMP() {
+  _obLLMP = !_obLLMP;
+  obRenderToggle('obLLMPToggle', _obLLMP);
+}
+
+function obAddLLSP() {
+  var rides = _obLLSPRides || obDefaultLLSPRides();
+  _obLLSPEntries.push({ ride: rides[0] || '', day: 0, time: '10:30' });
+  obRenderLLSPEntries();
+}
+
+function obRemoveLLSP(i) {
+  _obLLSPEntries.splice(i, 1);
+  obRenderLLSPEntries();
+}
+
+function obRenderLLSPEntries() {
+  var container = document.getElementById('obLLSPEntries');
+  if (!container) return;
+  var rides = _obLLSPRides || obDefaultLLSPRides();
+  var dayCount = _obDayCount || 1;
+  var html = '';
+  _obLLSPEntries.forEach(function(entry, i) {
+    html += '<div style="background:#fff;border:1.5px solid rgba(26,104,96,0.2);border-radius:10px;padding:12px;position:relative;">';
+    html += '<button onclick="obRemoveLLSP(' + i + ')" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#C86030" stroke-width="2" stroke-linecap="round"/></svg></button>';
+    html += '<div style="font-size:11px;color:#4A6670;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Ride</div>';
+    html += '<select onchange="_obLLSPEntries[' + i + '].ride=this.value" style="width:100%;padding:9px 12px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;box-sizing:border-box;margin-bottom:8px;">';
+    rides.forEach(function(r) {
+      html += '<option value="' + r.replace(/"/g, '') + '"' + (entry.ride === r ? ' selected' : '') + '>' + r + '</option>';
+    });
+    html += '</select>';
+    html += '<div style="display:flex;gap:8px;">';
+    html += '<select onchange="_obLLSPEntries[' + i + '].day=parseInt(this.value)" style="flex:1;padding:9px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;">';
+    for (var d = 0; d < dayCount; d++) {
+      html += '<option value="' + d + '"' + (entry.day === d ? ' selected' : '') + '>Day ' + (d + 1) + '</option>';
+    }
+    html += '</select>';
+    html += '<input type="time" value="' + entry.time + '" onchange="_obLLSPEntries[' + i + '].time=this.value" style="width:110px;padding:9px 8px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;" />';
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+function obSaveStep4() {
+  _obTripConfig.lightningLane = {
+    multiPass: _obLLMP,
+    singlePass: _obLLSPEntries.map(function(e) {
+      var h = parseInt(e.time.split(':')[0]);
+      var m = e.time.split(':')[1] || '00';
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      var h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      return { ride: e.ride, day: e.day, time: h12 + ':' + m + ' ' + ampm };
+    })
+  };
+}
+
+// ---- SCREEN 5: Character Meets ----
+function obInitStep5() {
+  obRenderTiles('obCharPriorityTiles', [
+    { value: 'mustDo', label: 'Must-do — build them into our day' },
+    { value: 'niceToHave', label: 'Nice-to-have — fit them in if convenient' },
+    { value: 'skip', label: 'Skip — not a priority for us' }
+  ], _obCharPriority, function(v) {
+    _obCharPriority = v;
+    var catWrap = document.getElementById('obCharCategoryWrap');
+    var disclaimer = document.getElementById('obCharDisclaimer');
+    if (catWrap) catWrap.style.display = v === 'skip' ? 'none' : 'block';
+    if (disclaimer) disclaimer.style.display = v === 'skip' ? 'none' : 'block';
+  });
+
+  var catWrap = document.getElementById('obCharCategoryWrap');
+  var disclaimer = document.getElementById('obCharDisclaimer');
+  if (catWrap) catWrap.style.display = _obCharPriority === 'skip' ? 'none' : 'block';
+  if (disclaimer) disclaimer.style.display = _obCharPriority === 'skip' ? 'none' : 'block';
+
+  // Fetch character_intel for categories
+  if (!_obCharData) {
+    var loading = document.getElementById('obCharCatLoading');
+    if (loading) loading.style.display = 'block';
+    serverCacheGet('character_intel', function(err, value) {
+      if (loading) loading.style.display = 'none';
+      if (err || !value) {
+        _obCharData = null;
+        obRenderCharCategories(obDefaultCharCategories());
+      } else {
+        _obCharData = typeof value === 'string' ? value : JSON.stringify(value);
+        obRenderCharCategories(obParseCharCategories(_obCharData));
+      }
+    });
+  } else {
+    obRenderCharCategories(obParseCharCategories(_obCharData));
+  }
+}
+
+function obDefaultCharCategories() {
+  return [
+    { value: 'princesses', label: 'Disney Princesses' },
+    { value: 'classic', label: 'Classic Characters' },
+    { value: 'starWars', label: 'Star Wars' },
+    { value: 'marvel', label: 'Marvel' },
+    { value: 'pixar', label: 'Pixar' },
+    { value: 'villains', label: 'Villains' }
+  ];
+}
+
+function obParseCharCategories(text) {
+  if (!text) return obDefaultCharCategories();
+  var defaults = obDefaultCharCategories();
+  // Filter to categories mentioned in the cache text
+  var found = defaults.filter(function(cat) {
+    var terms = {
+      'princesses': ['princess', 'Princess', 'Cinderella', 'Rapunzel', 'Tiana', 'Aurora'],
+      'classic': ['Mickey', 'Minnie', 'Donald', 'Goofy', 'classic'],
+      'starWars': ['Star Wars', 'Rey', 'Chewbacca', 'Darth', 'BB-8'],
+      'marvel': ['Marvel', 'Spider', 'Avenger', 'Iron Man', 'Black Panther'],
+      'pixar': ['Pixar', 'Woody', 'Buzz', 'Nemo', 'Lightning McQueen'],
+      'villains': ['villain', 'Villain', 'Maleficent', 'Evil Queen']
+    };
+    var t = terms[cat.value] || [];
+    return t.some(function(term) { return text.includes(term); });
+  });
+  return found.length >= 2 ? found : defaults;
+}
+
+function obRenderCharCategories(categories) {
+  var container = document.getElementById('obCharCategories');
+  if (!container) return;
+  container.innerHTML = '';
+  categories.forEach(function(cat) {
+    var isActive = _obCharCategories.includes(cat.value);
+    var chip = document.createElement('button');
+    chip.style.cssText = 'padding:8px 14px;border-radius:20px;border:1.5px solid ' +
+      (isActive ? '#1A6860' : 'rgba(26,104,96,0.25)') +
+      ';background:' + (isActive ? '#1A6860' : '#fff') +
+      ';color:' + (isActive ? '#fff' : '#071E25') +
+      ';font-family:Outfit,sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;';
+    chip.textContent = cat.label;
+    chip.onclick = function() {
+      var idx = _obCharCategories.indexOf(cat.value);
+      if (idx !== -1) _obCharCategories.splice(idx, 1);
+      else _obCharCategories.push(cat.value);
+      obRenderCharCategories(categories);
+    };
+    container.appendChild(chip);
+  });
+}
+
+function obSaveStep5() {
+  _obTripConfig.characters = {
+    priority: _obCharPriority || 'skip',
+    categories: _obCharCategories.slice()
+  };
+}
+
+// ---- SCREEN 6: Reservations & Experiences ----
+function obInitStep6() {
+  obRenderReservationEntries();
+  // Render dining style tiles
+  obRenderTiles('obDiningStyleTiles', [
+    { value: 'quickService', label: 'Quick service — keep it fast' },
+    { value: 'mix', label: 'Mix — one sit-down, rest quick service' },
+    { value: 'tableService', label: 'Table service — we love a good meal' }
+  ], _obDiningStyle, function(v) { _obDiningStyle = v; });
+  // Render dining priority tiles
+  obRenderTiles('obDiningPriorityTiles', [
+    { value: 'fuel', label: 'Fuel — food is secondary to rides' },
+    { value: 'balanced', label: 'Balanced — we enjoy a good meal' },
+    { value: 'foodie', label: 'Foodie — dining is part of the experience' }
+  ], _obDiningPriority, function(v) { _obDiningPriority = v; });
+  obRenderToggle('obKidsMealsToggle', _obKidsMeals);
+  // Fetch dining intel for chip options and reservation names
+  if (!_obDiningData) {
+    var loading = document.getElementById('obDietaryLoading');
+    if (loading) loading.style.display = 'block';
+    serverCacheGet('dining_intel', function(err, value) {
+      if (loading) loading.style.display = 'none';
+      if (!err && value) {
+        _obDiningData = typeof value === 'string' ? value : JSON.stringify(value);
+      }
+      obRenderDietaryChips(obGetDietaryOptions());
+    });
+  } else {
+    obRenderDietaryChips(obGetDietaryOptions());
+  }
+  // Also fetch park_intel for paid experiences if not loaded
+  if (!_obLLSPRides) {
+    serverCacheGet('park_intel', function(err, value) {
+      if (!err && value) {
+        _obLLSPRides = obParseLLSPRides(typeof value === 'string' ? value : JSON.stringify(value));
+      }
+    });
+  }
+}
+
+function obGetDietaryOptions() {
+  return [
+    { value: 'vegetarian', label: 'Vegetarian' },
+    { value: 'vegan', label: 'Vegan' },
+    { value: 'glutenFree', label: 'Gluten free' },
+    { value: 'nutAllergy', label: 'Nut allergy' },
+    { value: 'other', label: 'Other' }
+  ];
+}
+
+function obRenderDietaryChips(options) {
+  var container = document.getElementById('obDietaryChips');
+  if (!container) return;
+  container.innerHTML = '';
+  options.forEach(function(opt) {
+    var isActive = _obDietary.includes(opt.value);
+    var chip = document.createElement('button');
+    chip.style.cssText = 'padding:8px 14px;border-radius:20px;border:1.5px solid ' +
+      (isActive ? '#1A6860' : 'rgba(26,104,96,0.25)') +
+      ';background:' + (isActive ? '#1A6860' : '#fff') +
+      ';color:' + (isActive ? '#fff' : '#071E25') +
+      ';font-family:Outfit,sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;';
+    chip.textContent = opt.label;
+    chip.onclick = function() {
+      var idx = _obDietary.indexOf(opt.value);
+      if (idx !== -1) _obDietary.splice(idx, 1);
+      else _obDietary.push(opt.value);
+      if (opt.value === 'other') {
+        var wrap = document.getElementById('obDietaryOtherWrap');
+        if (wrap) wrap.style.display = _obDietary.includes('other') ? 'block' : 'none';
+      }
+      obRenderDietaryChips(options);
+    };
+    container.appendChild(chip);
+  });
+  // Sync other field visibility
+  var wrap = document.getElementById('obDietaryOtherWrap');
+  if (wrap) wrap.style.display = _obDietary.includes('other') ? 'block' : 'none';
+}
+
+function obToggleKidsMeals() {
+  _obKidsMeals = !_obKidsMeals;
+  obRenderToggle('obKidsMealsToggle', _obKidsMeals);
+}
+
+function obGetDiningNames() {
+  if (!_obDiningData) {
+    return ['Blue Bayou Restaurant', 'Cafe Orleans', 'River Belle Terrace',
+            'Carthay Circle Restaurant', 'Wine Country Trattoria', 'Lamplight Lounge'];
+  }
+  var known = ['Blue Bayou Restaurant', 'Cafe Orleans', 'River Belle Terrace',
+               'Carthay Circle Restaurant', 'Wine Country Trattoria', 'Lamplight Lounge',
+               "Oga's Cantina", 'Red Rose Taverne', 'Plaza Inn'];
+  return known.filter(function(n) { return _obDiningData.includes(n.split(' ')[0]); }).length > 2
+    ? known.filter(function(n) { return _obDiningData.includes(n.split(' ')[0]); })
+    : known;
+}
+
+function obGetCharDiningNames() {
+  return ["Minnie & Friends Breakfast", "Goofy's Kitchen", "Disney Princess Breakfast Adventures",
+          "Storytellers Cafe (Character)", "Plaza Inn (Character)"];
+}
+
+function obGetExperienceNames() {
+  var fromPark = [];
+  if (_obLLSPRides) {
+    var expNames = ["Savi's Workshop", "Droid Depot", "Oga's Cantina",
+                    "WEB SLINGERS Experience", "Radiator Springs Racers (Private)"];
+    expNames.forEach(function(n) { fromPark.push(n); });
+  }
+  return fromPark.length > 0 ? fromPark : ["Savi's Workshop", "Droid Depot", "Oga's Cantina",
+                                             "Bibbidi Bobbidi Boutique", "Pirates League"];
+}
+
+function obAddReservation(type) {
+  var names = type === 'dining' ? obGetDiningNames() :
+              type === 'characterDining' ? obGetCharDiningNames() :
+              obGetExperienceNames();
+  _obReservations.push({ name: names[0] || '', type: type, day: 0, time: '19:00', names: names });
+  obRenderReservationEntries();
+}
+
+function obRemoveReservation(i) {
+  _obReservations.splice(i, 1);
+  obRenderReservationEntries();
+}
+
+function obRenderReservationEntries() {
+  var container = document.getElementById('obReservationEntries');
+  if (!container) return;
+  var dayCount = _obDayCount || 1;
+  var typeLabels = { dining: 'Dining reservation', characterDining: 'Character dining', experience: 'Paid experience' };
+  var html = '';
+  _obReservations.forEach(function(entry, i) {
+    var names = entry.names || obGetDiningNames();
+    html += '<div style="background:#fff;border:1.5px solid rgba(26,104,96,0.2);border-radius:10px;padding:12px;position:relative;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+    html += '<span style="font-size:11px;color:#1A6860;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;">' + (typeLabels[entry.type] || entry.type) + '</span>';
+    html += '<button onclick="obRemoveReservation(' + i + ')" style="background:none;border:none;cursor:pointer;" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#C86030" stroke-width="2" stroke-linecap="round"/></svg></button>';
+    html += '</div>';
+    html += '<select onchange="_obReservations[' + i + '].name=this.value" style="width:100%;padding:9px 12px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;box-sizing:border-box;margin-bottom:8px;">';
+    names.forEach(function(n) {
+      html += '<option value="' + n.replace(/"/g,'') + '"' + (entry.name === n ? ' selected' : '') + '>' + n + '</option>';
+    });
+    html += '</select>';
+    html += '<div style="display:flex;gap:8px;">';
+    html += '<select onchange="_obReservations[' + i + '].day=parseInt(this.value)" style="flex:1;padding:9px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;">';
+    for (var d = 0; d < dayCount; d++) {
+      html += '<option value="' + d + '"' + (entry.day === d ? ' selected' : '') + '>Day ' + (d + 1) + '</option>';
+    }
+    html += '</select>';
+    html += '<input type="time" value="' + entry.time + '" onchange="_obReservations[' + i + '].time=this.value" style="width:110px;padding:9px 8px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;" />';
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+function obSaveStep6() {
+  var otherDiet = (document.getElementById('obDietaryOther') || {}).value || '';
+  var dietary = _obDietary.slice();
+  if (dietary.includes('other') && otherDiet) {
+    dietary[dietary.indexOf('other')] = otherDiet;
+  }
+  _obTripConfig.dining = {
+    style: _obDiningStyle || 'mix',
+    kidsMenuNeeded: _obKidsMeals,
+    dietary: dietary,
+    priority: _obDiningPriority || 'balanced',
+    reservations: _obReservations.map(function(e) {
+      var h = parseInt(e.time.split(':')[0]);
+      var m = e.time.split(':')[1] || '00';
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      var h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      return { name: e.name, type: e.type, day: e.day, time: h12 + ':' + m + ' ' + ampm };
+    })
+  };
+}
+
+// ---- SCREEN 7: Shows & Entertainment ----
+var _obEntRowDefs = [
+  { key: 'parades', label: 'Parades' },
+  { key: 'fireworks', label: 'Fireworks' },
+  { key: 'characterShows', label: 'Character Shows' }
+];
+
+function obInitStep7() {
+  obRenderToggle('obPrimeViewToggle', _obPrimeView);
+  // Fetch events_intel for show details
+  if (!_obEventsData) {
+    var loading = document.getElementById('obEntLoading');
+    if (loading) loading.style.display = 'block';
+    serverCacheGet('events_intel', function(err, value) {
+      if (loading) loading.style.display = 'none';
+      if (!err && value) {
+        _obEventsData = typeof value === 'string' ? value : JSON.stringify(value);
+      }
+      obRenderEntRows();
+    });
+  } else {
+    obRenderEntRows();
+  }
+}
+
+function obRenderEntRows() {
+  var container = document.getElementById('obEntRowsContent');
+  if (!container) return;
+  container.innerHTML = '';
+  _obEntRowDefs.forEach(function(row) {
+    var val = _obEntertainment[row.key] || '';
+    var rowEl = document.createElement('div');
+    rowEl.style.cssText = 'background:#fff;border:1.5px solid rgba(26,104,96,0.15);border-radius:10px;padding:12px;';
+    var label = document.createElement('div');
+    label.style.cssText = 'font-size:14px;font-weight:600;color:#071E25;margin-bottom:10px;';
+    label.textContent = row.label;
+    rowEl.appendChild(label);
+    var opts = document.createElement('div');
+    opts.style.cssText = 'display:flex;gap:6px;';
+    ['mustSee', 'niceToHave', 'skip'].forEach(function(optVal) {
+      var optLabels = { mustSee: 'Must-see', niceToHave: 'Nice-to-have', skip: 'Skip' };
+      var btn = document.createElement('button');
+      var isActive = val === optVal;
+      btn.style.cssText = 'flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid ' +
+        (isActive ? '#1A6860' : 'rgba(26,104,96,0.2)') +
+        ';background:' + (isActive ? '#1A6860' : '#fff') +
+        ';color:' + (isActive ? '#fff' : '#071E25') +
+        ';font-family:Outfit,sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;';
+      btn.textContent = optLabels[optVal];
+      btn.onclick = function() {
+        _obEntertainment[row.key] = optVal;
+        obRenderEntRows();
+        obUpdateMustSeeShows();
+      };
+      opts.appendChild(btn);
+    });
+    rowEl.appendChild(opts);
+    container.appendChild(rowEl);
+  });
+}
+
+function obUpdateMustSeeShows() {
+  var hasMustSee = Object.values(_obEntertainment).includes('mustSee');
+  var wrap = document.getElementById('obMustSeeWrap');
+  if (wrap) wrap.style.display = hasMustSee ? 'block' : 'none';
+  if (hasMustSee) obRenderMustSeeShows();
+}
+
+function obGetShowsFromCache() {
+  var shows = [];
+  if (_obEventsData) {
+    // Parse show names from events intel text
+    var knownShows = [
+      'Paint the Night Parade', 'Wondrous Journeys Fireworks',
+      'Better Together: A Pixar Pals Celebration!', 'World of Color: Happiness',
+      "Bluey's Best Day Ever!", 'Main Street Electrical Parade',
+      "Disney's Celebrate America!", 'Fantasmic!'
+    ];
+    knownShows.forEach(function(show) {
+      if (_obEventsData.includes(show.split(':')[0].split('!')[0].trim())) {
+        shows.push(show);
+      }
+    });
+  }
+  if (shows.length === 0) {
+    shows = [
+      'Paint the Night Parade', 'Wondrous Journeys Fireworks',
+      'Better Together: A Pixar Pals Celebration!', 'World of Color: Happiness',
+      "Bluey's Best Day Ever!"
+    ];
+  }
+  return shows;
+}
+
+function obRenderMustSeeShows() {
+  var container = document.getElementById('obMustSeeShows');
+  if (!container) return;
+  var shows = obGetShowsFromCache();
+  container.innerHTML = '';
+  shows.forEach(function(show) {
+    var isActive = _obMustSeeShows.includes(show);
+    var chip = document.createElement('button');
+    chip.style.cssText = 'width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid ' +
+      (isActive ? '#1A6860' : 'rgba(26,104,96,0.2)') +
+      ';background:' + (isActive ? '#EEF5F4' : '#fff') +
+      ';color:#071E25;font-family:Outfit,sans-serif;font-size:13px;font-weight:' + (isActive ? '700' : '500') + ';cursor:pointer;text-align:left;transition:all 0.15s;display:flex;align-items:center;gap:8px;box-sizing:border-box;';
+    var check = document.createElement('span');
+    check.style.cssText = 'width:18px;height:18px;border-radius:50%;border:2px solid ' +
+      (isActive ? '#1A6860' : 'rgba(26,104,96,0.3)') +
+      ';background:' + (isActive ? '#1A6860' : 'transparent') +
+      ';display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+    if (isActive) {
+      check.innerHTML = '<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    var label = document.createElement('span');
+    label.textContent = show;
+    chip.appendChild(check);
+    chip.appendChild(label);
+    chip.onclick = function() {
+      var idx = _obMustSeeShows.indexOf(show);
+      if (idx !== -1) _obMustSeeShows.splice(idx, 1);
+      else _obMustSeeShows.push(show);
+      obRenderMustSeeShows();
+    };
+    container.appendChild(chip);
+  });
+}
+
+function obTogglePrimeView() {
+  _obPrimeView = !_obPrimeView;
+  obRenderToggle('obPrimeViewToggle', _obPrimeView);
+}
+
+function obSaveStep7() {
+  _obTripConfig.entertainment = {
+    parades: _obEntertainment.parades || 'niceToHave',
+    fireworks: _obEntertainment.fireworks || 'niceToHave',
+    characterShows: _obEntertainment.characterShows || 'niceToHave',
+    mustSeeShows: _obMustSeeShows.slice(),
+    primeViewingSpot: _obPrimeView
+  };
+}
+// ===== END SCREENS 3-7 =====
+
 // ===== END ONBOARDING SYSTEM =====
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -5924,12 +6550,175 @@ setTimeout(checkForWaitSpikes, 30000);
     </div>
 
     <!-- STEPS 3-8: Placeholders -->
-    <div id="obStep3New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 3</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep4New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 4</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep5New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 5</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep6New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 6</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep7New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 7</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep8New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 8</h2><p style="font-size:14px;color:#4A6670;">Coming in session B3.</p></div>
+    <div id="obStep3New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Ride preferences.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">Helps us sequence your day and pick Lightning Lane priorities.</p>
+
+      <!-- Intensity tiles -->
+      <div class="ob-field">
+        <label class="ob-label">Ride intensity</label>
+        <div id="obIntensityTiles" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Pace tiles -->
+      <div class="ob-field">
+        <label class="ob-label">Pace preference</label>
+        <div id="obPaceTiles" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Must-do free text -->
+      <div class="ob-field">
+        <label class="ob-label" for="obMustDo">Must-do rides</label>
+        <input id="obMustDo" type="text" placeholder="e.g. Haunted Mansion, anything Star Wars" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;" />
+      </div>
+
+      <!-- Avoid free text -->
+      <div class="ob-field">
+        <label class="ob-label" for="obAvoid">Avoid</label>
+        <input id="obAvoid" type="text" placeholder="e.g. no drops, nothing too scary for the little one" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;" />
+      </div>
+    </div>
+
+    <!-- STEP 4: Lightning Lane -->
+    <div id="obStep4New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Lightning Lane.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">Tell us what you have booked and we'll build around it.</p>
+
+      <!-- LLMP toggle -->
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Lightning Lane Multi Pass</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Lets AI plan around LL booking windows throughout your day</div>
+          </div>
+          <button id="obLLMPToggle" onclick="obToggleLLMP()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- LLSP entries -->
+      <div class="ob-field">
+        <label class="ob-label">Lightning Lane Single Pass reservations</label>
+        <div id="obLLSPEntries" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
+        <div id="obLLSPLoading" style="display:none;font-size:13px;color:#4A6670;padding:8px 0;">Loading rides...</div>
+        <button onclick="obAddLLSP()" style="background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:4px;"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>Add Lightning Lane reservation
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 5: Character Meets -->
+    <div id="obStep5New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Character meets.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">We'll hold time in your day for the ones that matter most.</p>
+
+      <!-- Priority tiles -->
+      <div class="ob-field">
+        <label class="ob-label">How important are character meets?</label>
+        <div id="obCharPriorityTiles" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Category chips (collapses on Skip) -->
+      <div id="obCharCategoryWrap" class="ob-field">
+        <label class="ob-label">Which characters interest your group?</label>
+        <div id="obCharCategories" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+        <div id="obCharCatLoading" style="display:none;font-size:13px;color:#4A6670;padding:8px 0;">Loading categories...</div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div id="obCharDisclaimer" style="font-size:12px;color:#4A6670;line-height:1.5;margin-top:16px;padding:12px;background:rgba(26,104,96,0.06);border-radius:8px;">Character schedules are planned in advance but can change without notice. Check with a cast member on the day.</div>
+    </div>
+
+    <!-- STEP 6: Reservations & Experiences -->
+    <div id="obStep6New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Reservations.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">These are fixed anchors — AI builds your day around them.</p>
+
+      <!-- Add buttons -->
+      <div class="ob-field">
+        <label class="ob-label">Fixed schedule anchors</label>
+        <div id="obReservationEntries" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button onclick="obAddReservation('dining')" style="background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-align:left;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:6px;"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>Add dining reservation
+          </button>
+          <button onclick="obAddReservation('characterDining')" style="background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-align:left;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:6px;"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>Add character dining
+          </button>
+          <button onclick="obAddReservation('experience')" style="background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-align:left;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:6px;"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>Add paid experience
+          </button>
+        </div>
+      </div>
+
+      <!-- Dining style tiles -->
+      <div class="ob-field">
+        <label class="ob-label">Dining style</label>
+        <div id="obDiningStyleTiles" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Kids meals toggle -->
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Kids meal options needed?</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">AI will prioritise restaurants with great kids menus</div>
+          </div>
+          <button id="obKidsMealsToggle" onclick="obToggleKidsMeals()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dietary chips -->
+      <div class="ob-field">
+        <label class="ob-label">Dietary needs</label>
+        <div id="obDietaryChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+        <div id="obDietaryOtherWrap" style="display:none;margin-top:10px;">
+          <input id="obDietaryOther" type="text" placeholder="Describe dietary needs" style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:8px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;" />
+        </div>
+        <div id="obDietaryLoading" style="display:none;font-size:13px;color:#4A6670;padding:8px 0;">Loading options...</div>
+      </div>
+
+      <!-- Dining priority tiles -->
+      <div class="ob-field">
+        <label class="ob-label">Dining priority</label>
+        <div id="obDiningPriorityTiles" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+
+    <!-- STEP 7: Shows & Entertainment -->
+    <div id="obStep7New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Shows &amp; entertainment.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">We'll hold viewing spots and arrival buffers where it counts.</p>
+
+      <!-- Entertainment rows -->
+      <div id="obEntRows" class="ob-field">
+        <label class="ob-label">Entertainment interests</label>
+        <div id="obEntRowsContent" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <div id="obEntLoading" style="display:none;font-size:13px;color:#4A6670;padding:8px 0;">Loading entertainment options...</div>
+      </div>
+
+      <!-- Must-see show selector (expands when any row = Must-see) -->
+      <div id="obMustSeeWrap" class="ob-field" style="display:none;">
+        <label class="ob-label">Flag specific shows</label>
+        <div id="obMustSeeShows" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Prime viewing spot toggle -->
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Prime viewing spot</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Adds arrival buffer before must-see shows for the best position</div>
+          </div>
+          <button id="obPrimeViewToggle" onclick="obTogglePrimeView()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+      </div>
+    </div>
 
   </div>
 
