@@ -1,4 +1,4 @@
-const { put, list } = require('@vercel/blob');
+const { put, list, del } = require('@vercel/blob');
 const VALID_KEYS = ['park_intel','dining_intel','events_intel','park_hours_intel','character_intel'];
 const EXPIRY_DAYS = {park_intel:10,dining_intel:30,events_intel:7,park_hours_intel:7,character_intel:7};
 const PROMPTS = {
@@ -91,12 +91,19 @@ await setRateLimit();
 const apiKey = process.env.ANTHROPIC_API_KEY;
 if(!apiKey) return res.status(500).json({error:'No ANTHROPIC_API_KEY'});
 
+const force = req.query.force === '1';
 const keys = req.query.key ? [req.query.key] : VALID_KEYS;
 const results=[], errors=[];
 
 for(const k of keys) {
 if(!VALID_KEYS.includes(k)){errors.push({key:k,error:'Invalid key'});continue;}
-if(await isFresh(k)){results.push({key:k,skipped:true});continue;}
+if(!force && await isFresh(k)){results.push({key:k,skipped:true});continue;}
+if(force) {
+try {
+const {blobs} = await list({prefix:'twize/'+k+'.json'});
+if(blobs&&blobs.length) await del(blobs.map(b=>b.url));
+} catch(e){}
+}
 try {
 const blobUrl = await build(k, apiKey); results.push({key:k, length:blobUrl.length||0, blobUrl});
 } catch(e) {
