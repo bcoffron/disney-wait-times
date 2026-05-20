@@ -1,9 +1,8 @@
 // api/subscribe.js
-// Adds email + first name to Resend audience for TPCP early access list
-// Creates the audience automatically on first run if it doesn't exist
+// Adds email to Resend audience for TPCP early access list
+// Creates the audience automatically on first run
 
-export default async function handler(req, res) {
-  // CORS headers so prelaunch.html can call this from any domain
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -11,7 +10,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { email, firstName } = req.body || {};
+  const { email } = req.body || {};
 
   if (!email || !email.includes('@')) {
     return res.status(400).json({ error: 'Valid email required' });
@@ -19,14 +18,14 @@ export default async function handler(req, res) {
 
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_API_KEY) {
-    return res.status(500).json({ error: 'Server configuration error' });
+    return res.status(500).json({ error: 'Missing API key' });
   }
 
   try {
-    // Step 1: Get or create the TPCP audience
+    // Step 1: Get or create the audience
     const audienceId = await getOrCreateAudience(RESEND_API_KEY);
 
-    // Step 2: Add contact to audience
+    // Step 2: Add contact
     const contactRes = await fetch(
       `https://api.resend.com/audiences/${audienceId}/contacts`,
       {
@@ -37,7 +36,6 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
-          first_name: firstName ? firstName.trim() : '',
           unsubscribed: false,
         }),
       }
@@ -45,23 +43,23 @@ export default async function handler(req, res) {
 
     const contactData = await contactRes.json();
 
+    // Already subscribed is fine — treat as success
     if (!contactRes.ok) {
-      // If contact already exists that's fine — treat as success
-      if (contactData.name === 'validation_error' &&
-          JSON.stringify(contactData).includes('already exists')) {
-        return res.status(200).json({ success: true, alreadySubscribed: true });
+      const msg = JSON.stringify(contactData);
+      if (msg.includes('already exists') || msg.includes('duplicate')) {
+        return res.status(200).json({ success: true });
       }
-      console.error('Resend contact error:', contactData);
-      return res.status(500).json({ error: 'Could not save email' });
+      console.error('Resend error:', contactData);
+      return res.status(500).json({ error: 'Could not save email', detail: contactData });
     }
 
     return res.status(200).json({ success: true });
 
   } catch (err) {
-    console.error('Subscribe error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    console.error('Subscribe exception:', err.message);
+    return res.status(500).json({ error: 'Server error', detail: err.message });
   }
-}
+};
 
 async function getOrCreateAudience(apiKey) {
   const AUDIENCE_NAME = 'Theme Park Co-Pilot Early Access';
@@ -72,13 +70,12 @@ async function getOrCreateAudience(apiKey) {
   });
   const listData = await listRes.json();
 
-  // Check if our audience already exists
   if (listData.data && listData.data.length > 0) {
     const existing = listData.data.find(a => a.name === AUDIENCE_NAME);
     if (existing) return existing.id;
   }
 
-  // Create it if not found
+  // Create if not found
   const createRes = await fetch('https://api.resend.com/audiences', {
     method: 'POST',
     headers: {
@@ -89,6 +86,8 @@ async function getOrCreateAudience(apiKey) {
   });
   const created = await createRes.json();
 
-  if (!createRes.ok) throw new Error('Could not create audience: ' + JSON.stringify(created));
+  if (!createRes.ok) {
+    throw new Error('Could not create audience: ' + JSON.stringify(created));
+  }
   return created.id;
 }
