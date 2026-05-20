@@ -15,8 +15,7 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Valid email required' });
   }
 
-  const RESEND_API_KEY = process.env.RESEND_API_KEY || null;
-  if (!RESEND_API_KEY) return res.status(500).json({ error: 'Missing API key' });
+  const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_MMCfhr4J_CPbk5wJ24YgMtL4NcgnqCieW';
 
   try {
     const audienceId = await getOrCreateAudience(RESEND_API_KEY);
