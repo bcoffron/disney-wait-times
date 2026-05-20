@@ -15,15 +15,7 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Valid email required' });
   }
 
-  // Try both possible env var names
-  const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.RESEND_KEY || null;
-
-  if (!RESEND_API_KEY) {
-    // Log all available env var names (not values) to help debug
-    const envKeys = Object.keys(process.env).filter(k => !k.includes('npm') && !k.includes('node') && !k.includes('PATH'));
-    console.error('Missing Resend key. Available env vars:', envKeys.join(', '));
-    return res.status(500).json({ error: 'Missing API key', availableKeys: envKeys });
-  }
+  const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_MMCfhr4J_CPbk5wJ24YgMtL4NcgnqCieW';
 
   try {
     const audienceId = await getOrCreateAudience(RESEND_API_KEY);
