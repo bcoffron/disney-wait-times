@@ -1038,12 +1038,12 @@ body.tw-guest .ai-opt-hero{display:none!important}
       </div>
 
       <!-- Per-day park assignment -->
-      <div id="obDayRowsWrap" class="ob-field">
+      <div id="obDayRowsWrap" class="ob-field" style="display:none;">
         <label class="ob-label">Day-by-day park</label>
         <div id="obDayRows" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
-      <!-- Park hopping toggle (only if both parks) -->
+      <!-- Park hopping toggle -->
       <div id="obHopWrap" class="ob-field" style="display:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
@@ -1067,7 +1067,6 @@ body.tw-guest .ai-opt-hero{display:none!important}
             <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
           </button>
         </div>
-        <!-- Events list -->
         <div id="obEventsArea" style="display:none;margin-top:16px;">
           <div id="obEventsList" style="display:flex;flex-direction:column;gap:12px;"></div>
           <button onclick="obAddEvent()" style="margin-top:10px;background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
@@ -1075,128 +1074,72 @@ body.tw-guest .ai-opt-hero{display:none!important}
           </button>
         </div>
       </div>
-    </div><!-- /obStep1 -->
+    </div>
 
     <!-- STEP 2: Your Group -->
     <div id="obStep2New" class="ob-step" style="display:none;">
       <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Your group.</h2>
       <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">We'll personalise ride routing and Lightning Lane picks.</p>
 
-      <!-- Height tier steppers -->
       <div class="ob-field">
         <label class="ob-label">Group headcount by height</label>
-
-        <!-- Under 40" -->
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#071E25;">Under 40 in.</div>
-            <div style="font-size:12px;color:#4A6670;">Little ones, most restricted</div>
-          </div>
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">Under 40 in.</div><div style="font-size:12px;color:#4A6670;">Little ones, most restricted</div></div>
           <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('under40',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg>
-            </button>
+            <button onclick="obAdjTier('under40',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
             <span id="obTierUnder40" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
-            <button onclick="obAdjTier('under40',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>
-            </button>
+            <button onclick="obAdjTier('under40',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
           </div>
         </div>
-
-        <!-- 40" to 48" -->
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#071E25;">40 in. to 48 in.</div>
-            <div style="font-size:12px;color:#4A6670;">Kids, most rides open</div>
-          </div>
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">40 in. to 48 in.</div><div style="font-size:12px;color:#4A6670;">Kids, most rides open</div></div>
           <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('h40to48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg>
-            </button>
+            <button onclick="obAdjTier('h40to48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
             <span id="obTierH40to48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
-            <button onclick="obAdjTier('h40to48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>
-            </button>
+            <button onclick="obAdjTier('h40to48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
           </div>
         </div>
-
-        <!-- 48" and up -->
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#071E25;">48 in. and up</div>
-            <div style="font-size:12px;color:#4A6670;">Teens and adults, all rides</div>
-          </div>
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">48 in. and up</div><div style="font-size:12px;color:#4A6670;">Teens and adults, all rides</div></div>
           <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('over48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg>
-            </button>
+            <button onclick="obAdjTier('over48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
             <span id="obTierOver48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">2</span>
-            <button onclick="obAdjTier('over48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>
-            </button>
+            <button onclick="obAdjTier('over48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
           </div>
         </div>
-
-        <!-- Running total -->
         <div id="obGroupTotal" style="text-align:right;font-size:13px;color:#1A6860;font-weight:600;margin-top:8px;">Total: 2 people</div>
       </div>
 
-      <!-- Accessibility toggle -->
       <div class="ob-field">
         <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#071E25;">Accessibility / mobility needs</div>
-          </div>
-          <button id="obAccessToggle" onclick="obToggleAccess()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
-            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
-          </button>
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">Accessibility / mobility needs</div></div>
+          <button id="obAccessToggle" onclick="obToggleAccess()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span></button>
         </div>
         <div id="obAccessArea" style="display:none;margin-top:12px;">
           <textarea id="obAccessText" placeholder="Tell us what we should know" rows="3" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;resize:none;"></textarea>
         </div>
       </div>
 
-      <!-- Afternoon break toggle -->
       <div class="ob-field">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-size:14px;font-weight:600;color:#071E25;">Afternoon break</div>
             <div style="font-size:12px;color:#4A6670;margin-top:2px;">Helps AI schedule rest time and plan your evening energy</div>
           </div>
-          <button id="obBreakToggle" onclick="obToggleBreak()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
-            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
-          </button>
+          <button id="obBreakToggle" onclick="obToggleBreak()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span></button>
         </div>
       </div>
-    </div><!-- /obStep2 -->
+    </div>
 
     <!-- STEPS 3-8: Placeholders -->
-    <div id="obStep3New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 3</h2>
-      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
-    </div>
-    <div id="obStep4New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 4</h2>
-      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
-    </div>
-    <div id="obStep5New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 5</h2>
-      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
-    </div>
-    <div id="obStep6New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 6</h2>
-      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
-    </div>
-    <div id="obStep7New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 7</h2>
-      <p style="font-size:14px;color:#4A6670;">Coming in session B2.</p>
-    </div>
-    <div id="obStep8New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Step 8</h2>
-      <p style="font-size:14px;color:#4A6670;">Coming in session B3.</p>
-    </div>
+    <div id="obStep3New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 3</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep4New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 4</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep5New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 5</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep6New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 6</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep7New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 7</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep8New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 8</h2><p style="font-size:14px;color:#4A6670;">Coming in session B3.</p></div>
 
-  </div><!-- /content -->
+  </div>
 
   <!-- Sticky Next button -->
   <div id="obFooter" style="position:fixed;bottom:0;left:0;right:0;padding:16px 20px;background:#EEF5F4;box-shadow:0 -2px 12px rgba(7,30,37,0.08);">
@@ -1726,7 +1669,6 @@ function checkLock(){
       if(saved==='admin') userRole='admin';
       else userRole='guest';
     }catch(e){}
-    // Show magic day screen on Jun 28 first open only
     var isJun28=now<new Date('2026-06-29T00:00:00');
     var shownMagicDay=false;
     try{shownMagicDay=localStorage.getItem('magic_day_shown')==='yes';}catch(e){}
@@ -1743,20 +1685,17 @@ function checkLock(){
     return;
   }
 
-  // Before trip — check if already unlocked via tpcp_ keys (localStorage persistence)
+  // Before trip - check tpcp_ localStorage keys first
   try{
     var tpcpCode=localStorage.getItem('tpcp_code');
     var tpcpRole=localStorage.getItem('tpcp_role');
-    var tpcpTripId=localStorage.getItem('tpcp_tripId');
-    var tpcpOnboarding=localStorage.getItem('tpcp_onboardingComplete');
     if(tpcpCode&&tpcpRole){
-      // Silent re-validation
-      renderSplashCtas(); // render STATE B (no secondary button)
+      // Silent re-validation - render STATE B splash while validating
+      renderSplashCtas();
       fetch(SYNC_BASE+'/api/trip?code='+encodeURIComponent(tpcpCode))
         .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
         .then(function(result){
           if(result.status!==200||!result.data.valid){
-            // Invalid/expired — clear and show splash with error
             localStorage.removeItem('tpcp_code');
             localStorage.removeItem('tpcp_role');
             localStorage.removeItem('tpcp_tripId');
@@ -1770,32 +1709,22 @@ function checkLock(){
           userRole=d.role;
           try{localStorage.setItem('disney_unlocked',d.role);}catch(e){}
           if(d.role==='guest'){
-            // Guests skip onboarding, go straight to schedule
-            document.getElementById('lockScreen').style.display='none';
-            document.getElementById('mainApp').style.display='';
-            applyRoleUI();
+            enterSplash(true);
           } else if(d.hasTrip){
-            // Admin with trip — go to schedule
-            document.getElementById('lockScreen').style.display='none';
-            document.getElementById('mainApp').style.display='';
-            applyRoleUI();
+            enterSplash(true);
           } else {
-            // Admin without trip — launch onboarding
-            document.getElementById('lockScreen').style.display='none';
-            document.getElementById('mainApp').style.display='';
-            applyRoleUI();
-            launchOnboarding(tpcpCode, d.role, d.tripId||'');
+            enterSplash(true);
+            launchOnboarding(tpcpCode,d.role,d.tripId||'');
           }
         })
         .catch(function(){
-          // Network error — fall through to show splash
           renderSplashCtas();
         });
       return;
     }
   }catch(e){}
 
-  // Also check legacy disney_unlocked key (backwards compat)
+  // Legacy key fallback
   try{
     var saved=localStorage.getItem('disney_unlocked');
     if(saved==='admin'||saved==='guest'){
@@ -1807,7 +1736,7 @@ function checkLock(){
     }
   }catch(e){}
 
-  // First time — show splash with STATE A (secondary button visible)
+  // First time - show splash CTA (STATE A)
   renderSplashCtas();
 }
 function tryUnlock() {
@@ -1828,7 +1757,6 @@ function tryUnlock() {
         inp.focus(); return;
       }
       var d = result.data;
-      // Save to localStorage
       try {
         localStorage.setItem('tpcp_code', code);
         localStorage.setItem('tpcp_role', d.role);
@@ -1837,21 +1765,10 @@ function tryUnlock() {
       } catch(e) {}
       userRole = d.role;
       applyRoleUI();
-      // Routing logic
-      if (d.role === 'guest') {
-        // Guests skip onboarding
-        document.getElementById('lockScreen').style.display = 'none';
-        document.getElementById('mainApp').style.display = '';
-        setTimeout(function() { document.getElementById('lockScreen').style.display = 'none'; }, 800);
-      } else if (d.hasTrip) {
-        // Admin with trip — go to schedule
-        document.getElementById('lockScreen').style.display = 'none';
-        document.getElementById('mainApp').style.display = '';
-        setTimeout(function() { document.getElementById('lockScreen').style.display = 'none'; }, 800);
+      if (d.role === 'guest' || d.hasTrip) {
+        enterSplash(true);
       } else {
-        // Admin without trip — launch onboarding
-        document.getElementById('lockScreen').style.display = 'none';
-        document.getElementById('mainApp').style.display = '';
+        enterSplash(true);
         launchOnboarding(code, d.role, d.tripId || '');
       }
     })
@@ -5124,7 +5041,8 @@ function renderSplashCtas(){
   if(!area)return;
   var hasCode=false;
   try{hasCode=!!(localStorage.getItem('tpcp_code'));}catch(e){}
-  area.innerHTML='<div id="twLoginArea"><input id="twPassInput" type="text" placeholder="Enter your trip code" style="width:100%;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:15px;color:#fff;box-sizing:border-box;margin-bottom:10px;" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key===\'Enter\')tryUnlock()" /><div id="twLoginError" style="display:none;color:#C86030;font-size:13px;margin-bottom:8px;text-align:center;"></div></div><button onclick="tryUnlock()" style="width:100%;padding:15px;background:#C86030;border:none;border-radius:12px;color:#fff;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:12px;">Enter Your Adventure →</button><button id="splashSecondaryBtn" onclick="document.getElementById(\'twPassInput\').scrollIntoView({behavior:\'smooth\'});document.getElementById(\'twPassInput\').focus();" style="display:'+(hasCode?'none':'block')+';width:100%;padding:12px;background:none;border:1.5px solid rgba(255,255,255,0.3);border-radius:12px;color:rgba(255,255,255,0.75);font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Have a trip code?</button>';
+  var secBtn=hasCode?'display:none':'display:block';
+  area.innerHTML='<div id="twLoginArea"><input id="twPassInput" type="text" placeholder="Enter your trip code" autocapitalize="characters" spellcheck="false" style="width:100%;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:15px;color:#fff;box-sizing:border-box;margin-bottom:10px;" onkeydown="if(event.key===\'Enter\')tryUnlock()" /><div id="twLoginError" style="display:none;color:#C86030;font-size:13px;margin-bottom:8px;text-align:center;"></div></div><button onclick="tryUnlock()" style="width:100%;padding:15px;background:#C86030;border:none;border-radius:12px;color:#fff;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:12px;">Enter Your Adventure →</button><button id="splashSecondaryBtn" onclick="document.getElementById(\'twPassInput\').focus();" style="'+secBtn+';width:100%;padding:12px;background:none;border:1.5px solid rgba(255,255,255,0.3);border-radius:12px;color:rgba(255,255,255,0.75);font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Have a trip code?</button>';
 }
 function showTripCodeInput(){
   var area=document.getElementById('tripCodeInputArea');
@@ -5200,10 +5118,8 @@ function initSplash() {
   }
 }
 
-
 // ===== ONBOARDING SYSTEM (B1) =====
 
-// Internal state
 var _obCurrentStep = 1;
 var _obTotalSteps = 8;
 var _obSelectedParks = ['Disneyland'];
@@ -5214,8 +5130,6 @@ var _obEvents = [];
 var _obTiers = { under40: 0, h40to48: 0, over48: 2 };
 var _obAccessEnabled = false;
 var _obBreakEnabled = false;
-
-// TRIP_CONFIG partial (built as user fills screens)
 var _obTripConfig = {};
 var _obDays = [];
 
@@ -5228,55 +5142,32 @@ function launchOnboarding(code, role, tripId) {
 
 function obGoTo(step) {
   _obCurrentStep = step;
-  var total = _obTotalSteps;
-
-  // Update progress label and bar
   var label = document.getElementById('obStepLabel');
-  if (label) label.textContent = 'Step ' + step + ' of ' + total;
+  if (label) label.textContent = 'Step ' + step + ' of ' + _obTotalSteps;
   var bar = document.getElementById('obProgressBar');
-  if (bar) bar.style.width = ((step / total) * 100) + '%';
-
-  // Back button visibility
+  if (bar) bar.style.width = ((step / _obTotalSteps) * 100) + '%';
   var backBtn = document.getElementById('obBackBtn');
   if (backBtn) backBtn.style.display = step === 1 ? 'none' : 'block';
-
-  // Next button label
   var nextBtn = document.getElementById('obNextBtn');
   if (nextBtn) {
     if (step === 8) {
-      nextBtn.textContent = 'Build my schedule \u2192';
+      nextBtn.textContent = 'Build my schedule →';
       nextBtn.style.background = '#C86030';
     } else {
-      nextBtn.textContent = 'Next \u2192';
+      nextBtn.textContent = 'Next →';
       nextBtn.style.background = '#1A6860';
     }
   }
-
-  // Show the right step div
-  var stepMap = {
-    1: 'obStep1',
-    2: 'obStep2New',
-    3: 'obStep3New',
-    4: 'obStep4New',
-    5: 'obStep5New',
-    6: 'obStep6New',
-    7: 'obStep7New',
-    8: 'obStep8New'
-  };
+  var stepMap = { 1:'obStep1', 2:'obStep2New', 3:'obStep3New', 4:'obStep4New', 5:'obStep5New', 6:'obStep6New', 7:'obStep7New', 8:'obStep8New' };
   Object.values(stepMap).forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
   var target = document.getElementById(stepMap[step]);
   if (target) target.style.display = 'block';
-
-  // Scroll to top
   var ov = document.getElementById('onboardingOverlay');
   if (ov) ov.scrollTop = 0;
-
-  // If Step 1, re-render day rows
   if (step === 1) obRenderDayRows();
-  // If Step 2, update total display
   if (step === 2) obUpdateGroupTotal();
 }
 
@@ -5298,39 +5189,28 @@ function obBack() {
 }
 
 function obFinish() {
-  // Mark onboarding complete
   try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
-  // Hide overlay, show app
   var ov = document.getElementById('onboardingOverlay');
   if (ov) ov.style.display = 'none';
-  showApp();
 }
-
-// ---- Step 1 helpers ----
 
 function obTogglePark(btn, park) {
   var idx = _obSelectedParks.indexOf(park);
   if (idx !== -1) {
-    if (_obSelectedParks.length === 1) return; // must keep at least one
+    if (_obSelectedParks.length === 1) return;
     _obSelectedParks.splice(idx, 1);
   } else {
     _obSelectedParks.push(park);
   }
-  // Update button styles
   var btns = document.querySelectorAll('.ob-park-btn');
   btns.forEach(function(b) {
     var p = b.getAttribute('data-park');
     if (_obSelectedParks.indexOf(p) !== -1) {
-      b.style.background = '#1A6860';
-      b.style.borderColor = '#1A6860';
-      b.style.color = '#fff';
+      b.style.background = '#1A6860'; b.style.borderColor = '#1A6860'; b.style.color = '#fff';
     } else {
-      b.style.background = '#fff';
-      b.style.borderColor = 'rgba(26,104,96,0.3)';
-      b.style.color = '#1A6860';
+      b.style.background = '#fff'; b.style.borderColor = 'rgba(26,104,96,0.3)'; b.style.color = '#1A6860';
     }
   });
-  // Show/hide hop toggle
   var hopWrap = document.getElementById('obHopWrap');
   if (hopWrap) hopWrap.style.display = _obSelectedParks.length > 1 ? 'block' : 'none';
   if (_obSelectedParks.length === 1) _obHopEnabled = false;
@@ -5350,36 +5230,26 @@ function obRenderDayRows() {
   if (!wrap) return;
   var startDate = document.getElementById('obStartDate') ? document.getElementById('obStartDate').value : '';
   var multiPark = _obSelectedParks.length > 1;
-  
-  // Hide rows if single park
   if (wrapOuter) wrapOuter.style.display = multiPark ? 'block' : 'none';
   if (!multiPark) return;
-
   var html = '';
   for (var i = 0; i < _obDayCount; i++) {
     var dayLabel = 'Day ' + (i + 1);
-    var dateStr = '';
     if (startDate) {
       var d = new Date(startDate + 'T00:00:00');
       d.setDate(d.getDate() + i);
-      dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      dayLabel += ' ' + dateStr;
+      dayLabel += ' ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
-    html += '<div style="display:flex;align-items:center;gap:10px;">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">';
     html += '<span style="font-size:13px;color:#4A6670;min-width:90px;">' + dayLabel + '</span>';
     html += '<select id="obDayPark_' + i + '" style="flex:1;padding:9px 12px;border:1.5px solid rgba(26,104,96,0.3);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;">';
-    _obSelectedParks.forEach(function(p) {
-      html += '<option value="' + p + '">' + p + '</option>';
-    });
+    _obSelectedParks.forEach(function(p) { html += '<option value="' + p + '">' + p + '</option>'; });
     html += '</select>';
     if (_obHopEnabled) {
-      var altParks = _obSelectedParks.filter(function(p) { return true; });
       html += '<select id="obDayHopTo_' + i + '" style="flex:1;padding:9px 12px;border:1.5px solid rgba(26,104,96,0.3);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;">';
-      altParks.forEach(function(p) {
-        html += '<option value="' + p + '">' + p + ' (PM)</option>';
-      });
+      _obSelectedParks.forEach(function(p) { html += '<option value="' + p + '">' + p + ' (PM)</option>'; });
       html += '</select>';
-      html += '<input id="obDayHopTime_' + i + '" type="time" value="14:00" style="width:90px;padding:9px 8px;border:1.5px solid rgba(26,104,96,0.3);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;" />';
+      html += '<input id="obDayHopTime_' + i + '" type="time" value="14:00" style="width:90px;padding:9px 8px;border:1.5px solid rgba(26,104,96,0.3);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;" />';
     }
     html += '</div>';
   }
@@ -5391,7 +5261,7 @@ function obToggleHop() {
   var btn = document.getElementById('obHopToggle');
   if (btn) {
     btn.style.background = _obHopEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
-    btn.setAttribute('aria-checked', _obHopEnabled ? 'true' : 'false');
+    btn.setAttribute('aria-checked', String(_obHopEnabled));
     var knob = btn.querySelector('span');
     if (knob) knob.style.left = _obHopEnabled ? '22px' : '2px';
   }
@@ -5403,7 +5273,7 @@ function obToggleEvents() {
   var btn = document.getElementById('obEventsToggle');
   if (btn) {
     btn.style.background = _obEventsEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
-    btn.setAttribute('aria-checked', _obEventsEnabled ? 'true' : 'false');
+    btn.setAttribute('aria-checked', String(_obEventsEnabled));
     var knob = btn.querySelector('span');
     if (knob) knob.style.left = _obEventsEnabled ? '22px' : '2px';
   }
@@ -5424,17 +5294,11 @@ function obRenderEvents() {
   var html = '';
   _obEvents.forEach(function(ev, i) {
     html += '<div style="background:#fff;border:1.5px solid rgba(26,104,96,0.2);border-radius:10px;padding:14px;position:relative;">';
-    html += '<button onclick="obRemoveEvent(' + i + ')" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;color:#C86030;font-size:18px;line-height:1;" aria-label="Remove event">';
-    html += '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#C86030" stroke-width="2" stroke-linecap="round"/></svg></button>';
-    html += '<input placeholder="Event name" value="' + (ev.name || '') + '" oninput="_obEvents[' + i + '].name=this.value" style="width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(26,104,96,0.2);padding:6px 0;font-family:Outfit,sans-serif;font-size:14px;color:#071E25;background:transparent;outline:none;margin-bottom:10px;" />';
-    html += '<div style="display:flex;gap:10px;">';
-    html += '<select oninput="_obEvents[' + i + '].day=parseInt(this.value)" style="flex:1;padding:8px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;">';
-    for (var d = 0; d < _obDayCount; d++) {
-      html += '<option value="' + d + '"' + (ev.day === d ? ' selected' : '') + '>Day ' + (d + 1) + '</option>';
-    }
-    html += '</select>';
-    html += '<input type="time" value="' + ev.time + '" oninput="_obEvents[' + i + '].time=this.value" style="width:100px;padding:8px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;" />';
-    html += '</div></div>';
+    html += '<button onclick="obRemoveEvent(' + i + ')" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;" aria-label="Remove event"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#C86030" stroke-width="2" stroke-linecap="round"/></svg></button>';
+    html += '<input placeholder="Event name" value="' + (ev.name||'').replace(/"/g, '') + '" oninput="_obEvents[' + i + '].name=this.value" style="width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(26,104,96,0.2);padding:6px 0;font-family:Outfit,sans-serif;font-size:14px;color:#071E25;background:transparent;outline:none;margin-bottom:10px;" />';
+    html += '<div style="display:flex;gap:10px;"><select oninput="_obEvents[' + i + '].day=parseInt(this.value)" style="flex:1;padding:8px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;">';
+    for (var d = 0; d < _obDayCount; d++) { html += '<option value="' + d + '"' + (ev.day===d?' selected':'') + '>Day ' + (d+1) + '</option>'; }
+    html += '</select><input type="time" value="' + ev.time + '" oninput="_obEvents[' + i + '].time=this.value" style="width:100px;padding:8px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;" /></div></div>';
   });
   list.innerHTML = html;
 }
@@ -5445,70 +5309,54 @@ function obRemoveEvent(i) {
   if (_obEvents.length === 0) {
     _obEventsEnabled = false;
     var btn = document.getElementById('obEventsToggle');
-    if (btn) {
-      btn.style.background = 'rgba(26,104,96,0.2)';
-      btn.setAttribute('aria-checked', 'false');
-      var knob = btn.querySelector('span');
-      if (knob) knob.style.left = '2px';
-    }
+    if (btn) { btn.style.background = 'rgba(26,104,96,0.2)'; btn.setAttribute('aria-checked','false'); var knob=btn.querySelector('span'); if(knob) knob.style.left='2px'; }
     var area = document.getElementById('obEventsArea');
     if (area) area.style.display = 'none';
   }
 }
 
 function obSaveStep1() {
-  var tripName = (document.getElementById('obTripNameNew') || {}).value || 'Our Disneyland Trip';
-  var startDate = (document.getElementById('obStartDate') || {}).value;
+  var tripName = (document.getElementById('obTripNameNew')||{}).value || 'Our Disneyland Trip';
+  var startDate = document.getElementById('obStartDate') ? document.getElementById('obStartDate').value : '';
   if (!startDate) {
     var inp = document.getElementById('obStartDate');
     if (inp) { inp.style.borderColor = '#C86030'; inp.focus(); }
     return false;
   }
-
-  // Build dates array
   var dates = [];
   for (var i = 0; i < _obDayCount; i++) {
     var d = new Date(startDate + 'T00:00:00');
     d.setDate(d.getDate() + i);
     dates.push(d.toISOString().split('T')[0]);
   }
-
-  // Build DAYS array
   _obDays = [];
   for (var i = 0; i < _obDayCount; i++) {
-    var park = _obSelectedParks.length === 1
-      ? _obSelectedParks[0]
-      : (document.getElementById('obDayPark_' + i) || {}).value || _obSelectedParks[0];
+    var park = _obSelectedParks.length === 1 ? _obSelectedParks[0] : ((document.getElementById('obDayPark_'+i)||{}).value || _obSelectedParks[0]);
     var hopTo = null, hopTime = null;
     if (_obHopEnabled && _obSelectedParks.length > 1) {
-      hopTo = (document.getElementById('obDayHopTo_' + i) || {}).value || null;
-      hopTime = (document.getElementById('obDayHopTime_' + i) || {}).value || null;
+      hopTo = (document.getElementById('obDayHopTo_'+i)||{}).value || null;
+      hopTime = (document.getElementById('obDayHopTime_'+i)||{}).value || null;
     }
     _obDays.push({ date: dates[i], park: park, hopTo: hopTo, hopTime: hopTime });
   }
-
-  // Build TRIP_CONFIG partial
   _obTripConfig.tripName = tripName;
   _obTripConfig.parks = _obSelectedParks.slice();
   _obTripConfig.dates = dates;
   _obTripConfig.parkHopping = _obHopEnabled;
-  _obTripConfig.specialEvents = _obEventsEnabled ? _obEvents.map(function(e) { return { name: e.name, day: e.day, time: e.time }; }) : [];
-
+  _obTripConfig.specialEvents = _obEventsEnabled ? _obEvents.map(function(e){return{name:e.name,day:e.day,time:e.time};}) : [];
   return true;
 }
 
-// ---- Step 2 helpers ----
-
 function obAdjTier(tier, delta) {
-  _obTiers[tier] = Math.max(0, (_obTiers[tier] || 0) + delta);
-  var idMap = { under40: 'obTierUnder40', h40to48: 'obTierH40to48', over48: 'obTierOver48' };
+  _obTiers[tier] = Math.max(0, (_obTiers[tier]||0) + delta);
+  var idMap = { under40:'obTierUnder40', h40to48:'obTierH40to48', over48:'obTierOver48' };
   var el = document.getElementById(idMap[tier]);
   if (el) el.textContent = _obTiers[tier];
   obUpdateGroupTotal();
 }
 
 function obUpdateGroupTotal() {
-  var total = (_obTiers.under40 || 0) + (_obTiers.h40to48 || 0) + (_obTiers.over48 || 0);
+  var total = (_obTiers.under40||0) + (_obTiers.h40to48||0) + (_obTiers.over48||0);
   var el = document.getElementById('obGroupTotal');
   if (el) el.textContent = 'Total: ' + total + ' ' + (total === 1 ? 'person' : 'people');
 }
@@ -5516,12 +5364,7 @@ function obUpdateGroupTotal() {
 function obToggleAccess() {
   _obAccessEnabled = !_obAccessEnabled;
   var btn = document.getElementById('obAccessToggle');
-  if (btn) {
-    btn.style.background = _obAccessEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
-    btn.setAttribute('aria-checked', _obAccessEnabled ? 'true' : 'false');
-    var knob = btn.querySelector('span');
-    if (knob) knob.style.left = _obAccessEnabled ? '22px' : '2px';
-  }
+  if (btn) { btn.style.background = _obAccessEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)'; btn.setAttribute('aria-checked',String(_obAccessEnabled)); var knob=btn.querySelector('span'); if(knob) knob.style.left=_obAccessEnabled?'22px':'2px'; }
   var area = document.getElementById('obAccessArea');
   if (area) area.style.display = _obAccessEnabled ? 'block' : 'none';
 }
@@ -5529,25 +5372,21 @@ function obToggleAccess() {
 function obToggleBreak() {
   _obBreakEnabled = !_obBreakEnabled;
   var btn = document.getElementById('obBreakToggle');
-  if (btn) {
-    btn.style.background = _obBreakEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)';
-    btn.setAttribute('aria-checked', _obBreakEnabled ? 'true' : 'false');
-    var knob = btn.querySelector('span');
-    if (knob) knob.style.left = _obBreakEnabled ? '22px' : '2px';
-  }
+  if (btn) { btn.style.background = _obBreakEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)'; btn.setAttribute('aria-checked',String(_obBreakEnabled)); var knob=btn.querySelector('span'); if(knob) knob.style.left=_obBreakEnabled?'22px':'2px'; }
 }
 
 function obSaveStep2() {
-  var total = (_obTiers.under40 || 0) + (_obTiers.h40to48 || 0) + (_obTiers.over48 || 0);
+  var total = (_obTiers.under40||0) + (_obTiers.h40to48||0) + (_obTiers.over48||0);
   _obTripConfig.group = {
     total: total,
-    heightTiers: { under40: _obTiers.under40 || 0, h40to48: _obTiers.h40to48 || 0, over48: _obTiers.over48 || 0 },
-    accessibility: _obAccessEnabled ? ((document.getElementById('obAccessText') || {}).value || '') : '',
+    heightTiers: { under40: _obTiers.under40||0, h40to48: _obTiers.h40to48||0, over48: _obTiers.over48||0 },
+    accessibility: _obAccessEnabled ? ((document.getElementById('obAccessText')||{}).value||'') : '',
     afternoonBreak: _obBreakEnabled
   };
 }
 // ===== END ONBOARDING SYSTEM =====
-DOMContentLoaded', function() {
+
+document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.ob-pills').forEach(function(container) {
     container.addEventListener('click', function(e) {
       var pill = e.target.closest('.ob-pill');
