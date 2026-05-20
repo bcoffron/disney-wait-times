@@ -979,176 +979,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
     </div>
   </div>
 <!-- ONBOARDING MODAL -->
-<div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:#EEF5F4;overflow-y:auto;font-family:'Outfit',sans-serif;">
-  <!-- Progress bar + header -->
-  <div id="obHeader" style="position:sticky;top:0;background:#EEF5F4;z-index:2;padding:16px 20px 0;">
-    <!-- Back button -->
-    <button id="obBackBtn" onclick="obBack()" style="display:none;background:none;border:none;cursor:pointer;padding:0;margin-bottom:12px;color:#1A6860;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="vertical-align:middle;margin-right:4px;"><path d="M10 12L6 8l4-4" stroke="#1A6860" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
-    </button>
-    <!-- Step label -->
-    <div id="obStepLabel" style="text-align:center;font-size:11px;color:#1A6860;letter-spacing:0.08em;font-weight:500;margin-bottom:8px;text-transform:uppercase;opacity:0.8;">Step 1 of 8</div>
-    <!-- Progress bar -->
-    <div style="height:3px;background:rgba(26,104,96,0.15);border-radius:2px;overflow:hidden;">
-      <div id="obProgressBar" style="height:100%;background:#1A6860;border-radius:2px;transition:width 0.35s ease;width:12.5%;"></div>
-    </div>
-  </div>
 
-  <!-- Step content -->
-  <div style="padding:24px 20px 120px;max-width:480px;margin:0 auto;">
-
-    <!-- STEP 1: Trip Basics -->
-    <div id="obStep1" class="ob-step">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Let's plan your trip.</h2>
-      <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">Tell us the basics and we'll build your park plan.</p>
-
-      <!-- Trip name -->
-      <div class="ob-field">
-        <label class="ob-label" for="obTripNameNew">Trip name</label>
-        <input id="obTripNameNew" type="text" value="Our Disneyland Trip" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;color:#071E25;background:#fff;outline:none;" />
-      </div>
-
-      <!-- Park selection -->
-      <div class="ob-field">
-        <label class="ob-label">Which park(s)?</label>
-        <div id="obParkSelect" style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button onclick="obTogglePark(this,'Disneyland')" data-park="Disneyland" class="ob-park-btn ob-park-active" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid #1A6860;border-radius:10px;background:#1A6860;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disneyland</button>
-          <button onclick="obTogglePark(this,'DCA')" data-park="DCA" class="ob-park-btn" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid rgba(26,104,96,0.3);border-radius:10px;background:#fff;color:#1A6860;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disney California Adventure</button>
-        </div>
-      </div>
-
-      <!-- Start date -->
-      <div class="ob-field">
-        <label class="ob-label" for="obStartDate">Start date</label>
-        <input id="obStartDate" type="date" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;color:#071E25;background:#fff;outline:none;" />
-      </div>
-
-      <!-- Number of days stepper -->
-      <div class="ob-field">
-        <label class="ob-label">Number of days</label>
-        <div style="display:flex;align-items:center;gap:16px;">
-          <button onclick="obAdjDays(-1)" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
-            <svg width="16" height="2" viewBox="0 0 16 2" fill="none"><rect y="0" width="16" height="2" rx="1" fill="#1A6860"/></svg>
-          </button>
-          <span id="obDayCount" style="font-size:22px;font-weight:700;color:#071E25;min-width:32px;text-align:center;">3</span>
-          <button onclick="obAdjDays(1)" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="7" y="0" width="2" height="16" rx="1" fill="#1A6860"/><rect y="7" width="16" height="2" rx="1" fill="#1A6860"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Per-day park assignment -->
-      <div id="obDayRowsWrap" class="ob-field" style="display:none;">
-        <label class="ob-label">Day-by-day park</label>
-        <div id="obDayRows" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
-      <!-- Park hopping toggle -->
-      <div id="obHopWrap" class="ob-field" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#071E25;">Park hopping</div>
-            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Visit both parks in one day</div>
-          </div>
-          <button id="obHopToggle" onclick="obToggleHop()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
-            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Special events toggle -->
-      <div class="ob-field">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#071E25;">Special events</div>
-            <div style="font-size:12px;color:#4A6670;margin-top:2px;">After Hours, Mickey's Halloween Party, etc.</div>
-          </div>
-          <button id="obEventsToggle" onclick="obToggleEvents()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
-            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
-          </button>
-        </div>
-        <div id="obEventsArea" style="display:none;margin-top:16px;">
-          <div id="obEventsList" style="display:flex;flex-direction:column;gap:12px;"></div>
-          <button onclick="obAddEvent()" style="margin-top:10px;background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:4px;"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>Add Event
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 2: Your Group -->
-    <div id="obStep2New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Your group.</h2>
-      <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">We'll personalise ride routing and Lightning Lane picks.</p>
-
-      <div class="ob-field">
-        <label class="ob-label">Group headcount by height</label>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
-          <div><div style="font-size:14px;font-weight:600;color:#071E25;">Under 40 in.</div><div style="font-size:12px;color:#4A6670;">Little ones, most restricted</div></div>
-          <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('under40',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-            <span id="obTierUnder40" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
-            <button onclick="obAdjTier('under40',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
-          <div><div style="font-size:14px;font-weight:600;color:#071E25;">40 in. to 48 in.</div><div style="font-size:12px;color:#4A6670;">Kids, most rides open</div></div>
-          <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('h40to48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-            <span id="obTierH40to48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
-            <button onclick="obAdjTier('h40to48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;">
-          <div><div style="font-size:14px;font-weight:600;color:#071E25;">48 in. and up</div><div style="font-size:12px;color:#4A6670;">Teens and adults, all rides</div></div>
-          <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('over48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-            <span id="obTierOver48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">2</span>
-            <button onclick="obAdjTier('over48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-          </div>
-        </div>
-        <div id="obGroupTotal" style="text-align:right;font-size:13px;color:#1A6860;font-weight:600;margin-top:8px;">Total: 2 people</div>
-      </div>
-
-      <div class="ob-field">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div><div style="font-size:14px;font-weight:600;color:#071E25;">Accessibility / mobility needs</div></div>
-          <button id="obAccessToggle" onclick="obToggleAccess()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span></button>
-        </div>
-        <div id="obAccessArea" style="display:none;margin-top:12px;">
-          <textarea id="obAccessText" placeholder="Tell us what we should know" rows="3" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;resize:none;"></textarea>
-        </div>
-      </div>
-
-      <div class="ob-field">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#071E25;">Afternoon break</div>
-            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Helps AI schedule rest time and plan your evening energy</div>
-          </div>
-          <button id="obBreakToggle" onclick="obToggleBreak()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEPS 3-8: Placeholders -->
-    <div id="obStep3New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 3</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep4New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 4</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep5New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 5</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep6New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 6</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep7New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 7</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
-    <div id="obStep8New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 8</h2><p style="font-size:14px;color:#4A6670;">Coming in session B3.</p></div>
-
-  </div>
-
-  <!-- Sticky Next button -->
-  <div id="obFooter" style="position:fixed;bottom:0;left:0;right:0;padding:16px 20px;background:#EEF5F4;box-shadow:0 -2px 12px rgba(7,30,37,0.08);">
-    <div style="max-width:480px;margin:0 auto;">
-      <button id="obNextBtn" onclick="obNext()" style="width:100%;padding:16px;background:#1A6860;border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s;">Next</button>
-    </div>
-  </div>
-
-</div>
 <style>
 .ob-field{margin-bottom:20px}.ob-label{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px}.ob-input{width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-size:15px;font-family:'Outfit',sans-serif;outline:none;box-sizing:border-box;-webkit-appearance:none}.ob-input:focus{border-color:rgba(82,195,175,0.7)}.ob-input::placeholder{color:rgba(255,255,255,0.3)}.ob-input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.7)}.ob-pills{display:flex;flex-wrap:wrap;gap:8px}.ob-pill{padding:9px 15px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.6);font-size:13px;font-family:'Outfit',sans-serif;cursor:pointer;transition:all 0.15s;user-select:none;-webkit-user-select:none}.ob-pill:active{transform:scale(0.97)}.ob-pill.ob-pill-sel{background:rgba(82,195,175,0.18);border-color:#52C3AF;color:#52C3AF;font-weight:600}.ob-next-btn{width:100%;background:#52C3AF;color:#0D1B2A;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;transition:opacity 0.15s;display:block}.ob-next-btn:active{opacity:0.85}.ob-back-btn{width:100%;background:transparent;color:rgba(255,255,255,0.4);border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;font-size:14px;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:8px;display:block}.ob-build-btn{width:100%;background:#C86030;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;transition:opacity 0.15s;display:block}.ob-build-btn:active{opacity:0.85}
 </style>
@@ -5939,5 +5770,176 @@ function handleWaitSpikeReroute() {
 setInterval(checkForWaitSpikes, 5 * 60 * 1000);
 // First check after 30 seconds on load (gives wait times time to load)
 setTimeout(checkForWaitSpikes, 30000);
-</script></body>
+</script>
+<div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:#EEF5F4;overflow-y:auto;font-family:'Outfit',sans-serif;">
+  <!-- Progress bar + header -->
+  <div id="obHeader" style="position:sticky;top:0;background:#EEF5F4;z-index:2;padding:16px 20px 0;">
+    <!-- Back button -->
+    <button id="obBackBtn" onclick="obBack()" style="display:none;background:none;border:none;cursor:pointer;padding:0;margin-bottom:12px;color:#1A6860;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="vertical-align:middle;margin-right:4px;"><path d="M10 12L6 8l4-4" stroke="#1A6860" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
+    </button>
+    <!-- Step label -->
+    <div id="obStepLabel" style="text-align:center;font-size:11px;color:#1A6860;letter-spacing:0.08em;font-weight:500;margin-bottom:8px;text-transform:uppercase;opacity:0.8;">Step 1 of 8</div>
+    <!-- Progress bar -->
+    <div style="height:3px;background:rgba(26,104,96,0.15);border-radius:2px;overflow:hidden;">
+      <div id="obProgressBar" style="height:100%;background:#1A6860;border-radius:2px;transition:width 0.35s ease;width:12.5%;"></div>
+    </div>
+  </div>
+
+  <!-- Step content -->
+  <div style="padding:24px 20px 120px;max-width:480px;margin:0 auto;">
+
+    <!-- STEP 1: Trip Basics -->
+    <div id="obStep1" class="ob-step">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Let's plan your trip.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">Tell us the basics and we'll build your park plan.</p>
+
+      <!-- Trip name -->
+      <div class="ob-field">
+        <label class="ob-label" for="obTripNameNew">Trip name</label>
+        <input id="obTripNameNew" type="text" value="Our Disneyland Trip" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;color:#071E25;background:#fff;outline:none;" />
+      </div>
+
+      <!-- Park selection -->
+      <div class="ob-field">
+        <label class="ob-label">Which park(s)?</label>
+        <div id="obParkSelect" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onclick="obTogglePark(this,'Disneyland')" data-park="Disneyland" class="ob-park-btn ob-park-active" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid #1A6860;border-radius:10px;background:#1A6860;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disneyland</button>
+          <button onclick="obTogglePark(this,'DCA')" data-park="DCA" class="ob-park-btn" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid rgba(26,104,96,0.3);border-radius:10px;background:#fff;color:#1A6860;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disney California Adventure</button>
+        </div>
+      </div>
+
+      <!-- Start date -->
+      <div class="ob-field">
+        <label class="ob-label" for="obStartDate">Start date</label>
+        <input id="obStartDate" type="date" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;color:#071E25;background:#fff;outline:none;" />
+      </div>
+
+      <!-- Number of days stepper -->
+      <div class="ob-field">
+        <label class="ob-label">Number of days</label>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <button onclick="obAdjDays(-1)" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
+            <svg width="16" height="2" viewBox="0 0 16 2" fill="none"><rect y="0" width="16" height="2" rx="1" fill="#1A6860"/></svg>
+          </button>
+          <span id="obDayCount" style="font-size:22px;font-weight:700;color:#071E25;min-width:32px;text-align:center;">3</span>
+          <button onclick="obAdjDays(1)" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="7" y="0" width="2" height="16" rx="1" fill="#1A6860"/><rect y="7" width="16" height="2" rx="1" fill="#1A6860"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Per-day park assignment -->
+      <div id="obDayRowsWrap" class="ob-field" style="display:none;">
+        <label class="ob-label">Day-by-day park</label>
+        <div id="obDayRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Park hopping toggle -->
+      <div id="obHopWrap" class="ob-field" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Park hopping</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Visit both parks in one day</div>
+          </div>
+          <button id="obHopToggle" onclick="obToggleHop()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Special events toggle -->
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Special events</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">After Hours, Mickey's Halloween Party, etc.</div>
+          </div>
+          <button id="obEventsToggle" onclick="obToggleEvents()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+        <div id="obEventsArea" style="display:none;margin-top:16px;">
+          <div id="obEventsList" style="display:flex;flex-direction:column;gap:12px;"></div>
+          <button onclick="obAddEvent()" style="margin-top:10px;background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:4px;"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>Add Event
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Your Group -->
+    <div id="obStep2New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Your group.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">We'll personalise ride routing and Lightning Lane picks.</p>
+
+      <div class="ob-field">
+        <label class="ob-label">Group headcount by height</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">Under 40 in.</div><div style="font-size:12px;color:#4A6670;">Little ones, most restricted</div></div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('under40',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+            <span id="obTierUnder40" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
+            <button onclick="obAdjTier('under40',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">40 in. to 48 in.</div><div style="font-size:12px;color:#4A6670;">Kids, most rides open</div></div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('h40to48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+            <span id="obTierH40to48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
+            <button onclick="obAdjTier('h40to48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;">
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">48 in. and up</div><div style="font-size:12px;color:#4A6670;">Teens and adults, all rides</div></div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('over48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+            <span id="obTierOver48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">2</span>
+            <button onclick="obAdjTier('over48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+          </div>
+        </div>
+        <div id="obGroupTotal" style="text-align:right;font-size:13px;color:#1A6860;font-weight:600;margin-top:8px;">Total: 2 people</div>
+      </div>
+
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">Accessibility / mobility needs</div></div>
+          <button id="obAccessToggle" onclick="obToggleAccess()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span></button>
+        </div>
+        <div id="obAccessArea" style="display:none;margin-top:12px;">
+          <textarea id="obAccessText" placeholder="Tell us what we should know" rows="3" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;resize:none;"></textarea>
+        </div>
+      </div>
+
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Afternoon break</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Helps AI schedule rest time and plan your evening energy</div>
+          </div>
+          <button id="obBreakToggle" onclick="obToggleBreak()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEPS 3-8: Placeholders -->
+    <div id="obStep3New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 3</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep4New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 4</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep5New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 5</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep6New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 6</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep7New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 7</h2><p style="font-size:14px;color:#4A6670;">Coming in session B2.</p></div>
+    <div id="obStep8New" class="ob-step" style="display:none;"><h2 style="font-size:22px;font-weight:700;color:#071E25;">Step 8</h2><p style="font-size:14px;color:#4A6670;">Coming in session B3.</p></div>
+
+  </div>
+
+  <!-- Sticky Next button -->
+  <div id="obFooter" style="position:fixed;bottom:0;left:0;right:0;padding:16px 20px;background:#EEF5F4;box-shadow:0 -2px 12px rgba(7,30,37,0.08);">
+    <div style="max-width:480px;margin:0 auto;">
+      <button id="obNextBtn" onclick="obNext()" style="width:100%;padding:16px;background:#1A6860;border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s;">Next</button>
+    </div>
+  </div>
+
+</div>
+</body>
 </html>
