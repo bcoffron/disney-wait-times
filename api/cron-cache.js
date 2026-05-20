@@ -32,6 +32,15 @@ allowOverwrite:true
 return blob.url;
 }
 
+function extractJson(text) {
+// Try to extract JSON from inside a markdown code fence first
+const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
+const candidate = fenceMatch ? fenceMatch[1] : text;
+const m = candidate.match(/\{[\s\S]+\}/);
+if(m) { try { return JSON.parse(m[0]); } catch(e) {} }
+return null;
+}
+
 async function build(key, apiKey) {
 const p=PROMPTS[key], useSearch=true;
 const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -46,8 +55,8 @@ for(const b of (d.content||[])) if(b.type==='text') text+=b.text;
 if(text.length<50) throw new Error('Response too short');
 let value = text;
 if(key==='park_hours_intel'||key==='character_intel') {
-const m = text.replace(/```[^]*?```/g,'').match(/\{[\s\S]+\}/);
-if(m) try{value=JSON.parse(m[0]);}catch(e){}
+const parsed = extractJson(text);
+if(parsed) value = parsed;
 }
 await blobStore(key, {data:value, ts:Date.now()});
 return {key, length:text.length};
