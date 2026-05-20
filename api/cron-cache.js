@@ -2,7 +2,7 @@ const { put, list, del } = require('@vercel/blob');
 const VALID_KEYS = ['park_intel','dining_intel','events_intel','park_hours_intel','character_intel'];
 const EXPIRY_DAYS = {park_intel:10,dining_intel:30,events_intel:7,park_hours_intel:7,character_intel:7};
 const PROMPTS = {
-park_intel:{system:'Disneyland expert. 2024-2026 only.',user:'Search TouringPlans AllEars MiceChat 2025-2026 for current Disneyland rope drop strategy, Lightning Lane Multi Pass order, late June crowds, top 10 tips, best times per land. Dense actionable guide.\n\n## Ã°ÂÂÂ¸ ICONIC PHOTO OP SPOTS Include a dedicated section covering the top 10Ã¢ÂÂ15 must-do photo op locations at Disneyland and DCA. For each spot include: - Location name and which land it\'s in - Best time of day (morning light, golden hour, after dark, etc.) - What to frame in the shot - How crowded it gets and when to go for the cleanest shot Cover both parks. Include: Sleeping Beauty Castle (morning and night), Main Street Hub, Big Thunder Mountain from Rivers of America, New Orleans Square balconies at golden hour, Tomorrowland with Space Mountain, Matterhorn from Fantasyland, Star Wars: Galaxy\'s Edge Millennium Falcon, Cars Land at night (DCA), Pixar Pier boardwalk, Pixar Pal-A-Round, Guardians of the Galaxy exterior, Avengers Campus, Buena Vista Street.',maxTokens:1500},
+park_intel:{system:'Disneyland expert. 2024-2026 only.',user:'Search TouringPlans AllEars MiceChat 2025-2026 for current Disneyland rope drop strategy, Lightning Lane Multi Pass order, late June crowds, top 10 tips, best times per land. Dense actionable guide.\n\n## ÃÂ°ÃÂÃÂÃÂ¸ ICONIC PHOTO OP SPOTS Include a dedicated section covering the top 10ÃÂ¢ÃÂÃÂ15 must-do photo op locations at Disneyland and DCA. For each spot include: - Location name and which land it\'s in - Best time of day (morning light, golden hour, after dark, etc.) - What to frame in the shot - How crowded it gets and when to go for the cleanest shot Cover both parks. Include: Sleeping Beauty Castle (morning and night), Main Street Hub, Big Thunder Mountain from Rivers of America, New Orleans Square balconies at golden hour, Tomorrowland with Space Mountain, Matterhorn from Fantasyland, Star Wars: Galaxy\'s Edge Millennium Falcon, Cars Land at night (DCA), Pixar Pier boardwalk, Pixar Pal-A-Round, Guardians of the Galaxy exterior, Avengers Campus, Buena Vista Street.',maxTokens:1500},
 dining_intel:{system:'Disneyland dining expert. 2024-2026 only.',user:'Search Disney Food Blog AllEars 2024-2026. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Circle Lamplight Lounge Flos V8 (DCA). Rating must-orders reservation tips each.',maxTokens:1500},
 events_intel:{system:'Disneyland events expert.',user:'Special events Disneyland June 25 - July 5 2026: ticketed events, closures, July 4th, shows, fireworks. Specific dates.',maxTokens:800},
 park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours June 25 to July 5 2026. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 11 dates.',maxTokens:1000},
@@ -33,14 +33,20 @@ return blob.url;
 }
 
 function extractJson(text) {
-// Try to extract JSON from inside a markdown code fence first
 const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
-const candidate = fenceMatch ? fenceMatch[1] : text;
-const m = candidate.match(/\{[\s\S]+\}/);
-if(m) { try { return JSON.parse(m[0]); } catch(e) {} }
+if(fenceMatch) { try { return JSON.parse(fenceMatch[1]); } catch(e) {} }
+const jsonStart = text.indexOf('{', text.indexOf('```') >= 0 ? text.indexOf('```') : 0);
+if(jsonStart < 0) return null;
+const candidate = text.substring(jsonStart);
+try { return JSON.parse(candidate); } catch(e) {}
+const entries = [...candidate.matchAll(/},\s*\n\s*\{/g)];
+if(entries.length > 0) {
+const last = entries[entries.length-1];
+const trimmed = candidate.substring(0, last.index+1) + '\n  ]\n}';
+try { return JSON.parse(trimmed); } catch(e) {}
+}
 return null;
 }
-
 async function build(key, apiKey) {
 const p=PROMPTS[key], useSearch=true;
 const resp = await fetch('https://api.anthropic.com/v1/messages', {
