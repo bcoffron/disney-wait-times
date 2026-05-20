@@ -333,8 +333,8 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   display: flex;
   flex-direction: column;
   background: #0B1A22;
-  overflow: hidden;
 }
+
 
 /* Hero artwork zone — sky gradient + castle */
 .splash-hero {
@@ -417,9 +417,22 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 20px 18px 10px;
+  overflow-y: auto;
+  padding: 20px 18px max(20px, env(safe-area-inset-bottom, 20px));
   background: #071E25;
   gap: 0;
+}
+
+
+/* Splash text colors */
+.splash-eyebrow {
+  color: rgba(255, 255, 255, 0.35);
+}
+.splash-title {
+  color: #FFFFFF;
+}
+.splash-desc {
+  color: rgba(255, 255, 255, 0.40);
 }
 
 /* ===== MISC / COMPATIBILITY STYLES ===== */
@@ -914,7 +927,8 @@ body.tw-guest .ai-opt-hero{display:none!important}
     </div>
   </div>
 </div>
-    </section>
+        <div style="height: 8px; flex-shrink: 0;"></div>
+  </section>
 
 </div>
 <div class="app" id="mainApp" style="display:none">
