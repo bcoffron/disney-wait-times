@@ -45,7 +45,7 @@ let text='';
 for(const b of (d.content||[])) if(b.type==='text') text+=b.text;
 if(text.length<50) throw new Error('Response too short');
 let value = text;
-if(key==='park_hours_intel') {
+if(key==='park_hours_intel'||key==='character_intel') {
 const m = text.replace(/```[^]*?```/g,'').match(/\{[\s\S]+\}/);
 if(m) try{value=JSON.parse(m[0]);}catch(e){}
 }
