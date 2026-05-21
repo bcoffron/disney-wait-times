@@ -21,7 +21,6 @@
 <base target="_blank">
 <title>Coffron/Woods Disneyland Trip</title>
 <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
-<script src="https://js.pusher.com/8.2/pusher.min.js"></script>
 
 <style>
 /* ===== SECTION 1: CSS CUSTOM PROPERTIES ===== */
@@ -2122,7 +2121,10 @@ function showScheduleToast(){
   setTimeout(function(){if(toast.parentNode)toast.parentNode.removeChild(toast);}, 3000);
 }
 
+const PUSHER_ENABLED = false; // Set to true to re-enable Pusher real-time sync
+
 async function initPusher(){
+  if (!PUSHER_ENABLED) return; // Pusher disabled — using Vercel Blob poll instead
   if(typeof Pusher === 'undefined') return;
   if(!window.PUSHER_KEY || !window.PUSHER_CLUSTER) {
     try {
@@ -2153,6 +2155,62 @@ async function initPusher(){
     });
   }catch(e){console.error('Pusher init error',e);}
 }
+
+// ===== VERCEL BLOB POLL — replaces Pusher real-time sync =====
+// Polls /api/trip every 10s for schedule + VIP notes updates
+// To re-enable Pusher: set PUSHER_ENABLED = true above and remove this poll
+
+var _blobPollInterval = null;
+var _blobPollLastHash = null;
+
+function startBlobPoll() {
+  if (_blobPollInterval) return;
+  _blobPollLastHash = null;
+  _blobPollInterval = setInterval(function() {
+    var code = localStorage.getItem('tpcp_code');
+    var role = localStorage.getItem('tpcp_role') || '';
+    if (!code) return;
+    fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code) + '&t=' + Date.now())
+      .then(function(resp) { return resp.ok ? resp.json() : null; })
+      .then(function(data) {
+        if (!data || !data.tripData) return;
+        var hash = JSON.stringify(data.tripData);
+        if (hash === _blobPollLastHash) return;
+        _blobPollLastHash = hash;
+        // Update schedule for guests
+        if (role === 'guest') {
+          if (typeof renderSched === 'function') renderSched(window.curDay || 1);
+          if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
+        }
+        // Update VIP notes on Day 2
+        var onDay2 = (window.curDay === 2) || (window.currentDay === 2);
+        if (onDay2) {
+          var rawNotes = data.tripData.vipNotes || data.tripData.vnNotes || null;
+          if (rawNotes && typeof vnApplySync === 'function') vnApplySync(rawNotes);
+        }
+      })
+      .catch(function() {});
+  }, 10000);
+}
+
+function stopBlobPoll() {
+  if (_blobPollInterval) {
+    clearInterval(_blobPollInterval);
+    _blobPollInterval = null;
+  }
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    stopBlobPoll();
+  } else {
+    var role = localStorage.getItem('tpcp_role') || '';
+    var onDay2 = (window.curDay === 2) || (window.currentDay === 2);
+    if (role === 'guest' || onDay2) startBlobPoll();
+  }
+});
+// ===== END VERCEL BLOB POLL =====
+
 
 
 function todayPT(){var d=new Date();var pt=new Date(d.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));var y=pt.getFullYear(),m=String(pt.getMonth()+1).padStart(2,'0'),day=String(pt.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
@@ -4163,6 +4221,19 @@ function setDay(d){
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
   renderClosed();renderSched();renderDayInfoBar();
   if(typeof renderVipBanner==='function')renderVipBanner(d);
+
+  // Blob poll: start/stop based on role and day
+  var _spRole = localStorage.getItem('tpcp_role') || '';
+  if (_spRole === 'guest') {
+    if (typeof startBlobPoll === 'function') startBlobPoll();
+  } else {
+    // Admin: only poll on Day 2 (VIP notes day)
+    if (d === 2) {
+      if (typeof startBlobPoll === 'function') startBlobPoll();
+    } else {
+      if (typeof stopBlobPoll === 'function') stopBlobPoll();
+    }
+  }
 }
 function setTab(t){
   ['tabSchedule','tabWaits','tabShows','tabChat','tabClosures','tabInfo'].forEach(function(id){
@@ -6043,6 +6114,12 @@ function enterSplash(skipAnim) {
     if (typeof scheduleWeatherCheck === 'function') scheduleWeatherCheck();
     if (typeof startNotesSync === 'function') startNotesSync();
     if (typeof initPusher === 'function') initPusher();
+    // Start blob poll on load (replaces Pusher sync while PUSHER_ENABLED = false)
+    if (typeof startBlobPoll === 'function') {
+      var _loadRole = localStorage.getItem('tpcp_role') || '';
+      var _loadDay = window.curDay || 1;
+      if (_loadRole === 'guest' || _loadDay === 2) startBlobPoll();
+    }
     if (typeof warmCachesFromServer === 'function') warmCachesFromServer();
     if (typeof doRefreshWaits === 'function') setTimeout(doRefreshWaits, 2000);
     if (typeof startWaitRefresh === 'function') setTimeout(startWaitRefresh, 10000);
