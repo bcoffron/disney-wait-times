@@ -5139,7 +5139,7 @@ function obRenderEvents() {
   var html = '';
   _obEvents.forEach(function(ev, i) {
     html += '<div style="background:#fff;border:1.5px solid rgba(26,104,96,0.2);border-radius:10px;padding:14px;position:relative;">';
-    html += '<button onclick="obRemoveEvent(' + i + ')" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;" aria-label="Remove event"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#C86030" stroke-width="2" stroke-linecap="round"/></svg></button>';
+    html += '<button onclick="obRemoveEvent(' + i + ')" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;" aria-label="Remove event"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="rgba(7,30,37,0.35)" stroke-width="2" stroke-linecap="round"/></svg></button>';
     html += '<input placeholder="Event name" value="' + (ev.name||'').replace(/"/g, '') + '" oninput="_obEvents[' + i + '].name=this.value" style="width:100%;box-sizing:border-box;border:none;border-bottom:1px solid rgba(26,104,96,0.2);padding:6px 0;font-family:Outfit,sans-serif;font-size:14px;color:#071E25;background:transparent;outline:none;margin-bottom:10px;" />';
     html += '<div style="display:flex;gap:10px;"><select oninput="_obEvents[' + i + '].day=parseInt(this.value)" style="flex:1;padding:8px 10px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;background:#fff;outline:none;">';
     for (var d = 0; d < _obDayCount; d++) { html += '<option value="' + d + '"' + (ev.day===d?' selected':'') + '>Day ' + (d+1) + '</option>'; }
@@ -5389,7 +5389,7 @@ function obRenderLLSPEntries() {
   var html = '';
   _obLLSPEntries.forEach(function(entry, i) {
     html += '<div style="background:#fff;border:1.5px solid rgba(26,104,96,0.2);border-radius:10px;padding:12px;position:relative;">';
-    html += '<button onclick="obRemoveLLSP(' + i + ')" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#C86030" stroke-width="2" stroke-linecap="round"/></svg></button>';
+    html += '<button onclick="obRemoveLLSP(' + i + ')" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="rgba(7,30,37,0.35)" stroke-width="2" stroke-linecap="round"/></svg></button>';
     html += '<div style="font-size:11px;color:#4A6670;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Ride</div>';
     html += '<select onchange="_obLLSPEntries[' + i + '].ride=this.value" style="width:100%;padding:9px 12px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;box-sizing:border-box;margin-bottom:8px;">';
     rides.forEach(function(r) {
@@ -5657,7 +5657,7 @@ function obRenderReservationEntries() {
     html += '<div style="background:#fff;border:1.5px solid rgba(26,104,96,0.2);border-radius:10px;padding:12px;position:relative;">';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
     html += '<span style="font-size:11px;color:#1A6860;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;">' + (typeLabels[entry.type] || entry.type) + '</span>';
-    html += '<button onclick="obRemoveReservation(' + i + ')" style="background:none;border:none;cursor:pointer;" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#C86030" stroke-width="2" stroke-linecap="round"/></svg></button>';
+    html += '<button onclick="obRemoveReservation(' + i + ')" style="background:none;border:none;cursor:pointer;" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="rgba(7,30,37,0.35)" stroke-width="2" stroke-linecap="round"/></svg></button>';
     html += '</div>';
     html += '<select onchange="_obReservations[' + i + '].name=this.value" style="width:100%;padding:9px 12px;border:1.5px solid rgba(26,104,96,0.2);border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;box-sizing:border-box;margin-bottom:8px;">';
     names.forEach(function(n) {
