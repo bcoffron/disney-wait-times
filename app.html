@@ -2049,9 +2049,9 @@ function startScheduleSync(){
     // Guest: pull API key first, then poll schedule
     pullApiKey();
     pullSchedule();
-    schedSyncInterval=setInterval(pullSchedule,2*60*1000);
-    // Re-check API key every 5 min in case admin sets it later
-    setInterval(pullApiKey,5*60*1000);
+    // NOTE: schedule polling interval removed — _blobPollInterval handles sync via /api/trip
+    // schedSyncInterval=setInterval(pullSchedule,2*60*1000); // DISABLED
+    // setInterval(pullApiKey,5*60*1000); // DISABLED
   }
 }
 
@@ -2089,7 +2089,8 @@ async function pullVipNotes(){
 
 function startNotesSync(){
   pullVipNotes();
-  notesSyncInterval=setInterval(pullVipNotes,30*1000);
+  // NOTE: vipnotes polling interval removed — _blobPollInterval handles sync via /api/trip
+  // notesSyncInterval=setInterval(pullVipNotes,30*1000); // DISABLED
 }
 
 function applyScheduleUpdate(day, schedule){
@@ -2167,6 +2168,11 @@ function startBlobPoll() {
   if (_blobPollInterval) return;
   _blobPollLastHash = null;
   _blobPollInterval = setInterval(function() {
+    // Inactivity guard: stop poll after 30 minutes of no user interaction
+    if (Date.now() - _lastActivity > 30 * 60 * 1000) {
+      stopBlobPoll();
+      return;
+    }
     var code = localStorage.getItem('tpcp_code');
     var role = localStorage.getItem('tpcp_role') || '';
     if (!code) return;
@@ -2209,6 +2215,16 @@ document.addEventListener('visibilitychange', function() {
     if (role === 'guest' || onDay2) startBlobPoll();
   }
 });
+// Activity tracking for inactivity timeout
+var _lastActivity = Date.now();
+document.addEventListener('touchstart', function() { _lastActivity = Date.now(); }, { passive: true });
+document.addEventListener('click', function() { _lastActivity = Date.now(); });
+
+// Stop poll on page unload
+window.addEventListener('beforeunload', function() {
+  stopBlobPoll();
+});
+
 // ===== END VERCEL BLOB POLL =====
 
 
