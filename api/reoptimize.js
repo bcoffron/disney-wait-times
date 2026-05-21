@@ -19,6 +19,41 @@ async function getCacheSlice(key, maxChars = 4000) {
   }
 }
 
+async function getCharacterIntel() {
+  try {
+    const { blobs } = await list({ prefix: 'twize/character_intel.json' });
+    if (!blobs || blobs.length === 0) return null;
+    const blob = blobs[0];
+    const fetchUrl = blob.downloadUrl || blob.url;
+    const dataResp = await fetch(fetchUrl);
+    if (!dataResp.ok) return null;
+    const text = await dataResp.text();
+    const parsed = JSON.parse(text);
+    if (!parsed || !parsed.data) return null;
+    const dataObj = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
+    const disclaimer = dataObj.disclaimer || 'Character schedules are planned in advance but can change without notice. Check with a cast member on the day.';
+    const characters = Array.isArray(dataObj.characters) ? dataObj.characters : [];
+    return { disclaimer, characters };
+  } catch (e) {
+    console.error('Character intel fetch error:', e.message);
+    return null;
+  }
+}
+
+function buildCharacterContext(charIntel, maxChars) {
+  if (!charIntel) return null;
+  const { disclaimer, characters } = charIntel;
+  if (!characters.length) return null;
+  const lines = [];
+  for (const c of characters) {
+    const windows = Array.isArray(c.typicalWindows) ? c.typicalWindows.join(', ') : (c.typicalWindows || '');
+    lines.push('- ' + c.name + ' | ' + (c.location || '') + ' | Windows: ' + windows + ' | Typical wait: ' + (c.typicalWait || 0) + ' min');
+  }
+  const body = lines.join('\n');
+  const full = 'CHARACTER INTEL (from cache — do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nCharacter windows to avoid conflicts:\n' + body;
+  return full.substring(0, maxChars);
+}
+
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -43,14 +78,21 @@ async function handler(req, res) {
       .trim()
       .substring(0, 1500);
 
-    const parkIntel = await getCacheSlice('park_intel', 3000);
+    const [parkIntel, charIntel] = await Promise.all([
+      getCacheSlice('park_intel', 3000),
+      getCharacterIntel()
+    ]);
 
-    // Use Haiku for speed — full schedule must complete within 30s Vercel limit
+    const charContext = buildCharacterContext(charIntel, 2000);
+
     const model = 'claude-haiku-4-5-20251001';
-    let system = 'You are a Disneyland schedule optimizer. Output ONLY raw JSON, no markdown, no explanation. Required format: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence"} Return ALL entries for the full day — do not truncate.';
+    let system = 'You are a Disneyland schedule optimizer. Output ONLY raw JSON, no markdown, no explanation. Required format: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence"} Return ALL entries for the full day — do not truncate. Preserve all character meet entries (type: "character") in their correct positions relative to other entries. Never schedule a character meet outside their listed appearance windows.';
 
     if (parkIntel) {
       system += '\n\n=== PARK INTELLIGENCE ===\n' + parkIntel;
+    }
+    if (charContext) {
+      system += '\n\n=== ' + charContext + ' ===';
     }
 
     const existingSectionsStr = existingSections ? existingSections.substring(0, 5000) : null;
@@ -59,7 +101,7 @@ async function handler(req, res) {
       : 'Build optimized full-day plan. JSON only.\n' + cleanPrompt;
 
     function normalizeEntry(e) {
-      return { t: e.t || e.time || '', h: e.h || e.name || e.title || e.attraction || '', type: e.type || 'ride', n: e.n || e.note || e.tip || e.description || '', land: e.land || '' };
+      return { t: e.t || e.time || '', h: e.h || e.name || e.title || e.attraction || '', type: e.type || 'ride', n: e.n || e.note || e.tip || e.description || '', land: e.land || '', ...(e.type === 'character' ? { typicalWait: e.typicalWait || 0, vipAccessible: !!e.vipAccessible, disclaimer: true } : {}) };
     }
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -74,7 +116,7 @@ async function handler(req, res) {
       return res.status(500).json({ error: data.error.message || JSON.stringify(data.error) });
     }
 
-    console.log('model:', data.model, 'stop:', data.stop_reason, 'park_intel:', !!parkIntel);
+    console.log('model:', data.model, 'stop:', data.stop_reason, 'park_intel:', !!parkIntel, 'char_intel:', !!charIntel);
 
     let text = '';
     for (const block of (data.content || [])) {
@@ -83,7 +125,6 @@ async function handler(req, res) {
 
     if (!text) return res.status(200).json({ error: 'Empty response', stop_reason: data.stop_reason });
 
-    // Extract JSON — handle fences or raw
     let parsed = null;
     const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)```/);
     if (fenceMatch) try { parsed = JSON.parse(fenceMatch[1].trim()); } catch(e) {}
