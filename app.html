@@ -1015,6 +1015,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span id="adminBadge" style="display:none;font-size:9px;font-weight:700;padding:3px 7px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#fff;border-radius:99px;letter-spacing:.04em">ADMIN</span>
+        <span id="obSetupPill" onclick="obOpenFromNudge()" style="display:none;background:#ECA050;color:#071E25;font-family:'Outfit',sans-serif;font-size:8px;font-weight:700;border-radius:20px;padding:2px 8px;cursor:pointer;margin-left:4px;">Setup incomplete</span>
         <button onclick="doShareText()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;display:flex">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
@@ -1062,8 +1063,17 @@ body.tw-guest .ai-opt-hero{display:none!important}
       <div id="guestSyncNote" style="display:none;font-size:11px;color:var(--text-dim);text-align:center;padding:6px;margin-bottom:6px"></div>
 
       <!-- ===== SECTION 4: AI OPTIMIZE HERO BUTTON ===== -->
-      <button class="ai-opt-hero" id="aiOptHero" onclick="reoptimize()"><div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;background:rgba(255,255,255,0.18);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div style="font-size:11px;font-weight:700;color:#fff">AI Optimize Your Schedule</div><div style="font-size:8px;font-weight:400;color:rgba(255,255,255,0.65);margin-top:1px">Re-routes around live wait times</div></div></div><span style="font-size:14px;color:rgba(255,255,255,0.75)">&rarr;</span></button>
+      <button class="ai-opt-hero" id="aiOptHero" onclick="aiOptGated()"><div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;background:rgba(255,255,255,0.18);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div style="font-size:11px;font-weight:700;color:#fff">AI Optimize Your Schedule</div><div style="font-size:8px;font-weight:400;color:rgba(255,255,255,0.65);margin-top:1px">Re-routes around live wait times</div></div></div><span style="font-size:14px;color:rgba(255,255,255,0.75)">&rarr;</span></button>
 <button class="ai-opt-hero" id="vipAiOptBtn" onclick="reoptimize()" style="display:none"><div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;background:rgba(255,255,255,0.18);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div><div style="font-size:11px;font-weight:700;color:#fff">AI Optimize morning &amp; evening</div><div style="font-size:8px;font-weight:400;color:rgba(255,255,255,0.65);margin-top:1px">Re-routes your pre-tour and evening rides</div></div></div><span style="font-size:14px;color:rgba(255,255,255,0.75)">&rarr;</span></button>
+
+      <!-- ===== NUDGE BANNER (admin, onboarding incomplete) ===== -->
+      <div id="obNudgeBanner" onclick="obOpenFromNudge()" style="display:none;background:#1A6860;border-radius:10px;padding:11px 13px;margin:0 10px 7px;display:none;align-items:center;justify-content:space-between;cursor:pointer;">
+        <span style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:#fff;flex:1;">You've got a starting schedule. Tell us about your group and AI will make your park visit magic &#8594;</span>
+      </div>
+      <!-- ===== AI OPTIMIZE GATE MESSAGE ===== -->
+      <div id="obAiGateMsg" onclick="obOpenFromNudge()" style="display:none;font-size:10px;color:#4A6670;text-align:center;padding:4px 0;cursor:pointer;">Complete your trip setup so AI has what it needs &#8594;</div>
+
+
 
       <!-- ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== -->
       <div class="reopt-box" id="reoptBox">
@@ -1198,7 +1208,15 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
     <!-- INFO TAB -->
     <div id="tabInfo" style="display:none">
-      
+      <div style="padding:16px;">
+        <!-- Edit Trip Details button (admin only) -->
+        <div id="editTripDetailsRow" style="display:none;margin-bottom:12px;">
+          <button onclick="openEditTripDetails()" style="background:transparent;border:1px solid rgba(7,30,37,0.15);border-radius:8px;padding:6px 10px;font-size:9px;font-weight:600;color:#4A7A7C;font-family:'Outfit',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg>
+            Edit trip details
+          </button>
+        </div>
+      </div>
     </div>
 
   </div><!-- /content -->
@@ -1542,10 +1560,22 @@ function checkLock(){
           if(d.role==='guest'){
             enterSplash(true);
           } else if(d.hasTrip){
+            // Check trial/subscription status
+            if(typeof checkTrialStatus==='function') checkTrialStatus(d);
+            // Show nudge banner for admin if onboarding not complete
+            if(typeof nudgeCheckAndShow==='function') setTimeout(nudgeCheckAndShow,300);
+            // Show edit trip details button for admin
+            if(typeof isAdmin==='function'&&isAdmin()){var etr=document.getElementById('editTripDetailsRow');if(etr)etr.style.display='block';}
             enterSplash(true);
           } else {
-            enterSplash(true);
-            launchOnboarding(tpcpCode,d.role,d.tripId||'');
+            // Guest role with no trip data
+            var guestRole=localStorage.getItem('tpcp_role')||'';
+            if(guestRole==='guest'){
+              if(typeof showGuestWaitingScreen==='function') showGuestWaitingScreen(d.tripName||'');
+            } else {
+              enterSplash(true);
+              launchOnboarding(tpcpCode,d.role,d.tripId||'');
+            }
           }
         })
         .catch(function(){
@@ -5006,6 +5036,7 @@ function obGoTo(step) {
   if (step === 5) obInitStep5();
   if (step === 6) obInitStep6();
   if (step === 7) obInitStep7();
+  if (step === 8) { setTimeout(function(){ ob8RenderSummary(); }, 50); }
 }
 function obNext() {
   if (_obCurrentStep === 1) {
@@ -5034,9 +5065,121 @@ function obBack() {
 }
 
 function obFinish() {
+  // Render step 8 summary before showing generate state
+  ob8RenderSummary();
+  // Show loading state in footer - replace button with sequential messages
+  var footer = document.getElementById('obFooter');
+  if (!footer) return;
+  var loadingHtml = '<div id="ob8Loading" style="max-width:480px;margin:0 auto;padding:12px 0;text-align:center;">' +
+    '<p id="ob8Msg" style="font-size:13px;color:#4A6670;margin:0;text-align:center;">Checking park conditions for your dates...</p>' +
+    '</div>';
+  var btn = footer.querySelector('#obNextBtn');
+  if (btn) btn.style.display = 'none';
+  var existLoad = document.getElementById('ob8Loading');
+  if (!existLoad) { var d = document.createElement('div'); d.innerHTML = loadingHtml; footer.appendChild(d.firstChild); }
+  // Sequential messages
+  var msgs = [
+    { delay: 1500, text: 'Building around your reservations...' },
+    { delay: 3000, text: 'Optimising for your group...' },
+    { delay: 4500, text: 'Almost ready...' }
+  ];
+  msgs.forEach(function(m) {
+    setTimeout(function() {
+      var el = document.getElementById('ob8Msg');
+      if (el) el.textContent = m.text;
+    }, m.delay);
+  });
+  // After 5.5s save trip and enter app
+  setTimeout(function() {
+    ob8SaveAndEnter();
+  }, 5500);
+}
+
+function ob8RenderSummary() {
+  var cfg = _obTripConfig || {};
+  var card = document.getElementById('ob8SummaryCard');
+  if (!card) return;
+  var lines = [];
+  // Days and park
+  if (cfg.park && cfg.days && cfg.startDate) {
+    var sd = cfg.startDate ? new Date(cfg.startDate + 'T12:00:00') : null;
+    var dateStr = sd ? sd.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
+    lines.push(cfg.days + ' day' + (cfg.days !== 1 ? 's' : '') + ' at ' + (cfg.park === 'both' ? 'Disneyland + DCA' : cfg.park) + (dateStr ? ' · ' + dateStr : ''));
+  }
+  // Group
+  var u40 = parseInt(cfg.under40) || 0;
+  var h4048 = parseInt(cfg.h40to48) || 0;
+  var o48 = parseInt(cfg.over48) || 0;
+  var total = u40 + h4048 + o48;
+  if (total > 0) {
+    var groupParts = [total + ' guest' + (total !== 1 ? 's' : '')];
+    if (u40 > 0) groupParts.push(u40 + ' little one' + (u40 !== 1 ? 's' : ''));
+    if (h4048 > 0) groupParts.push(h4048 + ' kid' + (h4048 !== 1 ? 's' : ''));
+    if (o48 > 0) groupParts.push(o48 + ' adult' + (o48 !== 1 ? 's' : ''));
+    lines.push(groupParts.join(' · '));
+  }
+  // Intensity and pace
+  if (cfg.intensity || cfg.pace) {
+    var iStr = cfg.intensity || '';
+    var pStr = cfg.pace || '';
+    var ipStr = [iStr, pStr].filter(Boolean).join(' intensity · ') + (iStr && !pStr ? ' intensity' : (pStr && !iStr ? ' pace' : ' pace'));
+    if (cfg.afternoonBreak) ipStr += ' · Afternoon break';
+    lines.push(ipStr);
+  }
+  // Must-dos
+  if (cfg.mustDo) lines.push('Must-dos: ' + cfg.mustDo);
+  // Avoiding
+  if (cfg.avoid) lines.push('Avoiding: ' + cfg.avoid);
+  // Lightning Lane
+  if (cfg.multiPass) {
+    var llStr = 'Lightning Lane Multi Pass';
+    if (cfg.singlePass && cfg.singlePass.length > 0) llStr += ' · ' + cfg.singlePass.length + ' LLSP reservation' + (cfg.singlePass.length !== 1 ? 's' : '');
+    lines.push(llStr);
+  }
+  // Characters
+  if (cfg.charPriority !== 'skip' && cfg.charCategories && cfg.charCategories.length > 0) {
+    lines.push('Characters: ' + cfg.charCategories.join(', '));
+  }
+  // Reservations
+  if (cfg.reservations && cfg.reservations.length > 0) {
+    lines.push(cfg.reservations.length + ' reservation' + (cfg.reservations.length !== 1 ? 's' : ''));
+  }
+  // Must-see shows
+  if (cfg.mustSeeShows && cfg.mustSeeShows.length > 0) {
+    lines.push('Must-see: ' + cfg.mustSeeShows.join(', '));
+  }
+  card.innerHTML = lines.map(function(l) {
+    return '<div style="font-size:13px;color:#071E25;line-height:1.6;">' + l + '</div>';
+  }).join('');
+  // Show trial note if applicable
+  var tripStatus = window._tripRegistryStatus || '';
+  var trialNote = document.getElementById('ob8TrialNote');
+  if (trialNote) trialNote.style.display = tripStatus === 'trial' ? 'block' : 'none';
+}
+
+function ob8SaveAndEnter() {
+  var tripId = localStorage.getItem('tpcp_tripId') || window._obTripId;
+  if (!tripId) {
+    ob8Complete();
+    return;
+  }
+  fetch(SYNC_BASE + '/api/trip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'savetrip', tripId: tripId, data: _obTripConfig })
+  }).then(function() { ob8Complete(); }).catch(function() { ob8Complete(); });
+}
+
+function ob8Complete() {
   try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
   var ov = document.getElementById('onboardingOverlay');
   if (ov) ov.style.display = 'none';
+  // Hide nudge banner and header pill permanently
+  var nudge = document.getElementById('obNudgeBanner');
+  if (nudge) nudge.style.display = 'none';
+  var pill = document.getElementById('obSetupPill');
+  if (pill) pill.style.display = 'none';
+  if (typeof enterSplash === 'function') enterSplash(true);
 }
 
 function obTogglePark(btn, park) {
@@ -6720,6 +6863,16 @@ setTimeout(checkForWaitSpikes, 30000);
       </div>
     </div>
 
+
+  <!-- ===== STEP 8: DONE SCREEN ===== -->
+  <div id="obStep8New" class="ob-step" style="display:none;">
+    <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">You're all set.</h2>
+    <p style="font-size:14px;color:#4A6670;margin:0 0 20px;">Here's what I know about your trip.</p>
+    <div id="ob8SummaryCard" style="background:#fff;border:1.5px solid rgba(26,104,96,0.2);border-radius:12px;padding:14px;margin-bottom:16px;"></div>
+    <p style="font-size:13px;color:#4A6670;line-height:1.5;margin:0 0 12px;">I'll build your schedule around your reservations, your group's needs, and what I know about the park on your dates.</p>
+    <p id="ob8TrialNote" style="font-size:12px;color:#4A6670;margin:0 0 16px;display:none;">Your first 2 days are ready. Subscribe to unlock the rest of your trip.</p>
+  </div>
+
   </div>
 
   <!-- Sticky Next button -->
@@ -6730,5 +6883,270 @@ setTimeout(checkForWaitSpikes, 30000);
   </div>
 
 </div>
+
+  <!-- ===== SESSION B3 ADDITIONS ===== -->
+  <script>
+  // ------- PART 2: NUDGE BANNER SYSTEM -------
+  window._tripRegistryStatus = '';
+
+  function obOpenFromNudge() {
+    var ov = document.getElementById('onboardingOverlay');
+    if (ov) {
+      ov.style.display = 'block';
+      if (typeof obGoTo === 'function') {
+        obGoTo(window._obCurrentStep || 1);
+      }
+    }
+  }
+
+  function nudgeCheckAndShow() {
+    var role = localStorage.getItem('tpcp_role') || sessionStorage.getItem('twRole') || '';
+    var done = localStorage.getItem('tpcp_onboardingComplete');
+    var banner = document.getElementById('obNudgeBanner');
+    var pill = document.getElementById('obSetupPill');
+    var gateMsg = document.getElementById('obAiGateMsg');
+    if (done === 'true' || role === 'guest') {
+      if (banner) banner.style.display = 'none';
+      if (pill) pill.style.display = 'none';
+      return;
+    }
+    if (banner) { banner.style.display = 'flex'; }
+    if (pill) { pill.style.display = 'inline-block'; }
+  }
+
+  function aiOptGated() {
+    var done = localStorage.getItem('tpcp_onboardingComplete');
+    if (done === 'true') {
+      if (typeof reoptimize === 'function') reoptimize();
+      return;
+    }
+    var gateMsg = document.getElementById('obAiGateMsg');
+    if (gateMsg) {
+      gateMsg.style.display = 'block';
+    }
+  }
+
+  // ------- PART 3: EDIT TRIP DETAILS -------
+  function openEditTripDetails() {
+    var existing = document.getElementById('editTripDetailsOverlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'editTripDetailsOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:#EEF5F4;overflow-y:auto;font-family:Outfit,sans-serif;';
+    var cfg = window._obTripConfig || {};
+    var totalGuests = (parseInt(cfg.under40)||0) + (parseInt(cfg.h40to48)||0) + (parseInt(cfg.over48)||0);
+    var reservCount = (cfg.reservations && cfg.reservations.length) || 0;
+    var singleCount = (cfg.singlePass && cfg.singlePass.length) || 0;
+    var sections = [
+      { name: 'Trip Basics', summary: (cfg.tripName || 'Trip') + ' · ' + (cfg.days || 0) + ' day' + ((cfg.days !== 1) ? 's' : ''), step: 1 },
+      { name: 'Your Group', summary: totalGuests + ' guest' + (totalGuests !== 1 ? 's' : ''), step: 2 },
+      { name: 'Ride Preferences', summary: [(cfg.intensity || ''), (cfg.pace || '')].filter(Boolean).join(' · ') || 'Not set', step: 3 },
+      { name: 'Lightning Lane', summary: (cfg.multiPass ? 'Multi Pass on' : 'Multi Pass off') + (singleCount > 0 ? ' · ' + singleCount + ' LLSP' : ''), step: 4 },
+      { name: 'Character Meets', summary: cfg.charPriority || 'Not set', step: 5 },
+      { name: 'Reservations', summary: reservCount > 0 ? reservCount + ' reservation' + (reservCount !== 1 ? 's' : '') : 'None added', step: 6 },
+      { name: 'Shows & Entertainment', summary: cfg.parades ? cfg.parades + ' parades' : 'Not set', step: 7 }
+    ];
+    var rowsHtml = sections.map(function(s) {
+      return '<div onclick="editTripGoToStep(' + s.step + ')" style="display:flex;align-items:center;padding:14px 16px;border-bottom:0.5px solid rgba(7,30,37,0.08);cursor:pointer;">' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:13px;color:#071E25;">' + s.name + '</div>' +
+          '<div style="font-size:12px;color:#4A6670;margin-top:2px;">' + s.summary + '</div>' +
+        '</div>' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A6670" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>' +
+      '</div>';
+    }).join('');
+    overlay.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:20px 16px 12px;border-bottom:0.5px solid rgba(7,30,37,0.08);">' +
+      '<div style="font-size:16px;font-weight:700;color:#071E25;">Edit Trip Details</div>' +
+      '<button onclick="closeEditTripDetails()" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#071E25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+      '</button>' +
+    '</div>' +
+    '<div>' + rowsHtml + '</div>' +
+    '<div id="rebuildCtaArea" style="padding:16px;display:none;">' +
+      '<button onclick="rebuildSchedule()" style="width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;">Rebuild my schedule with these changes &#8594;</button>' +
+      '<p style="font-size:11px;color:#4A6670;line-height:1.4;text-align:center;margin:8px 0 0;">I'll keep your reservations and Lightning Lane times locked in and rebuild everything else around your changes.</p>' +
+    '</div>';
+    document.body.appendChild(overlay);
+  }
+
+  function closeEditTripDetails() {
+    var overlay = document.getElementById('editTripDetailsOverlay');
+    if (overlay) overlay.remove();
+  }
+
+  window._editTripDirty = false;
+
+  function editTripGoToStep(step) {
+    closeEditTripDetails();
+    var ov = document.getElementById('onboardingOverlay');
+    if (ov) {
+      ov.style.display = 'block';
+      if (typeof obGoTo === 'function') {
+        window._editTripReturnMode = true;
+        obGoTo(step);
+        // Show back button that returns to jump list
+        var backBtn = document.getElementById('obBackBtn');
+        if (backBtn) {
+          backBtn.style.display = 'block';
+          backBtn._editMode = true;
+        }
+      }
+    }
+  }
+
+  function rebuildSchedule() {
+    var overlay = document.getElementById('editTripDetailsOverlay');
+    var rebuildArea = document.getElementById('rebuildCtaArea');
+    if (rebuildArea) {
+      rebuildArea.innerHTML = '<div id="rb8Loading" style="text-align:center;padding:12px 0;">' +
+        '<p id="rb8Msg" style="font-size:13px;color:#4A6670;margin:0 0 4px;">Checking park conditions for your dates...</p>' +
+        '</div>';
+    }
+    var msgs2 = [
+      { delay: 1500, text: 'Building around your reservations...' },
+      { delay: 3000, text: 'Optimising for your group...' },
+      { delay: 4500, text: 'Almost ready...' }
+    ];
+    msgs2.forEach(function(m) {
+      setTimeout(function() {
+        var el = document.getElementById('rb8Msg');
+        if (el) el.textContent = m.text;
+      }, m.delay);
+    });
+    var tripId = localStorage.getItem('tpcp_tripId') || window._obTripId;
+    setTimeout(function() {
+      fetch(SYNC_BASE + '/api/trip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'savetrip', tripId: tripId, data: window._obTripConfig })
+      }).then(function() {
+        closeEditTripDetails();
+        if (typeof renderSched === 'function') renderSched(window.curDay || 1);
+      }).catch(function() {
+        closeEditTripDetails();
+      });
+    }, 5500);
+  }
+
+  // ------- PART 4: TRIAL GATE -------
+  function checkTrialStatus(tripData) {
+    if (!tripData) return;
+    var status = tripData.status || tripData.registryStatus || '';
+    window._tripRegistryStatus = status;
+    if (status === 'trial') {
+      checkTrialReminders(tripData);
+      var limit = tripData.trialDaysLimit || 2;
+    } else if (status === 'soft_wall') {
+      showSoftWall();
+    } else if (status === 'expired') {
+      showHardWall();
+    }
+  }
+
+  function checkTrialReminders(tripData) {
+    if (!tripData.trialStartDate) return;
+    var start = new Date(tripData.trialStartDate);
+    var now = new Date();
+    var dayNum = Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
+    var popupKey = 'tpcp_popup_' + dayNum;
+    var alreadyShown = localStorage.getItem(popupKey);
+    if (alreadyShown) return;
+    var title = null, copy = null;
+    if (dayNum === 5) {
+      title = '5 days left';
+      copy = 'Loving the app so far? Your trial ends in 5 days. Subscribe anytime to unlock your full trip.';
+    } else if (dayNum === 7) {
+      title = 'Last day';
+      copy = 'Today is the last day of your trial. Subscribe before midnight to unlock all your trip days and keep everything you've built.';
+    }
+    if (title) {
+      localStorage.setItem(popupKey, '1');
+      showTrialPopup(title, copy);
+    }
+  }
+
+  function showTrialPopup(title, copy) {
+    var existing = document.getElementById('trialPopupOverlay');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'trialPopupOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10002;background:rgba(7,30,37,0.6);display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px 20px;max-width:320px;width:calc(100% - 40px);text-align:center;">' +
+      '<div style="font-size:18px;font-weight:700;color:#071E25;margin-bottom:10px;">' + title + '</div>' +
+      '<div style="font-size:13px;color:#4A6670;line-height:1.5;margin-bottom:20px;">' + copy + '</div>' +
+      '<button onclick="window.open('https://themeparkcopilot.com','_blank')" style="width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:10px;">Subscribe now &#8594;</button>' +
+      '<button onclick="document.getElementById('trialPopupOverlay').remove()" style="width:100%;background:transparent;border:1px solid rgba(7,30,37,0.15);border-radius:12px;padding:12px;font-family:Outfit,sans-serif;font-size:14px;font-weight:600;color:#4A6670;cursor:pointer;">Maybe later</button>' +
+    '</div>';
+    document.body.appendChild(overlay);
+  }
+
+  function showSoftWall() {
+    var existing = document.getElementById('softWallBanner');
+    if (existing) return;
+    var header = document.querySelector('.header');
+    if (!header) return;
+    var banner = document.createElement('div');
+    banner.id = 'softWallBanner';
+    banner.style.cssText = 'background:#071E25;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;';
+    banner.innerHTML = '<span style="font-size:11px;font-weight:600;color:#fff;flex:1;">Your trial has ended. Subscribe to unlock your full trip.</span>' +
+      '<button onclick="window.open('https://themeparkcopilot.com','_blank')" style="background:#C86030;border:none;border-radius:20px;padding:5px 12px;font-family:Outfit,sans-serif;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;margin-left:10px;">Subscribe &#8594;</button>';
+    header.parentNode.insertBefore(banner, header.nextSibling);
+    // Disable AI features
+    var aiOpt = document.getElementById('aiOptHero');
+    if (aiOpt) {
+      aiOpt.onclick = function() {
+        var existing = document.getElementById('softWallAiMsg');
+        if (!existing) {
+          var msg = document.createElement('div');
+          msg.id = 'softWallAiMsg';
+          msg.style.cssText = 'font-size:10px;color:#4A6670;text-align:center;padding:4px 0;';
+          msg.textContent = 'Your trial has ended — subscribe to continue using AI features';
+          aiOpt.parentNode.insertBefore(msg, aiOpt.nextSibling);
+        }
+      };
+    }
+  }
+
+  function showHardWall() {
+    var existing = document.getElementById('hardWallOverlay');
+    if (existing) return;
+    var overlay = document.createElement('div');
+    overlay.id = 'hardWallOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:#071E25;display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
+    overlay.innerHTML = '<div style="text-align:center;padding:40px 24px;max-width:320px;">' +
+      '<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:0;">Theme Park Co-Pilot</div>' +
+      '<div style="font-size:22px;font-weight:800;color:#fff;margin-top:32px;margin-bottom:12px;">Your trial has ended.</div>' +
+      '<div style="font-size:14px;color:rgba(255,255,255,0.60);line-height:1.5;margin-bottom:28px;">Subscribe to pick up right where you left off — your trip details are saved.</div>' +
+      '<button onclick="window.open('https://themeparkcopilot.com','_blank')" style="width:100%;background:#C86030;border:none;border-radius:12px;padding:16px;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;color:#fff;cursor:pointer;">Subscribe to unlock &#8594;</button>' +
+    '</div>';
+    document.body.appendChild(overlay);
+  }
+
+  // ------- PART 5: GROUP MEMBER WAITING SCREEN -------
+  function showGuestWaitingScreen(tripName) {
+    var existing = document.getElementById('guestWaitScreen');
+    if (existing) return;
+    var overlay = document.createElement('div');
+    overlay.id = 'guestWaitScreen';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:#EEF5F4;display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
+    overlay.innerHTML = '<div style="text-align:center;padding:40px 24px;max-width:320px;">' +
+      '<div style="font-size:18px;font-weight:700;color:#071E25;margin-bottom:0;">Theme Park Co-Pilot</div>' +
+      (tripName ? '<div style="font-size:18px;font-weight:700;color:#071E25;margin-top:16px;">' + tripName + '</div>' : '') +
+      '<div style="font-size:14px;color:#4A6670;line-height:1.5;margin-top:16px;max-width:280px;text-align:center;">Your trip is almost ready. Check back once your trip organizer has finished setting everything up.</div>' +
+    '</div>';
+    document.body.appendChild(overlay);
+  }
+
+  // ------- INIT: Run nudge check after app loads -------
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(nudgeCheckAndShow, 800);
+    // Show edit trip details button for admin
+    var editRow = document.getElementById('editTripDetailsRow');
+    if (editRow && typeof isAdmin === 'function' && isAdmin()) {
+      editRow.style.display = 'block';
+    }
+  });
+  </script>
 </body>
 </html>
