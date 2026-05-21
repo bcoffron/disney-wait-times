@@ -1,5 +1,5 @@
 // api/generateschedule.js
-// Routes generateFromSetup and aiChooseRides through Vercel with park_intel cache context
+// Routes generateFromSetup and aiChooseRides through Vercel with park_intel + character_intel cache context
 const { list } = require('@vercel/blob');
 
 async function getCacheSlice(key, maxChars = 4000) {
@@ -21,15 +21,55 @@ async function getCacheSlice(key, maxChars = 4000) {
   }
 }
 
+async function getCharacterIntel(maxChars = 4000) {
+  try {
+    const { blobs } = await list({ prefix: 'twize/character_intel.json' });
+    if (!blobs || blobs.length === 0) return null;
+    const blob = blobs[0];
+    const fetchUrl = blob.downloadUrl || blob.url;
+    const dataResp = await fetch(fetchUrl);
+    if (!dataResp.ok) return null;
+    const text = await dataResp.text();
+    const parsed = JSON.parse(text);
+    if (!parsed || !parsed.data) return null;
+    const dataObj = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
+    const disclaimer = dataObj.disclaimer || 'Character schedules are planned in advance but can change without notice. Check with a cast member on the day.';
+    const characters = Array.isArray(dataObj.characters) ? dataObj.characters : [];
+    return { disclaimer, characters };
+  } catch (e) {
+    console.error('Character intel fetch error:', e.message);
+    return null;
+  }
+}
+
+function buildCharacterContext(charIntel, tripConfig, maxChars) {
+  if (!charIntel) return null;
+  const { disclaimer, characters } = charIntel;
+  const pref = (tripConfig && tripConfig.characters) || {};
+  const priority = pref.priority || 'niceToHave';
+  if (priority === 'skip') return null;
+  const categories = pref.categories || null;
+  let filtered = characters;
+  if (categories && Array.isArray(categories) && categories.length > 0) {
+    filtered = characters.filter(c => categories.includes(c.category));
+  }
+  if (!filtered.length) filtered = characters.slice(0, 20);
+  const lines = [];
+  for (const c of filtered) {
+    const windows = Array.isArray(c.typicalWindows) ? c.typicalWindows.join(', ') : (c.typicalWindows || '');
+    lines.push('- ' + c.name + ' | ' + (c.location || '') + ' | Windows: ' + windows + ' | Typical wait: ' + (c.typicalWait || 0) + ' min' + (c.vipAccessible ? ' | VIP skip-line eligible' : ''));
+  }
+  const body = lines.join('\n');
+  const full = 'CHARACTER INTEL (from cache — do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nAvailable characters matching trip preferences:\n' + body;
+  return full.substring(0, maxChars);
+}
+
 function extractJSON(text) {
-  // Try 1: extract from inside code fences if present
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)```/);
   if (fenceMatch) {
     try { return JSON.parse(fenceMatch[1].trim()); } catch(e) {}
   }
-  // Try 2: raw parse
   try { return JSON.parse(text.trim()); } catch(e) {}
-  // Try 3: find first { ... } or [ ... ]
   const objMatch = text.match(/\{[\s\S]+\}|\[[\s\S]+\]/);
   if (objMatch) try { return JSON.parse(objMatch[0]); } catch(e) {}
   return null;
@@ -43,19 +83,50 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, mode, maxTokens = 4000 } = req.body || {};
+    const { prompt, mode, maxTokens = 4000, tripConfig } = req.body || {};
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-    const parkIntel = await getCacheSlice('park_intel', 4000);
+    const [parkIntel, diningIntel, eventsIntel, charIntel] = await Promise.all([
+      getCacheSlice('park_intel', 4000),
+      getCacheSlice('dining_intel', 2000),
+      getCacheSlice('events_intel', 1500),
+      getCharacterIntel(4000)
+    ]);
+
+    const charContext = buildCharacterContext(charIntel, tripConfig, 4000);
+    const charPriority = (tripConfig && tripConfig.characters && tripConfig.characters.priority) || 'niceToHave';
 
     let system = 'You are a Disneyland and Disney California Adventure theme park scheduling expert with deep knowledge of wait time patterns, rope drop strategies, and crowd flow. Generate detailed, realistic day schedules in valid JSON only. No markdown, no explanation, just JSON.';
+
     if (parkIntel) {
       system += '\n\n=== CURRENT PARK INTELLIGENCE (use this — do not search the web) ===\n' + parkIntel;
     }
+    if (diningIntel) {
+      system += '\n\n=== DINING INTELLIGENCE ===\n' + diningIntel;
+    }
+    if (eventsIntel) {
+      system += '\n\n=== EVENTS INTELLIGENCE ===\n' + eventsIntel;
+    }
+    if (charContext) {
+      system += '\n\n=== ' + charContext + ' ===';
+      system += '\n\nCHARACTER MEET SCHEDULING RULES:';
+      system += '\n- Character priority for this trip: ' + charPriority;
+      if (charPriority === 'mustDo') {
+        system += '\n- mustDo: Insert matching character meets even if a ride must be moved to accommodate. Do NOT skip any character whose category matches the trip preferences.';
+      } else {
+        system += '\n- niceToHave: Insert character meets only at natural gaps (20+ min free between scheduled items). Never displace a ride entry to fit a character meet.';
+      }
+      system += '\n- NEVER schedule a character meet outside their typicalWindows (appearance window).';
+      system += '\n- NEVER place a character meet over a dining reservation, Lightning Lane Single Pass entry, or paid experience.';
+      system += '\n- One character meet per gap maximum — never stack multiple meets back to back.';
+      system += '\n- Character meet schedule entry schema: { "t": "H:MM AM", "h": "Character Name", "type": "character", "n": "Location, Land · Window start–end", "land": "Land Name", "typicalWait": 25, "vipAccessible": true, "disclaimer": true }';
+      system += '\n- The "n" field must combine location and appearance window as one string.';
+      system += '\n- Set disclaimer: true on all character entries so the app shows the schedule-change warning.';
+    }
 
-    console.log('generateschedule mode:', mode || 'default', 'park_intel_injected:', !!parkIntel);
+    console.log('generateschedule mode:', mode || 'default', 'park_intel:', !!parkIntel, 'char_intel:', !!charIntel, 'char_priority:', charPriority);
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
