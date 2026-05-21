@@ -217,6 +217,13 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .ride-block.is-snack{border-left:3px solid #C86030!important;border-radius:0 11px 11px 0;background:linear-gradient(135deg,#FFF4F0,#FFE8E0)!important}
 .ride-block.is-lls{border-left:3px solid var(--orange)}
 .skip-line-badge{display:inline-flex;align-items:center;gap:3px;font-size:7px;font-weight:700;padding:2px 6px;border-radius:20px;background:#F5EDD0;color:#8A6820;flex-shrink:0;white-space:nowrap}
+.ride-block.is-character{background:#FFFFFF!important;border-radius:0 11px 11px 0!important;border:0.5px solid rgba(212,168,48,0.20)!important;border-left:3px solid #D4A830!important}
+.is-character .ride-time{color:#1A6860!important}
+.is-character .ride-name{color:#071E25!important}
+.is-character .ride-note{color:#4A7A7C!important}
+.tb-character{background:#F5EDD0;color:#8A6820;font-size:7px;font-weight:700;padding:2px 5px;border-radius:20px}
+.char-wait-pill{display:inline-flex;align-items:center;background:#F5EDD0;color:#8A6820;font-size:8px;font-weight:700;padding:3px 7px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+.char-disclaimer{font-size:8px;font-weight:400;color:rgba(7,30,37,0.35);font-style:italic}
 /* LL / LLS banners */
 .ll-banner{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;background:rgba(251,146,60,.06);border-top:1px solid rgba(251,146,60,.15)}
 .lls-banner{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;background:rgba(251,146,60,.10);border-top:1px solid rgba(251,146,60,.25)}
@@ -3579,13 +3586,14 @@ function renderSched(){
       else if(e.type==='food')bc+=' is-food';
       else if(e.type==='hop')bc+=' is-hop';
       else if(e.type==='vip')bc+=' is-vip';
+      else if(e.type==='character')bc+=' is-character';
       var cardHour=(function(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]);if(m[3].toUpperCase()==="PM"&&h!==12)h+=12;if(m[3].toUpperCase()==="AM"&&h===12)h=0;return h;})(e.t);var isVipWindow=cardHour>=10&&cardHour<=17;
       if(TRIP_CONFIG.days[curDay].isVip&&isVipWindow&&e.type!=='vip'&&e.type!=='break'&&e.type!=='restroom'){var _ch=0;try{var _tp=e.t||'';var _pa=_tp.replace(' AM','').replace(' PM','').split(':');_ch=parseInt(_pa[0])||0;if(_tp.indexOf('PM')>-1&&_ch!==12)_ch+=12;if(_tp.indexOf('AM')>-1&&_ch===12)_ch=0;}catch(ex){}if(_ch>=10&&_ch<=17)bc+=' is-vip';}if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
       else if(e.type==='snack')bc+=' is-snack';
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
-      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',snack:'<span class="tb tb-snack">snack</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>'};
+      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',snack:'<span class="tb tb-snack">snack</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>',character:'<span class="tb tb-character">character</span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
       var diningRec='';
       if(e.type==='food'&&e.h){
@@ -3614,14 +3622,14 @@ function renderSched(){
       }
       var liveW=(e.type==='ride')?lookupWait(e.h):null;
       var isVipCard=bc.indexOf('is-vip')>-1;
-      var wPill=isVipCard?'<span class="skip-line-badge">skip line</span>':(liveW&&liveW.w!=null?'<span class="wait-pill '+(liveW.w<20?'wait-low':liveW.w<45?'wait-med':'wait-high')+'"><span class="wait-dot"></span>'+liveW.w+' min</span>':'');
+      var wPill=(e.type==='character')?(function(){var isVipDay=TRIP_CONFIG.days&&TRIP_CONFIG.days[curDay]&&TRIP_CONFIG.days[curDay].isVip;if(isVipDay&&e.vipAccessible)return '<span class="skip-line-badge">skip line</span>';if(e.typicalWait&&e.typicalWait>0)return '<span class="char-wait-pill">~'+e.typicalWait+' min typical</span>';return '';})():isVipCard?'<span class="skip-line-badge">skip line</span>':(liveW&&liveW.w!==null?'<span class="wait-pill '+(liveW.w<20?'wait-low':liveW.w<45?'wait-med':'wait-high')+'">'+(liveW.w)+' min</span>':'');
       h+='<div class="'+bc+'"'+drag+'>'
         +(editMode?'<button class="del-btn" onclick="deleteEntry('+curDay+','+si+','+ei+')">&times;</button>':'')
         +'<div class="ride-main">'
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
-        +'<div class="ride-note">'+fixEncoding(e.n)+'</div>'+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+diningRec
+        +'<div class="ride-note">'+fixEncoding(e.n)+'</div>'+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -4316,7 +4324,8 @@ function generateFromSetup(params, callback) {
     body: JSON.stringify({
       prompt: prompt,
       mode: 'setup',
-      maxTokens: 4000
+      maxTokens: 4000,
+      tripConfig: TRIP_CONFIG
     })
   })
   .then(function(r){return r.json();})
@@ -4347,7 +4356,8 @@ function aiChooseRides(params, callback) {
     body: JSON.stringify({
       prompt: prompt,
       mode: 'rides',
-      maxTokens: 4000
+      maxTokens: 4000,
+      tripConfig: TRIP_CONFIG
     })
   })
   .then(function(r){return r.json();})
