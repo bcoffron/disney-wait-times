@@ -6884,6 +6884,7 @@ setTimeout(checkForWaitSpikes, 30000);
 
 </div>
 
+  
   <!-- ===== SESSION B3 ADDITIONS ===== -->
   <script>
   // ------- PART 2: NUDGE BANNER SYSTEM -------
@@ -6904,7 +6905,6 @@ setTimeout(checkForWaitSpikes, 30000);
     var done = localStorage.getItem('tpcp_onboardingComplete');
     var banner = document.getElementById('obNudgeBanner');
     var pill = document.getElementById('obSetupPill');
-    var gateMsg = document.getElementById('obAiGateMsg');
     if (done === 'true' || role === 'guest') {
       if (banner) banner.style.display = 'none';
       if (pill) pill.style.display = 'none';
@@ -6946,26 +6946,52 @@ setTimeout(checkForWaitSpikes, 30000);
       { name: 'Reservations', summary: reservCount > 0 ? reservCount + ' reservation' + (reservCount !== 1 ? 's' : '') : 'None added', step: 6 },
       { name: 'Shows & Entertainment', summary: cfg.parades ? cfg.parades + ' parades' : 'Not set', step: 7 }
     ];
-    var rowsHtml = sections.map(function(s) {
-      return '<div onclick="editTripGoToStep(' + s.step + ')" style="display:flex;align-items:center;padding:14px 16px;border-bottom:0.5px solid rgba(7,30,37,0.08);cursor:pointer;">' +
-        '<div style="flex:1;">' +
-          '<div style="font-size:13px;color:#071E25;">' + s.name + '</div>' +
-          '<div style="font-size:12px;color:#4A6670;margin-top:2px;">' + s.summary + '</div>' +
-        '</div>' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A6670" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>' +
-      '</div>';
-    }).join('');
-    overlay.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:20px 16px 12px;border-bottom:0.5px solid rgba(7,30,37,0.08);">' +
-      '<div style="font-size:16px;font-weight:700;color:#071E25;">Edit Trip Details</div>' +
-      '<button onclick="closeEditTripDetails()" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;">' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#071E25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-      '</button>' +
-    '</div>' +
-    '<div>' + rowsHtml + '</div>' +
-    '<div id="rebuildCtaArea" style="padding:16px;display:none;">' +
-      '<button onclick="rebuildSchedule()" style="width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;">Rebuild my schedule with these changes &#8594;</button>' +
-      '<p style="font-size:11px;color:#4A6670;line-height:1.4;text-align:center;margin:8px 0 0;">I'll keep your reservations and Lightning Lane times locked in and rebuild everything else around your changes.</p>' +
-    '</div>';
+    // Build overlay using DOM methods to avoid quote escaping issues
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:20px 16px 12px;border-bottom:0.5px solid rgba(7,30,37,0.08);';
+    var titleEl = document.createElement('div');
+    titleEl.style.cssText = 'font-size:16px;font-weight:700;color:#071E25;';
+    titleEl.textContent = 'Edit Trip Details';
+    var closeBtn = document.createElement('button');
+    closeBtn.style.cssText = 'background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;';
+    closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#071E25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    closeBtn.onclick = closeEditTripDetails;
+    header.appendChild(titleEl);
+    header.appendChild(closeBtn);
+    overlay.appendChild(header);
+    // Section rows
+    sections.forEach(function(s) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;padding:14px 16px;border-bottom:0.5px solid rgba(7,30,37,0.08);cursor:pointer;';
+      row.onclick = (function(step) { return function() { editTripGoToStep(step); }; })(s.step);
+      var rowLeft = document.createElement('div');
+      rowLeft.style.cssText = 'flex:1;';
+      var rowName = document.createElement('div');
+      rowName.style.cssText = 'font-size:13px;color:#071E25;';
+      rowName.textContent = s.name;
+      var rowSummary = document.createElement('div');
+      rowSummary.style.cssText = 'font-size:12px;color:#4A6670;margin-top:2px;';
+      rowSummary.textContent = s.summary;
+      rowLeft.appendChild(rowName);
+      rowLeft.appendChild(rowSummary);
+      row.appendChild(rowLeft);
+      row.innerHTML += '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A6670" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+      overlay.appendChild(row);
+    });
+    // Rebuild CTA area
+    var rebuildArea = document.createElement('div');
+    rebuildArea.id = 'rebuildCtaArea';
+    rebuildArea.style.cssText = 'padding:16px;display:none;';
+    var rebuildBtn = document.createElement('button');
+    rebuildBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;';
+    rebuildBtn.textContent = 'Rebuild my schedule with these changes →';
+    rebuildBtn.onclick = rebuildSchedule;
+    var rebuildNote = document.createElement('p');
+    rebuildNote.style.cssText = 'font-size:11px;color:#4A6670;line-height:1.4;text-align:center;margin:8px 0 0;';
+    rebuildNote.textContent = 'I’ll keep your reservations and Lightning Lane times locked in and rebuild everything else around your changes.';
+    rebuildArea.appendChild(rebuildBtn);
+    rebuildArea.appendChild(rebuildNote);
+    overlay.appendChild(rebuildArea);
     document.body.appendChild(overlay);
   }
 
@@ -6984,23 +7010,24 @@ setTimeout(checkForWaitSpikes, 30000);
       if (typeof obGoTo === 'function') {
         window._editTripReturnMode = true;
         obGoTo(step);
-        // Show back button that returns to jump list
         var backBtn = document.getElementById('obBackBtn');
-        if (backBtn) {
-          backBtn.style.display = 'block';
-          backBtn._editMode = true;
-        }
+        if (backBtn) { backBtn.style.display = 'block'; backBtn._editMode = true; }
       }
     }
   }
 
   function rebuildSchedule() {
-    var overlay = document.getElementById('editTripDetailsOverlay');
     var rebuildArea = document.getElementById('rebuildCtaArea');
     if (rebuildArea) {
-      rebuildArea.innerHTML = '<div id="rb8Loading" style="text-align:center;padding:12px 0;">' +
-        '<p id="rb8Msg" style="font-size:13px;color:#4A6670;margin:0 0 4px;">Checking park conditions for your dates...</p>' +
-        '</div>';
+      rebuildArea.innerHTML = '';
+      var loadDiv = document.createElement('div');
+      loadDiv.style.cssText = 'text-align:center;padding:12px 0;';
+      var loadMsg = document.createElement('p');
+      loadMsg.id = 'rb8Msg';
+      loadMsg.style.cssText = 'font-size:13px;color:#4A6670;margin:0 0 4px;';
+      loadMsg.textContent = 'Checking park conditions for your dates...';
+      loadDiv.appendChild(loadMsg);
+      rebuildArea.appendChild(loadDiv);
     }
     var msgs2 = [
       { delay: 1500, text: 'Building around your reservations...' },
@@ -7035,7 +7062,6 @@ setTimeout(checkForWaitSpikes, 30000);
     window._tripRegistryStatus = status;
     if (status === 'trial') {
       checkTrialReminders(tripData);
-      var limit = tripData.trialDaysLimit || 2;
     } else if (status === 'soft_wall') {
       showSoftWall();
     } else if (status === 'expired') {
@@ -7057,7 +7083,7 @@ setTimeout(checkForWaitSpikes, 30000);
       copy = 'Loving the app so far? Your trial ends in 5 days. Subscribe anytime to unlock your full trip.';
     } else if (dayNum === 7) {
       title = 'Last day';
-      copy = 'Today is the last day of your trial. Subscribe before midnight to unlock all your trip days and keep everything you've built.';
+      copy = 'Today is the last day of your trial. Subscribe before midnight to unlock all your trip days and keep everything you have built.';
     }
     if (title) {
       localStorage.setItem(popupKey, '1');
@@ -7072,12 +7098,27 @@ setTimeout(checkForWaitSpikes, 30000);
     overlay.id = 'trialPopupOverlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10002;background:rgba(7,30,37,0.6);display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-    overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px 20px;max-width:320px;width:calc(100% - 40px);text-align:center;">' +
-      '<div style="font-size:18px;font-weight:700;color:#071E25;margin-bottom:10px;">' + title + '</div>' +
-      '<div style="font-size:13px;color:#4A6670;line-height:1.5;margin-bottom:20px;">' + copy + '</div>' +
-      '<button onclick="window.open('https://themeparkcopilot.com','_blank')" style="width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:10px;">Subscribe now &#8594;</button>' +
-      '<button onclick="document.getElementById('trialPopupOverlay').remove()" style="width:100%;background:transparent;border:1px solid rgba(7,30,37,0.15);border-radius:12px;padding:12px;font-family:Outfit,sans-serif;font-size:14px;font-weight:600;color:#4A6670;cursor:pointer;">Maybe later</button>' +
-    '</div>';
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border-radius:16px;padding:24px 20px;max-width:320px;width:calc(100% - 40px);text-align:center;';
+    var titleEl = document.createElement('div');
+    titleEl.style.cssText = 'font-size:18px;font-weight:700;color:#071E25;margin-bottom:10px;';
+    titleEl.textContent = title;
+    var copyEl = document.createElement('div');
+    copyEl.style.cssText = 'font-size:13px;color:#4A6670;line-height:1.5;margin-bottom:20px;';
+    copyEl.textContent = copy;
+    var subBtn = document.createElement('button');
+    subBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:10px;';
+    subBtn.textContent = 'Subscribe now →';
+    subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
+    var dimBtn = document.createElement('button');
+    dimBtn.style.cssText = 'width:100%;background:transparent;border:1px solid rgba(7,30,37,0.15);border-radius:12px;padding:12px;font-family:Outfit,sans-serif;font-size:14px;font-weight:600;color:#4A6670;cursor:pointer;';
+    dimBtn.textContent = 'Maybe later';
+    dimBtn.onclick = function() { var el = document.getElementById('trialPopupOverlay'); if (el) el.remove(); };
+    card.appendChild(titleEl);
+    card.appendChild(copyEl);
+    card.appendChild(subBtn);
+    card.appendChild(dimBtn);
+    overlay.appendChild(card);
     document.body.appendChild(overlay);
   }
 
@@ -7089,15 +7130,21 @@ setTimeout(checkForWaitSpikes, 30000);
     var banner = document.createElement('div');
     banner.id = 'softWallBanner';
     banner.style.cssText = 'background:#071E25;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;';
-    banner.innerHTML = '<span style="font-size:11px;font-weight:600;color:#fff;flex:1;">Your trial has ended. Subscribe to unlock your full trip.</span>' +
-      '<button onclick="window.open('https://themeparkcopilot.com','_blank')" style="background:#C86030;border:none;border-radius:20px;padding:5px 12px;font-family:Outfit,sans-serif;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;margin-left:10px;">Subscribe &#8594;</button>';
+    var bannerText = document.createElement('span');
+    bannerText.style.cssText = 'font-size:11px;font-weight:600;color:#fff;flex:1;';
+    bannerText.textContent = 'Your trial has ended. Subscribe to unlock your full trip.';
+    var subBtn = document.createElement('button');
+    subBtn.style.cssText = 'background:#C86030;border:none;border-radius:20px;padding:5px 12px;font-family:Outfit,sans-serif;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;margin-left:10px;';
+    subBtn.textContent = 'Subscribe →';
+    subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
+    banner.appendChild(bannerText);
+    banner.appendChild(subBtn);
     header.parentNode.insertBefore(banner, header.nextSibling);
-    // Disable AI features
     var aiOpt = document.getElementById('aiOptHero');
     if (aiOpt) {
       aiOpt.onclick = function() {
-        var existing = document.getElementById('softWallAiMsg');
-        if (!existing) {
+        var existing2 = document.getElementById('softWallAiMsg');
+        if (!existing2) {
           var msg = document.createElement('div');
           msg.id = 'softWallAiMsg';
           msg.style.cssText = 'font-size:10px;color:#4A6670;text-align:center;padding:4px 0;';
@@ -7114,12 +7161,26 @@ setTimeout(checkForWaitSpikes, 30000);
     var overlay = document.createElement('div');
     overlay.id = 'hardWallOverlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10001;background:#071E25;display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
-    overlay.innerHTML = '<div style="text-align:center;padding:40px 24px;max-width:320px;">' +
-      '<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:0;">Theme Park Co-Pilot</div>' +
-      '<div style="font-size:22px;font-weight:800;color:#fff;margin-top:32px;margin-bottom:12px;">Your trial has ended.</div>' +
-      '<div style="font-size:14px;color:rgba(255,255,255,0.60);line-height:1.5;margin-bottom:28px;">Subscribe to pick up right where you left off — your trip details are saved.</div>' +
-      '<button onclick="window.open('https://themeparkcopilot.com','_blank')" style="width:100%;background:#C86030;border:none;border-radius:12px;padding:16px;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;color:#fff;cursor:pointer;">Subscribe to unlock &#8594;</button>' +
-    '</div>';
+    var inner = document.createElement('div');
+    inner.style.cssText = 'text-align:center;padding:40px 24px;max-width:320px;';
+    var brandEl = document.createElement('div');
+    brandEl.style.cssText = 'font-size:18px;font-weight:700;color:#fff;';
+    brandEl.textContent = 'Theme Park Co-Pilot';
+    var titleEl = document.createElement('div');
+    titleEl.style.cssText = 'font-size:22px;font-weight:800;color:#fff;margin-top:32px;margin-bottom:12px;';
+    titleEl.textContent = 'Your trial has ended.';
+    var copyEl = document.createElement('div');
+    copyEl.style.cssText = 'font-size:14px;color:rgba(255,255,255,0.60);line-height:1.5;margin-bottom:28px;';
+    copyEl.textContent = 'Subscribe to pick up right where you left off — your trip details are saved.';
+    var subBtn = document.createElement('button');
+    subBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:16px;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;color:#fff;cursor:pointer;';
+    subBtn.textContent = 'Subscribe to unlock →';
+    subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
+    inner.appendChild(brandEl);
+    inner.appendChild(titleEl);
+    inner.appendChild(copyEl);
+    inner.appendChild(subBtn);
+    overlay.appendChild(inner);
     document.body.appendChild(overlay);
   }
 
@@ -7130,18 +7191,31 @@ setTimeout(checkForWaitSpikes, 30000);
     var overlay = document.createElement('div');
     overlay.id = 'guestWaitScreen';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:#EEF5F4;display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
-    overlay.innerHTML = '<div style="text-align:center;padding:40px 24px;max-width:320px;">' +
-      '<div style="font-size:18px;font-weight:700;color:#071E25;margin-bottom:0;">Theme Park Co-Pilot</div>' +
-      (tripName ? '<div style="font-size:18px;font-weight:700;color:#071E25;margin-top:16px;">' + tripName + '</div>' : '') +
-      '<div style="font-size:14px;color:#4A6670;line-height:1.5;margin-top:16px;max-width:280px;text-align:center;">Your trip is almost ready. Check back once your trip organizer has finished setting everything up.</div>' +
-    '</div>';
+    var inner = document.createElement('div');
+    inner.style.cssText = 'text-align:center;padding:40px 24px;max-width:320px;';
+    var brandEl = document.createElement('div');
+    brandEl.style.cssText = 'font-size:18px;font-weight:700;color:#071E25;';
+    brandEl.textContent = 'Theme Park Co-Pilot';
+    if (tripName) {
+      var tripEl = document.createElement('div');
+      tripEl.style.cssText = 'font-size:18px;font-weight:700;color:#071E25;margin-top:16px;';
+      tripEl.textContent = tripName;
+      inner.appendChild(brandEl);
+      inner.appendChild(tripEl);
+    } else {
+      inner.appendChild(brandEl);
+    }
+    var copyEl = document.createElement('div');
+    copyEl.style.cssText = 'font-size:14px;color:#4A6670;line-height:1.5;margin-top:16px;max-width:280px;text-align:center;';
+    copyEl.textContent = 'Your trip is almost ready. Check back once your trip organizer has finished setting everything up.';
+    inner.appendChild(copyEl);
+    overlay.appendChild(inner);
     document.body.appendChild(overlay);
   }
 
   // ------- INIT: Run nudge check after app loads -------
   document.addEventListener('DOMContentLoaded', function() {
     setTimeout(nudgeCheckAndShow, 800);
-    // Show edit trip details button for admin
     var editRow = document.getElementById('editTripDetailsRow');
     if (editRow && typeof isAdmin === 'function' && isAdmin()) {
       editRow.style.display = 'block';
