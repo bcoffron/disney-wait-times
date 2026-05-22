@@ -5260,7 +5260,7 @@ function ob8RenderSummary() {
     var d0 = new Date(cfg.dates[0] + "T12:00:00");
     var dN = new Date(cfg.dates[cfg.dates.length - 1] + "T12:00:00");
     var opts = { month: "short", day: "numeric" };
-    var dateRangeStr = d0.toLocaleDateString("en-US", opts) + (cfg.dates.length > 1 ? "\u2013" + dN.toLocaleDateString("en-US", opts) : "");
+    var dateRangeStr = d0.toLocaleDateString("en-US", opts) + (cfg.dates.length > 1 ? " \u2013 " + dN.toLocaleDateString("en-US", opts) : "");
     parts.push(cfg.dates.length + " day" + (cfg.dates.length !== 1 ? "s" : "") + " at " + parkStr + " · " + dateRangeStr);
   }
   // Group size
@@ -5341,6 +5341,14 @@ function ob8Complete() {
   var pill = document.getElementById('obSetupPill');
   if (pill) pill.style.display = 'none';
   if (typeof enterSplash === 'function') enterSplash(true);
+  // Scroll to top of schedule after generation
+  setTimeout(function() {
+    window.scrollTo(0, 0);
+    var sc = document.getElementById('schedContent');
+    if (sc) sc.scrollTop = 0;
+    var sched = document.querySelector('.sched-scroll, .sched-body');
+    if (sched) sched.scrollTop = 0;
+  }, 100);
 }
 
 function obTogglePark(btn, park) {
