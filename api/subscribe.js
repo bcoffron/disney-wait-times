@@ -59,8 +59,8 @@ async function handler(req, res) {
         subject: 'You\u2019re on the list \u2014 Theme Park Co-Pilot',
         html: `
           <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#071E25;color:#fff;border-radius:12px;">
-            <div style="font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(245,166,35,0.7);margin-bottom:14px;">Theme Park Co\u2022Pilot</div>
-            <div style="font-size:26px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:10px;">Smarter days.<br><span style="color:#F5A623;font-style:italic;">More magic.</span></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(245,166,35,0.7);margin-bottom:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"><span style="font-weight:900;color:#fff;">Theme Park Co</span><span style="color:#F5A623;font-weight:900;">&#10022;</span><span style="font-weight:900;color:#fff;">Pilot</span></div>
+            <div style="font-size:26px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:10px;font-family:Georgia,serif;">Smarter days.<br><span style="color:#F5A623;font-style:italic;">More magic.</span></div>
             <p style="font-size:14px;color:rgba(255,255,255,0.55);line-height:1.65;margin:0 0 20px;">You\u2019re on the early access list. We\u2019ll email you the moment Theme Park Co-Pilot launches for Disneyland Resort \u2014 with a special early access offer just for you.</p>
             <div style="background:rgba(26,104,96,0.2);border:1px solid rgba(26,104,96,0.4);border-radius:8px;padding:14px 16px;font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:24px;">
               \u2714 Disneyland Resort launch access<br>
