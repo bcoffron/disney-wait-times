@@ -934,18 +934,18 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
     <div>
       <div class="splash-eyebrow">Theme Park Co<span class="splash-eyebrow-diamond">✦</span>Pilot</div>
-      <h1 class="splash-title">Coffron/Woods</h1>
+        <h1 class="splash-title" id="splashTitle">Your Disney Adventure</h1>
       <p class="splash-desc">Smarter days. More magic.</p>
     </div>
     <div>
-      <div class="splash-countdown">
+        <div class="splash-countdown" id="splashCountdownWrap" style="display:none">
         <div style="display:flex;align-items:center;gap:6px">
           <span id="splashCountdown" style="font-size:52px;font-weight:700;color:#FFFFFF;line-height:1">--</span>
           <span style="font-size:11px;font-weight:700;color:#ECA050;line-height:1.2">days to go</span>
         </div>
         
       </div>
-      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:9px;color:rgba(255,255,255,0.50);font-weight:500">Jun 28&ndash;30, 2026</div><div style="font-size:9px;color:rgba(255,255,255,0.50)">Anaheim, CA</div></div><div style="display:flex;gap:5px"><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DL</span><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DCA</span></div></div>
+      <div id="splashTripCard" style="display:none;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:9px;color:rgba(255,255,255,0.50);font-weight:500">Jun 28&ndash;30, 2026</div><div style="font-size:9px;color:rgba(255,255,255,0.50)">Anaheim, CA</div></div><div style="display:flex;gap:5px"><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DL</span><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DCA</span></div></div>
       <!-- login gate rendered by renderSplashCtas -->
       <div id="splashCtaArea"></div>
     </div>
@@ -5009,7 +5009,7 @@ function renderSplashCtas(){
   var hasCode=false;
   try{hasCode=!!(localStorage.getItem('tpcp_code'));}catch(e){}
   var secBtn=hasCode?'display:none':'display:block';
-  area.innerHTML='<div id="twLoginArea"><input id="twPassInput" type="text" placeholder="Enter your trip code" autocapitalize="characters" spellcheck="false" style="width:100%;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:13px 16px;font-family:Outfit,sans-serif;font-size:15px;color:#fff;box-sizing:border-box;margin-bottom:10px;" onkeydown="if(event.key===\'Enter\')tryUnlock()" /><div id="twLoginError" style="display:none;color:#C86030;font-size:13px;margin-bottom:8px;text-align:center;"></div></div><button onclick="tryUnlock()" style="width:100%;padding:15px;background:#C86030;border:none;border-radius:12px;color:#fff;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:12px;">Enter Your Adventure →</button><button id="splashSecondaryBtn" onclick="document.getElementById(\'twPassInput\').focus();" style="'+secBtn+';width:100%;padding:12px;background:none;border:1.5px solid rgba(255,255,255,0.3);border-radius:12px;color:rgba(255,255,255,0.75);font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Have a trip code?</button>';
+  area.innerHTML='<button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>'+(hasCode?'':'<button onclick="showTripCodeInput()" id="splashSecondaryBtn" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:none;font-size:13px;color:rgba(255,255,255,0.7);cursor:pointer">Have a trip code?</button><div id="tripCodeInputArea" style="display:none"></div>');
 }
 function showTripCodeInput(){
   var area=document.getElementById('tripCodeInputArea');
@@ -5044,6 +5044,20 @@ function submitTripCode() {
       sessionStorage.setItem('tripRole', d.role);
       sessionStorage.setItem('tripId', d.tripId);
       sessionStorage.setItem('disney_unlocked', d.role);
+        // Trip isolation: clear cached schedule if different trip
+        try {
+          var prevTripId = localStorage.getItem("tpcp_tripId");
+          if (prevTripId && prevTripId !== d.tripId) {
+            localStorage.removeItem("sched_day_0");
+            localStorage.removeItem("sched_day_1");
+            localStorage.removeItem("sched_day_2");
+            localStorage.removeItem("sched_day_3");
+            localStorage.removeItem("sched_day_4");
+          }
+          localStorage.setItem("tpcp_code", code);
+          localStorage.setItem("tpcp_tripId", d.tripId);
+          localStorage.setItem("tpcp_role", d.role);
+        } catch(e) {}
       if (!d.hasTrip) {
         launchOnboarding(code, d.role, d.tripId);
       } else {
@@ -5079,6 +5093,39 @@ function initSplash() {
   generateSplashStars();
   // Render CTAs based on setup state
   renderSplashCtas();
+  // Dynamic splash: show trip-specific or generic content
+  (function() {
+    var sc = null; try { sc = localStorage.getItem("tpcp_code"); } catch(e) {}
+    var te = document.getElementById("splashTitle");
+    var tc = document.getElementById("splashTripCard");
+    var cw = document.getElementById("splashCountdownWrap");
+    if (sc && TRIP_CONFIG && TRIP_CONFIG.tripName) {
+      if (te) te.textContent = TRIP_CONFIG.tripName;
+      if (tc) tc.style.display = "block";
+      if (cw) cw.style.display = "block";
+    } else {
+      if (te) te.textContent = "Your Disney Adventure";
+      if (tc) tc.style.display = "none";
+      if (cw) cw.style.display = "none";
+    }
+  })();
+  // Dynamic splash content based on stored code
+  (function() {
+    var storedCode = null;
+    try { storedCode = localStorage.getItem('tpcp_code'); } catch(e){}
+    var titleEl = document.getElementById('splashTitle');
+    var tripCard = document.getElementById('splashTripCard');
+    var countdownWrap = document.getElementById('splashCountdownWrap');
+    if (storedCode && TRIP_CONFIG && TRIP_CONFIG.tripName) {
+      if (titleEl) titleEl.textContent = TRIP_CONFIG.tripName;
+      if (tripCard) tripCard.style.display = 'block';
+      if (countdownWrap) countdownWrap.style.display = 'block';
+    } else {
+      if (titleEl) titleEl.textContent = 'Your Disney Adventure';
+      if (tripCard) tripCard.style.display = 'none';
+      if (countdownWrap) countdownWrap.style.display = 'none';
+    }
+  })();
   // Check if already shown this session
   if (sessionStorage.getItem('twRole')) {
     enterSplash(true);
@@ -5202,62 +5249,70 @@ function obFinish() {
 }
 
 function ob8RenderSummary() {
+  console.log('_obTripConfig at step 8:', JSON.stringify(_obTripConfig));
   var cfg = _obTripConfig || {};
   var card = document.getElementById('ob8SummaryCard');
   if (!card) return;
-  var lines = [];
+  var parts = [];
   // Days and park
-  if (cfg.park && cfg.days && cfg.startDate) {
-    var sd = cfg.startDate ? new Date(cfg.startDate + 'T12:00:00') : null;
-    var dateStr = sd ? sd.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
-    lines.push(cfg.days + ' day' + (cfg.days !== 1 ? 's' : '') + ' at ' + (cfg.park === 'both' ? 'Disneyland + DCA' : cfg.park) + (dateStr ? ' · ' + dateStr : ''));
+  if (cfg.dates && cfg.dates.length > 0 && cfg.parks && cfg.parks.length > 0) {
+    var parkStr = cfg.parks.length === 1 ? cfg.parks[0] : cfg.parks.join(" + ");
+    var d0 = new Date(cfg.dates[0] + "T12:00:00");
+    var dN = new Date(cfg.dates[cfg.dates.length - 1] + "T12:00:00");
+    var opts = { month: "short", day: "numeric" };
+    var dateRangeStr = d0.toLocaleDateString("en-US", opts) + (cfg.dates.length > 1 ? "\u2013" + dN.toLocaleDateString("en-US", opts) : "");
+    parts.push(cfg.dates.length + " day" + (cfg.dates.length !== 1 ? "s" : "") + " at " + parkStr + " · " + dateRangeStr);
   }
-  // Group
-  var u40 = parseInt(cfg.under40) || 0;
-  var h4048 = parseInt(cfg.h40to48) || 0;
-  var o48 = parseInt(cfg.over48) || 0;
-  var total = u40 + h4048 + o48;
-  if (total > 0) {
-    var groupParts = [total + ' guest' + (total !== 1 ? 's' : '')];
-    if (u40 > 0) groupParts.push(u40 + ' little one' + (u40 !== 1 ? 's' : ''));
-    if (h4048 > 0) groupParts.push(h4048 + ' kid' + (h4048 !== 1 ? 's' : ''));
-    if (o48 > 0) groupParts.push(o48 + ' adult' + (o48 !== 1 ? 's' : ''));
-    lines.push(groupParts.join(' · '));
+  // Group size
+  if (cfg.group && cfg.group.total > 0) {
+    var g = cfg.group;
+    var t = g.total;
+    var ht = g.heightTiers || {};
+    var u40 = ht.under40 || 0;
+    var h4048 = ht.h40to48 || 0;
+    var o48 = ht.over48 || 0;
+    var gParts = [t + " guest" + (t !== 1 ? "s" : "")];
+    if (u40 > 0) gParts.push(u40 + " little one" + (u40 !== 1 ? "s" : ""));
+    if (h4048 > 0) gParts.push(h4048 + " kid" + (h4048 !== 1 ? "s" : ""));
+    if (o48 > 0) gParts.push(o48 + " adult" + (o48 !== 1 ? "s" : ""));
+    parts.push(gParts.join(" · "));
+    if (g.afternoonBreak) parts.push("Afternoon break planned");
   }
-  // Intensity and pace
-  if (cfg.intensity || cfg.pace) {
-    var iStr = cfg.intensity || '';
-    var pStr = cfg.pace || '';
-    var ipStr = [iStr, pStr].filter(Boolean).join(' intensity · ') + (iStr && !pStr ? ' intensity' : (pStr && !iStr ? ' pace' : ' pace'));
-    if (cfg.afternoonBreak) ipStr += ' · Afternoon break';
-    lines.push(ipStr);
+  // Ride style
+  if (cfg.rides) {
+    var r = cfg.rides;
+    var styleStr = [];
+    if (r.intensity) styleStr.push(r.intensity.charAt(0).toUpperCase() + r.intensity.slice(1) + " intensity");
+    if (r.pace) styleStr.push(r.pace.charAt(0).toUpperCase() + r.pace.slice(1) + " pace");
+    if (styleStr.length > 0) parts.push(styleStr.join(" · "));
+    if (r.mustDo) parts.push("Must-dos: " + r.mustDo);
+    if (r.avoid) parts.push("Avoiding: " + r.avoid);
   }
-  // Must-dos
-  if (cfg.mustDo) lines.push('Must-dos: ' + cfg.mustDo);
-  // Avoiding
-  if (cfg.avoid) lines.push('Avoiding: ' + cfg.avoid);
   // Lightning Lane
-  if (cfg.multiPass) {
-    var llStr = 'Lightning Lane Multi Pass';
-    if (cfg.singlePass && cfg.singlePass.length > 0) llStr += ' · ' + cfg.singlePass.length + ' LLSP reservation' + (cfg.singlePass.length !== 1 ? 's' : '');
-    lines.push(llStr);
+  if (cfg.lightningLane) {
+    var ll = cfg.lightningLane;
+    if (ll.multiPass) {
+      var llStr = "Lightning Lane Multi Pass";
+      if (ll.singlePass && ll.singlePass.length > 0) llStr += " · " + ll.singlePass.length + " LLSP";
+      parts.push(llStr);
+    }
   }
   // Characters
-  if (cfg.charPriority !== 'skip' && cfg.charCategories && cfg.charCategories.length > 0) {
-    lines.push('Characters: ' + cfg.charCategories.join(', '));
+  if (cfg.characters && cfg.characters.priority !== "skip" && cfg.characters.categories && cfg.characters.categories.length > 0) {
+    parts.push("Characters: " + cfg.characters.categories.join(", "));
   }
-  // Reservations
-  if (cfg.reservations && cfg.reservations.length > 0) {
-    lines.push(cfg.reservations.length + ' reservation' + (cfg.reservations.length !== 1 ? 's' : ''));
+  // Dining reservations
+  if (cfg.dining && cfg.dining.reservations && cfg.dining.reservations.length > 0) {
+    parts.push(cfg.dining.reservations.length + " dining reservation" + (cfg.dining.reservations.length !== 1 ? "s" : ""));
   }
-  // Must-see shows
-  if (cfg.mustSeeShows && cfg.mustSeeShows.length > 0) {
-    lines.push('Must-see: ' + cfg.mustSeeShows.join(', '));
+  // Entertainment
+  if (cfg.entertainment && cfg.entertainment.mustSeeShows && cfg.entertainment.mustSeeShows.length > 0) {
+    parts.push("Must-see: " + cfg.entertainment.mustSeeShows.join(", "));
   }
-  card.innerHTML = lines.map(function(l) {
-    return '<div style="font-size:13px;color:#071E25;line-height:1.6;">' + l + '</div>';
-  }).join('');
-  // Show trial note if applicable
+  card.innerHTML = parts.map(function(p) {
+    return '<div style="font-size:13px;color:#071E25;line-height:1.6;">' + p + '</div>';
+  }).join("");
+  // Trial note
   var tripStatus = window._tripRegistryStatus || '';
   var trialNote = document.getElementById('ob8TrialNote');
   if (trialNote) trialNote.style.display = tripStatus === 'trial' ? 'block' : 'none';
