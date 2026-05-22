@@ -126,6 +126,23 @@ module.exports = async function handler(req, res) {
       system += '\n- Set disclaimer: true on all character entries so the app shows the schedule-change warning.';
     }
 
+
+// FIX 3: Anti-hallucination strict content rules
+system += '\n\n=== STRICT CONTENT RULES — NEVER VIOLATE ===';
+system += '\n1. Only schedule activities that are: (a) explicitly in the trip config, (b) real attractions verified in the park_intel cache, or (c) standard park activities (rides, dining, shows, photo ops, snack stops, tip cards, restroom breaks).';
+system += '\n2. NEVER invent tour packages, special experiences, or paid add-ons not in the trip config. Do not add VIP tours, bio tours, backstage tours, Keys to the Kingdom, or any paid tour product unless it appears explicitly in tripConfig.lightningLane.singlePass or tripConfig.dining.reservations.';
+system += '\n3. NEVER schedule behind-the-scenes experiences, private tours, or special-access events that the user did not select during onboarding.';
+system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card — never invent a special experience.';
+
+// FIX 2: Inject booked restaurant exclusion list
+const bookedRestaurants = ((tripConfig && tripConfig.dining && tripConfig.dining.reservations) || [])
+  .map(function(r) { return r && r.name ? r.name : null; })
+  .filter(Boolean);
+if (bookedRestaurants.length > 0) {
+  system += '\n\n=== DINING RESERVATIONS ALREADY BOOKED — DO NOT RECOMMEND THESE RESTAURANTS ===';
+  system += '\nThe following restaurants are already reserved as fixed anchors in the schedule. Do NOT recommend them in any other dining card, suggestion, or note: ' + bookedRestaurants.join(', ') + '.';
+  system += '\nThese are confirmed bookings — duplicating them would confuse the guest. Any free dining cards must recommend DIFFERENT restaurants.';
+}
     console.log('generateschedule mode:', mode || 'default', 'park_intel:', !!parkIntel, 'char_intel:', !!charIntel, 'char_priority:', charPriority);
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
