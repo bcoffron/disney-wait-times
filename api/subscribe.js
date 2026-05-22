@@ -1,5 +1,5 @@
 // api/subscribe.js
-// Adds email to Resend audience for TPCP early access list
+// Adds email to Resend audience and sends welcome email
 
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -45,6 +45,33 @@ async function handler(req, res) {
       console.error('Resend contact error:', contactData);
       return res.status(500).json({ error: 'Could not save email', detail: contactData });
     }
+
+    // Send welcome email from hello@themeparkcopilot.com
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Theme Park Co-Pilot <hello@themeparkcopilot.com>',
+        to: email.trim().toLowerCase(),
+        subject: 'You\u2019re on the list \u2014 Theme Park Co-Pilot',
+        html: `
+          <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#071E25;color:#fff;border-radius:12px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(245,166,35,0.7);margin-bottom:14px;">Theme Park Co\u2022Pilot</div>
+            <div style="font-size:26px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:10px;">Smarter days.<br><span style="color:#F5A623;font-style:italic;">More magic.</span></div>
+            <p style="font-size:14px;color:rgba(255,255,255,0.55);line-height:1.65;margin:0 0 20px;">You\u2019re on the early access list. We\u2019ll email you the moment Theme Park Co-Pilot launches for Disneyland Resort \u2014 with a special early access offer just for you.</p>
+            <div style="background:rgba(26,104,96,0.2);border:1px solid rgba(26,104,96,0.4);border-radius:8px;padding:14px 16px;font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:24px;">
+              \u2714 Disneyland Resort launch access<br>
+              \u2714 7-day free trial when we go live<br>
+              \u2714 No credit card required
+            </div>
+            <p style="font-size:11px;color:rgba(255,255,255,0.25);line-height:1.5;margin:0;">Questions? Reply to this email or reach us at <a href="mailto:hello@themeparkcopilot.com" style="color:rgba(255,255,255,0.4);">hello@themeparkcopilot.com</a><br><br>Theme Park Co-Pilot is not affiliated with The Walt Disney Company.</p>
+          </div>
+        `,
+      }),
+    });
 
     return res.status(200).json({ success: true });
 
