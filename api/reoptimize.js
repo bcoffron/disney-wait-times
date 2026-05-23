@@ -101,6 +101,7 @@ async function handler(req, res) {
     system += '\nRules:';
     system += '\n1. Preserve ALL fields on type "dining" and type "quickservice" cards:';
     system += '\n   h, n, topPick, veg, kids, land — copy them exactly, word for word';
+    system += '\n7. topPick, veg, and kids fields MUST be copied as exact strings — NEVER substitute with true, false, or any boolean value';
     system += '\n2. Preserve ALL fields on type "show" cards: h, n, land';
     system += '\n3. You MAY adjust the time slot of a quickservice card if needed for schedule flow';
     system += '\n4. NEVER move a confirmed reservation (type "dining") more than 30 minutes from its original time — it is a fixed anchor';
@@ -120,6 +121,10 @@ async function handler(req, res) {
         if (e.veg) base.veg = e.veg;
         if (e.kids) base.kids = e.kids;
         if (e.reservationTime) base.reservationTime = e.reservationTime;
+        // Guard: strip boolean values — AI must always return dish name strings
+        if (base.topPick === true || base.topPick === false || base.topPick === 'true' || base.topPick === 'false') { delete base.topPick; }
+        if (base.veg === true || base.veg === false || base.veg === 'true' || base.veg === 'false') { delete base.veg; }
+        if (base.kids === true || base.kids === false || base.kids === 'true' || base.kids === 'false') { delete base.kids; }
       }
       // Preserve character fields
       if (e.type === 'character') {
