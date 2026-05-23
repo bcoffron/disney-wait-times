@@ -1570,7 +1570,7 @@ function checkLock(){
           if(d.role==='guest'){
             enterSplash(true);
           } else if(d.hasTrip){
-            if (d.tripData && d.tripData.onboardingComplete === true) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
+            if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
             // Check trial/subscription status
             if(typeof checkTrialStatus==='function') checkTrialStatus(d);
             // Show nudge banner for admin if onboarding not complete
@@ -1634,7 +1634,7 @@ function tryUnlock() {
         localStorage.setItem('tpcp_role', d.role);
         localStorage.setItem('tpcp_tripId', d.tripId || '');
         localStorage.setItem('disney_unlocked', d.role);
-        if (d.tripData && d.tripData.onboardingComplete === true) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
+        if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
       } catch(e) {}
       userRole = d.role;
       applyRoleUI();
@@ -5170,7 +5170,7 @@ function submitTripCode() {
       if (!d.hasTrip) {
         launchOnboarding(code, d.role, d.tripId);
       } else {
-        if (d.tripData && d.tripData.onboardingComplete === true) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
+        if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
         if (d.tripData && d.tripData.tripConfig) { window._loadedTripData = d.tripData; }
         enterSplash(true);
       }
@@ -7206,7 +7206,7 @@ setTimeout(checkForWaitSpikes, 30000);
     // Fallback: check in-memory trip data if localStorage hasn't been set yet
     if (!done) {
       var ltd = window._loadedTripData;
-      if (ltd && ltd.onboardingComplete === true) {
+      if (ltd && (ltd.onboardingComplete === true || (ltd.tripConfig && ltd.tripConfig.onboardingComplete === true))) {
         done = 'true';
         try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
       }
