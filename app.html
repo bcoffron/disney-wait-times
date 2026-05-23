@@ -1747,7 +1747,7 @@ function applyRoleUI(){
   var setup=document.getElementById('apiSetupCard');
   if(setup&&!isAdmin()&&apiKey) setup.style.display='none';
   document.querySelectorAll('.reroute-btn').forEach(function(b){b.style.display=isAdmin()?'':'none';});
-  if(isAdmin()){document.body.classList.remove('tw-guest');}else{document.body.classList.add('tw-guest');}
+  if(isAdmin()){document.body.classList.remove('tw-guest');document.body.classList.add('tw-admin');}else{document.body.classList.remove('tw-admin');document.body.classList.add('tw-guest');}
 }
 function generateStars(){
   var c=document.getElementById('lockStars');
