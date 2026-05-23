@@ -1568,6 +1568,7 @@ function checkLock(){
           if(d.role==='guest'){
             enterSplash(true);
           } else if(d.hasTrip){
+            if (d.tripData && d.tripData.onboardingComplete === true) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
             // Check trial/subscription status
             if(typeof checkTrialStatus==='function') checkTrialStatus(d);
             // Show nudge banner for admin if onboarding not complete
@@ -1631,6 +1632,7 @@ function tryUnlock() {
         localStorage.setItem('tpcp_role', d.role);
         localStorage.setItem('tpcp_tripId', d.tripId || '');
         localStorage.setItem('disney_unlocked', d.role);
+        if (d.tripData && d.tripData.onboardingComplete === true) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
       } catch(e) {}
       userRole = d.role;
       applyRoleUI();
@@ -5063,6 +5065,7 @@ function submitTripCode() {
         launchOnboarding(code, d.role, d.tripId);
       } else {
         if (d.tripData && d.tripData.tripConfig) { window._loadedTripData = d.tripData; applyLoadedTripData(); }
+        if (d.tripData && d.tripData.onboardingComplete === true) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
         enterSplash(true);
       }
     })
@@ -7080,9 +7083,7 @@ setTimeout(checkForWaitSpikes, 30000);
 
   function nudgeCheckAndShow() {
     var role = localStorage.getItem('tpcp_role') || sessionStorage.getItem('twRole') || '';
-    var done = (localStorage.getItem('tpcp_onboardingComplete') === 'true'
-      || (window._obTripConfig && window._obTripConfig.onboardingComplete === true)) ? 'true' : null;
-    if (done === 'true') { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
+    var done = localStorage.getItem('tpcp_onboardingComplete');
     var banner = document.getElementById('obNudgeBanner');
     var pill = document.getElementById('obSetupPill');
     if (done === 'true' || role === 'guest') {
@@ -7095,9 +7096,7 @@ setTimeout(checkForWaitSpikes, 30000);
   }
 
   function aiOptGated() {
-    var done = (localStorage.getItem('tpcp_onboardingComplete') === 'true'
-      || (window._obTripConfig && window._obTripConfig.onboardingComplete === true)) ? 'true' : null;
-    if (done === 'true') { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
+    var done = localStorage.getItem('tpcp_onboardingComplete');
     if (done === 'true') {
       if (typeof reoptimize === 'function') reoptimize();
       return;
