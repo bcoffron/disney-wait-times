@@ -7080,7 +7080,9 @@ setTimeout(checkForWaitSpikes, 30000);
 
   function nudgeCheckAndShow() {
     var role = localStorage.getItem('tpcp_role') || sessionStorage.getItem('twRole') || '';
-    var done = localStorage.getItem('tpcp_onboardingComplete');
+    var done = (localStorage.getItem('tpcp_onboardingComplete') === 'true'
+      || (window._obTripConfig && window._obTripConfig.onboardingComplete === true)) ? 'true' : null;
+    if (done === 'true') { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
     var banner = document.getElementById('obNudgeBanner');
     var pill = document.getElementById('obSetupPill');
     if (done === 'true' || role === 'guest') {
@@ -7093,7 +7095,9 @@ setTimeout(checkForWaitSpikes, 30000);
   }
 
   function aiOptGated() {
-    var done = localStorage.getItem('tpcp_onboardingComplete');
+    var done = (localStorage.getItem('tpcp_onboardingComplete') === 'true'
+      || (window._obTripConfig && window._obTripConfig.onboardingComplete === true)) ? 'true' : null;
+    if (done === 'true') { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
     if (done === 'true') {
       if (typeof reoptimize === 'function') reoptimize();
       return;
