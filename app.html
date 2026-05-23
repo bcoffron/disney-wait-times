@@ -460,6 +460,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 }
 .splash-desc {
   color: rgba(255, 255, 255, 0.40);
+  margin-bottom: 24px;
 }
 
 /* ===== MISC / COMPATIBILITY STYLES ===== */
@@ -5107,7 +5108,7 @@ function renderSplashCtas(){
     btn.onclick=function(){
       var codeInput=document.getElementById('tripCodeInput');
       var val=codeInput?codeInput.value.trim().toUpperCase():'';
-      if(val){submitTripCode(val);}else{enterSplash(false);}
+      if(val){codeInput.value=val;submitTripCode();}else{enterSplash(false);}
     };
     area.appendChild(btn);
     var wrap=document.createElement('div');
@@ -5127,11 +5128,11 @@ function showTripCodeInput(){
   area.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:\'Outfit\',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div><div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>';
   setTimeout(function(){var inp=document.getElementById('tripCodeInput');if(inp)inp.focus();},50);
 }
-function submitTripCode(directVal) {
+function submitTripCode() {
   var inp = document.getElementById('twPassInput') || document.getElementById('tripCodeInput');
   var errEl = document.getElementById('twLoginError') || document.getElementById('tripCodeError');
-  if (!inp && !directVal) return;
-  var code = directVal ? directVal.trim().toUpperCase() : (inp ? inp.value.trim().toUpperCase() : '');
+  if (!inp) return;
+  var code = inp.value.trim().toUpperCase();
   if (!code) { inp.focus(); return; }
   if (errEl) errEl.style.display = 'none';
   inp.disabled = true;
