@@ -60,7 +60,7 @@ function buildCharacterContext(charIntel, tripConfig, maxChars) {
     lines.push('- ' + c.name + ' | ' + (c.location || '') + ' | Windows: ' + windows + ' | Typical wait: ' + (c.typicalWait || 0) + ' min' + (c.vipAccessible ? ' | VIP skip-line eligible' : ''));
   }
   const body = lines.join('\n');
-  const full = 'CHARACTER INTEL (from cache — do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nAvailable characters matching trip preferences:\n' + body;
+  const full = 'CHARACTER INTEL (from cache â do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nAvailable characters matching trip preferences:\n' + body;
   return full.substring(0, maxChars);
 }
 
@@ -101,7 +101,7 @@ module.exports = async function handler(req, res) {
     let system = 'You are a Disneyland and Disney California Adventure theme park scheduling expert with deep knowledge of wait time patterns, rope drop strategies, and crowd flow. Generate detailed, realistic day schedules in valid JSON only. No markdown, no explanation, just JSON.';
 
     if (parkIntel) {
-      system += '\n\n=== CURRENT PARK INTELLIGENCE (use this — do not search the web) ===\n' + parkIntel;
+      system += '\n\n=== CURRENT PARK INTELLIGENCE (use this â do not search the web) ===\n' + parkIntel;
     }
     if (diningIntel) {
       system += '\n\n=== DINING INTELLIGENCE ===\n' + diningIntel;
@@ -120,30 +120,58 @@ module.exports = async function handler(req, res) {
       }
       system += '\n- NEVER schedule a character meet outside their typicalWindows (appearance window).';
       system += '\n- NEVER place a character meet over a dining reservation, Lightning Lane Single Pass entry, or paid experience.';
-      system += '\n- One character meet per gap maximum — never stack multiple meets back to back.';
-      system += '\n- Character meet schedule entry schema: { "t": "H:MM AM", "h": "Character Name", "type": "character", "n": "Location, Land · Window start–end", "land": "Land Name", "typicalWait": 25, "vipAccessible": true, "disclaimer": true }';
+      system += '\n- One character meet per gap maximum â never stack multiple meets back to back.';
+      system += '\n- Character meet schedule entry schema: { "t": "H:MM AM", "h": "Character Name", "type": "character", "n": "Location, Land Â· Window startâend", "land": "Land Name", "typicalWait": 25, "vipAccessible": true, "disclaimer": true }';
       system += '\n- The "n" field must combine location and appearance window as one string.';
       system += '\n- Set disclaimer: true on all character entries so the app shows the schedule-change warning.';
     }
 
 
 // FIX 3: Anti-hallucination strict content rules
-system += '\n\n=== STRICT CONTENT RULES — NEVER VIOLATE ===';
+system += '\n\n=== STRICT CONTENT RULES â NEVER VIOLATE ===';
 system += '\n1. Only schedule activities that are: (a) explicitly in the trip config, (b) real attractions verified in the park_intel cache, or (c) standard park activities (rides, dining, shows, photo ops, snack stops, tip cards, restroom breaks).';
 system += '\n2. NEVER invent tour packages, special experiences, or paid add-ons not in the trip config. Do not add VIP tours, bio tours, backstage tours, Keys to the Kingdom, or any paid tour product unless it appears explicitly in tripConfig.lightningLane.singlePass or tripConfig.dining.reservations.';
 system += '\n3. NEVER schedule behind-the-scenes experiences, private tours, or special-access events that the user did not select during onboarding.';
-system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card — never invent a special experience.';
+system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card â never invent a special experience.';
 
-// FIX 2: Inject booked restaurant exclusion list
-const bookedRestaurants = ((tripConfig && tripConfig.dining && tripConfig.dining.reservations) || [])
-  .map(function(r) { return r && r.name ? r.name : null; })
-  .filter(Boolean);
-if (bookedRestaurants.length > 0) {
-  system += '\n\n=== DINING RESERVATIONS ALREADY BOOKED — DO NOT RECOMMEND THESE RESTAURANTS ===';
-  system += '\nThe following restaurants are already reserved as fixed anchors in the schedule. Do NOT recommend them in any other dining card, suggestion, or note: ' + bookedRestaurants.join(', ') + '.';
-  system += '\nThese are confirmed bookings — duplicating them would confuse the guest. Any free dining cards must recommend DIFFERENT restaurants.';
-}
-    console.log('generateschedule mode:', mode || 'default', 'park_intel:', !!parkIntel, 'char_intel:', !!charIntel, 'char_priority:', charPriority);
+// PART 1: Three-tier dining system
+  const confirmedRestaurants = (tripConfig && tripConfig.dining && tripConfig.dining.reservations
+    ? tripConfig.dining.reservations : [])
+    .map(function(r) { return r && r.name ? r.name : null; })
+    .filter(Boolean);
+
+  // Track used quick service restaurants across all days to prevent repeats
+  if (tripConfig && !tripConfig._usedQuickService) tripConfig._usedQuickService = [];
+  const usedQS = (tripConfig && tripConfig._usedQuickService) || [];
+
+  system += '\n\n=== DINING SYSTEM RULES — NEVER VIOLATE ===';
+  system += '\n\nCONFIRMED RESERVATIONS — FIXED ANCHORS:';
+  system += '\nThe following restaurants are already booked by the guest at specific times.';
+  system += '\nThey appear ONCE in the schedule at their confirmed time. Do NOT generate';
+  system += '\nany other card for these restaurants anywhere in the schedule. Do NOT mention';
+  system += '\nthem by name as a recommendation in any other card.';
+  system += '\nConfirmed: ' + (confirmedRestaurants.join(', ') || 'none');
+  system += '\n\nQUICK SERVICE SUGGESTIONS (type: "quickservice"):';
+  system += '\nAll AI-generated dining slots must use quick service restaurants ONLY.';
+  system += '\nRULES:';
+  system += '\n1. Never use the same restaurant more than once across the entire trip';
+  system += '\n2. Never use any restaurant in the confirmed list above';
+  system += '\n3. Never use table service restaurants as primary recommendations:';
+  system += '\n   Blue Bayou, Cafe Orleans, Carthay Circle Restaurant, Lamplight Lounge,';
+  system += '\n   River Belle Terrace (table service), Wine Country Trattoria, Napa Rose,';
+  system += '\n   Steakhouse 55, or any other sit-down table service location';
+  system += '\n4. Always pick from quick service options in the dining_intel cache';
+  system += '\n5. You MAY mention a table service restaurant once per trip in a note line only — one sentence maximum, never as the primary recommendation';
+  system += '\n6. Already used quick service restaurants this trip: ' + (usedQS.join(', ') || 'none');
+  system += '\n\nQUICK SERVICE CARD SCHEMA — use this exactly:';
+  system += '\n{ t: "H:MM AM", h: "Restaurant Name", type: "quickservice", n: "Warm 1-2 sentence note about timing and atmosphere", topPick: "Must-try dish name", veg: "Best vegetarian option", kids: "Best kids meal option", land: "Land Name" }';
+  system += '\n\nSNACK STOPS (type: "snack"):';
+  system += '\nSame no-repeat rule — never the same snack location twice per trip.';
+  system += '\nExisting snack behavior otherwise unchanged.';
+  system += '\n\nCONFIRMED RESERVATION CARDS (type: "dining"):';
+  system += '\nDo NOT generate these — they come from the trip config.';
+
+  console.log('generateschedule mode:', mode || 'default', 'park_intel:', !!parkIntel, 'char_intel:', !!charIntel, 'char_priority:', charPriority);
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

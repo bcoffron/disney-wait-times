@@ -143,7 +143,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .ride-time-end{font-size:9px!important;color:var(--text-dim);line-height:1.2;margin-top:1px}
 .ride-body{flex:1;min-width:0;overflow:hidden;padding:10px 12px}
 .ride-title-row{display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap;margin-bottom:2px}
-.ride-name{font-size:13px!important;font-weight:700;color:#071E25;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Outfit',sans-serif}
+.ride-name{font-size:13px!important;font-weight:700;color:#071E25;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-family:'Outfit',sans-serif}
 .ride-note{font-size:10px!important;color:#4A7A7C;line-height:1.35;margin-top:2px}
 
 /* Type badges */
@@ -201,6 +201,8 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 /* Card type variants */
 .ride-block.is-show{border-left:3px solid var(--purple)}
 .ride-block.is-food,.ride-block.is-dining{background:#FDF8F0!important;border-radius:0 11px 11px 0!important;border:0.5px solid rgba(180,120,40,0.20)!important;border-left:3px solid #D4893A!important;}
+.ride-block.is-quickservice{background:#F0FAF8!important;border-radius:0 11px 11px 0;border-left:3px solid #1A6860!important;}
+.tb-quickservice{background:#E0F0EE;color:#0A4840;font-size:7px;font-weight:700;padding:2px 5px;border-radius:20px}
 .dining-meal-list{margin-top:6px;display:flex;flex-direction:column;gap:4px}
 .dining-meal-row{display:flex;align-items:flex-start;gap:5px;line-height:1.4}
 .dining-meal-icon{flex-shrink:0;margin-top:2px}
@@ -1993,6 +1995,24 @@ var constraintRules='HARD CONSTRAINTS never violate: '
     +'7) PHOTO OPS: Include EXACTLY 2 photo op entries per day maximum. Space them out -- one in the morning, one in the evening. Each must be a different location. No more than 2 total per day.';
 var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
 
+// PART 7: Build wait time context for Ask AI
+function buildWaitContext() {
+  // Pull from the waits object used by the Waits tab
+  var w = (typeof waits !== 'undefined') ? waits : {};
+  if (!w || !Object.keys(w).length) return '';
+  var lines = Object.entries(w)
+    .filter(function(kv) { return kv[1] && kv[1].w !== null && kv[1].w !== undefined; })
+    .sort(function(a, b) { return (a[1].w || 0) - (b[1].w || 0); })
+    .slice(0, 30)
+    .map(function(kv) {
+      var name = kv[1].name || kv[0];
+      return name + ': ' + kv[1].w + ' min' + (kv[1].s === 'CLOSED' ? ' (closed)' : '');
+    });
+  if (!lines.length) return '';
+  var result = 'Current live wait times:\n' + lines.join('\n');
+  return result.substring(0, 800);
+}
+
 // FIX3: AI proxy helper - routes all AI calls through Vercel /api/ai
 async function _aiProxy(body, cacheCtx){
   var sys=body.system||'You are a helpful Disneyland assistant.';
@@ -3707,6 +3727,8 @@ function renderSched(){
       var bc='ride-block';
       if(e.type==='show')bc+=' is-show';
       else if(e.type==='food')bc+=' is-food';
+      else if(e.type==='dining')bc+=' is-dining';
+      else if(e.type==='quickservice')bc+=' is-quickservice';
       else if(e.type==='hop')bc+=' is-hop';
       else if(e.type==='vip')bc+=' is-vip';
       else if(e.type==='character')bc+=' is-character';
@@ -3716,7 +3738,7 @@ function renderSched(){
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
-      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',snack:'<span class="tb tb-snack">snack</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>',character:'<span class="tb tb-character">character</span>'};
+      var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',dining:'<span class="tb tb-dining">dining</span>',quickservice:'<span class="tb tb-quickservice">quick service</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',snack:'<span class="tb tb-snack">snack</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>',character:'<span class="tb tb-character">character</span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
       var diningRec='';
       if(e.type==='food'&&e.h){
@@ -3737,6 +3759,12 @@ function renderSched(){
         diningRec+='<div class="dining-panel" id="dp_'+curDay+'_'+si+'_'+ei+'" style="display:none"></div>';
       
       }
+      // PART 2: Reservation button for confirmed dining cards (type===dining)
+      if(e.type==='dining'&&e.h){
+        diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',''+e.h.split(\"'\").join('\\u2019')+'',''+e.h.split(\"'\").join('\\u2019')+'')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
+        diningRec+='<div class="dining-panel" id="dp_'+curDay+'_'+si+'_'+ei+'" style="display:none"></div>';
+      }
+      // type===quickservice: no button needed (walk-up)
       var reroute='';
       if(e.type==='ride'&&!TRIP_CONFIG.days[curDay].isVip){
         var safeRide=(e.ride||e.h||'').split("'").join('\\u2019');
@@ -3752,7 +3780,7 @@ function renderSched(){
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
-        +'<div class="ride-note">'+fixEncoding(e.n)+'</div>'+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+diningRec
+        +'<div class="ride-note">'+fixEncoding(e.n)+'</div>'+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(e.topPick||e.veg||e.kids)?'<div class="dining-meal-list">'+(e.topPick?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(e.veg?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(e.kids?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -4348,11 +4376,9 @@ async function _doChat(msg){
   var today=todayPT();
   var dm={'2026-06-28':'Sunday Jun 28','2026-06-29':'Monday Jun 29 (VIP Tour)','2026-06-30':'Tuesday Jun 30'};
   var dn=dm[today]||'pre-trip';
-  var wc='';
-  if(/(wait|line|ride|busy|crowd)/i.test(ml)&&Object.keys(waits).length){
-    var top=Object.values(waits).filter(function(r){return r.s==='OPERATING'&&r.w!==null;}).sort(function(a,b){return a.w-b.w;}).slice(0,6);
-    if(top.length)wc=' Live waits: '+top.map(function(r){return r.name+' '+r.w+'min';}).join(', ')+'.';
-  }
+  // PART 7: Always inject live wait context
+  var _waitCtx=buildWaitContext();
+  var wc=_waitCtx?' '+_waitCtx:'';
   var bc='';
   if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
   var sc='';
@@ -5043,13 +5069,46 @@ function getInitialActiveDay() {
 
 /* --- Splash screen --- */
 
+// PART 3: enrichDiningEntry - auto-populate dining fields from cache
+function enrichDiningEntry(entry) {
+  // Check entry.h against dining_intel cache
+  // If recognized: auto-populate entry.n, topPick, veg, kids from cache
+  // If not recognized: leave entry.n as-is
+  if (entry && (entry.type === 'dining' || entry.type === 'quickservice')) {
+    // Run duplicate check: scan all days for type "quickservice" card with same h value
+    // If found, remove it (confirmed takes priority)
+    if (entry.type === 'dining' && entry.h && typeof customSched !== 'undefined' && customSched) {
+      customSched.forEach(function(day) {
+        if (!day || !day.sections) return;
+        day.sections.forEach(function(sec) {
+          if (!sec || !sec.entries) return;
+          sec.entries = sec.entries.filter(function(e) {
+            return !(e.type === 'quickservice' && e.h === entry.h);
+          });
+        });
+      });
+    }
+  }
+  return entry;
+}
+
 function renderSplashCtas(){
   var area=document.getElementById('splashCtaArea');
   if(!area)return;
   var hasCode=false;
   try{hasCode=!!(localStorage.getItem('tpcp_code'));}catch(e){}
-  var secBtn=hasCode?'display:none':'display:block';
-  area.innerHTML='<button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>'+(hasCode?'':'<button onclick="showTripCodeInput()" id="splashSecondaryBtn" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:none;font-size:13px;color:rgba(255,255,255,0.7);cursor:pointer">Have a trip code?</button><div id="tripCodeInputArea" style="display:none"></div>');
+  if(hasCode){
+    // Returning user: just show Enter button, hide code input
+    area.innerHTML='<button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>';
+  }else{
+    // New user: show Enter button AND code input immediately (no tap-to-reveal)
+    area.innerHTML='<button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>'
+      +'<div style="margin-top:10px">'
+      +'<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;text-align:center">Have a trip code?</div>'
+      +'<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:'Outfit',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div>'
+      +'<div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>'
+      +'</div>';
+  }
 }
 function showTripCodeInput(){
   var area=document.getElementById('tripCodeInputArea');

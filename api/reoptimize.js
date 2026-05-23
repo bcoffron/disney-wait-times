@@ -50,7 +50,7 @@ function buildCharacterContext(charIntel, maxChars) {
     lines.push('- ' + c.name + ' | ' + (c.location || '') + ' | Windows: ' + windows + ' | Typical wait: ' + (c.typicalWait || 0) + ' min');
   }
   const body = lines.join('\n');
-  const full = 'CHARACTER INTEL (from cache — do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nCharacter windows to avoid conflicts:\n' + body;
+  const full = 'CHARACTER INTEL (from cache â do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nCharacter windows to avoid conflicts:\n' + body;
   return full.substring(0, maxChars);
 }
 
@@ -86,7 +86,7 @@ async function handler(req, res) {
     const charContext = buildCharacterContext(charIntel, 2000);
 
     const model = 'claude-haiku-4-5-20251001';
-    let system = 'You are a Disneyland schedule optimizer. Output ONLY raw JSON, no markdown, no explanation. Required format: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence"} Return ALL entries for the full day — do not truncate. Preserve all character meet entries (type: "character") in their correct positions relative to other entries. Never schedule a character meet outside their listed appearance windows.';
+    let system = 'You are a Disneyland schedule optimizer. Output ONLY raw JSON, no markdown, no explanation. Required format: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence"} Return ALL entries for the full day â do not truncate. Preserve all character meet entries (type: "character") in their correct positions relative to other entries. Never schedule a character meet outside their listed appearance windows.';
 
     if (parkIntel) {
       system += '\n\n=== PARK INTELLIGENCE ===\n' + parkIntel;
@@ -95,13 +95,39 @@ async function handler(req, res) {
       system += '\n\n=== ' + charContext + ' ===';
     }
 
+    // PART 4: Dining and show preservation rules
+    system += '\n\n=== DINING AND SHOW PRESERVATION RULES ===';
+    system += '\nWhen reordering the schedule, NEVER modify the content of dining or show cards.';
+    system += '\nRules:';
+    system += '\n1. Preserve ALL fields on type "dining" and type "quickservice" cards:';
+    system += '\n   h, n, topPick, veg, kids, land — copy them exactly, word for word';
+    system += '\n2. Preserve ALL fields on type "show" cards: h, n, land';
+    system += '\n3. You MAY adjust the time slot of a quickservice card if needed for schedule flow';
+    system += '\n4. NEVER move a confirmed reservation (type "dining") more than 30 minutes from its original time — it is a fixed anchor';
+    system += '\n5. NEVER replace a rich multi-line note with a generic one-liner';
+    system += '\n6. If you cannot preserve the original content, keep the card exactly as-is and do not move it';
+
     const existingSectionsStr = existingSections ? existingSections.substring(0, 5000) : null;
     const userMsg = existingSectionsStr
       ? 'Optimize for minimum waits. Return COMPLETE full-day schedule, no omissions. JSON only.\nCurrent schedule:' + existingSectionsStr + '\nContext:' + cleanPrompt
       : 'Build optimized full-day plan. JSON only.\n' + cleanPrompt;
 
     function normalizeEntry(e) {
-      return { t: e.t || e.time || '', h: e.h || e.name || e.title || e.attraction || '', type: e.type || 'ride', n: e.n || e.note || e.tip || e.description || '', land: e.land || '', ...(e.type === 'character' ? { typicalWait: e.typicalWait || 0, vipAccessible: !!e.vipAccessible, disclaimer: true } : {}) };
+      var base = { t: e.t || e.time || '', h: e.h || e.name || e.title || e.attraction || '', type: e.type || 'ride', n: e.n || e.note || e.tip || e.description || '', land: e.land || '' };
+      // PART 4: Preserve dining/quickservice rich fields
+      if (e.type === 'dining' || e.type === 'quickservice') {
+        if (e.topPick) base.topPick = e.topPick;
+        if (e.veg) base.veg = e.veg;
+        if (e.kids) base.kids = e.kids;
+        if (e.reservationTime) base.reservationTime = e.reservationTime;
+      }
+      // Preserve character fields
+      if (e.type === 'character') {
+        base.typicalWait = e.typicalWait || 0;
+        base.vipAccessible = !!e.vipAccessible;
+        base.disclaimer = true;
+      }
+      return base;
     }
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
