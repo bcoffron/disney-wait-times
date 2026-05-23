@@ -948,7 +948,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
         </div>
         
       </div>
-      <div id="splashTripCard" style="display:none;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:9px;color:rgba(255,255,255,0.50);font-weight:500">Jun 28&ndash;30, 2026</div><div style="font-size:9px;color:rgba(255,255,255,0.50)">Anaheim, CA</div></div><div style="display:flex;gap:5px"><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DL</span><span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">DCA</span></div></div>
+      <div id="splashTripCard" style="display:none;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;flex-direction:row;justify-content:space-between;align-items:center;margin-top:10px"><div><div id="splashTripDates" style="font-size:9px;color:rgba(255,255,255,0.50);font-weight:500"></div><div id="splashTripLocation" style="font-size:9px;color:rgba(255,255,255,0.50)"></div></div><div id="splashTripParks" style="display:flex;gap:5px"></div></div>
       <!-- login gate rendered by renderSplashCtas -->
       <div id="splashCtaArea"></div>
     </div>
@@ -1549,8 +1549,7 @@ function checkLock(){
     var tpcpCode=localStorage.getItem('tpcp_code');
     var tpcpRole=localStorage.getItem('tpcp_role');
     if(tpcpCode&&tpcpRole){
-      // Silent re-validation - render STATE B splash while validating
-      renderSplashCtas();
+      // Silent re-validation while validating
       fetch(SYNC_BASE+'/api/trip?code='+encodeURIComponent(tpcpCode))
         .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
         .then(function(result){
@@ -1559,7 +1558,7 @@ function checkLock(){
             localStorage.removeItem('tpcp_role');
             localStorage.removeItem('tpcp_tripId');
             localStorage.removeItem('tpcp_onboardingComplete');
-            renderSplashCtas();
+            initSplash();
             var area=document.getElementById('splashCtaArea');
             if(area){var err=document.createElement('div');err.style.cssText='color:#C86030;font-size:13px;text-align:center;margin-top:8px;';err.textContent='Session expired. Please re-enter your code.';area.appendChild(err);}
             return;
@@ -1590,7 +1589,7 @@ function checkLock(){
           }
         })
         .catch(function(){
-          renderSplashCtas();
+          // network error — leave splash as-is
         });
       return;
     }
@@ -1609,7 +1608,7 @@ function checkLock(){
   }catch(e){}
 
   // First time - show splash CTA (STATE A)
-  renderSplashCtas();
+  initSplash();
 }
 function tryUnlock() {
   var inp = document.getElementById('twPassInput');
@@ -5173,7 +5172,16 @@ function submitTripCode() {
 }
 function initSplash() {
   // Countdown
-  if(!TRIP_CONFIG || !TRIP_CONFIG.firstParkDate) { if(typeof renderSplashCtas === "function") renderSplashCtas(); return; }
+  if(!TRIP_CONFIG || !TRIP_CONFIG.firstParkDate) {
+    if(typeof renderSplashCtas === 'function') renderSplashCtas();
+    var titleEl2 = document.getElementById('splashTitle');
+    var tripCard2 = document.getElementById('splashTripCard');
+    var countdownWrap2 = document.getElementById('splashCountdownWrap');
+    if (titleEl2) titleEl2.textContent = 'Your Disney Adventure';
+    if (tripCard2) tripCard2.style.display = 'none';
+    if (countdownWrap2) countdownWrap2.style.display = 'none';
+    return;
+  }
   var target = TRIP_CONFIG.firstParkDate;
   var now = new Date();
   var diff = Math.ceil((target - now) / 86400000);
@@ -5193,33 +5201,37 @@ function initSplash() {
   generateSplashStars();
   // Render CTAs based on setup state
   renderSplashCtas();
-  // Dynamic splash: show trip-specific or generic content
+  // Dynamic splash: show trip-specific or generic content based on localStorage
   (function() {
-    var sc = null; try { sc = localStorage.getItem("tpcp_code"); } catch(e) {}
-    var te = document.getElementById("splashTitle");
-    var tc = document.getElementById("splashTripCard");
-    var cw = document.getElementById("splashCountdownWrap");
-    if (sc && TRIP_CONFIG && TRIP_CONFIG.tripName) {
-      if (te) te.textContent = TRIP_CONFIG.tripName;
-      if (tc) tc.style.display = "block";
-      if (cw) cw.style.display = "block";
-    } else {
-      if (te) te.textContent = "Your Disney Adventure";
-      if (tc) tc.style.display = "none";
-      if (cw) cw.style.display = "none";
-    }
-  })();
-  // Dynamic splash content based on stored code
-  (function() {
-    var storedCode = null;
-    try { storedCode = localStorage.getItem('tpcp_code'); } catch(e){}
+    var sc = null; try { sc = localStorage.getItem('tpcp_code'); } catch(e) {}
     var titleEl = document.getElementById('splashTitle');
     var tripCard = document.getElementById('splashTripCard');
     var countdownWrap = document.getElementById('splashCountdownWrap');
-    if (storedCode && TRIP_CONFIG && TRIP_CONFIG.tripName) {
+    if (sc && TRIP_CONFIG && TRIP_CONFIG.tripName) {
       if (titleEl) titleEl.textContent = TRIP_CONFIG.tripName;
-      if (tripCard) tripCard.style.display = 'block';
       if (countdownWrap) countdownWrap.style.display = 'block';
+      if (tripCard) {
+        var datesEl = document.getElementById('splashTripDates');
+        var locEl = document.getElementById('splashTripLocation');
+        var parksEl = document.getElementById('splashTripParks');
+        if (datesEl && TRIP_CONFIG.days && TRIP_CONFIG.days.length) {
+          var first = TRIP_CONFIG.days[0].date || '';
+          var last = TRIP_CONFIG.days[TRIP_CONFIG.days.length - 1].date || '';
+          datesEl.textContent = first + (last && last !== first ? ' – ' + last : '');
+        }
+        if (locEl) locEl.textContent = 'Anaheim, CA';
+        if (parksEl) {
+          var parks = [];
+          TRIP_CONFIG.days.forEach(function(d) {
+            var abbr = d.park === 'Disneyland' ? 'DL' : d.park === 'California Adventure' ? 'DCA' : d.park;
+            if (abbr && parks.indexOf(abbr) === -1) parks.push(abbr);
+          });
+          parksEl.innerHTML = parks.map(function(p) {
+            return '<span style="background:rgba(26,104,96,0.45);border:1px solid rgba(26,104,96,0.6);color:#fff;font-size:9px;font-weight:600;padding:3px 7px;border-radius:20px">' + p + '</span>';
+          }).join('');
+        }
+        tripCard.style.display = 'flex';
+      }
     } else {
       if (titleEl) titleEl.textContent = 'Your Disney Adventure';
       if (tripCard) tripCard.style.display = 'none';
