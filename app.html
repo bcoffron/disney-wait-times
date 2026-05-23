@@ -5100,13 +5100,23 @@ function renderSplashCtas(){
     // Returning user: just show Enter button, hide code input
     area.innerHTML='<button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>';
   }else{
-    // New user: show Enter button AND code input immediately (no tap-to-reveal)
-    area.innerHTML='<button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>'
-      +'<div style="margin-top:10px">'
-      +'<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;text-align:center">Have a trip code?</div>'
-      +'<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:Outfit,sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div>'
+    // New user: orange button checks code input first, no separate Enter button
+    var btn=document.createElement('button');
+    btn.style.cssText='width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer';
+    btn.textContent='Enter Your Adventure';
+    btn.onclick=function(){
+      var codeInput=document.getElementById('tripCodeInput');
+      var val=codeInput?codeInput.value.trim().toUpperCase():'';
+      if(val){submitTripCode(val);}else{enterSplash(false);}
+    };
+    area.appendChild(btn);
+    var wrap=document.createElement('div');
+    wrap.style.marginTop='10px';
+    wrap.innerHTML='<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;text-align:center">Have a trip code?</div>'
+      +'<div style="display:flex;gap:0;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:Outfit,sans-serif;outline:none" autocapitalize="characters" autocorrect="off" spellcheck="false" /></div>'
       +'<div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>'
-      +'</div>';
+      +'<div style="font-size:10px;color:rgba(255,255,255,0.35);text-align:center;margin-top:6px;font-style:italic">Enter your code above then tap Enter Your Adventure</div>';
+    area.appendChild(wrap);
   }
 }
 function showTripCodeInput(){
@@ -5117,11 +5127,11 @@ function showTripCodeInput(){
   area.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:\'Outfit\',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div><div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>';
   setTimeout(function(){var inp=document.getElementById('tripCodeInput');if(inp)inp.focus();},50);
 }
-function submitTripCode() {
+function submitTripCode(directVal) {
   var inp = document.getElementById('twPassInput') || document.getElementById('tripCodeInput');
   var errEl = document.getElementById('twLoginError') || document.getElementById('tripCodeError');
-  if (!inp) return;
-  var code = inp.value.trim().toUpperCase();
+  if (!inp && !directVal) return;
+  var code = directVal ? directVal.trim().toUpperCase() : (inp ? inp.value.trim().toUpperCase() : '');
   if (!code) { inp.focus(); return; }
   if (errEl) errEl.style.display = 'none';
   inp.disabled = true;
@@ -5159,8 +5169,8 @@ function submitTripCode() {
       if (!d.hasTrip) {
         launchOnboarding(code, d.role, d.tripId);
       } else {
-        if (d.tripData && d.tripData.tripConfig) { window._loadedTripData = d.tripData; applyLoadedTripData(); }
         if (d.tripData && d.tripData.onboardingComplete === true) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
+        if (d.tripData && d.tripData.tripConfig) { window._loadedTripData = d.tripData; applyLoadedTripData(); }
         enterSplash(true);
       }
     })
@@ -7192,6 +7202,14 @@ setTimeout(checkForWaitSpikes, 30000);
   function nudgeCheckAndShow() {
     var role = localStorage.getItem('tpcp_role') || sessionStorage.getItem('twRole') || '';
     var done = localStorage.getItem('tpcp_onboardingComplete');
+    // Fallback: check in-memory trip data if localStorage hasn't been set yet
+    if (!done) {
+      var ltd = window._loadedTripData;
+      if (ltd && ltd.onboardingComplete === true) {
+        done = 'true';
+        try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
+      }
+    }
     var banner = document.getElementById('obNudgeBanner');
     var pill = document.getElementById('obSetupPill');
     if (done === 'true' || role === 'guest') {
@@ -7504,7 +7522,7 @@ setTimeout(checkForWaitSpikes, 30000);
 
   // ------- INIT: Run nudge check after app loads -------
   document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(nudgeCheckAndShow, 800);
+    setTimeout(nudgeCheckAndShow, 2000);
     var editRow = document.getElementById('editTripDetailsRow');
     if (editRow && typeof isAdmin === 'function' && isAdmin()) {
       editRow.style.display = 'block';
