@@ -3760,7 +3760,7 @@ function renderSched(){
       }
       // PART 2: Reservation button for confirmed dining cards (type===dining)
       if(e.type==='dining'&&e.h){
-        diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',''+e.h.split(\"'\").join('\\u2019')+'',''+e.h.split(\"'\").join('\\u2019')+'')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
+        var _safeH=e.h.split("'").join('\u2019');diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+_safeH+'\',\''+_safeH+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
         diningRec+='<div class="dining-panel" id="dp_'+curDay+'_'+si+'_'+ei+'" style="display:none"></div>';
       }
       // type===quickservice: no button needed (walk-up)
@@ -5104,7 +5104,7 @@ function renderSplashCtas(){
     area.innerHTML='<button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>'
       +'<div style="margin-top:10px">'
       +'<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;text-align:center">Have a trip code?</div>'
-      +'<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:'Outfit',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div>'
+      +'<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:Outfit,sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div>'
       +'<div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>'
       +'</div>';
   }
