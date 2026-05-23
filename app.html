@@ -5171,7 +5171,7 @@ function submitTripCode() {
         launchOnboarding(code, d.role, d.tripId);
       } else {
         if (d.tripData && d.tripData.onboardingComplete === true) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
-        if (d.tripData && d.tripData.tripConfig) { window._loadedTripData = d.tripData; applyLoadedTripData(); }
+        if (d.tripData && d.tripData.tripConfig) { window._loadedTripData = d.tripData; }
         enterSplash(true);
       }
     })
