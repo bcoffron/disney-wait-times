@@ -24,6 +24,13 @@ async function writeRegistry(data) {
   });
 }
 
+
+function sanitizeJson(text) {
+  const lastBrace = text.lastIndexOf('}' + '}');
+  if (lastBrace > -1) return text.substring(0, lastBrace + 2);
+  return text;
+}
+
 async function readTripBlob(tripId) {
   try {
     const key = 'twize/trip_' + tripId + '.json';
@@ -31,7 +38,8 @@ async function readTripBlob(tripId) {
     if (!blobs || blobs.length === 0) return null;
     const resp = await fetch(blobs[0].url + '?t=' + Date.now());
     if (!resp.ok) return null;
-    return await resp.json();
+    const rawText = await resp.text();
+    return JSON.parse(sanitizeJson(rawText));
   } catch (e) { return null; }
 }
 
