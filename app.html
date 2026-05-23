@@ -3780,7 +3780,7 @@ function renderSched(){
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
-        +'<div class="ride-note">'+fixEncoding(e.n)+'</div>'+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(e.topPick||e.veg||e.kids)?'<div class="dining-meal-list">'+(e.topPick?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(e.veg?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(e.kids?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
+        +'<div class="ride-note">'+fixEncoding(e.n)+'</div>'+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -4305,7 +4305,7 @@ function renderShows(){
 
 //    Nav                                                                    
 function setDay(d){
-  window.scrollTo(0,0);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){window.scrollTo(0,0);});});
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
   editMode=false;
@@ -5464,14 +5464,16 @@ function ob8Complete() {
   var pill = document.getElementById('obSetupPill');
   if (pill) pill.style.display = 'none';
   if (typeof enterSplash === 'function') enterSplash(true);
-  // Scroll to top of schedule after generation
-  setTimeout(function() {
-    window.scrollTo(0, 0);
-    var sc = document.getElementById('schedContent');
-    if (sc) sc.scrollTop = 0;
-    var sched = document.querySelector('.sched-scroll, .sched-body');
-    if (sched) sched.scrollTop = 0;
-  }, 100);
+  // Scroll to top of schedule after generation — double rAF ensures layout is complete
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      window.scrollTo(0, 0);
+      var sc = document.getElementById('schedContent');
+      if (sc) sc.scrollTop = 0;
+      var sched = document.querySelector('.sched-scroll, .sched-body');
+      if (sched) sched.scrollTop = 0;
+    });
+  });
 }
 
 function obTogglePark(btn, park) {
