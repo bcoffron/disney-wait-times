@@ -5586,7 +5586,7 @@ function obRenderDayRows() {
       var chipBg = sel ? '#D4A830' : 'rgba(212,168,48,0.12)';
       var chipColor = sel ? '#fff' : '#8A6820';
       var chipBorder = sel ? '1px solid #C9860A' : '1px solid rgba(212,168,48,0.3)';
-      html += '<button type="button" onclick="obToggleVipPerk(' + i + ',this,'' + pk.replace(/'/g,"\'") + '')" style="padding:5px 10px;border-radius:20px;border:' + chipBorder + ';background:' + chipBg + ';color:' + chipColor + ';font-family:Outfit,sans-serif;font-size:11px;font-weight:600;cursor:pointer;">' + pk + '</button>';
+      html += '<button type="button" data-perk="' + pk.replace(/"/g,'&quot;') + '" onclick="obToggleVipPerk(' + i + ',this,this.dataset.perk)" style="padding:5px 10px;border-radius:20px;border:' + chipBorder + ';background:' + chipBg + ';color:' + chipColor + ';font-family:Outfit,sans-serif;font-size:11px;font-weight:600;cursor:pointer;">' + pk + '</button>';
     });
     html += '</div>';
     // "Other" free text
