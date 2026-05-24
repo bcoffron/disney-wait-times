@@ -5463,6 +5463,11 @@ function ob8SaveAndEnter() {
     onboardingComplete: true,
     scheduleVersion: Date.now().toString()
   });
+  var savedTripData = { tripConfig: tripCfg };
+  // Pre-populate window cache so enterSplash won't hit stale API state
+  window._schedData = tripCfg.schedule || null;
+  window._loadedTripData = savedTripData;
+  try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
   fetch(SYNC_BASE + '/api/trip', {
     method: 'POST',
     headers: {
@@ -5471,12 +5476,9 @@ function ob8SaveAndEnter() {
     },
     body: JSON.stringify({
       code: code,
-      tripData: { tripConfig: tripCfg }
+      tripData: savedTripData
     })
   }).then(function(r) { return r.json(); }).then(function(d) {
-    if (d && (d.ok || d.success)) {
-      try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
-    }
     ob8Complete();
   }).catch(function() { ob8Complete(); });
 }
