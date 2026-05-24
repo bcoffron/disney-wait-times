@@ -207,6 +207,13 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   system += '\nNever use 45 minutes. The arrival tip card time should be set to the park openTime minus 60 minutes.';
   system += '\nThe first tip card of each day must say: Arrive at the park entrance 1 hour before opening.';
 
+
+  // FIX 4: VIP day dinner timing + schedule completeness
+  system += '\n\n=== VIP DAY DINING RULE ===';
+  system += '\nOn VIP tour days, never schedule dinner before 6:30 PM. The group needs transition time after the tour ends. If vipEnd is 5:00 PM, the earliest dinner slot is 6:30 PM. Quick service dinner on VIP days should be 6:30 PM or later.';
+  system += '\n\n=== SCHEDULE COMPLETENESS RULE ===';
+  system += '\nEvery day must have schedule entries from arrival (60 min before open) through the actual official park closing time from the park_hours_intel cache. Never end a day schedule more than 30 minutes before official park close. Evening content should include: evening rides with short waits, fireworks/shows if available, photo ops at night, final lap strategy. A schedule that ends at 7 PM is incomplete — always continue through the evening until park close.';
+
   console.log('generateschedule mode:', mode || 'default', 'park_intel:', !!parkIntel, 'char_intel:', !!charIntel, 'char_priority:', charPriority);
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
