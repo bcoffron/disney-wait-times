@@ -6459,7 +6459,7 @@ function renderVipBanner(dayNum) {
     for (var si = 0; si < secHdrs.length; si++) {
       if (secHdrs[si].textContent.indexOf('VIP Tour') > -1) { vipHdr = secHdrs[si]; break; }
     }
-    if (vipHdr) container.insertBefore(vnSec, vipHdr.nextSibling);
+    if (vipHdr) container.insertBefore(vnSec, vipHdr.nextSibling); else container.insertBefore(vnSec, banner.nextSibling);
     if (typeof vnInit === 'function') setTimeout(function(){vnInit();},0);
   } else {
     var vnSec2 = document.getElementById('vipNotesSection');
