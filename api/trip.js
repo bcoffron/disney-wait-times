@@ -105,7 +105,11 @@ module.exports = async function handler(req, res) {
       const entry = registry[code];
       if (!entry) return res.status(404).json({ error: 'Code not found' });
 
-      // Save to shared trip blob
+      // Auto-stamp scheduleVersion so client caches are invalidated on every save
+      if (tripData && tripData.tripConfig) {
+        tripData.tripConfig.scheduleVersion = Date.now().toString();
+      }
+            // Save to shared trip blob
       await writeTripBlob(entry.tripId, tripData);
 
       return res.status(200).json({ ok: true, tripId: entry.tripId });
