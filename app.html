@@ -1310,6 +1310,20 @@ body.tw-guest .ai-opt-hero{display:none!important}
 </nav>
 
 <script>
+// ONE-TIME CACHE CLEAR — version v20260523
+// Clears stale schedule data from before the dining system overhaul
+// Remove this block after June 28 2026
+(function() {
+  var cleared = localStorage.getItem('tpcp_cache_cleared_v20260523');
+  if (!cleared) {
+    localStorage.removeItem('sched_day_0');
+    localStorage.removeItem('sched_day_1');
+    localStorage.removeItem('sched_day_2');
+    localStorage.removeItem('sched_day_3');
+    localStorage.removeItem('sched_day_4');
+    localStorage.setItem('tpcp_cache_cleared_v20260523', '1');
+  }
+})();
 // v202605101200 cache bust=99
 // Safety stub - real function defined later
 function fixEncoding(s) {
@@ -1519,7 +1533,9 @@ var PASS_ADMIN='cwdis2026admin';
 var userRole='guest'; // 'admin' or 'guest'
 
 function checkScheduleFreshness(serverTripConfig) {
-  var serverVersion = (serverTripConfig && serverTripConfig.scheduleVersion) ? serverTripConfig.scheduleVersion : '0';
+  var serverVersion = (serverTripConfig && serverTripConfig.scheduleVersion)
+    || (serverTripConfig && serverTripConfig.tripConfig && serverTripConfig.tripConfig.scheduleVersion)
+    || '0';
   var localVersion = localStorage.getItem('tpcp_schedVersion') || '0';
   if (serverVersion !== localVersion) {
     localStorage.removeItem('sched_day_0');
