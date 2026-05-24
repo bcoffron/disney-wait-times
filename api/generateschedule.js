@@ -134,11 +134,28 @@ system += '\n2. NEVER invent tour packages, special experiences, or paid add-ons
 system += '\n3. NEVER schedule behind-the-scenes experiences, private tours, or special-access events that the user did not select during onboarding.';
 system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card â never invent a special experience.';
 
+// FIX 2: Note quality standard
+system += '\n\n=== NOTE QUALITY STANDARD — EVERY CARD MUST MEET THIS BAR ===';
+system += '\nEvery card note (field "n") must include ALL of the following:';
+system += '\n1. WHY this activity at this specific time — what makes this time slot strategically good (wait times, crowd patterns, park flow)';
+system += '\n2. GROUP-SPECIFIC CONTEXT — reference the actual group makeup from tripConfig (9 guests, 1 under 40 inches, 2 at 40–48 inches, 6 over 48 inches, afternoon break planned). Mention height requirements, who can ride, stroller considerations where relevant.';
+system += '\n3. PRACTICAL DETAIL — what to expect, what to do, what to watch for. At least 2–3 sentences. Never a single sentence. Never vague.';
+system += '\nEXAMPLE OF A GOOD NOTE (use this as your quality benchmark):';
+system += '\n"First ride of the day. Standby wait should be under 10 minutes at rope drop. This is one of the most consistently long-wait attractions all day — do it now. All 9 guests including your under-40-inch guest can ride (no height requirement). Enjoy the classic Neverland fly-over."';
+system += '\nEXAMPLE OF A BAD NOTE — never write these:';
+system += '\n"Low wait at rope drop." (too short, no context)';
+system += '\n"Quick succession, minimal crowds." (vague, no group info)';
+system += '\n"Classic dark ride." (generic, no strategy)';
+system += '\n"Thrill coaster, still short wait." (one line, no detail)';
+system += '\nThis standard applies to ALL card types: ride, tip, quickservice, dining, show, character, snack, photo.';
+
 // PART 1: Three-tier dining system
   const confirmedRestaurants = (tripConfig && tripConfig.dining && tripConfig.dining.reservations
     ? tripConfig.dining.reservations : [])
     .map(function(r) { return r && r.name ? r.name : null; })
     .filter(Boolean);
+  console.log('[generateschedule] confirmedRestaurants:', JSON.stringify(confirmedRestaurants));
+  console.log('[generateschedule] tripConfig.dining:', JSON.stringify(tripConfig && tripConfig.dining));
 
   // Track used quick service restaurants across all days to prevent repeats
   if (tripConfig && !tripConfig._usedQuickService) tripConfig._usedQuickService = [];
@@ -157,9 +174,13 @@ system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or 
   system += '\n1. Never use the same restaurant more than once across the entire trip';
   system += '\n2. Never use any restaurant in the confirmed list above';
   system += '\n3. Never use table service restaurants as primary recommendations:';
-  system += '\n   Blue Bayou, Cafe Orleans, Carthay Circle Restaurant, Lamplight Lounge,';
-  system += '\n   River Belle Terrace (table service), Wine Country Trattoria, Napa Rose,';
-  system += '\n   Steakhouse 55, or any other sit-down table service location';
+    system += '\n   Blue Bayou Restaurant, Cafe Orleans, Carthay Circle Restaurant, Lamplight Lounge,';
+  system += '\n   Wine Country Trattoria, Napa Rose, Steakhouse 55, River Belle Terrace (table service),';
+  system += '\n   Rancho del Zocalo (sit-down), Plaza Inn (fried chicken sit-down), Carnation Cafe,';
+  system += "\n   Jolly Holiday Bakery (table service area), Storytellers Cafe, Goofy's Kitchen,";
+  system += '\n   Minnie & Friends Breakfast, PCH Grill, or any other sit-down table service location.';
+  system += '\n   Quick service means ONLY: counter service, food stands, carts, walk-up windows';
+  system += '\n   where you order and take your food. If a server takes your order at a table, it is table service.';
   system += '\n4. Always pick from quick service options in the dining_intel cache';
   system += '\n5. You MAY mention a table service restaurant once per trip in a note line only — one sentence maximum, never as the primary recommendation';
   system += '\n6. Already used quick service restaurants this trip: ' + (usedQS.join(', ') || 'none');
@@ -179,6 +200,12 @@ system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or 
   system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields. They are treat stops only. One warm note sentence is sufficient.';
   system += '\n\nCONFIRMED RESERVATION CARDS (type: "dining"):';
   system += '\nDo NOT generate these — they come from the trip config.';
+
+  // FIX 3: Hardcode 60-min arrival
+  system += '\n\n=== PARK ARRIVAL RULE ===';
+  system += '\nPark arrival tip: Always schedule guests to arrive 60 minutes (1 hour) before official park opening.';
+  system += '\nNever use 45 minutes. The arrival tip card time should be set to the park openTime minus 60 minutes.';
+  system += '\nThe first tip card of each day must say: Arrive at the park entrance 1 hour before opening.';
 
   console.log('generateschedule mode:', mode || 'default', 'park_intel:', !!parkIntel, 'char_intel:', !!charIntel, 'char_priority:', charPriority);
 

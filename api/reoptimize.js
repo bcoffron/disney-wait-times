@@ -107,6 +107,12 @@ async function handler(req, res) {
     system += '\n4. NEVER move a confirmed reservation (type "dining") more than 30 minutes from its original time — it is a fixed anchor';
     system += '\n5. NEVER replace a rich multi-line note with a generic one-liner';
     system += '\n6. If you cannot preserve the original content, keep the card exactly as-is and do not move it';
+    system += '\n7. Preserve ALL fields on type "tip" cards: the entire note field must be kept exactly word for word.';
+    system += '\n   Tip notes contain strategic park advice. Never shorten, summarize, or replace tip notes.';
+    system += '\n8. Preserve ALL fields on type "snack", type "photo", and type "character" cards exactly as-is.';
+    system += '\n   These non-ride card types must never have their notes replaced with one-liners.';
+    system += '\n9. ONLY ride cards (type: "ride") may have their time slots adjusted during optimization.';
+    system += '\n   Never replace any card note with a shorter version. Never genericize a specific note.';
 
     const existingSectionsStr = existingSections ? existingSections.substring(0, 8000) : null;
     const userMsg = existingSectionsStr
@@ -132,7 +138,14 @@ async function handler(req, res) {
         base.vipAccessible = !!e.vipAccessible;
         base.disclaimer = true;
       }
-      return base;
+      // FIX 4: Guard tip/snack/photo/character note length — never replace with shorter version
+      if (e.type === 'tip' || e.type === 'snack' || e.type === 'photo' || e.type === 'character') {
+        const origNote = e.n || e.note || e.tip || e.description || '';
+        if (base.n && origNote && base.n.length < origNote.length) {
+          base.n = origNote;
+        }
+      }
+            return base;
     }
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
