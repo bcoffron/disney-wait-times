@@ -5454,16 +5454,31 @@ function ob8RenderSummary() {
 }
 
 function ob8SaveAndEnter() {
-  var tripId = localStorage.getItem('tpcp_tripId') || window._obTripId;
-  if (!tripId) {
+  var code = _obCode || localStorage.getItem('tpcp_code');
+  if (!code) {
     ob8Complete();
     return;
   }
+  var tripCfg = Object.assign({}, _obTripConfig, {
+    onboardingComplete: true,
+    scheduleVersion: Date.now().toString()
+  });
   fetch(SYNC_BASE + '/api/trip', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'savetrip', tripId: tripId, data: _obTripConfig })
-  }).then(function() { ob8Complete(); }).catch(function() { ob8Complete(); });
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-key': code
+    },
+    body: JSON.stringify({
+      code: code,
+      tripData: { tripConfig: tripCfg }
+    })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d && (d.ok || d.success)) {
+      try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
+    }
+    ob8Complete();
+  }).catch(function() { ob8Complete(); });
 }
 
 function ob8Complete() {
