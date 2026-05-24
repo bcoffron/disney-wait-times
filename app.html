@@ -1310,20 +1310,6 @@ body.tw-guest .ai-opt-hero{display:none!important}
 </nav>
 
 <script>
-// ONE-TIME CACHE CLEAR — version v20260523
-// Clears stale schedule data from before the dining system overhaul
-// Remove this block after June 28 2026
-(function() {
-  var cleared = localStorage.getItem('tpcp_cache_cleared_v20260523');
-  if (!cleared) {
-    localStorage.removeItem('sched_day_0');
-    localStorage.removeItem('sched_day_1');
-    localStorage.removeItem('sched_day_2');
-    localStorage.removeItem('sched_day_3');
-    localStorage.removeItem('sched_day_4');
-    localStorage.setItem('tpcp_cache_cleared_v20260523', '1');
-  }
-})();
 // v202605101200 cache bust=99
 // Safety stub - real function defined later
 function fixEncoding(s) {
@@ -1532,22 +1518,7 @@ var PASS_GUEST='cw9dis2026';
 var PASS_ADMIN='cwdis2026admin';
 var userRole='guest'; // 'admin' or 'guest'
 
-function checkScheduleFreshness(serverTripConfig) {
-  var serverVersion = (serverTripConfig && serverTripConfig.scheduleVersion)
-    || (serverTripConfig && serverTripConfig.tripConfig && serverTripConfig.tripConfig.scheduleVersion)
-    || '0';
-  var localVersion = localStorage.getItem('tpcp_schedVersion') || '0';
-  if (serverVersion !== localVersion) {
-    localStorage.removeItem('sched_day_0');
-    localStorage.removeItem('sched_day_1');
-    localStorage.removeItem('sched_day_2');
-    localStorage.removeItem('sched_day_3');
-    localStorage.removeItem('sched_day_4');
-    localStorage.setItem('tpcp_schedVersion', serverVersion);
-    return true;
-  }
-  return false;
-}
+
 function checkLock(){
 
   // After June 27, skip lock screen entirely
@@ -1607,7 +1578,10 @@ function checkLock(){
             if(typeof nudgeCheckAndShow==='function') setTimeout(nudgeCheckAndShow,300);
             // Show edit trip details button for admin
             if(typeof isAdmin==='function'&&isAdmin()){var etr=document.getElementById('editTripDetailsRow');if(etr)etr.style.display='block';}
-            checkScheduleFreshness(d.tripData.tripConfig);
+            if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
+              window._schedData = d.tripData.tripConfig.schedule;
+              loadCustom();
+            }
             enterSplash(true);
           } else {
             // Guest role with no trip data
@@ -1669,7 +1643,10 @@ function tryUnlock() {
       } catch(e) {}
       userRole = d.role;
       applyRoleUI();
-      if (d.tripData) checkScheduleFreshness(d.tripData.tripConfig);
+      if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
+        window._schedData = d.tripData.tripConfig.schedule;
+        loadCustom();
+      }
       if (d.role === 'guest' || d.hasTrip) {
         enterSplash(true);
       } else {
@@ -2109,7 +2086,6 @@ async function pushSchedule(){
       body:JSON.stringify(payload)
     });
     console.log('Schedule pushed');
-    localStorage.setItem('tpcp_schedVersion', Date.now().toString());
   }catch(e){console.warn('Push schedule:',e);}
 }
 
@@ -2947,7 +2923,6 @@ function startWazeChecks(){
 }
 
 var editMode=false, customSched=[null,null,null], addSecIdx=null;
-var APP_SCHED_VERSION='b274540b';if(localStorage.getItem('sched_version')!==APP_SCHED_VERSION){localStorage.removeItem('sched_day_0');localStorage.removeItem('sched_day_1');localStorage.removeItem('sched_day_2');localStorage.setItem('sched_version',APP_SCHED_VERSION);}
 var pendingReopt=null, dragSrc=null;
 
 //    API Key                                                                
@@ -2961,12 +2936,23 @@ function openDisneyApp(){var a=document.createElement('a');a.href='https://disne
 function openLightningLane(){var a=document.createElement('a');a.href='https://disneyland.disney.go.com/my-plans/';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
 
 //    Schedule storage                                                       
-function loadCustom(){for(var d=0;d<3;d++){try{var s=localStorage.getItem('sched_day_'+d);if(s){var parsed=JSON.parse(s);if(parsed&&parsed.sections&&parsed.sections.length)customSched[d]=parsed;else customSched[d]=null;}else{customSched[d]=null;}}catch(e){customSched[d]=null;}}}
+function loadCustom(){
+  // Read schedule from window._schedData (set from server response) instead of localStorage
+  if (window._schedData && window._schedData.days) {
+    for (var d = 0; d < window._schedData.days.length; d++) {
+      var dayData = window._schedData.days[d];
+      if (dayData && dayData.items && dayData.items.length) {
+        customSched[d] = { sections: [{ title: dayData.park || '', entries: dayData.items }] };
+      } else {
+        customSched[d] = null;
+      }
+    }
+  }
+}
 function saveCustom(d){
-  try{localStorage.setItem('sched_day_'+d,JSON.stringify(customSched[d]));}catch(e){}
   if(isAdmin()) pushSchedule();
 }
-function getCurDay(){return customSched[curDay]||JSON.parse(JSON.stringify(DAYS[curDay]));}
+function getCurDay(){return customSched[curDay]||JSON.parse(JSON.stringify(DAYS[curDay]||{}));}
 
 //    VIP notes                                                              
 function saveVipNotes(d,v){
@@ -3003,7 +2989,7 @@ function startInlineEdit(el, dayIdx, secIdx, entryIdx, field){
 }
 
 function toggleEdit(){if(!isAdmin()){alert('Sign in as admin to edit the schedule.');return;}editMode=!editMode;var btn=document.getElementById('editToggle');btn.innerHTML=editMode?'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Done Editing':'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';btn.classList.toggle('active',editMode);renderSched();}
-function resetSched(){if(!confirm('Reset this day to the original schedule?'))return;customSched[curDay]=null;try{localStorage.removeItem('sched_day_'+curDay);}catch(e){}renderSched();}
+function resetSched(){if(!confirm('Reset this day to the original schedule?'))return;customSched[curDay]=null;renderSched();}
 function deleteEntry(d,s,e){var data=JSON.parse(JSON.stringify(getCurDay()));data.sections[s].entries.splice(e,1);customSched[d]=data;saveCustom(d);renderSched();}
 
 //    Drag & drop                                                            
@@ -5186,16 +5172,7 @@ function submitTripCode() {
       sessionStorage.setItem('tripRole', d.role);
       sessionStorage.setItem('tripId', d.tripId);
       sessionStorage.setItem('disney_unlocked', d.role);
-        // Trip isolation: clear cached schedule if different trip
         try {
-          var prevTripId = localStorage.getItem("tpcp_tripId");
-          if (prevTripId && prevTripId !== d.tripId) {
-            localStorage.removeItem("sched_day_0");
-            localStorage.removeItem("sched_day_1");
-            localStorage.removeItem("sched_day_2");
-            localStorage.removeItem("sched_day_3");
-            localStorage.removeItem("sched_day_4");
-          }
           localStorage.setItem("tpcp_code", code);
           localStorage.setItem("tpcp_tripId", d.tripId);
           localStorage.setItem("tpcp_role", d.role);
@@ -5204,7 +5181,8 @@ function submitTripCode() {
         launchOnboarding(code, d.role, d.tripId);
       } else {
         if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
-        if (d.tripData && d.tripData.tripConfig) { window._loadedTripData = d.tripData; }
+        if (d.tripData && d.tripData.tripConfig) { window._schedData = d.tripData.tripConfig.schedule;
+        window._loadedTripData = d.tripData; }
         enterSplash(true);
       }
     })
