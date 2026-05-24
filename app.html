@@ -209,7 +209,9 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .dining-meal-label{font-size:10px;font-weight:700;color:#D4893A;white-space:nowrap;flex-shrink:0}
 .dining-meal-text{font-size:10px;font-weight:400;color:#4A7A7C;line-height:1.4}
 .ride-block.is-hop{border-style:dashed;background:rgba(27,47,160,0.02)}
-.ride-block.is-tip{border-left:3px solid var(--text-dim);background:rgba(160,154,181,0.04)}
+.ride-block.is-tip{border-left:3px solid #ECA050;background:#FFFBF0}
+.ride-tips-btn{font-size:10px;font-weight:600;color:#1A6860;background:transparent;border:0.5px solid rgba(26,104,96,0.25);border-radius:6px;padding:3px 8px;margin-top:4px;cursor:pointer;display:inline-block}
+.ride-tips-btn:active{background:rgba(26,104,96,0.06)}
 .ride-block.is-vip{background:#FFFBF0!important;border:1px solid #D4A830!important;border-top:3px solid #D4A830!important;border-radius:11px;position:relative;overflow:hidden}
 .is-vip .ride-time{color:#B8860B!important}
 .is-vip .ride-name{color:#2A1E00!important}
@@ -938,7 +940,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
     <div>
       <div class="splash-eyebrow">Theme Park Co<span class="splash-eyebrow-diamond">✦</span>Pilot</div>
-        <h1 class="splash-title" id="splashTitle">Your Disney Adventure</h1>
+        <h1 class="splash-title" id="splashTitle">Plan Your Perfect Day</h1>
       <p class="splash-desc">Smarter days. More magic.</p>
     </div>
     <div>
@@ -3724,6 +3726,14 @@ function saveDiningFromPanel(dayIdx,si,ei){
   saveDiningSlot(dayIdx,si,ei,rest,time);
   setTimeout(function(){renderSched();},50);
 }
+function toggleRideNote(id) {
+  var wrap = document.getElementById('note-' + id);
+  if (!wrap) return;
+  var btn = wrap.previousElementSibling;
+  var isOpen = wrap.style.display !== 'none';
+  wrap.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.innerHTML = isOpen ? 'Tips &amp; details &rsaquo;' : 'Tips &amp; details &or;';
+}
 function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
@@ -3753,6 +3763,7 @@ function renderSched(){
       else if(e.type==='character')bc+=' is-character';
       var cardHour=(function(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]);if(m[3].toUpperCase()==="PM"&&h!==12)h+=12;if(m[3].toUpperCase()==="AM"&&h===12)h=0;return h;})(e.t);var isVipWindow=cardHour>=10&&cardHour<=17;
       if(TRIP_CONFIG.days[curDay].isVip&&isVipWindow&&e.type!=='vip'&&e.type!=='break'&&e.type!=='restroom'){var _ch=0;try{var _tp=e.t||'';var _pa=_tp.replace(' AM','').replace(' PM','').split(':');_ch=parseInt(_pa[0])||0;if(_tp.indexOf('PM')>-1&&_ch!==12)_ch+=12;if(_tp.indexOf('AM')>-1&&_ch===12)_ch=0;}catch(ex){}if(_ch>=10&&_ch<=17)bc+=' is-vip';}if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
+      else if(e.type==='tip')bc+=' is-tip';
       else if(e.type==='snack')bc+=' is-snack';
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
       if(editMode)bc+=' edit-mode';
@@ -3799,7 +3810,7 @@ function renderSched(){
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
-        +'<div class="ride-note">'+fixEncoding(e.n)+'</div>'+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
+        +(e.type==='ride'?('<button class="ride-tips-btn" onclick="toggleRideNote(\''+curDay+'-'+si+'-'+ei+'\')">'+'Tips &amp; details &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+curDay+'-'+si+'-'+ei+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>'):'<div class="ride-note">'+fixEncoding(e.n)+'</div>')+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -5199,7 +5210,7 @@ function initSplash() {
     var titleEl2 = document.getElementById('splashTitle');
     var tripCard2 = document.getElementById('splashTripCard');
     var countdownWrap2 = document.getElementById('splashCountdownWrap');
-    if (titleEl2) titleEl2.textContent = 'Your Disney Adventure';
+    if (titleEl2) titleEl2.textContent = 'Plan Your Perfect Day';
     if (tripCard2) tripCard2.style.display = 'none';
     if (countdownWrap2) countdownWrap2.style.display = 'none';
     return;
@@ -5255,7 +5266,7 @@ function initSplash() {
         tripCard.style.display = 'flex';
       }
     } else {
-      if (titleEl) titleEl.textContent = 'Your Disney Adventure';
+      if (titleEl) titleEl.textContent = 'Plan Your Perfect Day';
       if (tripCard) tripCard.style.display = 'none';
       if (countdownWrap) countdownWrap.style.display = 'none';
     }
