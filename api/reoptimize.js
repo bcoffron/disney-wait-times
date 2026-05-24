@@ -76,7 +76,7 @@ async function handler(req, res) {
       .replace(/Show positioning[\s\S]{0,300}/i, '')
       .replace(/DINING TIMING RULES[\s\S]{0,300}/i, '')
       .trim()
-      .substring(0, 1500);
+      .substring(0, 4000);
 
     const [parkIntel, charIntel] = await Promise.all([
       getCacheSlice('park_intel', 3000),
@@ -108,7 +108,7 @@ async function handler(req, res) {
     system += '\n5. NEVER replace a rich multi-line note with a generic one-liner';
     system += '\n6. If you cannot preserve the original content, keep the card exactly as-is and do not move it';
 
-    const existingSectionsStr = existingSections ? existingSections.substring(0, 5000) : null;
+    const existingSectionsStr = existingSections ? existingSections.substring(0, 8000) : null;
     const userMsg = existingSectionsStr
       ? 'Optimize for minimum waits. Return COMPLETE full-day schedule, no omissions. JSON only.\nCurrent schedule:' + existingSectionsStr + '\nContext:' + cleanPrompt
       : 'Build optimized full-day plan. JSON only.\n' + cleanPrompt;
@@ -138,7 +138,7 @@ async function handler(req, res) {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model, max_tokens: 4000, system, messages: [{ role: 'user', content: userMsg }] })
+      body: JSON.stringify({ model, max_tokens: 6000, system, messages: [{ role: 'user', content: userMsg }] })
     });
     const data = await anthropicRes.json();
 
@@ -170,7 +170,7 @@ async function handler(req, res) {
       return res.status(200).json({ sections: normalized, explanation: parsed.explanation || 'Schedule optimized.' });
     }
 
-    return res.status(200).json({ error: 'Parse failed', raw: text.substring(0, 600) });
+    return res.status(200).json({ error: 'Parse failed', raw: text.substring(0, 8000) });
 
   } catch (e) {
     console.error('Handler error:', e.message);
