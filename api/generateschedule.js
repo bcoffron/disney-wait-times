@@ -140,6 +140,14 @@ system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or 
   system += '\n- Pirates of the Caribbean (closed Jun 2026, reopens TBD)';
   system += '\nThis list will be updated as closures change. Always check park_intel cache for the current closure list and honor it.';
 
+  // CONFIRMED RESERVATION ANCHOR RULE (Day 3 Cafe Orleans)
+  system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE — STRICTLY ENFORCED ===';
+  system += '\nConfirmed reservations from tripConfig.dining.reservations MUST appear in the schedule as type:\"dining\" cards at the exact time specified. This is non-negotiable. Do NOT omit them, do NOT replace them with quickservice cards, and do NOT schedule a competing dinner in the same window.';
+  system += '\nFor BCDIS2026, the confirmed reservation is: Cafe Orleans, Day 3 (index 2), 6:30 PM, land: New Orleans Square.';
+  system += '\nOn Day 3, the schedule MUST include: { t: \"6:30 PM\", h: \"Cafe Orleans — Confirmed Dinner Reservation\", type: \"dining\", isConfirmed: true, n: \"[warm 2-3 sentence note about Cafe Orleans]\", topPick: \"Monte Cristo Sandwich\", veg: \"Ratatouille (seasonal vegetable dish)\", kids: \"Kids Grilled Cheese with fruit\", land: \"New Orleans Square\" }';
+  system += '\nNO other dinner card (quickservice or dining) should appear on Day 3 between 5:00 PM and 9:00 PM. The confirmed reservation IS the dinner.';
+  system += '\nThe park hop from DCA to Disneyland must be scheduled around the reservation: DCA rides until ~5:30 PM, park hop transition tip at ~5:30 PM (15-20 min walk through Downtown Disney), arrive New Orleans Square by 6:15 PM, Cafe Orleans at 6:30 PM, Disneyland evening rides and fireworks after dinner.';
+
 // FIX 2: Note quality standard
 system += '\n\n=== NOTE QUALITY STANDARD — EVERY CARD MUST MEET THIS BAR ===';
 system += '\nEvery card note (field "n") must include ALL of the following:';
@@ -199,13 +207,22 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   system += '\n- All three fields are REQUIRED on every quickservice card';
   system += '\n- Use real menu items from the dining_intel cache for this restaurant';
   system += '\n- If you do not know the exact dish name, use a reasonable approximation — never use a boolean';
+  system += '\nABSOLUTE RULE: veg and kids fields must NEVER be empty strings on quickservice cards. If you do not know the exact vegetarian option, use the most reasonable approximation based on the restaurant type. If a restaurant has no kids menu, use the most appropriate small portion item for children.';
+  system += '\nEXAMPLE of what is NEVER acceptable: veg: \"\" or kids: \"\" or veg: null or kids: null';
+  system += '\nEXAMPLE of what is always acceptable even if approximate: veg: \"Garden salad with vinaigrette\" or kids: \"Kids grilled cheese sandwich\"';
+  system += '\nEvery single quickservice card must have all three fields (topPick, veg, kids) populated with real dish name strings. No exceptions.';
   system += '\n\nSNACK STOPS (type: "snack"):';
   system += '\nSame no-repeat rule — never the same snack location twice per trip.';
   system += '\nSNACK CARD SCHEMA:';
   system += '\n{ t: "2:30 PM", h: "Afternoon Snack: Dole Whip", type: "snack", n: "Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room.", land: "Adventureland" }';
-  system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields. They are treat stops only. One warm note sentence is sufficient.';
+  system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields. 
+  system += '\n\nAFTERNOON BREAK CARDS (type: \"break\"):';
+  system += '\nAfternoon break notes should always mention that this is also a good time for shopping. Include language like: This is also a great window to browse the shops on [relevant street/area], pick up souvenirs, or grab merchandise without fighting through attraction crowds.';
+  system += '\nFor Disneyland breaks: mention Main Street U.S.A. shops or land-specific merchandise locations near the break area.';
+  system += '\nFor DCA breaks: mention Buena Vista Street shops or Cars Land/Pixar Pier merchandise.';
+  system += '\nThe shopping mention should be natural and specific to the park location — not generic.';They are treat stops only. One warm note sentence is sufficient.';
   system += '\n\nCONFIRMED RESERVATION CARDS (type: "dining"):';
-  system += '\nDo NOT generate these — they come from the trip config.';
+  system += '\nConfirmed dining reservations from tripConfig.dining.reservations MUST be generated as type:\"dining\" cards at the exact time listed. They are NOT auto-inserted — you must include them in your output. See CONFIRMED RESERVATION ANCHOR RULE for the required format.';
 
   // FIX 3: Hardcode 60-min arrival
   system += '\n\n=== PARK ARRIVAL RULE ===';
