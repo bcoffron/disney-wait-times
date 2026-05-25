@@ -72,6 +72,8 @@ async function handler(req, res) {
       ? JSON.stringify([{ title: dayLabel || 'Schedule', entries: scheduleItems }])
       : null;
 
+    console.log('[reoptimize] scheduleItems received:', scheduleItems ? scheduleItems.length : 'null', '| dayLabel:', dayLabel || 'none', '| existingSections:', existingSections ? 'built' : 'null');
+
     const cleanPrompt = prompt
       .replace(/You are an expert[^\n]*/i, '')
       .replace(/Walking times[\s\S]{0,500}/i, '')

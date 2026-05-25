@@ -207,10 +207,16 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   system += '\n- All three fields are REQUIRED on every quickservice card';
   system += '\n- Use real menu items from the dining_intel cache for this restaurant';
   system += '\n- If you do not know the exact dish name, use a reasonable approximation — never use a boolean';
-  system += '\nABSOLUTE RULE: veg and kids fields must NEVER be empty strings on quickservice cards. If you do not know the exact vegetarian option, use the most reasonable approximation based on the restaurant type. If a restaurant has no kids menu, use the most appropriate small portion item for children.';
+  system += '\n\n=== VEG AND KIDS FIELDS — ZERO TOLERANCE POLICY ===';
+  system += '\nFOR EVERY quickservice card, veg AND kids fields are MANDATORY. There are NO exceptions.';
+  system += '\nIf you cannot find the exact dish, use the most reasonable approximation for that cuisine type.';
+  system += '\nJOLLY HOLIDAY BAKERY CAFE specific items: topPick: \"Caprese Sandwich on Focaccia with Pesto\" | veg: \"Veggie Sandwich with hummus and roasted vegetables\" | kids: \"Kids PB&J Sandwich with apple slices\"';
+  system += '\nSTAGE DOOR CAFE specific items: topPick: \"Fried Chicken Strips Basket with seasoned fries\" | veg: \"Garden Salad with vinaigrette\" | kids: \"Kids Chicken Tenders with applesauce\"';
+  system += '\nRIVER BELLE TERRACE specific items: topPick: \"Rotisserie Half Chicken with mashed potatoes\" | veg: \"Plant-Based Ratatouille with seasonal vegetables\" | kids: \"Mac and Cheese Kids Plate\"';
+  system += '\nFOR EVERY dining card (confirmed reservations): veg AND kids are also MANDATORY. Cafe Orleans: veg: \"Corn and Brie Tamale with roasted corn salsa\" | kids: \"Kids Grilled Cheese with seasonal fruit\"';
+  system += '\nABSOLUTE RULE: veg and kids fields must NEVER be empty strings. NEVER null. NEVER true or false. Always real dish name strings.';
   system += '\nEXAMPLE of what is NEVER acceptable: veg: \"\" or kids: \"\" or veg: null or kids: null';
-  system += '\nEXAMPLE of what is always acceptable even if approximate: veg: \"Garden salad with vinaigrette\" or kids: \"Kids grilled cheese sandwich\"';
-  system += '\nEvery single quickservice card must have all three fields (topPick, veg, kids) populated with real dish name strings. No exceptions.';
+  system += '\nEvery single quickservice and dining card must have topPick, veg, and kids populated. ANY empty field = schedule fails QA.';
   system += '\n\nSNACK STOPS (type: "snack"):';
   system += '\nSame no-repeat rule — never the same snack location twice per trip.';
   system += '\nSNACK CARD SCHEMA:';
@@ -230,6 +236,13 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   system += '\nNever use 45 minutes. The arrival tip card time should be set to the park openTime minus 60 minutes.';
   system += '\nThe first tip card of each day must say: Arrive at the park entrance 1 hour before opening.';
 
+
+
+  // MORNING RHYTHM RULES
+  system += '\n\n=== MORNING RHYTHM RULES — REQUIRED ON ALL DAYS ===';
+  system += '\nEvery day must include: (1) Arrival tip 60 min before open, (2) Rope drop / Lightning Lane tip, (3) First 2-3 rides, (4) MORNING SNACK between 9:00 AM and 10:30 AM, (5) RESTROOM BREAK (type: \"break\") before 10:30 AM, (6) Continue mid-morning rides.';
+  system += '\nSNACK TIMING RULE: Never schedule a snack within 90 minutes before a meal (quickservice or dining card). Morning snack must be 9:00 AM–10:30 AM. Afternoon snack must be 2:00 PM–4:30 PM. Never two snacks within 2 hours of each other.';
+  system += '\nRESTROOM BREAK TIMING RULE: Every day must have at least one type:\"break\" card in the morning (before 11:00 AM) and at least one in the afternoon (1:00 PM–4:00 PM). Place breaks between ride cards, never immediately before or after a meal.';
 
   // FIX 4: VIP day dinner timing + schedule completeness
   system += '\n\n=== VIP DAY DINING RULE ===';

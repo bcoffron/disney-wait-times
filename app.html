@@ -3409,13 +3409,15 @@ async function reoptimize(){
     +(curDay===0?dlRides:curDay===2?dcaRides+' '+dlRides:dlRides)+' '
     +'Respond with: 1) 3-4 sentences explaining the key changes made, which live vs historical data influenced decisions, any rides added, and dining timing changes. 2) Full updated sections array as JSON in JSONSTART[ ]JSONEND markers matching the exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
 
-  try{
+  var schedItems=window._schedData&&window._schedData.days&&window._schedData.days[curDay]?window._schedData.days[curDay].items:(data.sections&&data.sections[0]?data.sections[0].entries:[]);
+  console.log('[aiOptimize] curDay:',curDay,'schedItems count:',schedItems?schedItems.length:'null','from _schedData:'!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
+    try{
     var r=await fetch(SYNC_BASE+'/api/reoptimize',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         prompt:prompt,
-        scheduleItems:data.sections&&data.sections[0]?data.sections[0].entries:[],
+        scheduleItems:schedItems,
         dayLabel:dn,
         systemPrompt:'You are an expert Disneyland touring planner. Output JSONSTART[updated sections array]JSONEND then SUMMARY: [max 15 words on biggest change]. Sections schema: [{title:string,entries:[{t:string,h:string,n:string,type:string}]}].',
         useWebSearch:false,
@@ -3452,7 +3454,7 @@ async function reoptimize(){
         txt.innerHTML+='<br><br><span style="color:var(--text-dim);font-size:11px">Could not parse updated schedule automatically. Use the explanation above to manually reorder using Edit mode.</span>';
       }
     }
-  }catch(e){txt.textContent='Error: '+e.message;}
+  }catch(e){console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
 }
 function applyReopt(){if(!pendingReopt)return;customSched[curDay]=pendingReopt;saveCustom(curDay);pendingReopt=null;document.getElementById('reoptBox').style.display='none';renderSched();;document.getElementById("reoptBtns").classList.remove("show");}
 function dismissReopt(){pendingReopt=null;document.getElementById('reoptBox').style.display='none';;document.getElementById("reoptBtns").classList.remove("show");}
