@@ -211,8 +211,19 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   // FIX 4: VIP day dinner timing + schedule completeness
   system += '\n\n=== VIP DAY DINING RULE ===';
   system += '\nOn VIP tour days, never schedule dinner before 6:30 PM. The group needs transition time after the tour ends. If vipEnd is 5:00 PM, the earliest dinner slot is 6:30 PM. Quick service dinner on VIP days should be 6:30 PM or later.';
-  system += '\n\n=== SCHEDULE COMPLETENESS RULE ===';
-  system += '\nEvery day must have schedule entries from arrival (60 min before open) through the actual official park closing time from the park_hours_intel cache. Never end a day schedule more than 30 minutes before official park close. Evening content should include: evening rides with short waits, fireworks/shows if available, photo ops at night, final lap strategy. A schedule that ends at 7 PM is incomplete — always continue through the evening until park close.';
+  system += '\n\n=== SCHEDULE COMPLETENESS RULE — STRICTLY ENFORCED ===';
+  system += '\nEvery day MUST have schedule entries from 7:00 AM through actual park closing time. This is non-negotiable.';
+  system += '\nPark closing times for this trip:';
+  system += '\n- Day 1 Sun Jun 28: Disneyland closes 12:00 AM (midnight)';
+  system += '\n- Day 2 Mon Jun 29: Disneyland closes 11:00 PM';
+  system += '\n- Day 3 Tue Jun 30: DCA closes 10:00 PM, Disneyland closes 11:00 PM';
+  system += '\nThe LAST scheduled item on each day must be timed at or after:';
+  system += '\n- Day 1: 11:00 PM (with note about staying for midnight close)';
+  system += '\n- Day 2: 10:30 PM';
+  system += '\n- Day 3: 10:00 PM (DCA close) or 10:30 PM (Disneyland)';
+  system += '\nIf there is a fireworks or nighttime show, it typically ends around 9:30-10:00 PM. After the show, schedule MUST continue with: (1) Post-show strategy tip, (2) Final evening rides with low waits, (3) Last call snack or treat, (4) Park exit strategy tip.';
+  system += '\nNEVER end the schedule at 9:00 PM or 9:30 PM. Always continue through the actual park closing time.';
+  system += '\nEXAMPLE end-of-day sequence after 9:30 PM fireworks: { t: "9:30 PM", type: "show", h: "Fireworks" }, { t: "9:55 PM", type: "tip", h: "Post-Fireworks Fantasyland Sprint" }, { t: "10:15 PM", type: "ride", h: "Haunted Mansion Re-Ride" }, { t: "10:45 PM", type: "ride", h: "Space Mountain Final Ride" }, { t: "11:15 PM", type: "tip", h: "Main Street Exit Strategy" }';
 
   console.log('generateschedule mode:', mode || 'default', 'park_intel:', !!parkIntel, 'char_intel:', !!charIntel, 'char_priority:', charPriority);
 

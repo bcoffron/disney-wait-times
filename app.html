@@ -1755,20 +1755,26 @@ function showApp(){
   applyRoleUI();
 }
 function applyRoleUI(){
+  // Read role from localStorage (always set in all auth paths; sessionStorage may be missing for returning users)
+  var role=localStorage.getItem('tpcp_role')||sessionStorage.getItem('tripRole')||sessionStorage.getItem('twRole')||'';
+  var _isAdmin=role==='admin';
   var adminOnly=['editToggle','aiOptHero','reoptBox'];
   adminOnly.forEach(function(id){
     var el=document.getElementById(id);
-    if(el) el.style.display=isAdmin()?'':'none';
+    if(el) el.style.display=_isAdmin?'':'none';
   });
   var badge=document.getElementById('adminBadge');
-  if(badge) badge.style.display=isAdmin()?'block':'none';
+  if(badge) badge.style.display=_isAdmin?'block':'none';
   var syncNote=document.getElementById('guestSyncNote');
-  if(syncNote) syncNote.style.display=isAdmin()?'none':'block';
+  if(syncNote) syncNote.style.display=_isAdmin?'none':'block';
   // Hide API setup card for guests if key already available
   var setup=document.getElementById('apiSetupCard');
-  if(setup&&!isAdmin()&&apiKey) setup.style.display='none';
-  document.querySelectorAll('.reroute-btn').forEach(function(b){b.style.display=isAdmin()?'':'none';});
-  if(isAdmin()){document.body.classList.remove('tw-guest');document.body.classList.add('tw-admin');}else{document.body.classList.remove('tw-admin');document.body.classList.add('tw-guest');}
+  if(setup&&!_isAdmin&&apiKey) setup.style.display='none';
+  document.querySelectorAll('.reroute-btn').forEach(function(b){b.style.display=_isAdmin?'':'none';});
+  // Always remove both classes first, then add the correct one
+  document.body.classList.remove('tw-guest');
+  document.body.classList.remove('tw-admin');
+  if(_isAdmin){document.body.classList.add('tw-admin');}else{document.body.classList.add('tw-guest');}
 }
 function generateStars(){
   var c=document.getElementById('lockStars');
