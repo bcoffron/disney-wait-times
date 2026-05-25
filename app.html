@@ -3410,7 +3410,7 @@ async function reoptimize(){
     +'Respond with: 1) 3-4 sentences explaining the key changes made, which live vs historical data influenced decisions, any rides added, and dining timing changes. 2) Full updated sections array as JSON in JSONSTART[ ]JSONEND markers matching the exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
 
   var schedItems=window._schedData&&window._schedData.days&&window._schedData.days[curDay]?window._schedData.days[curDay].items:(data.sections&&data.sections[0]?data.sections[0].entries:[]);
-  console.log('[aiOptimize] curDay:',curDay,'schedItems count:',schedItems?schedItems.length:'null','from _schedData:'!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
+  console.log('[aiOptimize] curDay:',curDay,'schedItems count:',schedItems?schedItems.length:'null','from _schedData:', !!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
     try{
     var r=await fetch(SYNC_BASE+'/api/reoptimize',{
       method:'POST',
