@@ -62,13 +62,15 @@ async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, apiKey: clientKey } = req.body;
+    const { prompt, scheduleItems, dayLabel, apiKey: clientKey } = req.body;
     const apiKey = process.env.ANTHROPIC_API_KEY || clientKey;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-    const existingMatch = prompt.match(/JSONSTART(\[\s\S]*?\])JSONEND/);
-    const existingSections = existingMatch ? existingMatch[1] : null;
+    // Use scheduleItems from POST body directly (current day's items only — not all 3 days)
+    const existingSections = (scheduleItems && Array.isArray(scheduleItems) && scheduleItems.length > 0)
+      ? JSON.stringify([{ title: dayLabel || 'Schedule', entries: scheduleItems }])
+      : null;
 
     const cleanPrompt = prompt
       .replace(/You are an expert[^\n]*/i, '')

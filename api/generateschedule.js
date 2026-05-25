@@ -134,6 +134,12 @@ system += '\n2. NEVER invent tour packages, special experiences, or paid add-ons
 system += '\n3. NEVER schedule behind-the-scenes experiences, private tours, or special-access events that the user did not select during onboarding.';
 system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card â never invent a special experience.';
 
+  // CURRENT RIDE CLOSURES
+  system += '\n\n=== CURRENT RIDE CLOSURES — DO NOT SCHEDULE ===';
+  system += '\nThe following attractions are currently closed for refurbishment. NEVER schedule them as ride cards. If they appear in your knowledge as open, ignore that — these are confirmed closed as of the trip dates (Jun 28-30, 2026):';
+  system += '\n- Pirates of the Caribbean (closed Jun 2026, reopens TBD)';
+  system += '\nThis list will be updated as closures change. Always check park_intel cache for the current closure list and honor it.';
+
 // FIX 2: Note quality standard
 system += '\n\n=== NOTE QUALITY STANDARD — EVERY CARD MUST MEET THIS BAR ===';
 system += '\nEvery card note (field "n") must include ALL of the following:';

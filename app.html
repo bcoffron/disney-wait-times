@@ -3378,7 +3378,7 @@ async function reoptimize(){
   }
 
   // All rides available at each park for potential additions
-  var dlRides='Available Disneyland rides to potentially add: Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Haunted Mansion, Indiana Jones Adventure, Pirates of the Caribbean, Tiana\u2019s Bayou Adventure, Millennium Falcon: Smugglers Run, Rise of the Resistance, Star Tours, Finding Nemo Submarine, Autopia, Roger Rabbit\u2019s Car Toon Spin, Mickey & Minnie\u2019s Runaway Railway, Peter Pan\u2019s Flight, Snow White\u2019s Enchanted Wish, Mr. Toad\u2019s Wild Ride, Dumbo, Mad Tea Party, it\u2019s a small world.';
+  var dlRides='Available Disneyland rides to potentially add: Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Haunted Mansion, Indiana Jones Adventure, Tiana\u2019s Bayou Adventure, Millennium Falcon: Smugglers Run, Rise of the Resistance, Star Tours, Finding Nemo Submarine, Autopia, Roger Rabbit\u2019s Car Toon Spin, Mickey & Minnie\u2019s Runaway Railway, Peter Pan\u2019s Flight, Snow White\u2019s Enchanted Wish, Mr. Toad\u2019s Wild Ride, Dumbo, Mad Tea Party, it\u2019s a small world.';
   var dcaRides='Available DCA rides to potentially add: Radiator Springs Racers, Guardians of the Galaxy Mission Breakout, Incredicoaster, Toy Story Midway Mania, Web Slingers, Soarin\u2019 Over California, Grizzly River Run, Luigi\u2019s Rollickin\u2019 Roadsters, Mater\u2019s Junkyard Jamboree, Monsters Inc, PhilharMagic, Pixar Pal-A-Round, Little Mermaid, Goofy\u2019s Sky School.';
 
   var walkTimes='Walking times (minutes): Main St to Tomorrowland:5, Main St to Fantasyland:7, Main St to New Orleans Square:8, Main St to Frontierland:9, Main St to Adventureland:8, Main St to Galaxy Edge:12, Tomorrowland to Galaxy Edge:10, Galaxy Edge to New Orleans Square:8, New Orleans Square to Fantasyland:6, New Orleans Square to Frontierland:3, Frontierland to Adventureland:4, Disneyland to DCA park hop:15, DCA Avengers to Cars Land:8, DCA Avengers to Pixar Pier:10, DCA Pixar Pier to Grizzly Peak:7. Show positioning: Fantasmic needs 40min early, Paint the Night needs 30min early, World of Color needs 20min early, Fireworks needs 15min early.';
@@ -3415,6 +3415,8 @@ async function reoptimize(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         prompt:prompt,
+        scheduleItems:data.sections&&data.sections[0]?data.sections[0].entries:[],
+        dayLabel:dn,
         systemPrompt:'You are an expert Disneyland touring planner. Output JSONSTART[updated sections array]JSONEND then SUMMARY: [max 15 words on biggest change]. Sections schema: [{title:string,entries:[{t:string,h:string,n:string,type:string}]}].',
         useWebSearch:false,
         apiKey:apiKey
@@ -3820,7 +3822,7 @@ function renderSched(){
       if(e.type==='ride'&&!TRIP_CONFIG.days[curDay].isVip){
         var safeRide=(e.ride||e.h||'').split("'").join('\\u2019');
         var safeLand=((e.land||'Unknown')).split("'").join('\\u2019')
-        reroute='<button class="reroute-btn" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> AI alternatives</button><div class="reroute-result"></div>'
+        reroute='<button class="reroute-btn" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> AI Reroute</button><div class="reroute-result"></div>'
       }
       var liveW=(e.type==='ride')?lookupWait(e.h):null;
       var isVipCard=bc.indexOf('is-vip')>-1;
