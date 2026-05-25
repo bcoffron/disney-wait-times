@@ -215,12 +215,12 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   system += '\nSame no-repeat rule — never the same snack location twice per trip.';
   system += '\nSNACK CARD SCHEMA:';
   system += '\n{ t: "2:30 PM", h: "Afternoon Snack: Dole Whip", type: "snack", n: "Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room.", land: "Adventureland" }';
-  system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields. 
+  system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields. They are treat stops only. One warm note sentence is sufficient.';
   system += '\n\nAFTERNOON BREAK CARDS (type: \"break\"):';
   system += '\nAfternoon break notes should always mention that this is also a good time for shopping. Include language like: This is also a great window to browse the shops on [relevant street/area], pick up souvenirs, or grab merchandise without fighting through attraction crowds.';
   system += '\nFor Disneyland breaks: mention Main Street U.S.A. shops or land-specific merchandise locations near the break area.';
   system += '\nFor DCA breaks: mention Buena Vista Street shops or Cars Land/Pixar Pier merchandise.';
-  system += '\nThe shopping mention should be natural and specific to the park location — not generic.';They are treat stops only. One warm note sentence is sufficient.';
+  system += '\nThe shopping mention should be natural and specific to the park location — not generic.';
   system += '\n\nCONFIRMED RESERVATION CARDS (type: "dining"):';
   system += '\nConfirmed dining reservations from tripConfig.dining.reservations MUST be generated as type:\"dining\" cards at the exact time listed. They are NOT auto-inserted — you must include them in your output. See CONFIRMED RESERVATION ANCHOR RULE for the required format.';
 
