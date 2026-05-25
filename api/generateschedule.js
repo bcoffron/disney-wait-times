@@ -1,6 +1,7 @@
 // api/generateschedule.js
 // Routes generateFromSetup and aiChooseRides through Vercel with park_intel + character_intel cache context
 const { list } = require('@vercel/blob');
+const { validateSchedule } = require('./validate-schedule');
 
 async function getCacheSlice(key, maxChars = 4000) {
   try {
@@ -290,6 +291,27 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
     if (!text) return res.status(200).json({ error: 'Empty response', stop_reason: data.stop_reason });
 
     const parsed = extractJSON(text);
+
+    // Validate the parsed schedule day items before returning
+    if (parsed && Array.isArray(parsed) && tripConfig) {
+      try {
+        const singleDaySchedule = { days: [{ items: parsed, park: (tripConfig.days && tripConfig.days[0] && tripConfig.days[0].park) || 'Disneyland' }] };
+        const valResult = validateSchedule(singleDaySchedule, tripConfig);
+        const validatedItems = valResult.schedule.days[0].items;
+        if (valResult.corrections && valResult.corrections.length > 0) {
+          console.log('[generateschedule] validator corrections:', JSON.stringify(valResult.corrections));
+        }
+        if (valResult.hardViolations && valResult.hardViolations.length > 0) {
+          console.warn('[generateschedule] validator hard violations:', JSON.stringify(valResult.hardViolations));
+        }
+        // Use validated items
+        const validatedParsed = validatedItems;
+        return res.status(200).json({ ok: true, text, parsed: validatedParsed, model: data.model });
+      } catch (valErr) {
+        console.error('[generateschedule] validator error:', valErr.message);
+        // Fall through to normal return on validator error
+      }
+    }
     return res.status(200).json({ ok: true, text, parsed, model: data.model });
 
   } catch (e) {

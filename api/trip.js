@@ -1,5 +1,6 @@
 // api/trip.js - Trip code registry handler
 const { put, list } = require('@vercel/blob');
+const { validateSchedule } = require('./validate-schedule');
 
 const REGISTRY_KEY = 'twize/trip_registry.json';
 
@@ -109,7 +110,29 @@ module.exports = async function handler(req, res) {
       if (tripData && tripData.tripConfig) {
         tripData.tripConfig.scheduleVersion = Date.now().toString();
       }
-            // Save to shared trip blob
+                  // Validate schedule before saving
+      if (tripData && tripData.tripConfig && tripData.tripConfig.schedule) {
+        try {
+          const valResult = validateSchedule(
+            tripData.tripConfig.schedule,
+            tripData.tripConfig
+          );
+          if (valResult.hardViolations && valResult.hardViolations.length > 0) {
+            return res.status(400).json({
+              error: 'Schedule validation failed',
+              violations: valResult.hardViolations
+            });
+          }
+          tripData.tripConfig.schedule = valResult.schedule;
+          if (valResult.corrections && valResult.corrections.length > 0) {
+            console.log('[validator] Auto-corrections applied:', JSON.stringify(valResult.corrections));
+          }
+        } catch (err) {
+          console.error('[validator] Error:', err.message);
+          // Do not block save on validator error — log and continue
+        }
+      }
+// Save to shared trip blob
       await writeTripBlob(entry.tripId, tripData);
 
       return res.status(200).json({ ok: true, tripId: entry.tripId });
