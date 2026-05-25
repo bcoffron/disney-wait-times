@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0
-<meta name="version" content="202605181200-v133">
+<meta name="version" content="202605241200-v134">
   <link rel="icon" type="image/png" href="/assets/brand/favicon.PNG">
 <link rel="apple-touch-icon" href="/assets/icon-512.PNG">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-512.PNG">
@@ -1312,7 +1312,8 @@ body.tw-guest .ai-opt-hero{display:none!important}
 </nav>
 
 <script>
-// v202605101200 cache bust=99
+// v202605241200 cache bust=100
+// App version: 813c1e1 — updated automatically on deploy
 // Safety stub - real function defined later
 function fixEncoding(s) {
   if (!s) return '';
@@ -3830,7 +3831,7 @@ function renderSched(){
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
-        +(e.type==='ride'?('<button class="ride-tips-btn" onclick="toggleRideNote(\''+curDay+'-'+si+'-'+ei+'\')">'+'Tips &amp; details &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+curDay+'-'+si+'-'+ei+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>'):e.type==='tip'?('<button class="ride-tips-btn" onclick="toggleRideNote(\''+curDay+'-'+si+'-'+ei+'\')">'+'Strategy &amp; details &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+curDay+'-'+si+'-'+ei+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>'):'<div class="ride-note">'+fixEncoding(e.n)+'</div>')+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
+        +(function(){var _cid=curDay+'-'+si+'-'+ei;var _useCollapse=e.n&&e.n.length>0&&e.type!=='break'&&e.type!=='dining'&&e.type!=='quickservice';var _btnLabel=e.type==='tip'?'Strategy &amp; details':e.type==='show'?'Show details':e.type==='snack'?'Snack details':e.type==='photo'?'Photo tips':e.type==='character'?'Meet details':'Tips &amp; details';if(_useCollapse){return '<button class="ride-tips-btn" onclick="toggleRideNote(\''+_cid+'\')">'+_btnLabel+' &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+_cid+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>';}else{return e.n?'<div class="ride-note">'+fixEncoding(e.n)+'</div>':'';}})()+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -3841,7 +3842,7 @@ function renderSched(){
   if(editMode)h+='<div class="edit-hint">Tap any time or title to edit inline</div>';
   var _vnSec=document.getElementById('vipNotesSection');if(_vnSec)_vnSec.remove();
   document.getElementById('schedContent').innerHTML=h;
-  if(_vnSec){var _sc=document.getElementById('schedContent');var _hdrs=Array.from(_sc.querySelectorAll('.sec-hdr'));var _vh=null;for(var _si=0;_si<_hdrs.length;_si++){if(_hdrs[_si].textContent.indexOf('VIP Tour')>-1){_vh=_hdrs[_si];break;}}if(_vh)_sc.insertBefore(_vnSec,_vh.nextSibling);}
+  if(_vnSec){var _sc=document.getElementById('schedContent');var _fsh=_sc.querySelector('.sec-hdr');if(_fsh&&_fsh.nextSibling)_sc.insertBefore(_vnSec,_fsh.nextSibling);else _sc.appendChild(_vnSec);}
   if(typeof checkShowSetupBanner==='function')checkShowSetupBanner();
   setTimeout(attachDiningListeners,0);
   updateWaitPillVisibility();
@@ -6589,12 +6590,14 @@ function renderVipBanner(dayNum) {
     }
     vnSec.style.display = '';
     // Insert after the VIP Tour section header
-    var secHdrs = container.querySelectorAll('.sec-hdr');
-    var vipHdr = null;
-    for (var si = 0; si < secHdrs.length; si++) {
-      if (secHdrs[si].textContent.indexOf('VIP Tour') > -1) { vipHdr = secHdrs[si]; break; }
+    var firstSecHdr = container.querySelector('.sec-hdr');
+    if (firstSecHdr && firstSecHdr.nextSibling) {
+      container.insertBefore(vnSec, firstSecHdr.nextSibling);
+    } else if (banner && banner.nextSibling) {
+      container.insertBefore(vnSec, banner.nextSibling);
+    } else {
+      container.appendChild(vnSec);
     }
-    if (vipHdr) container.insertBefore(vnSec, vipHdr.nextSibling); else container.insertBefore(vnSec, banner.nextSibling);
     if (typeof vnInit === 'function') setTimeout(function(){vnInit();},0);
   } else {
     var vnSec2 = document.getElementById('vipNotesSection');

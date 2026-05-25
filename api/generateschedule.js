@@ -211,6 +211,16 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   // FIX 4: VIP day dinner timing + schedule completeness
   system += '\n\n=== VIP DAY DINING RULE ===';
   system += '\nOn VIP tour days, never schedule dinner before 6:30 PM. The group needs transition time after the tour ends. If vipEnd is 5:00 PM, the earliest dinner slot is 6:30 PM. Quick service dinner on VIP days should be 6:30 PM or later.';
+  system += '\n\n=== VIP TOUR HOURS RULE ===';
+  system += '\nOn VIP days, the guide handles ALL attractions from vipStart to vipEnd.';
+  system += '\nFor Day 2 (VIP day, 10:00 AM to 5:00 PM tour):';
+  system += '\nDURING TOUR HOURS (10:00 AM to 5:00 PM):';
+  system += '\n- Do NOT schedule any ride cards (type: "ride") during this window';
+  system += '\n- Do NOT schedule any quickservice or dining cards during this window';
+  system += '\n- DO include a single VIP tour block entry at 10:00 AM: { t: "10:00 AM", h: "VIP Tour Begins", type: "vip", n: "Your guide takes over. Skip-the-line access for all major attractions. Follow your guide lead — they know the optimal route based on today crowd patterns.", land: "Disneyland" }';
+  system += '\n- After that single entry, skip directly to 5:00 PM (tour end)';
+  system += '\nBEFORE TOUR (before 10:00 AM on VIP day): Schedule normally — rides, tips, snacks, photo ops are all fine. The group should arrive at 7:00 AM for rope drop and get in 2 hours of independent riding before the guide arrives.';
+  system += '\nAFTER TOUR (after 5:00 PM on VIP day): Schedule normally — dinner, evening rides, shows, fireworks. The group is free again after 5:00 PM.';
   system += '\n\n=== SCHEDULE COMPLETENESS RULE — STRICTLY ENFORCED ===';
   system += '\nEvery day MUST have schedule entries from 7:00 AM through actual park closing time. This is non-negotiable.';
   system += '\nPark closing times for this trip:';
