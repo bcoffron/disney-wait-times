@@ -292,11 +292,13 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
 
     const parsed = extractJSON(text);
 
-    // Validate the parsed schedule day items before returning
-    if (parsed && Array.isArray(parsed) && tripConfig) {
+    // Validate and apply auto-corrections to parsed schedule items before returning
+    if (parsed && Array.isArray(parsed)) {
       try {
-        const singleDaySchedule = { days: [{ items: parsed, park: (tripConfig.days && tripConfig.days[0] && tripConfig.days[0].park) || 'Disneyland' }] };
-        const valResult = validateSchedule(singleDaySchedule, tripConfig);
+        const safeConfig = tripConfig || {};
+        const singleDaySchedule = { days: [{ items: parsed, park: (safeConfig.days && safeConfig.days[0] && safeConfig.days[0].park) || 'Disneyland' }] };
+        const valResult = validateSchedule(singleDaySchedule, safeConfig);
+        // Apply corrected items — this is what gets returned to the client
         const validatedItems = valResult.schedule.days[0].items;
         if (valResult.corrections && valResult.corrections.length > 0) {
           console.log('[generateschedule] validator corrections:', JSON.stringify(valResult.corrections));
@@ -304,9 +306,7 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
         if (valResult.hardViolations && valResult.hardViolations.length > 0) {
           console.warn('[generateschedule] validator hard violations:', JSON.stringify(valResult.hardViolations));
         }
-        // Use validated items
-        const validatedParsed = validatedItems;
-        return res.status(200).json({ ok: true, text, parsed: validatedParsed, model: data.model });
+        return res.status(200).json({ ok: true, text, parsed: validatedItems, model: data.model });
       } catch (valErr) {
         console.error('[generateschedule] validator error:', valErr.message);
         // Fall through to normal return on validator error
