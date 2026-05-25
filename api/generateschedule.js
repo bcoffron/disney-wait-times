@@ -61,7 +61,7 @@ function buildCharacterContext(charIntel, tripConfig, maxChars) {
     lines.push('- ' + c.name + ' | ' + (c.location || '') + ' | Windows: ' + windows + ' | Typical wait: ' + (c.typicalWait || 0) + ' min' + (c.vipAccessible ? ' | VIP skip-line eligible' : ''));
   }
   const body = lines.join('\n');
-  const full = 'CHARACTER INTEL (from cache Ã¢ÂÂ do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nAvailable characters matching trip preferences:\n' + body;
+  const full = 'CHARACTER INTEL (from cache ÃÂ¢ÃÂÃÂ do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nAvailable characters matching trip preferences:\n' + body;
   return full.substring(0, maxChars);
 }
 
@@ -84,7 +84,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, mode, maxTokens = 4000, tripConfig } = req.body || {};
+    const { prompt, mode, maxTokens = 6000, tripConfig } = req.body || {};
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
@@ -102,7 +102,7 @@ module.exports = async function handler(req, res) {
     let system = 'You are a Disneyland and Disney California Adventure theme park scheduling expert with deep knowledge of wait time patterns, rope drop strategies, and crowd flow. Generate detailed, realistic day schedules in valid JSON only. No markdown, no explanation, just JSON.';
 
     if (parkIntel) {
-      system += '\n\n=== CURRENT PARK INTELLIGENCE (use this Ã¢ÂÂ do not search the web) ===\n' + parkIntel;
+      system += '\n\n=== CURRENT PARK INTELLIGENCE (use this ÃÂ¢ÃÂÃÂ do not search the web) ===\n' + parkIntel;
     }
     if (diningIntel) {
       system += '\n\n=== DINING INTELLIGENCE ===\n' + diningIntel;
@@ -121,43 +121,43 @@ module.exports = async function handler(req, res) {
       }
       system += '\n- NEVER schedule a character meet outside their typicalWindows (appearance window).';
       system += '\n- NEVER place a character meet over a dining reservation, Lightning Lane Single Pass entry, or paid experience.';
-      system += '\n- One character meet per gap maximum Ã¢ÂÂ never stack multiple meets back to back.';
-      system += '\n- Character meet schedule entry schema: { "t": "H:MM AM", "h": "Character Name", "type": "character", "n": "Location, Land ÃÂ· Window startÃ¢ÂÂend", "land": "Land Name", "typicalWait": 25, "vipAccessible": true, "disclaimer": true }';
+      system += '\n- One character meet per gap maximum ÃÂ¢ÃÂÃÂ never stack multiple meets back to back.';
+      system += '\n- Character meet schedule entry schema: { "t": "H:MM AM", "h": "Character Name", "type": "character", "n": "Location, Land ÃÂÃÂ· Window startÃÂ¢ÃÂÃÂend", "land": "Land Name", "typicalWait": 25, "vipAccessible": true, "disclaimer": true }';
       system += '\n- The "n" field must combine location and appearance window as one string.';
       system += '\n- Set disclaimer: true on all character entries so the app shows the schedule-change warning.';
     }
 
 
 // FIX 3: Anti-hallucination strict content rules
-system += '\n\n=== STRICT CONTENT RULES Ã¢ÂÂ NEVER VIOLATE ===';
+system += '\n\n=== STRICT CONTENT RULES ÃÂ¢ÃÂÃÂ NEVER VIOLATE ===';
 system += '\n1. Only schedule activities that are: (a) explicitly in the trip config, (b) real attractions verified in the park_intel cache, or (c) standard park activities (rides, dining, shows, photo ops, snack stops, tip cards, restroom breaks).';
 system += '\n2. NEVER invent tour packages, special experiences, or paid add-ons not in the trip config. Do not add VIP tours, bio tours, backstage tours, Keys to the Kingdom, or any paid tour product unless it appears explicitly in tripConfig.lightningLane.singlePass or tripConfig.dining.reservations.';
 system += '\n3. NEVER schedule behind-the-scenes experiences, private tours, or special-access events that the user did not select during onboarding.';
-system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card Ã¢ÂÂ never invent a special experience.';
+system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card ÃÂ¢ÃÂÃÂ never invent a special experience.';
 
   // CURRENT RIDE CLOSURES
-  system += '\n\n=== CURRENT RIDE CLOSURES â DO NOT SCHEDULE ===';
-  system += '\nThe following attractions are currently closed for refurbishment. NEVER schedule them as ride cards. If they appear in your knowledge as open, ignore that â these are confirmed closed as of the trip dates (Jun 28-30, 2026):';
+  system += '\n\n=== CURRENT RIDE CLOSURES Ã¢ÂÂ DO NOT SCHEDULE ===';
+  system += '\nThe following attractions are currently closed for refurbishment. NEVER schedule them as ride cards. If they appear in your knowledge as open, ignore that Ã¢ÂÂ these are confirmed closed as of the trip dates (Jun 28-30, 2026):';
   system += '\n- Pirates of the Caribbean (closed Jun 2026, reopens TBD)';
   system += '\nThis list will be updated as closures change. Always check park_intel cache for the current closure list and honor it.';
 
   // CONFIRMED RESERVATION ANCHOR RULE (Day 3 Cafe Orleans)
-  system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE â STRICTLY ENFORCED ===';
+  system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE Ã¢ÂÂ STRICTLY ENFORCED ===';
   system += '\nConfirmed reservations from tripConfig.dining.reservations MUST appear in the schedule as type:\"dining\" cards at the exact time specified. This is non-negotiable. Do NOT omit them, do NOT replace them with quickservice cards, and do NOT schedule a competing dinner in the same window.';
   system += '\nFor BCDIS2026, the confirmed reservation is: Cafe Orleans, Day 3 (index 2), 6:30 PM, land: New Orleans Square.';
-  system += '\nOn Day 3, the schedule MUST include: { t: \"6:30 PM\", h: \"Cafe Orleans â Confirmed Dinner Reservation\", type: \"dining\", isConfirmed: true, n: \"[warm 2-3 sentence note about Cafe Orleans]\", topPick: \"Monte Cristo Sandwich\", veg: \"Ratatouille (seasonal vegetable dish)\", kids: \"Kids Grilled Cheese with fruit\", land: \"New Orleans Square\" }';
+  system += '\nOn Day 3, the schedule MUST include: { t: \"6:30 PM\", h: \"Cafe Orleans Ã¢ÂÂ Confirmed Dinner Reservation\", type: \"dining\", isConfirmed: true, n: \"[warm 2-3 sentence note about Cafe Orleans]\", topPick: \"Monte Cristo Sandwich\", veg: \"Ratatouille (seasonal vegetable dish)\", kids: \"Kids Grilled Cheese with fruit\", land: \"New Orleans Square\" }';
   system += '\nNO other dinner card (quickservice or dining) should appear on Day 3 between 5:00 PM and 9:00 PM. The confirmed reservation IS the dinner.';
   system += '\nThe park hop from DCA to Disneyland must be scheduled around the reservation: DCA rides until ~5:30 PM, park hop transition tip at ~5:30 PM (15-20 min walk through Downtown Disney), arrive New Orleans Square by 6:15 PM, Cafe Orleans at 6:30 PM, Disneyland evening rides and fireworks after dinner.';
 
 // FIX 2: Note quality standard
-system += '\n\n=== NOTE QUALITY STANDARD â EVERY CARD MUST MEET THIS BAR ===';
+system += '\n\n=== NOTE QUALITY STANDARD Ã¢ÂÂ EVERY CARD MUST MEET THIS BAR ===';
 system += '\nEvery card note (field "n") must include ALL of the following:';
-system += '\n1. WHY this activity at this specific time â what makes this time slot strategically good (wait times, crowd patterns, park flow)';
-system += '\n2. GROUP-SPECIFIC CONTEXT â reference the actual group makeup from tripConfig (9 guests, 1 under 40 inches, 2 at 40â48 inches, 6 over 48 inches, afternoon break planned). Mention height requirements, who can ride, stroller considerations where relevant.';
-system += '\n3. PRACTICAL DETAIL â what to expect, what to do, what to watch for. At least 2â3 sentences. Never a single sentence. Never vague.';
+system += '\n1. WHY this activity at this specific time Ã¢ÂÂ what makes this time slot strategically good (wait times, crowd patterns, park flow)';
+system += '\n2. GROUP-SPECIFIC CONTEXT Ã¢ÂÂ reference the actual group makeup from tripConfig (9 guests, 1 under 40 inches, 2 at 40Ã¢ÂÂ48 inches, 6 over 48 inches, afternoon break planned). Mention height requirements, who can ride, stroller considerations where relevant.';
+system += '\n3. PRACTICAL DETAIL Ã¢ÂÂ what to expect, what to do, what to watch for. At least 2Ã¢ÂÂ3 sentences. Never a single sentence. Never vague.';
 system += '\nEXAMPLE OF A GOOD NOTE (use this as your quality benchmark):';
-system += '\n"First ride of the day. Standby wait should be under 10 minutes at rope drop. This is one of the most consistently long-wait attractions all day â do it now. All 9 guests including your under-40-inch guest can ride (no height requirement). Enjoy the classic Neverland fly-over."';
-system += '\nEXAMPLE OF A BAD NOTE â never write these:';
+system += '\n"First ride of the day. Standby wait should be under 10 minutes at rope drop. This is one of the most consistently long-wait attractions all day Ã¢ÂÂ do it now. All 9 guests including your under-40-inch guest can ride (no height requirement). Enjoy the classic Neverland fly-over."';
+system += '\nEXAMPLE OF A BAD NOTE Ã¢ÂÂ never write these:';
 system += '\n"Low wait at rope drop." (too short, no context)';
 system += '\n"Quick succession, minimal crowds." (vague, no group info)';
 system += '\n"Classic dark ride." (generic, no strategy)';
@@ -176,8 +176,8 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   if (tripConfig && !tripConfig._usedQuickService) tripConfig._usedQuickService = [];
   const usedQS = (tripConfig && tripConfig._usedQuickService) || [];
 
-  system += '\n\n=== DINING SYSTEM RULES â NEVER VIOLATE ===';
-  system += '\n\nCONFIRMED RESERVATIONS â FIXED ANCHORS:';
+  system += '\n\n=== DINING SYSTEM RULES Ã¢ÂÂ NEVER VIOLATE ===';
+  system += '\n\nCONFIRMED RESERVATIONS Ã¢ÂÂ FIXED ANCHORS:';
   system += '\nThe following restaurants are already booked by the guest at specific times.';
   system += '\nThey appear ONCE in the schedule at their confirmed time. Do NOT generate';
   system += '\nany other card for these restaurants anywhere in the schedule. Do NOT mention';
@@ -197,19 +197,19 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   system += '\n   Quick service means ONLY: counter service, food stands, carts, walk-up windows';
   system += '\n   where you order and take your food. If a server takes your order at a table, it is table service.';
   system += '\n4. Always pick from quick service options in the dining_intel cache';
-  system += '\n5. You MAY mention a table service restaurant once per trip in a note line only â one sentence maximum, never as the primary recommendation';
+  system += '\n5. You MAY mention a table service restaurant once per trip in a note line only Ã¢ÂÂ one sentence maximum, never as the primary recommendation';
   system += '\n6. Already used quick service restaurants this trip: ' + (usedQS.join(', ') || 'none');
-  system += '\n\nQUICK SERVICE CARD SCHEMA â use this exactly:';
+  system += '\n\nQUICK SERVICE CARD SCHEMA Ã¢ÂÂ use this exactly:';
   system += '\n{ t: "12:00 PM", h: "Rancho del Zocalo Restaurante", type: "quickservice", n: "Counter service Mexican food in Frontierland. Large portions, great for groups.", topPick: "Carne Asada Platter with rice and beans", veg: "Cheese Enchiladas with salsa verde", kids: "Kids Cheese Quesadilla with apple slices", land: "Frontierland" }';
-  system += '\nCRITICAL â topPick/veg/kids field rules:';
-  system += '\n- topPick MUST be a specific dish name string â NEVER the word true, NEVER false, NEVER null';
-  system += '\n- veg MUST be a specific vegetarian dish name string â NEVER true, NEVER false';
-  system += '\n- kids MUST be a specific kids meal name string â NEVER true, NEVER false';
+  system += '\nCRITICAL Ã¢ÂÂ topPick/veg/kids field rules:';
+  system += '\n- topPick MUST be a specific dish name string Ã¢ÂÂ NEVER the word true, NEVER false, NEVER null';
+  system += '\n- veg MUST be a specific vegetarian dish name string Ã¢ÂÂ NEVER true, NEVER false';
+  system += '\n- kids MUST be a specific kids meal name string Ã¢ÂÂ NEVER true, NEVER false';
   system += '\n- All three fields are REQUIRED on every quickservice card';
   system += '\n- Use real menu items from the dining_intel cache for this restaurant';
-  system += '\n- If you do not know the exact dish name, use a reasonable approximation â never use a boolean';
+  system += '\n- If you do not know the exact dish name, use a reasonable approximation Ã¢ÂÂ never use a boolean';
   system += '\n\nSNACK STOPS (type: "snack"):';
-  system += '\nSame no-repeat rule â never the same snack location twice per trip.';
+  system += '\nSame no-repeat rule Ã¢ÂÂ never the same snack location twice per trip.';
   system += '\nSNACK CARD SCHEMA:';
   system += '\n{ t: "2:30 PM", h: "Afternoon Snack: Dole Whip", type: "snack", n: "Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room.", land: "Adventureland" }';
   system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields. They are treat stops only. One warm note sentence is sufficient.';
@@ -217,9 +217,9 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   system += '\nAfternoon break notes should always mention that this is also a good time for shopping. Include language like: This is also a great window to browse the shops on [relevant street/area], pick up souvenirs, or grab merchandise without fighting through attraction crowds.';
   system += '\nFor Disneyland breaks: mention Main Street U.S.A. shops or land-specific merchandise locations near the break area.';
   system += '\nFor DCA breaks: mention Buena Vista Street shops or Cars Land/Pixar Pier merchandise.';
-  system += '\nThe shopping mention should be natural and specific to the park location â not generic.';
+  system += '\nThe shopping mention should be natural and specific to the park location Ã¢ÂÂ not generic.';
   system += '\n\nCONFIRMED RESERVATION CARDS (type: "dining"):';
-  system += '\nConfirmed dining reservations from tripConfig.dining.reservations MUST be generated as type:\"dining\" cards at the exact time listed. They are NOT auto-inserted â you must include them in your output. See CONFIRMED RESERVATION ANCHOR RULE for the required format.';
+  system += '\nConfirmed dining reservations from tripConfig.dining.reservations MUST be generated as type:\"dining\" cards at the exact time listed. They are NOT auto-inserted Ã¢ÂÂ you must include them in your output. See CONFIRMED RESERVATION ANCHOR RULE for the required format.';
 
   // FIX 3: Hardcode 60-min arrival
   system += '\n\n=== PARK ARRIVAL RULE ===';
@@ -230,7 +230,7 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
 
 
   // MORNING RHYTHM RULES
-  system += '\n\n=== MORNING RHYTHM RULES â REQUIRED ON ALL DAYS ===';
+  system += '\n\n=== MORNING RHYTHM RULES Ã¢ÂÂ REQUIRED ON ALL DAYS ===';
   system += '\nEvery day must include: (1) Arrival tip 60 min before open, (2) Rope drop / Lightning Lane tip, (3) First 2-3 rides, (4) MORNING SNACK between 9:00 AM and 10:30 AM, (5) RESTROOM BREAK (type: \"break\") before 10:30 AM, (6) Continue mid-morning rides.';
   system += '\nSNACK TIMING RULE: Never schedule a snack within 90 minutes of a meal.';
   system += '\nRESTROOM BREAK RULE: Include one restroom break before 11 AM and one between 1-4 PM.';
@@ -244,11 +244,11 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
   system += '\nDURING TOUR HOURS (10:00 AM to 5:00 PM):';
   system += '\n- Do NOT schedule any ride cards (type: "ride") during this window';
   system += '\n- Do NOT schedule any quickservice or dining cards during this window';
-  system += '\n- DO include a single VIP tour block entry at 10:00 AM: { t: "10:00 AM", h: "VIP Tour Begins", type: "vip", n: "Your guide takes over. Skip-the-line access for all major attractions. Follow your guide lead â they know the optimal route based on today crowd patterns.", land: "Disneyland" }';
+  system += '\n- DO include a single VIP tour block entry at 10:00 AM: { t: "10:00 AM", h: "VIP Tour Begins", type: "vip", n: "Your guide takes over. Skip-the-line access for all major attractions. Follow your guide lead Ã¢ÂÂ they know the optimal route based on today crowd patterns.", land: "Disneyland" }';
   system += '\n- After that single entry, skip directly to 5:00 PM (tour end)';
-  system += '\nBEFORE TOUR (before 10:00 AM on VIP day): Schedule normally â rides, tips, snacks, photo ops are all fine. The group should arrive at 7:00 AM for rope drop and get in 2 hours of independent riding before the guide arrives.';
-  system += '\nAFTER TOUR (after 5:00 PM on VIP day): Schedule normally â dinner, evening rides, shows, fireworks. The group is free again after 5:00 PM.';
-  system += '\n\n=== SCHEDULE COMPLETENESS RULE â STRICTLY ENFORCED ===';
+  system += '\nBEFORE TOUR (before 10:00 AM on VIP day): Schedule normally Ã¢ÂÂ rides, tips, snacks, photo ops are all fine. The group should arrive at 7:00 AM for rope drop and get in 2 hours of independent riding before the guide arrives.';
+  system += '\nAFTER TOUR (after 5:00 PM on VIP day): Schedule normally Ã¢ÂÂ dinner, evening rides, shows, fireworks. The group is free again after 5:00 PM.';
+  system += '\n\n=== SCHEDULE COMPLETENESS RULE Ã¢ÂÂ STRICTLY ENFORCED ===';
   system += '\nEvery day MUST have schedule entries from 7:00 AM through actual park closing time. This is non-negotiable.';
   system += '\nPark closing times for this trip:';
   system += '\n- Day 1 Sun Jun 28: Disneyland closes 12:00 AM (midnight)';
@@ -288,7 +288,7 @@ system += '\nThis standard applies to ALL card types: ride, tip, quickservice, d
         const safeConfig = tripConfig || {};
         const singleDaySchedule = { days: [{ items: parsed, park: (safeConfig.days && safeConfig.days[0] && safeConfig.days[0].park) || 'Disneyland' }] };
         const valResult = validateSchedule(singleDaySchedule, safeConfig);
-        // Apply corrected items â this is what gets returned to the client
+        // Apply corrected items Ã¢ÂÂ this is what gets returned to the client
         const validatedItems = valResult.schedule.days[0].items;
         if (valResult.corrections && valResult.corrections.length > 0) {
           console.log('[generateschedule] validator corrections:', JSON.stringify(valResult.corrections));
