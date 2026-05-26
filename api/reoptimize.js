@@ -62,7 +62,7 @@ async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, scheduleItems, dayLabel, apiKey: clientKey } = req.body;
+    const { prompt, scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey } = req.body;
     const apiKey = process.env.ANTHROPIC_API_KEY || clientKey;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
@@ -72,7 +72,7 @@ async function handler(req, res) {
       ? JSON.stringify([{ title: dayLabel || 'Schedule', entries: scheduleItems }])
       : null;
 
-    console.log('[reoptimize] scheduleItems received:', scheduleItems ? scheduleItems.length : 'null', '| dayLabel:', dayLabel || 'none', '| existingSections:', existingSections ? 'built' : 'null');
+    console.log('[reoptimize] scheduleItems received:', scheduleItems ? scheduleItems.length : 'null', '| dayLabel:', dayLabel || 'none', '| tripDayDate:', tripDayDate || 'none', '| isInTrip:', isInTrip, '| existingSections:', existingSections ? 'built' : 'null');
 
     const cleanPrompt = prompt
       .replace(/You are an expert[^\n]*/i, '')
@@ -90,7 +90,7 @@ async function handler(req, res) {
     const charContext = buildCharacterContext(charIntel, 2000);
 
     const model = 'claude-haiku-4-5-20251001';
-    let system = 'You are a Disneyland schedule optimizer. Output ONLY raw JSON, no markdown, no explanation. Required format: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence"} Return ALL entries for the full day â do not truncate. Preserve all character meet entries (type: "character") in their correct positions relative to other entries. Never schedule a character meet outside their listed appearance windows.';
+    let system = 'You are a Disneyland schedule optimizer. Output ONLY raw JSON, no markdown, no explanation. Required format: {"sections":[{"title":"Morning","entries":[{"t":"8:00 AM","h":"Ride Name","type":"ride","n":"short tip","land":"Land Name"}]}],"explanation":"one sentence"} Return ALL entries provided — do not drop any items. Preserve all character meet entries (type: "character") in their correct positions. Never schedule a character meet outside their listed appearance windows. ' + (isInTrip ? 'Reorder upcoming items based on LIVE WAIT TIMES provided. Move high-wait rides to later when waits typically drop. Keep dining, show, tip, and break cards at their scheduled times.' : 'Reorder items based on HISTORICAL crowd patterns for the specific day of week provided. Use crowd pattern guidance. Keep dining, show, tip, and break cards at their scheduled times.') + ' Preserve all card fields exactly (type, n, land, topPick, veg, kids). Never shorten or remove note text.';
 
     if (parkIntel) {
       system += '\n\n=== PARK INTELLIGENCE ===\n' + parkIntel;
@@ -119,9 +119,28 @@ async function handler(req, res) {
     system += '\n   Never replace any card note with a shorter version. Never genericize a specific note.';
 
     const existingSectionsStr = existingSections ? existingSections.substring(0, 8000) : null;
-    const userMsg = existingSectionsStr
-      ? 'Optimize for minimum waits. Return COMPLETE full-day schedule, no omissions. JSON only.\nCurrent schedule:' + existingSectionsStr + '\nContext:' + cleanPrompt
-      : 'Build optimized full-day plan. JSON only.\n' + cleanPrompt;
+    // Build date-specific crowd guidance
+var crowdGuide = '';
+if (tripDayDate) {
+  var _dow = '';
+  try { _dow = new Date(tripDayDate + 'T12:00:00').toDateString().split(' ')[0]; } catch(e) {}
+  var _crowdMap = {
+    'Sun': 'Sundays are typically busy — crowds peak mid-morning. Prioritize rope drop and Lightning Lane.',
+    'Mon': 'Mondays are moderate — lighter than weekends. Good window for popular rides mid-morning.',
+    'Tue': 'Tuesdays are among the lightest crowd days. More flexibility throughout the day.',
+    'Wed': 'Wednesdays are light to moderate.',
+    'Thu': 'Thursdays are light. Excellent for popular attractions.',
+    'Fri': 'Fridays start light but get busier by afternoon as weekend crowds arrive.',
+    'Sat': 'Saturdays are the busiest day. Strict rope drop strategy essential.'
+  };
+  if (_dow && _crowdMap[_dow]) crowdGuide = 'TRIP DAY: ' + tripDayDate + ' (' + _dow + ')\nCROWD PATTERN: ' + _crowdMap[_dow] + '\n';
+}
+var modeContext = isInTrip
+  ? 'MODE: In-trip — reorder upcoming items using live wait times.\n' + (currentTime ? 'CURRENT TIME: ' + currentTime + '\n' : '') + (liveWaits ? 'LIVE WAIT TIMES:\n' + liveWaits + '\n' : '')
+  : 'MODE: Pre-trip — optimize using historical patterns for trip dates, not today\'s live waits.\n';
+const userMsg = existingSectionsStr
+  ? modeContext + crowdGuide + 'Optimize schedule. Return ALL items, JSON only.\nCurrent schedule:' + existingSectionsStr
+  : 'Build optimized full-day plan. JSON only.\n' + cleanPrompt;
 
     function normalizeEntry(e) {
       var base = { t: e.t || e.time || '', h: e.h || e.name || e.title || e.attraction || '', type: e.type || 'ride', n: e.n || e.note || e.tip || e.description || '', land: e.land || '' };

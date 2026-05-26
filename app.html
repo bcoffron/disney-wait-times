@@ -3409,19 +3409,37 @@ async function reoptimize(){
     +(curDay===0?dlRides:curDay===2?dcaRides+' '+dlRides:dlRides)+' '
     +'Respond with: 1) 3-4 sentences explaining the key changes made, which live vs historical data influenced decisions, any rides added, and dining timing changes. 2) Full updated sections array as JSON in JSONSTART[ ]JSONEND markers matching the exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
 
-  var schedItems=window._schedData&&window._schedData.days&&window._schedData.days[curDay]?window._schedData.days[curDay].items:(data.sections&&data.sections[0]?data.sections[0].entries:[]);
-  console.log('[aiOptimize] curDay:',curDay,'schedItems count:',schedItems?schedItems.length:'null','from _schedData:', !!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
-    try{
-    var r=await fetch(SYNC_BASE+'/api/reoptimize',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        prompt:prompt,
-        scheduleItems:schedItems,
-        dayLabel:dn,
-        systemPrompt:'You are an expert Disneyland touring planner. Output JSONSTART[updated sections array]JSONEND then SUMMARY: [max 15 words on biggest change]. Sections schema: [{title:string,entries:[{t:string,h:string,n:string,type:string}]}].',
-        useWebSearch:false,
-        apiKey:apiKey
+  var tripDays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||[];
+    var currentDayConfig=tripDays[curDay]||{};
+    var tripDayDate=currentDayConfig.date||'';
+    var tripDayLabel='';
+    if(tripDayDate){
+      try{
+        var _td=new Date(tripDayDate+'T12:00:00');
+        tripDayLabel=_td.toDateString().replace(/\s\d{4}$/,'').trim();
+      }catch(e){}
+    }
+    var today=new Date();
+    today.setHours(0,0,0,0);
+    var firstDate=tripDays.length>0&&tripDays[0].date?new Date(tripDays[0].date+'T00:00:00'):null;
+    var lastDate=tripDays.length>0&&tripDays[tripDays.length-1].date?new Date(tripDays[tripDays.length-1].date+'T00:00:00'):null;
+    if(lastDate)lastDate.setHours(23,59,59,999);
+    var isInTrip=!!(firstDate&&lastDate&&today>=firstDate&&today<=lastDate);
+    function itemTimeToMin(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]),mn=parseInt(m[2]),pm=m[3].toUpperCase()==='PM';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h*60+mn;}
+    var allDayItems=(window._schedData&&window._schedData.days&&window._schedData.days[curDay]&&window._schedData.days[curDay].items)||[];
+    var schedItems;
+    if(isInTrip){
+      var nowMin=new Date().getHours()*60+new Date().getMinutes();
+      schedItems=allDayItems.filter(function(item){return itemTimeToMin(item.t)>=nowMin-30;});
+    }else{
+      schedItems=allDayItems.slice(0,20);
+    }
+    var liveWaitContext='';
+    if(typeof buildWaitContext==='function'){liveWaitContext=buildWaitContext()||'';}
+    var _tnow=new Date();
+    var currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
+    console.log('[aiOptimize]',curDay,'schedItems:',schedItems?schedItems.length:'null','isInTrip:',isInTrip,'tripDayDate:',tripDayLabel||tripDayDate,'from _schedData:',!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
+    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,apiKey:apiKey
       })
     });
 
