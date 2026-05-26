@@ -121,10 +121,7 @@ async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey } = req.body;
-        console.log('[reoptimize] body keys:', Object.keys(req.body));
-        console.log('[reoptimize] scheduleItems:', req.body.scheduleItems ? req.body.scheduleItems.length : 'MISSING');
-        console.log('[reoptimize] prompt:', req.body.prompt ? req.body.prompt.substring(0,100) : 'MISSING');
+    const { scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey } = req.body;
     const apiKey = process.env.ANTHROPIC_API_KEY || clientKey;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
 
@@ -256,6 +253,7 @@ async function handler(req, res) {
 
     const model = 'claude-haiku-4-5-20251001';
 
+        console.log('[reoptimize] building from scheduleItems:', scheduleItems.length);
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
