@@ -59,16 +59,30 @@ const KIDS_DEFAULTS = {
   'smokejumpers': 'Kids Corn Dog with applesauce'
 };
 
-function getVegDefault(h) {
+function getVegDefault(h, itemTime) {
   const lower = (h || '').toLowerCase();
+  const timeMin = timeToMinutes(itemTime || '12:00 PM');
+  const isMorning = timeMin >= 0 && timeMin < 660;
+  if (lower.includes('jolly holiday')) {
+    return isMorning
+      ? 'Oatmeal with seasonal berries and brown sugar'
+      : 'Veggie Sandwich with hummus and roasted vegetables';
+  }
   for (const key of Object.keys(VEG_DEFAULTS)) {
     if (lower.includes(key)) return VEG_DEFAULTS[key];
   }
   return 'Garden Salad with seasonal vegetables';
 }
 
-function getKidsDefault(h) {
+function getKidsDefault(h, itemTime) {
   const lower = (h || '').toLowerCase();
+  const timeMin = timeToMinutes(itemTime || '12:00 PM');
+  const isMorning = timeMin >= 0 && timeMin < 660;
+  if (lower.includes('jolly holiday')) {
+    return isMorning
+      ? 'Kids Mickey Waffle with maple syrup'
+      : 'Kids PB&J Sandwich with apple slices';
+  }
   for (const key of Object.keys(KIDS_DEFAULTS)) {
     if (lower.includes(key)) return KIDS_DEFAULTS[key];
   }
@@ -103,13 +117,13 @@ function validateSchedule(schedule, tripConfig) {
 
       if (!item.veg || item.veg.trim().length === 0 ||
           item.veg === 'true' || item.veg === 'false') {
-        item.veg = getVegDefault(item.h);
+        item.veg = getVegDefault(item.h, item.t);
         corrections.push({ rule: 'veg-empty', day: dayNum, item: item.h, action: 'set to: ' + item.veg });
       }
 
       if (!item.kids || item.kids.trim().length === 0 ||
           item.kids === 'true' || item.kids === 'false') {
-        item.kids = getKidsDefault(item.h);
+        item.kids = getKidsDefault(item.h, item.t);
         corrections.push({ rule: 'kids-empty', day: dayNum, item: item.h, action: 'set to: ' + item.kids });
       }
 
@@ -117,6 +131,15 @@ function validateSchedule(schedule, tripConfig) {
           item.topPick === 'true' || item.topPick === 'false') {
         delete item.topPick;
         corrections.push({ rule: 'bool-topPick', day: dayNum, item: item.h, action: 'deleted boolean value' });
+      // Set morning-appropriate topPick default for Jolly Holiday
+      if (!item.topPick && (item.h || '').toLowerCase().includes('jolly holiday')) {
+        const timeMin = timeToMinutes(item.t || '12:00 PM');
+        const isMorning = timeMin >= 0 && timeMin < 660;
+        item.topPick = isMorning
+          ? 'Butter Croissant with fresh fruit cup'
+          : 'Caprese Sandwich on Focaccia with Pesto';
+        corrections.push({ rule: 'jolly-holiday-topPick', day: dayNum, item: item.h, action: 'set to: ' + item.topPick });
+      }
       }
     });
 
