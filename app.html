@@ -3436,6 +3436,7 @@ async function reoptimize(){
       schedItems=allDayItems.slice(0,20);
     }
     // Save original items for merge on Accept
+    console.log('[reoptimize] snapshot allDayItems:',allDayItems.length,'curDay:',curDay,'schedItems:',schedItems.length);
     window._aiOptOriginalItems=allDayItems.slice();
     window._aiOptIsInTrip=isInTrip;
     window._aiOptNowMin=isInTrip?(new Date().getHours()*60+new Date().getMinutes()):0;
@@ -3480,7 +3481,7 @@ async function reoptimize(){
     }
   }catch(e){console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
 }
-function applyReopt(){if(!pendingReopt)return;
+function applyReopt(){console.log('[applyReopt] originalItems:',window._aiOptOriginalItems?window._aiOptOriginalItems.length:'NULL','sentCount:',window._aiOptSentCount,'isInTrip:',window._aiOptIsInTrip);if(!pendingReopt)return;
   // Extract AI-optimized entries from pendingReopt sections
   var aiEntries=[];
   if(pendingReopt.sections)pendingReopt.sections.forEach(function(s){if(s.entries)aiEntries=aiEntries.concat(s.entries);});
