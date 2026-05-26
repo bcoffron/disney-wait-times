@@ -55,10 +55,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'No API key' });
 
-  const { prompt, system, maxTokens = 1000, model = 'claude-sonnet-4-6' } = req.body || {};
-    console.log('[ai] body keys:', Object.keys(req.body));
-    console.log('[ai] context length:', req.body.context ? req.body.context.length : 'MISSING');
-    console.log('[ai] context sample:', req.body.context ? req.body.context.substring(0,200) : 'MISSING');
+  const { prompt, system, maxTokens = 1000, model = 'claude-sonnet-4-6', context } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
   // ── Build full park intelligence from new two-cache architecture ────────────
@@ -76,10 +73,11 @@ export default async function handler(req, res) {
     .map(([k, v]) => k + ':\n' + (v || '').substring(0, 500))
     .join('\n\n');
   const parkIntelContext = allSections.substring(0, 8000);
+    const fullContext = [parkIntelContext, context || ''].join('\n\n').substring(0, 8000);
 
   // ── Build system prompt — inject cache context ─────────────────────────────
   let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend — specific, warm, and actionable.';
-  systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + parkIntelContext;
+  systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + fullContext;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
