@@ -3435,6 +3435,11 @@ async function reoptimize(){
     }else{
       schedItems=allDayItems.slice(0,20);
     }
+    // Save original items for merge on Accept
+    window._aiOptOriginalItems=allDayItems.slice();
+    window._aiOptIsInTrip=isInTrip;
+    window._aiOptNowMin=isInTrip?(new Date().getHours()*60+new Date().getMinutes()):0;
+    window._aiOptSentCount=schedItems.length;
     var liveWaitContext='';
     if(typeof buildWaitContext==='function'){liveWaitContext=buildWaitContext()||'';}
     var _tnow=new Date();
@@ -3475,7 +3480,28 @@ async function reoptimize(){
     }
   }catch(e){console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
 }
-function applyReopt(){if(!pendingReopt)return;customSched[curDay]=pendingReopt;saveCustom(curDay);pendingReopt=null;document.getElementById('reoptBox').style.display='none';renderSched();;document.getElementById("reoptBtns").classList.remove("show");}
+function applyReopt(){if(!pendingReopt)return;
+  // Extract AI-optimized entries from pendingReopt sections
+  var aiEntries=[];
+  if(pendingReopt.sections)pendingReopt.sections.forEach(function(s){if(s.entries)aiEntries=aiEntries.concat(s.entries);});
+  // Merge with original tail/past items
+  function _ittm(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]),mn=parseInt(m[2]),pm=m[3].toUpperCase()==='PM';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h*60+mn;}
+  var origItems=window._aiOptOriginalItems||[];
+  var mergedEntries;
+  if(window._aiOptIsInTrip){
+    var nowMin=window._aiOptNowMin||0;
+    var pastItems=origItems.filter(function(item){return _ittm(item.t)<nowMin-30;});
+    mergedEntries=pastItems.concat(aiEntries);
+  }else{
+    var sentCount=window._aiOptSentCount||20;
+    var tailItems=origItems.slice(sentCount);
+    mergedEntries=aiEntries.concat(tailItems);
+  }
+  mergedEntries.sort(function(a,b){return _ittm(a.t)-_ittm(b.t);});
+  // Write merged entries back into pendingReopt
+  if(pendingReopt.sections&&pendingReopt.sections[0])pendingReopt.sections[0].entries=mergedEntries;
+  else pendingReopt.sections=[{title:'',entries:mergedEntries}];
+  customSched[curDay]=pendingReopt;saveCustom(curDay);pendingReopt=null;document.getElementById('reoptBox').style.display='none';renderSched();;document.getElementById("reoptBtns").classList.remove("show");}
 function dismissReopt(){pendingReopt=null;document.getElementById('reoptBox').style.display='none';;document.getElementById("reoptBtns").classList.remove("show");}
 
 //    Render closed banner                                                   
