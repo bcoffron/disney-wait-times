@@ -3498,9 +3498,9 @@ function applyReopt(){if(!pendingReopt)return;
     mergedEntries=aiEntries.concat(tailItems);
   }
   mergedEntries.sort(function(a,b){return _ittm(a.t)-_ittm(b.t);});
-  // Write merged entries back into pendingReopt
-  if(pendingReopt.sections&&pendingReopt.sections[0])pendingReopt.sections[0].entries=mergedEntries;
-  else pendingReopt.sections=[{title:'',entries:mergedEntries}];
+  // Flatten all merged entries into a single section (preserves park title, prevents multi-section render gaps)
+  var _parkTitle=(pendingReopt.sections&&pendingReopt.sections[0]&&pendingReopt.sections[0].title)||'';
+  pendingReopt.sections=[{title:_parkTitle,entries:mergedEntries}];
   customSched[curDay]=pendingReopt;saveCustom(curDay);pendingReopt=null;document.getElementById('reoptBox').style.display='none';renderSched();;document.getElementById("reoptBtns").classList.remove("show");}
 function dismissReopt(){pendingReopt=null;document.getElementById('reoptBox').style.display='none';;document.getElementById("reoptBtns").classList.remove("show");}
 
