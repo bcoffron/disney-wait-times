@@ -122,6 +122,9 @@ async function handler(req, res) {
 
   try {
     const { prompt, scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey } = req.body;
+        console.log('[reoptimize] body keys:', Object.keys(req.body));
+        console.log('[reoptimize] scheduleItems:', req.body.scheduleItems ? req.body.scheduleItems.length : 'MISSING');
+        console.log('[reoptimize] prompt:', req.body.prompt ? req.body.prompt.substring(0,100) : 'MISSING');
     const apiKey = process.env.ANTHROPIC_API_KEY || clientKey;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
 
