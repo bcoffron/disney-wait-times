@@ -65,8 +65,7 @@ async function handler(req, res) {
     const { prompt, scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey } = req.body;
     const apiKey = process.env.ANTHROPIC_API_KEY || clientKey;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
-    if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
-
+    
     // Use scheduleItems from POST body directly (current day's items only — not all 3 days)
     const existingSections = (scheduleItems && Array.isArray(scheduleItems) && scheduleItems.length > 0)
       ? JSON.stringify([{ title: dayLabel || 'Schedule', entries: scheduleItems }])
@@ -74,7 +73,7 @@ async function handler(req, res) {
 
     console.log('[reoptimize] scheduleItems received:', scheduleItems ? scheduleItems.length : 'null', '| dayLabel:', dayLabel || 'none', '| tripDayDate:', tripDayDate || 'none', '| isInTrip:', isInTrip, '| existingSections:', existingSections ? 'built' : 'null');
 
-    const cleanPrompt = prompt
+    const cleanPrompt = (prompt || '')
       .replace(/You are an expert[^\n]*/i, '')
       .replace(/Walking times[\s\S]{0,500}/i, '')
       .replace(/Show positioning[\s\S]{0,300}/i, '')
