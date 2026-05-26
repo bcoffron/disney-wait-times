@@ -174,7 +174,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .dp-res-hint{font-size:8px;color:#8AACAE;margin-top:5px;font-family:'Outfit',sans-serif}
 .chat-sug-bubble{background:#FFFFFF;border:1px solid rgba(7,30,37,0.12);border-radius:14px;padding:14px 16px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:#071E25;line-height:1.35;cursor:pointer;width:100%;text-align:left;min-height:64px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
 .chat-sug-bubble:active{background:#EEF5F4}
-.ask-ai-suggestions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px;margin-bottom:16px}
+.ask-ai-suggestions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px 14px 0;margin-bottom:16px}
 .ask-ai-hint{font-size:12px;font-weight:400;color:rgba(7,30,37,0.35);text-align:center;padding:0 20px 12px}
 .ask-ai-send-btn{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;padding:12px 20px;border-radius:22px;background:#1A6860;color:#FFFFFF;border:none;min-height:46px;cursor:pointer}
 .ask-ai-input{font-family:'Outfit',sans-serif;font-size:15px;padding:12px 16px;border-radius:22px;border:1px solid rgba(7,30,37,0.12);background:#FFFFFF;flex:1;min-height:46px;color:#071E25}
@@ -4405,6 +4405,7 @@ function renderShows(){
 
 //    Nav                                                                    
 function setDay(d){
+  switchNav('schedule');
   requestAnimationFrame(function(){requestAnimationFrame(function(){window.scrollTo(0,0);});});
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
@@ -4449,6 +4450,7 @@ function setTab(t){
   if(t==='shows')renderShows&&renderShows();
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
+  if(t==='chat'){window.scrollTo(0,0);}
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
