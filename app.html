@@ -1200,13 +1200,13 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
     <!-- CHAT TAB -->
     <div id="tabChat" class="chat-tab-container" style="display:none">
-      <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding-top:16px"></div>
       <div id="chatSugBubbles" class="ask-ai-suggestions-grid">
         <button class="chat-sug-bubble" onclick="sendSugChat('What\'s the wait like at Space Mountain right now?')">What's the wait like at Hyperspace Mountain right now?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Best order to hit Fantasyland this morning?')">Best order to hit Fantasyland this morning?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('What should we do in the next 2 hours?')">What should we do in the next 2 hours?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Any tips for riding with young kids today?')">Any tips for riding with young kids today?</button>
-      </div>
+      </div>      <div id="chatMessages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding-top:16px"></div>
+
       <div class="ask-ai-hint">Or ask me anything about your trip</div>
       <div id="chatSuggestions" style="display:none"></div>
       <div style="display:flex;gap:8px">
@@ -3731,6 +3731,32 @@ function openDiningPanel(dayIdx,si,ei,dname,landCtx){
   var isOpen=panel.style.display==='block';
   if(isOpen){panel.style.display='none';return;}
   panel.style.display='block';
+  // FIX 2: Check if this is a confirmed reservation
+  var schedDay=window._schedData&&window._schedData.days&&window._schedData.days[dayIdx];
+  var entry=schedDay&&schedDay.items&&schedDay.items[ei];
+  var isConfirmed=entry&&entry.isConfirmed===true;
+  if(isConfirmed){
+    panel.innerHTML=[
+      '<div style="padding:14px 16px;">',
+        '<div style="display:flex;align-items:center;gap:10px;',
+          'background:#E0F0EE;border-radius:10px;padding:12px 14px;margin-bottom:0;">',
+          '<div style="font-size:22px;color:#1A6860;">&#10003;</div>',
+          '<div>',
+            '<div style="font-size:13px;font-weight:700;color:#071E25;">',
+              (entry.h||dname),
+            '</div>',
+            '<div style="font-size:11px;color:#1A6860;margin-top:2px;">',
+              (entry.t||'')+' &middot; Confirmed reservation',
+            '</div>',
+            '<div style="font-size:10px;color:#4A7A7C;margin-top:6px;line-height:1.5;">',
+              'Show your party name at the host stand. No check-in needed on the app.',
+            '</div>',
+          '</div>',
+        '</div>',
+      '</div>'
+    ].join('');
+    return;
+  }
   var dslot=loadDiningSlot(dayIdx,si,ei);
   var dslotRest=dslot?dslot.restaurant:'';
   var dslotTime=dslot?dslot.time:'';
