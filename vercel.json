@@ -29,6 +29,14 @@
     {
       "path": "/api/cron-cache?key=park_hours_intel",
       "schedule": "0 3 */7 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=park_intel_dl_stable",
+      "schedule": "0 3 1 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=park_intel_dl_dynamic",
+      "schedule": "0 4 * * 1"
     }
   ]
 }

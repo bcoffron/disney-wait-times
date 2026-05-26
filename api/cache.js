@@ -6,7 +6,23 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 
-const VALID_KEYS = ['park_intel','dining_intel','events_intel','park_hours_intel','character_intel'];
+// VALID_KEYS — updated to support new two-cache architecture
+// park_intel: kept for backwards compatibility during transition
+// park_intel_dl_stable: Disneyland stable cache (monthly rebuild, 12 sections)
+// park_intel_dl_dynamic: Disneyland dynamic cache (weekly rebuild, 4 sections)
+// park_intel_wdw_stable: WDW stable cache (future)
+// park_intel_wdw_dynamic: WDW dynamic cache (future)
+const VALID_KEYS = [
+  'park_intel',
+  'dining_intel',
+  'events_intel',
+  'park_hours_intel',
+  'character_intel',
+  'park_intel_dl_stable',
+  'park_intel_dl_dynamic',
+  'park_intel_wdw_stable',
+  'park_intel_wdw_dynamic'
+];
 
 export default async function handler(req, res) {
   Object.entries(CORS).forEach(([k,v]) => res.setHeader(k, v));
@@ -28,7 +44,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid key' });
   }
 
-  // GET ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ read from private blob store
+  // GET — read from private blob store
   if (req.method === 'GET') {
     try {
       const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
@@ -46,7 +62,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ write to private blob store
+  // POST — write to private blob store
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
     const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
