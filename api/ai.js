@@ -56,6 +56,9 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'No API key' });
 
   const { prompt, system, maxTokens = 1000, model = 'claude-sonnet-4-6' } = req.body || {};
+    console.log('[ai] body keys:', Object.keys(req.body));
+    console.log('[ai] context length:', req.body.context ? req.body.context.length : 'MISSING');
+    console.log('[ai] context sample:', req.body.context ? req.body.context.substring(0,200) : 'MISSING');
   if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
   // ── Build full park intelligence from new two-cache architecture ────────────
