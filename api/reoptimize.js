@@ -155,7 +155,7 @@ async function handler(req, res) {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model, max_tokens: 6000, system, messages: [{ role: 'user', content: userMsg }] })
+      body: JSON.stringify({ model, max_tokens: 8000, system, messages: [{ role: 'user', content: userMsg }] })
     });
     const data = await anthropicRes.json();
 
@@ -195,5 +195,5 @@ async function handler(req, res) {
   }
 }
 
-handler.config = { maxDuration: 30 };
+handler.config = { maxDuration: 60 };
 module.exports = handler;
