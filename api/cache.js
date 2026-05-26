@@ -6,12 +6,9 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 
-// VALID_KEYS — updated to support new two-cache architecture
-// park_intel: kept for backwards compatibility during transition
-// park_intel_dl_stable: Disneyland stable cache (monthly rebuild, 12 sections)
-// park_intel_dl_dynamic: Disneyland dynamic cache (weekly rebuild, 4 sections)
-// park_intel_wdw_stable: WDW stable cache (future)
-// park_intel_wdw_dynamic: WDW dynamic cache (future)
+// VALID_KEYS — two-cache architecture
+// Legacy keys kept for backwards compatibility
+// New architecture: park_intel_dl_stable (12-section stable), park_intel_dl_dynamic (4-section dynamic)
 const VALID_KEYS = [
   'park_intel',
   'dining_intel',
@@ -23,6 +20,18 @@ const VALID_KEYS = [
   'park_intel_wdw_stable',
   'park_intel_wdw_dynamic'
 ];
+
+// Extract a named section from parsed cache data
+export function getCacheSection(cacheData, sectionName) {
+  if (!cacheData) return null;
+  // New format: {sections: {SECTION_NAME: ...}}
+  if (cacheData.sections && cacheData.sections[sectionName] !== undefined) {
+    return cacheData.sections[sectionName];
+  }
+  // Legacy format: flat object
+  if (cacheData[sectionName] !== undefined) return cacheData[sectionName];
+  return null;
+}
 
 export default async function handler(req, res) {
   Object.entries(CORS).forEach(([k,v]) => res.setHeader(k, v));
@@ -44,25 +53,34 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid key' });
   }
 
-  // GET — read from private blob store
+  // GET — read from blob store (supports both legacy and new format)
   if (req.method === 'GET') {
     try {
       const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
       if (!blobs || blobs.length === 0) return res.json({ hit: false });
       const blob = blobs[0];
-      // Private blobs require downloadUrl, not url
       const fetchUrl = blob.downloadUrl || blob.url;
       const dataResp = await fetch(fetchUrl);
       if (!dataResp.ok) return res.json({ hit: false });
       const text = await dataResp.text();
       const parsed = JSON.parse(text);
-      return res.json({ hit: true, data: parsed.data, ts: parsed.ts });
+      
+      // Support both formats:
+      // Legacy: { data: ..., ts: ... }
+      // New two-cache: { built_at: ..., sections: {...}, ... }
+      if (parsed.data !== undefined) {
+        // Legacy format
+        return res.json({ hit: true, data: parsed.data, ts: parsed.ts });
+      } else {
+        // New format — return whole parsed object as data
+        return res.json({ hit: true, data: parsed, ts: parsed.built_at || parsed.last_updated });
+      }
     } catch(e) {
       return res.json({ hit: false, error: e.message });
     }
   }
 
-  // POST — write to private blob store
+  // POST — write to blob store
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
     const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
