@@ -5381,7 +5381,7 @@ function initSplash() {
 // ===== ONBOARDING SYSTEM (B1) =====
 
 var _obCurrentStep = 1;
-var _obTotalSteps = 8;
+var _obTotalSteps = 7;
 var _obSelectedParks = ['Disneyland'];
 var _obDayCount = 3;
 var _obHopEnabled = false;
@@ -5419,7 +5419,7 @@ function obGoTo(step) {
       nextBtn.style.background = '#1A6860';
     }
   }
-  var stepMap = { 1:'obStep1', 2:'obStep2New', 3:'obStep3New', 4:'obStep4New', 5:'obStep5New', 6:'obStep6New', 7:'obStep7New', 8:'obStep8New' };
+  var stepMap = { 1:'obStep1', 2:'obStep2New', 3:'obStep3New', 4:'obStep4New', 5:'obStep5New', 6:'obStep7New', 7:'obStep8New' };
   Object.values(stepMap).forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -5602,7 +5602,7 @@ function ob8Complete() {
   if (nudge) nudge.style.display = 'none';
   var pill = document.getElementById('obSetupPill');
   if (pill) pill.style.display = 'none';
-  if (typeof enterSplash === 'function') enterSplash(true);
+  if (typeof showSchedule === 'function') showSchedule(0);
   // Scroll to top of schedule after generation â double rAF ensures layout is complete
   requestAnimationFrame(function() {
     requestAnimationFrame(function() {
@@ -5966,6 +5966,7 @@ var _OB_RIDES = [
   { name: "Indiana Jones Adventure", land: "Adventureland", park: "Disneyland", height: "46\"" },
   { name: "Jungle Cruise", land: "Adventureland", park: "Disneyland" },
   { name: "Haunted Mansion", land: "New Orleans Square", park: "Disneyland" },
+  { name: "Tiana's Bayou Adventure", land: "New Orleans Square", park: "Disneyland", busy: true },
   // Tomorrowland
   { name: "Space Mountain", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
   { name: "Star Tours — The Adventures Continue", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
@@ -7212,6 +7213,7 @@ setTimeout(checkForWaitSpikes, 30000);
           <button onclick="obTogglePark(this,'DCA')" data-park="DCA" class="ob-park-btn" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid rgba(26,104,96,0.3);border-radius:10px;background:#fff;color:#1A6860;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disney California Adventure</button>
         </div>
       </div>
+      <p style="font-size:11px;color:#4A7A7C;margin-top:8px;">More parks coming soon.</p>
 
       <!-- Start date -->
       <div class="ob-field">
