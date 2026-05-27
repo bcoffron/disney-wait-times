@@ -1,6 +1,6 @@
 import { list } from '@vercel/blob';
 
-// ─── buildCacheContext ────────────────────────────────────────────────────────
+// âââ buildCacheContext ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function buildCacheContext(sectionNames, includeDynamic = false) {
     const results = {};
 
@@ -45,7 +45,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
   return results;
 }
 
-// ─── getCache ─────────────────────────────────────────────────────────────────
+// âââ getCache âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function getCache(key) {
     const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
     if (!blobs || !blobs.length) return null;
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
   const { prompt, system, maxTokens = 1000, model = 'claude-sonnet-4-6', context } = req.body || {};
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-  // ── Build full park intelligence from new two-cache architecture ────────────
+  // ââ Build full park intelligence from new two-cache architecture ââââââââââââ
   const cacheCtx = await buildCacheContext(
         ['LAND_MAP', 'WAIT_PATTERNS', 'CROWD_FLOW', 'ROPE_DROP_STRATEGY',
               'LIGHTNING_LANE_STRATEGY', 'WALKING_ROUTES', 'DINING_TIMING',
@@ -76,14 +76,14 @@ export default async function handler(req, res) {
       );
     console.log('[ai] cacheCtx sections:', Object.keys(cacheCtx));
 
-  // ── Fetch park hours from dedicated blob key ───────────────────────────────
+  // ââ Fetch park hours from dedicated blob key âââââââââââââââââââââââââââââââ
   let parkHours = '';
     try {
           const hoursCache = await getCache('park_hours_intel');
           if (hoursCache) parkHours = '\nPARK HOURS:\n' + JSON.stringify(hoursCache).substring(0, 400);
     } catch(e) {}
 
-  // ── Build all-sections context string, capped proportionally ───────────────
+  // ââ Build all-sections context string, capped proportionally âââââââââââââââ
   const fullContext = [
         'TRIP CONTEXT:\n' + (cacheCtx.TRIP_CONTEXT || '').substring(0, 1500),
         'ROPE DROP STRATEGY:\n' + (cacheCtx.ROPE_DROP_STRATEGY || '').substring(0, 800),
@@ -97,17 +97,22 @@ export default async function handler(req, res) {
         parkHours
       ].join('\n\n').substring(0, 8000);
 
-  // ── Build system prompt — inject cache context ─────────────────────────────
-  let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend — specific, warm, and actionable.';
-    systemPrompt += '\n\nYou have complete park intelligence and trip context provided. NEVER say you don\'t have information that is present in your context. NEVER direct users to the Disneyland website or app for information you already have. Answer directly and confidently from the data provided. Park hours, wait times, attraction status, and trip-specific details are all in your context — use them.';
+  // ── Inject ride preferences context (sent from client via context field) ──────
+  const ridePrefsHeader = (context || '').startsWith('GUEST RIDE PREFERENCES:')
+    ? (context || '').split('\n\n')[0] + '\n\n' : '';
+
+  // ââ Build system prompt â inject cache context âââââââââââââââââââââââââââââ
+  let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend â specific, warm, and actionable.';
+    systemPrompt += '\n\nYou have complete park intelligence and trip context provided. NEVER say you don\'t have information that is present in your context. NEVER direct users to the Disneyland website or app for information you already have. Answer directly and confidently from the data provided. Park hours, wait times, attraction status, and trip-specific details are all in your context â use them.';
     systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + fullContext;
+  if (ridePrefsHeader) systemPrompt += '\n\n' + ridePrefsHeader;
 
   try {
         console.log('[ai] fullContext length:', fullContext.length);
         console.log('[ai] fullContext sample:', fullContext.substring(0, 400));
         console.log('[ai] systemPrompt length:', systemPrompt.length);
 
-      // ── Sanitize strings to remove lone surrogates and control chars ────────────
+      // ââ Sanitize strings to remove lone surrogates and control chars ââââââââââââ
       function sanitizeForJSON(str) {
               if (typeof str !== 'string') return str;
               return str
