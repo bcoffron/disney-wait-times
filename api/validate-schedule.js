@@ -283,6 +283,47 @@ function validateSchedule(schedule, tripConfig) {
         action: 'flagged — manual regen recommended'
       });
     }
+
+        // RULE 8: Peak lunch auto-correct (12:00 PM - 1:00 PM)
+        items.forEach(item => {
+                if (item.type !== 'quickservice' && item.type !== 'dining') return;
+                const cardMin = timeToMinutes(item.t);
+                if (cardMin < 0) return;
+                const isPeakLunch = cardMin >= 720 && cardMin <= 780; // 12:00-1:00 PM
+                if (isPeakLunch) {
+                          const newTime = cardMin < 750 ? '11:30 AM' : '1:30 PM';
+                          corrections.push({ rule: 'peak-lunch', day: dayNum,
+                                                      item: item.h, action: 'moved from ' + item.t + ' to ' + newTime });
+                          item.t = newTime;
+                }
+        });
+        items.sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
+        day.items = items;
+
+        // RULE 9: Gap filler — no gaps longer than 90 minutes (non-VIP days)
+        if (!isVipDay) {
+                items = day.items;
+                for (let i = 1; i < items.length; i++) {
+                          const prev = timeToMinutes(items[i - 1].t);
+                          const curr = timeToMinutes(items[i].t);
+                          if (prev < 0 || curr < 0) continue;
+                          if (curr - prev > 90) {
+                                      const midMin = Math.round((prev + curr) / 2);
+                                      const fillerCard = {
+                                                    t: minutesToTime(midMin),
+                                                    h: 'Explore + Recharge',
+                                                    type: 'tip',
+                                                    n: 'Good window to grab a snack, browse a shop, or find a shaded spot to regroup before the next attraction. Check the Disneyland app for any Lightning Lane availability.',
+                                                    land: items[i - 1].land || items[i].land || ''
+                                      };
+                                      items.splice(i, 0, fillerCard);
+                                      corrections.push({ rule: 'gap-filled', day: dayNum,
+                                                                    action: 'inserted filler at ' + fillerCard.t + ' (gap was ' + (curr - prev) + ' min)' });
+                                      i++;
+                          }
+                }
+                day.items = items;
+        }
   });
 
   // RULE 6: Confirmed reservations must be present — HARD VIOLATION
