@@ -69,13 +69,19 @@ export default async function handler(req, res) {
   console.log('[ai] cacheCtx sections:', Object.keys(cacheCtx));
 
   // ── Build all-sections context string, capped proportionally ───────────────
-  const allSections = Object.entries(cacheCtx)
-    .map(([k, v]) => k + ':\n' + (v || '').substring(0, 500))
-    .join('\n\n');
-  const parkIntelContext = allSections.substring(0, 8000);
-    const fullContext = [parkIntelContext, context || ''].join('\n\n').substring(0, 8000);
+  const fullContext = [
+  'TRIP CONTEXT:\n' + (cacheCtx.TRIP_CONTEXT || '').substring(0, 1500),
+  'ROPE DROP STRATEGY:\n' + (cacheCtx.ROPE_DROP_STRATEGY || '').substring(0, 800),
+  'WAIT PATTERNS:\n' + (cacheCtx.WAIT_PATTERNS || '').substring(0, 800),
+  'CROWD FLOW:\n' + (cacheCtx.CROWD_FLOW || '').substring(0, 500),
+  'CURRENT CLOSURES:\n' + (cacheCtx.CURRENT_CLOSURES || '').substring(0, 400),
+  'LIGHTNING LANE:\n' + (cacheCtx.LIGHTNING_LANE_STRATEGY || '').substring(0, 400),
+  'DINING TIMING:\n' + (cacheCtx.DINING_TIMING || '').substring(0, 300),
+  'LAND MAP (brief):\n' + (cacheCtx.LAND_MAP || '').substring(0, 300),
+  'CLIENT TRIP DATA:\n' + (context || '').substring(0, 800)
+].join('\n\n').substring(0, 8000);
 
-  // ── Build system prompt — inject cache context ─────────────────────────────
+// ── Build system prompt — inject cache context ─────────────────────────────
   let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend — specific, warm, and actionable.';
   systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + fullContext;
 
