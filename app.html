@@ -4477,7 +4477,7 @@ function setTab(t){
   if(t==='shows')renderShows&&renderShows();
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
-  if(t==='chat'){window.scrollTo(0,0);}
+  if(t==='chat'){window.scrollTo(0,0);var _tc=document.getElementById(tabId+'Content')||document.querySelector('.tab-content.active');if(_tc)_tc.scrollTop=0;}
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
