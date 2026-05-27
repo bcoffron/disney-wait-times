@@ -240,16 +240,23 @@ async function handler(req, res) {
       ? 'MODE: In-trip — reorder upcoming items using live wait times.\n' + (currentTime ? 'CURRENT TIME: ' + currentTime + '\n' : '') + (liveWaits ? 'LIVE WAIT TIMES:\n' + liveWaits + '\n' : '')
       : 'MODE: Pre-trip — optimize using historical patterns for trip dates, not today\'s live waits.\n';
 
-    // ── Build user message ────────────────────────────────────────────────────
-    var userMessage =
-      'PARK INTELLIGENCE:\n' + parkIntelContext +
-      '\n\nDAY CONTEXT: ' + (dayLabel || '') +
-      (isInTrip && currentTime ? '\nCURRENT TIME: ' + currentTime : '') +
-      (isInTrip && liveWaits ? '\nLIVE WAIT TIMES:\n' + liveWaits : '') +
-      '\n\nSCHEDULE TO OPTIMIZE:\n' + (existingSections || JSON.stringify([]));
+    // ── Build user message ────────────────────────────────────────────────────────
+var userMessage =
+  'SCHEDULE TO OPTIMIZE (' + scheduleItems.length + ' items):\n' +
+  JSON.stringify(scheduleItems) +
+  '\n\nDAY: ' + (dayLabel || '') +
+  (isInTrip && currentTime ? '\nCURRENT TIME: ' + currentTime : '') +
+  (isInTrip && liveWaits ? '\nLIVE WAITS:\n' + liveWaits.substring(0, 400) : '') +
+  '\n\nPARK INTELLIGENCE:\n' +
+  'WAIT PATTERNS:\n' + (cacheCtx.WAIT_PATTERNS || '').substring(0, 800) +
+  '\nCROWD FLOW:\n' + (cacheCtx.CROWD_FLOW || '').substring(0, 400) +
+  '\nLAND ADJACENCY (short):\n' + (cacheCtx.LAND_MAP || '').substring(0, 400) +
+  '\nWALKING ROUTES:\n' + (cacheCtx.WALKING_ROUTES || '').substring(0, 300) +
+  '\nCLOSURES:\n' + (cacheCtx.CURRENT_CLOSURES || '').substring(0, 200) +
+  '\nTRIP CONTEXT:\n' + (cacheCtx.TRIP_CONTEXT || '').substring(0, 300);
 
-    // Cap to 6000 chars
-    var cappedMessage = (modeContext + crowdGuide + userMessage).substring(0, 6000);
+// Cap at 8000 (raised from 6000 — schedule items need room)
+var cappedMessage = userMessage.substring(0, 8000);
 
     const model = 'claude-haiku-4-5-20251001';
 
