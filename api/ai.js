@@ -80,7 +80,10 @@ export default async function handler(req, res) {
   systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + fullContext;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    console.log('[ai] fullContext length:', fullContext.length);
+console.log('[ai] fullContext sample:', fullContext.substring(0, 400));
+console.log('[ai] systemPrompt length:', systemPrompt.length);
+const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
