@@ -4477,7 +4477,7 @@ function setTab(t){
   if(t==='shows')renderShows&&renderShows();
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
-  if(t==='chat'){window.scrollTo(0,0);var _tc=document.getElementById(tabId+'Content')||document.querySelector('.tab-content.active');if(_tc)_tc.scrollTop=0;}
+  setTimeout(function(){window.scrollTo(0,0);var _tc=document.getElementById(t+'Content')||document.querySelector('.tab-content.active');if(_tc)_tc.scrollTop=0;},50);
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
@@ -4486,9 +4486,9 @@ async function sendChatMsg(directMsg){
 async function sendSugChat(msg){
   var bubblesEl=document.getElementById('chatSugBubbles');
   if(bubblesEl)bubblesEl.style.display='none';
-  var inp=document.getElementById('chatInput');
-  if(inp)inp.value=msg;
-  sendChat();
+  
+  sendChatMsg(msg);
+  
 }
 async function sendChat(){
   var input=document.getElementById('chatInput');
