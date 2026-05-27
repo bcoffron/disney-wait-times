@@ -255,12 +255,13 @@ var userMessage =
   '\nCLOSURES:\n' + (cacheCtx.CURRENT_CLOSURES || '').substring(0, 200) +
   '\nTRIP CONTEXT:\n' + (cacheCtx.TRIP_CONTEXT || '').substring(0, 300);
 
-// Cap at 8000 (raised from 6000 — schedule items need room)
-var cappedMessage = userMessage.substring(0, 8000);
+// // Cap at 16000 (20 items ~11K chars, needs room) — schedule items need room) (raised from 6000 — schedule items need room)
+var cappedMessage = userMessage.substring(0, 16000);
 
     const model = 'claude-haiku-4-5-20251001';
 
-        console.log('[reoptimize] building from scheduleItems:', scheduleItems.length);
+        console.log('[reoptimize] scheduleItems JSON length:', JSON.stringify(scheduleItems).length);
+            console.log('[reoptimize] building from scheduleItems:', scheduleItems.length);
     console.log('[reoptimize] userMessage length:', userMessage.length);
 console.log('[reoptimize] userMessage sample:', userMessage.substring(0, 300));
 const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
