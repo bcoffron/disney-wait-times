@@ -4481,6 +4481,7 @@ function setTab(t){
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
+      var _inp=document.getElementById('chatInput');if(_inp)_inp.value='';
   await _doChat(directMsg);
 }
 async function sendSugChat(msg){
