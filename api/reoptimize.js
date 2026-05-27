@@ -270,6 +270,13 @@ const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
     });
     const data = await anthropicRes.json();
 
+const rawText = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+const stopReason = data.stop_reason || '';
+console.log('[reoptimize] raw response length:', rawText.length);
+console.log('[reoptimize] raw response sample:', rawText.substring(0, 200));
+console.log('[reoptimize] stop_reason:', stopReason);
+
+
     if (data.error) {
       console.error('Anthropic error:', JSON.stringify(data.error));
       return res.status(500).json({ error: data.error.message || JSON.stringify(data.error) });
