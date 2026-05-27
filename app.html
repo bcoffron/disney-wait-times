@@ -5952,7 +5952,7 @@ function obRenderToggle(btnId, enabled) {
 // ---- SCREEN 3: Ride Preferences ----
 // ââ Ride selector data ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var _OB_RIDES = [
-  // Disneyland â Galaxy's Edge
+  // Disneyland — Galaxy's Edge
   { name: "Rise of the Resistance", land: "Galaxy's Edge", park: "Disneyland", busy: true },
   { name: "Millennium Falcon: Smugglers Run", land: "Galaxy's Edge", park: "Disneyland" },
   // Fantasyland
@@ -5968,19 +5968,19 @@ var _OB_RIDES = [
   { name: "Haunted Mansion", land: "New Orleans Square", park: "Disneyland" },
   // Tomorrowland
   { name: "Space Mountain", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
-  { name: "Star Tours â The Adventures Continue", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
+  { name: "Star Tours — The Adventures Continue", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
   { name: "Finding Nemo Submarine Voyage", land: "Tomorrowland", park: "Disneyland" },
   // Frontierland / Toontown
   { name: "Big Thunder Mountain Railroad", land: "Frontierland", park: "Disneyland", height: "40\"" },
   { name: "Roger Rabbit's Car Toon Spin", land: "Mickey's Toontown", park: "Disneyland" },
   { name: "Mickey & Minnie's Runaway Railway", land: "Mickey's Toontown", park: "Disneyland" },
-  // DCA â Cars Land / Pixar Pier
+  // DCA — Cars Land / Pixar Pier
   { name: "Radiator Springs Racers", land: "Cars Land", park: "DCA", height: "40\"", busy: true },
   { name: "Incredicoaster", land: "Pixar Pier", park: "DCA", height: "48\"" },
   { name: "Toy Story Midway Mania!", land: "Pixar Pier", park: "DCA" },
   // Avengers Campus
   { name: "WEB-SLINGERS: A Spider-Man Adventure", land: "Avengers Campus", park: "DCA" },
-  { name: "Guardians of the Galaxy â Mission: BREAKOUT!", land: "Avengers Campus", park: "DCA", height: "40\"" },
+  { name: "Guardians of the Galaxy — Mission: BREAKOUT!", land: "Avengers Campus", park: "DCA", height: "40\"" },
   // Hollywood Land
   { name: "Soarin' Around the World", land: "Hollywood Land", park: "DCA" }
 ];
@@ -6037,9 +6037,9 @@ function obRenderRideList() {
 
 function obInitStep3() {
   obRenderTiles('obPaceTiles', [
-    { value: 'relaxed', label: 'Relaxed â we stop and soak it in' },
-    { value: 'balanced', label: 'Balanced â steady but not rushed' },
-    { value: 'powerDay', label: 'Power day â maximise every minute' }
+    { value: 'relaxed', label: 'Relaxed — we stop and soak it in' },
+    { value: 'balanced', label: 'Balanced — steady but not rushed' },
+    { value: 'powerDay', label: 'Power day — maximise every minute' }
   ], _obPace, function(v) { _obPace = v; });
   // Restore height toggle
   obRenderToggle('obHeightToggle', _obHeightEnabled);
@@ -7330,7 +7330,7 @@ setTimeout(checkForWaitSpikes, 30000);
     <!-- STEPS 3-8: Placeholders -->
     <div id="obStep3New" class="ob-step" style="display:none;">
       <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Which rides does your group want to do?</h2>
-      <p style="font-size:13px;color:#4A6670;margin:0 0 14px;">These are the most popular attractions â not a complete list. Tap each ride to set your priority.</p>
+      <p style="font-size:13px;color:#4A6670;margin:0 0 14px;">These are the most popular attractions &mdash; not a complete list. Tap each ride to set your priority.</p>
 
       <!-- Pace tiles (keep at top) -->
       <div class="ob-field">
