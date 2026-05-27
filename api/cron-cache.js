@@ -1,5 +1,27 @@
 const { put, list, del } = require('@vercel/blob');
 
+const SOURCE_AUTHORITY = `
+VERIFIED SOURCES — use in priority order. Last 2 years only.
+BY SECTION:
+- Wait time data: TouringPlans.com, MickeyVisit.com
+- Crowd calendars: TouringPlans.com, UndercoverTourist.com
+- Touring/rope drop strategy: TouringPlans.com, UndercoverTourist.com, Unofficial Guide (Len Testa)
+- Lightning Lane: AllEars.net, TouringPlans.com
+- Dining: DisneyFoodBlog.com, AllEars.net
+- Closures/hours: Disneyland.com (official), AllEars.net
+- General strategy: DisneyTouristBlog.com, UndercoverTourist.com
+- Guest experiences: Reddit r/Disneyland (last 2 years only)
+- Park news: MickeyVisit.com, AllEars.net
+UNIVERSAL RULES:
+1. NEVER: Genie+, MaxPass, FastPass terminology
+2. ALWAYS: Lightning Lane Multi Pass (LLMP), Individual Lightning Lane (ILL)
+3. Specific numbers required — "60-90 min by 10 AM on summer Sundays"
+4. No AI preamble — start with actual content immediately
+5. No hedging — state consensus confidently
+6. Complete sentences only — no truncation
+7. When sources conflict — use primary source for that section
+`;
+
 const VALID_KEYS = [
   'park_intel','dining_intel','events_intel','park_hours_intel','character_intel',
   'park_intel_dl_stable','park_intel_dl_dynamic',
@@ -169,7 +191,12 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
   if(!promptMap[sectionName]) throw new Error('Unknown section: '+sectionName);
   
   const prompt = promptMap[sectionName];
-  const text = await callClaude(prompt, apiKey);
+  const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '
+
+Now build the ' + sectionName + ' section:
+
+' + prompt.user});
+    const text = await callClaude(augmentedPrompt, apiKey);
   
   let sectionData;
   if(sectionName==='LAND_MAP'||sectionName==='WAIT_PATTERNS') {
