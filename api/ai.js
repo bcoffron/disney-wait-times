@@ -89,6 +89,17 @@ export default async function handler(req, res) {
     console.log('[ai] fullContext length:', fullContext.length);
 console.log('[ai] fullContext sample:', fullContext.substring(0, 400));
 console.log('[ai] systemPrompt length:', systemPrompt.length);
+
+// ── Sanitize strings to remove lone surrogates and control chars ────────────
+function sanitizeForJSON(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ')
+    .replace(/[\uD800-\uDFFF]/g, '')
+    .replace(/\u2028|\u2029/g, ' ');
+}
+systemPrompt = sanitizeForJSON(systemPrompt);
+
 const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
