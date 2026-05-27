@@ -1,6 +1,6 @@
 const { list } = require('@vercel/blob');
 
-// ─── buildCacheContext ────────────────────────────────────────────────────────
+// âââ buildCacheContext ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // Reads from new two-cache architecture and extracts only requested sections.
 async function buildCacheContext(sectionNames, includeDynamic = false) {
   const results = {};
@@ -48,7 +48,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
   return results;
 }
 
-// ─── Character intel (unchanged) ─────────────────────────────────────────────
+// âââ Character intel (unchanged) âââââââââââââââââââââââââââââââââââââââââââââ
 async function getCharacterIntel() {
   try {
     const { blobs } = await list({ prefix: 'twize/character_intel.json' });
@@ -76,11 +76,11 @@ function buildCharacterContext(charIntel, maxChars) {
     lines.push('- ' + c.name + ' | ' + (c.location || '') + ' | Windows: ' + windows + ' | Typical wait: ' + (c.typicalWait || 0) + ' min');
   }
   const body = lines.join('\n');
-  const full = 'CHARACTER INTEL (from cache — do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nCharacter windows to avoid conflicts:\n' + body;
+  const full = 'CHARACTER INTEL (from cache â do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nCharacter windows to avoid conflicts:\n' + body;
   return full.substring(0, maxChars);
 }
 
-// ─── Normalize entry (unchanged) ─────────────────────────────────────────────
+// âââ Normalize entry (unchanged) âââââââââââââââââââââââââââââââââââââââââââââ
 function normalizeEntry(e) {
   var base = {
     t: e.t || e.time || '',
@@ -112,7 +112,7 @@ function normalizeEntry(e) {
   return base;
 }
 
-// ─── Main handler ─────────────────────────────────────────────────────────────
+// âââ Main handler âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -121,18 +121,18 @@ async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey } = req.body;
+    const { scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey, ridePrefsContext } = req.body;
     const apiKey = process.env.ANTHROPIC_API_KEY || clientKey;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
 
-    // ── Build cache context from new two-cache architecture ──────────────────
+    // ââ Build cache context from new two-cache architecture ââââââââââââââââââ
     const cacheCtx = await buildCacheContext(
       ['LAND_MAP', 'WAIT_PATTERNS', 'CROWD_FLOW', 'WALKING_ROUTES'],
       true // include dynamic (CURRENT_CLOSURES, TRIP_CONTEXT, etc.)
     );
     console.log('[reoptimize] cacheCtx sections:', Object.keys(cacheCtx));
 
-    // ── Slice each section to target ~4,000 chars total ──────────────────────
+    // ââ Slice each section to target ~4,000 chars total ââââââââââââââââââââââ
     const landMap      = (cacheCtx.LAND_MAP       || '').substring(0, 1200);
     const waitPatterns = (cacheCtx.WAIT_PATTERNS  || '').substring(0, 1500);
     const crowdFlow    = (cacheCtx.CROWD_FLOW      || '').substring(0, 600);
@@ -149,18 +149,18 @@ async function handler(req, res) {
       'TRIP CONTEXT:\n' + tripCtx
     ].join('\n\n');
 
-    // ── Character intel ──────────────────────────────────────────────────────
+    // ââ Character intel ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
     const charIntel = await getCharacterIntel();
     const charContext = buildCharacterContext(charIntel, 2000);
 
-    // ── Build schedule items string ──────────────────────────────────────────
+    // ââ Build schedule items string ââââââââââââââââââââââââââââââââââââââââââ
     const existingSections = (scheduleItems && Array.isArray(scheduleItems) && scheduleItems.length > 0)
       ? JSON.stringify([{ title: dayLabel || 'Schedule', entries: scheduleItems }])
       : null;
 
     console.log('[reoptimize] scheduleItems received:', scheduleItems ? scheduleItems.length : 'null', '| dayLabel:', dayLabel || 'none', '| tripDayDate:', tripDayDate || 'none', '| isInTrip:', isInTrip, '| existingSections:', existingSections ? 'built' : 'null');
 
-    // ── New system prompt (wait-first, walk-second, all-items preserved) ─────
+    // ââ New system prompt (wait-first, walk-second, all-items preserved) âââââ
     var systemPrompt =
       'You are an expert Disneyland schedule optimizer for a group of 9 guests. ' +
       'Your job is to reorder the schedule items provided to minimize time spent ' +
@@ -193,23 +193,23 @@ async function handler(req, res) {
         : '\n\nMODE: Pre-trip. Use WAIT TIME PATTERNS and CROWD FLOW for the specific ' +
           'day of week (' + (tripDayDate || '') + ') to predict optimal timing.');
 
-    // ── Inject park intelligence into system prompt ───────────────────────────
+    // ââ Inject park intelligence into system prompt âââââââââââââââââââââââââââ
     systemPrompt += '\n\n=== PARK INTELLIGENCE ===\n' + parkIntelContext;
 
     if (charContext) {
       systemPrompt += '\n\n=== ' + charContext + ' ===';
     }
 
-    // ── Dining and show preservation rules (unchanged from original) ─────────
+    // ââ Dining and show preservation rules (unchanged from original) âââââââââ
     systemPrompt += '\n\n=== DINING AND SHOW PRESERVATION RULES ===';
     systemPrompt += '\nWhen reordering the schedule, NEVER modify the content of dining or show cards.';
     systemPrompt += '\nRules:';
     systemPrompt += '\n1. Preserve ALL fields on type "dining" and type "quickservice" cards:';
-    systemPrompt += '\n h, n, topPick, veg, kids, land — copy them exactly, word for word';
-    systemPrompt += '\n7. topPick, veg, and kids fields MUST be copied as exact strings — NEVER substitute with true, false, or any boolean value';
+    systemPrompt += '\n h, n, topPick, veg, kids, land â copy them exactly, word for word';
+    systemPrompt += '\n7. topPick, veg, and kids fields MUST be copied as exact strings â NEVER substitute with true, false, or any boolean value';
     systemPrompt += '\n2. Preserve ALL fields on type "show" cards: h, n, land';
     systemPrompt += '\n3. You MAY adjust the time slot of a quickservice card if needed for schedule flow';
-    systemPrompt += '\n4. NEVER move a confirmed reservation (type "dining") more than 30 minutes from its original time — it is a fixed anchor';
+    systemPrompt += '\n4. NEVER move a confirmed reservation (type "dining") more than 30 minutes from its original time â it is a fixed anchor';
     systemPrompt += '\n5. NEVER replace a rich multi-line note with a generic one-liner';
     systemPrompt += '\n6. If you cannot preserve the original content, keep the card exactly as-is and do not move it';
     systemPrompt += '\n7. Preserve ALL fields on type "tip" cards: the entire note field must be kept exactly word for word.';
@@ -219,14 +219,14 @@ async function handler(req, res) {
     systemPrompt += '\n9. ONLY ride cards (type: "ride") may have their time slots adjusted during optimization.';
     systemPrompt += '\n Never replace any card note with a shorter version. Never genericize a specific note.';
 
-    // ── Build date-specific crowd guidance ───────────────────────────────────
+    // ââ Build date-specific crowd guidance âââââââââââââââââââââââââââââââââââ
     var crowdGuide = '';
     if (tripDayDate) {
       var _dow = '';
       try { _dow = new Date(tripDayDate + 'T12:00:00').toDateString().split(' ')[0]; } catch(e) {}
       var _crowdMap = {
-        'Sun': 'Sundays are typically busy — crowds peak mid-morning. Prioritize rope drop and Lightning Lane.',
-        'Mon': 'Mondays are moderate — lighter than weekends. Good window for popular rides mid-morning.',
+        'Sun': 'Sundays are typically busy â crowds peak mid-morning. Prioritize rope drop and Lightning Lane.',
+        'Mon': 'Mondays are moderate â lighter than weekends. Good window for popular rides mid-morning.',
         'Tue': 'Tuesdays are among the lightest crowd days. More flexibility throughout the day.',
         'Wed': 'Wednesdays are light to moderate.',
         'Thu': 'Thursdays are light. Excellent for popular attractions.',
@@ -237,10 +237,10 @@ async function handler(req, res) {
     }
 
     var modeContext = isInTrip
-      ? 'MODE: In-trip — reorder upcoming items using live wait times.\n' + (currentTime ? 'CURRENT TIME: ' + currentTime + '\n' : '') + (liveWaits ? 'LIVE WAIT TIMES:\n' + liveWaits + '\n' : '')
-      : 'MODE: Pre-trip — optimize using historical patterns for trip dates, not today\'s live waits.\n';
+      ? 'MODE: In-trip â reorder upcoming items using live wait times.\n' + (currentTime ? 'CURRENT TIME: ' + currentTime + '\n' : '') + (liveWaits ? 'LIVE WAIT TIMES:\n' + liveWaits + '\n' : '')
+      : 'MODE: Pre-trip â optimize using historical patterns for trip dates, not today\'s live waits.\n';
 
-    // ── Build user message ────────────────────────────────────────────────────────
+    // ââ Build user message ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var userMessage =
   'SCHEDULE TO OPTIMIZE (' + scheduleItems.length + ' items):\n' +
   JSON.stringify(scheduleItems) +
@@ -253,9 +253,10 @@ var userMessage =
   '\nLAND ADJACENCY (short):\n' + (cacheCtx.LAND_MAP || '').substring(0, 400) +
   '\nWALKING ROUTES:\n' + (cacheCtx.WALKING_ROUTES || '').substring(0, 300) +
   '\nCLOSURES:\n' + (cacheCtx.CURRENT_CLOSURES || '').substring(0, 200) +
-  '\nTRIP CONTEXT:\n' + (cacheCtx.TRIP_CONTEXT || '').substring(0, 300);
+  '\nTRIP CONTEXT:\n' + (cacheCtx.TRIP_CONTEXT || '').substring(0, 300) +
+  (ridePrefsContext ? '\n\n' + ridePrefsContext : '');
 
-// // Cap at 16000 (20 items ~11K chars, needs room) — schedule items need room) (raised from 6000 — schedule items need room)
+// // Cap at 16000 (20 items ~11K chars, needs room) â schedule items need room) (raised from 6000 â schedule items need room)
 var cappedMessage = userMessage.substring(0, 16000);
 
     const model = 'claude-haiku-4-5-20251001';
