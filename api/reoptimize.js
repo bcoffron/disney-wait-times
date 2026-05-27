@@ -254,7 +254,9 @@ async function handler(req, res) {
     const model = 'claude-haiku-4-5-20251001';
 
         console.log('[reoptimize] building from scheduleItems:', scheduleItems.length);
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+    console.log('[reoptimize] userMessage length:', userMessage.length);
+console.log('[reoptimize] userMessage sample:', userMessage.substring(0, 300));
+const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model, max_tokens: 8000, system: systemPrompt, messages: [{ role: 'user', content: cappedMessage }] })
