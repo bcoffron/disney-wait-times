@@ -2049,7 +2049,7 @@ async function _aiProxy(body, cacheCtx){
     var userMsg=body.messages[body.messages.length-1];
     prompt=typeof userMsg.content==='string'?userMsg.content:(JSON.stringify(userMsg.content));
   }
-  const MAX_CACHE_CONTEXT=4000;const trimmedCache=(parkIntelCache||'').substring(0,MAX_CACHE_CONTEXT);var ctx=cacheCtx||(trimmedCache?(trimmedCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';
+  const MAX_CACHE_CONTEXT=4000;const trimmedCache=(parkIntelCache||'').substring(0,MAX_CACHE_CONTEXT);var _rideCtx=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});var ctx=cacheCtx||(trimmedCache?(trimmedCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';if(_rideCtx)ctx=(_rideCtx+'\n'+ctx).substring(0,MAX_CACHE_CONTEXT+_rideCtx.length);
   try{
     var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6'})});
@@ -4513,7 +4513,8 @@ async function _doChat(msg){
   if(/(bathroom|restroom|toilet|potty)/i.test(ml)){bc=' BATHROOMS: Main Street(Plaza Hub); Adventureland(near Jungle Cruise); Fantasyland(behind Its a Small World); Tomorrowland(left of Space Mountain); Galaxys Edge(Millennium Falcon area); DCA Avengers(Web Slingers); DCA Cars Land(Radiator Springs); DCA Pixar Pier(Incredicoaster).';}
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
-  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+' NOTE: Space Mountain and Hyperspace Mountain are the same ride (seasonal rename); treat them as identical when answering questions. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  var _rpc=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});
+  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' NOTE: Space Mountain and Hyperspace Mountain are the same ride (seasonal rename); treat them as identical when answering questions. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(!window.chatHistory)window.chatHistory=[];
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
@@ -5949,35 +5950,139 @@ function obRenderToggle(btnId, enabled) {
 }
 
 // ---- SCREEN 3: Ride Preferences ----
-function obInitStep3() {
-  obRenderTiles('obIntensityTiles', [
-    { value: 'mild', label: 'Mild — we skip the big stuff' },
-    { value: 'family', label: 'Family — mix of thrills and easy rides' },
-    { value: 'fullThrottle', label: 'Full throttle — the bigger the better' }
-  ], _obIntensity, function(v) { _obIntensity = v; });
+// ── Ride selector data ──────────────────────────────────────────────────────
+var _OB_RIDES = [
+  // Disneyland — Galaxy's Edge
+  { name: "Rise of the Resistance", land: "Galaxy's Edge", park: "Disneyland", busy: true },
+  { name: "Millennium Falcon: Smugglers Run", land: "Galaxy's Edge", park: "Disneyland" },
+  // Fantasyland
+  { name: "Peter Pan's Flight", land: "Fantasyland", park: "Disneyland", busy: true, note: "no Lightning Lane" },
+  { name: "Matterhorn Bobsleds", land: "Fantasyland", park: "Disneyland", height: "42\"" },
+  { name: "It's a Small World", land: "Fantasyland", park: "Disneyland" },
+  { name: "Alice in Wonderland", land: "Fantasyland", park: "Disneyland" },
+  { name: "Mr. Toad's Wild Ride", land: "Fantasyland", park: "Disneyland" },
+  { name: "Snow White's Enchanted Wish", land: "Fantasyland", park: "Disneyland" },
+  // Adventureland / New Orleans Square
+  { name: "Indiana Jones Adventure", land: "Adventureland", park: "Disneyland", height: "46\"" },
+  { name: "Jungle Cruise", land: "Adventureland", park: "Disneyland" },
+  { name: "Haunted Mansion", land: "New Orleans Square", park: "Disneyland" },
+  // Tomorrowland
+  { name: "Space Mountain", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
+  { name: "Star Tours — The Adventures Continue", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
+  { name: "Finding Nemo Submarine Voyage", land: "Tomorrowland", park: "Disneyland" },
+  // Frontierland / Toontown
+  { name: "Big Thunder Mountain Railroad", land: "Frontierland", park: "Disneyland", height: "40\"" },
+  { name: "Roger Rabbit's Car Toon Spin", land: "Mickey's Toontown", park: "Disneyland" },
+  { name: "Mickey & Minnie's Runaway Railway", land: "Mickey's Toontown", park: "Disneyland" },
+  // DCA — Cars Land / Pixar Pier
+  { name: "Radiator Springs Racers", land: "Cars Land", park: "DCA", height: "40\"", busy: true },
+  { name: "Incredicoaster", land: "Pixar Pier", park: "DCA", height: "48\"" },
+  { name: "Toy Story Midway Mania!", land: "Pixar Pier", park: "DCA" },
+  // Avengers Campus
+  { name: "WEB-SLINGERS: A Spider-Man Adventure", land: "Avengers Campus", park: "DCA" },
+  { name: "Guardians of the Galaxy — Mission: BREAKOUT!", land: "Avengers Campus", park: "DCA", height: "40\"" },
+  // Hollywood Land
+  { name: "Soarin' Around the World", land: "Hollywood Land", park: "DCA" }
+];
+// Rides currently closed (greyed out)
+var _OB_CLOSED_RIDES = ["Pirates of the Caribbean", "Buzz Lightyear Astro Blasters"];
+// Per-ride tier state: 'mustDo' | 'wantToDo' | 'skip'
+var _obRideTiers = {};
+var _obHeightEnabled = false;
 
+function obToggleHeightRestriction() {
+  _obHeightEnabled = !_obHeightEnabled;
+  obRenderToggle('obHeightToggle', _obHeightEnabled);
+  var wrap = document.getElementById('obHeightInputWrap');
+  if (wrap) wrap.style.display = _obHeightEnabled ? 'block' : 'none';
+}
+
+function obCycleRideTier(rideName) {
+  var cur = _obRideTiers[rideName] || 'wantToDo';
+  var next = cur === 'wantToDo' ? 'mustDo' : cur === 'mustDo' ? 'skip' : 'wantToDo';
+  _obRideTiers[rideName] = next;
+  obRenderRideList();
+}
+
+function obRenderRideList() {
+  var container = document.getElementById('obRideList');
+  if (!container) return;
+  var html = '';
+  var lastLand = '';
+  _OB_RIDES.forEach(function(ride) {
+    if (ride.land !== lastLand) {
+      html += '<div style="font-size:10px;font-weight:700;color:#4A7A7C;letter-spacing:0.05em;text-transform:uppercase;margin:' + (lastLand ? '10px' : '2px') + ' 0 4px;">' + ride.land + ' · ' + ride.park + '</div>';
+      lastLand = ride.land;
+    }
+    var isClosed = _OB_CLOSED_RIDES.indexOf(ride.name) > -1;
+    var tier = _obRideTiers[ride.name] || 'wantToDo';
+    var isMust = tier === 'mustDo', isSkip = tier === 'skip';
+    var border = isMust ? 'border:2px solid #1A6860;background:#E0F0EE;' : 'border:0.5px solid rgba(0,0,0,0.08);background:#fff;';
+    var opacity = (isClosed || isSkip) ? 'opacity:0.45;' : '';
+    var pillBg = isMust ? '#E0F0EE' : '#F5F5F5';
+    var pillColor = isMust ? '#0A4840' : isSkip ? '#9A5800' : '#4A7A7C';
+    var pillText = isMust ? '&#11088; Must Do' : isSkip ? '&#10005; Skip' : '&#10003; Want To';
+    var safeName = ride.name.replace(/'/g, "\'");
+    html += '<div onclick="obCycleRideTier('' + safeName + '')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;cursor:pointer;touch-action:manipulation;' + border + opacity + '">';
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="font-size:12px;font-weight:700;color:#071E25;line-height:1.3;">' + ride.name + (isClosed ? ' <span style=\"font-size:10px;color:#9A5800;font-weight:600;\">Currently closed</span>' : '') + '</div>';
+    if (ride.height) html += '<span style="display:inline-block;margin-top:3px;font-size:10px;color:#4A6670;background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:20px;">' + ride.height + ' min height</span>';
+    if (ride.busy) html += '<span style="display:inline-block;margin-top:3px;margin-left:4px;font-size:10px;color:#9A5800;background:rgba(154,88,0,0.08);padding:1px 6px;border-radius:20px;">&#9889; gets busy fast</span>';
+    html += '</div>';
+    html += '<div style="flex-shrink:0;margin-left:10px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:' + pillBg + ';color:' + pillColor + ';">' + pillText + '</div>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function obInitStep3() {
   obRenderTiles('obPaceTiles', [
     { value: 'relaxed', label: 'Relaxed — we stop and soak it in' },
     { value: 'balanced', label: 'Balanced — steady but not rushed' },
     { value: 'powerDay', label: 'Power day — maximise every minute' }
   ], _obPace, function(v) { _obPace = v; });
-
-  // Restore saved text
-  var mustEl = document.getElementById('obMustDo');
-  var avoidEl = document.getElementById('obAvoid');
-  if (mustEl && _obMustDo) mustEl.value = _obMustDo;
-  if (avoidEl && _obAvoid) avoidEl.value = _obAvoid;
+  // Restore height toggle
+  obRenderToggle('obHeightToggle', _obHeightEnabled);
+  var wrap = document.getElementById('obHeightInputWrap');
+  if (wrap) wrap.style.display = _obHeightEnabled ? 'block' : 'none';
+  var hEl = document.getElementById('obHeightInput');
+  if (hEl && _obTripConfig.rides && _obTripConfig.rides.heightNote) hEl.value = _obTripConfig.rides.heightNote;
+  // Restore ride tiers from saved state
+  if (_obTripConfig.ridePreferences) {
+    var rp = _obTripConfig.ridePreferences;
+    (rp.mustDo || []).forEach(function(r) { _obRideTiers[r] = 'mustDo'; });
+    (rp.skip || []).forEach(function(r) { _obRideTiers[r] = 'skip'; });
+  }
+  obRenderRideList();
 }
 
 function obSaveStep3() {
-  _obMustDo = (document.getElementById('obMustDo') || {}).value || '';
-  _obAvoid = (document.getElementById('obAvoid') || {}).value || '';
+  var mustDo = [], wantToDo = [], skip = [];
+  _OB_RIDES.forEach(function(ride) {
+    var tier = _obRideTiers[ride.name] || 'wantToDo';
+    if (tier === 'mustDo') mustDo.push(ride.name);
+    else if (tier === 'skip') skip.push(ride.name);
+    else wantToDo.push(ride.name);
+  });
+  var heightNote = _obHeightEnabled ? ((document.getElementById('obHeightInput') || {}).value || '') : '';
   _obTripConfig.rides = {
     intensity: _obIntensity || 'family',
     pace: _obPace || 'balanced',
-    mustDo: _obMustDo,
-    avoid: _obAvoid
+    heightNote: heightNote
   };
+  _obTripConfig.ridePreferences = { mustDo: mustDo, wantToDo: wantToDo, skip: skip };
+}
+
+// ── ridePrefsContext builder (injected into all AI calls) ────────────────────
+function buildRidePrefsContext(tripConfig) {
+  var rp = (tripConfig || {}).ridePreferences;
+  if (!rp) return '';
+  return [
+    'GUEST RIDE PREFERENCES:',
+    'Must Do (non-negotiable): ' + (rp.mustDo || []).join(', '),
+    'Want To Do (if time allows): ' + (rp.wantToDo || []).join(', '),
+    'Skip (never include): ' + (rp.skip || []).join(', ')
+  ].join('\n');
 }
 
 // ---- SCREEN 4: Lightning Lane ----
@@ -7224,32 +7329,41 @@ setTimeout(checkForWaitSpikes, 30000);
 
     <!-- STEPS 3-8: Placeholders -->
     <div id="obStep3New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Ride preferences.</h2>
-      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">Helps us sequence your day and pick Lightning Lane priorities.</p>
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Which rides does your group want to do?</h2>
+      <p style="font-size:13px;color:#4A6670;margin:0 0 14px;">These are the most popular attractions — not a complete list. Tap each ride to set your priority.</p>
 
-      <!-- Intensity tiles -->
-      <div class="ob-field">
-        <label class="ob-label">Ride intensity</label>
-        <div id="obIntensityTiles" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
-      <!-- Pace tiles -->
+      <!-- Pace tiles (keep at top) -->
       <div class="ob-field">
         <label class="ob-label">Pace preference</label>
         <div id="obPaceTiles" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
-      <!-- Must-do free text -->
+      <!-- Height restrictions (keep at top) -->
       <div class="ob-field">
-        <label class="ob-label" for="obMustDo">Must-do rides</label>
-        <input id="obMustDo" type="text" placeholder="e.g. Haunted Mansion, anything Star Wars" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;" />
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:13px;font-weight:600;color:#071E25;">Height restrictions in your group?</div>
+          <button id="obHeightToggle" onclick="obToggleHeightRestriction()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+        <div id="obHeightInputWrap" style="display:none;">
+          <input id="obHeightInput" type="text" placeholder="e.g. one child at 38 inches, one at 45 inches" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:13px;color:#071E25;background:#fff;outline:none;" />
+          <div style="font-size:11px;color:#4A6670;margin-top:5px;">Rides with height requirements will show a badge below.</div>
+        </div>
       </div>
 
-      <!-- Avoid free text -->
-      <div class="ob-field">
-        <label class="ob-label" for="obAvoid">Avoid</label>
-        <input id="obAvoid" type="text" placeholder="e.g. no drops, nothing too scary for the little one" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:#071E25;background:#fff;outline:none;" />
+      <!-- Tier legend -->
+      <div style="display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:#E0F0EE;border-radius:20px;font-size:11px;font-weight:600;color:#0A4840;">&#11088; Must Do</div>
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:#F5F5F5;border-radius:20px;font-size:11px;font-weight:600;color:#4A7A7C;">&#10003; Want To Do</div>
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:#F5F5F5;border-radius:20px;font-size:11px;font-weight:600;color:#9A5800;">&#10005; Skip</div>
       </div>
+
+      <!-- Ride list rendered by JS -->
+      <div id="obRideList" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+      <!-- Footer note -->
+      <div style="font-size:11px;color:#4A6670;margin-top:14px;padding:10px;background:rgba(26,104,96,0.05);border-radius:8px;">Don&rsquo;t see your ride? You can add it in the notes section on the next screen.</div>
     </div>
 
     <!-- STEP 4: Lightning Lane -->
