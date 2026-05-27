@@ -282,6 +282,11 @@ module.exports = async function handler(req, res) {
     console.log('[generateschedule] mode:', mode || 'default', 'char_priority:', charPriority);
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+      system += '\n\n=== NO GAPS RULE (ABSOLUTE) ===';
+    system += '\nNever leave a gap longer than 45 minutes between consecutive schedule items. If there is open time between rides, fill it with a snack stop, restroom break, photo opportunity, or strategy tip card. Guests should never have nothing scheduled for more than 45 minutes.';
+
+    system += '\n\n=== DINING PEAK HOURS RULE (ABSOLUTE) ===';
+    system += '\nNever schedule any QS meal between 12:00 PM and 1:00 PM. This is peak QS rush — lines are 20-40 minutes longer. Lunch: schedule at 11:00-11:45 AM or 1:15-2:00 PM only. Never at noon. Applies to both Disneyland and DCA.';
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 8000) }] })
