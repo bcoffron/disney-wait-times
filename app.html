@@ -4640,7 +4640,7 @@ function generateFromSetup(params, callback) {
   .then(function(d){
     if(!d.ok||!d.text){if(typeof callback==='function')callback('AI error: '+(d.error||'no response'));return;}
     try{
-      var text = d.text.trim();
+      var text = d.text.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
       var start = text.indexOf('[');
       var end = text.lastIndexOf('}');
       if(start === -1){if(typeof callback==='function')callback('No JSON array found');return;}
