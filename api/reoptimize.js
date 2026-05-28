@@ -8,14 +8,10 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
   // Stable cache
   try {
     const { blobs: sb } = await list({ prefix: 'twize/park_intel_dl_stable.json' });
-    console.log('[reoptimize] stable list result: blobs count=', sb ? sb.length : 'null/undef', 'first blob url=', sb && sb[0] ? (sb[0].downloadUrl || sb[0].url || 'NO_URL') : 'N/A');
     if (sb && sb.length) {
       const fetchUrl = sb[0].downloadUrl || sb[0].url;
       const stableData = await fetch(fetchUrl).then(r => r.json());
-      const sections = stableData.sections || {};
-      console.log('[reoptimize] stableData keys:', Object.keys(stableData || {}));
-      console.log('[reoptimize] stableData.sections keys:', Object.keys((stableData && stableData.sections) || {}));
-      console.log('[reoptimize] stable fu:', fetchUrl);
+      const sections = stableData.data || {};
       sectionNames.forEach(name => {
         if (sections[name]) {
           results[name] = typeof sections[name] === 'string'
@@ -35,10 +31,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
       if (db && db.length) {
         const fetchUrl = db[0].downloadUrl || db[0].url;
         const dynamicData = await fetch(fetchUrl).then(r => r.json());
-        const sections = dynamicData.sections || {};
-      console.log('[reoptimize] dynamicData keys:', Object.keys(dynamicData || {}));
-      console.log('[reoptimize] dynamicData.sections keys:', Object.keys((dynamicData && dynamicData.sections) || {}));
-      console.log('[reoptimize] dynamic fu:', fetchUrl);
+        const sections = dynamicData.data || {};
         ['CURRENT_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
           if (sections[name]) {
             results[name] = typeof sections[name] === 'string'
@@ -137,9 +130,6 @@ async function handler(req, res) {
       ['LAND_MAP', 'WAIT_PATTERNS', 'CROWD_FLOW', 'WALKING_ROUTES'],
       true // include dynamic (CURRENT_CLOSURES, TRIP_CONTEXT, etc.)
     );
-    console.log('[reoptimize] cacheCtx sections:', Object.keys(cacheCtx));
-    console.log('[reoptimize] cacheCtx keys:', Object.keys(cacheCtx));
-    console.log('[reoptimize] cacheCtx error check:', JSON.stringify(cacheCtx).substring(0, 200));
 
     // ââ Slice each section to target ~4,000 chars total ââââââââââââââââââââââ
     const landMap      = (cacheCtx.LAND_MAP       || '').substring(0, 1200);
