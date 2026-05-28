@@ -131,6 +131,13 @@ async function handler(req, res) {
       true // include dynamic (CURRENT_CLOSURES, TRIP_CONTEXT, etc.)
     );
 
+    // ── Cache assertion (Safeguard 2) ─────────────────────────────────
+    const sectionCount = Object.keys(cacheCtx).length;
+    console.log('cache_sections:', Object.keys(cacheCtx).join(','));
+    if (sectionCount < 4) {
+      console.error('[reoptimize] CACHE EMPTY — aborting AI call. Got', sectionCount, 'sections, need 4');
+      return res.status(503).json({ error: 'Park intelligence cache unavailable. Please try again.', cache_sections: Object.keys(cacheCtx), sections_found: sectionCount });
+    }
     // ââ Slice each section to target ~4,000 chars total ââââââââââââââââââââââ
     const landMap      = (cacheCtx.LAND_MAP       || '').substring(0, 1200);
     const waitPatterns = (cacheCtx.WAIT_PATTERNS  || '').substring(0, 1500);
