@@ -3282,7 +3282,7 @@ async function getReroute(ride,land,btn){
   }
 
   var alts=(ALTS[land]||['a nearby ride']).slice(0,2).join(' or ');
-  var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
+  dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
 
   // Short wait - suggest riding now
   if(wait<30){
@@ -3320,6 +3320,12 @@ async function getReroute(ride,land,btn){
 //    AI Schedule Reoptimize                                                 
 var reoptCache={};
 var schedItems;
+var dn;
+var tripDayLabel;
+var tripDayDate;
+var isInTrip;
+var currentTimeStr;
+var liveWaitContext;
 
 function scheduleHash(data){
   // Simple hash of schedule content to detect changes
@@ -3350,7 +3356,7 @@ async function reoptimize(){
     return;
   }
 
-  var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
+  dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
   var data=getCurDay();
   var summary='';
   data.sections.forEach(function(sec){
@@ -3366,7 +3372,7 @@ async function reoptimize(){
   var preTrip=!atPark;
 
   // Build live wait times context
-  var liveWaitContext='';
+  liveWaitContext='';
   var liveAvailable=atPark&&Object.keys(waits).length>0;
   if(!atPark)liveWaitContext='Use historical wait time data and web search for late June Disneyland crowd patterns. ';
   // Inject cached intel
@@ -3422,8 +3428,8 @@ async function reoptimize(){
 
   var tripDays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||[];
     var currentDayConfig=tripDays[curDay]||{};
-    var tripDayDate=currentDayConfig.date||'';
-    var tripDayLabel='';
+    tripDayDate=currentDayConfig.date||'';
+    tripDayLabel='';
     if(tripDayDate){
       try{
         var _td=new Date(tripDayDate+'T12:00:00');
@@ -3435,7 +3441,7 @@ async function reoptimize(){
     var firstDate=tripDays.length>0&&tripDays[0].date?new Date(tripDays[0].date+'T00:00:00'):null;
     var lastDate=tripDays.length>0&&tripDays[tripDays.length-1].date?new Date(tripDays[tripDays.length-1].date+'T00:00:00'):null;
     if(lastDate)lastDate.setHours(23,59,59,999);
-    var isInTrip=!!(firstDate&&lastDate&&today>=firstDate&&today<=lastDate);
+    isInTrip=!!(firstDate&&lastDate&&today>=firstDate&&today<=lastDate);
     function itemTimeToMin(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]),mn=parseInt(m[2]),pm=m[3].toUpperCase()==='PM';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h*60+mn;}
     var allDayItems=(window._schedData&&window._schedData.days&&window._schedData.days[curDay]&&window._schedData.days[curDay].items)||[];
     if(isInTrip){
@@ -3450,10 +3456,10 @@ async function reoptimize(){
     window._aiOptIsInTrip=isInTrip;
     window._aiOptNowMin=isInTrip?(new Date().getHours()*60+new Date().getMinutes()):0;
     window._aiOptSentCount=schedItems.length;
-    var liveWaitContext='';
+    liveWaitContext='';
     if(typeof buildWaitContext==='function'){liveWaitContext=buildWaitContext()||'';}
     var _tnow=new Date();
-    var currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
+    currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
     console.log('[aiOptimize]',curDay,'schedItems:',schedItems?schedItems.length:'null','isInTrip:',isInTrip,'tripDayDate:',tripDayLabel||tripDayDate,'from _schedData:',!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
     window._aiOptOriginalItems=(schedItems||[]).map(function(i){return {h:i.h};});
     _reoptRetryCount=0;runReoptimize();
