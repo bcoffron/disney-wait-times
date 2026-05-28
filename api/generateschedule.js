@@ -3,7 +3,7 @@
 const { list } = require('@vercel/blob');
 const { validateSchedule } = require('./validate-schedule');
 
-// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ buildCacheContext Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ buildCacheContext ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function buildCacheContext(sectionNames, includeDynamic = false) {
   const results = {};
 
@@ -48,7 +48,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
   return results;
 }
 
-// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Character intel (unchanged) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Character intel (unchanged) ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function getCharacterIntel(maxChars = 4000) {
   try {
     const { blobs } = await list({ prefix: 'twize/character_intel.json' });
@@ -84,7 +84,7 @@ function buildCharacterContext(charIntel, tripConfig, maxChars) {
     lines.push('- ' + c.name + ' | ' + (c.location || '') + ' | Windows: ' + windows + ' | Typical wait: ' + (c.typicalWait || 0) + ' min' + (c.vipAccessible ? ' | VIP skip-line eligible' : ''));
   }
   const body = lines.join('\n');
-  const full = 'CHARACTER INTEL (from cache Ã¢ÂÂ do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nAvailable characters matching trip preferences:\n' + body;
+  const full = 'CHARACTER INTEL (from cache ÃÂ¢ÃÂÃÂ do not fabricate):\nDisclaimer: ' + disclaimer + '\n\nAvailable characters matching trip preferences:\n' + body;
   return full.substring(0, maxChars);
 }
 
@@ -109,7 +109,7 @@ module.exports = async function handler(req, res) {
   try {
     const { prompt, mode, maxTokens = 6000, tripConfig } = req.body || {};
 
-// ââ Build ride preferences context âââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ Build ride preferences context Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 const rp = (tripConfig || {}).ridePreferences || {};
 const mustDo = rp.mustDo || [];
 const wantToDo = rp.wantToDo || [];
@@ -124,7 +124,7 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-    // Ã¢ÂÂÃ¢ÂÂ Build cache context from new two-cache architecture Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+    // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Build cache context from new two-cache architecture ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     const cacheCtx = await buildCacheContext(
       ['LAND_MAP', 'WAIT_PATTERNS', 'ROPE_DROP_STRATEGY',
        'LIGHTNING_LANE_STRATEGY', 'DINING_TIMING', 'CROWD_FLOW'],
@@ -132,7 +132,7 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     );
     console.log('[generateschedule] cacheCtx sections:', Object.keys(cacheCtx));
 
-    // Ã¢ÂÂÃ¢ÂÂ Slice each section to target ~6,000 chars total Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+    // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Slice each section to target ~6,000 chars total ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     const landMap      = (cacheCtx.LAND_MAP                || '').substring(0, 800);
     const waitPatterns = (cacheCtx.WAIT_PATTERNS           || '').substring(0, 1200);
     const ropeDrop     = (cacheCtx.ROPE_DROP_STRATEGY      || '').substring(0, 800);
@@ -155,15 +155,15 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
       'TRIP CONTEXT:\n' + tripCtx
     ].join('\n\n');
 
-    // Ã¢ÂÂÃ¢ÂÂ Character intel (unchanged) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+    // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Character intel (unchanged) ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     const charIntel = await getCharacterIntel(4000);
     const charContext = buildCharacterContext(charIntel, tripConfig, 4000);
     const charPriority = (tripConfig && tripConfig.characters && tripConfig.characters.priority) || 'niceToHave';
 
-    // Ã¢ÂÂÃ¢ÂÂ Build system prompt Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+    // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Build system prompt ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     let system = 'You are a Disneyland and Disney California Adventure theme park scheduling expert with deep knowledge of wait time patterns, rope drop strategies, and crowd flow. Generate detailed, realistic day schedules in valid JSON only. No markdown, no explanation, just JSON.';
 
-    system += '\n\n=== CURRENT PARK INTELLIGENCE (use this Ã¢ÂÂ do not search the web) ===\n' + parkIntelContext;
+    system += '\n\n=== CURRENT PARK INTELLIGENCE (use this ÃÂ¢ÃÂÃÂ do not search the web) ===\n' + parkIntelContext;
 
     if (charContext) {
       system += '\n\n=== ' + charContext + ' ===';
@@ -176,13 +176,13 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
       }
       system += '\n- NEVER schedule a character meet outside their typicalWindows (appearance window).';
       system += '\n- NEVER place a character meet over a dining reservation, Lightning Lane Single Pass entry, or paid experience.';
-      system += '\n- One character meet per gap maximum Ã¢ÂÂ never stack multiple meets back to back.';
-      system += '\n- Character meet schedule entry schema: { "t": "H:MM AM", "h": "Character Name", "type": "character", "n": "Location, Land ÃÂ· Window startÃ¢ÂÂend", "land": "Land Name", "typicalWait": 25, "vipAccessible": true, "disclaimer": true }';
+      system += '\n- One character meet per gap maximum ÃÂ¢ÃÂÃÂ never stack multiple meets back to back.';
+      system += '\n- Character meet schedule entry schema: { "t": "H:MM AM", "h": "Character Name", "type": "character", "n": "Location, Land ÃÂÃÂ· Window startÃÂ¢ÃÂÃÂend", "land": "Land Name", "typicalWait": 25, "vipAccessible": true, "disclaimer": true }';
       system += '\n- The "n" field must combine location and appearance window as one string.';
       system += '\n- Set disclaimer: true on all character entries so the app shows the schedule-change warning.';
     }
 
-    // ââ Ride preferences context injection âââââââââââââââââââââââââââââââââââââ
+    // Ã¢ÂÂÃ¢ÂÂ Ride preferences context injection Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
     if (ridePrefsContext) {
       system += '\n\nGUEST RIDE PREFERENCES:';
       if (mustDo.length) {
@@ -208,31 +208,31 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
         system += '\nSkip list (NEVER schedule): ' + skipRides.join(', ');
       }
     }
-       system += '\n\n=== STRICT CONTENT RULES Ã¢ÂÂ NEVER VIOLATE ===';
+       system += '\n\n=== STRICT CONTENT RULES ÃÂ¢ÃÂÃÂ NEVER VIOLATE ===';
     system += '\n1. Only schedule activities that are: (a) explicitly in the trip config, (b) real attractions verified in the park_intel cache, or (c) standard park activities (rides, dining, shows, photo ops, snack stops, tip cards, restroom breaks).';
     system += '\n2. NEVER invent tour packages, special experiences, or paid add-ons not in the trip config. Do not add VIP tours, bio tours, backstage tours, Keys to the Kingdom, or any paid tour product unless it appears explicitly in tripConfig.lightningLane.singlePass or tripConfig.dining.reservations.';
     system += '\n3. NEVER schedule behind-the-scenes experiences, private tours, or special-access events that the user did not select during onboarding.';
-    system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card Ã¢ÂÂ never invent a special experience.';
+    system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card ÃÂ¢ÃÂÃÂ never invent a special experience.';
 
-    system += '\n\n=== CURRENT RIDE CLOSURES Ã¢ÂÂ DO NOT SCHEDULE ===';
+    system += '\n\n=== CURRENT RIDE CLOSURES ÃÂ¢ÃÂÃÂ DO NOT SCHEDULE ===';
     system += '\nThe following attractions are currently closed for refurbishment. NEVER schedule them as ride cards:';
     system += '\n- Pirates of the Caribbean (closed Jun 2026, reopens TBD)';
     system += '\nCheck the CURRENT CLOSURES section above for any additional closures and honor all of them.';
 
-    system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE Ã¢ÂÂ STRICTLY ENFORCED ===';
+    system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE ÃÂ¢ÃÂÃÂ STRICTLY ENFORCED ===';
     system += '\nConfirmed reservations from tripConfig.dining.reservations MUST appear in the schedule as type:\"dining\" cards at the exact time specified. This is non-negotiable. Do NOT omit them, do NOT replace them with quickservice cards, and do NOT schedule a competing dinner in the same window.';
     system += '\nFor BCDIS2026, the confirmed reservation is: Cafe Orleans, Day 3 (index 2), 6:30 PM, land: New Orleans Square.';
-    system += '\nOn Day 3, the schedule MUST include: { t: \"6:30 PM\", h: \"Cafe Orleans Ã¢ÂÂ Confirmed Dinner Reservation\", type: \"dining\", isConfirmed: true, n: \"[warm 2-3 sentence note about Cafe Orleans]\", topPick: \"Monte Cristo Sandwich\", veg: \"Ratatouille (seasonal vegetable dish)\", kids: \"Kids Grilled Cheese with fruit\", land: \"New Orleans Square\" }';
+    system += '\nOn Day 3, the schedule MUST include: { t: \"6:30 PM\", h: \"Cafe Orleans ÃÂ¢ÃÂÃÂ Confirmed Dinner Reservation\", type: \"dining\", isConfirmed: true, n: \"[warm 2-3 sentence note about Cafe Orleans]\", topPick: \"Monte Cristo Sandwich\", veg: \"Ratatouille (seasonal vegetable dish)\", kids: \"Kids Grilled Cheese with fruit\", land: \"New Orleans Square\" }';
     system += '\nNO other dinner card (quickservice or dining) should appear on Day 3 between 5:00 PM and 9:00 PM. The confirmed reservation IS the dinner.';
     system += '\nThe park hop from DCA to Disneyland must be scheduled around the reservation: DCA rides until ~5:30 PM, park hop transition tip at ~5:30 PM (15-20 min walk through Downtown Disney), arrive New Orleans Square by 6:15 PM, Cafe Orleans at 6:30 PM, Disneyland evening rides and fireworks after dinner.';
 
-    system += '\n\n=== NOTE QUALITY STANDARD Ã¢ÂÂ EVERY CARD MUST MEET THIS BAR ===';
+    system += '\n\n=== NOTE QUALITY STANDARD ÃÂ¢ÃÂÃÂ EVERY CARD MUST MEET THIS BAR ===';
     system += '\nEvery card note (field "n") must include ALL of the following:';
-    system += '\n1. WHY this activity at this specific time Ã¢ÂÂ what makes this time slot strategically good (wait times, crowd patterns, park flow)';
-    system += '\n2. GROUP-SPECIFIC CONTEXT Ã¢ÂÂ reference the actual group makeup from tripConfig (9 guests, 1 under 40 inches, 2 at 40Ã¢ÂÂ48 inches, 6 over 48 inches, afternoon break planned). Mention height requirements, who can ride, stroller considerations where relevant.';
-    system += '\n3. PRACTICAL DETAIL Ã¢ÂÂ what to expect, what to do, what to watch for. At least 2Ã¢ÂÂ3 sentences. Never a single sentence. Never vague.';
+    system += '\n1. WHY this activity at this specific time ÃÂ¢ÃÂÃÂ what makes this time slot strategically good (wait times, crowd patterns, park flow)';
+    system += '\n2. GROUP-SPECIFIC CONTEXT ÃÂ¢ÃÂÃÂ reference the actual group makeup from tripConfig (9 guests, 1 under 40 inches, 2 at 40ÃÂ¢ÃÂÃÂ48 inches, 6 over 48 inches, afternoon break planned). Mention height requirements, who can ride, stroller considerations where relevant.';
+    system += '\n3. PRACTICAL DETAIL ÃÂ¢ÃÂÃÂ what to expect, what to do, what to watch for. At least 2ÃÂ¢ÃÂÃÂ3 sentences. Never a single sentence. Never vague.';
     system += '\nEXAMPLE OF A GOOD NOTE (use this as your quality benchmark):';
-    system += '\n\"First ride of the day. Standby wait should be under 10 minutes at rope drop. This is one of the most consistently long-wait attractions all day Ã¢ÂÂ do it now. All 9 guests including your under-40-inch guest can ride (no height requirement). Enjoy the classic Neverland fly-over.\"';
+    system += '\n\"First ride of the day. Standby wait should be under 10 minutes at rope drop. This is one of the most consistently long-wait attractions all day ÃÂ¢ÃÂÃÂ do it now. All 9 guests including your under-40-inch guest can ride (no height requirement). Enjoy the classic Neverland fly-over.\"';
     system += '\nThis standard applies to ALL card types: ride, tip, quickservice, dining, show, character, snack, photo.';
 
     const confirmedRestaurants = (tripConfig && tripConfig.dining && tripConfig.dining.reservations
@@ -245,8 +245,8 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     if (tripConfig && !tripConfig._usedQuickService) tripConfig._usedQuickService = [];
     const usedQS = (tripConfig && tripConfig._usedQuickService) || [];
 
-    system += '\n\n=== DINING SYSTEM RULES Ã¢ÂÂ NEVER VIOLATE ===';
-    system += '\n\nCONFIRMED RESERVATIONS Ã¢ÂÂ FIXED ANCHORS:';
+    system += '\n\n=== DINING SYSTEM RULES ÃÂ¢ÃÂÃÂ NEVER VIOLATE ===';
+    system += '\n\nCONFIRMED RESERVATIONS ÃÂ¢ÃÂÃÂ FIXED ANCHORS:';
     system += '\nThe following restaurants are already booked by the guest at specific times.';
     system += '\nThey appear ONCE in the schedule at their confirmed time. Do NOT generate';
     system += '\nany other card for these restaurants anywhere in the schedule.';
@@ -263,16 +263,16 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += "\n Jolly Holiday Bakery (table service area), Storytellers Cafe, Goofy's Kitchen,";
     system += '\n Minnie & Friends Breakfast, PCH Grill, or any other sit-down table service location.';
     system += '\n4. Always pick from quick service options in the DINING TIMING section of the cache';
-    system += '\n5. You MAY mention a table service restaurant once per trip in a note line only Ã¢ÂÂ one sentence maximum';
+    system += '\n5. You MAY mention a table service restaurant once per trip in a note line only ÃÂ¢ÃÂÃÂ one sentence maximum';
     system += '\n6. Already used quick service restaurants this trip: ' + (usedQS.join(', ') || 'none');
-    system += '\n\nQUICK SERVICE CARD SCHEMA Ã¢ÂÂ use this exactly:';
+    system += '\n\nQUICK SERVICE CARD SCHEMA ÃÂ¢ÃÂÃÂ use this exactly:';
     system += '\n{ t: "12:00 PM", h: "Rancho del Zocalo Restaurante", type: "quickservice", n: "Counter service Mexican food in Frontierland.", topPick: "Carne Asada Platter with rice and beans", veg: "Cheese Enchiladas with salsa verde", kids: "Kids Cheese Quesadilla with apple slices", land: "Frontierland" }';
-    system += '\nCRITICAL Ã¢ÂÂ topPick/veg/kids field rules:';
-    system += '\n- topPick MUST be a specific dish name string Ã¢ÂÂ NEVER the word true, NEVER false, NEVER null';
-    system += '\n- veg MUST be a specific vegetarian dish name string Ã¢ÂÂ NEVER true, NEVER false';
-    system += '\n- kids MUST be a specific kids meal name string Ã¢ÂÂ NEVER true, NEVER false';
+    system += '\nCRITICAL ÃÂ¢ÃÂÃÂ topPick/veg/kids field rules:';
+    system += '\n- topPick MUST be a specific dish name string ÃÂ¢ÃÂÃÂ NEVER the word true, NEVER false, NEVER null';
+    system += '\n- veg MUST be a specific vegetarian dish name string ÃÂ¢ÃÂÃÂ NEVER true, NEVER false';
+    system += '\n- kids MUST be a specific kids meal name string ÃÂ¢ÃÂÃÂ NEVER true, NEVER false';
     system += '\n\nSNACK STOPS (type: "snack"):';
-    system += '\nSame no-repeat rule Ã¢ÂÂ never the same snack location twice per trip.';
+    system += '\nSame no-repeat rule ÃÂ¢ÃÂÃÂ never the same snack location twice per trip.';
     system += '\nSNACK CARD SCHEMA: { t: "2:30 PM", h: "Afternoon Snack: Dole Whip", type: "snack", n: "Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room.", land: "Adventureland" }';
     system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields.';
     system += '\n\nAFTERNOON BREAK CARDS (type: \"break\"):';
@@ -280,13 +280,13 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\nFor Disneyland breaks: mention Main Street U.S.A. shops or land-specific merchandise.';
     system += '\nFor DCA breaks: mention Buena Vista Street shops or Cars Land/Pixar Pier merchandise.';
     system += '\n\nCONFIRMED RESERVATION CARDS (type: "dining"):';
-    system += '\nConfirmed dining reservations from tripConfig.dining.reservations MUST be generated as type:\"dining\" cards at the exact time listed. They are NOT auto-inserted Ã¢ÂÂ you must include them in your output.';
+    system += '\nConfirmed dining reservations from tripConfig.dining.reservations MUST be generated as type:\"dining\" cards at the exact time listed. They are NOT auto-inserted ÃÂ¢ÃÂÃÂ you must include them in your output.';
 
     system += '\n\n=== PARK ARRIVAL RULE ===';
     system += '\nAlways schedule guests to arrive 60 minutes (1 hour) before official park opening.';
     system += '\nThe first tip card of each day must say: Arrive at the park entrance 1 hour before opening.';
 
-    system += '\n\n=== MORNING RHYTHM RULES Ã¢ÂÂ REQUIRED ON ALL DAYS ===';
+    system += '\n\n=== MORNING RHYTHM RULES ÃÂ¢ÃÂÃÂ REQUIRED ON ALL DAYS ===';
     system += '\nEvery day must include: (1) Arrival tip 60 min before open, (2) Rope drop / Lightning Lane tip, (3) First 2-3 rides, (4) MORNING SNACK between 9:00 AM and 10:30 AM, (5) RESTROOM BREAK (type: \"break\") before 10:30 AM, (6) Continue mid-morning rides.';
     system += '\nSNACK TIMING RULE: Never schedule a snack within 90 minutes of a meal.';
     system += '\nRESTROOM BREAK RULE: Include one restroom break before 11 AM and one between 1-4 PM.';
@@ -299,12 +299,12 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\nDURING TOUR HOURS (10:00 AM to 5:00 PM):';
     system += '\n- Do NOT schedule any ride cards (type: \"ride\") during this window';
     system += '\n- Do NOT schedule any quickservice or dining cards during this window';
-    system += '\n- DO include a single VIP tour block entry at 10:00 AM: { t: \"10:00 AM\", h: \"VIP Tour Begins\", type: \"vip\", n: \"Your guide takes over. Skip-the-line access for all major attractions. Follow your guide lead Ã¢ÂÂ they know the optimal route based on today crowd patterns.\", land: \"Disneyland\" }';
+    system += '\n- DO include a single VIP tour block entry at 10:00 AM: { t: \"10:00 AM\", h: \"VIP Tour Begins\", type: \"vip\", n: \"Your guide takes over. Skip-the-line access for all major attractions. Follow your guide lead ÃÂ¢ÃÂÃÂ they know the optimal route based on today crowd patterns.\", land: \"Disneyland\" }';
     system += '\n- After that single entry, skip directly to 5:00 PM (tour end)';
-    system += '\nBEFORE TOUR (before 10:00 AM on VIP day): Schedule normally Ã¢ÂÂ rides, tips, snacks, photo ops are all fine.';
-    system += '\nAFTER TOUR (after 5:00 PM on VIP day): Schedule normally Ã¢ÂÂ dinner, evening rides, shows, fireworks.';
+    system += '\nBEFORE TOUR (before 10:00 AM on VIP day): Schedule normally ÃÂ¢ÃÂÃÂ rides, tips, snacks, photo ops are all fine.';
+    system += '\nAFTER TOUR (after 5:00 PM on VIP day): Schedule normally ÃÂ¢ÃÂÃÂ dinner, evening rides, shows, fireworks.';
 
-    system += '\n\n=== SCHEDULE COMPLETENESS RULE Ã¢ÂÂ STRICTLY ENFORCED ===';
+    system += '\n\n=== SCHEDULE COMPLETENESS RULE ÃÂ¢ÃÂÃÂ STRICTLY ENFORCED ===';
     system += '\nEvery day MUST have schedule entries from 7:00 AM through actual park closing time. This is non-negotiable.';
     system += '\nPark closing times for this trip:';
     system += '\n- Day 1 Sun Jun 28: Disneyland closes 12:00 AM (midnight)';
@@ -324,7 +324,7 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\nNever leave a gap longer than 45 minutes between consecutive schedule items. If there is open time between rides, fill it with a snack stop, restroom break, photo opportunity, or strategy tip card. Guests should never have nothing scheduled for more than 45 minutes.';
 
     system += '\n\n=== DINING PEAK HOURS RULE (ABSOLUTE) ===';
-    system += '\nNever schedule any QS meal between 12:00 PM and 1:00 PM. This is peak QS rush Ã¢ÂÂ lines are 20-40 minutes longer. Lunch: schedule at 11:00-11:45 AM or 1:15-2:00 PM only. Never at noon. Applies to both Disneyland and DCA.\n\nTIME BOUNDS RULE (ABSOLUTE):\nNever schedule any item before 7:00 AM or after park close.\nAll items must have times between 7:00 AM and park close time.\nTimes like 1:55 AM, 4:28 AM, or any AM time before 7:00 AM are always errors — never generate them.';
+    system += '\nNever schedule any QS meal between 12:00 PM and 1:00 PM. This is peak QS rush ÃÂ¢ÃÂÃÂ lines are 20-40 minutes longer. Lunch: schedule at 11:00-11:45 AM or 1:15-2:00 PM only. Never at noon. Applies to both Disneyland and DCA.\n\nTIME BOUNDS RULE (ABSOLUTE):\nNever schedule any item before 7:00 AM or after park close.\nAll items must have times between 7:00 AM and park close time.\nTimes like 1:55 AM, 4:28 AM, or any AM time before 7:00 AM are always errors â never generate them.\n\nLIGHTNING LANE REMINDER CARDS (REQUIRED):\nEvery schedule must include Lightning Lane reminder tip cards throughout the day, not just at the start. Include:\n1. Opening LL tip (7:00-7:30 AM): initial LLMP booking strategy\n2. Second booking reminder (~10:00 AM): when to grab next LLMP after first return window passes\n3. Afternoon check (~1:30-2:00 PM): review remaining LL options and book afternoon passes\n4. Final window (~4:00 PM): last LLMP booking of the day\nEach card must reference specific rides by name based on the group must-do list and LIGHTNING_LANE_STRATEGY from cache. Cards should tell the user exactly what to book and why. Use type: tip for all reminder cards.';
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 8000) }] })
