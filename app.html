@@ -277,6 +277,8 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .reopt-text{font-size:13px;color:var(--text-muted);line-height:1.6}
 .reopt-btns{gap:8px;margin-top:12px;display:none}
 .reopt-btns.show{display:flex}
+.reopt-spinner{width:32px;height:32px;border:3px solid #EEF5F4;border-top:3px solid #C86030;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
 .reopt-apply{flex:2;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--coral),var(--coral-dark));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
 .reopt-dismiss{flex:1;padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer}
 
@@ -1090,7 +1092,8 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
 
       <!-- ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== -->
-      <div class="reopt-box" id="reoptBox">
+      <div id="reoptLoading" style="display:none"><div style="background:white;border-radius:12px;padding:20px 16px;margin:8px 10px;text-align:center"><div class="reopt-spinner"></div><div style="font-size:14px;font-weight:700;color:#071E25;margin-top:12px">Optimizing your schedule...</div><div style="font-size:11px;color:#4A7A7C;margin-top:4px">This takes about 20 seconds</div></div></div>
+        <div class="reopt-box" id="reoptBox">
         <div class="reopt-summary-bar">
           <div class="reopt-summary-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -1215,7 +1218,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
       <div class="ask-ai-hint">Or ask me anything about your trip</div>
       <div id="chatSuggestions" style="display:none"></div>
       <div style="display:flex;gap:8px">
-        <input id="chatInput" type="text" placeholder="Ask about your trip..." class="ask-ai-input" onkeydown="if(event.key==='Enter')sendChat()">
+        <input id="chatInput" type="text" placeholder="Ask about your trip..." class="ask-ai-input" autocomplete="off" onkeydown="if(event.key==='Enter')sendChat()">
         <button onclick="sendChat()" class="ask-ai-send-btn">Send</button>
       </div>
     </div>
@@ -3327,9 +3330,9 @@ async function reoptimize(){
   var box=document.getElementById('reoptBox');
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
-  box.style.display='block';
+  var _rl=document.getElementById('reoptLoading');if(_rl)_rl.style.display='block';box.style.display='none';
   btns.classList.remove('show');
-  txt.innerHTML='<span>'+(atPark?'Analyzing with live wait times':'Researching strategies and optimizing schedule')+'</span> <span class="blink"><span>\u00b7</span><span>\u00b7</span><span>\u00b7</span></span>';
+  // loading spinner shown
   await ensureApiKey();
 
   // Check cache - if schedule hasn't changed, reuse last result
@@ -3341,6 +3344,7 @@ async function reoptimize(){
     pendingReopt=cached.result;
     var subEl=document.getElementById('reoptSummarySub');
     if(subEl)subEl.textContent='From earlier optimization';
+    var _rl2=document.getElementById('reoptLoading');if(_rl2)_rl2.style.display='none';box.style.display='block';
     btns.classList.add('show');
     return;
   }
@@ -3456,7 +3460,7 @@ async function reoptimize(){
     });
 
     var resp=await r.json();
-    if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit -- retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{txt.textContent='Error: '+(resp.error.message||resp.error);}return;}
+    if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit -- retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{var _rle=document.getElementById('reoptLoading');if(_rle)_rle.style.display='none';box.style.display='block';txt.textContent='Error: '+(resp.error.message||resp.error);}return;}
     var newSecs=resp.sections||null;
     var explanation=resp.explanation||'Schedule optimized.';
     // If server returned raw text, parse JSONSTART/JSONEND client-side
@@ -3477,8 +3481,10 @@ async function reoptimize(){
       var rideCount=0;if(newSecs)newSecs.forEach(function(s){s.entries&&s.entries.forEach(function(e){if(e.type==='ride')rideCount++;});});
       var subEl=document.getElementById('reoptSummarySub');
       if(subEl)subEl.textContent=(rideCount>0?rideCount+' ride'+(rideCount===1?'':'s')+' reordered':'Schedule optimized')+' around live waits';
+      var _rl3=document.getElementById('reoptLoading');if(_rl3)_rl3.style.display='none';box.style.display='block';
       btns.classList.add('show');
     }else{
+      var _rle2=document.getElementById('reoptLoading');if(_rle2)_rle2.style.display='none';box.style.display='block';
       txt.textContent=explanation||text;
       if(explanation&&explanation.length>20){
         txt.innerHTML+='<br><br><span style="color:var(--text-dim);font-size:11px">Could not parse updated schedule automatically. Use the explanation above to manually reorder using Edit mode.</span>';
@@ -4482,7 +4488,7 @@ function setTab(t){
   if(t==='shows')renderShows&&renderShows();
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
-  setTimeout(function(){window.scrollTo(0,0);var _tc=document.getElementById(t+'Content')||document.querySelector('.tab-content.active');if(_tc)_tc.scrollTop=0;},50);
+  setTimeout(function(){window.scrollTo(0,0);var _tc=document.getElementById(t+'Content')||document.querySelector('.tab-content.active');if(_tc)_tc.scrollTop=0;var _tabEl=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));if(_tabEl)_tabEl.scrollTop=0;var _ct=document.querySelector('.content');if(_ct)_ct.scrollTop=0;if(t==='chat'){var _ci=document.getElementById('chatInput');if(_ci)_ci.value='';}},150);
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
