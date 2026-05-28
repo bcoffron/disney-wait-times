@@ -186,6 +186,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .tb-photo{background:rgba(124,58,237,0.12);color:#7c3aed}
 .tb-snack{background:#FFF0E8;color:#903820}
 .tb-ll{background:var(--orange-bg);color:var(--orange)}
+.ll-return-pill{display:inline-block;background:#E0F0EE;color:#0A4840;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:600;margin-left:4px;}
 
 /* Live wait pill */
 .wait-pill{
@@ -1100,7 +1101,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
           </div>
           <div class="reopt-summary-text">
             <div class="reopt-summary-title">Smoothed out your next few hours</div>
-            <div class="reopt-summary-sub" id="reoptSummarySub">Rides reordered around live waits</div>
+            <div class="reopt-summary-sub" id="reoptSummarySub">Your schedule is already optimized</div>
           </div>
         </div>
         <div class="reopt-body">
@@ -3455,6 +3456,7 @@ async function reoptimize(){
     var _tnow=new Date();
     var currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
     console.log('[aiOptimize]',curDay,'schedItems:',schedItems?schedItems.length:'null','isInTrip:',isInTrip,'tripDayDate:',tripDayLabel||tripDayDate,'from _schedData:',!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
+    window._aiOptOriginalItems=(schedItems||[]).map(function(i){return {h:i.h};});
     try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,apiKey:apiKey,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{})
       })
     });
@@ -3477,10 +3479,10 @@ async function reoptimize(){
       txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+stripMd(expText)+'</div>'
         ;
       reoptCache[hash+'_v2']={explanation:expText,result:pendingReopt};
-      // Update summary bar with ride count
-      var rideCount=0;if(newSecs)newSecs.forEach(function(s){s.entries&&s.entries.forEach(function(e){if(e.type==='ride')rideCount++;});});
+      // Update summary bar with change count
+      var changedCount=0;if(window._aiOptOriginalItems&&result.sections&&result.sections[0]&&result.sections[0].entries)result.sections[0].entries.forEach(function(entry,idx){if(window._aiOptOriginalItems[idx]&&window._aiOptOriginalItems[idx].h!==entry.h)changedCount++;});
       var subEl=document.getElementById('reoptSummarySub');
-      if(subEl)subEl.textContent=(rideCount>0?rideCount+' ride'+(rideCount===1?'':'s')+' reordered':'Schedule optimized')+' around live waits';
+      if(subEl)subEl.textContent=changedCount===0?'Your schedule is already optimized':changedCount+' items reordered for better timing';
       var _rl3=document.getElementById('reoptLoading');if(_rl3)_rl3.style.display='none';box.style.display='block';
       btns.classList.add('show');
     }else{
@@ -3878,6 +3880,7 @@ function renderSched(){
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
       var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',dining:'<span class="tb tb-dining">dining</span>',quickservice:'<span class="tb tb-quickservice">quick service</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',snack:'<span class="tb tb-snack">snack</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>',character:'<span class="tb tb-character">character</span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
+      var _llRideKey=e.ride||e.h;if(typeof loadLLState==='function')loadLLState();if(typeof llState!=='undefined'&&llState.bookedTimes&&llState.bookedTimes[_llRideKey])llb+='<span class="ll-return-pill">&#9200; Return: '+llState.bookedTimes[_llRideKey]+'</span>';
       var diningRec='';
       if(e.type==='food'&&e.h){
         var dname=e.h.replace(/^[^\u2014]*\u2014\s*/,'').replace(/Dinner \u2014 /,'').replace(/Lunch /,'').trim();
@@ -4488,7 +4491,7 @@ function setTab(t){
   if(t==='shows')renderShows&&renderShows();
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
-  setTimeout(function(){window.scrollTo(0,0);var _tc=document.getElementById(t+'Content')||document.querySelector('.tab-content.active');if(_tc)_tc.scrollTop=0;var _tabEl=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));if(_tabEl)_tabEl.scrollTop=0;var _ct=document.querySelector('.content');if(_ct)_ct.scrollTop=0;if(t==='chat'){var _ci=document.getElementById('chatInput');if(_ci)_ci.value='';}},150);
+  setTimeout(function(){requestAnimationFrame(function(){window.scrollTo({top:0,behavior:'instant'});var _tc=document.getElementById(t+'Content')||document.querySelector('.tab-content.active');if(_tc)_tc.scrollTop=0;var _tabEl=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));if(_tabEl)_tabEl.scrollTop=0;document.querySelector('.content')&&(document.querySelector('.content').scrollTop=0);document.querySelector('#content')&&(document.querySelector('#content').scrollTop=0);if(document.documentElement)document.documentElement.scrollTop=0;if(document.body)document.body.scrollTop=0;if(t==='chat'){var _ci=document.getElementById('chatInput');if(_ci)_ci.value='';}var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';});},150)
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
