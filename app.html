@@ -2437,7 +2437,7 @@ function wbHTML(rideName){
 }
 
 function updateWaitStatus(){
-  var txt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live â¢ Just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago'):'Loading wait times...';
+  var txt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live \u2022 Just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago'):'Loading wait times...';
   var col=waitLastFetch?'#15803D':'#5A526E';
   var el=document.getElementById('waitStatus');if(el){el.textContent=txt;el.style.color=col;}renderDayInfoBar();
 }
