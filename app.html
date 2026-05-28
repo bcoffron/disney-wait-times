@@ -4632,28 +4632,38 @@ function generateFromSetup(params, callback) {
     body: JSON.stringify({
       prompt: prompt,
       mode: 'setup',
-      maxTokens: 4000,
+      maxTokens: 8000,
       tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}); return m; }())
     })
   })
   .then(function(r){return r.json();})
   .then(function(d){
-    if(!d.ok||!d.text){callback('AI error: '+(d.error||'no response'));return;}
+    if(!d.ok||!d.text){if(typeof callback==='function')callback('AI error: '+(d.error||'no response'));return;}
     try{
       var text = d.text.trim();
-      // Find JSON array   may be truncated, so try to find and close it
       var start = text.indexOf('[');
       var end = text.lastIndexOf('}');
-      if(start === -1){callback('No JSON array found');return;}
-      // Try to parse what we have, closing array if truncated
+      if(start === -1){if(typeof callback==='function')callback('No JSON array found');return;}
       var attempt = text.substring(start);
       if(!attempt.endsWith(']')) attempt = attempt.substring(0, end+1) + '\n]';
       var sections = JSON.parse(attempt);
-      if(sections && sections.length > 0) callback(null, sections);
-      else callback('Empty schedule');
-    }catch(e){callback('Parse error: '+e.message);}
+      if(sections && sections.length > 0){
+        var code = localStorage.getItem('tpcp_code')||'';
+        if(code){
+          var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
+          var existingDays=(existingTc.schedule&&existingTc.schedule.days)||[];
+          var dayIdx=(typeof params==='number')?params:0;
+          var newDays=existingDays.map(function(d,i){return i===dayIdx?{park:d.park||'',items:sections}:d;});
+          if(!newDays.length){newDays=[{park:'Disneyland Park',items:sections}];}
+          var updatedTc=Object.assign({},existingTc,{schedule:{days:newDays},scheduleVersion:Date.now().toString()});
+          fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':PASS_ADMIN},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})})
+            .then(function(r){if(r.ok){console.log('[generateFromSetup] schedule saved day '+dayIdx);if(typeof renderSched==='function')renderSched();}else{console.error('[generateFromSetup] save failed',r.status);}});
+        }
+        if(typeof callback==='function')callback(null, sections);
+      } else {if(typeof callback==='function')callback('Empty schedule');}
+    }catch(e){if(typeof callback==='function')callback('Parse error: '+e.message);}
   })
-  .catch(function(e){callback('Network error: '+e.message);});
+  .catch(function(e){if(typeof callback==='function')callback('Network error: '+e.message);});
 }
 function aiChooseRides(params, callback) {
   var context = parkIntelCache ? '=== PARK STRATEGY & RIDE INTEL ===\n' + parkIntelCache : '';
@@ -4664,7 +4674,7 @@ function aiChooseRides(params, callback) {
     body: JSON.stringify({
       prompt: prompt,
       mode: 'rides',
-      maxTokens: 4000,
+      maxTokens: 8000,
       tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}); return m; }())
     })
   })
