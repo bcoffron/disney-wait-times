@@ -317,6 +317,15 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\nIf there is a fireworks or nighttime show, MUST continue after with: (1) Post-show strategy tip, (2) Final evening rides with low waits, (3) Last call snack or treat, (4) Park exit strategy tip.';
     system += '\nNEVER end the schedule at 9:00 PM or 9:30 PM. Always continue through the actual park closing time.';
 
+
+    // === PARK HOPPING RULE ===
+    if (tripConfig && tripConfig.parkHopping) {
+      system += '\n\n=== PARK HOPPING RULE ===';
+      system += '\nThis group has park hopper tickets. Build the schedule to include a second park visit in the afternoon or evening.';
+      system += '\nDay 1 (starts Disneyland): hop to DCA after 5:00 PM. Include a park hop transition card: { t:\"5:15 PM\", h:\"Park Hop to Disney California Adventure\", type:\"tip\", n:\"Head to DCA now — evening crowds are lighter and key attractions like Guardians and Incredicoaster have shorter waits after 5 PM.\" }';
+      system += '\nDay 3 (starts DCA): hop to Disneyland around 3:00-4:00 PM. Include a park hop transition card when hopping.';
+      system += '\nDay 2 (VIP Tour): no park hop needed.';
+    }
     console.log('[generateschedule] mode:', mode || 'default', 'char_priority:', charPriority);
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
