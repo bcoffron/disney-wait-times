@@ -3319,6 +3319,7 @@ async function getReroute(ride,land,btn){
 
 //    AI Schedule Reoptimize                                                 
 var reoptCache={};
+var schedItems;
 
 function scheduleHash(data){
   // Simple hash of schedule content to detect changes
@@ -3437,7 +3438,6 @@ async function reoptimize(){
     var isInTrip=!!(firstDate&&lastDate&&today>=firstDate&&today<=lastDate);
     function itemTimeToMin(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]),mn=parseInt(m[2]),pm=m[3].toUpperCase()==='PM';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h*60+mn;}
     var allDayItems=(window._schedData&&window._schedData.days&&window._schedData.days[curDay]&&window._schedData.days[curDay].items)||[];
-    var schedItems;
     if(isInTrip){
       var nowMin=new Date().getHours()*60+new Date().getMinutes();
       schedItems=allDayItems.filter(function(item){return itemTimeToMin(item.t)>=nowMin-30;});
