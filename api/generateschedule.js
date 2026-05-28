@@ -107,7 +107,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, mode, maxTokens = 6000, tripConfig } = req.body || {};
+    const { prompt, mode, maxTokens = 8000, tripConfig } = req.body || {};
 
 // Ã¢ÂÂÃ¢ÂÂ Build ride preferences context Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 const rp = (tripConfig || {}).ridePreferences || {};
@@ -323,6 +323,7 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\n- Day 3: 10:00 PM (DCA close) or 10:30 PM (Disneyland)';
     system += '\nIf there is a fireworks or nighttime show, MUST continue after with: (1) Post-show strategy tip, (2) Final evening rides with low waits, (3) Last call snack or treat, (4) Park exit strategy tip.';
     system += '\nNEVER end the schedule at 9:00 PM or 9:30 PM. Always continue through the actual park closing time.';
+    system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 80 characters. One concise sentence only. No multi-sentence notes. Short notes prevent truncation and keep cards readable on mobile.';
 
 
     // === PARK HOPPING RULE ===
