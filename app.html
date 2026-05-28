@@ -3456,7 +3456,14 @@ async function reoptimize(){
     var currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
     console.log('[aiOptimize]',curDay,'schedItems:',schedItems?schedItems.length:'null','isInTrip:',isInTrip,'tripDayDate:',tripDayLabel||tripDayDate,'from _schedData:',!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
     window._aiOptOriginalItems=(schedItems||[]).map(function(i){return {h:i.h};});
-    var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},55000);
+    _reoptRetryCount=0;runReoptimize();
+}
+var _reoptRetryCount=0;
+function runReoptimize(){
+  var box=document.getElementById('reoptBox');
+  var txt=document.getElementById('reoptText');
+  var btns=document.getElementById('reoptBtns');
+  var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},55000);
     try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,apiKey:apiKey,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{})
       }),signal:_reoptController.signal
     });
@@ -3494,7 +3501,7 @@ async function reoptimize(){
         txt.innerHTML+='<br><br><span style="color:var(--text-dim);font-size:11px">Could not parse updated schedule automatically. Use the explanation above to manually reorder using Edit mode.</span>';
       }
     }
-  }catch(e){clearTimeout(_reoptTimeoutId);if(e.name==='AbortError'){var _rleA=document.getElementById('reoptLoading');if(_rleA)_rleA.style.display='none';box.style.display='block';txt.innerHTML='<span style="cursor:pointer;color:var(--text);font-size:13px;" onclick="reoptimize()">Taking longer than expected — tap to try again.</span>';return;}console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
+  }catch(e){clearTimeout(_reoptTimeoutId);if(e.name==='AbortError'&&_reoptRetryCount===0){_reoptRetryCount=1;console.log('[reoptimize] timeout — auto retrying once');var _spinTxt=document.querySelector('#reoptLoading div+div');if(_spinTxt)_spinTxt.textContent='Still working — retrying...';runReoptimize();return;}if(e.name==='AbortError'){_reoptRetryCount=0;var _rleA=document.getElementById('reoptLoading');if(_rleA)_rleA.style.display='none';box.style.display='block';txt.innerHTML='<span style="cursor:pointer;color:var(--text);font-size:13px;" onclick="reoptimize()">Taking longer than expected — tap to try again.</span>';return;}console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
 }
 function applyReopt(){console.log('[applyReopt] originalItems:',window._aiOptOriginalItems?window._aiOptOriginalItems.length:'NULL','sentCount:',window._aiOptSentCount,'isInTrip:',window._aiOptIsInTrip);if(!pendingReopt)return;
   // Extract AI-optimized entries from pendingReopt sections
