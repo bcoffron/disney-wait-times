@@ -3320,6 +3320,7 @@ async function getReroute(ride,land,btn){
 //    AI Schedule Reoptimize                                                 
 var reoptCache={};
 var schedItems;
+var data;
 var hash;
 var dn;
 var tripDayLabel;
@@ -3344,7 +3345,7 @@ async function reoptimize(){
   await ensureApiKey();
 
   // Check cache - if schedule hasn't changed, reuse last result
-  var data=getCurDay();
+  data=getCurDay();
   hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]||reoptCache[hash+'_v2']){
     var cached=reoptCache[hash+'_v2']||reoptCache[hash];
@@ -3358,7 +3359,7 @@ async function reoptimize(){
   }
 
   dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
-  var data=getCurDay();
+  data=getCurDay();
   var summary='';
   data.sections.forEach(function(sec){
     summary+=sec.title+':\n';
@@ -3495,7 +3496,7 @@ async function runReoptimize(){
         ;
       reoptCache[hash+'_v2']={explanation:expText,result:pendingReopt};
       // Update summary bar with change count
-      var changedCount=0;if(window._aiOptOriginalItems&&result.sections&&result.sections[0]&&result.sections[0].entries)result.sections[0].entries.forEach(function(entry,idx){if(window._aiOptOriginalItems[idx]&&window._aiOptOriginalItems[idx].h!==entry.h)changedCount++;});
+      var changedCount=0;if(window._aiOptOriginalItems&&pendingReopt.sections&&pendingReopt.sections[0]&&pendingReopt.sections[0].entries)pendingReopt.sections[0].entries.forEach(function(entry,idx){if(window._aiOptOriginalItems[idx]&&window._aiOptOriginalItems[idx].h!==entry.h)changedCount++;});
       var subEl=document.getElementById('reoptSummarySub');
       if(subEl)subEl.textContent=changedCount===0?'Your schedule is already optimized':changedCount+' items reordered for better timing';
       var _rl3=document.getElementById('reoptLoading');if(_rl3)_rl3.style.display='none';box.style.display='block';
