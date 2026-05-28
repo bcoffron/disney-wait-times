@@ -1093,7 +1093,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
 
       <!-- ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== -->
-      <div id="reoptLoading" style="display:none"><div style="background:white;border-radius:12px;padding:20px 16px;margin:8px 10px;text-align:center"><div class="reopt-spinner"></div><div style="font-size:14px;font-weight:700;color:#071E25;margin-top:12px">Optimizing your schedule...</div><div style="font-size:11px;color:#4A7A7C;margin-top:4px">This takes about 20 seconds</div></div></div>
+      <div id="reoptLoading" style="display:none"><div style="background:white;border-radius:12px;padding:20px 16px;margin:8px 10px;text-align:center"><div class="reopt-spinner"></div><div style="font-size:14px;font-weight:700;color:#071E25;margin-top:12px">Optimizing your schedule...</div><div style="font-size:11px;color:#4A7A7C;margin-top:4px">This takes 15–30 seconds</div></div></div>
         <div class="reopt-box" id="reoptBox">
         <div class="reopt-summary-bar">
           <div class="reopt-summary-icon">
@@ -3442,7 +3442,7 @@ async function reoptimize(){
       var nowMin=new Date().getHours()*60+new Date().getMinutes();
       schedItems=allDayItems.filter(function(item){return itemTimeToMin(item.t)>=nowMin-30;});
     }else{
-      schedItems=allDayItems.slice(0,15);
+      schedItems=allDayItems.slice(0,20);
     }
     // Save original items for merge on Accept
     console.log('[reoptimize] snapshot allDayItems:',allDayItems.length,'curDay:',curDay,'schedItems:',schedItems.length);
@@ -3463,7 +3463,7 @@ async function runReoptimize(){
   var box=document.getElementById('reoptBox');
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
-  var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},55000);
+  var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},115000);
     try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,apiKey:apiKey,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{})
       }),signal:_reoptController.signal
     });

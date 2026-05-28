@@ -1,18 +1,24 @@
 {
   "functions": {
     "api/reoptimize.js": {
-      "maxDuration": 60
+      "maxDuration": 120
     },
-    "api/cron-cache.js": {
-      "maxDuration": 300
+    "api/generateschedule.js": {
+      "maxDuration": 120
     },
     "api/ai.js": {
       "maxDuration": 60
     },
-    "api/waittimes.js": {
-      "maxDuration": 15
+    "api/cache.js": {
+      "maxDuration": 30
     },
     "api/cache-health.js": {
+      "maxDuration": 15
+    },
+    "api/cron-cache.js": {
+      "maxDuration": 300
+    },
+    "api/waittimes.js": {
       "maxDuration": 15
     }
   },
