@@ -3486,6 +3486,7 @@ async function reoptimize(){
       if(subEl)subEl.textContent=changedCount===0?'Your schedule is already optimized':changedCount+' items reordered for better timing';
       var _rl3=document.getElementById('reoptLoading');if(_rl3)_rl3.style.display='none';box.style.display='block';
       btns.classList.add('show');
+      var _reoptApply=btns.querySelector('.reopt-apply');var _reoptDismiss=btns.querySelector('.reopt-dismiss');if(changedCount===0){if(_reoptApply)_reoptApply.style.display='none';if(_reoptDismiss){_reoptDismiss.textContent='Got it ✓';_reoptDismiss.onclick=function(){dismissReopt();};}}else{if(_reoptApply){_reoptApply.style.display='';_reoptApply.onclick=function(){applyReopt();};}if(_reoptDismiss){_reoptDismiss.textContent='Keep Original';_reoptDismiss.onclick=function(){dismissReopt();};}}
     }else{
       var _rle2=document.getElementById('reoptLoading');if(_rle2)_rle2.style.display='none';box.style.display='block';
       txt.textContent=explanation||text;
