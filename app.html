@@ -3320,6 +3320,7 @@ async function getReroute(ride,land,btn){
 //    AI Schedule Reoptimize                                                 
 var reoptCache={};
 var schedItems;
+var hash;
 var dn;
 var tripDayLabel;
 var tripDayDate;
@@ -3344,7 +3345,7 @@ async function reoptimize(){
 
   // Check cache - if schedule hasn't changed, reuse last result
   var data=getCurDay();
-  var hash=scheduleHash(data)+'_'+curDay;
+  hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]||reoptCache[hash+'_v2']){
     var cached=reoptCache[hash+'_v2']||reoptCache[hash];
     txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+stripMd(cached.explanation)+'</div>';
