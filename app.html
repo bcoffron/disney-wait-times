@@ -3442,7 +3442,7 @@ async function reoptimize(){
       var nowMin=new Date().getHours()*60+new Date().getMinutes();
       schedItems=allDayItems.filter(function(item){return itemTimeToMin(item.t)>=nowMin-30;});
     }else{
-      schedItems=allDayItems.slice(0,20);
+      schedItems=allDayItems.slice(0,15);
     }
     // Save original items for merge on Accept
     console.log('[reoptimize] snapshot allDayItems:',allDayItems.length,'curDay:',curDay,'schedItems:',schedItems.length);
@@ -3456,10 +3456,12 @@ async function reoptimize(){
     var currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
     console.log('[aiOptimize]',curDay,'schedItems:',schedItems?schedItems.length:'null','isInTrip:',isInTrip,'tripDayDate:',tripDayLabel||tripDayDate,'from _schedData:',!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
     window._aiOptOriginalItems=(schedItems||[]).map(function(i){return {h:i.h};});
+    var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},55000);
     try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,apiKey:apiKey,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{})
-      })
+      }),signal:_reoptController.signal
     });
 
+    clearTimeout(_reoptTimeoutId);
     var resp=await r.json();
     if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit -- retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{var _rle=document.getElementById('reoptLoading');if(_rle)_rle.style.display='none';box.style.display='block';txt.textContent='Error: '+(resp.error.message||resp.error);}return;}
     var newSecs=resp.sections||null;
@@ -3491,7 +3493,7 @@ async function reoptimize(){
         txt.innerHTML+='<br><br><span style="color:var(--text-dim);font-size:11px">Could not parse updated schedule automatically. Use the explanation above to manually reorder using Edit mode.</span>';
       }
     }
-  }catch(e){console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
+  }catch(e){clearTimeout(_reoptTimeoutId);if(e.name==='AbortError'){var _rleA=document.getElementById('reoptLoading');if(_rleA)_rleA.style.display='none';box.style.display='block';txt.innerHTML='<span style="cursor:pointer;color:var(--text);font-size:13px;" onclick="reoptimize()">Taking longer than expected — tap to try again.</span>';return;}console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
 }
 function applyReopt(){console.log('[applyReopt] originalItems:',window._aiOptOriginalItems?window._aiOptOriginalItems.length:'NULL','sentCount:',window._aiOptSentCount,'isInTrip:',window._aiOptIsInTrip);if(!pendingReopt)return;
   // Extract AI-optimized entries from pendingReopt sections
@@ -3879,7 +3881,7 @@ function renderSched(){
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
       var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',dining:'<span class="tb tb-dining">dining</span>',quickservice:'<span class="tb tb-quickservice">quick service</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',snack:'<span class="tb tb-snack">snack</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>',character:'<span class="tb tb-character">character</span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
-      var _llRideKey=e.ride||e.h;if(typeof loadLLState==='function')loadLLState();if(typeof llState!=='undefined'&&llState.bookedTimes&&llState.bookedTimes[_llRideKey])llb+='<span class="ll-return-pill">&#9200; Return: '+llState.bookedTimes[_llRideKey]+'</span>';
+      var _llRideKey=e.ride||e.h;if(typeof loadLLState==='function')loadLLState();var returnTime=llState&&llState.bookedTimes&&llState.bookedTimes[_llRideKey];var llReturnPill=returnTime?'<span class="ll-return-pill">LL '+returnTime+'</span>':'';llb+=llReturnPill;
       var diningRec='';
       if(e.type==='food'&&e.h){
         var dname=e.h.replace(/^[^\u2014]*\u2014\s*/,'').replace(/Dinner \u2014 /,'').replace(/Lunch /,'').trim();
