@@ -1,5 +1,5 @@
 // api/validate-schedule.js
-// Post-generation schedule validator — structural rules enforced in code
+// Post-generation schedule validator â structural rules enforced in code
 // Called after every generation and before every save
 
 function timeToMinutes(t) {
@@ -89,7 +89,7 @@ function getKidsDefault(h, itemTime) {
   return 'Kids Grilled Cheese with seasonal fruit';
 }
 
-// Known park close times in minutes since midnight — D1, D2, D3
+// Known park close times in minutes since midnight â D1, D2, D3
 const PARK_CLOSE = [24 * 60, 23 * 60, 22 * 60];
 
 function validateSchedule(schedule, tripConfig) {
@@ -183,7 +183,7 @@ function validateSchedule(schedule, tripConfig) {
       const isClosed = CLOSED_ATTRACTIONS.some(name => (item.h || '').includes(name));
       if (isClosed) {
         corrections.push({ rule: 'closed-attraction', day: dayNum,
-          item: item.h, action: 'removed — currently closed' });
+          item: item.h, action: 'removed â currently closed' });
         item._remove = true;
       }
     });
@@ -268,7 +268,7 @@ function validateSchedule(schedule, tripConfig) {
       }
     }
 
-    // RULE 7: Schedule ends too early — soft warning
+    // RULE 7: Schedule ends too early â soft warning
     const sortedItems = [...items].sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
     const last = sortedItems[sortedItems.length - 1];
     const lastMin = last ? timeToMinutes(last.t) : -1;
@@ -280,7 +280,7 @@ function validateSchedule(schedule, tripConfig) {
         detail: 'Schedule ends at ' + (last ? last.t : '?') +
           ', park closes at ' + minutesToTime(closeMin) +
           ' (gap: ' + Math.round((closeMin - lastMin) / 60) + ' hrs)',
-        action: 'flagged — manual regen recommended'
+        action: 'flagged â manual regen recommended'
       });
     }
 
@@ -300,7 +300,7 @@ function validateSchedule(schedule, tripConfig) {
         items.sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
         day.items = items;
 
-        // RULE 9: Gap filler — no gaps longer than 90 minutes (non-VIP days)
+        // RULE 9: Gap filler â no gaps longer than 90 minutes (non-VIP days)
         if (!isVipDay) {
                 items = day.items;
                 for (let i = 1; i < items.length; i++) {
@@ -326,7 +326,7 @@ function validateSchedule(schedule, tripConfig) {
         }
   });
 
-  // RULE 6: Confirmed reservations must be present — HARD VIOLATION
+  // RULE 6: Confirmed reservations must be present â HARD VIOLATION
   const reservations = (tripConfig && tripConfig.dining && tripConfig.dining.reservations) || [];
   reservations.forEach(reservation => {
     const targetDayIdx = reservation.day;
@@ -343,6 +343,20 @@ function validateSchedule(schedule, tripConfig) {
         detail: reservation.name + ' not found on Day ' + (targetDayIdx + 1)
       });
     }
+  });
+
+  // Rule 10: Time bounds — remove items before 7:00 AM
+  const PARK_OPEN_MIN = 420; // 7:00 AM
+  days.forEach((day, dayNum) => {
+    if (day.isVip) return;
+    day.items = day.items.filter(item => {
+      const itemMin = timeToMinutes(item.t);
+      if (itemMin >= 0 && itemMin < PARK_OPEN_MIN) {
+        corrections.push({ rule: 'time-bounds', day: dayNum + 1, item: item.h, action: 'removed — time ' + item.t + ' is before 7:00 AM' });
+        return false;
+      }
+      return true;
+    });
   });
 
   return {
