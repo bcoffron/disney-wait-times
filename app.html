@@ -3459,7 +3459,7 @@ async function reoptimize(){
     _reoptRetryCount=0;runReoptimize();
 }
 var _reoptRetryCount=0;
-function runReoptimize(){
+async function runReoptimize(){
   var box=document.getElementById('reoptBox');
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
