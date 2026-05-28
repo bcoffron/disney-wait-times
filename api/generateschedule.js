@@ -328,12 +328,12 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     }
     console.log('[generateschedule] mode:', mode || 'default', 'char_priority:', charPriority);
 
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       system += '\n\n=== NO GAPS RULE (ABSOLUTE) ===';
     system += '\nNever leave a gap longer than 45 minutes between consecutive schedule items. If there is open time between rides, fill it with a snack stop, restroom break, photo opportunity, or strategy tip card. Guests should never have nothing scheduled for more than 45 minutes.';
 
     system += '\n\n=== DINING PEAK HOURS RULE (ABSOLUTE) ===';
     system += '\nNever schedule any QS meal between 12:00 PM and 1:00 PM. This is peak QS rush ÃÂ¢ÃÂÃÂ lines are 20-40 minutes longer. Lunch: schedule at 11:00-11:45 AM or 1:15-2:00 PM only. Never at noon. Applies to both Disneyland and DCA.\n\nTIME BOUNDS RULE (ABSOLUTE):\nNever schedule any item before 7:00 AM or after park close.\nAll items must have times between 7:00 AM and park close time.\nTimes like 1:55 AM, 4:28 AM, or any AM time before 7:00 AM are always errors â never generate them.\n\nLIGHTNING LANE REMINDER CARDS (REQUIRED):\nEvery schedule must include Lightning Lane reminder tip cards throughout the day, not just at the start. Include:\n1. Opening LL tip (7:00-7:30 AM): initial LLMP booking strategy\n2. Second booking reminder (~10:00 AM): when to grab next LLMP after first return window passes\n3. Afternoon check (~1:30-2:00 PM): review remaining LL options and book afternoon passes\n4. Final window (~4:00 PM): last LLMP booking of the day\nEach card must reference specific rides by name based on the group must-do list and LIGHTNING_LANE_STRATEGY from cache. Cards should tell the user exactly what to book and why. Use type: tip for all reminder cards.';
+    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 8000) }] })
