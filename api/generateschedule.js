@@ -131,6 +131,13 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
       true // include dynamic
     );
     console.log('[generateschedule] cacheCtx sections:', Object.keys(cacheCtx));
+    // ── Cache assertion (Safeguard 2) ─────────────────────────────────
+    const sectionCount = Object.keys(cacheCtx).length;
+    console.log('cache_sections:', Object.keys(cacheCtx).join(','));
+    if (sectionCount < 6) {
+      console.error('[generateschedule] CACHE EMPTY — aborting AI call. Got', sectionCount, 'sections, need 6');
+      return res.status(503).json({ error: 'Park intelligence cache unavailable. Please try again.', cache_sections: Object.keys(cacheCtx), sections_found: sectionCount });
+    }
 
     // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Slice each section to target ~6,000 chars total ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     const landMap      = (cacheCtx.LAND_MAP                || '').substring(0, 800);
