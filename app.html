@@ -3282,7 +3282,7 @@ async function getReroute(ride,land,btn){
   }
 
   var alts=(ALTS[land]||['a nearby ride']).slice(0,2).join(' or ');
-  dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
+  var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
 
   // Short wait - suggest riding now
   if(wait<30){
@@ -3319,15 +3319,6 @@ async function getReroute(ride,land,btn){
 
 //    AI Schedule Reoptimize                                                 
 var reoptCache={};
-var schedItems;
-var data;
-var hash;
-var dn;
-var tripDayLabel;
-var tripDayDate;
-var isInTrip;
-var currentTimeStr;
-var liveWaitContext;
 
 function scheduleHash(data){
   // Simple hash of schedule content to detect changes
@@ -3345,8 +3336,8 @@ async function reoptimize(){
   await ensureApiKey();
 
   // Check cache - if schedule hasn't changed, reuse last result
-  data=getCurDay();
-  hash=scheduleHash(data)+'_'+curDay;
+  var data=getCurDay();
+  var hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]||reoptCache[hash+'_v2']){
     var cached=reoptCache[hash+'_v2']||reoptCache[hash];
     txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+stripMd(cached.explanation)+'</div>';
@@ -3358,8 +3349,8 @@ async function reoptimize(){
     return;
   }
 
-  dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
-  data=getCurDay();
+  var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
+  var data=getCurDay();
   var summary='';
   data.sections.forEach(function(sec){
     summary+=sec.title+':\n';
@@ -3374,7 +3365,7 @@ async function reoptimize(){
   var preTrip=!atPark;
 
   // Build live wait times context
-  liveWaitContext='';
+  var liveWaitContext='';
   var liveAvailable=atPark&&Object.keys(waits).length>0;
   if(!atPark)liveWaitContext='Use historical wait time data and web search for late June Disneyland crowd patterns. ';
   // Inject cached intel
@@ -3430,8 +3421,8 @@ async function reoptimize(){
 
   var tripDays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||[];
     var currentDayConfig=tripDays[curDay]||{};
-    tripDayDate=currentDayConfig.date||'';
-    tripDayLabel='';
+    var tripDayDate=currentDayConfig.date||'';
+    var tripDayLabel='';
     if(tripDayDate){
       try{
         var _td=new Date(tripDayDate+'T12:00:00');
@@ -3443,9 +3434,10 @@ async function reoptimize(){
     var firstDate=tripDays.length>0&&tripDays[0].date?new Date(tripDays[0].date+'T00:00:00'):null;
     var lastDate=tripDays.length>0&&tripDays[tripDays.length-1].date?new Date(tripDays[tripDays.length-1].date+'T00:00:00'):null;
     if(lastDate)lastDate.setHours(23,59,59,999);
-    isInTrip=!!(firstDate&&lastDate&&today>=firstDate&&today<=lastDate);
+    var isInTrip=!!(firstDate&&lastDate&&today>=firstDate&&today<=lastDate);
     function itemTimeToMin(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]),mn=parseInt(m[2]),pm=m[3].toUpperCase()==='PM';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h*60+mn;}
     var allDayItems=(window._schedData&&window._schedData.days&&window._schedData.days[curDay]&&window._schedData.days[curDay].items)||[];
+    var schedItems;
     if(isInTrip){
       var nowMin=new Date().getHours()*60+new Date().getMinutes();
       schedItems=allDayItems.filter(function(item){return itemTimeToMin(item.t)>=nowMin-30;});
@@ -3458,10 +3450,10 @@ async function reoptimize(){
     window._aiOptIsInTrip=isInTrip;
     window._aiOptNowMin=isInTrip?(new Date().getHours()*60+new Date().getMinutes()):0;
     window._aiOptSentCount=schedItems.length;
-    liveWaitContext='';
+    var liveWaitContext='';
     if(typeof buildWaitContext==='function'){liveWaitContext=buildWaitContext()||'';}
     var _tnow=new Date();
-    currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
+    var currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
     console.log('[aiOptimize]',curDay,'schedItems:',schedItems?schedItems.length:'null','isInTrip:',isInTrip,'tripDayDate:',tripDayLabel||tripDayDate,'from _schedData:',!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
     window._aiOptOriginalItems=(schedItems||[]).map(function(i){return {h:i.h};});
     _reoptRetryCount=0;runReoptimize();
@@ -3496,7 +3488,7 @@ async function runReoptimize(){
         ;
       reoptCache[hash+'_v2']={explanation:expText,result:pendingReopt};
       // Update summary bar with change count
-      var changedCount=0;if(window._aiOptOriginalItems&&pendingReopt.sections&&pendingReopt.sections[0]&&pendingReopt.sections[0].entries)pendingReopt.sections[0].entries.forEach(function(entry,idx){if(window._aiOptOriginalItems[idx]&&window._aiOptOriginalItems[idx].h!==entry.h)changedCount++;});
+      var changedCount=0;if(window._aiOptOriginalItems&&result.sections&&result.sections[0]&&result.sections[0].entries)result.sections[0].entries.forEach(function(entry,idx){if(window._aiOptOriginalItems[idx]&&window._aiOptOriginalItems[idx].h!==entry.h)changedCount++;});
       var subEl=document.getElementById('reoptSummarySub');
       if(subEl)subEl.textContent=changedCount===0?'Your schedule is already optimized':changedCount+' items reordered for better timing';
       var _rl3=document.getElementById('reoptLoading');if(_rl3)_rl3.style.display='none';box.style.display='block';
@@ -4044,7 +4036,7 @@ var CHECKLIST_ITEMS=[
   'Comfortable walking shoes for all-day wear',
   'Pre-book dining reservations (Blue Bayou recommended)',
   'Review Lightning Lane options for your dates',
-  'Pack ponchos ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Splash Mountain and Grizzly River Run',
+  'Pack ponchos ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Tiana's Bayou Adventure and Grizzly River Run',
   'Confirm hotel check-in time and parking plan'
 ];
 var RESTROOM_LOCATIONS=[
@@ -5440,7 +5432,7 @@ var _obEventsEnabled = false;
 var _obEvents = [];
 var _obTiers = { under40: 0, h40to48: 0, over48: 2 };
 var _obAccessEnabled = false;
-var _obBreakEnabled = false;
+var _obBreakEnabled = false; var _obNoWaterRides = false;
 var _obTripConfig = {};
 var _obDays = [];
 var _obVipState = {}; // keyed by day index: { on: bool, start: str, end: str, perks: [] }
@@ -5935,13 +5927,15 @@ function obToggleBreak() {
   if (btn) { btn.style.background = _obBreakEnabled ? '#1A6860' : 'rgba(26,104,96,0.2)'; btn.setAttribute('aria-checked',String(_obBreakEnabled)); var knob=btn.querySelector('span'); if(knob) knob.style.left=_obBreakEnabled?'22px':'2px'; }
 }
 
+function obToggleNoWaterRides() { _obNoWaterRides = !_obNoWaterRides; var btn = document.getElementById('obNoWaterToggle'); if (btn) { btn.style.background = _obNoWaterRides ? '#1A6860' : 'rgba(26,104,96,0.2)'; btn.setAttribute('aria-checked',String(_obNoWaterRides)); var knob=btn.querySelector('span'); if(knob) knob.style.left=_obNoWaterRides?'22px':'2px'; } }
 function obSaveStep2() {
   var total = (_obTiers.under40||0) + (_obTiers.h40to48||0) + (_obTiers.over48||0);
   _obTripConfig.group = {
     total: total,
     heightTiers: { under40: _obTiers.under40||0, h40to48: _obTiers.h40to48||0, over48: _obTiers.over48||0 },
     accessibility: _obAccessEnabled ? ((document.getElementById('obAccessText')||{}).value||'') : '',
-    afternoonBreak: _obBreakEnabled
+    afternoonBreak: _obBreakEnabled,
+  noWaterRides: _obNoWaterRides
   };
 }
 
@@ -7369,7 +7363,17 @@ setTimeout(checkForWaitSpikes, 30000);
         </div>
       </div>
 
-      <div class="ob-field">
+            <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">No water rides (staying dry)</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">We'll skip water rides like Tiana's Bayou Adventure and Grizzly River Run</div>
+          </div>
+          <button id="obNoWaterToggle" onclick="obToggleNoWaterRides()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span></button>
+        </div>
+      </div>
+
+<div class="ob-field">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-size:14px;font-weight:600;color:#071E25;">Afternoon break</div>
