@@ -11,6 +11,9 @@
     },
     "api/waittimes.js": {
       "maxDuration": 15
+    },
+    "api/cache-health.js": {
+      "maxDuration": 15
     }
   },
   "crons": [
