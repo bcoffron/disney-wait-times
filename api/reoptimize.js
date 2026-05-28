@@ -224,6 +224,11 @@ async function handler(req, res) {
     systemPrompt += '\n These non-ride card types must never have their notes replaced with one-liners.';
     systemPrompt += '\n9. ONLY ride cards (type: "ride") may have their time slots adjusted during optimization.';
     systemPrompt += '\n Never replace any card note with a shorter version. Never genericize a specific note.';
+    systemPrompt += '\n\nVIP TOUR RULE:'
+    systemPrompt += '\nAny item with type "vip" or vip property set to true is a confirmed anchor — never move, remove, or reorder it.'
+    systemPrompt += '\nThe VIP guide handles those items exclusively.'
+    systemPrompt += '\nOnly reorder non-VIP items around the fixed VIP blocks.'
+    systemPrompt += '\nTreat VIP items exactly like confirmed dining reservations.';
 
     // ââ Build date-specific crowd guidance âââââââââââââââââââââââââââââââââââ
     var crowdGuide = '';
