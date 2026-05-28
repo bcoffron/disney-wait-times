@@ -11,7 +11,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
     if (sb && sb.length) {
       const fetchUrl = sb[0].downloadUrl || sb[0].url;
       const stableData = await fetch(fetchUrl).then(r => r.json());
-      const sections = stableData.data || {};
+      const sections = stableData.data.sections || {};
       sectionNames.forEach(name => {
         if (sections[name]) {
           results[name] = typeof sections[name] === 'string'
@@ -31,7 +31,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
       if (db && db.length) {
         const fetchUrl = db[0].downloadUrl || db[0].url;
         const dynamicData = await fetch(fetchUrl).then(r => r.json());
-        const sections = dynamicData.data || {};
+        const sections = dynamicData.data.sections || {};
         ['CURRENT_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
           if (sections[name]) {
             results[name] = typeof sections[name] === 'string'
