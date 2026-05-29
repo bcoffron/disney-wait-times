@@ -3257,7 +3257,6 @@ async function getReroute(ride,land,btn){
   var res=card.querySelector('.reroute-result');
   res.classList.add('show');
   btn.disabled=true;
-
   // Look up live wait time automatically
   var liveData=lookupWait(ride);
   var wait=null;
@@ -3267,12 +3266,10 @@ async function getReroute(ride,land,btn){
       wait=liveData.w;
       statusMsg=wait+' min live wait';
     } else if(liveData.s!=='OPERATING'){
-      res.innerHTML='<div class="rr-hdr">\u26A1 RIDE STATUS</div>'+ride+' is currently showing as <b>'+liveData.s+'</b>. Check the Disneyland app for updates.';
-      btn.disabled=false;
-      return;
+      res.innerHTML='<div class="rr-hdr">&#x26A1; RIDE STATUS</div>'+ride+' is currently showing as <b>'+liveData.s+'</b>. Check the Disneyland app for updates.';
+      btn.disabled=false; return;
     }
   }
-
   // No live data - ask user
   if(wait===null){
     var manual=prompt('No live data for '+ride+'. Enter current wait (minutes):');
@@ -3280,39 +3277,91 @@ async function getReroute(ride,land,btn){
     wait=parseInt(manual);
     statusMsg=wait+' min (manual)';
   }
-
-  var alts=(ALTS[land]||['a nearby ride']).slice(0,2).join(' or ');
+  // Build live alt waits from ALTS[land]
+  var altList=ALTS[land]||[];
+  var altWaitsArr=altList.map(function(r){
+    var d=lookupWait(r);
+    return d&&d.s==='OPERATING'&&d.w!==null?{name:r,w:d.w}:{name:r,w:null};
+  });
+  var altWaitsStr=altWaitsArr.map(function(a){
+    return a.w!==null?a.name+' ('+a.w+' min)':a.name;
+  }).join(', ');
+  // Fallback alts string for no-API path: prefer low-wait options first
+  var altsSorted=altWaitsArr.slice().sort(function(a,b){
+    if(a.w===null&&b.w===null) return 0;
+    if(a.w===null) return 1;
+    if(b.w===null) return -1;
+    return a.w-b.w;
+  });
+  var altsLow=altsSorted.filter(function(a){return a.w!==null&&a.w<35;}).slice(0,2);
+  var altsAny=altsSorted.slice(0,2);
+  var altsFb=(altsLow.length>0?altsLow:altsAny).map(function(a){
+    return a.w!==null?a.name+' ('+a.w+' min)':a.name;
+  }).join(' or ')||'a nearby ride';
+  // Build WAIT_PATTERNS return hint if cache available
+  var returnHint='';
+  if(stableCacheCtx&&stableCacheCtx.WAIT_PATTERNS){
+    var wp=stableCacheCtx.WAIT_PATTERNS;
+    var rideKey=ride.toLowerCase().replace(/[^a-z0-9]/g,'_');
+    var wpEntry=wp[rideKey]||wp[ride]||null;
+    if(!wpEntry){
+      var keys=Object.keys(wp);
+      for(var ki=0;ki<keys.length;ki++){
+        if(ride.toLowerCase().indexOf(keys[ki].replace(/_/g,' ').toLowerCase())>=0||
+           keys[ki].replace(/_/g,' ').toLowerCase().indexOf(ride.toLowerCase().substring(0,8))>=0){
+          wpEntry=wp[keys[ki]]; break;
+        }
+      }
+    }
+    if(wpEntry){
+      var hr=new Date().getHours();
+      var blocks=['rope_drop','early','midday','afternoon','lull','evening','late'];
+      var blockHours=[[8,9],[9,11],[11,13],[13,16],[16,18],[18,20],[20,23]];
+      var dropBlock='evening';
+      for(var bi=0;bi<blockHours.length;bi++){
+        if(hr>=blockHours[bi][0]&&hr<blockHours[bi][1]){
+          // Find next block with lower wait
+          for(var bj=bi+1;bj<blocks.length;bj++){
+            var curW=wpEntry[blocks[bi]]||null;
+            var nxtW=wpEntry[blocks[bj]]||null;
+            if(nxtW&&curW&&nxtW<curW){
+              dropBlock=blocks[bj]; break;
+            }
+          }
+          break;
+        }
+      }
+      var blockLabels={rope_drop:'rope drop',early:'before 11 AM',midday:'around noon',afternoon:'mid-afternoon',lull:'the 4-6 PM lull',evening:'after 6 PM',late:'after 8 PM'};
+      returnHint=' Return to '+ride+' during '+blockLabels[dropBlock]+' for shorter waits.';
+    }
+  }
   var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
-
   // Short wait - suggest riding now
   if(wait<30){
-    res.innerHTML='<div class="rr-hdr">\u26A1 WAIT CHECK \u2014 '+statusMsg.toUpperCase()+'</div>'
-      +'Only '+wait+' min right now \u2014 that\'s a short wait! Go ahead and ride. No reroute needed.';
-    btn.disabled=false;
-    return;
+    res.innerHTML='<div class="rr-hdr">&#x26A1; WAIT CHECK — '+statusMsg.toUpperCase()+'</div>'
+      +'Only '+wait+' min right now — that\'s a short wait! Go ahead and ride. No reroute needed.';
+    btn.disabled=false; return;
   }
-
-  res.innerHTML='<div class="rr-hdr">\u26A1 AI REROUTE \u2014 '+statusMsg.toUpperCase()+'</div><span>Getting suggestion</span> <span class="blink"><span>\u00b7</span><span>\u00b7</span><span>\u00b7</span></span>';
-
+  res.innerHTML='<div class="rr-hdr">&#x26A1; AI REROUTE — '+statusMsg.toUpperCase()+'</div><span>Getting suggestion</span> <span class="blink"><span>&#xb7;</span><span>&#xb7;</span><span>&#xb7;</span></span>';
   if(!apiKey){
     var fallback=wait<45
-      ?'Moderate wait of '+wait+' min. Worth it if this is a priority ride, otherwise try '+alts+' first and come back later.'
-      :'Long wait of '+wait+' min \u2014 skip for now. Head to '+alts+' and return after 7 PM when waits drop significantly.';
-    res.innerHTML='<div class="rr-hdr">\u26A1 SUGGESTION \u2014 '+statusMsg.toUpperCase()+'</div>'+fallback;
-    btn.disabled=false;
-    return;
+      ?'Moderate wait of '+wait+' min. Try '+altsFb+' first and return.'+returnHint
+      :'Long wait of '+wait+' min — skip for now. Try '+altsFb+'.'+returnHint;
+    res.innerHTML='<div class="rr-hdr">&#x26A1; SUGGESTION — '+statusMsg.toUpperCase()+'</div>'+fallback;
+    btn.disabled=false; return;
   }
-
   try{
     var prompt_txt='Disneyland expert. Group of 9 adults+teens on '+dn+'. '+ride+' in '+land+' has a LIVE wait of '+wait+' min right now. ';
-    if(wait<45) prompt_txt+='This is a moderate wait. In 2-3 friendly sentences, advise whether to ride now or skip and why, considering the time of day and historical patterns.';
-    else prompt_txt+='This is a long wait. In 2-3 friendly sentences, tell them what to do RIGHT NOW instead and when the best time to return is based on historical patterns. Nearby alternatives: '+alts+'.';
-    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt_txt,system:'CRITICAL: Wrap your ENTIRE first sentence in **double asterisks** to make it bold. This is the main recommendation. The remaining sentences are normal text. Example: **Skip Space Mountain for now and head straight to Haunted Mansion.** The wait there is only 15 min and will climb later.',maxTokens:200,context:parkIntelCache||''})});
+    if(altWaitsStr) prompt_txt+='Nearby rides right now: '+altWaitsStr+'. ';
+    if(returnHint) prompt_txt+='WAIT_PATTERNS suggest: '+returnHint+' ';
+    if(wait<45) prompt_txt+='Moderate wait. In 2-3 friendly sentences, advise whether to ride now or skip, naming specific alternatives by name and their actual wait times. Include a specific return time from wait patterns if available.';
+    else prompt_txt+='Long wait. In 2-3 friendly sentences, name 1-2 specific nearby rides with their actual wait times to do instead, and give a specific time to return to '+ride+' based on wait patterns. Never say \'nearby ride\' generically — always use the actual ride name and actual wait number.';
+    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt_txt,system:'CRITICAL: Wrap your ENTIRE first sentence in **double asterisks** to make it bold. This is the main recommendation. The remaining sentences are normal text. Example: **Head to Indiana Jones Adventure (12 min) now and return to this ride after 6 PM.** Wait patterns show this ride drops below 30 min by evening.',maxTokens:200,context:parkIntelCache||''})});
     var data=await r.json();
     var txt=data.ok?data.text:(data.content&&data.content[0]?data.content[0].text:'Could not get suggestion.');
-    res.innerHTML='<div class="rr-hdr">\u26A1 AI REROUTE \u2014 '+statusMsg.toUpperCase()+'</div>'+stripMd(txt);
+    res.innerHTML='<div class="rr-hdr">&#x26A1; AI REROUTE — '+statusMsg.toUpperCase()+'</div>'+stripMd(txt);
   }catch(e){
-    res.innerHTML='<div class="rr-hdr">\u26A1 SUGGESTION</div>Try '+alts+' and return after 7 PM.';
+    res.innerHTML='<div class="rr-hdr">&#x26A1; SUGGESTION</div>Try '+altsFb+'.'+returnHint;
   }
   btn.disabled=false;
 }
@@ -3916,7 +3965,7 @@ function renderSched(){
       }
       // type===quickservice: no button needed (walk-up)
       var reroute='';
-      if(e.type==='ride'&&!TRIP_CONFIG.days[curDay].isVip){
+      if(e.type==='ride'){
         var safeRide=(e.ride||e.h||'').split("'").join('\\u2019');
         var safeLand=((e.land||'Unknown')).split("'").join('\\u2019')
         reroute='<button class="reroute-btn" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> AI Reroute</button><div class="reroute-result"></div>'
@@ -5094,13 +5143,13 @@ function refreshDayStrategy(){try{localStorage.removeItem('day_strategy');}catch
 function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadLLPlanner();}
 
 //    Intelligence Caches                                                    
-var PARK_INTEL_DAYS=10,parkIntelCache=null;
+var PARK_INTEL_DAYS=10,parkIntelCache=null,stableCacheCtx=null;
 function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<PARK_INTEL_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
 
 var SYNC_BASE="https://disney-wait-times-lupt.vercel.app";
 function serverCacheGet(key,cb){fetch(SYNC_BASE+"/api/cache?key="+key+"&t="+Date.now()).then(function(r){return r.json();}).then(function(d){if(d.hit&&d.data){try{localStorage.setItem(key,typeof d.data==="string"?d.data:JSON.stringify(d.data));localStorage.setItem(key+"_ts",String(d.ts));}catch(e){}cb(null,d.data,d.ts);}else{cb(null,null,0);}}).catch(function(e){cb(e,null,0);});}
 function serverCacheSet(key,value,ts){fetch(SYNC_BASE+"/api/cache?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:value,ts:ts||Date.now()})}).then(function(r){return r.json();}).then(function(d){console.log("Server cache set "+key+":",(d.ok?"OK":"FAILED"));}).catch(function(e){console.warn("Server cache write failed:",e);});try{localStorage.setItem(key,typeof value==="string"?value:JSON.stringify(value));localStorage.setItem(key+"_ts",String(ts||Date.now()));}catch(e){}}
-function warmCachesFromServer(){if(window._cachesWarmed)return;window._cachesWarmed=true;var keys=["park_intel","dining_intel","events_intel","park_hours_intel"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;console.log("Server cache HIT:",key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}});});}
+function warmCachesFromServer(){if(window._cachesWarmed)return;window._cachesWarmed=true;var keys=["park_intel","dining_intel","events_intel","park_hours_intel","park_intel_dl_stable"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;console.log("Server cache HIT:",key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}else if(key==="park_intel_dl_stable"){try{stableCacheCtx=typeof value==="string"?JSON.parse(value):value;}catch(e){console.warn("stableCacheCtx parse error",e);}}});});}
 setTimeout(function(){warmCachesFromServer();},5000);
 function setParkIntel(t){parkIntelCache=t;serverCacheSet('park_intel',t);}
 var DINING_INTEL_DAYS=30,diningIntelCache=null;
