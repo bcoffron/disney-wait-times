@@ -3370,7 +3370,7 @@ async function getReroute(ride,land,btn){
 
 //    AI Schedule Reoptimize                                                 
 var reoptCache={};
-  var dn; var liveWaitContext; var tripDayDate; var tripDayLabel; var isInTrip; var schedItems; var currentTimeStr;
+  var dn; var liveWaitContext; var tripDayDate; var tripDayLabel; var isInTrip; var schedItems; var currentTimeStr; var hash; var data;
 
 function scheduleHash(data){
   // Simple hash of schedule content to detect changes
@@ -3389,7 +3389,7 @@ async function reoptimize(){
 
   // Check cache - if schedule hasn't changed, reuse last result
   var data=getCurDay();
-  var hash=scheduleHash(data)+'_'+curDay;
+  hash=scheduleHash(data)+'_'+curDay;
   if(reoptCache[hash]||reoptCache[hash+'_v2']){
     var cached=reoptCache[hash+'_v2']||reoptCache[hash];
     txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+stripMd(cached.explanation)+'</div>';
@@ -3402,7 +3402,7 @@ async function reoptimize(){
   }
 
   var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
-  var data=getCurDay();
+  data=getCurDay();
   var summary='';
   data.sections.forEach(function(sec){
     summary+=sec.title+':\n';
