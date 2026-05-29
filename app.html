@@ -7690,18 +7690,24 @@ setTimeout(checkForWaitSpikes, 30000);
     var overlay = document.createElement('div');
     overlay.id = 'editTripDetailsOverlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:#EEF5F4;overflow-y:auto;font-family:Outfit,sans-serif;';
-    var cfg = window._obTripConfig || {};
-    var totalGuests = (parseInt(cfg.under40)||0) + (parseInt(cfg.h40to48)||0) + (parseInt(cfg.over48)||0);
+    var cfg = (window._loadedTripData && window._loadedTripData.tripConfig) || window._obTripConfig || {};
+    var totalGuests = (cfg.group && cfg.group.total) || (parseInt(cfg.under40)||0) + (parseInt(cfg.h40to48)||0) + (parseInt(cfg.over48)||0);
     var reservCount = (cfg.reservations && cfg.reservations.length) || 0;
-    var singleCount = (cfg.singlePass && cfg.singlePass.length) || 0;
+    var singleCount = (cfg.lightningLane && cfg.lightningLane.singlePass && cfg.lightningLane.singlePass.length) || (cfg.singlePass && cfg.singlePass.length) || 0;
+    var daysCount = (Array.isArray(cfg.days) ? cfg.days.length : cfg.days) || 0;
+    var intensity = (cfg.rides && cfg.rides.intensity) || cfg.intensity || '';
+    var pace = (cfg.rides && cfg.rides.pace) || cfg.pace || '';
+    var multiPass = (cfg.lightningLane && cfg.lightningLane.multiPass) || cfg.multiPass || false;
+    var charPriority = (cfg.characters && cfg.characters.priority) || cfg.charPriority || '';
+    var paradesPref = (cfg.entertainment && cfg.entertainment.parades) || cfg.parades || '';
     var sections = [
-      { name: 'Trip Basics', summary: (cfg.tripName || 'Trip') + ' Â· ' + (cfg.days || 0) + ' day' + ((cfg.days !== 1) ? 's' : ''), step: 1 },
+      { name: 'Trip Basics', summary: (cfg.tripName || 'Trip') + ' Â· ' + daysCount + ' day' + (daysCount !== 1 ? 's' : ''), step: 1 },
       { name: 'Your Group', summary: totalGuests + ' guest' + (totalGuests !== 1 ? 's' : ''), step: 2 },
-      { name: 'Ride Preferences', summary: [(cfg.intensity || ''), (cfg.pace || '')].filter(Boolean).join(' Â· ') || 'Not set', step: 3 },
-      { name: 'Lightning Lane', summary: (cfg.multiPass ? 'Multi Pass on' : 'Multi Pass off') + (singleCount > 0 ? ' Â· ' + singleCount + ' LLSP' : ''), step: 4 },
-      { name: 'Character Meets', summary: cfg.charPriority || 'Not set', step: 5 },
+      { name: 'Ride Preferences', summary: [intensity, pace].filter(Boolean).join(' Â· ') || 'Not set', step: 3 },
+      { name: 'Lightning Lane', summary: (multiPass ? 'Multi Pass on' : 'Multi Pass off') + (singleCount > 0 ? ' Â· ' + singleCount + ' LLSP' : ''), step: 4 },
+      { name: 'Character Meets', summary: charPriority || 'Not set', step: 5 },
       { name: 'Reservations', summary: reservCount > 0 ? reservCount + ' reservation' + (reservCount !== 1 ? 's' : '') : 'None added', step: 6 },
-      { name: 'Shows & Entertainment', summary: cfg.parades ? cfg.parades + ' parades' : 'Not set', step: 7 }
+      { name: 'Shows & Entertainment', summary: paradesPref ? paradesPref + ' parades' : 'Not set', step: 7 }
     ];
     // Build overlay using DOM methods to avoid quote escaping issues
     var header = document.createElement('div');
