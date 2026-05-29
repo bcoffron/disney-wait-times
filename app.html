@@ -5475,7 +5475,6 @@ var _obHopEnabled = false;
 var _obEventsEnabled = false;
 var _obEvents = [];
 var _obTiers = { under40: 0, h40to48: 0, over48: 2 };
-var _obGroupSize = 2;
 var _obAccessEnabled = false;
 var _obBreakEnabled = false; var _obNoWaterRides = false;
 var _obTripConfig = {};
@@ -5944,17 +5943,18 @@ function obSaveStep1() {
   return true;
 }
 
-function obAdjGroupSize(delta) {
-  _obGroupSize = Math.max(1, (_obGroupSize || 2) + delta);
-  var el = document.getElementById('obGroupSizeCount');
-  if (el) el.textContent = _obGroupSize;
-}
 function obAdjTier(tier, delta) {
-  // Kept for legacy compatibility — no-op in new UI
+  _obTiers[tier] = Math.max(0, (_obTiers[tier]||0) + delta);
+  var idMap = { under40:'obTierUnder40', h40to48:'obTierH40to48', over48:'obTierOver48' };
+  var el = document.getElementById(idMap[tier]);
+  if (el) el.textContent = _obTiers[tier];
+  obUpdateGroupTotal();
 }
+
 function obUpdateGroupTotal() {
-  var el = document.getElementById('obGroupSizeCount');
-  if (el) el.textContent = _obGroupSize || 2;
+  var total = (_obTiers.under40||0) + (_obTiers.h40to48||0) + (_obTiers.over48||0);
+  var el = document.getElementById('obGroupTotal');
+  if (el) el.textContent = 'Total: ' + total + ' ' + (total === 1 ? 'person' : 'people');
 }
 
 function obToggleAccess() {
@@ -5973,13 +5973,14 @@ function obToggleBreak() {
 
 function obToggleNoWaterRides() { _obNoWaterRides = !_obNoWaterRides; var btn = document.getElementById('obNoWaterToggle'); if (btn) { btn.style.background = _obNoWaterRides ? '#1A6860' : 'rgba(26,104,96,0.2)'; btn.setAttribute('aria-checked',String(_obNoWaterRides)); var knob=btn.querySelector('span'); if(knob) knob.style.left=_obNoWaterRides?'22px':'2px'; } }
 function obSaveStep2() {
-  var size = _obGroupSize || 2;
-  _obTripConfig.group = _obTripConfig.group || {};
-  _obTripConfig.group.total = size;
-  _obTripConfig.group.heightTiers = { under40: 0, h40to48: 0, over48: size };
-  if (typeof _obAccessEnabled !== 'undefined') _obTripConfig.group.accessibilityNeeds = _obAccessEnabled ? (document.getElementById('obAccessText') ? document.getElementById('obAccessText').value.trim() : '') : '';
-  if (typeof _obBreakEnabled !== 'undefined') _obTripConfig.group.middayBreak = _obBreakEnabled;
-  if (typeof _obNoWaterRides !== 'undefined') _obTripConfig.group.noWaterRides = _obNoWaterRides;
+  var total = (_obTiers.under40||0) + (_obTiers.h40to48||0) + (_obTiers.over48||0);
+  _obTripConfig.group = {
+    total: total,
+    heightTiers: { under40: _obTiers.under40||0, h40to48: _obTiers.h40to48||0, over48: _obTiers.over48||0 },
+    accessibility: _obAccessEnabled ? ((document.getElementById('obAccessText')||{}).value||'') : '',
+    afternoonBreak: _obBreakEnabled,
+  noWaterRides: _obNoWaterRides
+  };
 }
 
 // ===== SCREENS 3-7 STATE =====
@@ -6280,40 +6281,7 @@ function obSaveStep4() {
 
 // ---- SCREEN 5: Character Meets ----
 function obInitStep5() {
-  obRenderTiles('obCharPriorityTiles', [
-    { value: 'mustDo', label: 'Must-do â build them into our day' },
-    { value: 'niceToHave', label: 'Nice-to-have â fit them in if convenient' },
-    { value: 'skip', label: 'Skip â not a priority for us' }
-  ], _obCharPriority, function(v) {
-    _obCharPriority = v;
-    var catWrap = document.getElementById('obCharCategoryWrap');
-    var disclaimer = document.getElementById('obCharDisclaimer');
-    if (catWrap) catWrap.style.display = v === 'skip' ? 'none' : 'block';
-    if (disclaimer) disclaimer.style.display = v === 'skip' ? 'none' : 'block';
-  });
-
-  var catWrap = document.getElementById('obCharCategoryWrap');
-  var disclaimer = document.getElementById('obCharDisclaimer');
-  if (catWrap) catWrap.style.display = _obCharPriority === 'skip' ? 'none' : 'block';
-  if (disclaimer) disclaimer.style.display = _obCharPriority === 'skip' ? 'none' : 'block';
-
-  // Fetch character_intel for categories
-  if (!_obCharData) {
-    var loading = document.getElementById('obCharCatLoading');
-    if (loading) loading.style.display = 'block';
-    serverCacheGet('character_intel', function(err, value) {
-      if (loading) loading.style.display = 'none';
-      if (err || !value) {
-        _obCharData = null;
-        obRenderCharCategories(obDefaultCharCategories());
-      } else {
-        _obCharData = typeof value === 'string' ? value : JSON.stringify(value);
-        obRenderCharCategories(obParseCharCategories(_obCharData));
-      }
-    });
-  } else {
-    obRenderCharCategories(obParseCharCategories(_obCharData));
-  }
+  // FYI card — no initialisation needed
 }
 
 function obDefaultCharCategories() {
@@ -6370,10 +6338,7 @@ function obRenderCharCategories(categories) {
 }
 
 function obSaveStep5() {
-  _obTripConfig.characters = {
-    priority: _obCharPriority || 'skip',
-    categories: _obCharCategories.slice()
-  };
+  // FYI card — nothing to save
 }
 
 // ---- SCREEN 6: Reservations & Experiences ----
@@ -7288,15 +7253,112 @@ setTimeout(checkForWaitSpikes, 30000);
       <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">Tell us the basics and we'll build your park plan.</p>
 
       <!-- Trip name -->
-      <div class="ob-field" id="obGroupSizeField">
-          <label class="ob-label">How many people in your group?</label>
-          <div style="display:flex;align-items:center;gap:16px;margin-top:4px;">
-            <button onclick="obAdjGroupSize(-1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:20px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--color-text-primary);flex-shrink:0;">−</button>
-            <span id="obGroupSizeCount" style="font-size:28px;font-weight:700;color:var(--magic);min-width:32px;text-align:center;">2</span>
-            <button onclick="obAdjGroupSize(1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:20px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--color-text-primary);flex-shrink:0;">+</button>
-            <span style="font-size:14px;color:var(--color-text-muted);">people</span>
+      <div class="ob-field">
+        <label class="ob-label" for="obTripNameNew">Trip name</label>
+        <input id="obTripNameNew" type="text" value="Our Disneyland Trip" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;color:#071E25;background:#fff;outline:none;" />
+      </div>
+
+      <!-- Park selection -->
+      <div class="ob-field">
+        <label class="ob-label">Which park(s)?</label>
+        <div id="obParkSelect" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onclick="obTogglePark(this,'Disneyland')" data-park="Disneyland" class="ob-park-btn ob-park-active" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid #1A6860;border-radius:10px;background:#1A6860;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disneyland</button>
+          <button onclick="obTogglePark(this,'DCA')" data-park="DCA" class="ob-park-btn" style="flex:1;min-width:120px;padding:12px 8px;border:2px solid rgba(26,104,96,0.3);border-radius:10px;background:#fff;color:#1A6860;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">Disney California Adventure</button>
+        </div>
+      </div>
+      <p style="font-size:11px;color:#4A7A7C;margin-top:8px;">More parks coming soon.</p>
+
+      <!-- Start date -->
+      <div class="ob-field">
+        <label class="ob-label" for="obStartDate">Start date</label>
+        <input id="obStartDate" type="date" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(26,104,96,0.3);border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;color:#071E25;background:#fff;outline:none;" />
+      </div>
+
+      <!-- Number of days stepper -->
+      <div class="ob-field">
+        <label class="ob-label">Number of days</label>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <button onclick="obAdjDays(-1)" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
+            <svg width="16" height="2" viewBox="0 0 16 2" fill="none"><rect y="0" width="16" height="2" rx="1" fill="#1A6860"/></svg>
+          </button>
+          <span id="obDayCount" style="font-size:22px;font-weight:700;color:#071E25;min-width:32px;text-align:center;">3</span>
+          <button onclick="obAdjDays(1)" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(26,104,96,0.3);background:#fff;color:#1A6860;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="7" y="0" width="2" height="16" rx="1" fill="#1A6860"/><rect y="7" width="16" height="2" rx="1" fill="#1A6860"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Per-day park assignment -->
+      <div id="obDayRowsWrap" class="ob-field" style="display:none;">
+        <label class="ob-label">Day-by-day park</label>
+        <div id="obDayRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Park hopping toggle -->
+      <div id="obHopWrap" class="ob-field" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Park hopping</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">Visit both parks in one day</div>
+          </div>
+          <button id="obHopToggle" onclick="obToggleHop()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Special events toggle -->
+      <div class="ob-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#071E25;">Special events</div>
+            <div style="font-size:12px;color:#4A6670;margin-top:2px;">After Hours, Mickey's Halloween Party, etc.</div>
+          </div>
+          <button id="obEventsToggle" onclick="obToggleEvents()" role="switch" aria-checked="false" style="width:44px;height:24px;border-radius:12px;border:none;background:rgba(26,104,96,0.2);cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
+            <span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:left 0.2s;pointer-events:none;"></span>
+          </button>
+        </div>
+        <div id="obEventsArea" style="display:none;margin-top:16px;">
+          <div id="obEventsList" style="display:flex;flex-direction:column;gap:12px;"></div>
+          <button onclick="obAddEvent()" style="margin-top:10px;background:none;border:1.5px dashed rgba(26,104,96,0.4);border-radius:10px;padding:10px;width:100%;color:#1A6860;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-right:4px;"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg>Add Event
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Your Group -->
+    <div id="obStep2New" class="ob-step" style="display:none;">
+      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Your group.</h2>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">We'll personalise ride routing and Lightning Lane picks.</p>
+
+      <div class="ob-field">
+        <label class="ob-label">Group headcount by height</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">Under 40 in.</div><div style="font-size:12px;color:#4A6670;">Little ones, most restricted</div></div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('under40',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+            <span id="obTierUnder40" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
+            <button onclick="obAdjTier('under40',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
           </div>
         </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">40 in. to 48 in.</div><div style="font-size:12px;color:#4A6670;">Kids, most rides open</div></div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('h40to48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+            <span id="obTierH40to48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
+            <button onclick="obAdjTier('h40to48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;">
+          <div><div style="font-size:14px;font-weight:600;color:#071E25;">48 in. and up</div><div style="font-size:12px;color:#4A6670;">Teens and adults, all rides</div></div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button onclick="obAdjTier('over48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+            <span id="obTierOver48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">2</span>
+            <button onclick="obAdjTier('over48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
+          </div>
+        </div>
+        <div id="obGroupTotal" style="text-align:right;font-size:13px;color:#1A6860;font-weight:600;margin-top:8px;">Total: 2 people</div>
       </div>
 
       <div class="ob-field">
@@ -7399,29 +7461,12 @@ setTimeout(checkForWaitSpikes, 30000);
     </div>
 
     <!-- STEP 5: Character Meets -->
-    <div id="obStep5New" class="ob-step" style="display:none;">
-      <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Character meets.</h2>
-      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">We'll hold time in your day for the ones that matter most.</p>
+    <div id="obStep5New" class="ob-step">
+          <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#071E25;">Almost there!</h2>
+          <p style="font-size:15px;color:var(--color-text-muted);margin:0 0 24px;">Your pre-trip checklist is in the Info tab. It covers Lightning Lane setup, what to pack, park hopper rules, and more.</p>
+        </div>
 
-      <!-- Priority tiles -->
-      <div class="ob-field">
-        <label class="ob-label">How important are character meets?</label>
-        <div id="obCharPriorityTiles" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
-      <!-- Category chips (collapses on Skip) -->
-      <div id="obCharCategoryWrap" class="ob-field">
-        <label class="ob-label">Which characters interest your group?</label>
-        <div id="obCharCategories" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-        <div id="obCharCatLoading" style="display:none;font-size:13px;color:#4A6670;padding:8px 0;">Loading categories...</div>
-      </div>
-
-      <!-- Disclaimer -->
-      <div id="obCharDisclaimer" style="font-size:12px;color:#4A6670;line-height:1.5;margin-top:16px;padding:12px;background:rgba(26,104,96,0.06);border-radius:8px;">Character schedules are planned in advance but can change without notice. Check with a cast member on the day.</div>
-    </div>
-
-    <!-- STEP 6: Reservations & Experiences -->
-    <div id="obStep6New" class="ob-step" style="display:none;">
+        <div id="obStep6New" class="ob-step" style="display:none;">
       <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Reservations.</h2>
       <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">These are fixed anchors â AI builds your day around them.</p>
 
