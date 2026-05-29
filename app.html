@@ -5476,6 +5476,7 @@ var _obHopEnabled = false;
 var _obEventsEnabled = false;
 var _obEvents = [];
 var _obTiers = { under40: 0, h40to48: 0, over48: 2 };
+var _obGroupSize = 2;
 var _obAccessEnabled = false;
 var _obBreakEnabled = false; var _obNoWaterRides = false;
 var _obTripConfig = {};
@@ -5957,6 +5958,11 @@ function obUpdateGroupTotal() {
   var el = document.getElementById('obGroupTotal');
   if (el) el.textContent = 'Total: ' + total + ' ' + (total === 1 ? 'person' : 'people');
 }
+function obAdjGroupSize(delta) {
+  _obGroupSize = Math.max(1, Math.min(20, _obGroupSize + delta));
+  var el = document.getElementById('obGroupSizeDisplay');
+  if (el) el.textContent = _obGroupSize;
+}
 
 function obToggleAccess() {
   _obAccessEnabled = !_obAccessEnabled;
@@ -5974,13 +5980,12 @@ function obToggleBreak() {
 
 function obToggleNoWaterRides() { _obNoWaterRides = !_obNoWaterRides; var btn = document.getElementById('obNoWaterToggle'); if (btn) { btn.style.background = _obNoWaterRides ? '#1A6860' : 'rgba(26,104,96,0.2)'; btn.setAttribute('aria-checked',String(_obNoWaterRides)); var knob=btn.querySelector('span'); if(knob) knob.style.left=_obNoWaterRides?'22px':'2px'; } }
 function obSaveStep2() {
-  var total = (_obTiers.under40||0) + (_obTiers.h40to48||0) + (_obTiers.over48||0);
+  var total = _obGroupSize;
   _obTripConfig.group = {
     total: total,
-    heightTiers: { under40: _obTiers.under40||0, h40to48: _obTiers.h40to48||0, over48: _obTiers.over48||0 },
     accessibility: _obAccessEnabled ? ((document.getElementById('obAccessText')||{}).value||'') : '',
     afternoonBreak: _obBreakEnabled,
-  noWaterRides: _obNoWaterRides
+    noWaterRides: _obNoWaterRides
   };
 }
 
@@ -7333,33 +7338,13 @@ setTimeout(checkForWaitSpikes, 30000);
       <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Your group.</h2>
       <p style="font-size:14px;color:#4A6670;margin:0 0 28px;">We'll personalise ride routing and Lightning Lane picks.</p>
 
-      <div class="ob-field">
-        <label class="ob-label">Group headcount by height</label>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
-          <div><div style="font-size:14px;font-weight:600;color:#071E25;">Under 40 in.</div><div style="font-size:12px;color:#4A6670;">Little ones, most restricted</div></div>
-          <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('under40',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-            <span id="obTierUnder40" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
-            <button onclick="obAdjTier('under40',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-          </div>
+            <div class="ob-field">
+        <label class="ob-label">How many people in your group?</label>
+        <div style="display:flex;align-items:center;gap:16px;margin-top:8px;">
+          <button onclick="obAdjGroupSize(-1)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid #1A6860;background:white;font-size:20px;color:#1A6860;cursor:pointer;">−</button>
+          <span id="obGroupSizeDisplay" style="font-size:24px;font-weight:700;color:#071E25;min-width:32px;text-align:center;">2</span>
+          <button onclick="obAdjGroupSize(1)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid #1A6860;background:white;font-size:20px;color:#1A6860;cursor:pointer;">+</button>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(26,104,96,0.1);">
-          <div><div style="font-size:14px;font-weight:600;color:#071E25;">40 in. to 48 in.</div><div style="font-size:12px;color:#4A6670;">Kids, most rides open</div></div>
-          <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('h40to48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-            <span id="obTierH40to48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">0</span>
-            <button onclick="obAdjTier('h40to48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;">
-          <div><div style="font-size:14px;font-weight:600;color:#071E25;">48 in. and up</div><div style="font-size:12px;color:#4A6670;">Teens and adults, all rides</div></div>
-          <div style="display:flex;align-items:center;gap:14px;">
-            <button onclick="obAdjTier('over48',-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-            <span id="obTierOver48" style="font-size:18px;font-weight:700;color:#071E25;min-width:20px;text-align:center;">2</span>
-            <button onclick="obAdjTier('over48',1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(26,104,96,0.3);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="5" y="0" width="2" height="12" rx="1" fill="#1A6860"/><rect y="5" width="12" height="2" rx="1" fill="#1A6860"/></svg></button>
-          </div>
-        </div>
-        <div id="obGroupTotal" style="text-align:right;font-size:13px;color:#1A6860;font-weight:600;margin-top:8px;">Total: 2 people</div>
       </div>
 
       <div class="ob-field">
