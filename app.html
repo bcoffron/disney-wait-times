@@ -4552,15 +4552,8 @@ function setTab(t){
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
   setTimeout(function() {
-  window.scrollTo(0, 0);
-  document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
-  var containers = document.querySelectorAll(
-    '.content, #content, .tab-content, [id$="Tab"], [id$="Content"]'
-  );
-  containers.forEach(function(el) { el.scrollTop = 0; });
-  if(t==='chat'){var _ci=document.getElementById('chatInput');if(_ci)_ci.value='';}
-  var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';
+  window.scrollTo(0, 0);
 }, 200)
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
