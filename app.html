@@ -1110,7 +1110,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
         <div class="reopt-label">What Changed</div>
         <div style="margin-bottom:12px;">
           <div style="font-size:16px;font-weight:700;color:var(--color-text);margin-bottom:3px;">Here's your optimized plan</div>
-          <div style="font-size:13px;color:var(--color-text-muted);">Tap <strong>Accept Changes</strong> to apply this to your schedule.</div>
+          <div id="reoptAcceptHint" style="font-size:13px;color:var(--color-text-muted);">Tap <strong>Accept Changes</strong> to apply this to your schedule.</div>
         </div>
         <div class="reopt-text" id="reoptText"></div>
         <div id="reoptReviewNote" style="font-size:12px;color:var(--color-text-muted);margin:10px 0 12px;line-height:1.5;">Review the changes above, then tap <strong>Accept Changes</strong> to save or <strong>Keep Original</strong> to stay with your current plan.</div>
@@ -3545,6 +3545,7 @@ async function runReoptimize(){
       var _rl3=document.getElementById('reoptLoading');if(_rl3)_rl3.style.display='none';box.style.display='block';
       btns.classList.add('show');
       var _reoptApply=btns.querySelector('.reopt-apply');var _reoptDismiss=btns.querySelector('.reopt-dismiss');var _reoptNote=document.getElementById('reoptReviewNote');if(changedCount===0){if(_reoptApply)_reoptApply.style.display='none';if(_reoptNote)_reoptNote.style.display='none';if(_reoptDismiss){_reoptDismiss.textContent='Got it ✓';_reoptDismiss.onclick=function(){dismissReopt();};}}else{if(_reoptApply){_reoptApply.style.display='';_reoptApply.onclick=function(){applyReopt();};}if(_reoptNote)_reoptNote.style.display='';if(_reoptDismiss){_reoptDismiss.textContent='Keep Original';_reoptDismiss.onclick=function(){dismissReopt();};}}
+        var _rah=document.getElementById('reoptAcceptHint'); if(_rah)_rah.style.display=changedCount===0?'none':'block';
     }else{
       var _rle2=document.getElementById('reoptLoading');if(_rle2)_rle2.style.display='none';box.style.display='block';
       txt.textContent=explanation||text;
