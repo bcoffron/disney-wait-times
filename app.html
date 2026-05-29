@@ -5318,7 +5318,7 @@ function renderSplashCtas(){
   try{hasCode=!!(localStorage.getItem('tpcp_code'));}catch(e){}
   if(hasCode){
     // Returning user: just show Enter button, hide code input
-    area.innerHTML='<button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>';
+    area.innerHTML='<div style="font-size:9px;color:rgba(255,255,255,0.3);text-align:center;margin-bottom:4px;">v8879ed2<\/div><button onclick="enterSplash(false)" style="width:100%;padding:14px;background:#ECA050;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer">Enter Your Adventure</button>';
   }else{
     // New user: orange button checks code input first, no separate Enter button
     var btn=document.createElement('button');
