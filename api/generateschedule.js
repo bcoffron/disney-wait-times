@@ -223,7 +223,10 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
 
     system += '\n\n=== CURRENT RIDE CLOSURES ÃÂ¢ÃÂÃÂ DO NOT SCHEDULE ===';
     system += '\nThe following attractions are currently closed for refurbishment. NEVER schedule them as ride cards:';
-    system += '\n- Pirates of the Caribbean (DL) — closed for refurbishment, reopens TBD. NEVER schedule this ride.';
+    system += '\n- Pirates of the Caribbean (DL) — closed for refurbishment, reopens TBD';
+    system += '\n- Buzz Lightyear Astro Blasters (DL) — closed since April 2025';
+    system += '\n- Inside Out Emotional Whirlwind (DCA) — closed for refurbishment';
+    system += '\n- Silly Symphony Swings (DCA) — closed since April 27 2025';
     system += '\nThe CURRENT CLOSURES section above contains a full updated list of all closed attractions. Every ride listed there is unavailable. NEVER schedule a closed ride even if the user selected it as a must-do. Instead, insert a tip card explaining it is closed and suggesting the best alternative.';
 
     system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE ÃÂ¢ÃÂÃÂ STRICTLY ENFORCED ===';
