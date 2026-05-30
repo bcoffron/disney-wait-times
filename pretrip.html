@@ -135,18 +135,18 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 <div class="pt-step active" id="ptStep1">
   <div class="pt-section-label">Trip name</div>
   <div class="pt-field">
-    <input class="pt-input" id="tripName" type="text" placeholder="e.g. Coffron Family Trip 2026" autocomplete="off">
+    <input class="pt-input" id="tripName" type="text" placeholder="e.g. Smith Family Disneyland Trip" autocomplete="off">
   </div>
 
   <div class="pt-section-label">Trip dates</div>
   <div class="pt-date-row">
     <div class="pt-field">
       <div class="pt-label">Start date</div>
-      <input class="pt-input" id="tripStart" type="date" value="2026-06-28">
+      <input class="pt-input" id="tripStart" type="date" onchange="ptUpdateDayCards()">
     </div>
     <div class="pt-field">
       <div class="pt-label">End date</div>
-      <input class="pt-input" id="tripEnd" type="date" value="2026-06-30">
+      <input class="pt-input" id="tripEnd" type="date" onchange="ptUpdateDayCards()">
     </div>
   </div>
 
@@ -333,104 +333,8 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 <div class="pt-step" id="ptStep4">
   <div class="pt-section-label" style="margin-top:0;">Day by day details</div>
   <div class="pt-hint" style="margin-bottom:14px;">Set up each day of your trip individually</div>
-
-  <!-- Day 1 -->
-  <div class="pt-day-card">
-    <div class="pt-day-card-header">
-      <div>Day 1</div>
-      <div class="pt-day-date" id="day1DateLabel">Jun 28, 2026</div>
-    </div>
-    <div class="pt-field">
-      <div class="pt-label">Park</div>
-      <div class="pt-seg" id="day1ParkSeg" style="margin-bottom:0;">
-        <button class="pt-seg-btn active" onclick="ptSegSelect('day1ParkSeg',this,'Disneyland')">Disneyland</button>
-        <button class="pt-seg-btn" onclick="ptSegSelect('day1ParkSeg',this,'California Adventure')">DCA</button>
-        <button class="pt-seg-btn" onclick="ptSegSelect('day1ParkSeg',this,'Both')">Both</button>
-      </div>
-    </div>
-    <div class="pt-toggle-row" style="margin-top:10px;">
-      <div class="pt-toggle-label">Park hopper</div>
-      <div class="pt-toggle" id="day1Hopper" onclick="ptToggle('day1Hopper')"><div class="pt-toggle-knob"></div></div>
-    </div>
-    <div class="pt-toggle-row">
-      <div class="pt-toggle-label">VIP tour this day</div>
-      <div class="pt-toggle" id="day1Vip" onclick="ptToggle('day1Vip');ptVipToggle(1)"><div class="pt-toggle-knob"></div></div>
-    </div>
-    <div class="pt-vip-sub" id="day1VipSub">
-      <div class="pt-label" style="margin-bottom:6px;">Tour window</div>
-      <div class="pt-time-row">
-        <div class="pt-time-label">Start</div>
-        <input class="pt-input" id="day1VipStart" type="time" value="10:00">
-        <div class="pt-time-label" style="text-align:center;">to</div>
-        <input class="pt-input" id="day1VipEnd" type="time" value="17:00">
-      </div>
-    </div>
-  </div>
-
-  <!-- Day 2 -->
-  <div class="pt-day-card">
-    <div class="pt-day-card-header">
-      <div>Day 2</div>
-      <div class="pt-day-date" id="day2DateLabel">Jun 29, 2026</div>
-    </div>
-    <div class="pt-field">
-      <div class="pt-label">Park</div>
-      <div class="pt-seg" id="day2ParkSeg" style="margin-bottom:0;">
-        <button class="pt-seg-btn active" onclick="ptSegSelect('day2ParkSeg',this,'Disneyland')">Disneyland</button>
-        <button class="pt-seg-btn" onclick="ptSegSelect('day2ParkSeg',this,'California Adventure')">DCA</button>
-        <button class="pt-seg-btn" onclick="ptSegSelect('day2ParkSeg',this,'Both')">Both</button>
-      </div>
-    </div>
-    <div class="pt-toggle-row" style="margin-top:10px;">
-      <div class="pt-toggle-label">Park hopper</div>
-      <div class="pt-toggle" id="day2Hopper" onclick="ptToggle('day2Hopper')"><div class="pt-toggle-knob"></div></div>
-    </div>
-    <div class="pt-toggle-row">
-      <div class="pt-toggle-label">VIP tour this day</div>
-      <div class="pt-toggle on" id="day2Vip" onclick="ptToggle('day2Vip');ptVipToggle(2)"><div class="pt-toggle-knob"></div></div>
-    </div>
-    <div class="pt-vip-sub visible" id="day2VipSub">
-      <div class="pt-label" style="margin-bottom:6px;">Tour window</div>
-      <div class="pt-time-row">
-        <div class="pt-time-label">Start</div>
-        <input class="pt-input" id="day2VipStart" type="time" value="10:00">
-        <div class="pt-time-label" style="text-align:center;">to</div>
-        <input class="pt-input" id="day2VipEnd" type="time" value="17:00">
-      </div>
-    </div>
-  </div>
-
-  <!-- Day 3 -->
-  <div class="pt-day-card">
-    <div class="pt-day-card-header">
-      <div>Day 3</div>
-      <div class="pt-day-date" id="day3DateLabel">Jun 30, 2026</div>
-    </div>
-    <div class="pt-field">
-      <div class="pt-label">Park</div>
-      <div class="pt-seg" id="day3ParkSeg" style="margin-bottom:0;">
-        <button class="pt-seg-btn active" onclick="ptSegSelect('day3ParkSeg',this,'Disneyland')">Disneyland</button>
-        <button class="pt-seg-btn" onclick="ptSegSelect('day3ParkSeg',this,'California Adventure')">DCA</button>
-        <button class="pt-seg-btn" onclick="ptSegSelect('day3ParkSeg',this,'Both')">Both</button>
-      </div>
-    </div>
-    <div class="pt-toggle-row" style="margin-top:10px;">
-      <div class="pt-toggle-label">Park hopper</div>
-      <div class="pt-toggle on" id="day3Hopper" onclick="ptToggle('day3Hopper')"><div class="pt-toggle-knob"></div></div>
-    </div>
-    <div class="pt-toggle-row">
-      <div class="pt-toggle-label">VIP tour this day</div>
-      <div class="pt-toggle" id="day3Vip" onclick="ptToggle('day3Vip');ptVipToggle(3)"><div class="pt-toggle-knob"></div></div>
-    </div>
-    <div class="pt-vip-sub" id="day3VipSub">
-      <div class="pt-label" style="margin-bottom:6px;">Tour window</div>
-      <div class="pt-time-row">
-        <div class="pt-time-label">Start</div>
-        <input class="pt-input" id="day3VipStart" type="time" value="10:00">
-        <div class="pt-time-label" style="text-align:center;">to</div>
-        <input class="pt-input" id="day3VipEnd" type="time" value="17:00">
-      </div>
-    </div>
+  <div id="ptDayCards">
+    <div style="text-align:center;padding:30px 0;color:#4A7A7C;font-size:12px;">Enter your trip dates in Step 1 to see your days here.</div>
   </div>
 </div>
 
@@ -474,7 +378,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 </div><!-- end .pt-content -->
 
 <!-- CTA BAR -->
-<div class="pt-cta-bar">
+<div class="pt-cta-bar" id="ptCtaBar">
   <button class="pt-cta-btn" id="ptCtaBtn" onclick="ptNext()">Continue <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M8 3L13 8L8 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 </div>
 
@@ -623,74 +527,142 @@ function ptClCheck(box, countId, total){console.log("[pretrip] ptClCheck called"
   else if(countEl){ countEl.style.color = '#4A7A7C'; }
 }
 
-// ── Day labels ───────────────────────────────────────────
-function ptUpdateDayLabels(){console.log("[pretrip] ptUpdateDayLabels called");
-  var startInput = document.getElementById('tripStart');
-  if(!startInput) return;
-  var start = new Date(startInput.value + 'T12:00:00');
+// ── Day card builder (dynamic from dates) ───────────────
+var _ptDayCount = 0;
+
+function ptGetDayCount() {
+  var s = document.getElementById('tripStart');
+  var e = document.getElementById('tripEnd');
+  if (!s || !e || !s.value || !e.value) return 0;
+  var start = new Date(s.value + 'T12:00:00');
+  var end = new Date(e.value + 'T12:00:00');
+  var diff = Math.round((end - start) / 86400000) + 1;
+  return diff > 0 ? diff : 0;
+}
+
+function ptGetDateLabel(startVal, dayIndex) {
   var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  for(var i=0; i<3; i++){
-    var d = new Date(start);
-    d.setDate(d.getDate() + i);
-    var lbl = document.getElementById('day'+(i+1)+'DateLabel');
-    if(lbl) lbl.textContent = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  var d = new Date(startVal + 'T12:00:00');
+  d.setDate(d.getDate() + dayIndex);
+  return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function ptUpdateDayCards() {
+  var container = document.getElementById('ptDayCards');
+  if (!container) return;
+  var startVal = document.getElementById('tripStart') ? document.getElementById('tripStart').value : '';
+  var count = ptGetDayCount();
+  if (!count || !startVal) {
+    container.innerHTML = '<div style="text-align:center;padding:30px 0;color:#4A7A7C;font-size:12px;">Enter your trip dates in Step 1 to see your days here.</div>';
+    _ptDayCount = 0;
+    return;
   }
+  // Preserve existing day data before rebuild
+  var saved = [];
+  for (var i = 1; i <= _ptDayCount; i++) {
+    saved.push({
+      park: ptSegValues['day'+i+'ParkSeg'] || 'Disneyland',
+      hopper: document.getElementById('day'+i+'Hopper') ? document.getElementById('day'+i+'Hopper').classList.contains('on') : false,
+      isVip: document.getElementById('day'+i+'Vip') ? document.getElementById('day'+i+'Vip').classList.contains('on') : false,
+      vipStart: document.getElementById('day'+i+'VipStart') ? document.getElementById('day'+i+'VipStart').value : '10:00',
+      vipEnd: document.getElementById('day'+i+'VipEnd') ? document.getElementById('day'+i+'VipEnd').value : '17:00'
+    });
+  }
+  _ptDayCount = count;
+  var html = '';
+  for (var n = 1; n <= count; n++) {
+    var dateLabel = ptGetDateLabel(startVal, n - 1);
+    var prev = saved[n-1] || {};
+    var parkDL = (!prev.park || prev.park === 'Disneyland') ? ' active' : '';
+    var parkDCA = prev.park === 'California Adventure' ? ' active' : '';
+    var parkBoth = prev.park === 'Both' ? ' active' : '';
+    if (!parkDL && !parkDCA && !parkBoth) parkDL = ' active';
+    html += '<div class="pt-day-card">' +
+      '<div class="pt-day-card-header"><div>Day ' + n + '</div><div class="pt-day-date">' + dateLabel + '</div></div>' +
+      '<div class="pt-field"><div class="pt-label">Park</div>' +
+      '<div class="pt-seg" id="day'+n+'ParkSeg" style="margin-bottom:0;">' +
+        '<button class="pt-seg-btn'+parkDL+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'Disneyland\')">Disneyland</button>' +
+        '<button class="pt-seg-btn'+parkDCA+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'California Adventure\')">DCA</button>' +
+        '<button class="pt-seg-btn'+parkBoth+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'Both\')">Both</button>' +
+      '</div></div>' +
+      '<div class="pt-toggle-row" style="margin-top:10px;">' +
+        '<div class="pt-toggle-label">Park hopper</div>' +
+        '<div class="pt-toggle' + (prev.hopper ? ' on' : '') + '" id="day'+n+'Hopper" onclick="ptToggle(\'day'+n+'Hopper\')"><div class="pt-toggle-knob"></div></div>' +
+      '</div>' +
+      '<div class="pt-toggle-row">' +
+        '<div class="pt-toggle-label">VIP tour this day</div>' +
+        '<div class="pt-toggle' + (prev.isVip ? ' on' : '') + '" id="day'+n+'Vip" onclick="ptToggle(\'day'+n+'Vip\');ptVipToggle('+n+')"><div class="pt-toggle-knob"></div></div>' +
+      '</div>' +
+      '<div class="pt-vip-sub' + (prev.isVip ? ' visible' : '') + '" id="day'+n+'VipSub">' +
+        '<div class="pt-label" style="margin-bottom:6px;">Tour window</div>' +
+        '<div class="pt-time-row">' +
+          '<div class="pt-time-label">Start</div>' +
+          '<input class="pt-input" id="day'+n+'VipStart" type="time" value="' + (prev.vipStart || '10:00') + '">' +
+          '<div class="pt-time-label" style="text-align:center;">to</div>' +
+          '<input class="pt-input" id="day'+n+'VipEnd" type="time" value="' + (prev.vipEnd || '17:00') + '">' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+    // Re-register seg value
+    ptSegValues['day'+n+'ParkSeg'] = prev.park || 'Disneyland';
+  }
+  container.innerHTML = html;
+}
+
+// ── Day labels (legacy, kept for load-from-storage) ─────
+function ptUpdateDayLabels() {
+  ptUpdateDayCards();
 }
 
 // ── Collect data ────────────────────────────────────────
-function ptCollectData(){console.log("[pretrip] ptCollectData called");
-  // Members
-  var members = [];
-  var list = document.getElementById('membersList');
-  if(list){
-    list.querySelectorAll('.pt-member-row').forEach(function(row){
-      var nameEl = row.querySelector('input[type="text"]');
-      if(nameEl && nameEl.value.trim()){
-        members.push({name: nameEl.value.trim()});
-      }
-    });
-  }
-  // Chips helper
-  function getChips(id){console.log("[pretrip] getChips called"); var a=[]; document.querySelectorAll('#'+id+' .pt-chip.selected').forEach(function(c){a.push(c.textContent.trim());}); return a; }
-  // Tile helper
-  function getTile(id){console.log("[pretrip] getTile called"); var t=document.querySelector('#'+id+' .pt-tile.selected'); return t ? t.querySelector('.pt-tile-label').textContent.trim() : ''; }
-  // Check helper
-  function getChecks(prefix,keys){console.log("[pretrip] getChecks called"); var r=[]; keys.forEach(function(k){ if(document.getElementById(prefix+k) && document.getElementById(prefix+k).classList.contains('checked')) r.push(k); }); return r; }
-  // Day data
-  function getDayData(n){console.log("[pretrip] getDayData called");
+function ptCollectData() {
+  var count = ptGetDayCount() || _ptDayCount || 1;
+  var startVal = document.getElementById('tripStart') ? document.getElementById('tripStart').value : '';
+  function getChips(id){ var a=[]; document.querySelectorAll('#'+id+' .pt-chip.selected').forEach(function(c){a.push(c.textContent.trim());}); return a; }
+  function getTile(id){ var t=document.querySelector('#'+id+' .pt-tile.selected'); return t ? t.querySelector('.pt-tile-label').textContent.trim() : ''; }
+  function getChecks(prefix,keys){ var r=[]; keys.forEach(function(k){ if(document.getElementById(prefix+k) && document.getElementById(prefix+k).classList.contains('checked')) r.push(k); }); return r; }
+  function getDayData(n){
     var parkSeg = document.getElementById('day'+n+'ParkSeg');
     var park = ptSegValues['day'+n+'ParkSeg'] || (parkSeg ? parkSeg.querySelector('.pt-seg-btn.active').textContent.trim() : 'Disneyland');
     return {
+      num: n,
+      date: startVal ? ptGetDateLabel(startVal, n-1) : '',
       park: park,
       hopTo: document.getElementById('day'+n+'Hopper') ? document.getElementById('day'+n+'Hopper').classList.contains('on') : false,
-      arrivalTime: document.getElementById('day'+n+'Wake') ? document.getElementById('day'+n+'Wake').value : '06:30',
       isVip: document.getElementById('day'+n+'Vip') ? document.getElementById('day'+n+'Vip').classList.contains('on') : false,
       vipStart: document.getElementById('day'+n+'VipStart') ? document.getElementById('day'+n+'VipStart').value : '10:00',
-      vipEnd: document.getElementById('day'+n+'VipEnd') ? document.getElementById('day'+n+'VipEnd').value : '17:00',
-      notes: document.getElementById('day'+n+'Notes') ? document.getElementById('day'+n+'Notes').value : ''
+      vipEnd: document.getElementById('day'+n+'VipEnd') ? document.getElementById('day'+n+'VipEnd').value : '17:00'
     };
   }
+  var days = [];
+  for (var i = 1; i <= count; i++) days.push(getDayData(i));
+
+  var avoidWater = document.getElementById('acc_water') && document.getElementById('acc_water').classList.contains('checked');
+  var neverSchedule = getChips('neverChips');
+  if (avoidWater) {
+    ['Tiana\'s Bayou Adventure','Grizzly River Run'].forEach(function(r){ if(neverSchedule.indexOf(r) === -1) neverSchedule.push(r); });
+  }
+
   return {
     tripName: document.getElementById('tripName') ? document.getElementById('tripName').value.trim() : '',
     dates: { start: document.getElementById('tripStart') ? document.getElementById('tripStart').value : '', end: document.getElementById('tripEnd') ? document.getElementById('tripEnd').value : '' },
     location: ptSegValues['parkSeg'] || 'Disneyland',
-    members: members,
     thrillLevel: getTile('thrillTiles'),
     mustDo: getChips('mustDoChips'),
-    neverSchedule: getChips('neverChips'),
+    neverSchedule: neverSchedule,
+    avoidWater: avoidWater,
     accessibility: getChecks('acc_', ['mobility','height','spin','water','dark','service']),
     diningStyle: getTile('diningStyleTiles'),
     diningBudget: ptSegValues['budgetSeg'] || 'No preference',
     dietaryNeeds: getChips('dietChips'),
     diningRecs: getTile('diningRecTiles'),
     wantedRestaurants: document.getElementById('wantedRestaurants') ? document.getElementById('wantedRestaurants').value : '',
-    days: [getDayData(1), getDayData(2), getDayData(3)]
+    days: days
   };
 }
 
 // ── Save current step ───────────────────────────────────
-function ptSaveCurrentStep(){console.log("[pretrip] ptSaveCurrentStep called");
-  // Live-save to localStorage on each step advance
+function ptSaveCurrentStep() {
   try {
     var d = ptCollectData();
     localStorage.setItem('pretripData', JSON.stringify(d));
@@ -698,58 +670,190 @@ function ptSaveCurrentStep(){console.log("[pretrip] ptSaveCurrentStep called");
 }
 
 // ── Load from storage ───────────────────────────────────
-function ptLoadFromStorage(){console.log("[pretrip] ptLoadFromStorage called");
+function ptLoadFromStorage() {
   try {
     var raw = localStorage.getItem('pretripData');
-    if(!raw) return;
+    if (!raw) return;
     var d = JSON.parse(raw);
-    // Trip name
-    if(d.tripName && document.getElementById('tripName')) document.getElementById('tripName').value = d.tripName;
-    if(d.dates){
-      if(d.dates.start && document.getElementById('tripStart')) document.getElementById('tripStart').value = d.dates.start;
-      if(d.dates.end && document.getElementById('tripEnd')) document.getElementById('tripEnd').value = d.dates.end;
+    if (d.tripName && document.getElementById('tripName')) document.getElementById('tripName').value = d.tripName;
+    if (d.dates) {
+      if (d.dates.start && document.getElementById('tripStart')) document.getElementById('tripStart').value = d.dates.start;
+      if (d.dates.end && document.getElementById('tripEnd')) document.getElementById('tripEnd').value = d.dates.end;
     }
-    ptUpdateDayLabels();
-    // Members - clear defaults and load saved
-    if(d.members && d.members.length){
-      var list = document.getElementById('membersList');
-      if(list) list.innerHTML = '';
-      ptMemberCount = 0;
-      d.members.forEach(function(m){ ptAddMember(m.name, m.age); });
+    ptUpdateDayCards();
+    // Restore day toggles after cards are built
+    if (d.days) {
+      d.days.forEach(function(day, i) {
+        var n = i + 1;
+        if (day.hopTo && document.getElementById('day'+n+'Hopper')) document.getElementById('day'+n+'Hopper').classList.add('on');
+        if (day.isVip && document.getElementById('day'+n+'Vip')) { document.getElementById('day'+n+'Vip').classList.add('on'); ptVipToggle(n); }
+        if (day.vipStart && document.getElementById('day'+n+'VipStart')) document.getElementById('day'+n+'VipStart').value = day.vipStart;
+        if (day.vipEnd && document.getElementById('day'+n+'VipEnd')) document.getElementById('day'+n+'VipEnd').value = day.vipEnd;
+        if (day.park) ptSegValues['day'+n+'ParkSeg'] = day.park;
+      });
     }
-    // Days
-    if(d.days){
-      for(var i=0;i<3;i++){
-        var day = d.days[i];
-        if(!day) continue;
-        var n = i+1;
-        if(day.hopTo && document.getElementById('day'+n+'Hopper')) document.getElementById('day'+n+'Hopper').classList.add('on');
-        if(day.arrivalTime && document.getElementById('day'+n+'Wake')) document.getElementById('day'+n+'Wake').value = day.arrivalTime;
-        if(day.isVip && document.getElementById('day'+n+'Vip')){ document.getElementById('day'+n+'Vip').classList.add('on'); ptVipToggle(n); }
-        if(day.vipStart && document.getElementById('day'+n+'VipStart')) document.getElementById('day'+n+'VipStart').value = day.vipStart;
-        if(day.vipEnd && document.getElementById('day'+n+'VipEnd')) document.getElementById('day'+n+'VipEnd').value = day.vipEnd;
-        if(day.notes && document.getElementById('day'+n+'Notes')) document.getElementById('day'+n+'Notes').value = day.notes;
-      }
-    }
-    if(d.wantedRestaurants && document.getElementById('wantedRestaurants')) document.getElementById('wantedRestaurants').value = d.wantedRestaurants;
+    if (d.wantedRestaurants && document.getElementById('wantedRestaurants')) document.getElementById('wantedRestaurants').value = d.wantedRestaurants;
   } catch(e){}
 }
 
-// ── Finish / final step CTA ─────────────────────────────
-function ptFinish(){console.log("[pretrip] ptFinish called");
-  ptSaveCurrentStep();
-  try {
-    var d = ptCollectData();
-    localStorage.setItem('pretripData', JSON.stringify(d));
-    localStorage.setItem('tripSetupComplete', 'true');
-    // Merge into TRIP_CONFIG if available
-    if(typeof window.TRIP_CONFIG !== 'undefined'){
-      Object.assign(window.TRIP_CONFIG, d);
+// ── Schedule generation ─────────────────────────────────
+var SYNC_BASE = 'https://disney-wait-times-lupt.vercel.app';
+
+function ptShowGenerating(dayNum, totalDays) {
+  var bar = document.getElementById('ptCtaBar');
+  if (bar) {
+    bar.innerHTML = '<div style="background:#1A8880;border-radius:13px;padding:14px 16px;text-align:center;">' +
+      '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Building your schedule...</div>' +
+      '<div style="font-size:11px;color:rgba(255,255,255,0.70);">Day ' + dayNum + ' of ' + totalDays + ' — this takes about 30 seconds per day</div>' +
+      '<div style="margin-top:10px;height:4px;background:rgba(255,255,255,0.20);border-radius:2px;overflow:hidden;">' +
+        '<div id="ptGenBar" style="height:100%;background:#fff;border-radius:2px;width:' + Math.round((dayNum-1)/totalDays*100) + '%;transition:width 0.5s ease;"></div>' +
+      '</div>' +
+    '</div>';
+  }
+}
+
+function ptUpdateGenBar(dayNum, totalDays) {
+  var bar = document.getElementById('ptGenBar');
+  if (bar) bar.style.width = Math.round(dayNum/totalDays*100) + '%';
+  var label = document.querySelector('#ptCtaBar div div');
+  if (label) {
+    var sub = label.nextElementSibling;
+    if (sub) sub.textContent = 'Day ' + dayNum + ' of ' + totalDays + ' — almost there...';
+  }
+}
+
+function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
+  var day = tripConfig.days[dayIndex];
+  var retries = retryCount || 0;
+
+  var rp = tripConfig.ridePreferences || {};
+  var prompt = 'Build a complete theme park day schedule for Day ' + (dayIndex+1) + ' of ' + tripConfig.days.length + '. ' +
+    'Date: ' + (day.date || '') + '. ' +
+    'Park: ' + (day.park || 'Disneyland') + '. ' +
+    'Park hopper: ' + (day.hopTo ? 'yes' : 'no') + '. ' +
+    (day.isVip ? 'VIP tour: yes, guide leads ' + day.vipStart + ' to ' + day.vipEnd + '. ' : '') +
+    'Group trip: ' + (tripConfig.tripName || '') + '. ' +
+    'Thrill level: ' + (tripConfig.thrillLevel || 'Mix of everything') + '. ' +
+    'Must-do rides: ' + ((rp.mustDo || []).join(', ') || 'none') + '. ' +
+    'Never schedule: ' + ((rp.skip || tripConfig.neverSchedule || []).join(', ') || 'none') + '. ' +
+    'Dining style: ' + (tripConfig.diningStyle || '') + '. ' +
+    'Dietary needs: ' + ((tripConfig.dietaryNeeds || []).join(', ') || 'none') + '. ' +
+    'Accessibility: ' + ((tripConfig.accessibility || []).join(', ') || 'none') + '. ' +
+    'Return ONLY a raw JSON array of schedule items with fields: t (time), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (note), land (land name).';
+
+  fetch(SYNC_BASE + '/api/generateschedule', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      prompt: prompt,
+      mode: 'setup',
+      maxTokens: 8000,
+      tripConfig: tripConfig
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (!d.ok || !d.text) {
+      if (retries < 3) {
+        console.log('[pretrip] Day ' + (dayIndex+1) + ' failed, retry ' + (retries+1));
+        setTimeout(function(){ ptGenerateDaySchedule(tripConfig, dayIndex, retries+1, callback); }, 2000);
+      } else {
+        callback('Failed after 3 retries: ' + (d.error || 'no response'));
+      }
+      return;
     }
-  } catch(e){}
-  // If we already have a valid session (tpcp_code + tpcp_role set), go straight to app
-  // App will auto-validate and skip the lock screen
-  window.location.href = 'app.html?from=setup&t=' + Date.now();
+    try {
+      var text = d.text.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      var start = text.indexOf('[');
+      var end = text.lastIndexOf(']');
+      if (start === -1 || end === -1) throw new Error('No JSON array');
+      var items = JSON.parse(text.substring(start, end+1));
+      callback(null, items);
+    } catch(e) {
+      if (retries < 3) {
+        setTimeout(function(){ ptGenerateDaySchedule(tripConfig, dayIndex, retries+1, callback); }, 2000);
+      } else {
+        callback('Parse error after retries: ' + e.message);
+      }
+    }
+  })
+  .catch(function(e) {
+    if (retries < 3) {
+      setTimeout(function(){ ptGenerateDaySchedule(tripConfig, dayIndex, retries+1, callback); }, 3000);
+    } else {
+      callback('Network error after retries: ' + e.message);
+    }
+  });
+}
+
+// ── Finish / final step CTA ─────────────────────────────
+function ptFinish() {
+  ptSaveCurrentStep();
+  var d = ptCollectData();
+  localStorage.setItem('pretripData', JSON.stringify(d));
+  localStorage.setItem('tripSetupComplete', 'true');
+
+  var totalDays = d.days.length;
+  if (!totalDays) { window.location.href = 'app.html?from=setup&t=' + Date.now(); return; }
+
+  // Build tripConfig to save and send to AI
+  var tripConfig = {
+    tripName: d.tripName,
+    dates: d.dates,
+    location: d.location,
+    thrillLevel: d.thrillLevel,
+    ridePreferences: { mustDo: d.mustDo, skip: d.neverSchedule, wantToDo: [] },
+    avoidWater: d.avoidWater,
+    accessibility: d.accessibility,
+    diningStyle: d.diningStyle,
+    diningBudget: d.diningBudget,
+    dietaryNeeds: d.dietaryNeeds,
+    diningRecs: d.diningRecs,
+    wantedRestaurants: d.wantedRestaurants,
+    days: d.days,
+    parkHopping: d.days.some(function(dy){ return dy.hopTo; }),
+    onboardingComplete: true
+  };
+
+  // Show progress UI
+  ptShowGenerating(1, totalDays);
+
+  var code = localStorage.getItem('tpcp_code') || '';
+  var generatedDays = [];
+
+  function generateNext(idx) {
+    if (idx >= totalDays) {
+      // All days done — save full schedule to Vercel Blob then redirect
+      var finalConfig = Object.assign({}, tripConfig, {
+        schedule: { days: generatedDays }
+      });
+      if (code) {
+        fetch(SYNC_BASE + '/api/trip', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},
+          body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } })
+        })
+        .then(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); })
+        .catch(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); });
+      } else {
+        window.location.href = 'app.html?from=setup&t=' + Date.now();
+      }
+      return;
+    }
+    ptShowGenerating(idx + 1, totalDays);
+    ptGenerateDaySchedule(tripConfig, idx, 0, function(err, items) {
+      if (err) {
+        console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
+        generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: [] });
+      } else {
+        generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: items });
+      }
+      ptUpdateGenBar(idx + 1, totalDays);
+      generateNext(idx + 1);
+    });
+  }
+
+  generateNext(0);
 }
 </script>
 </body>
