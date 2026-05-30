@@ -2044,17 +2044,18 @@ function buildWaitContext() {
   var hmKey = 'hyperspace mountain';
   if (!w[smKey] && w[hmKey]) w[smKey] = Object.assign({}, w[hmKey], {name: 'Space Mountain / Hyperspace Mountain'});
   if (!w[hmKey] && w[smKey]) w[hmKey] = w[smKey];
+  // Sort longest wait first — high-wait rides are what people ask about
+  // No slice limit — let the char cap handle cutoff so no ride is arbitrarily excluded
   var lines = Object.entries(w)
     .filter(function(kv) { return kv[1] && kv[1].w !== null && kv[1].w !== undefined && kv[0] !== hmKey; })
-    .sort(function(a, b) { return (a[1].w || 0) - (b[1].w || 0); })
-    .slice(0, 30)
+    .sort(function(a, b) { return (b[1].w || 0) - (a[1].w || 0); })
     .map(function(kv) {
       var name = kv[1].name || kv[0];
       return name + ': ' + kv[1].w + ' min' + (kv[1].s === 'CLOSED' ? ' (closed)' : '');
     });
   if (!lines.length) return '';
-  var result = 'Current live wait times:\n' + lines.join('\n');
-  return result.substring(0, 800);
+  var result = 'Current live wait times (highest first):\n' + lines.join('\n');
+  return result.substring(0, 1200);
 }
 
 // FIX3: AI proxy helper - routes all AI calls through Vercel /api/ai
