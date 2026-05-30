@@ -153,16 +153,11 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
   <div class="pt-section-label">Home park</div>
   <div class="pt-seg" id="parkSeg" style="margin-bottom:12px;">
     <button class="pt-seg-btn active" onclick="ptSegSelect('parkSeg',this,'Disneyland')">Disneyland</button>
-    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'DCA')">Disney California Adventure</button>
+    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'DCA')">DCA</button>
+    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'Both')">Both</button>
   </div>
 
-  <div class="pt-section-label">Group members</div>
-  <div class="pt-members-list" id="membersList"></div>
-  <button class="pt-add-link" onclick="ptAddMember()">
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#1A8880" stroke-width="1.5"/><path d="M7 4V10M4 7H10" stroke="#1A8880" stroke-width="1.5" stroke-linecap="round"/></svg>
-    Add another person
-  </button>
-</div>
+
 
 <!-- STEP 2: RIDE PREFERENCES -->
 <div class="pt-step" id="ptStep2">
@@ -230,6 +225,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     <div class="pt-chip" onclick="ptChipToggle(this)">Incredicoaster</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Guardians of the Galaxy</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Tiana's Bayou Adventure</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Grizzly River Run</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Finding Nemo</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Roger Rabbit's Car Toon Spin</div>
   </div>
@@ -247,6 +243,10 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     <div class="pt-check-row" onclick="ptCheckToggle('acc_spin')">
       <div class="pt-check-box" id="acc_spin"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="pt-check-label">Avoid spinning rides</div>
+    </div>
+    <div class="pt-check-row" onclick="ptCheckToggle('acc_water')">
+      <div class="pt-check-box" id="acc_water"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="pt-check-label">Avoid water rides (Tiana's Bayou Adventure, Grizzly River Run)</div>
     </div>
     <div class="pt-check-row" onclick="ptCheckToggle('acc_dark')">
       <div class="pt-check-box" id="acc_dark"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -494,8 +494,7 @@ var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Alm
   if(isEdit){ ptLoadFromStorage(); }
 
   // Add initial members
-  ptAddMember('', '');
-  ptAddMember('', '');
+
 
   // Update day labels from trip dates
   ptUpdateDayLabels();
@@ -679,7 +678,7 @@ function ptCollectData(){console.log("[pretrip] ptCollectData called");
     thrillLevel: getTile('thrillTiles'),
     mustDo: getChips('mustDoChips'),
     neverSchedule: getChips('neverChips'),
-    accessibility: getChecks('acc_', ['mobility','height','spin','dark','service']),
+    accessibility: getChecks('acc_', ['mobility','height','spin','water','dark','service']),
     diningStyle: getTile('diningStyleTiles'),
     diningBudget: ptSegValues['budgetSeg'] || 'No preference',
     dietaryNeeds: getChips('dietChips'),
@@ -748,7 +747,9 @@ function ptFinish(){console.log("[pretrip] ptFinish called");
       Object.assign(window.TRIP_CONFIG, d);
     }
   } catch(e){}
-  window.location.href = 'app.html';
+  // If we already have a valid session (tpcp_code + tpcp_role set), go straight to app
+  // App will auto-validate and skip the lock screen
+  window.location.href = 'app.html?from=setup&t=' + Date.now();
 }
 </script>
 </body>
