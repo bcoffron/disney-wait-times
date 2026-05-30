@@ -489,6 +489,20 @@ function ptVipToggle(day){console.log("[pretrip] ptVipToggle called");
   sub.classList.toggle('visible', tog.classList.contains('on'));
 }
 
+function ptLLToggle(day){
+  var tog = document.getElementById('day'+day+'LL');
+  var sub = document.getElementById('day'+day+'LLSub');
+  if(!tog || !sub) return;
+  sub.classList.toggle('visible', tog.classList.contains('on'));
+}
+
+function ptILLToggle(day){
+  var tog = document.getElementById('day'+day+'ILL');
+  var sub = document.getElementById('day'+day+'ILLSub');
+  if(!tog || !sub) return;
+  sub.classList.toggle('visible', tog.classList.contains('checked'));
+}
+
 // ── Members ─────────────────────────────────────────────
 function ptAddMember(name, age){console.log("[pretrip] ptAddMember called");
   ptMemberCount++;
@@ -563,6 +577,10 @@ function ptUpdateDayCards() {
     saved.push({
       park: ptSegValues['day'+i+'ParkSeg'] || 'Disneyland',
       hopper: document.getElementById('day'+i+'Hopper') ? document.getElementById('day'+i+'Hopper').classList.contains('on') : false,
+      hasLL: document.getElementById('day'+i+'LL') ? document.getElementById('day'+i+'LL').classList.contains('on') : false,
+      hasLLMP: document.getElementById('day'+i+'LLMP') ? document.getElementById('day'+i+'LLMP').classList.contains('checked') : false,
+      hasILL: document.getElementById('day'+i+'ILL') ? document.getElementById('day'+i+'ILL').classList.contains('checked') : false,
+      illRides: document.getElementById('day'+i+'ILLRides') ? document.getElementById('day'+i+'ILLRides').value : '',
       isVip: document.getElementById('day'+i+'Vip') ? document.getElementById('day'+i+'Vip').classList.contains('on') : false,
       vipStart: document.getElementById('day'+i+'VipStart') ? document.getElementById('day'+i+'VipStart').value : '10:00',
       vipEnd: document.getElementById('day'+i+'VipEnd') ? document.getElementById('day'+i+'VipEnd').value : '17:00'
@@ -588,6 +606,24 @@ function ptUpdateDayCards() {
       '<div class="pt-toggle-row" style="margin-top:10px;">' +
         '<div class="pt-toggle-label">Park hopper</div>' +
         '<div class="pt-toggle' + (prev.hopper ? ' on' : '') + '" id="day'+n+'Hopper" onclick="ptToggle(\'day'+n+'Hopper\')"><div class="pt-toggle-knob"></div></div>' +
+      '</div>' +
+      '<div class="pt-toggle-row">' +
+        '<div class="pt-toggle-label">Lightning Lane this day</div>' +
+        '<div class="pt-toggle' + (prev.hasLL ? ' on' : '') + '" id="day'+n+'LL" onclick="ptToggle(\'day'+n+'LL\');ptLLToggle('+n+')"><div class="pt-toggle-knob"></div></div>' +
+      '</div>' +
+      '<div class="pt-vip-sub' + (prev.hasLL ? ' visible' : '') + '" id="day'+n+'LLSub">' +
+        '<div class="pt-check-row" onclick="ptCheckToggle(\'day'+n+'LLMP\')" style="padding:6px 0;">' +
+          '<div class="pt-check-box' + (prev.hasLLMP ? ' checked' : '') + '" id="day'+n+'LLMP"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
+          '<div class="pt-check-label" style="font-size:11px;">Lightning Lane Multi Pass (LLMP)</div>' +
+        '</div>' +
+        '<div class="pt-check-row" onclick="ptCheckToggle(\'day'+n+'ILL\');ptILLToggle('+n+')" style="padding:6px 0;">' +
+          '<div class="pt-check-box' + (prev.hasILL ? ' checked' : '') + '" id="day'+n+'ILL"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
+          '<div class="pt-check-label" style="font-size:11px;">Individual Lightning Lane (ILL) — paid per ride</div>' +
+        '</div>' +
+        '<div class="pt-vip-sub' + (prev.hasILL ? ' visible' : '') + '" id="day'+n+'ILLSub" style="margin-top:4px;">' +
+          '<div class="pt-label" style="margin-bottom:4px;font-size:10px;">Which ILL rides? (e.g. Rise of the Resistance)</div>' +
+          '<input class="pt-input" id="day'+n+'ILLRides" type="text" placeholder="e.g. Rise of the Resistance, Tiana\'s Bayou Adventure" value="' + (prev.illRides || '') + '" autocomplete="off">' +
+        '</div>' +
       '</div>' +
       '<div class="pt-toggle-row">' +
         '<div class="pt-toggle-label">VIP tour this day</div>' +
@@ -624,11 +660,19 @@ function ptCollectData() {
   function getDayData(n){
     var parkSeg = document.getElementById('day'+n+'ParkSeg');
     var park = ptSegValues['day'+n+'ParkSeg'] || (parkSeg ? parkSeg.querySelector('.pt-seg-btn.active').textContent.trim() : 'Disneyland');
+    var hasLL = document.getElementById('day'+n+'LL') ? document.getElementById('day'+n+'LL').classList.contains('on') : false;
+    var hasLLMP = document.getElementById('day'+n+'LLMP') ? document.getElementById('day'+n+'LLMP').classList.contains('checked') : false;
+    var hasILL = document.getElementById('day'+n+'ILL') ? document.getElementById('day'+n+'ILL').classList.contains('checked') : false;
+    var illRides = document.getElementById('day'+n+'ILLRides') ? document.getElementById('day'+n+'ILLRides').value.trim() : '';
     return {
       num: n,
       date: startVal ? ptGetDateLabel(startVal, n-1) : '',
       park: park,
       hopTo: document.getElementById('day'+n+'Hopper') ? document.getElementById('day'+n+'Hopper').classList.contains('on') : false,
+      hasLL: hasLL,
+      hasLLMP: hasLLMP,
+      hasILL: hasILL,
+      illRides: illRides,
       isVip: document.getElementById('day'+n+'Vip') ? document.getElementById('day'+n+'Vip').classList.contains('on') : false,
       vipStart: document.getElementById('day'+n+'VipStart') ? document.getElementById('day'+n+'VipStart').value : '10:00',
       vipEnd: document.getElementById('day'+n+'VipEnd') ? document.getElementById('day'+n+'VipEnd').value : '17:00'
@@ -686,6 +730,10 @@ function ptLoadFromStorage() {
       d.days.forEach(function(day, i) {
         var n = i + 1;
         if (day.hopTo && document.getElementById('day'+n+'Hopper')) document.getElementById('day'+n+'Hopper').classList.add('on');
+        if (day.hasLL && document.getElementById('day'+n+'LL')) { document.getElementById('day'+n+'LL').classList.add('on'); ptLLToggle(n); }
+        if (day.hasLLMP && document.getElementById('day'+n+'LLMP')) document.getElementById('day'+n+'LLMP').classList.add('checked');
+        if (day.hasILL && document.getElementById('day'+n+'ILL')) { document.getElementById('day'+n+'ILL').classList.add('checked'); ptILLToggle(n); }
+        if (day.illRides && document.getElementById('day'+n+'ILLRides')) document.getElementById('day'+n+'ILLRides').value = day.illRides;
         if (day.isVip && document.getElementById('day'+n+'Vip')) { document.getElementById('day'+n+'Vip').classList.add('on'); ptVipToggle(n); }
         if (day.vipStart && document.getElementById('day'+n+'VipStart')) document.getElementById('day'+n+'VipStart').value = day.vipStart;
         if (day.vipEnd && document.getElementById('day'+n+'VipEnd')) document.getElementById('day'+n+'VipEnd').value = day.vipEnd;
@@ -726,12 +774,22 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   var day = tripConfig.days[dayIndex];
   var retries = retryCount || 0;
 
-  var rp = tripConfig.ridePreferences || {};
+  var llContext = '';
+  if (day.hasLL) {
+    llContext = 'Lightning Lane: YES. ';
+    if (day.hasLLMP) llContext += 'Has LLMP (Lightning Lane Multi Pass) — include 3-4 specific LLMP booking tip cards throughout the day naming exact rides to book and when. ';
+    if (day.hasILL) llContext += 'Has ILL (Individual Lightning Lane) — paid per ride. ILL rides for this day: ' + (day.illRides || 'not specified') + '. Include ILL booking tip card at 7:00 AM telling them to purchase ILL immediately at park open. ';
+    if (!day.hasLLMP && !day.hasILL) llContext += 'Has Lightning Lane but type not specified — include general LL strategy tips. ';
+  } else {
+    llContext = 'Lightning Lane: NO — do not include any LL booking tip cards. Schedule standby rides only. ';
+  }
+
   var prompt = 'Build a complete theme park day schedule for Day ' + (dayIndex+1) + ' of ' + tripConfig.days.length + '. ' +
     'Date: ' + (day.date || '') + '. ' +
     'Park: ' + (day.park || 'Disneyland') + '. ' +
     'Park hopper: ' + (day.hopTo ? 'yes' : 'no') + '. ' +
     (day.isVip ? 'VIP tour: yes, guide leads ' + day.vipStart + ' to ' + day.vipEnd + '. ' : '') +
+    llContext +
     'Group trip: ' + (tripConfig.tripName || '') + '. ' +
     'Thrill level: ' + (tripConfig.thrillLevel || 'Mix of everything') + '. ' +
     'Must-do rides: ' + ((rp.mustDo || []).join(', ') || 'none') + '. ' +
