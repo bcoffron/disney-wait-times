@@ -146,7 +146,7 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     const llStrategy   = (cacheCtx.LIGHTNING_LANE_STRATEGY || '').substring(0, 600);
     const diningTiming = (cacheCtx.DINING_TIMING           || '').substring(0, 600);
     const crowdFlow    = (cacheCtx.CROWD_FLOW              || '').substring(0, 500);
-    const closures     = (cacheCtx.CURRENT_CLOSURES        || '').substring(0, 400);
+    const closures     = (cacheCtx.CURRENT_CLOSURES        || '').substring(0, 1000);
     const specialEvts  = (cacheCtx.SPECIAL_EVENTS          || '').substring(0, 300);
     const tripCtx      = (cacheCtx.TRIP_CONTEXT            || '').substring(0, 600);
 
@@ -223,8 +223,8 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
 
     system += '\n\n=== CURRENT RIDE CLOSURES ÃÂ¢ÃÂÃÂ DO NOT SCHEDULE ===';
     system += '\nThe following attractions are currently closed for refurbishment. NEVER schedule them as ride cards:';
-    system += '\n- Pirates of the Caribbean (closed Jun 2026, reopens TBD)';
-    system += '\nCheck the CURRENT CLOSURES section above for any additional closures and honor all of them.';
+    system += '\n- Pirates of the Caribbean (DL) — closed for refurbishment, reopens TBD. NEVER schedule this ride.';
+    system += '\nThe CURRENT CLOSURES section above contains a full updated list of all closed attractions. Every ride listed there is unavailable. NEVER schedule a closed ride even if the user selected it as a must-do. Instead, insert a tip card explaining it is closed and suggesting the best alternative.';
 
     system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE ÃÂ¢ÃÂÃÂ STRICTLY ENFORCED ===';
     system += '\nConfirmed reservations from tripConfig.dining.reservations MUST appear in the schedule as type:\"dining\" cards at the exact time specified. This is non-negotiable. Do NOT omit them, do NOT replace them with quickservice cards, and do NOT schedule a competing dinner in the same window.';
