@@ -1,7 +1,7 @@
 // api/generateschedule.js
 // Routes generateFromSetup and aiChooseRides through Vercel with new two-cache section injection
 const { list } = require('@vercel/blob');
-const { validateSchedule } = require('./validate-schedule');
+const { validateSchedule, parseClosedFromCache } = require('./validate-schedule');
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ buildCacheContext ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function buildCacheContext(sectionNames, includeDynamic = false) {
@@ -361,7 +361,10 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
       try {
         const safeConfig = tripConfig || {};
         const singleDaySchedule = { days: [{ items: parsed, park: (safeConfig.days && safeConfig.days[0] && safeConfig.days[0].park) || 'Disneyland' }] };
-        const valResult = validateSchedule(singleDaySchedule, safeConfig);
+        // Parse closed rides from cache CURRENT_CLOSURES — validator uses this as authoritative list
+        const closedFromCache = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
+        console.log('[generateschedule] closed from cache:', JSON.stringify(closedFromCache));
+        const valResult = validateSchedule(singleDaySchedule, safeConfig, closedFromCache);
         const validatedItems = valResult.schedule.days[0].items;
         if (valResult.corrections && valResult.corrections.length > 0) {
           console.log('[generateschedule] validator corrections:', JSON.stringify(valResult.corrections));
