@@ -2619,38 +2619,40 @@ function llGotIt(rideKey, bannerEl){
   var returnTime=timeInput?timeInput.value.trim():'';
   if(!returnTime){timeInput&&timeInput.focus();return;}
 
-  // Save the booked time
   loadLLState();
   llState.bookedTimes[rideKey]=returnTime;
   saveLLState();
 
-  // Check if schedule needs reoptimizing (return time differs from scheduled time by 20+ min)
-  var day=getCurDay();
-  if(!day||!day.sections||!day.sections.length){return;}
+  var dayData=getCurDay();
   var scheduledTime=null;
-  day.sections.forEach(function(sec){
-    sec.entries.forEach(function(e){
-      if(e.ride&&e.ride.toLowerCase().includes(rideKey.toLowerCase().substring(0,8))){
-        scheduledTime=e.t;
-      }
-    });
+  var items=dayData&&dayData.items?dayData.items:
+    (dayData&&dayData.sections?dayData.sections.reduce(function(acc,s){return acc.concat(s.entries||[]);},
+[]):[]);
+
+  items.forEach(function(e){
+    if(e.ride&&e.ride.toLowerCase().includes(rideKey.toLowerCase().substring(0,8))){
+      scheduledTime=e.t;
+    }
   });
 
+  var parseTime=function(t){
+    if(!t)return 0;
+    var p=t.replace(/ AM| PM/,'').split(':');
+    var h=parseInt(p[0]),m=parseInt(p[1])||0;
+    if(t.indexOf('PM')>-1&&h!==12)h+=12;
+    if(t.indexOf('AM')>-1&&h===12)h=0;
+    return h*60+m;
+  };
+
   if(scheduledTime){
-    var parseTime=function(t){
-      var p=t.replace(' AM','').replace(' PM','').split(':');
-      var h=parseInt(p[0]),m=parseInt(p[1])||0;
-      if(t.indexOf('PM')>-1&&h!==12) h+=12;
-      if(t.indexOf('AM')>-1&&h===12) h=0;
-      return h*60+m;
-    };
     var diff=Math.abs(parseTime(returnTime)-parseTime(scheduledTime));
     if(diff>=20){
-      // Prompt to reoptimize
-      bannerEl.parentNode.innerHTML='<div style="font-size:12px;color:var(--green);padding:4px 0">&#10003; LL booked for '+returnTime+'! Your scheduled time differs by '+diff+' min. <button onclick="reoptimize()" style="padding:3px 10px;border-radius:99px;border:1.5px solid var(--magic);background:rgba(27,47,160,0.08);color:var(--magic);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;margin-left:4px">Reoptimize <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M19 16l.5 1.5L21 18l-1.5.5L19 20l-.5-1.5L17 18l1.5-.5z"/><path d="M5 4l.5 1.5L7 6l-1.5.5L5 8l-.5-1.5L3 6l1.5-.5z"/></svg></button></div>';
+      bannerEl.parentNode.innerHTML='<div style="font-size:12px;color:var(--green);padding:4px 0">&#10003; Booked for '+returnTime+'! Differs from schedule by '+diff+' min. <button onclick="reoptimize()" style="padding:3px 10px;border-radius:99px;border:1.5px solid var(--magic);background:rgba(27,47,160,0.08);color:var(--magic);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;margin-left:4px">Reoptimize</button></div>';
     }else{
-      bannerEl.parentNode.innerHTML='<div style="font-size:12px;color:var(--green);padding:4px 0">&#10003; LL booked for '+returnTime+'! Schedule looks good.</div>';
+      bannerEl.parentNode.innerHTML='<div style="font-size:12px;color:var(--green);padding:4px 0">&#10003; Booked for '+returnTime+'! Schedule looks good.</div>';
     }
+  }else{
+    bannerEl.parentNode.innerHTML='<div style="font-size:12px;color:var(--green);padding:4px 0">&#10003; Booked for '+returnTime+'!</div>';
   }
 }
 
