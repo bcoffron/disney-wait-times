@@ -2037,8 +2037,13 @@ function buildWaitContext() {
   // Pull from the waits object used by the Waits tab
   var w = (typeof waits !== 'undefined') ? waits : {};
   if (!w || !Object.keys(w).length) return '';
+  // Space Mountain / Hyperspace Mountain alias — treat as the same ride
+  var smKey = 'space mountain';
+  var hmKey = 'hyperspace mountain';
+  if (!w[smKey] && w[hmKey]) w[smKey] = Object.assign({}, w[hmKey], {name: 'Space Mountain / Hyperspace Mountain'});
+  if (!w[hmKey] && w[smKey]) w[hmKey] = w[smKey];
   var lines = Object.entries(w)
-    .filter(function(kv) { return kv[1] && kv[1].w !== null && kv[1].w !== undefined; })
+    .filter(function(kv) { return kv[1] && kv[1].w !== null && kv[1].w !== undefined && kv[0] !== hmKey; })
     .sort(function(a, b) { return (a[1].w || 0) - (b[1].w || 0); })
     .slice(0, 30)
     .map(function(kv) {
@@ -4592,7 +4597,7 @@ async function _doChat(msg){
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
   var _rpc=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});
-  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' NOTE: Space Mountain and Hyperspace Mountain are the same ride (seasonal rename); treat them as identical when answering questions. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' RIDE NAME ALIAS: Space Mountain and Hyperspace Mountain are the same ride — always check both names in wait data when asked about either. WAIT TIME RULE: When asked about a specific ride wait time, always look it up in the live wait data above before answering. If the ride appears in the live data (under either name), state the exact current wait. If it is genuinely missing from the live data, say so and give a historical estimate from cache. Never say you cannot answer a wait time question. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(!window.chatHistory)window.chatHistory=[];
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
