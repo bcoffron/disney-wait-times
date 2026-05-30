@@ -21,12 +21,34 @@ function minutesToTime(mins) {
   return displayH + ':' + String(m).padStart(2, '0') + ' ' + period;
 }
 
-const CLOSED_ATTRACTIONS = [
+// Fallback hardcoded closures — used only if cache is unavailable
+// When cache CURRENT_CLOSURES is passed in at call time, it overrides this list
+const CLOSED_ATTRACTIONS_FALLBACK = [
   'Pirates of the Caribbean',
   'Buzz Lightyear Astro Blasters',
   'Inside Out Emotional Whirlwind',
   'Silly Symphony Swings'
 ];
+
+// Parse ride names out of a CURRENT_CLOSURES cache text block
+function parseClosedFromCache(closuresText) {
+  if (!closuresText || typeof closuresText !== 'string') return null;
+  const rides = [];
+  const lines = closuresText.split('\n');
+  lines.forEach(line => {
+    // Match lines that name an attraction — look for known patterns
+    // e.g. "- Pirates of the Caribbean (DL) — closed..."
+    // or "Pirates of the Caribbean: closed..."
+    const m = line.match(/^[-*•]?\s*([A-Z][^:(—\-]+?)(?:\s*\((?:DL|DCA)\))?\s*(?:—|-|:)/);
+    if (m) {
+      const name = m[1].trim();
+      if (name.length > 4 && !name.toLowerCase().includes('note') && !name.toLowerCase().includes('check')) {
+        rides.push(name);
+      }
+    }
+  });
+  return rides.length > 0 ? rides : null;
+}
 
 const VEG_DEFAULTS = {
   'jolly holiday': 'Veggie Sandwich with hummus and roasted vegetables',
@@ -95,9 +117,15 @@ function getKidsDefault(h, itemTime) {
 // Known park close times in minutes since midnight â D1, D2, D3
 const PARK_CLOSE = [24 * 60, 23 * 60, 22 * 60];
 
-function validateSchedule(schedule, tripConfig) {
+function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
   const corrections = [];
   const hardViolations = [];
+
+  // Build the authoritative closed list:
+  // Cache-derived list takes priority. Fallback if cache unavailable.
+  const cacheClosures = closedAttractionsFromCache && closedAttractionsFromCache.length
+    ? closedAttractionsFromCache : null;
+  const CLOSED_ATTRACTIONS = cacheClosures || CLOSED_ATTRACTIONS_FALLBACK;
 
   if (!schedule || !Array.isArray(schedule.days)) {
     return { valid: true, schedule, corrections, hardViolations };
@@ -370,4 +398,4 @@ function validateSchedule(schedule, tripConfig) {
   };
 }
 
-module.exports = { validateSchedule };
+module.exports = { validateSchedule, parseClosedFromCache };
