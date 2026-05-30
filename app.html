@@ -6881,7 +6881,14 @@ function highlightAiChanged(entryTitles) {
 
 /* --- Init new UI components on load --- */
 document.addEventListener('DOMContentLoaded', function() {
-  initSplash();
+  // If returning from pretrip setup and already authenticated, skip splash entirely
+  var _fromSetup = (new URLSearchParams(window.location.search)).get('from') === 'setup';
+  var _hasAuth = localStorage.getItem('tpcp_code') && localStorage.getItem('tpcp_role');
+  if (_fromSetup && _hasAuth) {
+    enterSplash(true);
+  } else {
+    initSplash();
+  }
   // Update day tabs with VIP markers
   (TRIP_CONFIG.days || []).forEach(function(d) {
     var tab = document.getElementById('day-tab-' + d.num);
