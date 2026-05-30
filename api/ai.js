@@ -96,7 +96,7 @@ export default async function handler(req, res) {
         'ROPE DROP STRATEGY:\n' + (cacheCtx.ROPE_DROP_STRATEGY || '').substring(0, 800),
         'WAIT PATTERNS:\n' + (cacheCtx.WAIT_PATTERNS || '').substring(0, 800),
         'CROWD FLOW:\n' + (cacheCtx.CROWD_FLOW || '').substring(0, 500),
-        'CURRENT CLOSURES:\n' + (cacheCtx.CURRENT_CLOSURES || '').substring(0, 400),
+        'CURRENT CLOSURES:\n' + (cacheCtx.CURRENT_CLOSURES || '').substring(0, 1000),
         'LIGHTNING LANE:\n' + (cacheCtx.LIGHTNING_LANE_STRATEGY || '').substring(0, 400),
         'DINING TIMING:\n' + (cacheCtx.DINING_TIMING || '').substring(0, 300),
         'LAND MAP (brief):\n' + (cacheCtx.LAND_MAP || '').substring(0, 300),
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
 
   // ââ Build system prompt â inject cache context âââââââââââââââââââââââââââââ
   let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend â specific, warm, and actionable.';
-    systemPrompt += '\n\nCRITICAL RULE \u2014 NEVER hedge or say information is unavailable:\nYou have complete park intelligence including exact park hours, wait time data, current closures, and trip-specific context for June 28-30 2026.\nNEVER say: "I cannot retrieve", "wasn\'t available", "check the website", "I don\'t have that information", "specific hours weren\'t captured", or any similar hedge.\nSPECIFIC ANSWERS TO ALWAYS GIVE:\n- Park hours Jun 28 (Sunday): Disneyland 8:00 AM - midnight, DCA 8:00 AM - 10:00 PM\n- Park hours Jun 29 (Monday): check park_hours_intel in your context\n- Park hours Jun 30 (Tuesday): check park_hours_intel in your context\n- Rope drop Sunday: Rise of the Resistance \u2014 get there at 8:00 AM\n- Pirates of the Caribbean: currently closed for refurbishment\nYou are a brilliant knowledgeable friend. Answer every question directly and confidently using the data in your context.';
+    systemPrompt += '\n\nCRITICAL RULE \u2014 NEVER hedge or say information is unavailable:\nYou have complete park intelligence including park hours, live wait data, current closures, and trip-specific context.\nNEVER say: "I cannot retrieve", "wasn\'t available", "check the website", "I don\'t have that information", or any similar hedge.\nPARK HOURS: Always read from the PARK HOURS section in your context. That is the authoritative source.\nROPE DROP STRATEGY (always use this): Arrive at the park gates 60 minutes before official open. For Disneyland: go straight to Star Wars Galaxy\'s Edge and ride Rise of the Resistance first \u2014 it has the longest waits all day. Then Millennium Falcon. Then cross to Fantasyland before 10 AM. For DCA: Radiator Springs Racers rope drop first, then Guardians or Incredicoaster.\nCURRENTLY CLOSED FOR REFURBISHMENT (NEVER schedule or recommend these as operating): Pirates of the Caribbean (DL). Check CURRENT CLOSURES in your context for the full up-to-date list \u2014 it is updated weekly.\nYou are a brilliant knowledgeable friend. Answer every question directly and confidently using the data in your context.';
     systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + fullContext;
   if (ridePrefsHeader) systemPrompt += '\n\n' + ridePrefsHeader;
 
