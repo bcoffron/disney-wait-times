@@ -46,7 +46,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 .pt-members-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
 .pt-member-row{display:flex;gap:8px;align-items:center;}
 .pt-member-row .pt-input{flex:1;}
-.pt-member-row .pt-input.age-input{width:60px;flex:none;}
+
 .pt-remove-btn{width:28px;height:28px;background:rgba(200,96,48,0.08);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;}
 .pt-add-link{font-size:11px;font-weight:600;color:#1A8880;background:none;border:none;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:4px;}
 /* Single select tiles */
@@ -153,9 +153,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
   <div class="pt-section-label">Home park</div>
   <div class="pt-seg" id="parkSeg" style="margin-bottom:12px;">
     <button class="pt-seg-btn active" onclick="ptSegSelect('parkSeg',this,'Disneyland')">Disneyland</button>
-    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'WDW')">WDW</button>
-    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'Universal')">Universal</button>
-    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'Other')">Other</button>
+    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'DCA')">Disney California Adventure</button>
   </div>
 
   <div class="pt-section-label">Group members</div>
@@ -212,7 +210,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     <div class="pt-chip" onclick="ptChipToggle(this)">Radiator Springs Racers</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Incredicoaster</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Guardians of the Galaxy</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Splash Mountain</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Tiana's Bayou Adventure</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Finding Nemo</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">It's a Small World</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Fantasmic!</div>
@@ -231,7 +229,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     <div class="pt-chip" onclick="ptChipToggle(this)">Radiator Springs Racers</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Incredicoaster</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Guardians of the Galaxy</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Splash Mountain</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Tiana's Bayou Adventure</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Finding Nemo</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Roger Rabbit's Car Toon Spin</div>
   </div>
@@ -354,10 +352,6 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
       <div class="pt-toggle-label">Park hopper</div>
       <div class="pt-toggle" id="day1Hopper" onclick="ptToggle('day1Hopper')"><div class="pt-toggle-knob"></div></div>
     </div>
-    <div class="pt-field" style="margin-top:10px;">
-      <div class="pt-label">Wake-up time</div>
-      <input class="pt-input" id="day1Wake" type="time" value="06:30">
-    </div>
     <div class="pt-toggle-row">
       <div class="pt-toggle-label">VIP tour this day</div>
       <div class="pt-toggle" id="day1Vip" onclick="ptToggle('day1Vip');ptVipToggle(1)"><div class="pt-toggle-knob"></div></div>
@@ -370,10 +364,6 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
         <div class="pt-time-label" style="text-align:center;">to</div>
         <input class="pt-input" id="day1VipEnd" type="time" value="17:00">
       </div>
-    </div>
-    <div class="pt-field" style="margin-top:10px;">
-      <div class="pt-label">Day notes</div>
-      <textarea class="pt-textarea" id="day1Notes" placeholder="Any special plans for this day..." style="min-height:52px;"></textarea>
     </div>
   </div>
 
@@ -395,10 +385,6 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
       <div class="pt-toggle-label">Park hopper</div>
       <div class="pt-toggle" id="day2Hopper" onclick="ptToggle('day2Hopper')"><div class="pt-toggle-knob"></div></div>
     </div>
-    <div class="pt-field" style="margin-top:10px;">
-      <div class="pt-label">Wake-up time</div>
-      <input class="pt-input" id="day2Wake" type="time" value="06:00">
-    </div>
     <div class="pt-toggle-row">
       <div class="pt-toggle-label">VIP tour this day</div>
       <div class="pt-toggle on" id="day2Vip" onclick="ptToggle('day2Vip');ptVipToggle(2)"><div class="pt-toggle-knob"></div></div>
@@ -411,10 +397,6 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
         <div class="pt-time-label" style="text-align:center;">to</div>
         <input class="pt-input" id="day2VipEnd" type="time" value="17:00">
       </div>
-    </div>
-    <div class="pt-field" style="margin-top:10px;">
-      <div class="pt-label">Day notes</div>
-      <textarea class="pt-textarea" id="day2Notes" placeholder="Any special plans for this day..." style="min-height:52px;"></textarea>
     </div>
   </div>
 
@@ -436,10 +418,6 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
       <div class="pt-toggle-label">Park hopper</div>
       <div class="pt-toggle on" id="day3Hopper" onclick="ptToggle('day3Hopper')"><div class="pt-toggle-knob"></div></div>
     </div>
-    <div class="pt-field" style="margin-top:10px;">
-      <div class="pt-label">Wake-up time</div>
-      <input class="pt-input" id="day3Wake" type="time" value="07:00">
-    </div>
     <div class="pt-toggle-row">
       <div class="pt-toggle-label">VIP tour this day</div>
       <div class="pt-toggle" id="day3Vip" onclick="ptToggle('day3Vip');ptVipToggle(3)"><div class="pt-toggle-knob"></div></div>
@@ -453,121 +431,42 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
         <input class="pt-input" id="day3VipEnd" type="time" value="17:00">
       </div>
     </div>
-    <div class="pt-field" style="margin-top:10px;">
-      <div class="pt-label">Day notes</div>
-      <textarea class="pt-textarea" id="day3Notes" placeholder="Any special plans for this day..." style="min-height:52px;"></textarea>
-    </div>
   </div>
 </div>
 
-<!-- STEP 5: PRE-TRIP CHECKLIST -->
+<!-- STEP 5: YOU'RE ALL SET -->
 <div class="pt-step" id="ptStep5">
-  <div class="pt-section-label" style="margin-top:0;">Your pre-trip checklist</div>
-  <div class="pt-hint" style="margin-bottom:14px;">Work through these before your trip for the smoothest day possible</div>
-
-  <div class="pt-cl-section">
-    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
-      <div class="pt-cl-section-title">Before you arrive</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pt-cl-section-count" id="cl_s1_count">0/4</div>
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div style="background:#fff;border-radius:14px;border:1px solid rgba(7,30,37,0.08);overflow:hidden;margin-bottom:12px;">
+    <div style="background:#1A6860;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L10 6H14.5L11 9L12.5 13.5L8 11L3.5 13.5L5 9L1.5 6H6L8 1.5Z" fill="#fff"/></svg>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#fff;">You're all set!</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.65);margin-top:1px;">Your schedule is ready to build</div>
       </div>
     </div>
-    <div class="pt-cl-section-body" id="cl_s1_body">
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s1_count',4)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Download the Disneyland app and link your tickets</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s1_count',4)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Make dining reservations 60 days in advance</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s1_count',4)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Check height requirements for your group members</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s1_count',4)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Book parking or arrange hotel transportation</div></div>
+    <div style="padding:14px 16px;">
+      <div style="font-size:12px;color:#071E25;font-weight:600;margin-bottom:8px;">Before your trip, check the Info tab</div>
+      <div style="font-size:11px;color:#4A7A7C;line-height:1.55;">The Info tab in your schedule has everything you need — Lightning Lane tips, dining strategy, park hours, and day-of advice. It updates automatically as your trip gets closer.</div>
     </div>
   </div>
 
-  <div class="pt-cl-section">
-    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
-      <div class="pt-cl-section-title">Lightning Lane strategy</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pt-cl-section-count" id="cl_s2_count">0/3</div>
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div style="background:#fff;border-radius:14px;border:1px solid rgba(7,30,37,0.08);padding:14px 16px;margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:700;color:#071E25;margin-bottom:6px;">A few quick tips</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:4px;flex-shrink:0;"></div>
+        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Download the Disneyland app and link your tickets before you arrive</div>
       </div>
-    </div>
-    <div class="pt-cl-section-body" id="cl_s2_body">
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s2_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Lightning Lane Multi Pass is available from 7am day-of &mdash; buy early for best ride selection</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s2_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Individual Lightning Lane for Star Wars and Radiator Springs sells out fastest &mdash; have payment ready</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s2_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Book new LL passes as soon as your current one is scanned, not when the window opens</div></div>
-    </div>
-  </div>
-
-  <div class="pt-cl-section">
-    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
-      <div class="pt-cl-section-title">Park hopper rules</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pt-cl-section-count" id="cl_s3_count">0/2</div>
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:4px;flex-shrink:0;"></div>
+        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Lightning Lane Multi Pass opens at 7am on the day — buy early for the best ride selection</div>
       </div>
-    </div>
-    <div class="pt-cl-section-body" id="cl_s3_body">
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s3_count',2)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Park hopping is available after 11am &mdash; you must have entered your original park first</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s3_count',2)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Confirm your ticket type includes park hopper &mdash; single-day tickets typically do not</div></div>
-    </div>
-  </div>
-
-  <div class="pt-cl-section">
-    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
-      <div class="pt-cl-section-title">What to pack</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pt-cl-section-count" id="cl_s4_count">0/5</div>
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:4px;flex-shrink:0;"></div>
+        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Arrive at the gates 30 minutes before opening for rope drop</div>
       </div>
-    </div>
-    <div class="pt-cl-section-body" id="cl_s4_body">
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Comfortable walking shoes &mdash; you'll average 8-12 miles per day</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Portable battery pack &mdash; your phone will be working hard all day</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Sunscreen, hats, and rain ponchos (Southern California can surprise you)</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Refillable water bottle &mdash; free water is available at quick service locations</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s4_count',5)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Small backpack or crossbody &mdash; lockers are available but slow you down</div></div>
-    </div>
-  </div>
-
-  <div class="pt-cl-section">
-    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
-      <div class="pt-cl-section-title">Mobile order strategy</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pt-cl-section-count" id="cl_s5_count">0/3</div>
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="pt-cl-section-body" id="cl_s5_body">
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s5_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Place mobile orders 30-45 minutes before you want to eat &mdash; arrival windows fill up fast at peak times</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s5_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Set up payment in the Disneyland app before your trip to avoid fumbling at mealtime</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s5_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Avoid ordering from Galactic Grill and Rancho del Zocalo at noon &mdash; extremely busy</div></div>
-    </div>
-  </div>
-
-  <div class="pt-cl-section">
-    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
-      <div class="pt-cl-section-title">PhotoPass & memories</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pt-cl-section-count" id="cl_s6_count">0/2</div>
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="pt-cl-section-body" id="cl_s6_body">
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s6_count',2)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Disney PhotoPass photographers are found at icon locations &mdash; scan your ticket to link photos</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s6_count',2)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Memory Maker / PhotoPass+ bundle saves money if you plan to buy photos &mdash; purchase before your trip</div></div>
-    </div>
-  </div>
-
-  <div class="pt-cl-section">
-    <div class="pt-cl-section-header" onclick="ptToggleSection(this)">
-      <div class="pt-cl-section-title">On the day</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pt-cl-section-count" id="cl_s7_count">0/3</div>
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8AACAE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div class="pt-cl-section-body" id="cl_s7_body">
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s7_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Arrive at park gates 30 minutes before official opening for rope drop advantage</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s7_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Head to back of park first &mdash; most guests rush toward the front at opening</div></div>
-      <div class="pt-cl-item"><div class="pt-cl-item-check" onclick="ptClCheck(this,'cl_s7_count',3)"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="pt-cl-item-text">Take a mid-afternoon break at your hotel &mdash; return after 5pm when crowds thin</div></div>
     </div>
   </div>
 </div>
@@ -586,7 +485,7 @@ var ptTotalSteps = 5;
 var ptSegValues = {};
 var ptMemberCount = 0;
 
-var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Pre-Trip Checklist'];
+var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Almost done!'];
 
 // ── Init ────────────────────────────────────────────────
 (function(){console.log("[pretrip] IIFE init start");
@@ -696,7 +595,6 @@ function ptAddMember(name, age){console.log("[pretrip] ptAddMember called");
   row.className = 'pt-member-row';
   row.id = 'memberRow_' + id;
   row.innerHTML = '<input class="pt-input" type="text" placeholder="First name" value="' + (name||'') + '" id="mName_'+id+'" autocomplete="off">' +
-    '<input class="pt-input age-input" type="number" placeholder="Age" value="' + (age||'') + '" id="mAge_'+id+'" min="1" max="99">' +
     (id > 1 ? '<button class="pt-remove-btn" onclick="ptRemoveMember('+id+')" title="Remove"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2L8 8M8 2L2 8" stroke="#C86030" stroke-width="1.5" stroke-linecap="round"/></svg></button>' : '<div style="width:28px;flex:none;"></div>');
   list.appendChild(row);
 }
@@ -748,9 +646,8 @@ function ptCollectData(){console.log("[pretrip] ptCollectData called");
   if(list){
     list.querySelectorAll('.pt-member-row').forEach(function(row){
       var nameEl = row.querySelector('input[type="text"]');
-      var ageEl = row.querySelector('input[type="number"]');
       if(nameEl && nameEl.value.trim()){
-        members.push({name: nameEl.value.trim(), age: ageEl ? parseInt(ageEl.value)||0 : 0});
+        members.push({name: nameEl.value.trim()});
       }
     });
   }
