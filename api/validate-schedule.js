@@ -22,7 +22,10 @@ function minutesToTime(mins) {
 }
 
 const CLOSED_ATTRACTIONS = [
-  'Pirates of the Caribbean'
+  'Pirates of the Caribbean',
+  'Buzz Lightyear Astro Blasters',
+  'Inside Out Emotional Whirlwind',
+  'Silly Symphony Swings'
 ];
 
 const VEG_DEFAULTS = {
