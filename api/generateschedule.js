@@ -311,18 +311,13 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\nBEFORE TOUR (before 10:00 AM on VIP day): Schedule normally ÃÂ¢ÃÂÃÂ rides, tips, snacks, photo ops are all fine.';
     system += '\nAFTER TOUR (after 5:00 PM on VIP day): Schedule normally ÃÂ¢ÃÂÃÂ dinner, evening rides, shows, fireworks.';
 
-    system += '\n\n=== SCHEDULE COMPLETENESS RULE ÃÂ¢ÃÂÃÂ STRICTLY ENFORCED ===';
-    system += '\nEvery day MUST have schedule entries from 7:00 AM through actual park closing time. This is non-negotiable.';
-    system += '\nPark closing times for this trip:';
-    system += '\n- Day 1 Sun Jun 28: Disneyland closes 12:00 AM (midnight)';
-    system += '\n- Day 2 Mon Jun 29: Disneyland closes 11:00 PM';
-    system += '\n- Day 3 Tue Jun 30: DCA closes 10:00 PM, Disneyland closes 11:00 PM';
-    system += '\nThe LAST scheduled item on each day must be timed at or after:';
-    system += '\n- Day 1: 11:00 PM (with note about staying for midnight close)';
-    system += '\n- Day 2: 10:30 PM';
-    system += '\n- Day 3: 10:00 PM (DCA close) or 10:30 PM (Disneyland)';
+    system += '\n\n=== SCHEDULE COMPLETENESS RULE — STRICTLY ENFORCED ===';
+    system += '\nEvery day MUST have schedule entries from arrival time through actual park closing time. This is non-negotiable.';
+    system += '\nPark opening and closing times are in the PARK_HOURS section of the server cache above — always use those as your source of truth for this trip.';
+    system += '\nIf PARK_HOURS is not in the cache, use these defaults: Disneyland weekends close at midnight, weekdays at 11:00 PM. DCA closes at 10:00 PM.';
+    system += '\nThe LAST scheduled item each day must be at or after park closing time minus 30 minutes.';
     system += '\nIf there is a fireworks or nighttime show, MUST continue after with: (1) Post-show strategy tip, (2) Final evening rides with low waits, (3) Last call snack or treat, (4) Park exit strategy tip.';
-    system += '\nNEVER end the schedule at 9:00 PM or 9:30 PM. Always continue through the actual park closing time.';
+    system += '\nNEVER end the schedule at 9:00 PM or 9:30 PM unless the cache confirms the park closes at that time.';
     system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 80 characters. One concise sentence only. No multi-sentence notes. Short notes prevent truncation and keep cards readable on mobile.';
 
 
