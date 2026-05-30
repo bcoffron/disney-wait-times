@@ -1414,8 +1414,10 @@ function showParkClosedState(){
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
 const CLOSED=[
-  {n:'Pirates of the Caribbean',d:'Closed for refurbishment â no reopening date announced'},
-  {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27   no reopening date'},
+  {n:'Pirates of the Caribbean (DL)',d:'Closed for refurbishment — no reopening date announced'},
+  {n:'Buzz Lightyear Astro Blasters (DL)',d:'Closed since April 2025 — may reopen for Toy Story 5'},
+  {n:'Inside Out Emotional Whirlwind (DCA)',d:'Closed for refurbishment — no reopening date announced'},
+  {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27, 2025 — no reopening date announced'},
 ];
 
 const DAYS=[
@@ -4768,12 +4770,28 @@ function doRefreshWaits(){var btn=document.getElementById('waitRefreshBtn');if(b
 //    Weekly Refurbishment Check                                             
 function getStoredRefurbs(){
   try{
+    var rides = [];
+    // Source 1: weekly AI search results
     var stored=localStorage.getItem('weekly_refurbs');
-    if(!stored) return null;
-    var data=JSON.parse(stored);
-    // Return if less than 7 days old
-    if(Date.now()-data.ts < 7*24*60*60*1000) return data.rides;
-    return null; // stale
+    if(stored){
+      var data=JSON.parse(stored);
+      if(Date.now()-data.ts < 7*24*60*60*1000 && Array.isArray(data.rides)){
+        data.rides.forEach(function(r){ if(rides.indexOf(r)===-1) rides.push(r); });
+      }
+    }
+    // Source 2: live_refurb from waits API
+    var liveRaw=localStorage.getItem('live_refurb');
+    if(liveRaw){
+      var liveRides=JSON.parse(liveRaw);
+      if(Array.isArray(liveRides)){
+        liveRides.forEach(function(r){ if(r && rides.indexOf(r)===-1) rides.push(r); });
+      }
+    }
+    // Filter out rides already in the hardcoded CLOSED array
+    rides = rides.filter(function(r){
+      return !CLOSED.some(function(c){ return c.n.toLowerCase().indexOf(r.toLowerCase()) !== -1 || r.toLowerCase().indexOf(c.n.toLowerCase().split(' (')[0].toLowerCase()) !== -1; });
+    });
+    return rides.length ? rides : null;
   }catch(e){return null;}
 }
 
