@@ -523,7 +523,7 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
   ptCurrentStep = n;
   // Show new
   var next = document.getElementById('ptStep' + n);
-  if(next){ next.classList.add('active'); window.scrollTo(0,0); }
+  if(next){ next.classList.add('active'); window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; setTimeout(function(){window.scrollTo(0,0);},50); }
   // Update header
   document.getElementById('ptStepTitle').textContent = PT_STEP_TITLES[n-1];
   document.getElementById('ptStepInd').textContent = 'Step ' + n + ' of ' + ptTotalSteps;
