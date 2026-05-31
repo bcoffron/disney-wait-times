@@ -307,25 +307,18 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     <div class="pt-chip" onclick="ptChipToggle(this)">Halal</div>
   </div>
 
-  <div class="pt-section-label" style="margin-top:16px;">Reservation approach</div>
-  <div class="pt-tiles" id="diningRecTiles">
-    <div class="pt-tile selected" onclick="ptTileSelect('diningRecTiles',this,'Show me AI suggestions')">
-      <div>
-        <div class="pt-tile-label">Show me AI suggestions</div>
-        <div class="pt-tile-sub">AI picks restaurants that match your group</div>
-      </div>
-      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    </div>
-    <div class="pt-tile" onclick="ptTileSelect('diningRecTiles',this,'I'll handle bookings myself')">
-      <div>
-        <div class="pt-tile-label">I'll handle bookings myself</div>
-        <div class="pt-tile-sub">Just show me reservation info cards</div>
-      </div>
-      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    </div>
+  <div class="pt-section-label" style="margin-top:16px;">Do you have dining reservations?</div>
+  <div class="pt-toggle-row" style="margin-bottom:8px;">
+    <div class="pt-toggle-label">Yes, I have reservations</div>
+    <div class="pt-toggle" id="hasReservationsToggle" onclick="ptToggle('hasReservationsToggle');ptReservationsToggle()"><div class="pt-toggle-knob"></div></div>
+  </div>
+  <div class="pt-vip-sub" id="reservationsSub">
+    <div class="pt-hint" style="margin-bottom:8px;">Enter each reservation on its own line — restaurant name and time</div>
+    <textarea class="pt-textarea" id="reservationsInput" placeholder="e.g.&#10;Cafe Orleans, 6:30 PM, Day 3&#10;Blue Bayou, 12:00 PM, Day 1" style="min-height:80px;font-size:12px;"></textarea>
   </div>
 
   <div class="pt-section-label" style="margin-top:16px;">Restaurants you want to try</div>
+  <div class="pt-hint" style="margin-bottom:6px;">AI will work these into your schedule where it fits</div>
   <textarea class="pt-textarea" id="wantedRestaurants" placeholder="e.g. Blue Bayou, Carnation Cafe, Lamplight Lounge..."></textarea>
 </div>
 
@@ -405,7 +398,11 @@ var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Alm
 })();
 
 // ── Navigation ──────────────────────────────────────────
+var _ptNextLock = false;
 function ptNext(){console.log("[pretrip] ptNext called");
+  if(_ptNextLock){ console.log("[pretrip] ptNext locked — ignoring double tap"); return; }
+  _ptNextLock = true;
+  setTimeout(function(){ _ptNextLock = false; }, 1500);
   ptSaveCurrentStep();
   if(ptCurrentStep < ptTotalSteps){
     ptGoToStep(ptCurrentStep + 1);
@@ -429,19 +426,24 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
   var next = document.getElementById('ptStep' + n);
   if(next){
     next.classList.add('active');
-    // Scroll to top — target all possible scroll containers
+    // Force scroll to top — target every possible container
     var scrollToTop = function() {
-      window.scrollTo({top:0, left:0, behavior:'instant'});
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      var ptContent = document.querySelector('.pt-content');
-      if (ptContent) ptContent.scrollTop = 0;
+      try { window.scrollTo(0, 0); } catch(e){}
+      try { document.documentElement.scrollTop = 0; } catch(e){}
+      try { document.body.scrollTop = 0; } catch(e){}
+      try { document.querySelector('.pt-content').scrollTop = 0; } catch(e){}
+      try { document.querySelector('.pt-wrap').scrollTop = 0; } catch(e){}
     };
+    // Fire immediately, then after paint, then after layout settles
     scrollToTop();
-    requestAnimationFrame(function() {
+    requestAnimationFrame(function(){
       scrollToTop();
-      setTimeout(scrollToTop, 100);
-      setTimeout(scrollToTop, 300);
+      requestAnimationFrame(function(){
+        scrollToTop();
+        setTimeout(scrollToTop, 100);
+        setTimeout(scrollToTop, 300);
+        setTimeout(scrollToTop, 600);
+      });
     });
   }
   // Update header
@@ -501,6 +503,13 @@ function ptToggle(id){console.log("[pretrip] ptToggle called");
 function ptVipToggle(day){console.log("[pretrip] ptVipToggle called");
   var tog = document.getElementById('day'+day+'Vip');
   var sub = document.getElementById('day'+day+'VipSub');
+  if(!tog || !sub) return;
+  sub.classList.toggle('visible', tog.classList.contains('on'));
+}
+
+function ptReservationsToggle(){
+  var tog = document.getElementById('hasReservationsToggle');
+  var sub = document.getElementById('reservationsSub');
   if(!tog || !sub) return;
   sub.classList.toggle('visible', tog.classList.contains('on'));
 }
@@ -715,7 +724,14 @@ function ptCollectData() {
     diningStyle: getTile('diningStyleTiles'),
     diningBudget: ptSegValues['budgetSeg'] || 'No preference',
     dietaryNeeds: getChips('dietChips'),
-    diningRecs: getTile('diningRecTiles'),
+    diningRecs: 'AI suggestions',
+    reservations: (function(){
+      var tog = document.getElementById('hasReservationsToggle');
+      if(!tog || !tog.classList.contains('on')) return [];
+      var raw = document.getElementById('reservationsInput') ? document.getElementById('reservationsInput').value.trim() : '';
+      if(!raw) return [];
+      return raw.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+    })(),
     wantedRestaurants: document.getElementById('wantedRestaurants') ? document.getElementById('wantedRestaurants').value : '',
     days: days
   };
@@ -816,6 +832,9 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
     'Dining style: ' + (tripConfig.diningStyle || '') + '. ' +
     'Dietary needs: ' + ((tripConfig.dietaryNeeds || []).join(', ') || 'none') + '. ' +
     'Accessibility: ' + ((tripConfig.accessibility || []).join(', ') || 'none') + '. ' +
+    'Restaurants to work in: ' + (tripConfig.wantedRestaurants || 'none') + '. ' +
+    (tripConfig.reservations && tripConfig.reservations.length ?
+      'CONFIRMED DINING RESERVATIONS (must appear in schedule at exact times): ' + tripConfig.reservations.join(' | ') + '. ' : '') +
     'Return ONLY a raw JSON array of schedule items with fields: t (time), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (note), land (land name).';
 
   fetch(SYNC_BASE + '/api/generateschedule', {
