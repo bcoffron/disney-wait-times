@@ -3507,7 +3507,7 @@ async function reoptimize(){
     }
     // Save original items for merge on Accept
     console.log('[reoptimize] snapshot allDayItems:',allDayItems.length,'curDay:',curDay,'schedItems:',schedItems.length);
-    window._aiOptOriginalItems=allDayItems.slice();
+    window._aiOptAllDayItems=allDayItems.slice(); // full day — used for tail merge on Accept
     window._aiOptIsInTrip=isInTrip;
     window._aiOptNowMin=isInTrip?(new Date().getHours()*60+new Date().getMinutes()):0;
     window._aiOptSentCount=schedItems.length;
@@ -3516,7 +3516,7 @@ async function reoptimize(){
     var _tnow=new Date();
     currentTimeStr=_tnow.getHours()+':'+(String(_tnow.getMinutes()).padStart(2,'0'))+(_tnow.getHours()>=12?' PM':' AM');
     console.log('[aiOptimize]',curDay,'schedItems:',schedItems?schedItems.length:'null','isInTrip:',isInTrip,'tripDayDate:',tripDayLabel||tripDayDate,'from _schedData:',!!(window._schedData&&window._schedData.days&&window._schedData.days[curDay]));
-    window._aiOptOriginalItems=(schedItems||[]).map(function(i){return {h:i.h};});
+    window._aiOptOriginalItems=allDayItems.slice(); // full day items for merge
     _reoptRetryCount=0;runReoptimize();
 }
 var _reoptRetryCount=0;
@@ -3571,15 +3571,17 @@ function applyReopt(){console.log('[applyReopt] originalItems:',window._aiOptOri
   if(pendingReopt.sections)pendingReopt.sections.forEach(function(s){if(s.entries)aiEntries=aiEntries.concat(s.entries);});
   // Merge with original tail/past items
   function _ittm(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]),mn=parseInt(m[2]),pm=m[3].toUpperCase()==='PM';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h*60+mn;}
-  var origItems=window._aiOptOriginalItems||[];
+  // Use full day items for merge — not just the sent subset
+  var origItems=window._aiOptAllDayItems||window._aiOptOriginalItems||[];
   var mergedEntries;
   if(window._aiOptIsInTrip){
     var nowMin=window._aiOptNowMin||0;
     var pastItems=origItems.filter(function(item){return _ittm(item.t)<nowMin-30;});
     mergedEntries=pastItems.concat(aiEntries);
   }else{
-    var sentCount=window._aiOptSentCount||20;
-    var tailItems=origItems.slice(sentCount);
+    // Tail = items after the last AI-returned time, to prevent cutting off evening schedule
+    var lastAiTime=aiEntries.length?_ittm(aiEntries[aiEntries.length-1].t):0;
+    var tailItems=origItems.filter(function(item){return _ittm(item.t)>lastAiTime;});
     mergedEntries=aiEntries.concat(tailItems);
   }
   mergedEntries.sort(function(a,b){return _ittm(a.t)-_ittm(b.t);});
