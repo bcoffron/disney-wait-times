@@ -4391,7 +4391,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     +buildInfoSection('restrooms','Restroom Locations',pinIcon,restroomsHtml)
     +buildInfoSection('checklist','Pre-Trip Checklist',checkIcon,checklistHtml)
     +(CLOSED.length ? buildInfoSection('closures','Ride & Restaurant Closures',warnIcon,closuresHtml) : '')
-    +buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml)
+    +(isAdmin() ? buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml) : '')
     +'</div>';
 
   container.innerHTML=sanitizeText(html);
