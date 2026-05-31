@@ -427,7 +427,18 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
   ptCurrentStep = n;
   // Show new
   var next = document.getElementById('ptStep' + n);
-  if(next){ next.classList.add('active'); window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; setTimeout(function(){window.scrollTo(0,0);},50); }
+  if(next){
+    next.classList.add('active');
+    // Scroll to top — use multiple methods and a longer delay for Safari/mobile
+    var scrollToTop = function() {
+      window.scrollTo({top:0, left:0, behavior:'instant'});
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    scrollToTop();
+    setTimeout(scrollToTop, 50);
+    setTimeout(scrollToTop, 150);
+  }
   // Update header
   document.getElementById('ptStepTitle').textContent = PT_STEP_TITLES[n-1];
   document.getElementById('ptStepInd').textContent = 'Step ' + n + ' of ' + ptTotalSteps;
@@ -773,6 +784,9 @@ function ptUpdateGenBar(dayNum, totalDays) {
 function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   var day = tripConfig.days[dayIndex];
   var retries = retryCount || 0;
+  var rp = tripConfig.ridePreferences || {};
+
+  try {
 
   var llContext = '';
   if (day.hasLL) {
@@ -842,6 +856,15 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       callback('Network error after retries: ' + e.message);
     }
   });
+  } catch(outerErr) {
+    // Catch any pre-fetch JS errors (e.g. undefined variables in prompt building)
+    console.error('[pretrip] Day ' + (dayIndex+1) + ' outer error:', outerErr.message);
+    if (retries < 3) {
+      setTimeout(function(){ ptGenerateDaySchedule(tripConfig, dayIndex, retries+1, callback); }, 2000);
+    } else {
+      callback('Setup error after retries: ' + outerErr.message);
+    }
+  }
 }
 
 // ── Finish / final step CTA ─────────────────────────────
@@ -902,6 +925,18 @@ function ptFinish() {
     ptGenerateDaySchedule(tripConfig, idx, 0, function(err, items) {
       if (err) {
         console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
+        // Show error in progress bar but continue to next day
+        var bar = document.getElementById('ptCtaBar');
+        if (bar) {
+          var errDiv = bar.querySelector('.pt-gen-error');
+          if (!errDiv) {
+            errDiv = document.createElement('div');
+            errDiv.className = 'pt-gen-error';
+            errDiv.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;text-align:center;';
+            bar.firstElementChild && bar.firstElementChild.appendChild(errDiv);
+          }
+          errDiv.textContent = 'Day ' + (idx+1) + ' had trouble — continuing with next day...';
+        }
         generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: [] });
       } else {
         generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: items });
