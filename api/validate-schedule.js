@@ -303,6 +303,34 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
 
     // RULE 5: Restroom breaks required (non-VIP days only)
     if (!isVipDay) {
+      // Remove extra morning breaks — max 1 before noon
+      const morningBreakItems = items.filter(i => i.type === 'break' && timeToMinutes(i.t) < 720);
+      if (morningBreakItems.length > 1) {
+        let kept = false;
+        items = items.filter(i => {
+          if (i.type === 'break' && timeToMinutes(i.t) < 720) {
+            if (!kept) { kept = true; return true; }
+            corrections.push({ rule: 'duplicate-morning-break', day: dayNum, item: i.h, action: 'removed duplicate morning break' });
+            return false;
+          }
+          return true;
+        });
+        day.items = items;
+      }
+      // Remove extra afternoon breaks — max 1 after noon
+      const afternoonBreakItems = items.filter(i => i.type === 'break' && timeToMinutes(i.t) >= 720);
+      if (afternoonBreakItems.length > 1) {
+        let kept = false;
+        items = items.filter(i => {
+          if (i.type === 'break' && timeToMinutes(i.t) >= 720) {
+            if (!kept) { kept = true; return true; }
+            corrections.push({ rule: 'duplicate-afternoon-break', day: dayNum, item: i.h, action: 'removed duplicate afternoon break' });
+            return false;
+          }
+          return true;
+        });
+        day.items = items;
+      }
       const morningBreaks = items.filter(i =>
         i.type === 'break' && timeToMinutes(i.t) >= 0 && timeToMinutes(i.t) < 660
       );
