@@ -224,6 +224,19 @@ async function handler(req, res) {
     systemPrompt += '\n These non-ride card types must never have their notes replaced with one-liners.';
     systemPrompt += '\n9. ONLY ride cards (type: "ride") may have their time slots adjusted during optimization.';
     systemPrompt += '\n Never replace any card note with a shorter version. Never genericize a specific note.';
+    systemPrompt += '\n\nSCHEDULE COMPLETENESS RULE (STRICTLY ENFORCED):';
+    systemPrompt += '\nThe optimized schedule MUST run through actual park closing time. NEVER end before 10:00 PM.';
+    systemPrompt += '\nPark hours are in the PARK INTELLIGENCE section above — use them as the authoritative source.';
+    systemPrompt += '\nIf the park closes at midnight, the last item must be at 11:00 PM or later.';
+    systemPrompt += '\nIf the park closes at 11:00 PM, the last item must be at 10:30 PM or later.';
+    systemPrompt += '\nNEVER end at 9:30 PM unless the cache confirms that is park closing time.';
+    systemPrompt += '\nAfter any nighttime show (fireworks, World of Color, Fantasmic), always include post-show evening rides and a park exit strategy.';
+
+    systemPrompt += '\n\nRESTROOM BREAK RULE:';
+    systemPrompt += '\nMaximum ONE restroom break before noon (morning). Maximum ONE restroom break after noon (afternoon).';
+    systemPrompt += '\nNEVER place two restroom/break cards within 90 minutes of each other.';
+    systemPrompt += '\nNEVER place a restroom break immediately before or after a snack card.';
+
     systemPrompt += '\n\nVIP TOUR RULE:'
     systemPrompt += '\nAny item with type "vip" or vip property set to true is a confirmed anchor — never move, remove, or reorder it.'
     systemPrompt += '\nThe VIP guide handles those items exclusively.'
