@@ -1506,7 +1506,7 @@ const DAYS=[
     {t:'4:30 PM',h:'Indiana Jones Adventure',n:'Start in Adventureland \u2014 right near the Disneyland entrance. Evening waits are usually 30-40 min, better than daytime peaks.',type:'ride',ride:'Indiana Jones Adventure',land:'Adventureland',ll:{t:'multi',a:'Book LL if wait is 40+ min'}},
     {t:'5:05 PM',h:'Haunted Mansion',n:'New Orleans Square (4 min walk). Classic Disneyland. One of the best-themed rides in the park.',type:'ride',ride:'Haunted Mansion',land:'New Orleans Square'},
     {t:'5:40 PM',h:'Millennium Falcon: Smugglers Run',n:"Galaxy's Edge (8 min walk). Evening waits drop significantly. Great way to kick off the Disneyland evening.",type:'ride',ride:'Millennium Falcon: Smugglers Run',land:"Galaxy's Edge"},
-    {t:'6:30 PM',h:'\u{1F374} Dinner \u2014 Caf\u00e9 Orleans',n:'Your reservation. Arrive 5 min early. Must-orders: Monte Cristo sandwich and beignets for the table. Ask for a patio table. Perfectly positioned for Fantasmic! after dinner.',type:'food',land:'New Orleans Square',dining:{topPick:'Monte Cristo Sandwich \u2014 the Disneyland bucket-list sandwich with powdered sugar',vegOption:'French Onion Soup \u2014 rich vegetarian option, ask for no beef broth',kidsOption:'Mac & Cheese Kids Plate \u2014 available on the kids menu at Caf\u00e9 Orleans'}},
+    {t:'6:30 PM',h:'Dinner',type:'food',n:'Evening dinner. Check your confirmed reservations or ask your guide for a recommendation.',land:'New Orleans Square'},
     {t:'7:45 PM',h:'Big Thunder Mountain Railroad',n:'Frontierland (3 min from Caf\u00e9 Orleans). Great ride after dinner while Fantasmic! spot isn\u2019t needed yet.',type:'ride',ride:'Big Thunder Mountain Railroad',land:'Frontierland'},
     {t:'8:10 PM',h:'Peter Pan\u2019s Flight',n:'Fantasyland (6 min). Classic ride. Evening waits are manageable.',type:'ride',ride:"Peter Pan's Flight",land:'Fantasyland'},
     {t:'8:30 PM',h:'Secure Fantasmic! viewing spot',n:'Head to the Rivers of America amphitheater. Arrive 30 min before the show. Center section, upper rows for best sight lines.',type:'tip'},
@@ -3944,8 +3944,16 @@ function renderSched(){
       else if(e.type==='hop')bc+=' is-hop';
       else if(e.type==='vip')bc+=' is-vip';
       else if(e.type==='character')bc+=' is-character';
-      var cardHour=(function(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]);if(m[3].toUpperCase()==="PM"&&h!==12)h+=12;if(m[3].toUpperCase()==="AM"&&h===12)h=0;return h;})(e.t);var isVipWindow=cardHour>=10&&cardHour<=17;
-      if(TRIP_CONFIG.days[curDay].isVip&&isVipWindow&&e.type!=='vip'&&e.type!=='break'&&e.type!=='restroom'){var _ch=0;try{var _tp=e.t||'';var _pa=_tp.replace(' AM','').replace(' PM','').split(':');_ch=parseInt(_pa[0])||0;if(_tp.indexOf('PM')>-1&&_ch!==12)_ch+=12;if(_tp.indexOf('AM')>-1&&_ch===12)_ch=0;}catch(ex){}if(_ch>=10&&_ch<=17)bc+=' is-vip';}if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
+      var cardHour=(function(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]);if(m[3].toUpperCase()==="PM"&&h!==12)h+=12;if(m[3].toUpperCase()==="AM"&&h===12)h=0;return h;})(e.t);
+      // Use actual VIP tour window from TRIP_CONFIG, not hardcoded 10-17
+      var _vipStart=10,_vipEnd=17;
+      try{
+        var _vd=TRIP_CONFIG.days[curDay];
+        if(_vd&&_vd.vipStart){var _vs=_vd.vipStart.match(/(\d+):(\d+)\s*(AM|PM)/i);if(_vs){_vipStart=parseInt(_vs[1]);if(_vs[3].toUpperCase()==='PM'&&_vipStart!==12)_vipStart+=12;}}
+        if(_vd&&_vd.vipEnd){var _ve=_vd.vipEnd.match(/(\d+):(\d+)\s*(AM|PM)/i);if(_ve){_vipEnd=parseInt(_ve[1]);if(_ve[3].toUpperCase()==='PM'&&_vipEnd!==12)_vipEnd+=12;}}
+      }catch(ex){}
+      var isVipWindow=cardHour>=_vipStart&&cardHour<_vipEnd;
+      if(TRIP_CONFIG.days[curDay].isVip&&isVipWindow&&e.type!=='vip'&&e.type!=='break'&&e.type!=='restroom'){bc+=' is-vip';}if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
       else if(e.type==='tip')bc+=' is-tip';
       else if(e.type==='snack')bc+=' is-snack';
       if(e.ll&&e.ll.t==='single')bc+=' is-lls';
