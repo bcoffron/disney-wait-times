@@ -227,6 +227,9 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\n- Buzz Lightyear Astro Blasters (DL) — closed since April 2025';
     system += '\n- Inside Out Emotional Whirlwind (DCA) — closed for refurbishment';
     system += '\n- Silly Symphony Swings (DCA) — closed since April 27 2025';
+    system += '\nRIDE RENAME: Splash Mountain no longer exists. It is now Tianas Bayou Adventure and is fully open. Never reference Splash Mountain anywhere in the schedule.';
+    system += '\nIMPORTANT RIDE RENAME: Splash Mountain no longer exists. It was permanently renamed as Tiana\'s Bayou Adventure which is fully open. NEVER reference Splash Mountain in any card title, note, or photo spot.';
+    system += '\nIMPORTANT RIDE RENAME: Splash Mountain no longer exists. It was permanently renamed as Tiana\'s Bayou Adventure which is fully open. NEVER reference Splash Mountain in any card, note, or photo spot.';
     system += '\nThe CURRENT CLOSURES section above contains a full updated list of all closed attractions. Every ride listed there is unavailable. NEVER schedule a closed ride even if the user selected it as a must-do. Instead, insert a tip card explaining it is closed and suggesting the best alternative.';
 
     system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE ÃÂ¢ÃÂÃÂ STRICTLY ENFORCED ===';
@@ -275,6 +278,8 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\n4. Always pick from quick service options in the DINING TIMING section of the cache';
     system += '\n5. You MAY mention a table service restaurant once per trip in a note line only ÃÂ¢ÃÂÃÂ one sentence maximum';
     system += '\n6. Already used quick service restaurants this trip: ' + (usedQS.join(', ') || 'none');
+    system += '\n7. PARK-SPECIFIC RULE: Only suggest restaurants physically located in the park the guest is currently in. NEVER suggest a DCA restaurant (Woody\'s Lunch Box, Lamplight Lounge, Carthay Circle, Cocina Cucamonga, Award Wieners, etc.) on a Disneyland-only day. NEVER suggest a Disneyland restaurant on a DCA-only day. Check the park assignment for the current day before picking any restaurant.';
+    system += '\n8. NO REPEAT RULE (ABSOLUTE): Never use the same restaurant or snack location more than once across the ENTIRE trip — not just the current day. Check all days.';
     system += '\n\nQUICK SERVICE CARD SCHEMA ÃÂ¢ÃÂÃÂ use this exactly:';
     system += '\n{ t: "12:00 PM", h: "Rancho del Zocalo Restaurante", type: "quickservice", n: "Counter service Mexican food in Frontierland.", topPick: "Carne Asada Platter with rice and beans", veg: "Cheese Enchiladas with salsa verde", kids: "Kids Cheese Quesadilla with apple slices", land: "Frontierland" }';
     system += '\nCRITICAL ÃÂ¢ÃÂÃÂ topPick/veg/kids field rules:';
@@ -282,6 +287,7 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\n- veg MUST be a specific vegetarian dish name string ÃÂ¢ÃÂÃÂ NEVER true, NEVER false';
     system += '\n- kids MUST be a specific kids meal name string ÃÂ¢ÃÂÃÂ NEVER true, NEVER false';
     system += '\n\nSNACK STOPS (type: "snack"):';
+    system += '\nSNACK FREQUENCY RULES (ABSOLUTE):\n- Maximum ONE snack stop in the morning (before noon) per day\n- Maximum ONE snack stop in the afternoon (after noon) per day\n- NEVER place two snack cards consecutively with less than 2 hours between them\n- NEVER place a snack card immediately before or after a restroom break card\n- A restroom break and a snack back-to-back wastes 30-40 minutes of prime park time';
     system += '\nSame no-repeat rule ÃÂ¢ÃÂÃÂ never the same snack location twice per trip.';
     system += '\nSNACK CARD SCHEMA: { t: "2:30 PM", h: "Afternoon Snack: Dole Whip", type: "snack", n: "Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room.", land: "Adventureland" }';
     system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields.';
@@ -322,6 +328,7 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\nIf there is a fireworks or nighttime show, MUST continue after with: (1) Post-show strategy tip, (2) Final evening rides with low waits, (3) Last call snack or treat, (4) Park exit strategy tip.';
     system += '\nNEVER end the schedule at 9:00 PM or 9:30 PM unless the cache confirms the park closes at that time.';
     system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 80 characters. One concise sentence only. No multi-sentence notes. Short notes prevent truncation and keep cards readable on mobile.';
+    system += '\nCHARACTER ENCODING RULE: NEVER use special symbols, emoji, checkmarks (✓ ✔), bullets (•), stars (★☆), or any non-ASCII characters in card titles (h field) or notes (n field). Use plain ASCII only. For confirmed reservations use the word Confirmed not a checkmark. For em-dashes use a plain hyphen (-). This prevents garbled text on mobile devices.';
 
 
     // === PARK HOPPING RULE ===
