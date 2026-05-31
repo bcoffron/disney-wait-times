@@ -429,15 +429,20 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
   var next = document.getElementById('ptStep' + n);
   if(next){
     next.classList.add('active');
-    // Scroll to top — use multiple methods and a longer delay for Safari/mobile
+    // Scroll to top — target all possible scroll containers
     var scrollToTop = function() {
       window.scrollTo({top:0, left:0, behavior:'instant'});
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
+      var ptContent = document.querySelector('.pt-content');
+      if (ptContent) ptContent.scrollTop = 0;
     };
     scrollToTop();
-    setTimeout(scrollToTop, 50);
-    setTimeout(scrollToTop, 150);
+    requestAnimationFrame(function() {
+      scrollToTop();
+      setTimeout(scrollToTop, 100);
+      setTimeout(scrollToTop, 300);
+    });
   }
   // Update header
   document.getElementById('ptStepTitle').textContent = PT_STEP_TITLES[n-1];
