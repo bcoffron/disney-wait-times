@@ -223,6 +223,54 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
 
     // RULE 4: Morning snack required (non-VIP days only)
     if (!isVipDay) {
+      // Remove extra morning snacks — max 1 before noon
+      const morningSnackItems = items.filter(i => i.type === 'snack' && timeToMinutes(i.t) < 720);
+      if (morningSnackItems.length > 1) {
+        // Keep only the first one, remove the rest
+        let kept = false;
+        items = items.filter(i => {
+          if (i.type === 'snack' && timeToMinutes(i.t) < 720) {
+            if (!kept) { kept = true; return true; }
+            corrections.push({ rule: 'duplicate-morning-snack', day: dayNum, item: i.h, action: 'removed duplicate morning snack' });
+            return false;
+          }
+          return true;
+        });
+        day.items = items;
+      }
+      // Remove extra afternoon snacks — max 1 after noon
+      const afternoonSnackItems = items.filter(i => i.type === 'snack' && timeToMinutes(i.t) >= 720);
+      if (afternoonSnackItems.length > 1) {
+        let kept = false;
+        items = items.filter(i => {
+          if (i.type === 'snack' && timeToMinutes(i.t) >= 720) {
+            if (!kept) { kept = true; return true; }
+            corrections.push({ rule: 'duplicate-afternoon-snack', day: dayNum, item: i.h, action: 'removed duplicate afternoon snack' });
+            return false;
+          }
+          return true;
+        });
+        day.items = items;
+      }
+      // Remove consecutive snack + break or break + snack (within 30 minutes of each other)
+      for (let ci = 0; ci < items.length - 1; ci++) {
+        const curr = items[ci];
+        const next = items[ci + 1];
+        if (!curr || !next) continue;
+        const currIsSnackOrBreak = curr.type === 'snack' || curr.type === 'break';
+        const nextIsSnackOrBreak = next.type === 'snack' || next.type === 'break';
+        if (currIsSnackOrBreak && nextIsSnackOrBreak) {
+          const gap = timeToMinutes(next.t) - timeToMinutes(curr.t);
+          if (gap <= 30) {
+            // Remove the break (keep the snack)
+            const toRemove = curr.type === 'break' ? ci : ci + 1;
+            corrections.push({ rule: 'consecutive-snack-break', day: dayNum, item: items[toRemove].h, action: 'removed consecutive snack/break within 30 min' });
+            items.splice(toRemove, 1);
+            day.items = items;
+            ci--; // recheck this position
+          }
+        }
+      }
       const morningSnacks = items.filter(i => {
         const m = timeToMinutes(i.t);
         return i.type === 'snack' && m >= 540 && m <= 630;
