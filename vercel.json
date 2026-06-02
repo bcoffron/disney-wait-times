@@ -3,13 +3,22 @@
     {
       "source": "/app.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" },
-        { "key": "Pragma", "value": "no-cache" },
-        { "key": "Expires", "value": "0" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
       ]
     }
   ],
-    "functions": {
+  "functions": {
     "api/reoptimize.js": {
       "maxDuration": 120
     },
@@ -30,6 +39,24 @@
     },
     "api/waittimes.js": {
       "maxDuration": 15
+    },
+    "api/blog-auth.js": {
+      "maxDuration": 10
+    },
+    "api/blog-post.js": {
+      "maxDuration": 10
+    },
+    "api/blog-index.js": {
+      "maxDuration": 10
+    },
+    "api/blog-save.js": {
+      "maxDuration": 15
+    },
+    "api/blog-delete.js": {
+      "maxDuration": 10
+    },
+    "api/blog-migrate.js": {
+      "maxDuration": 120
     }
   },
   "crons": [
