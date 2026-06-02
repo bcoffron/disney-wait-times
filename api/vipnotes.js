@@ -47,6 +47,15 @@ module.exports = async function handler(req, res) {
       if (req.method === 'POST') {
               try {
                         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+                        // Auth check - require trip code or admin key
+                        const ADMIN_KEY = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
+                        const sentAdmin = (req.headers['x-admin-key'] || body.adminKey || '').toLowerCase();
+                        const tripCode = body.tripCode || req.headers['x-trip-code'] || '';
+                        const isAdmin = sentAdmin === ADMIN_KEY;
+                        const isValidTrip = tripCode && tripCode.length >= 8;
+                        if (!isAdmin && !isValidTrip) {
+                                    return res.status(401).json({ error: 'Unauthorized' });
+                        }
                         if (body.notes === undefined) {
                                     return res.status(400).json({ error: 'Missing notes' });
                         }
