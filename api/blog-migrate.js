@@ -1,4 +1,5 @@
 // api/blog-migrate.js - POST /api/blog-migrate - protected, one-time use
+// Also handles GET /api/blog-migrate?action=rebuild-index to rebuild index from blob store
 const { put, list } = require('@vercel/blob');
 const rl = {};
 
@@ -16,9 +17,45 @@ module.exports = async (req, res) => {
   const sentKey = (req.headers['x-admin-key'] || '').toLowerCase();
   if (!sentKey || sentKey !== adminKey) return res.status(401).json({ error: 'Unauthorized' });
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Special action: rebuild index from all blog/posts/ blobs
+  if (req.method === 'GET' && req.query.action === 'rebuild-index') {
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+    const now = Date.now();
+    if (!rl[ip] || now - rl[ip].start > 60000) rl[ip] = { count: 0, start: now };
+    rl[ip].count++;
+    if (rl[ip].count > 20) return res.status(429).json({ error: 'Rate limit exceeded' });
+    try {
+      // List all blog/posts/ blobs (paginated)
+      let allBlobs = [], cursor;
+      do {
+        const result = await list({ prefix: 'blog/posts/', cursor, limit: 100 });
+        allBlobs = allBlobs.concat(result.blobs);
+        cursor = result.cursor;
+      } while (cursor);
+      // Filter out the index itself
+      const postBlobs = allBlobs.filter(b => b.pathname !== 'blog/posts/index' && !b.pathname.startsWith('blog/migrate'));
+      const index = [];
+      for (const blob of postBlobs) {
+        try {
+          const r = await fetch(blob.url);
+          if (!r.ok) continue;
+          const post = await r.json();
+          if (!post || !post.slug) continue;
+          index.push({ slug: post.slug, title: post.title, park: post.park, category: post.category, tagLabel: post.tagLabel, heroImage: post.heroImage, heroAlt: post.heroAlt, intro: post.intro, readTime: post.readTime, publishedAt: post.publishedAt, updatedAt: post.updatedAt, published: post.published });
+        } catch(e) { /* skip */ }
+      }
+      await put('blog/posts/index', JSON.stringify(index), { access: 'public', allowOverwrite: true });
+      return res.status(200).json({ success: true, count: index.length, slugs: index.map(p => p.slug).sort() });
+    } catch(err) {
+      console.error('rebuild-index error:', err.message);
+      return res.status(500).json({ error: 'Internal server error: ' + err.message });
+    }
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
   const now = Date.now();
@@ -52,8 +89,5 @@ module.exports = async (req, res) => {
     }
   }
   await put('blog/posts/index', JSON.stringify(index), { access: 'public', allowOverwrite: true });
-  if (results.failed.length === 0) {
-    await put('blog/migrate/lock', JSON.stringify({ done: true, at: new Date().toISOString() }), { access: 'public', allowOverwrite: true });
-  }
   return res.status(200).json({ success: true, saved: results.saved.length, failed: results.failed.length, details: results });
 };
