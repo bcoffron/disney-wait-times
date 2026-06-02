@@ -304,34 +304,30 @@ module.exports = async function(req,res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if(!apiKey) return res.status(500).json({error:'No ANTHROPIC_API_KEY'});
 
-  // ── DAILY SPENDING CAP ($5) ──────────────────────────────────────────────
-  // Check how much has been spent today via Anthropic usage API
-  const DAILY_CAP_USD = 5.00;
+  // ── DAILY RUN CAP ────────────────────────────────────────────────────────
+  // Track how many times cron has run today via Vercel Blob
+  // Max 2 runs per day to prevent runaway costs
   try {
     const today = new Date().toISOString().split('T')[0];
-    const usageRes = await fetch('https://api.anthropic.com/v1/usage?start_date=' + today + '&end_date=' + today, {
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }
-    });
-    if (usageRes.ok) {
-      const usageData = await usageRes.json();
-      // Estimate cost: input ~$3/MTok, output ~$15/MTok for Sonnet
-      const inputTok = (usageData.input_tokens || 0);
-      const outputTok = (usageData.output_tokens || 0);
-      const estimatedCost = (inputTok / 1000000) * 3 + (outputTok / 1000000) * 15;
-      console.log('[cron-cache] Daily spend estimate: $' + estimatedCost.toFixed(4) + ' (cap: $' + DAILY_CAP_USD + ')');
-      if (estimatedCost >= DAILY_CAP_USD) {
-        console.warn('[cron-cache] DAILY CAP REACHED — aborting cache build');
-        return res.status(429).json({
-          error: 'Daily spending cap of $' + DAILY_CAP_USD + ' reached. Cron aborted.',
-          estimatedSpend: estimatedCost.toFixed(4)
-        });
-      }
+    const capKey = 'twize/daily_run_count_' + today + '.json';
+    const { blobs: capBlobs } = await list({ prefix: 'twize/daily_run_count_' + today });
+    let runCount = 0;
+    if (capBlobs && capBlobs.length) {
+      const capData = await (await fetch(capBlobs[0].downloadUrl || capBlobs[0].url)).json();
+      runCount = capData.count || 0;
     }
+    if (runCount >= 2) {
+      console.warn('[cron-cache] Daily run cap reached (' + runCount + ' runs today) — aborting');
+      return res.status(429).json({ error: 'Daily run cap reached. Max 2 cron runs per day.' });
+    }
+    await put(capKey, JSON.stringify({ count: runCount + 1, lastRun: new Date().toISOString() }), {
+      access: 'public', addRandomSuffix: false, contentType: 'application/json', allowOverwrite: true
+    });
+    console.log('[cron-cache] Daily run count:', runCount + 1);
   } catch(capErr) {
-    console.warn('[cron-cache] Could not check spending cap:', capErr.message);
-    // Do not block on cap check failure — continue
+    console.warn('[cron-cache] Could not check run cap:', capErr.message);
   }
-  // ────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
 
   const force = req.query.force === '1';
   const requestedKey = req.query.key;
