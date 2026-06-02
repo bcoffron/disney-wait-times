@@ -3,14 +3,13 @@ const { put, list } = require('@vercel/blob');
 const rl = {};
 
 async function readBlob(pathname) {
-  const { blobs } = await list({ prefix: pathname, limit: 1 });
-  const blob = blobs && blobs.find(b => b.pathname === pathname);
-  if (!blob) return null;
-  const r = await fetch(blob.url);
+  const { blobs } = await list({ prefix: pathname, limit: 10 });
+  const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  if (!matches.length) return null;
+  const r = await fetch(matches[0].url);
   if (!r.ok) return null;
-  return r.json();
+  return r.text().then(t => JSON.parse(t));
 }
-
 module.exports = async (req, res) => {
   const adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
   const sentKey = (req.headers['x-admin-key'] || '').toLowerCase();
