@@ -106,6 +106,18 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // ── AUTH CHECK ───────────────────────────────────────────────────────────
+  const _adminKey = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
+  const _sentAdmin = (req.headers['x-admin-key'] || req.body && req.body.adminKey || '').toLowerCase();
+  const _tripCode = (req.body && req.body.tripCode) || req.headers['x-trip-code'] || '';
+  const _isAdmin = _sentAdmin === _adminKey;
+  const _isValidTrip = _tripCode && typeof _tripCode === 'string' && _tripCode.length >= 8;
+  if (!_isAdmin && !_isValidTrip) {
+    console.warn('[auth] Unauthorized request blocked');
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   try {
     const { prompt, mode, maxTokens = 8000, tripConfig } = req.body || {};
 
