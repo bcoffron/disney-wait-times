@@ -303,6 +303,35 @@ module.exports = async function(req,res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if(!apiKey) return res.status(500).json({error:'No ANTHROPIC_API_KEY'});
 
+  // ── DAILY SPENDING CAP ($5) ──────────────────────────────────────────────
+  // Check how much has been spent today via Anthropic usage API
+  const DAILY_CAP_USD = 5.00;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const usageRes = await fetch('https://api.anthropic.com/v1/usage?start_date=' + today + '&end_date=' + today, {
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }
+    });
+    if (usageRes.ok) {
+      const usageData = await usageRes.json();
+      // Estimate cost: input ~$3/MTok, output ~$15/MTok for Sonnet
+      const inputTok = (usageData.input_tokens || 0);
+      const outputTok = (usageData.output_tokens || 0);
+      const estimatedCost = (inputTok / 1000000) * 3 + (outputTok / 1000000) * 15;
+      console.log('[cron-cache] Daily spend estimate: $' + estimatedCost.toFixed(4) + ' (cap: $' + DAILY_CAP_USD + ')');
+      if (estimatedCost >= DAILY_CAP_USD) {
+        console.warn('[cron-cache] DAILY CAP REACHED — aborting cache build');
+        return res.status(429).json({
+          error: 'Daily spending cap of $' + DAILY_CAP_USD + ' reached. Cron aborted.',
+          estimatedSpend: estimatedCost.toFixed(4)
+        });
+      }
+    }
+  } catch(capErr) {
+    console.warn('[cron-cache] Could not check spending cap:', capErr.message);
+    // Do not block on cap check failure — continue
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   const force = req.query.force === '1';
   const requestedKey = req.query.key;
   const requestedSection = req.query.section;
