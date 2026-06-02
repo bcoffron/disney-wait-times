@@ -839,8 +839,8 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
 
   fetch(SYNC_BASE + '/api/generateschedule', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
+    headers: (function(){ var h={'Content-Type':'application/json'}; var c=localStorage.getItem('tpcp_code')||''; var r=localStorage.getItem('tpcp_role')||'guest'; if(r==='admin') h['x-admin-key']='cwdis2026admin'; return h; })(),
+    body: JSON.stringify(Object.assign({
       prompt: prompt,
       mode: 'setup',
       maxTokens: 8000,
@@ -936,7 +936,8 @@ function ptFinish() {
         fetch(SYNC_BASE + '/api/trip', {
           method: 'POST',
           headers: {'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},
-          body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } })
+          body: JSON.stringify({
+      tripCode: localStorage.getItem('tpcp_code') || '', code: code, tripData: { tripConfig: finalConfig } })
         })
         .then(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); })
         .catch(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); });
