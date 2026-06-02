@@ -2034,6 +2034,16 @@ var constraintRules='HARD CONSTRAINTS never violate: '
     +'7) PHOTO OPS: Include EXACTLY 2 photo op entries per day maximum. Space them out -- one in the morning, one in the evening. Each must be a different location. No more than 2 total per day.';
 var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
 
+// Secure AI fetch — always injects trip code for server-side authentication
+function _aiFetch(endpoint, body) {
+  var code = localStorage.getItem('tpcp_code') || '';
+  var role = localStorage.getItem('tpcp_role') || 'guest';
+  var headers = {'Content-Type': 'application/json'};
+  if (role === 'admin') { headers['x-admin-key'] = 'cwdis2026admin'; }
+  var secureBody = Object.assign({}, body, { tripCode: code });
+  return fetch(SYNC_BASE + endpoint, { method: 'POST', headers: headers, body: JSON.stringify(secureBody) });
+}
+
 // PART 7: Build wait time context for Ask AI
 function buildWaitContext() {
   // Pull from the waits object used by the Waits tab
@@ -2060,6 +2070,10 @@ function buildWaitContext() {
 
 // FIX3: AI proxy helper - routes all AI calls through Vercel /api/ai
 async function _aiProxy(body, cacheCtx){
+  // Inject trip code for server-side auth
+  var _tc = localStorage.getItem('tpcp_code') || '';
+  var _role = localStorage.getItem('tpcp_role') || 'guest';
+  body = Object.assign({}, body, { tripCode: _tc });
   var sys=body.system||'You are a helpful Disneyland assistant.';
   var prompt='';
   if(body.prompt){prompt=body.prompt;}
@@ -2069,7 +2083,7 @@ async function _aiProxy(body, cacheCtx){
   }
   const MAX_CACHE_CONTEXT=4000;const trimmedCache=(parkIntelCache||'').substring(0,MAX_CACHE_CONTEXT);var _rideCtx=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});var ctx=cacheCtx||(trimmedCache?(trimmedCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';if(_rideCtx)ctx=(_rideCtx+'\n'+ctx).substring(0,MAX_CACHE_CONTEXT+_rideCtx.length);
   try{
-    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},
+    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:(function(){var h={'Content-Type':'application/json'};if(localStorage.getItem('tpcp_role')==='admin')h['x-admin-key']='cwdis2026admin';return h;})(),
       body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6'})});
     var d;
     try{d=await r.json();}catch(jsonErr){return{error:{message:'AI response parse error: '+r.status}};}
@@ -3525,7 +3539,7 @@ async function runReoptimize(){
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
   var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},115000);
-    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,apiKey:apiKey,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{})
+    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,apiKey:apiKey,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{}),tripCode:localStorage.getItem('tpcp_code')||''
       }),signal:_reoptController.signal
     });
 
@@ -3687,7 +3701,7 @@ async function fetchDiningRecs(e){
   var resp=await fetch('https://disney-wait-times-lupt.vercel.app/api/dining', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ prompt: 'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.', park: 'DL' })
+    body: JSON.stringify({ prompt: 'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.', park: 'DL' , tripCode: localStorage.getItem('tpcp_code') || '' })
   });
   var r=await resp.json();
   if(r&&r.error){resultEl.innerHTML='<span style="color:var(--red);font-size:12px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> '+(r.error&&r.error.message?r.error.message:r.error)+'</span>';}
@@ -4716,7 +4730,7 @@ function generateFromSetup(params, callback) {
       prompt: prompt,
       mode: 'setup',
       maxTokens: 8000,
-      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}); return m; }())
+      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {, tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
     })
   })
   .then(function(r){return r.json();})
@@ -4758,7 +4772,7 @@ function aiChooseRides(params, callback) {
       prompt: prompt,
       mode: 'rides',
       maxTokens: 8000,
-      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}); return m; }())
+      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {, tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
     })
   })
   .then(function(r){return r.json();})
