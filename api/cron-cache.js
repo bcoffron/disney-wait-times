@@ -294,10 +294,11 @@ module.exports = async function(req,res) {
   const isAuthed = secret && req.headers.authorization === 'Bearer '+secret;
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
 
-  if(!isAuthed && !isVercelCron && !req.query.key) {
-    const limited = await isRateLimited();
-    if(limited) return res.status(429).json({error:'Rate limited - try again in 24 hours'});
-    await setRateLimit();
+  // STRICT AUTH: Every request must be either a Vercel cron or provide the correct secret
+  // The ?key param alone is NOT sufficient — previously this bypassed all auth (security hole)
+  if(!isAuthed && !isVercelCron) {
+    console.warn('[cron-cache] Unauthorized request blocked — ip:', req.headers['x-forwarded-for'] || 'unknown');
+    return res.status(401).json({error:'Unauthorized. This endpoint requires authentication.'});
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
