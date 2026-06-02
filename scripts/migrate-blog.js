@@ -26,7 +26,7 @@ function httpGet(url, headers = {}) {
     lib.get(url, opts, res => {
       let data = '';
       res.on('data', c => data += c);
-      res.on('end', () => resolve({ status: res.statusCode, body: data, headers: res.headers }));
+      res.on('end', () => resolve({ status: res.statusCode, body: data }));
     }).on('error', reject);
   });
 }
@@ -70,27 +70,77 @@ function stripTags(html) {
 }
 
 function getMetaContent(html, name) {
-  const re1 = new RegExp('<meta[^>]+name=["\']' + name + '["\'\'][^>]+content=["\']([^"\'\'>]+)["\'\']', 'i');
+  const re1 = new RegExp('<meta[^>]+name=["\']' + name + '["\'][^>]+content=["\']([^"\']+)["\']', 'i');
   let m = html.match(re1);
   if (m) return m[1].trim();
-  const re2 = new RegExp('<meta[^>]+content=["\']([^"\'\'>]+)["\'\'][^>]+name=["\']' + name + '["\'\']', 'i');
+  const re2 = new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']' + name + '["\']', 'i');
   m = html.match(re2);
   return m ? m[1].trim() : '';
+}
+
+// FAQ parser: uses depth tracking to correctly handle nested divs inside .faq-item
+// Each .faq-item contains a .faq-q div and a .faq-a div (which may have a nested span[itemprop="text"])
+function parseFaqs(html) {
+  const faqs = [];
+  let faqPos = 0;
+
+  while ((faqPos = html.indexOf('faq-item', faqPos)) !== -1) {
+    const divStart = html.lastIndexOf('<div', faqPos);
+    if (divStart < 0 || divStart < faqPos - 200) { faqPos++; continue; }
+    const tagOpen = html.slice(divStart, faqPos + 10);
+    if (!tagOpen.includes('class=')) { faqPos++; continue; }
+
+    // Depth-track to find closing tag of this faq-item div
+    let depth = 0, ci = divStart, endPos = -1;
+    while (ci < html.length && ci < divStart + 5000) {
+      if (html[ci] === '<') {
+        if (html.slice(ci, ci + 2) === '</') {
+          const closeEnd = html.indexOf('>', ci);
+          depth--;
+          if (depth === 0) { endPos = closeEnd + 1; break; }
+          ci = closeEnd >= 0 ? closeEnd + 1 : ci + 2;
+        } else if (html.slice(ci, ci + 2) !== '<!' && /^<[a-zA-Z]/.test(html.slice(ci))) {
+          const tagEnd = html.indexOf('>', ci);
+          if (tagEnd < 0) { ci++; continue; }
+          const fullTag = html.slice(ci, tagEnd + 1);
+          if (!fullTag.endsWith('/>')) depth++;
+          ci = tagEnd + 1;
+        } else {
+          ci++;
+        }
+      } else {
+        ci++;
+      }
+    }
+    if (endPos < 0) { faqPos++; continue; }
+
+    const itemHtml = html.slice(divStart, endPos);
+
+    // Extract faq-q and faq-a text content
+    const qM = itemHtml.match(/<div[^>]+class="[^"]*faq-q[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+    const aM = itemHtml.match(/<div[^>]+class="[^"]*faq-a[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/i) ||
+               itemHtml.match(/<div[^>]+class="[^"]*faq-a[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+
+    if (qM && aM) {
+      faqs.push({ q: stripTags(qM[1]), a: stripTags(aM[1]) });
+    }
+
+    faqPos = endPos;
+  }
+
+  return faqs;
 }
 
 function parsePost(filename, html) {
   const slug = filename.replace(/\.html$/, '');
 
-  // Title
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const title = titleMatch
     ? titleMatch[1].replace(/\s*[\u2014\u2013-]\s*Theme Park Co-Pilot\s*$/i, '').trim()
     : slug;
 
-  // Meta description
   const metaDescription = getMetaContent(html, 'description');
 
-  // Park from category class
   let park = 'both';
   const catClassMatch = html.match(/class="[^"]*cat-(dl|wdw|both)[^"]*"/i);
   if (catClassMatch) park = catClassMatch[1];
@@ -100,23 +150,18 @@ function parsePost(filename, html) {
     else if (slug.includes('universal')) park = 'wdw';
   }
 
-  // Category label
   const catDivMatch = html.match(/<[^>]+class="[^"]*post-hero-category[^"]*"[^>]*>([\s\S]*?)<\/(?:div|span)/i);
   const category = catDivMatch
     ? stripTags(catDivMatch[1])
     : (park === 'dl' ? 'Disneyland · Guide' : park === 'wdw' ? 'Walt Disney World · Guide' : 'Disney · Guide');
 
-  // Tag label
   const tagMatch = html.match(/<[^>]+class="[^"]*post-hero-tag[^"]*"[^>]*>([\s\S]*?)<\/(?:div|span|p)/i);
   const tagLabel = tagMatch
     ? stripTags(tagMatch[1])
     : (park === 'dl' ? 'Disneyland' : park === 'wdw' ? 'Walt Disney World' : 'Disney');
 
-  // Hero image
   let heroImage = '', heroAlt = '', heroFocal = 'center center';
-  // First try img with class containing post-hero
   const heroImgMatch = html.match(/<img[^>]+class="[^"]*post-hero[^"]*"[^>]*>/i);
-  // Or img inside a .post-hero div
   const heroContainerMatch = html.match(/<div[^>]+class="[^"]*post-hero[^"]*"[^>]*>[\s\S]{0,500}?<img([^>]+)>/i);
   const imgTag = heroImgMatch ? heroImgMatch[0] : (heroContainerMatch ? '<img' + heroContainerMatch[1] + '>' : null);
   if (imgTag) {
@@ -125,11 +170,9 @@ function parsePost(filename, html) {
     const styleM = imgTag.match(/style=["'][^"']*object-position:\s*([^;"']+)/i); if (styleM) heroFocal = styleM[1].trim();
   }
 
-  // Intro
   const introMatch = html.match(/<[^>]+class="[^"]*post-intro[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)/i);
   const intro = introMatch ? stripTags(introMatch[1]) : '';
 
-  // Read time
   const bylineMatch = html.match(/<[^>]+class="[^"]*post-byline[^"]*"[^>]*>([\s\S]*?)<\/(?:div|p|span)/i);
   let readTime = '8';
   if (bylineMatch) {
@@ -138,13 +181,11 @@ function parsePost(filename, html) {
     if (rtM) readTime = rtM[1];
   }
 
-  // Published date
   let publishedAt = '2026-06-01T00:00:00Z';
   const pubMeta = html.match(/<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i) ||
                   html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']article:published_time["']/i);
   if (pubMeta) publishedAt = pubMeta[1];
 
-  // Body HTML
   let body = '';
   const bodyMatch = html.match(/<[^>]+class="[^"]*article-body[^"]*"[^>]*>([\s\S]*?)<\/div>\s*(?:<div|<section|<footer|<!--)/i);
   if (bodyMatch) {
@@ -155,31 +196,20 @@ function parsePost(filename, html) {
       const openTagStart = html.lastIndexOf('<', abIdx);
       const openTagEnd = html.indexOf('>', abIdx);
       if (openTagStart > 0 && openTagEnd > 0) {
-        const contentStart = openTagEnd + 1;
-        body = html.slice(contentStart, contentStart + 15000).trim();
+        body = html.slice(openTagEnd + 1, openTagEnd + 20000).trim();
       }
     }
   }
 
-  // FAQs
-  const faqs = [];
-  const faqRe = /<[^>]+class="[^"]*faq-item[^"]*"[^>]*>([\s\S]*?)<\/(?:div|li)>/gi;
-  let faqM;
-  while ((faqM = faqRe.exec(html)) !== null) {
-    const h = faqM[1];
-    const qM = h.match(/<[^>]+class="[^"]*faq-q[^"]*"[^>]*>([\s\S]*?)<\//i);
-    const aM = h.match(/<[^>]+class="[^"]*faq-a[^"]*"[^>]*>([\s\S]*?)<\//i);
-    if (qM && aM) faqs.push({ q: stripTags(qM[1]), a: stripTags(aM[1]) });
-  }
+  // Use the depth-tracking FAQ parser
+  const faqs = parseFaqs(html);
 
-  // Related posts
   const related = [];
   const relRe = /<a[^>]+class="[^"]*related-card[^"]*"[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let relM;
   while ((relM = relRe.exec(html)) !== null) {
-    const href = relM[1];
-    const inner = relM[2];
-    const slugM = href.match(/\/blog\/([^/?"'#]+)/);
+    const href = relM[1], inner = relM[2];
+    const slugM = href.match(/\/blog\/([^/"'?#]+)/);
     const relSlug = slugM ? slugM[1].replace(/\.html$/, '') : href.split('/').pop().replace(/\.html$/, '');
     const titleM = inner.match(/<[^>]+class="[^"]*related-card-title[^"]*"[^>]*>([\s\S]*?)<\//i);
     const relTitle = titleM ? stripTags(titleM[1]) : '';
@@ -189,7 +219,6 @@ function parsePost(filename, html) {
     if (relSlug) related.push({ slug: relSlug, park: relPark, title: relTitle });
   }
 
-  // CTA
   let ctaType = 'both', ctaText = '', ctaButtonText = 'Try free for 7 days \u2192', ctaButtonUrl = 'https://themeparkcopilot.com';
   const ctaMatch = html.match(/<a[^>]+class="[^"]*cta-btn[^"]*"[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i) ||
                    html.match(/<a[^>]+href=["']([^"']+)["'][^>]+class="[^"]*cta-btn[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
@@ -214,14 +243,13 @@ function parsePost(filename, html) {
 async function run() {
   console.log('\n=== Theme Park Co-Pilot Blog Migration ===\n');
 
-  // 1. List blog files
   console.log('Fetching blog file list from GitHub...');
   const listResp = await httpGet(
     'https://api.github.com/repos/' + LANDING_REPO + '/contents/blog',
     { 'Authorization': 'Bearer ' + GITHUB_PAT }
   );
   if (listResp.status !== 200) {
-    console.error('Failed to list blog directory (HTTP ' + listResp.status + '):', listResp.body.slice(0,200));
+    console.error('Failed to list blog directory (HTTP ' + listResp.status + ')');
     process.exit(1);
   }
   const allFiles = JSON.parse(listResp.body);
@@ -230,24 +258,28 @@ async function run() {
   );
   console.log('Found ' + postFiles.length + ' post HTML files\n');
 
-  // 2. Parse all posts
   console.log('Fetching and parsing HTML files...');
   const posts = [];
   for (const file of postFiles) {
     process.stdout.write('  ' + file.name + ' ... ');
     try {
-      const resp = await httpGet(file.download_url, { 'Authorization': 'Bearer ' + GITHUB_PAT });
+      // Use GitHub Contents API (returns base64) — avoids CORS with raw URLs
+      const resp = await httpGet(
+        'https://api.github.com/repos/' + LANDING_REPO + '/contents/blog/' + file.name,
+        { 'Authorization': 'Bearer ' + GITHUB_PAT, 'Accept': 'application/vnd.github+json' }
+      );
       if (resp.status !== 200) { console.log('SKIP (HTTP ' + resp.status + ')'); continue; }
-      const post = parsePost(file.name, resp.body);
+      const data = JSON.parse(resp.body);
+      const html = Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
+      const post = parsePost(file.name, html);
       posts.push(post);
-      console.log('OK  "' + post.title.slice(0, 55) + (post.title.length > 55 ? '...' : '') + '"');
+      console.log('OK  "' + post.title.slice(0, 55) + (post.title.length > 55 ? '...' : '') + '"  faqs:' + post.faqs.length);
     } catch (err) {
       console.log('ERROR: ' + err.message);
     }
   }
   console.log('\nParsed ' + posts.length + '/' + postFiles.length + ' posts.\n');
 
-  // 3. Authenticate
   console.log('Authenticating with /api/blog-auth...');
   try {
     const authResp = await httpPost(BLOG_API_BASE + '/api/blog-auth', { password: ADMIN_KEY });
@@ -255,61 +287,55 @@ async function run() {
       const d = JSON.parse(authResp.body);
       console.log('JWT obtained: ' + (d.token ? d.token.slice(0, 24) + '...' : 'none') + '\n');
     } else {
-      console.log('Auth warning (HTTP ' + authResp.status + '): continuing with x-admin-key\n');
+      console.log('Auth note (HTTP ' + authResp.status + '): will use x-admin-key header\n');
     }
-  } catch(e) { console.log('Auth fetch error: ' + e.message + ' — continuing\n'); }
+  } catch(e) { console.log('Auth fetch error: ' + e.message + '\n'); }
 
-  // 4. Migrate in batches of 5
-  console.log('Migrating posts via /api/blog-migrate (batches of 5, 500ms between)...');
-  const BATCH = 5;
+  // Save each post individually via blog-save with 3.5s between requests
+  // (rate limit is 20 req/min; 3.5s spacing = ~17/min, safely under limit)
+  console.log('Saving posts via /api/blog-save (1 per 3.5s to respect rate limit)...');
   let totalSaved = 0, totalFailed = 0;
-  for (let i = 0; i < posts.length; i += BATCH) {
-    const batch = posts.slice(i, i + BATCH);
-    const batchLabel = batch.map(p => p.slug).join(', ');
-    process.stdout.write('  Batch ' + (Math.floor(i/BATCH)+1) + ': [' + batchLabel.slice(0,70) + '] ... ');
+  for (let i = 0; i < posts.length; i++) {
+    const post = posts[i];
+    process.stdout.write('  [' + String(i+1).padStart(2) + '/' + posts.length + '] ' + post.slug + ' ... ');
     try {
-      const r = await httpPost(BLOG_API_BASE + '/api/blog-migrate', batch, { 'x-admin-key': ADMIN_KEY });
+      const r = await httpPost(
+        BLOG_API_BASE + '/api/blog-save',
+        post,
+        { 'x-admin-key': ADMIN_KEY }
+      );
       if (r.status === 200) {
-        const d = JSON.parse(r.body);
-        totalSaved += d.saved || 0;
-        totalFailed += d.failed || 0;
-        console.log('saved:' + d.saved + ' failed:' + d.failed);
-        if (d.details && d.details.failed) {
-          d.details.failed.forEach(f => console.log('    FAIL: ' + f.slug + ' — ' + f.error));
-        }
-      } else if (r.status === 410) {
-        console.log('\nMigration endpoint returned 410 Gone — migration was already completed!');
-        break;
+        totalSaved++;
+        console.log('saved  (faqs:' + post.faqs.length + ')');
       } else {
-        console.log('HTTP ' + r.status + ': ' + r.body.slice(0, 200));
-        totalFailed += batch.length;
+        totalFailed++;
+        console.log('FAIL HTTP ' + r.status + ': ' + r.body.slice(0, 100));
       }
     } catch(err) {
+      totalFailed++;
       console.log('ERROR: ' + err.message);
-      totalFailed += batch.length;
     }
-    if (i + BATCH < posts.length) await sleep(500);
+    if (i < posts.length - 1) await sleep(3500);
   }
 
-  console.log('\n--- Migration Summary ---');
-  console.log('  Posts saved: ' + totalSaved);
+  console.log('\n--- Save Summary ---');
+  console.log('  Posts saved:  ' + totalSaved);
   console.log('  Posts failed: ' + totalFailed);
-  if (totalFailed > 0) console.log('  WARNING: ' + totalFailed + ' posts failed!');
 
-  // 5. Verify index count
-  console.log('\nVerifying /api/blog-index...');
+  console.log('\nRebuilding index via GET /api/blog-migrate?action=rebuild-index...');
   try {
-    const idxR = await httpGet(BLOG_API_BASE + '/api/blog-index');
-    if (idxR.status === 200) {
-      const idx = JSON.parse(idxR.body);
-      const ok = idx.length === 31;
-      console.log('  blog-index count: ' + idx.length + (ok ? ' ✓  (expected 31)' : ' ✗  (expected 31!)'));
+    const rbResp = await httpGet(
+      BLOG_API_BASE + '/api/blog-migrate?action=rebuild-index',
+      { 'x-admin-key': ADMIN_KEY }
+    );
+    if (rbResp.status === 200) {
+      const d = JSON.parse(rbResp.body);
+      console.log('  Index count: ' + d.count + (d.count === 30 ? ' \u2713' : ' \u2717 (expected 30)'));
     } else {
-      console.log('  HTTP ' + idxR.status + ': ' + idxR.body.slice(0, 200));
+      console.log('  HTTP ' + rbResp.status + ': ' + rbResp.body.slice(0, 200));
     }
   } catch(e) { console.log('  ERROR: ' + e.message); }
 
-  // 6. Spot-check 3 posts
   const spots = ['disneyland-rope-drop-strategy', 'magic-kingdom-guide', 'disney-world-with-toddlers'];
   console.log('\nSpot-checking 3 posts...');
   for (const s of spots) {
@@ -317,13 +343,14 @@ async function run() {
       const r = await httpGet(BLOG_API_BASE + '/api/blog-post?slug=' + s);
       if (r.status === 200) {
         const p = JSON.parse(r.body);
-        console.log('  ✓ ' + s);
+        console.log('  \u2713 ' + s);
         console.log('    title: "' + (p.title || '').slice(0, 70) + '"');
-        console.log('    park: ' + p.park + '  readTime: ' + p.readTime + ' min  faqs: ' + (p.faqs || []).length + '  related: ' + (p.related || []).length);
+        console.log('    faqs: ' + (p.faqs||[]).length + ' | related: ' + (p.related||[]).length + ' | park: ' + p.park);
+        if (p.faqs && p.faqs[0]) console.log('    first_faq.q: "' + p.faqs[0].q.slice(0,70) + '"');
       } else {
-        console.log('  ✗ ' + s + '  HTTP ' + r.status);
+        console.log('  \u2717 ' + s + '  HTTP ' + r.status);
       }
-    } catch(e) { console.log('  ✗ ' + s + '  ERROR: ' + e.message); }
+    } catch(e) { console.log('  \u2717 ' + s + '  ERROR: ' + e.message); }
   }
   console.log('\n=== Done ===\n');
 }
