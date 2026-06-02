@@ -1,6 +1,15 @@
 // api/blog-post.js - GET /api/blog-post?slug=... - public, cached
 const { list } = require('@vercel/blob');
 const rl = {};
+
+async function readBlob(pathname) {
+  const { blobs } = await list({ prefix: pathname, limit: 10 });
+  const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  if (!matches.length) return null;
+  const r = await fetch(matches[0].url);
+  if (!r.ok) return null;
+  return r.text().then(t => JSON.parse(t));
+}
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -13,13 +22,8 @@ module.exports = async (req, res) => {
   const { slug } = req.query;
   if (!slug || !/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ error: 'Invalid slug' });
   try {
-    const { blobs } = await list({ prefix: 'blog/posts/' + slug, limit: 1 });
-    if (!blobs || blobs.length === 0) return res.status(404).json({ error: 'Post not found' });
-    const blob = blobs.find(b => b.pathname === 'blog/posts/' + slug);
-    if (!blob) return res.status(404).json({ error: 'Post not found' });
-    const r = await fetch(blob.url);
-    if (!r.ok) return res.status(404).json({ error: 'Post not found' });
-    const post = await r.json();
+    const post = await readBlob('blog/posts/' + slug);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return res.status(200).json(post);
   } catch (err) {
