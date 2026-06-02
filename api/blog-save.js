@@ -1,8 +1,17 @@
 // api/blog-save.js - POST /api/blog-save - protected with x-admin-key
-const { put, get } = require('@vercel/blob');
+const { put, list } = require('@vercel/blob');
 const rl = {};
+
+async function readBlob(pathname) {
+  const { blobs } = await list({ prefix: pathname, limit: 1 });
+  const blob = blobs && blobs.find(b => b.pathname === pathname);
+  if (!blob) return null;
+  const r = await fetch(blob.url);
+  if (!r.ok) return null;
+  return r.json();
+}
+
 module.exports = async (req, res) => {
-  // Auth check FIRST — no exceptions
   const adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
   const sentKey = (req.headers['x-admin-key'] || '').toLowerCase();
   if (!sentKey || sentKey !== adminKey) return res.status(401).json({ error: 'Unauthorized' });
@@ -11,7 +20,6 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  // Rate limit 20/min/IP
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
   const now = Date.now();
   if (!rl[ip] || now - rl[ip].start > 60000) rl[ip] = { count: 0, start: now };
@@ -24,21 +32,15 @@ module.exports = async (req, res) => {
   if (!/^[a-z0-9-]+$/.test(post.slug)) return res.status(400).json({ error: 'Invalid slug format' });
   post.updatedAt = new Date().toISOString();
   try {
-    // Save post blob
-    await put('blog:posts:' + post.slug, JSON.stringify(post), { access: 'public', allowOverwrite: true });
-    // Upsert index
-    let index = [];
-    try {
-      const idxBlob = await get('blog:posts:index');
-      if (idxBlob) { const t = await idxBlob.text(); index = JSON.parse(t); }
-    } catch(e) { index = []; }
+    await put('blog/posts/' + post.slug, JSON.stringify(post), { access: 'public', allowOverwrite: true });
+    let index = (await readBlob('blog/posts/index')) || [];
     const meta = { slug: post.slug, title: post.title, park: post.park, category: post.category, tagLabel: post.tagLabel, heroImage: post.heroImage, heroAlt: post.heroAlt, intro: post.intro, readTime: post.readTime, publishedAt: post.publishedAt, updatedAt: post.updatedAt, published: post.published };
     const idx = index.findIndex(p => p.slug === post.slug);
     if (idx >= 0) index[idx] = meta; else index.push(meta);
-    await put('blog:posts:index', JSON.stringify(index), { access: 'public', allowOverwrite: true });
+    await put('blog/posts/index', JSON.stringify(index), { access: 'public', allowOverwrite: true });
     return res.status(200).json({ success: true, slug: post.slug, updatedAt: post.updatedAt });
   } catch (err) {
-    console.error('blog-save error:', err);
+    console.error('blog-save error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
