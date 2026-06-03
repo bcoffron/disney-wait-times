@@ -71,7 +71,7 @@ export default async function handler(req, res) {
   var now = Date.now();
   if (!rl[ip] || now - rl[ip].start > 60000) rl[ip] = { count: 0, start: now };
   rl[ip].count++;
-  if (rl[ip].count > 20) return res.status(429).send('Rate limit exceeded');
+  if (rl[ip].count > 120) return res.status(429).send('Rate limit exceeded');
 
   var posts = [];
   try { posts = (await readBlob('blog/posts/index')) || []; } catch(e) { posts = []; }
