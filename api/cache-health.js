@@ -1,4 +1,4 @@
-const { list } = require('@vercel/blob');
+import { list } from '@vercel/blob';
 
 const STABLE_SECTIONS = [
   'LAND_MAP', 'WAIT_PATTERNS', 'CROWD_FLOW', 'ROPE_DROP_STRATEGY',
@@ -86,4 +86,4 @@ async function handler(req, res) {
   return res.status(200).json(report);
 }
 
-export default handler;
+module.exports = handler;
