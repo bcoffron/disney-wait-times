@@ -1,0 +1,311 @@
+export default function handler(req, res) {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+  res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Theme Park Co-Pilot &mdash; Coming Soon</title>
+<meta name="description" content="A calmer way to plan Disneyland is almost here. Join the early access list.">
+  <!-- Open Graph / Social sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://themeparkcopilot.com">
+  <meta property="og:title" content="Theme Park Co-Pilot — Smarter days. More magic.">
+  <meta property="og:description" content="A calmer, less stressful way to plan your visits to Disneyland Resort, Walt Disney World, and Universal Studios. Coming soon — join the early access list.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/bcoffron/themeparkcopilot-landing/main/assets/og-homepage.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <!-- Twitter card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Theme Park Co-Pilot — Smarter days. More magic.">
+  <meta name="twitter:description" content="A calmer, less stressful way to plan your visits to Disneyland Resort, Walt Disney World, and Universal Studios. Coming soon.">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/bcoffron/themeparkcopilot-landing/main/assets/og-homepage.jpg">
+  <link rel="icon" type="image/png" href="https://app.themeparkcopilot.com/assets/brand/favicon.PNG">
+  <link rel="apple-touch-icon" href="https://app.themeparkcopilot.com/assets/brand/favicon.PNG">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700;1,900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: 'Outfit', sans-serif; background: #071E25; color: #fff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+input, button { font-family: inherit; }
+input::placeholder { color: rgba(255,255,255,0.32); }
+
+/* NAV */
+.nav {
+  height: 56px; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 48px;
+  background: rgba(7,30,37,0.97);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  position: sticky; top: 0; z-index: 100;
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-logo img { height: 32px; width: 32px; border-radius: 7px; object-fit: cover; }
+.nav-wm { font-size: 14px; font-weight: 900; color: #fff; letter-spacing: -.3px; }
+.nav-wm span { color: #F5A623; }
+.nav-cta {
+  background: #F5A623; color: #071E25; border: none;
+  border-radius: 22px; padding: 9px 22px;
+  font-size: 12px; font-weight: 800; cursor: pointer;
+}
+
+/* HERO — true 3 columns */
+.hero {
+  display: grid;
+  grid-template-columns: 38% 1fr 260px;
+  height: calc(100vh - 56px);
+  min-height: 580px;
+}
+
+/* Col 1: Photo */
+.hero-photo { position: relative; overflow: hidden; }
+.hero-photo img {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center center;
+  display: block;
+}
+.hero-photo::after {
+  content: ''; position: absolute;
+  top: 0; right: 0; bottom: 0; width: 80px;
+  background: linear-gradient(to right, transparent, #071E25);
+}
+
+/* Col 2: Copy */
+.hero-copy {
+  padding: 48px 56px 48px 52px;
+  display: flex; flex-direction: column; justify-content: center;
+  background: #071E25;
+}
+
+/* Coming soon badge */
+.cs-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-bottom: 16px; font-size: 11px;
+  color: rgba(255,255,255,0.5); font-weight: 600;
+}
+.cs-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #F5A623; flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(245,166,35,0.7);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(1.3); } }
+.cs-badge strong { color: rgba(255,255,255,0.85); font-weight: 700; }
+
+/* Logo lockup */
+.hero-lockup { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.hero-lockup img { width: 60px; height: 60px; border-radius: 13px; object-fit: cover; flex-shrink: 0; }
+.hero-lockup-name { font-size: 21px; font-weight: 900; color: #fff; letter-spacing: -.4px; line-height: 1; }
+.hero-lockup-name span { color: #F5A623; }
+.hero-lockup-tag { font-size: 9px; font-weight: 700; color: rgba(245,166,35,0.55); letter-spacing: .18em; text-transform: uppercase; margin-top: 4px; }
+
+/* Headline */
+.hero-h {
+  font-family: 'Fraunces', serif;
+  font-size: 58px; line-height: .92;
+  color: #fff; margin-bottom: 14px; letter-spacing: -.5px;
+}
+.hero-h em { font-style: italic; color: #F5A623; }
+
+/* Tagline */
+.hero-tagline {
+  font-size: 15px; color: rgba(255,255,255,0.48);
+  line-height: 1.68; max-width: 480px; margin-bottom: 14px;
+}
+
+/* Tease line */
+.tease-line {
+  font-family: 'Fraunces', serif; font-size: 15px;
+  font-style: italic; color: rgba(255,255,255,0.35);
+  margin-bottom: 22px; line-height: 1.5; max-width: 480px;
+}
+.tease-line strong { color: rgba(245,166,35,0.75); font-style: normal; }
+
+/* Email form */
+.email-form {
+  display: flex; max-width: 480px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px; padding: 4px; margin-bottom: 8px;
+}
+.email-form input {
+  flex: 1; background: transparent; border: none;
+  padding: 11px 14px; font-size: 14px; color: #fff; outline: none;
+}
+.email-form button {
+  background: #C86030; color: #fff; border: none;
+  border-radius: 9px; padding: 11px 20px;
+  font-size: 13px; font-weight: 800; cursor: pointer; white-space: nowrap;
+}
+.email-fine { font-size: 10px; color: rgba(255,255,255,0.22); }
+
+/* Col 3: Benefits */
+.hero-benefits {
+  background: #0A2D33;
+  border-left: 1px solid rgba(255,255,255,0.07);
+  display: flex; flex-direction: column;
+  justify-content: center; padding: 48px 32px; gap: 0;
+}
+.hb-item {
+  padding: 22px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.hb-item:last-child { border-bottom: none; }
+.hb-big {
+  font-family: 'Fraunces', serif;
+  font-size: 26px; font-style: italic;
+  color: #fff; line-height: 1; margin-bottom: 5px;
+}
+.hb-small { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+
+/* FOOTER */
+footer {
+  background: #030C10; padding: 16px 48px;
+  display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.footer-left { display: flex; align-items: center; gap: 10px; }
+.footer-copy { font-size: 12px; color: rgba(255,255,255,0.3); font-weight: 500; }
+.footer-legal { font-size: 10px; color: rgba(255,255,255,0.18); line-height: 1.4; text-align: right; max-width: 540px; }
+
+/* MOBILE */
+@media (max-width: 900px) {
+  .nav { padding: 0 20px; }
+  .hero { grid-template-columns: 1fr; height: auto; min-height: auto; }
+  .hero-photo { min-height: 300px; max-height: 360px; }
+  .hero-photo::after { background: linear-gradient(to bottom, transparent, #071E25); right: 0; left: 0; top: auto; height: 80px; width: 100%; }
+  .hero-copy { padding: 36px 24px 40px; }
+  .hero-h { font-size: 40px; }
+  .hero-tagline, .tease-line { max-width: 100%; }
+  .email-form { max-width: 100%; }
+  .hero-benefits { border-left: none; border-top: 1px solid rgba(255,255,255,0.07); flex-direction: row; padding: 24px 20px; }
+  .hb-item { flex: 1; border-bottom: none; border-right: 1px solid rgba(255,255,255,0.07); padding: 0 12px; text-align: center; }
+  .hb-item:last-child { border-right: none; }
+  .hb-big { font-size: 18px; }
+  footer { padding: 16px 20px; flex-direction: column; text-align: center; }
+  .footer-legal { text-align: center; }
+}
+@media (max-width: 640px) {
+  .hero-h { font-size: 34px; }
+  .hero-lockup-name { font-size: 17px; }
+  .hero-lockup img { width: 44px; height: 44px; }
+  .hero-benefits { flex-direction: column; }
+  .hb-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); padding: 16px 0; text-align: left; }
+  .hb-item:last-child { border-bottom: none; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="#">
+    <img src="https://app.themeparkcopilot.com/assets/brand/logo-primary.svg" alt="Theme Park Co-Pilot">
+    <span class="nav-wm">Theme Park Co<span>&#10022;</span>Pilot</span>
+  </a>
+  <button class="nav-cta" onclick="document.getElementById('signup-email').focus()">Get early access</button>
+</nav>
+
+<section class="hero">
+
+  <!-- Col 1: Photo -->
+  <div class="hero-photo">
+    <img src="https://app.themeparkcopilot.com/assets/brand/landing-photo-hero.svg" alt="Family enjoying a magical theme park day">
+  </div>
+
+  <!-- Col 2: Copy + form -->
+  <div class="hero-copy">
+    <div class="cs-badge">
+      <div class="cs-dot"></div>
+      <span>Coming soon &nbsp;&middot;&nbsp; <strong>Disneyland Resort</strong></span>
+    </div>
+    <div class="hero-lockup">
+      <img src="https://app.themeparkcopilot.com/assets/brand/logo-primary.svg" alt="Theme Park Co-Pilot">
+      <div>
+        <div class="hero-lockup-name">Theme Park Co<span>&#10022;</span>Pilot</div>
+        <div class="hero-lockup-tag">AI-Powered Theme Park Guide</div>
+      </div>
+    </div>
+    <div class="hero-h">Smarter days.<br><em>More magic.</em></div>
+    <p class="hero-tagline">Your AI theme park guide builds your plan, watches live wait times, and helps your family and friends make the next best move all day &mdash; so you ride more, wait less, and enjoy the moments you came for.</p>
+    <p class="tease-line">A calmer, less stressful way to plan your visits to Disneyland Resort, Walt Disney World, and Universal Studios is almost here.<br><strong>Be first to know.</strong></p>
+    <div class="email-form" id="signup-form">
+      <input placeholder="Your email address" type="email" id="signup-email">
+      <button onclick="handleSignup(event)">Get early access &rarr;</button>
+    </div>
+    <div class="email-fine" id="signup-fine">No spam &middot; Launch announcement only &middot; Unsubscribe anytime</div>
+  </div>
+
+  <!-- Col 3: Benefits -->
+  <div class="hero-benefits">
+    <div class="hb-item">
+      <div class="hb-big">Less waiting.</div>
+      <div class="hb-small">More of the park you came for</div>
+    </div>
+    <div class="hb-item">
+      <div class="hb-big">Less guessing.</div>
+      <div class="hb-small">Every move planned and adjusted live</div>
+    </div>
+    <div class="hb-item">
+      <div class="hb-big">Less stress.</div>
+      <div class="hb-small">So everyone can actually enjoy the day</div>
+    </div>
+  </div>
+
+</section>
+
+<footer>
+  <div class="footer-left">
+    <img src="https://app.themeparkcopilot.com/assets/brand/logo-white.svg" style="height:24px;border-radius:6px" alt="Theme Park Co-Pilot">
+    <span class="footer-copy">&copy; 2026 Lunchbox Dad, LLC. All rights reserved.</span>
+  </div>
+  <span class="footer-legal">Theme Park Co-Pilot is an independent planning tool and is not affiliated with, endorsed by, or sponsored by Disney, Universal, or their parent companies. Disney, Disneyland, Walt Disney World, and related marks are trademarks of The Walt Disney Company.</span>
+</footer>
+
+<script>
+async function handleSignup(e) {
+  e.preventDefault();
+  const input = document.getElementById('signup-email');
+  const fine  = document.getElementById('signup-fine');
+  const btn   = e.target;
+  const email = input.value.trim();
+
+  if (!email || !email.includes('@')) {
+    fine.textContent = 'Please enter a valid email address.';
+    fine.style.color = '#ECA050';
+    return;
+  }
+
+  btn.textContent = 'Adding you...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('https://disney-wait-times-lupt.vercel.app/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      document.getElementById('signup-form').innerHTML =
+        '<div style="font-size:15px;font-weight:700;color:#fff;padding:12px 0">&#10022; You’re on the list. We’ll be in touch.</div>';
+      fine.textContent = "We'll email you the moment Theme Park Co-Pilot launches.";
+      fine.style.color = 'rgba(255,255,255,0.4)';
+    } else {
+      throw new Error(data.error || 'Unknown error');
+    }
+  } catch (err) {
+    btn.textContent = 'Get early access →';
+    btn.disabled = false;
+    fine.textContent = 'Something went wrong — please try again.';
+    fine.style.color = '#ECA050';
+  }
+}
+</script>
+
+</body>
+</html>
+`);
+}
