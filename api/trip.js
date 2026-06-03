@@ -175,4 +175,4 @@ export default async function handler(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 };
 
-module.exports.config = { maxDuration: 15 };
+handler.config = { maxDuration: 15 };
