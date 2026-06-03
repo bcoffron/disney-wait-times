@@ -6,7 +6,8 @@ async function readBlob(pathname) {
   const { blobs } = await list({ prefix: pathname, limit: 10 });
   const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
   if (!matches.length) return null;
-  const r = await fetch(matches[0].url);
+  const bustUrl = matches[0].url + (matches[0].url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+  const r = await fetch(bustUrl, { cache: 'no-store' });
   if (!r.ok) return null;
   return r.text().then(t => JSON.parse(t));
 }
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
   try {
     const post = await readBlob('blog/posts/' + slug);
     if (!post) return res.status(404).json({ error: 'Post not found' });
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=10');
     return res.status(200).json(post);
   } catch (err) {
     console.error('blog-post error:', err.message);
