@@ -409,4 +409,4 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
   }
 };
 
-module.exports.config = { maxDuration: 30 };
+handler.config = { maxDuration: 30 };
