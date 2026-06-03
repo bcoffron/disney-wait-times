@@ -1,7 +1,7 @@
 import { put, list, del } from '@vercel/blob';
 
 const SOURCE_AUTHORITY = `
-VERIFIED SOURCES — use in priority order. Last 2 years only.
+VERIFIED SOURCES -- use in priority order. Last 2 years only.
 BY SECTION:
 - Wait time data: TouringPlans.com, MickeyVisit.com
 - Crowd calendars: TouringPlans.com, UndercoverTourist.com
@@ -15,11 +15,11 @@ BY SECTION:
 UNIVERSAL RULES:
 1. NEVER: Genie+, MaxPass, FastPass terminology
 2. ALWAYS: Lightning Lane Multi Pass (LLMP), Individual Lightning Lane (ILL)
-3. Specific numbers required — "60-90 min by 10 AM on summer Sundays"
-4. No AI preamble — start with actual content immediately
-5. No hedging — state consensus confidently
-6. Complete sentences only — no truncation
-7. When sources conflict — use primary source for that section
+3. Specific numbers required -- "60-90 min by 10 AM on summer Sundays"
+4. No AI preamble -- start with actual content immediately
+5. No hedging -- state consensus confidently
+6. Complete sentences only -- no truncation
+7. When sources conflict -- use primary source for that section
 `;
 
 const VALID_KEYS = [
@@ -285,12 +285,12 @@ async function setRateLimit() {
 }
 
 export default async function handler(req, res) {
-  // AUTH FIRST — before anything else, before any imports or blob calls
+  // AUTH FIRST -- before anything else, before any imports or blob calls
   const secret = process.env.CRON_SECRET;
   const isAuthed = secret && req.headers.authorization === ('Bearer '+secret);
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   if (!isAuthed && !isVercelCron) {
-    console.warn('[cron-cache] Unauthorized request blocked — ip:', req.headers['x-forwarded-for'] || 'unknown');
+    console.warn('[cron-cache] Unauthorized request blocked -- ip:', req.headers['x-forwarded-for'] || 'unknown');
     return res.status(401).json({ error: 'Unauthorized.' });
   }
   res.setHeader('Access-Control-Allow-Origin','*');
@@ -316,7 +316,7 @@ export default async function handler(req, res) {
       runCount = capData.count || 0;
     }
     if (runCount >= 2) {
-      console.warn('[cron-cache] Daily run cap reached (' + runCount + ' runs today) — aborting');
+      console.warn('[cron-cache] Daily run cap reached (' + runCount + ' runs today) -- aborting');
       return res.status(429).json({ error: 'Daily run cap reached. Max 2 cron runs per day.' });
     }
     await put(capKey, JSON.stringify({ count: runCount + 1, lastRun: new Date().toISOString() }), {
