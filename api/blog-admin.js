@@ -451,7 +451,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
       <div class="img-modal-title">Image Library</div>
       <div class="img-modal-actions">
         <button class="btn-upload-img" onclick="triggerUpload()">Upload</button>
-        <button class="btn-close-img" onclick="closeImageManager()">ÃÂ</button>
+        <button class="btn-close-img" onclick="closeImageManager()">&times;</button>
       </div>
     </div>
     <div class="img-modal-body">
@@ -828,13 +828,13 @@ function collectPost(publish) {
   const isPublished = publish ? true : document.getElementById('f-published').checked;
 
   const CTA_TEXT = {
-    dl: { text: 'Get the Theme Park Co-Pilot app and see real Disneyland wait times, crowd forecasts, and personalized plans.', buttonText: 'Try free for 7 days Ã¢ÂÂ', buttonUrl: 'https://themeparkcopilot.com' },
-    wdw: { text: 'Get the Theme Park Co-Pilot app and see real Walt Disney World wait times, crowd forecasts, and personalized plans.', buttonText: 'Try free for 7 days Ã¢ÂÂ', buttonUrl: 'https://themeparkcopilot.com' },
-    both: { text: 'Get the Theme Park Co-Pilot app and see real Disney park wait times, crowd forecasts, and personalized plans for every resort.', buttonText: 'Try free for 7 days Ã¢ÂÂ', buttonUrl: 'https://themeparkcopilot.com' }
+    dl: { text: 'Get the Theme Park Co-Pilot app and see real Disneyland wait times, crowd forecasts, and personalized plans.', buttonText: 'Try free for 7 days &#8594;', buttonUrl: 'https://themeparkcopilot.com' },
+    wdw: { text: 'Get the Theme Park Co-Pilot app and see real Walt Disney World wait times, crowd forecasts, and personalized plans.', buttonText: 'Try free for 7 days &#8594;', buttonUrl: 'https://themeparkcopilot.com' },
+    both: { text: 'Get the Theme Park Co-Pilot app and see real Disney park wait times, crowd forecasts, and personalized plans for every resort.', buttonText: 'Try free for 7 days &#8594;', buttonUrl: 'https://themeparkcopilot.com' }
   };
 
   const parkLabels = { dl: 'Disneyland', wdw: 'Walt Disney World', both: 'Both Resorts' };
-  const category = parkLabels[park] + ' ÃÂ· Guide';
+  const category = parkLabels[park] + ' &middot; Guide';
 
   return {
     slug,
@@ -880,7 +880,7 @@ async function savePost(publish) {
       document.getElementById('f-published').checked = post.published;
       document.getElementById('status-label').textContent = post.published ? 'Published' : 'Draft';
       document.getElementById('btn-delete-post').style.display = 'block';
-      showToast(publish ? 'Published Ã¢ÂÂ' : 'Saved Ã¢ÂÂ', 'success');
+      showToast(publish ? 'Published &#10003;' : 'Saved &#10003;', 'success');
       await loadPosts();
     } else {
       showToast('Save failed &mdash; try again', 'error');
