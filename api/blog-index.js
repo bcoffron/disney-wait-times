@@ -1,5 +1,5 @@
 // api/blog-index.js - GET /api/blog-index - public, cached
-const { list } = require('@vercel/blob');
+import { list } from '@vercel/blob';
 const rl = {};
 
 async function readBlob(pathname) {
@@ -10,7 +10,7 @@ async function readBlob(pathname) {
   if (!r.ok) return null;
   return r.text().then(t => JSON.parse(t));
 }
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
