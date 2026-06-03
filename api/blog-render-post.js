@@ -6,7 +6,8 @@ async function readBlob(pathname) {
   const { blobs } = await list({ prefix: pathname, limit: 10 });
   const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
   if (!matches.length) return null;
-  const r = await fetch(matches[0].url);
+  const bustUrl = matches[0].url + (matches[0].url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+  const r = await fetch(bustUrl, { cache: 'no-store' });
   if (!r.ok) return null;
   return r.json();
 }
