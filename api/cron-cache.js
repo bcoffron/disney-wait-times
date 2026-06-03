@@ -285,21 +285,20 @@ async function setRateLimit() {
 }
 
 export default async function handler(req, res) {
+  // AUTH FIRST — before anything else, before any imports or blob calls
+  const secret = process.env.CRON_SECRET;
+  const isAuthed = secret && req.headers.authorization === ('Bearer '+secret);
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+  if (!isAuthed && !isVercelCron) {
+    console.warn('[cron-cache] Unauthorized request blocked — ip:', req.headers['x-forwarded-for'] || 'unknown');
+    return res.status(401).json({ error: 'Unauthorized.' });
+  }
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
   if(req.method==='OPTIONS') return res.status(200).end();
 
-  const secret = process.env.CRON_SECRET;
-  const isAuthed = secret && req.headers.authorization === 'Bearer '+secret;
-  const isVercelCron = req.headers['x-vercel-cron'] === '1';
-
-  // STRICT AUTH: Every request must be either a Vercel cron or provide the correct secret
-  // The ?key param alone is NOT sufficient — previously this bypassed all auth (security hole)
-  if(!isAuthed && !isVercelCron) {
-    console.warn('[cron-cache] Unauthorized request blocked — ip:', req.headers['x-forwarded-for'] || 'unknown');
-    return res.status(401).json({error:'Unauthorized. This endpoint requires authentication.'});
-  }
+  // Auth already handled at top of function
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if(!apiKey) return res.status(500).json({error:'No ANTHROPIC_API_KEY'});
