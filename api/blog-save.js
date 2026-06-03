@@ -9,7 +9,7 @@ async function readBlob(pathname) {
     .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
   if (!matches.length) return null;
 
-      const r = await fetch(matches[0].downloadUrl || matches[0].url, { cache: 'no-store' });
+          const r = await fetch(matches[0].url + '?t=' + Date.now(), { cache: 'no-store' });
   if (!r.ok) return null;
   return r.text().then(t => JSON.parse(t));
 }
