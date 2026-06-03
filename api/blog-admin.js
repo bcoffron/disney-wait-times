@@ -9,7 +9,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Theme Park Co-Pilot — Admin</title>
+<title>Theme Park Co-Pilot â Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
@@ -226,7 +226,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
   <div class="login-card">
     <div class="login-icon"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt=""></div>
     <div class="login-label">Admin</div>
-    <div class="login-wordmark">Theme Park Co★Pilot</div>
+    <div class="login-wordmark">Theme Park CoâPilot</div>
     <input type="password" class="login-input" id="pw-input" placeholder="Admin password" autocomplete="current-password">
     <button class="login-btn" id="login-btn" onclick="doLogin()">Enter</button>
     <div class="login-error" id="login-error"></div>
@@ -239,7 +239,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-top">
       <div class="sidebar-icon"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt=""></div>
-      <div class="sidebar-wordmark">Theme Park<br>Co★Pilot</div>
+      <div class="sidebar-wordmark">Theme Park<br>CoâPilot</div>
     </div>
     <div class="sidebar-nav">
       <button class="nav-item active" id="nav-posts" onclick="showView('posts')">
@@ -451,7 +451,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
       <div class="img-modal-title">Image Library</div>
       <div class="img-modal-actions">
         <button class="btn-upload-img" onclick="triggerUpload()">Upload</button>
-        <button class="btn-close-img" onclick="closeImageManager()">×</button>
+        <button class="btn-close-img" onclick="closeImageManager()">Ã</button>
       </div>
     </div>
     <div class="img-modal-body">
@@ -492,7 +492,7 @@ function doLogin() {
     body: JSON.stringify({ password: pw })
   }).then(r => r.json()).then(data => {
     if (data.token) {
-      token = data.token;
+      token = pw;
       sessionStorage.setItem('tpcp_admin_token', token);
       loginFailures = 0;
       showApp();
@@ -828,13 +828,13 @@ function collectPost(publish) {
   const isPublished = publish ? true : document.getElementById('f-published').checked;
 
   const CTA_TEXT = {
-    dl: { text: 'Get the Theme Park Co-Pilot app and see real Disneyland wait times, crowd forecasts, and personalized plans.', buttonText: 'Try free for 7 days →', buttonUrl: 'https://themeparkcopilot.com' },
-    wdw: { text: 'Get the Theme Park Co-Pilot app and see real Walt Disney World wait times, crowd forecasts, and personalized plans.', buttonText: 'Try free for 7 days →', buttonUrl: 'https://themeparkcopilot.com' },
-    both: { text: 'Get the Theme Park Co-Pilot app and see real Disney park wait times, crowd forecasts, and personalized plans for every resort.', buttonText: 'Try free for 7 days →', buttonUrl: 'https://themeparkcopilot.com' }
+    dl: { text: 'Get the Theme Park Co-Pilot app and see real Disneyland wait times, crowd forecasts, and personalized plans.', buttonText: 'Try free for 7 days â', buttonUrl: 'https://themeparkcopilot.com' },
+    wdw: { text: 'Get the Theme Park Co-Pilot app and see real Walt Disney World wait times, crowd forecasts, and personalized plans.', buttonText: 'Try free for 7 days â', buttonUrl: 'https://themeparkcopilot.com' },
+    both: { text: 'Get the Theme Park Co-Pilot app and see real Disney park wait times, crowd forecasts, and personalized plans for every resort.', buttonText: 'Try free for 7 days â', buttonUrl: 'https://themeparkcopilot.com' }
   };
 
   const parkLabels = { dl: 'Disneyland', wdw: 'Walt Disney World', both: 'Both Resorts' };
-  const category = parkLabels[park] + ' · Guide';
+  const category = parkLabels[park] + ' Â· Guide';
 
   return {
     slug,
@@ -880,13 +880,13 @@ async function savePost(publish) {
       document.getElementById('f-published').checked = post.published;
       document.getElementById('status-label').textContent = post.published ? 'Published' : 'Draft';
       document.getElementById('btn-delete-post').style.display = 'block';
-      showToast(publish ? 'Published ✓' : 'Saved ✓', 'success');
+      showToast(publish ? 'Published â' : 'Saved â', 'success');
       await loadPosts();
     } else {
-      showToast('Save failed — try again', 'error');
+      showToast('Save failed â try again', 'error');
     }
   } catch(e) {
-    showToast('Save failed — try again', 'error');
+    showToast('Save failed â try again', 'error');
   } finally {
     btn.textContent = origText;
     btn.classList.remove('btn-loading');
