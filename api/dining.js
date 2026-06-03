@@ -94,4 +94,4 @@ export default async function handler(req, res) {
   }
 };
 
-module.exports.config = { maxDuration: 15 };
+handler.config = { maxDuration: 15 };
