@@ -355,4 +355,4 @@ console.log('[reoptimize] stop_reason:', stopReason);
 }
 
 handler.config = { maxDuration: 60 };
-module.exports = handler;
+export default handler;
