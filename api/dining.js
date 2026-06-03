@@ -1,6 +1,6 @@
 // api/dining.js
 // Routes fetchDiningRecs through Vercel with dining_intel cache context
-const { list } = require('@vercel/blob');
+import { list } from '@vercel/blob';
 
 async function getCacheSlice(key, maxChars = 4000) {
   try {
@@ -35,7 +35,7 @@ function extractJSON(text) {
   return null;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
