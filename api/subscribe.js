@@ -77,8 +77,9 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'Could not save email', detail: contactData });
     }
 
-    // Send welcome email from hello@themeparkcopilot.com
-    await fetch('https://api.resend.com/emails', {
+    // Send welcome email — non-blocking, failure won't affect subscription success
+    try {
+      await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
@@ -103,6 +104,9 @@ async function handler(req, res) {
         `,
       }),
     });
+    } catch (emailErr) {
+      console.warn('Welcome email failed (non-fatal):', emailErr.message);
+    }
 
     return res.status(200).json({ success: true });
 
