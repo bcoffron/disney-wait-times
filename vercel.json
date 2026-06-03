@@ -36,6 +36,10 @@
       "destination": "/api/blog-admin"
     },
     {
+      "source": "/api/blog-settings",
+      "destination": "/api/blog-settings"
+    },
+    {
       "source": "/:path*",
       "destination": "/api/home"
     }
@@ -96,6 +100,9 @@
       "maxDuration": 30
     },
     "api/home.js": {
+      "maxDuration": 10
+    },
+    "api/blog-settings.js": {
       "maxDuration": 10
     }
   },
