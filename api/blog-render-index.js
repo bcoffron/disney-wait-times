@@ -54,7 +54,7 @@ function renderCard(post, isFeatured) {
     var cat = filterAttr(post);
     var tClass = post.park === 'dl' ? 'tag-abs-dl' : post.park === 'wdw' ? 'tag-abs-wdw' : '';
     var tStyle = post.park === 'both' ? ' style="background:rgba(184,134,11,0.92);color:#FFF8E0;"' : '';
-    var catLabel = esc(post.category || '');
+    var catLabel = (post.category || '').replace(/&middot;/g, '·').replace(/&amp;/g, '&');
 
   if (isFeatured) {
         return '<a class="post-card post-card--featured" href="/blog/' + slug + '" data-category="' + cat + '" aria-label="' + title + '"><div class="post-card__img-wrap"><img src="' + heroImage + '" alt="' + heroAlt + '" class="post-card__img" loading="eager"><span class="post-card__badge">START HERE</span></div><div class="post-card__body"><p class="post-card__eyebrow">' + catLabel + '</p><h2 class="post-card__title post-card__title--featured">' + title + '</h2><p class="post-card__intro">' + intro + '</p><div class="post-card__footer"><span class="post-card__read">' + readTime + ' min read</span><span class="post-card__cta">Read the guide \u2192</span></div></div></a>';
