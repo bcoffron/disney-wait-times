@@ -474,4 +474,4 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
   };
 }
 
-module.exports = { validateSchedule, parseClosedFromCache };
+export { validateSchedule, parseClosedFromCache };
