@@ -1,4 +1,4 @@
-const { put, list, del } = require('@vercel/blob');
+import { put, list, del } from '@vercel/blob';
 
 const SOURCE_AUTHORITY = `
 VERIFIED SOURCES — use in priority order. Last 2 years only.
@@ -284,7 +284,7 @@ async function setRateLimit() {
   } catch(e){}
 }
 
-module.exports = async function(req,res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
