@@ -8,7 +8,7 @@ BY SECTION:
 - Touring/rope drop strategy: TouringPlans.com, UndercoverTourist.com, Unofficial Guide (Len Testa)
 - Lightning Lane: AllEars.net, TouringPlans.com
 - Dining: DisneyFoodBlog.com, AllEars.net
-- Closures/hours: Disneyland.com (official), AllEars.net
+- Closures/hours: Disneyland.com (official), AllEarsnet
 - General strategy: DisneyTouristBlog.com, UndercoverTourist.com
 - Guest experiences: Reddit r/Disneyland (last 2 years only)
 - Park news: MickeyVisit.com, AllEars.net
@@ -191,11 +191,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
   if(!promptMap[sectionName]) throw new Error('Unknown section: '+sectionName);
   
   const prompt = promptMap[sectionName];
-  const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '
-
-Now build the ' + sectionName + ' section:
-
-' + prompt.user});
+const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '\n\nNow build the ' + sectionName + ' section:\n\n' + prompt.user});
     const text = await callClaude(augmentedPrompt, apiKey);
   
   let sectionData;
