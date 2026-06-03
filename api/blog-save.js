@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     };
     const idx = index.findIndex(p => p.slug === post.slug);
     if (idx >= 0) index[idx] = meta; else index.push(meta);
-    await put('blog/posts/index', JSON.stringify(index), { access: 'public', allowOverwrite: true });
+        await put('blog/posts/index', JSON.stringify(index), { access: 'public', token: process.env.BLOB_READ_WRITE_TOKEN });
 
     return res.status(200).json({ success: true, slug: post.slug, updatedAt: post.updatedAt });
   } catch (err) {
