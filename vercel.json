@@ -20,6 +20,10 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/api/home"
+    },
+    {
       "source": "/blog",
       "destination": "/api/blog-render-index"
     },
@@ -90,6 +94,9 @@
     },
     "api/blog-upload-image.js": {
       "maxDuration": 30
+    },
+    "api/home.js": {
+      "maxDuration": 10
     }
   },
   "crons": [
