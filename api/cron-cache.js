@@ -303,7 +303,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if(!apiKey) return res.status(500).json({error:'No ANTHROPIC_API_KEY'});
 
-  // ── DAILY RUN CAP ────────────────────────────────────────────────────────
+  // -- DAILY RUN CAP --------------------------------------------------------
   // Track how many times cron has run today via Vercel Blob
   // Max 2 runs per day to prevent runaway costs
   try {
@@ -326,13 +326,13 @@ export default async function handler(req, res) {
   } catch(capErr) {
     console.warn('[cron-cache] Could not check run cap:', capErr.message);
   }
-  // ─────────────────────────────────────────────────────────────────────────
+  // -------------------------------------------------------------------------
 
   const force = req.query.force === '1';
   const requestedKey = req.query.key;
   const requestedSection = req.query.section;
 
-  // ── SECTION-BY-SECTION BUILD MODE ──
+  // -- SECTION-BY-SECTION BUILD MODE --
   // GET /api/cron-cache?key=park_intel_dl_stable&section=LAND_MAP&force=1
   if(requestedKey && (requestedKey.includes('_dl_') || requestedKey.includes('_wdw_')) && requestedSection) {
     if(!VALID_KEYS.includes(requestedKey)) return res.status(400).json({error:'Invalid key'});
@@ -344,7 +344,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ── LEGACY KEYS ──
+  // -- LEGACY KEYS --
   const legacyKeys = requestedKey ? [requestedKey] : ['park_intel','dining_intel','events_intel','park_hours_intel'];
   const results=[], errors=[];
 
