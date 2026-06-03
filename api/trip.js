@@ -1,6 +1,6 @@
 // api/trip.js - Trip code registry handler
-const { put, list } = require('@vercel/blob');
-const { validateSchedule } = require('./validate-schedule');
+import { put, list } from '@vercel/blob';
+import { validateSchedule } from './validate-schedule.js';
 
 const REGISTRY_KEY = 'twize/trip_registry.json';
 
@@ -53,7 +53,7 @@ async function writeTripBlob(tripId, tripData) {
   });
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
