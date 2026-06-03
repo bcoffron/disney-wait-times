@@ -41,8 +41,7 @@ export default async function handler(req, res) {
         const errors = [];
         for (const blob of Object.values(byPathname)) {
                 try {
-                          const bustUrl = blob.url + (blob.url.includes('?') ? '&' : '?') + '_t=' + Date.now();
-                          const r = await fetch(bustUrl, { cache: 'no-store' });
+                                                  const r = await fetch(blob.downloadUrl || blob.url, { cache: 'no-store' });
                           if (!r.ok) { errors.push(blob.pathname + ': HTTP ' + r.status); continue; }
                           const post = await r.json();
                           if (!post || !post.slug) { errors.push(blob.pathname + ': no slug'); continue; }
