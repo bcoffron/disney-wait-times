@@ -1,107 +1,102 @@
 // api/blog-reindex.js - TEMPORARY one-shot endpoint to rebuild index from post blobs
-// DELETE after use. Protected by REINDEX_TOKEN env var.
-// GET /api/blog-reindex?token=<REINDEX_TOKEN>
+// DELETE after use. GET /api/blog-reindex?token=tpcp-reindex-2026
 import { list, put } from '@vercel/blob';
 
+const ONE_TIME_TOKEN = 'tpcp-reindex-2026';
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-      // Simple token check
-        const token = req.query.token || req.headers['x-reindex-token'] || '';
-          const expected = process.env.REINDEX_TOKEN || '';
-            if (!expected || token !== expected) {
-                return res.status(401).json({ error: 'Unauthorized' });
-                  }
+  const token = req.query.token || req.headers['x-reindex-token'] || '';
+    const envToken = process.env.REINDEX_TOKEN || '';
+    const validToken = envToken || ONE_TIME_TOKEN;
+    if (!token || token !== validToken) {
+          return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-                    try {
-                        // List all blog/posts/ blobs with token (bypasses CDN, returns downloadUrl)
-                            let allBlobs = [], cursor;
-                                do {
-                                      const result = await list({
-                                              prefix: 'blog/posts/',
-                                                      cursor,
-                                                              limit: 100,
-                                                                      token: process.env.BLOB_READ_WRITE_TOKEN
-                                                                            });
-                                                                                  allBlobs = allBlobs.concat(result.blobs || []);
-                                                                                        cursor = result.cursor;
-                                                                                            } while (cursor);
+  try {
+        let allBlobs = [], cursor;
+        do {
+                const result = await list({
+                          prefix: 'blog/posts/',
+                          cursor,
+                          limit: 100,
+                          token: process.env.BLOB_READ_WRITE_TOKEN
+                });
+                allBlobs = allBlobs.concat(result.blobs || []);
+                cursor = result.cursor;
+        } while (cursor);
 
-                                                                                                // Deduplicate: keep most recent blob per exact pathname, skip index
-                                                                                                    const byPathname = {};
-                                                                                                        for (const blob of allBlobs) {
-                                                                                                              if (blob.pathname === 'blog/posts/index') continue;
-                                                                                                                    if (!blob.pathname.startsWith('blog/posts/')) continue;
-                                                                                                                          if (!byPathname[blob.pathname] || new Date(blob.uploadedAt) > new Date(byPathname[blob.pathname].uploadedAt)) {
-                                                                                                                                  byPathname[blob.pathname] = blob;
-                                                                                                                                        }
-                                                                                                                                            }
-                                                                                                                                            
-                                                                                                                                                const index = [];
-                                                                                                                                                    const errors = [];
-                                                                                                                                                        for (const blob of Object.values(byPathname)) {
-                                                                                                                                                              try {
-                                                                                                                                                                      // Use cache-busted URL with no-store to get fresh data
-                                                                                                                                                                              const bustUrl = blob.url + (blob.url.includes('?') ? '&' : '?') + '_t=' + Date.now();
-                                                                                                                                                                                      const r = await fetch(bustUrl, { cache: 'no-store' });
-                                                                                                                                                                                              if (!r.ok) { errors.push(blob.pathname + ': HTTP ' + r.status); continue; }
-                                                                                                                                                                                                      const post = await r.json();
-                                                                                                                                                                                                              if (!post || !post.slug) { errors.push(blob.pathname + ': no slug'); continue; }
-                                                                                                                                                                                                                      index.push({
-                                                                                                                                                                                                                                slug: post.slug,
-                                                                                                                                                                                                                                          title: post.title,
-                                                                                                                                                                                                                                                    park: post.park,
-                                                                                                                                                                                                                                                              category: post.category,
-                                                                                                                                                                                                                                                                        tagLabel: post.tagLabel,
-                                                                                                                                                                                                                                                                                  heroImage: post.heroImage,
-                                                                                                                                                                                                                                                                                            heroAlt: post.heroAlt,
-                                                                                                                                                                                                                                                                                                      intro: post.intro,
-                                                                                                                                                                                                                                                                                                                readTime: post.readTime,
-                                                                                                                                                                                                                                                                                                                          publishedAt: post.publishedAt,
-                                                                                                                                                                                                                                                                                                                                    updatedAt: post.updatedAt,
-                                                                                                                                                                                                                                                                                                                                              published: post.published
-                                                                                                                                                                                                                                                                                                                                                      });
-                                                                                                                                                                                                                                                                                                                                                            } catch(e) {
-                                                                                                                                                                                                                                                                                                                                                                    errors.push(blob.pathname + ': ' + e.message);
-                                                                                                                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                                                                                                                                                                              
-                                                                                                                                                                                                                                                                                                                                                                                  // Write fresh index
-                                                                                                                                                                                                                                                                                                                                                                                      await put('blog/posts/index', JSON.stringify(index), {
-                                                                                                                                                                                                                                                                                                                                                                                            access: 'public',
-                                                                                                                                                                                                                                                                                                                                                                                                  allowOverwrite: true,
-                                                                                                                                                                                                                                                                                                                                                                                                        token: process.env.BLOB_READ_WRITE_TOKEN
-                                                                                                                                                                                                                                                                                                                                                                                                            });
-                                                                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                                                                                                                // Spot-check intros on the 6 target posts
-                                                                                                                                                                                                                                                                                                                                                                                                                    const targets = [
-                                                                                                                                                                                                                                                                                                                                                                                                                          'best-restaurants-disney-world',
-                                                                                                                                                                                                                                                                                                                                                                                                                                'best-restaurants-disneyland',
-                                                                                                                                                                                                                                                                                                                                                                                                                                      'best-snacks-disneyland',
-                                                                                                                                                                                                                                                                                                                                                                                                                                            'disney-world-character-dining-guide',
-                                                                                                                                                                                                                                                                                                                                                                                                                                                  'disney-world-dining-plan-worth-it',
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        'disney-world-on-site-vs-off-site-hotels'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                            ];
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                const introCheck = {};
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                    for (const p of index) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          if (targets.includes(p.slug)) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  introCheck[p.slug] = p.intro ? p.intro.slice(0, 80) + '...' : '(MISSING)';
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                const missingIntros = index.filter(p => !p.intro).map(p => p.slug);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    return res.status(200).json({
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          success: true,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                count: index.length,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      missingIntros: missingIntros.length,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            missingIntroSlugs: missingIntros,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  targetIntroCheck: introCheck,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        errors: errors.length ? errors : undefined
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              } catch (err) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  console.error('blog-reindex error:', err.message, err.stack);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      return res.status(500).json({ error: 'Internal server error: ' + err.message });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+      const byPathname = {};
+        for (const blob of allBlobs) {
+                if (blob.pathname === 'blog/posts/index') continue;
+                if (!blob.pathname.startsWith('blog/posts/')) continue;
+                if (!byPathname[blob.pathname] || new Date(blob.uploadedAt) > new Date(byPathname[blob.pathname].uploadedAt)) {
+                          byPathname[blob.pathname] = blob;
+                }
+        }
+
+      const index = [];
+        const errors = [];
+        for (const blob of Object.values(byPathname)) {
+                try {
+                          const bustUrl = blob.url + (blob.url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                          const r = await fetch(bustUrl, { cache: 'no-store' });
+                          if (!r.ok) { errors.push(blob.pathname + ': HTTP ' + r.status); continue; }
+                          const post = await r.json();
+                          if (!post || !post.slug) { errors.push(blob.pathname + ': no slug'); continue; }
+                          index.push({
+                                      slug: post.slug,
+                                      title: post.title,
+                                      park: post.park,
+                                      category: post.category,
+                                      tagLabel: post.tagLabel,
+                                      heroImage: post.heroImage,
+                                      heroAlt: post.heroAlt,
+                                      intro: post.intro,
+                                      readTime: post.readTime,
+                                      publishedAt: post.publishedAt,
+                                      updatedAt: post.updatedAt,
+                                      published: post.published
+                          });
+                } catch(e) {
+                          errors.push(blob.pathname + ': ' + e.message);
+                }
+        }
+
+      await put('blog/posts/index', JSON.stringify(index), {
+              access: 'public',
+              allowOverwrite: true,
+              token: process.env.BLOB_READ_WRITE_TOKEN
+      });
+
+      const targets = [
+              'best-restaurants-disney-world',
+              'best-restaurants-disneyland',
+              'best-snacks-disneyland',
+              'disney-world-character-dining-guide',
+              'disney-world-dining-plan-worth-it',
+              'disney-world-on-site-vs-off-site-hotels'
+            ];
+        const introCheck = {};
+        for (const p of index) {
+                if (targets.includes(p.slug)) {
+                          introCheck[p.slug] = p.intro ? p.intro.slice(0, 80) + '...' : '(MISSING)';
+                }
+        }
+        const missingIntros = index.filter(p => !p.intro).map(p => p.slug);
+
+      return res.status(200).json({
+              success: true,
+              count: index.length,
+              missingIntros: missingIntros.length,
+              missingIntroSlugs: missingIntros,
+              targetIntroCheck: introCheck,
+              errors: errors.length ? errors : undefined
+      });
+  } catch (err) {
+        console.error('blog-reindex error:', err.message, err.stack);
+        return res.status(500).json({ error: 'Internal server error: ' + err.message });
+  }
+}
