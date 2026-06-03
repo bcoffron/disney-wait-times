@@ -807,10 +807,10 @@ function renderDraftsSidebar(posts) {
   if (!container) return;
   if (!drafts.length) { container.innerHTML = ''; return; }
   container.innerHTML = '<div class="drafts-divider"></div><div class="drafts-section"><div class="drafts-label">Drafts</div>' +
-    drafts.map(d => `<button class="draft-item" onclick="openPost('${escHtml(d.slug)}')">
+    drafts.map(d => \`<button class="draft-item" onclick="openPost('${escHtml(d.slug)}')">
       <span class="draft-item-title">${escHtml(d.title || 'Untitled')}</span>
       <span class="draft-pill">Draft</span>
-    </button>`).join('') +
+    </button>\`).join('') +
     '</div>';
 }
 
@@ -826,7 +826,7 @@ function renderPostList(posts) {
     const statusCls = p.published ? 'status-published' : 'status-draft';
     const statusLabel = p.published ? 'Published' : 'Draft';
     const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-    return `<div class="post-row" onclick="openPost('${p.slug}')">
+    return \`<div class="post-row" onclick="openPost('${p.slug}')">
 <img class="post-thumb" src="${p.heroImage||''}" alt="" loading="lazy" onerror="this.src=''">
 <span class="post-title-cell">${escHtml(p.title||'Untitled')}</span>
 <span class="park-pill ${parkCls}">${parkLabel}</span>
@@ -836,7 +836,7 @@ function renderPostList(posts) {
 <button class="btn-edit" onclick="openPost('${p.slug}')">Edit</button>
 <button class="btn-del" onclick="quickDelete('${p.slug}')">Delete</button>
 </div>
-</div>`;
+</div>\`;
   }).join('');
 }
 
@@ -986,11 +986,11 @@ function addFaqItem(q, a) {
   const list = document.getElementById('faq-list');
   const div = document.createElement('div');
   div.className = 'faq-item-editor';
-  div.innerHTML = `<button class="faq-remove" onclick="this.parentElement.remove();markDirty()">\u00d7</button>
+  div.innerHTML = \`<button class="faq-remove" onclick="this.parentElement.remove();markDirty()">\u00d7</button>
 <div class="field-label" style="margin-bottom:6px">Question</div>
 <input type="text" class="field-input" placeholder="Question" value="${escHtml(q||'')}" oninput="markDirty()">
 <div class="field-label" style="margin-top:8px;margin-bottom:6px">Answer</div>
-<textarea class="field-textarea" rows="3" placeholder="Answer" oninput="markDirty()">${escHtml(a||'')}</textarea>`;
+<textarea class="field-textarea" rows="3" placeholder="Answer" oninput="markDirty()">${escHtml(a||'')}</textarea>\`;
   list.appendChild(div);
 }
 
@@ -1001,8 +1001,8 @@ function addRelatedRow(selectedSlug) {
   const list = document.getElementById('related-list');
   const div = document.createElement('div');
   div.className = 'related-row';
-  const opts = allPosts.map(p => `<option value="${p.slug}" ${p.slug===selectedSlug?'selected':''}>${escHtml(p.title||p.slug)} [${p.park||''}]</option>`).join('');
-  div.innerHTML = `<select onchange="markDirty()">${opts}</select><button class="related-remove" onclick="this.parentElement.remove();markDirty()">\u00d7</button>`;
+  const opts = allPosts.map(p => \`<option value="${p.slug}" ${p.slug===selectedSlug?'selected':''}>${escHtml(p.title||p.slug)} [${p.park||''}]</option>\`).join('');
+  div.innerHTML = \`<select onchange="markDirty()">${opts}</select><button class="related-remove" onclick="this.parentElement.remove();markDirty()">\u00d7</button>\`;
   list.appendChild(div);
 }
 
@@ -1205,7 +1205,7 @@ async function loadImages() {
     const r = await fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } });
     const images = await r.json();
     if (!images.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
-    grid.innerHTML = images.map(img => `<div class="img-cell">
+    grid.innerHTML = images.map(img => \`<div class="img-cell">
 <div style="position:relative" onclick="selectImage('${escAttr(img.url)}')">
 <img src="${escAttr(img.url)}" alt="${escAttr(img.filename)}" loading="lazy">
 <div class="img-cell-actions">
@@ -1215,7 +1215,7 @@ async function loadImages() {
 </div>
 <div class="img-cell-name">${escHtml(img.filename)}</div>
 <button class="img-set-hero-btn" onclick="setHeroFromLibrary('${escAttr(img.url)}')">Set as hero image</button>
-</div>`).join('');
+</div>\`).join('');
   } catch(e) {
     grid.innerHTML = '<div style="color:#C82030;font-size:13px;padding:20px">Failed to load images.</div>';
   }
@@ -1254,7 +1254,7 @@ async function loadImagesInline() {
     const r = await fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } });
     const images = await r.json();
     if (!images.length) { grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>'; return; }
-    grid.innerHTML = '<div class="img-grid">' + images.map(img => `<div class="img-cell">
+    grid.innerHTML = '<div class="img-grid">' + images.map(img => \`<div class="img-cell">
 <div style="position:relative" onclick="openImageManager('browse')">
 <img src="${escAttr(img.url)}" alt="${escAttr(img.filename)}" loading="lazy">
 <div class="img-cell-actions">
@@ -1262,7 +1262,7 @@ async function loadImagesInline() {
 </div>
 </div>
 <div class="img-cell-name">${escHtml(img.filename)}</div>
-</div>`).join('') + '</div>';
+</div>\`).join('') + '</div>';
   } catch(e) {
     grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.</div>';
   }
