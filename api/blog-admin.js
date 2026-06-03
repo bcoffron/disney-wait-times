@@ -492,7 +492,7 @@ function doLogin() {
     body: JSON.stringify({ password: pw })
   }).then(r => r.json()).then(data => {
     if (data.token) {
-      token = pw;
+      token = data.token;
       sessionStorage.setItem('tpcp_admin_token', token);
       loginFailures = 0;
       showApp();
