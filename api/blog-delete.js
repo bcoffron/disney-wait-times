@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { del, list } from '@vercel/blob';
+import { del, put, list } from '@vercel/blob';
 
 const rl = {};
 
