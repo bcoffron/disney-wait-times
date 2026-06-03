@@ -20,4 +20,4 @@ async function handler(req, res) {
 }
 
 handler.config = { maxDuration: 10 };
-module.exports = handler;
+export default handler;
