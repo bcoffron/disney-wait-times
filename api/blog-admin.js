@@ -807,10 +807,7 @@ function renderDraftsSidebar(posts) {
   if (!container) return;
   if (!drafts.length) { container.innerHTML = ''; return; }
   container.innerHTML = '<div class="drafts-divider"></div><div class="drafts-section"><div class="drafts-label">Drafts</div>' +
-    drafts.map(d => `<button class="draft-item" onclick="openPost('\${escHtml(d.slug)}')">
-      <span class="draft-item-title">\${escHtml(d.title || 'Untitled')}</span>
-      <span class="draft-pill">Draft</span>
-    </button>`).join('') +
+    drafts.map(d => '<button class="draft-item" onclick="openPost(\'' + (escHtml(d.slug)) + '\')">\n      <span class="draft-item-title">' + (escHtml(d.title || 'Untitled'))).join('') +
     '</div>';
 }
 
@@ -826,17 +823,7 @@ function renderPostList(posts) {
     const statusCls = p.published ? 'status-published' : 'status-draft';
     const statusLabel = p.published ? 'Published' : 'Draft';
     const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-    return `<div class="post-row" onclick="openPost('\${p.slug}')">
-<img class="post-thumb" src="\${p.heroImage||''}" alt="" loading="lazy" onerror="this.src=''">
-<span class="post-title-cell">\${escHtml(p.title||'Untitled')}</span>
-<span class="park-pill \${parkCls}">\${parkLabel}</span>
-<span class="status-pill \${statusCls}">\${statusLabel}</span>
-<span class="post-date">\${date}</span>
-<div class="post-actions" onclick="event.stopPropagation()">
-<button class="btn-edit" onclick="openPost('\${p.slug}')">Edit</button>
-<button class="btn-del" onclick="quickDelete('\${p.slug}')">Delete</button>
-</div>
-</div>`;
+    return '<div class="post-row" onclick="openPost(\'' + (p.slug) + '\')">\n<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=\'\'">\n<span class="post-title-cell">' + (escHtml(p.title||'Untitled')) + '</span>\n<span class="park-pill ' + (parkCls) + '">' + (parkLabel) + '</span>\n<span class="status-pill ' + (statusCls) + '">' + (statusLabel) + '</span>\n<span class="post-date">' + (date) + '</span>\n<div class="post-actions" onclick="event.stopPropagation()">\n<button class="btn-edit" onclick="openPost(\'' + (p.slug);
   }).join('');
 }
 
@@ -986,11 +973,7 @@ function addFaqItem(q, a) {
   const list = document.getElementById('faq-list');
   const div = document.createElement('div');
   div.className = 'faq-item-editor';
-  div.innerHTML = `<button class="faq-remove" onclick="this.parentElement.remove();markDirty()">\u00d7</button>
-<div class="field-label" style="margin-bottom:6px">Question</div>
-<input type="text" class="field-input" placeholder="Question" value="\${escHtml(q||'')}" oninput="markDirty()">
-<div class="field-label" style="margin-top:8px;margin-bottom:6px">Answer</div>
-<textarea class="field-textarea" rows="3" placeholder="Answer" oninput="markDirty()">\${escHtml(a||'')}</textarea>`;
+  div.innerHTML = '<button class="faq-remove" onclick="this.parentElement.remove();markDirty()">\u00d7</button>\n<div class="field-label" style="margin-bottom:6px">Question</div>\n<input type="text" class="field-input" placeholder="Question" value="' + (escHtml(q||''));
   list.appendChild(div);
 }
 
@@ -1001,8 +984,8 @@ function addRelatedRow(selectedSlug) {
   const list = document.getElementById('related-list');
   const div = document.createElement('div');
   div.className = 'related-row';
-  const opts = allPosts.map(p => `<option value="\${p.slug}" \${p.slug===selectedSlug?'selected':''}>\${escHtml(p.title||p.slug)} [\${p.park||''}]</option>`).join('');
-  div.innerHTML = `<select onchange="markDirty()">\${opts}</select><button class="related-remove" onclick="this.parentElement.remove();markDirty()">\u00d7</button>`;
+  const opts = allPosts.map(p => '<option value="' + (p.slug) + '" ' + (p.slug===selectedSlug?'selected':'') + '>' + (escHtml(p.title||p.slug))).join('');
+  div.innerHTML = '<select onchange="markDirty()">' + (opts) + '</select><button class="related-remove" onclick="this.parentElement.remove();markDirty()">\u00d7</button>';
   list.appendChild(div);
 }
 
@@ -1205,17 +1188,7 @@ async function loadImages() {
     const r = await fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } });
     const images = await r.json();
     if (!images.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
-    grid.innerHTML = images.map(img => `<div class="img-cell">
-<div style="position:relative" onclick="selectImage('\${escAttr(img.url)}')">
-<img src="\${escAttr(img.url)}" alt="\${escAttr(img.filename)}" loading="lazy">
-<div class="img-cell-actions">
-<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl('\${escAttr(img.url)}',this)">Copy URL</button>
-<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage('\${escAttr(img.url)}')">Delete</button>
-</div>
-</div>
-<div class="img-cell-name">\${escHtml(img.filename)}</div>
-<button class="img-set-hero-btn" onclick="setHeroFromLibrary('\${escAttr(img.url)}')">Set as hero image</button>
-</div>`).join('');
+    grid.innerHTML = images.map(img => '<div class="img-cell">\n<div style="position:relative" onclick="selectImage(\'' + (escAttr(img.url)) + '\')">\n<img src="' + (escAttr(img.url)) + '" alt="' + (escAttr(img.filename)) + '" loading="lazy">\n<div class="img-cell-actions">\n<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(\'' + (escAttr(img.url)) + '\',this)">Copy URL</button>\n<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(\'' + (escAttr(img.url)) + '\')">Delete</button>\n</div>\n</div>\n<div class="img-cell-name">' + (escHtml(img.filename)) + '</div>\n<button class="img-set-hero-btn" onclick="setHeroFromLibrary(\'' + (escAttr(img.url))).join('');
   } catch(e) {
     grid.innerHTML = '<div style="color:#C82030;font-size:13px;padding:20px">Failed to load images.</div>';
   }
@@ -1254,15 +1227,7 @@ async function loadImagesInline() {
     const r = await fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } });
     const images = await r.json();
     if (!images.length) { grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>'; return; }
-    grid.innerHTML = '<div class="img-grid">' + images.map(img => `<div class="img-cell">
-<div style="position:relative" onclick="openImageManager('browse')">
-<img src="\${escAttr(img.url)}" alt="\${escAttr(img.filename)}" loading="lazy">
-<div class="img-cell-actions">
-<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl('\${escAttr(img.url)}',this)">Copy URL</button>
-</div>
-</div>
-<div class="img-cell-name">\${escHtml(img.filename)}</div>
-</div>`).join('') + '</div>';
+    grid.innerHTML = '<div class="img-grid">' + images.map(img => '<div class="img-cell">\n<div style="position:relative" onclick="openImageManager(\'browse\')">\n<img src="' + (escAttr(img.url)) + '" alt="' + (escAttr(img.filename)) + '" loading="lazy">\n<div class="img-cell-actions">\n<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(\'' + (escAttr(img.url))).join('') + '</div>';
   } catch(e) {
     grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.</div>';
   }
