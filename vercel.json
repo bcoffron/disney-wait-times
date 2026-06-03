@@ -18,6 +18,20 @@
       ]
     }
   ],
+  "rewrites": [
+    {
+      "source": "/blog",
+      "destination": "/api/blog-render-index"
+    },
+    {
+      "source": "/blog/:slug",
+      "destination": "/api/blog-render-post?slug=:slug"
+    },
+    {
+      "source": "/admin",
+      "destination": "/api/blog-admin"
+    }
+  ],
   "functions": {
     "api/reoptimize.js": {
       "maxDuration": 120
@@ -57,6 +71,15 @@
     },
     "api/blog-migrate.js": {
       "maxDuration": 120
+    },
+    "api/blog-render-index.js": {
+      "maxDuration": 15
+    },
+    "api/blog-render-post.js": {
+      "maxDuration": 15
+    },
+    "api/blog-admin.js": {
+      "maxDuration": 10
     }
   },
   "crons": [
