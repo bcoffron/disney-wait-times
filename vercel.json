@@ -30,6 +30,10 @@
     {
       "source": "/admin",
       "destination": "/api/blog-admin"
+    },
+    {
+      "source": "/((?!blog|admin|api|app\\.html).*)",
+      "destination": "https://bcoffron.github.io/themeparkcopilot-landing/:path*"
     }
   ],
   "functions": {
