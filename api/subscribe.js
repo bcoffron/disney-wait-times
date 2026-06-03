@@ -85,4 +85,4 @@ async function getOrCreateAudience(apiKey) {
 }
 
 handler.config = { maxDuration: 10 };
-module.exports = handler;
+export default handler;
