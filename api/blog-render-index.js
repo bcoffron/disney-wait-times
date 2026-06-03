@@ -3,11 +3,11 @@ import { list } from '@vercel/blob';
 const rl = {};
 
 async function readBlob(pathname) {
-    const { blobs } = await list({ prefix: pathname, limit: 10 });
+    const { blobs } = await list({ prefix: pathname, limit: 10 , token: process.env.BLOB_READ_WRITE_TOKEN});
     const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
     if (!matches.length) return null;
-    const bustUrl = matches[0].url + (matches[0].url.includes('?') ? '&' : '?') + '_t=' + Date.now();
-    const r = await fetch(bustUrl, { cache: 'no-store' });
+
+            const r = await fetch(matches[0].downloadUrl || matches[0].url, { cache: 'no-store' });
     if (!r.ok) return null;
     return r.json();
 }
