@@ -2,7 +2,7 @@ export default function handler(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   res.status(200).send(ADMIN_HTML);
-}
+} 
 
 const ADMIN_HTML = `<!DOCTYPE html>
 <html lang="en">
