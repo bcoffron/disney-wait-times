@@ -80,6 +80,12 @@
     },
     "api/blog-admin.js": {
       "maxDuration": 10
+    },
+    "api/blog-images.js": {
+      "maxDuration": 10
+    },
+    "api/blog-upload-image.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
