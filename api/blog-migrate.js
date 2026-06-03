@@ -14,9 +14,12 @@ async function readBlob(pathname) {
 }
 
 module.exports = async (req, res) => {
-  const adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
-  const sentKey = (req.headers['x-admin-key'] || '').toLowerCase();
-  if (!sentKey || sentKey !== adminKey) return res.status(401).json({ error: 'Unauthorized' });
+  const sentToken = req.headers['x-admin-key'] || '';
+  try {
+    require('jsonwebtoken').verify(sentToken, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
