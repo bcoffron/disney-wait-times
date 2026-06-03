@@ -22,6 +22,11 @@ function isRateLimited(ip) {
 }
 
 async function handler(req, res) {
+  // Health check
+  if (req.method === 'GET') {
+    const hasKey = !!process.env.RESEND_API_KEY;
+    return res.status(200).json({ ok: true, hasResendKey: hasKey });
+  }
   // CORS — only allow our own domains
   const origin = req.headers.origin || '';
   const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
