@@ -66,7 +66,7 @@ export default async function handler(req, res) {
 
       await put('blog/posts/index', JSON.stringify(index), {
               access: 'public',
-              allowOverwrite: true,
+            
               token: process.env.BLOB_READ_WRITE_TOKEN
       });
 
