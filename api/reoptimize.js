@@ -1,4 +1,4 @@
-const { list } = require('@vercel/blob');
+import { list } from '@vercel/blob';
 
 // âââ buildCacheContext ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // Reads from new two-cache architecture and extracts only requested sections.
