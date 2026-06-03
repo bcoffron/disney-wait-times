@@ -11,9 +11,7 @@ async function readBlob(pathname) {
     const matches = (blobs || []).filter(b => b.pathname === pathname)
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
     if (!matches.length) return null;
-    // Use downloadUrl (token-authenticated, bypasses CDN cache)
-  const freshUrl = matches[0].downloadUrl || matches[0].url;
-    const r = await fetch(freshUrl, { cache: 'no-store' });
+    const r = await fetch(matches[0].url + '?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) return null;
     return r.text().then(t => JSON.parse(t));
 }
