@@ -1,6 +1,6 @@
 // api/blog-migrate.js - POST /api/blog-migrate - protected, one-time use
 // GET /api/blog-migrate?action=rebuild-index - rebuild index from blob store
-const { put, list } = require('@vercel/blob');
+import { put, list } from '@vercel/blob';
 const rl = {};
 
 async function readBlob(pathname) {
@@ -13,7 +13,7 @@ async function readBlob(pathname) {
   return r.json();
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   const sentToken = req.headers['x-admin-key'] || '';
   try {
     require('jsonwebtoken').verify(sentToken, process.env.JWT_SECRET);
