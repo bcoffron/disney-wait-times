@@ -1,13 +1,43 @@
 // api/subscribe.js
 // Adds email to Resend audience and sends welcome email
 
+const ALLOWED_ORIGINS = [
+  'https://themeparkcopilot.com',
+  'https://www.themeparkcopilot.com',
+  'https://themeparkwize.com',
+  'https://www.themeparkwize.com',
+  'https://app.themeparkcopilot.com'
+];
+
+// Simple in-memory rate limit — max 3 subscribes per IP per 10 minutes
+const _ipCache = {};
+function isRateLimited(ip) {
+  const now = Date.now();
+  const window = 10 * 60 * 1000; // 10 minutes
+  if (!_ipCache[ip]) { _ipCache[ip] = []; }
+  _ipCache[ip] = _ipCache[ip].filter(t => now - t < window);
+  if (_ipCache[ip].length >= 3) return true;
+  _ipCache[ip].push(now);
+  return false;
+}
+
 async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS — only allow our own domains
+  const origin = req.headers.origin || '';
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Rate limit by IP
+  const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  }
 
   const { email } = req.body || {};
 
