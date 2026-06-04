@@ -262,6 +262,15 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .batch-result-warn{color:#D97706}
 /* COMING SOON */
 .coming-soon{display:flex;align-items:center;justify-content:center;height:200px;color:#8AACAE;font-size:14px;font-weight:600}
+/* USED PHOTOS */
+.used-photos-section{margin-top:8px}
+.used-photos-divider{height:1px;background:rgba(7,30,37,0.07);margin:24px 0 20px}
+.used-photos-heading{font-size:14px;font-weight:800;color:#071E25;margin-bottom:2px}
+.used-photos-sub{font-size:11px;color:#8AACAE;margin-bottom:12px}
+.used-photo-cell{cursor:default;border-radius:8px;overflow:hidden;border:2px solid transparent;transition:border-color 0.15s;background:#eee;position:relative}
+.used-photo-cell:hover{border-color:#8AACAE}
+.used-photo-cell:hover .img-cell-actions{opacity:1}
+.used-photo-title{font-size:10px;color:#4A7A7C;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:white;border-top:1px solid rgba(7,30,37,0.06)}
 /* RESPONSIVE */
 @media(max-width:768px){
 .sidebar{transform:translateX(-240px);transition:transform 0.2s}
@@ -482,6 +491,12 @@ Posts
 <button class="btn-new-post" onclick="openImageManager('browse')">Upload Image<\/button>
 <\/div>
 <div id="images-inline-grid" style="margin-top:8px"><\/div>
+<div id="used-photos-section" style="display:none">
+<div class="used-photos-divider"><\/div>
+<div class="used-photos-heading">Used Photos<\/div>
+<div class="used-photos-sub">Images currently used in published posts<\/div>
+<div class="img-grid" id="used-photos-grid"><\/div>
+<\/div>
 <\/div>
 
 <!-- Settings view -->
@@ -1517,26 +1532,84 @@ function setHeroFromLibrary(url) {
 async function loadImagesInline() {
   const q = "'";
   const grid = document.getElementById('images-inline-grid');
-  grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...</div>';
+  const usedSection = document.getElementById('used-photos-section');
+  const usedGrid = document.getElementById('used-photos-grid');
+  grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...<\/div>';
+  if (usedSection) usedSection.style.display = 'none';
+
+  // Fetch library images and published posts in parallel
+  let images = [], publishedPosts = [];
   try {
-    const r = await fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } });
-    const images = await r.json();
-    if (!images.length) { grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.<\/div>'; return; }
+    const [libRes, idxRes] = await Promise.all([
+      fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } }),
+      fetch(API_BASE + '/api/blog-index')
+    ]);
+    images = libRes.ok ? await libRes.json() : [];
+    const allIdx = idxRes.ok ? await idxRes.json() : [];
+    publishedPosts = Array.isArray(allIdx) ? allIdx.filter(p => p.published) : [];
+  } catch(e) {
+    grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.<\/div>';
+    return;
+  }
+
+  // Render library grid
+  if (!images.length) {
+    grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.<\/div>';
+  } else {
+    const libUrlSet = new Set(images.map(img => img.url));
     grid.innerHTML = '<div class="img-grid">' + images.map(img =>
       '<div class="img-cell" style="position:relative">' +
-        '<div class="img-cell-wrap" onclick="openImageManager(' + q + 'browse' + q + ')">' +
-          '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
-          '<div class="img-cell-actions">' +
-            '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
-            '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete<\/button>' +
-          '<\/div>' +
-        '<\/div>' +
-        '<div class="img-cell-name">' + escHtml(img.filename) + '<\/div>' +
+      '<div class="img-cell-wrap" onclick="openImageManager(' + q + 'browse' + q + ')">' +
+      '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
+      '<div class="img-cell-actions">' +
+      '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
+      '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete<\/button>' +
+      '<\/div>' +
+      '<\/div>' +
+      '<div class="img-cell-name">' + escHtml(img.filename) + '<\/div>' +
       '<\/div>'
     ).join('') + '<\/div>';
-  } catch(e) { grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.<\/div>'; }
-}
 
+    // Build Used Photos: collect all image URLs from published posts
+    const usedEntries = []; // { url, postTitle }
+    const seenUrls = new Set(libUrlSet); // seed with library URLs to avoid duplication
+    for (const post of publishedPosts) {
+      const postTitle = post.title || post.slug || 'Untitled';
+      // heroImage
+      if (post.heroImage && post.heroImage.startsWith('http') && !seenUrls.has(post.heroImage)) {
+        seenUrls.add(post.heroImage);
+        usedEntries.push({ url: post.heroImage, postTitle });
+      }
+      // inline images in body
+      if (post.body) {
+        const srcRegex = /src="(https?:\/\/[^"]+)"/g;
+        let m;
+        while ((m = srcRegex.exec(post.body)) !== null) {
+          const imgUrl = m[1];
+          if (!seenUrls.has(imgUrl)) {
+            seenUrls.add(imgUrl);
+            usedEntries.push({ url: imgUrl, postTitle });
+          }
+        }
+      }
+    }
+
+    if (usedEntries.length > 0 && usedSection && usedGrid) {
+      usedSection.style.display = 'block';
+      usedGrid.innerHTML = usedEntries.map(entry =>
+        '<div class="used-photo-cell" style="position:relative">' +
+        '<div class="img-cell-wrap">' +
+        '<img src="' + escAttr(entry.url) + '" alt="' + escAttr(entry.postTitle) + '" loading="lazy" title="' + escAttr(entry.postTitle) + '" style="width:100%;height:100%;object-fit:cover;display:block">' +
+        '<div class="img-cell-actions">' +
+        '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(entry.url) + "',this" + ')">Copy URL<\/button>' +
+        '<\/div>' +
+        '<\/div>' +
+        '<div class="used-photo-title" title="' + escAttr(entry.postTitle) + '">' + escHtml(entry.postTitle) + '<\/div>' +
+        '<\/div>'
+      ).join('');
+    }
+  }
+}
 function selectImage(url) {
   if (imgManagerContext === 'hero') {
     document.getElementById('hero-preview').src = url;
