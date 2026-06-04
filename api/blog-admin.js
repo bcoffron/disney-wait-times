@@ -336,7 +336,7 @@ Batch Upload
 <!-- Posts list view -->
 <div id="posts-view">
 <div class="posts-header">
-<h1 class="posts-title">Posts<\/div>
+<h1 class="posts-title">Posts<\/h1>
 <button class="btn-new-post" onclick="openNewPost()">+ New Post<\/button>
 <\/div>
 <input type="text" class="search-input" placeholder="Search posts..." oninput="filterPosts(this.value)">
@@ -640,7 +640,7 @@ Drag &amp; drop images here, or click to select<br><span style="font-size:11px;o
 <div class="field-label" style="margin-bottom:8px">Queue (<span id="queue-count">0<\/span> photo(s))<\/div>
 <div class="upload-queue-grid" id="upload-queue-grid"><\/div>
 <div class="upload-progress" id="upload-progress" style="display:none"><\/div>
-<button class="btn-upload-queue" id="btn-upload-queue" disabled onclick="uploadQueue()">Upload 0 photo(s)<\/button>
+<button class="btn-upload-queue" id="btn-upload-queue" disabled onclick="startUploadQueue()">Upload 0 photo(s)<\/button>
 <\/div>
 <input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="handleFileSelect(this)">
 <div class="img-grid" id="img-grid"><\/div>
@@ -1441,7 +1441,7 @@ async function uploadQueue_fn() {
 }
 
 // Alias
-async function uploadQueue() { await uploadQueue_fn(); }
+async function startUploadQueue() { await uploadQueue_fn(); }
 
 function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
