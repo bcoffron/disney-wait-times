@@ -512,16 +512,15 @@ Posts
 <div class="action-bar">
 <div class="action-bar-left">
 <button class="btn-delete-post" id="btn-delete-post" onclick="confirmDelete()" style="display:none">Delete post<\/button>
-<button class="btn-save-draft" id="btn-save-draft" onclick="savePost(false)">Save draft<\/button>
-<button class="btn-schedule" id="btn-schedule" onclick="openScheduleModal()" style="display:none">Schedule<\/button>
 <\/div>
 <div class="action-bar-right">
 <button class="btn-cancel-edit" onclick="cancelEdit()">Cancel<\/button>
+<button class="btn-save-draft" id="btn-save-draft" onclick="savePost(false)">Save draft<\/button>
 <button class="btn-preview-post" onclick="previewPost()">Preview<\/button>
+<button class="btn-schedule" id="btn-schedule" onclick="openScheduleModal()" style="display:none">Schedule<\/button>
 <button class="btn-publish" id="btn-publish" onclick="savePost(true)">Publish<\/button>
 <\/div>
-<\/div>
-<\/div>
+<\/div>/div>
 
 <!-- Images view -->
 <div id="images-view" style="display:none">
@@ -842,14 +841,34 @@ function doLogout() {
 // ============================================================
 // APP INIT
 // ============================================================
-function showApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  initQuill();
-  loadPosts();
-  loadSettings();
+aaasync function showApp() {
+document.getElementById('login-screen').style.display = 'none';
+document.getElementById('app').style.display = 'block';
+initQuill();
+await loadPosts();
+loadSettings();
+const savedView = sessionStorage.getItem('admin_current_view') || 'posts';
+const savedPost = sessionStorage.getItem('admin_current_post');
+if (savedView === 'editor' && savedPost) {
+await openPost(savedPost);
+} else {
+showView(savedView);
 }
-
+}onst savedView = sessionStorage.getItem('admin_current_view') || 'posts';
+const savedPost = sessionStorage.getItem('admin_current_post');
+if (savedView === 'editor' && savedPost) {
+await openPost(savedPost);
+} else {
+showView(savedView);
+}
+}onst savedView = sessionStorage.getItem('admin_current_view') || 'posts';
+const savedPost = sessionStorage.getItem('admin_current_post');
+if (savedView === 'editor' && savedPost) {
+await openPost(savedPost);
+} else {
+showView(savedView);
+}
+}
 function initQuill() {
   if (quill) return;
   const toolbarOptions = {
@@ -916,37 +935,43 @@ async function saveSettings() {
     const r = await fetch(API_BASE + '/api/blog-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-      body: JSON.stringify(settings)
-    });
-    if (r.ok) {
-      const savedEl = document.getElementById('settings-saved');
-      if (savedEl) { savedEl.style.opacity = '1'; setTimeout(() => { savedEl.style.opacity = '0'; }, 2000); }
-    } else { showToast('Settings save failed', 'error'); }
-  } catch(e) { showToast('Settings save failed', 'error'); }
+      body: JSON.stfunction showView(v) {
+sessionStorage.setItem('admin_current_view', v);
+['posts','editor','images','settings','batch','drafts'].forEach(id => {
+const el = document.getElementById(id + '-view');
+if (el) el.style.display = 'none';
+});
+document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+const viewMap = {
+posts: { el: 'posts-view', nav: 'nav-posts' },
+editor: { el: 'editor-view', nav: 'nav-new' },
+images: { el: 'images-view', nav: 'nav-images', cb: loadImagesInline },
+settings: { el: 'settings-view', nav: 'nav-settings' },
+batch: { el: 'batch-view', nav: 'nav-batch' },
+drafts: { el: 'drafts-view', nav: 'nav-drafts', cb: renderDraftsList }
+};
+const vm = viewMap[v];
+if (vm) {
+document.getElementById(vm.el).style.display = 'block';
+document.getElementById(vm.nav)?.classList.add('active');
+if (vm.cb) vm.cb();
 }
-// ============================================================
-// NAV / VIEWS
-// ============================================================
-function showView(v) {
-  ['posts','editor','images','settings','batch','drafts'].forEach(id => {
-    const el = document.getElementById(id + '-view');
-    if (el) el.style.display = 'none';
-  });
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const viewMap = {
-    posts: { el: 'posts-view', nav: 'nav-posts' },
-    editor: { el: 'editor-view', nav: 'nav-new' },
-    images: { el: 'images-view', nav: 'nav-images', cb: loadImagesInline },
-    settings: { el: 'settings-view', nav: 'nav-settings' },
-    batch: { el: 'batch-view', nav: 'nav-batch' },
-    drafts: { el: 'drafts-view', nav: 'nav-drafts', cb: renderDraftsList }
-  };
-  const vm = viewMap[v];
-  if (vm) {
-    document.getElementById(vm.el).style.display = 'block';
-    document.getElementById(vm.nav)?.classList.add('active');
-    if (vm.cb) vm.cb();
-  }
+}'drafts-view', nav: 'nav-drafts', cb: renderDraftsList }
+};
+const vm = viewMap[v];
+if (vm) {
+document.getElementById(vm.el).style.display = 'block';
+document.getElementById(vm.nav)?.classList.add('active');
+if (vm.cb) vm.cb();
+}
+}'drafts-view', nav: 'nav-drafts', cb: renderDraftsList }
+};
+const vm = viewMap[v];
+if (vm) {
+document.getElementById(vm.el).style.display = 'block';
+document.getElementById(vm.nav)?.classList.add('active');
+if (vm.cb) vm.cb();
+}
 }
 
 // ============================================================
@@ -1075,43 +1100,41 @@ function formatScheduledDate(iso) {
   try {
     const d = new Date(iso);
     return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' +
-           d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  } catch(e) { return iso; }
+           d.toLocaleTimeStrasync function openPost(slug) {
+try {
+const r = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(slug));
+if (!r.ok) { showToast('Could not load post', 'error'); return; }
+const post = await r.json();
+currentPost = post;
+populateEditor(post);
+isDirty = false;
+document.getElementById('btn-delete-post').style.display = 'block';
+// Show schedule button only for drafts
+const schedulBtn = document.getElementById('btn-schedule');
+if (!post.published) {
+schedulBtn.style.display = 'block';
+schedulBtn.textContent = post.scheduledAt ? ('Scheduled · ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
+schedulBtn.style.color = post.scheduledAt ? '#D97706' : '';
+} else {
+schedulBtn.style.display = 'none';
 }
-// ============================================================
-// EDITOR
-// ============================================================
-function openNewPost() {
-  currentPost = null;
-  clearEditor();
-  isDirty = false;
-  document.getElementById('btn-delete-post').style.display = 'none';
-  document.getElementById('btn-schedule').style.display = 'none';
-  showView('editor');
+sessionStorage.setItem('admin_current_view', 'editor');
+sessionStorage.setItem('admin_current_post', slug);
+showView('editor');
+} catch(e) { showToast('Failed to load post', 'error'); }
+}Btn.style.display = 'none';
 }
-
-async function openPost(slug) {
-  try {
-    const r = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(slug));
-    if (!r.ok) { showToast('Could not load post', 'error'); return; }
-    const post = await r.json();
-    currentPost = post;
-    populateEditor(post);
-    isDirty = false;
-    document.getElementById('btn-delete-post').style.display = 'block';
-    // Show schedule button only for drafts
-    const schedulBtn = document.getElementById('btn-schedule');
-    if (!post.published) {
-      schedulBtn.style.display = 'block';
-      schedulBtn.textContent = post.scheduledAt ? ('Scheduled · ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
-      schedulBtn.style.color = post.scheduledAt ? '#D97706' : '';
-    } else {
-      schedulBtn.style.display = 'none';
-    }
-    showView('editor');
-  } catch(e) { showToast('Failed to load post', 'error'); }
+sessionStorage.setItem('admin_current_view', 'editor');
+sessionStorage.setItem('admin_current_post', slug);
+showView('editor');
+} catch(e) { showToast('Failed to load post', 'error'); }
+}Btn.style.display = 'none';
 }
-
+sessionStorage.setItem('admin_current_view', 'editor');
+sessionStorage.setItem('admin_current_post', slug);
+showView('editor');
+} catch(e) { showToast('Failed to load post', 'error'); }
+}
 function clearEditor() {
   document.getElementById('f-title').value = '';
   document.getElementById('f-slug').value = '';
@@ -1819,31 +1842,24 @@ async function _doMultiDelete(urls) {
       if (!r.ok) failed++;
     } catch(e) { failed++; }
   }
-  if (failed) showToast(failed + ' deletion(s) failed', 'error');
-  else showToast('Deleted ' + urls.length + ' image' + (urls.length !== 1 ? 's' : ''), 'success');
-  exitSelectMode();
-  await loadImagesInline();
+  if (failed) showToast(failed + 'function confirmDeleteInUse(url) {
+_deleteInUseUrl = url;
+const posts = getPostsUsingImage(url);
+const postList = posts.map(p => escHtml(p.title || p.slug)).join(', ');
+const bodyEl = document.getElementById('img-in-use-body');
+if (bodyEl) bodyEl.textContent = 'This image is used in: ' + postList + '. Deleting it will permanently remove it from that post. Move to Used Photos to keep it accessible without cluttering the library.';
+document.getElementById('img-in-use-multi-actions').style.display = 'none';
+document.getElementById('img-in-use-single-actions').style.display = 'flex';
+document.getElementById('img-in-use-modal').classList.add('active');
+}t. Move to Used Photos to keep it accessible without cluttering the library.';
+document.getElementById('img-in-use-multi-actions').style.display = 'none';
+document.getElementById('img-in-use-single-actions').style.display = 'flex';
+document.getElementById('img-in-use-modal').classList.add('active');
+}t. Move to Used Photos to keep it accessible without cluttering the library.';
+document.getElementById('img-in-use-multi-actions').style.display = 'none';
+document.getElementById('img-in-use-single-actions').style.display = 'flex';
+document.getElementById('img-in-use-modal').classList.add('active');
 }
-
-function isImageInUse(url) {
-  return allPosts.some(p => p.heroImage === url || (p.body && p.body.indexOf(url) >= 0));
-}
-
-function getPostsUsingImage(url) {
-  return allPosts.filter(p => p.heroImage === url || (p.body && p.body.indexOf(url) >= 0));
-}
-
-function confirmDeleteInUse(url) {
-  _deleteInUseUrl = url;
-  const posts = getPostsUsingImage(url);
-  const postList = posts.map(p => escHtml(p.title || p.slug)).join(', ');
-  const bodyEl = document.getElementById('img-in-use-body');
-  if (bodyEl) bodyEl.textContent = 'This image is used in: ' + postList + '. What would you like to do?';
-  document.getElementById('img-in-use-multi-actions').style.display = 'none';
-  document.getElementById('img-in-use-single-actions').style.display = 'flex';
-  document.getElementById('img-in-use-modal').classList.add('active');
-}
-
 function confirmMultiDeleteInUse(inUseUrls, safeUrls) {
   _deleteInUseMultiUrls = inUseUrls;
   _deleteInUseSafeUrls = safeUrls;
@@ -1855,40 +1871,118 @@ function confirmMultiDeleteInUse(inUseUrls, safeUrls) {
     });
   });
   const bodyEl = document.getElementById('img-in-use-body');
-  if (bodyEl) bodyEl.textContent = inUseUrls.length + ' of your selected images are used in posts: ' + postTitles.map(t => escHtml(t)).join(', ') + '. What would you like to do with them?';
-  document.getElementById('img-in-use-single-actions').style.display = 'none';
-  document.getElementById('img-in-use-multi-actions').style.display = 'flex';
-  document.getElementById('img-in-use-modal').classList.add('active');
+  if (bodyEl) bodyEl.textContent = inUseUrls.length + ' of your selected images are used in posts: ' + postTitles.map(t => escHtml(t)).join(', ') + '. What would you like to do with them?';async function deleteInUseAnyway() {
+const url = _deleteInUseUrl;
+_deleteInUseUrl = null;
+closeModal('img-in-use-modal');
+if (!url) return;
+try {
+const r = await fetch(API_BASE + '/api/blog-images', {
+method: 'DELETE',
+headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify({ url })
+});
+if (r.ok) {
+const affectedPosts = allPosts.filter(p => p.heroImage === url || (p.body && p.body.indexOf(url) >= 0));
+for (const postMeta of affectedPosts) {
+try {
+const pr = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(postMeta.slug));
+if (!pr.ok) continue;
+const post = await pr.json();
+let changed = false;
+if (post.heroImage === url) { post.heroImage = ''; changed = true; }
+if (post.body && post.body.indexOf(url) >= 0) {
+let b = post.body, idx = 0;
+while ((idx = b.indexOf(url, idx)) >= 0) {
+const tagStart = b.lastIndexOf('<img', idx);
+const tagEnd = b.indexOf('>', idx) + 1;
+if (tagStart >= 0 && tagEnd > 0) { b = b.slice(0, tagStart) + b.slice(tagEnd); idx = tagStart; } else { idx++; }
 }
-
-function moveToUsedPhotos() {
-  if (_deleteInUseUrl) {
-    const grid = document.getElementById('lib-img-grid');
-    if (grid) {
-      grid.querySelectorAll('.img-cell').forEach(cell => { if (cell.dataset.url === _deleteInUseUrl) cell.remove(); });
-    }
-    _deleteInUseUrl = null;
-  }
-  closeModal('img-in-use-modal');
-  showToast('Moved to Used Photos', 'success');
+post.body = b; changed = true;
 }
-
-async function deleteInUseAnyway() {
-  const url = _deleteInUseUrl;
-  _deleteInUseUrl = null;
-  closeModal('img-in-use-modal');
-  if (!url) return;
-  try {
-    const r = await fetch(API_BASE + '/api/blog-images', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-      body: JSON.stringify({ url })
-    });
-    if (r.ok) { showToast('Deleted', 'success'); loadImagesInline(); }
-    else showToast('Delete failed', 'error');
-  } catch(e) { showToast('Delete failed', 'error'); }
+if (changed) {
+post.updatedAt = new Date().toISOString();
+await fetch(API_BASE + '/api/blog-save', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify(post)
+});
 }
-
+} catch(pe) {}
+}
+if (affectedPosts.length) { await loadPosts(); }
+showToast('Deleted', 'success');
+loadImagesInline();
+} else showToast('Delete failed', 'error');
+} catch(e) { showToast('Delete failed', 'error'); }
+}Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify({ url })
+});
+if (r.ok) {
+const affectedPosts = allPosts.filter(p => p.heroImage === url || (p.body && p.body.indexOf(url) >= 0));
+for (const postMeta of affectedPosts) {
+try {
+const pr = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(postMeta.slug));
+if (!pr.ok) continue;
+const post = await pr.json();
+let changed = false;
+if (post.heroImage === url) { post.heroImage = ''; changed = true; }
+if (post.body && post.body.indexOf(url) >= 0) {
+const urlEnc = url.replace(/[&]/g, '&amp;');
+const tempDiv = document.createElement('div');
+tempDiv.innerHTML = post.body;
+tempDiv.querySelectorAll('img').forEach(img => { if (img.src === url || img.src === urlEnc || img.getAttribute('src') === url) img.remove(); });
+post.body = tempDiv.innerHTML;
+changed = true;
+}
+if (changed) {
+post.updatedAt = new Date().toISOString();
+await fetch(API_BASE + '/api/blog-save', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify(post)
+});
+}
+} catch(pe) {}
+}
+if (affectedPosts.length) await loadPosts();
+showToast('Deleted', 'success');
+loadImagesInline();
+} else showToast('Delete failed', 'error');
+} catch(e) { showToast('Delete failed', 'error'); }
+}Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify({ url })
+});
+if (r.ok) {
+const affectedPosts = allPosts.filter(p => p.heroImage === url || (p.body && p.body.indexOf(url) >= 0));
+for (const postMeta of affectedPosts) {
+try {
+const pr = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(postMeta.slug));
+if (!pr.ok) continue;
+const post = await pr.json();
+let changed = false;
+if (post.heroImage === url) { post.heroImage = ''; changed = true; }
+if (post.body && post.body.indexOf(url) >= 0) {
+const parts = post.body.split('<img');
+post.body = parts[0] + parts.slice(1).map(seg => { if (seg.indexOf(url) >= 0 && seg.indexOf('>') >= 0) { return seg.slice(seg.indexOf('>') + 1); } return '<img' + seg; }).join('');
+changed = true;
+}
+if (changed) {
+post.updatedAt = new Date().toISOString();
+await fetch(API_BASE + '/api/blog-save', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify(post)
+});
+}
+} catch(pe) {}
+}
+if (affectedPosts.length) { await loadPosts(); }
+showToast('Deleted', 'success');
+loadImagesInline();
+} else showToast('Delete failed', 'error');
+} catch(e) { showToast('Delete failed', 'error'); }
+}
 function moveMultiToUsedPhotos() {
   const inUseUrls = _deleteInUseMultiUrls || [];
   const grid = document.getElementById('lib-img-grid');
