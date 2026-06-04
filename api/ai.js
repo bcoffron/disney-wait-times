@@ -1,6 +1,6 @@
 import { list } from '@vercel/blob';
 
-// âââ buildCacheContext ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// --------- buildCacheContext ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 async function buildCacheContext(sectionNames, includeDynamic = false) {
     const results = {};
 
@@ -45,7 +45,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
   return results;
 }
 
-// âââ getCache âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// --------- getCache ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 async function getCache(key) {
     const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
     if (!blobs || !blobs.length) return null;
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // ── AUTH CHECK ───────────────────────────────────────────────────────────
+  // -- AUTH CHECK -----------------------------------------------------------
   const _adminKey = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
   const _sentAdmin = (req.headers['x-admin-key'] || req.body && req.body.adminKey || '').toLowerCase();
   const _tripCode = (req.body && req.body.tripCode) || req.headers['x-trip-code'] || '';
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     console.warn('[auth] Unauthorized request blocked');
     return res.status(401).json({ error: 'Authentication required.' });
   }
-  // ─────────────────────────────────────────────────────────────────────────
+  // -------------------------------------------------------------------------
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
   const { prompt, system, maxTokens = 1000, model = 'claude-sonnet-4-6', context } = req.body || {};
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-  // ââ Build full park intelligence from new two-cache architecture ââââââââââââ
+  // ------ Build full park intelligence from new two-cache architecture ------------------------------------
   const cacheCtx = await buildCacheContext(
         ['LAND_MAP', 'WAIT_PATTERNS', 'CROWD_FLOW', 'ROPE_DROP_STRATEGY',
               'LIGHTNING_LANE_STRATEGY', 'WALKING_ROUTES', 'DINING_TIMING',
@@ -87,22 +87,22 @@ export default async function handler(req, res) {
         true // include all dynamic sections
       );
     console.log('[ai] cacheCtx sections:', Object.keys(cacheCtx));
-  // ── Cache assertion (Safeguard 2) ─────────────────────────────────
+  // -- Cache assertion (Safeguard 2) ---------------------------------
   const sectionCount = Object.keys(cacheCtx).length;
   console.log('cache_sections:', Object.keys(cacheCtx).join(','));
   if (sectionCount < 8) {
-    console.error('[ai] CACHE EMPTY — aborting AI call. Got', sectionCount, 'sections, need 8');
+    console.error('[ai] CACHE EMPTY - aborting AI call. Got', sectionCount, 'sections, need 8');
     return res.status(503).json({ error: 'Park intelligence cache unavailable. Please try again.', cache_sections: Object.keys(cacheCtx), sections_found: sectionCount });
   }
 
-  // ââ Fetch park hours from dedicated blob key âââââââââââââââââââââââââââââââ
+  // ------ Fetch park hours from dedicated blob key ---------------------------------------------------------------------------------------------
   let parkHours = '';
     try {
           const hoursCache = await getCache('park_hours_intel');
           if (hoursCache) parkHours = '\nPARK HOURS:\n' + JSON.stringify(hoursCache).substring(0, 400);
     } catch(e) {}
 
-  // ââ Build all-sections context string, capped proportionally âââââââââââââââ
+  // ------ Build all-sections context string, capped proportionally ---------------------------------------------
   const fullContext = [
         'TRIP CONTEXT:\n' + (cacheCtx.TRIP_CONTEXT || '').substring(0, 1500),
         'ROPE DROP STRATEGY:\n' + (cacheCtx.ROPE_DROP_STRATEGY || '').substring(0, 800),
@@ -116,12 +116,12 @@ export default async function handler(req, res) {
         parkHours
       ].join('\n\n').substring(0, 8000);
 
-  // ── Inject ride preferences context (sent from client via context field) ──────
+  // -- Inject ride preferences context (sent from client via context field) ------
   const ridePrefsHeader = (context || '').startsWith('GUEST RIDE PREFERENCES:')
     ? (context || '').split('\n\n')[0] + '\n\n' : '';
 
-  // ââ Build system prompt â inject cache context âââââââââââââââââââââââââââââ
-  let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend â specific, warm, and actionable.';
+  // ------ Build system prompt --- inject cache context ---------------------------------------------------------------------------------------
+  let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend --- specific, warm, and actionable.';
     systemPrompt += '\n\nCRITICAL RULE \u2014 NEVER hedge or say information is unavailable:\nYou have complete park intelligence including park hours, live wait data, current closures, and trip-specific context.\nNEVER say: "I cannot retrieve", "wasn\'t available", "check the website", "I don\'t have that information", or any similar hedge.\nPARK HOURS: Always read from the PARK HOURS section in your context. That is the authoritative source.\nROPE DROP STRATEGY (always use this): Arrive at the park gates 60 minutes before official open. For Disneyland: go straight to Star Wars Galaxy\'s Edge and ride Rise of the Resistance first \u2014 it has the longest waits all day. Then Millennium Falcon. Then cross to Fantasyland before 10 AM. For DCA: Radiator Springs Racers rope drop first, then Guardians or Incredicoaster.\nCURRENTLY CLOSED FOR REFURBISHMENT (NEVER schedule or recommend these as operating): Pirates of the Caribbean (DL). Check CURRENT CLOSURES in your context for the full up-to-date list \u2014 it is updated weekly.\nYou are a brilliant knowledgeable friend. Answer every question directly and confidently using the data in your context.';
     systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + fullContext;
   if (ridePrefsHeader) systemPrompt += '\n\n' + ridePrefsHeader;
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
         console.log('[ai] fullContext sample:', fullContext.substring(0, 400));
         console.log('[ai] systemPrompt length:', systemPrompt.length);
 
-      // ââ Sanitize strings to remove lone surrogates and control chars ââââââââââââ
+      // ------ Sanitize strings to remove lone surrogates and control chars ------------------------------------
       function sanitizeForJSON(str) {
               if (typeof str !== 'string') return str;
               return str
