@@ -271,6 +271,13 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .used-photo-cell:hover{border-color:#8AACAE}
 .used-photo-cell:hover .img-cell-actions{opacity:1}
 .used-photo-title{font-size:10px;color:#4A7A7C;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:white;border-top:1px solid rgba(7,30,37,0.06)}
+/* MULTI-SELECT */
+.img-cell-check{position:absolute;top:6px;left:6px;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.85);background:rgba(7,30,37,0.3);display:none;z-index:2;pointer-events:none;box-sizing:border-box}
+.img-select-mode .img-cell-check{display:block}
+.img-select-mode .img-cell{cursor:pointer!important}
+.img-cell.selected .img-cell-check{background:#4A7A7C;border-color:#4A7A7C}
+.img-cell.selected .img-cell-check::after{content:'';display:block;width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:rotate(45deg) translate(2px,-1px)}
+.img-cell.selected{border-color:#4A7A7C!important}
 /* RESPONSIVE */
 @media(max-width:768px){
 .sidebar{transform:translateX(-240px);transition:transform 0.2s}
@@ -488,9 +495,19 @@ Posts
 <div id="images-view" style="display:none">
 <div class="posts-header">
 <h1 class="posts-title">Image Library<\/h1>
-<button class="btn-new-post" onclick="openImageManager('browse')">Upload Image<\/button>
+<div style="display:flex;gap:8px;align-items:center">
+<button id="btn-img-select" class="btn-save-draft" onclick="enterSelectMode()">Select<\/button>
+<button id="btn-img-upload" class="btn-new-post" onclick="openImageManager('browse')">+ Add Photos<\/button>
+<\/div>
 <\/div>
 <div id="images-inline-grid" style="margin-top:8px"><\/div>
+<div id="multi-select-bar" style="display:none;position:sticky;bottom:0;background:white;border-top:1px solid rgba(7,30,37,0.08);padding:12px 0;margin-top:8px;align-items:center;justify-content:space-between;gap:12px">
+<span id="select-count-label" style="font-size:12px;color:#4A7A7C;font-weight:600">0 selected<\/span>
+<div style="display:flex;gap:8px">
+<button class="btn-modal-cancel" onclick="exitSelectMode()">Cancel<\/button>
+<button id="btn-delete-selected" class="btn-modal-confirm" disabled onclick="confirmMultiDelete()">Delete Selected (0)<\/button>
+<\/div>
+<\/div>
 <div id="used-photos-section" style="display:none">
 <div class="used-photos-divider"><\/div>
 <div class="used-photos-heading">Used Photos<\/div>
@@ -686,6 +703,9 @@ let uploadDone = false;
 let batchZip = null;
 let batchPosts = [];
 let batchImages = {};
+// IMAGE SELECTION state
+let imgSelectMode = false;
+let selectedImgUrls = new Set();
 
 // ============================================================
 // DIRTY TRACKING
@@ -1512,12 +1532,16 @@ function copyImgUrl(url, btn) {
 }
 
 function deleteImage(url) {
+  if (imgSelectMode) return;
   if (!confirm('Delete this image?')) return;
   fetch(API_BASE + '/api/blog-images', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
     body: JSON.stringify({ url })
-  }).then(() => loadImages()).catch(() => showToast('Delete failed', 'error'));
+  }).then(r => {
+    if (r.ok) loadImagesInline();
+    else showToast('Delete failed', 'error');
+  }).catch(() => showToast('Delete failed', 'error'));
 }
 
 function setHeroFromLibrary(url) {
@@ -1527,6 +1551,100 @@ function setHeroFromLibrary(url) {
   markDirty();
   forceCloseImageManager();
   showToast('Hero image set', 'success');
+}
+
+// ============================================================
+// MULTI-SELECT DELETE (Image Library)
+// ============================================================
+function enterSelectMode() {
+  imgSelectMode = true;
+  selectedImgUrls = new Set();
+  // Toggle button visibility
+  const btnSel = document.getElementById('btn-img-select');
+  const btnUp = document.getElementById('btn-img-upload');
+  if (btnSel) { btnSel.textContent = 'Cancel'; btnSel.onclick = exitSelectMode; }
+  if (btnUp) btnUp.style.display = 'none';
+  // Add select-mode class to grid wrapper so checkboxes show
+  const grid = document.getElementById('lib-img-grid');
+  if (grid) grid.classList.add('img-select-mode');
+  // Show the bar
+  const bar = document.getElementById('multi-select-bar');
+  if (bar) bar.style.display = 'flex';
+  updateSelectBar();
+}
+
+function exitSelectMode() {
+  imgSelectMode = false;
+  selectedImgUrls = new Set();
+  // Restore button
+  const btnSel = document.getElementById('btn-img-select');
+  const btnUp = document.getElementById('btn-img-upload');
+  if (btnSel) { btnSel.textContent = 'Select'; btnSel.onclick = enterSelectMode; }
+  if (btnUp) btnUp.style.display = '';
+  // Remove select-mode class and deselect all
+  const grid = document.getElementById('lib-img-grid');
+  if (grid) {
+    grid.classList.remove('img-select-mode');
+    grid.querySelectorAll('.img-cell.selected').forEach(el => el.classList.remove('selected'));
+  }
+  // Hide bar
+  const bar = document.getElementById('multi-select-bar');
+  if (bar) bar.style.display = 'none';
+}
+
+function imgCellClick(event, cellEl, url) {
+  if (!imgSelectMode) {
+    // Normal mode: open image manager on click (existing inline-grid behaviour — browse only, no select action needed)
+    return;
+  }
+  event.stopPropagation();
+  if (selectedImgUrls.has(url)) {
+    selectedImgUrls.delete(url);
+    cellEl.classList.remove('selected');
+  } else {
+    selectedImgUrls.add(url);
+    cellEl.classList.add('selected');
+  }
+  updateSelectBar();
+}
+
+function updateSelectBar() {
+  const n = selectedImgUrls.size;
+  const label = document.getElementById('select-count-label');
+  const btn = document.getElementById('btn-delete-selected');
+  if (label) label.textContent = n + ' selected';
+  if (btn) {
+    btn.textContent = 'Delete Selected (' + n + ')';
+    btn.disabled = n === 0;
+  }
+}
+
+function confirmMultiDelete() {
+  const n = selectedImgUrls.size;
+  if (!n) return;
+  if (!confirm('Delete ' + n + ' photo' + (n !== 1 ? 's' : '') + '? This cannot be undone.')) return;
+  executeMultiDelete();
+}
+
+async function executeMultiDelete() {
+  const urls = Array.from(selectedImgUrls);
+  const btn = document.getElementById('btn-delete-selected');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting...'; }
+  let failed = 0;
+  for (const url of urls) {
+    try {
+      const r = await fetch(API_BASE + '/api/blog-images', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+        body: JSON.stringify({ url })
+      });
+      if (!r.ok) failed++;
+    } catch(e) { failed++; }
+  }
+  if (failed) showToast(failed + ' deletion(s) failed', 'error');
+  else showToast('Deleted ' + urls.length + ' image' + (urls.length !== 1 ? 's' : ''), 'success');
+  exitSelectMode();
+  await loadImagesInline();
 }
 
 async function loadImagesInline() {
@@ -1555,32 +1673,34 @@ async function loadImagesInline() {
   // Render library grid
   if (!images.length) {
     grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.<\/div>';
+    updateSelectBar();
   } else {
     const libUrlSet = new Set(images.map(img => img.url));
-    grid.innerHTML = '<div class="img-grid">' + images.map(img =>
-      '<div class="img-cell" style="position:relative">' +
-      '<div class="img-cell-wrap" onclick="openImageManager(' + q + 'browse' + q + ')">' +
-      '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
-      '<div class="img-cell-actions">' +
-      '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
-      '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete<\/button>' +
-      '<\/div>' +
-      '<\/div>' +
-      '<div class="img-cell-name">' + escHtml(img.filename) + '<\/div>' +
-      '<\/div>'
-    ).join('') + '<\/div>';
+    grid.innerHTML = '<div class="img-grid" id="lib-img-grid">' + images.map(img => {
+      const isSel = selectedImgUrls.has(img.url);
+      return '<div class="img-cell' + (isSel ? ' selected' : '') + '" style="position:relative" data-url="' + escAttr(img.url) + '" onclick="imgCellClick(event,this,' + "'" + escAttr(img.url) + "'" + ')">' +
+        '<div class="img-cell-check"><\/div>' +
+        '<div class="img-cell-wrap">' +
+        '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
+        '<div class="img-cell-actions">' +
+        '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
+        '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete<\/button>' +
+        '<\/div>' +
+        '<\/div>' +
+        '<div class="img-cell-name">' + escHtml(img.filename) + '<\/div>' +
+        '<\/div>';
+    }).join('') + '<\/div>';
+    updateSelectBar();
 
     // Build Used Photos: collect all image URLs from published posts
-    const usedEntries = []; // { url, postTitle }
-    const seenUrls = new Set(libUrlSet); // seed with library URLs to avoid duplication
+    const usedEntries = [];
+    const seenUrls = new Set(libUrlSet);
     for (const post of publishedPosts) {
       const postTitle = post.title || post.slug || 'Untitled';
-      // heroImage
       if (post.heroImage && post.heroImage.startsWith('http') && !seenUrls.has(post.heroImage)) {
         seenUrls.add(post.heroImage);
         usedEntries.push({ url: post.heroImage, postTitle });
       }
-      // inline images in body
       if (post.body) {
         const srcRegex = new RegExp('src="(https?://[^"]+)"', 'g');
         let m;
