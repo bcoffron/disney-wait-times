@@ -857,22 +857,6 @@ await openPost(savedPost);
 showView(savedView);
 }
 }
-const savedView = sessionStorage.getItem('admin_current_view') || 'posts';
-const savedPost = sessionStorage.getItem('admin_current_post');
-if (savedView === 'editor' && savedPost) {
-await openPost(savedPost);
-} else {
-showView(savedView);
-}
-}
-const savedView = sessionStorage.getItem('admin_current_view') || 'posts';
-const savedPost = sessionStorage.getItem('admin_current_post');
-if (savedView === 'editor' && savedPost) {
-await openPost(savedPost);
-} else {
-showView(savedView);
-}
-}
 function initQuill() {
   if (quill) return;
   const toolbarOptions = {
