@@ -1079,7 +1079,10 @@ function formatScheduledDate(iso) {
   try {
     const d = new Date(iso);
     return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' +
-           d.toLocaleTimeStrasync function openPost(slug) {
+           d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+} catch(e) { return iso; }
+}
+async function openPost(slug) {
 try {
 const r = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(slug));
 if (!r.ok) { showToast('Could not load post', 'error'); return; }
@@ -1850,7 +1853,8 @@ function confirmMultiDeleteInUse(inUseUrls, safeUrls) {
     });
   });
   const bodyEl = document.getElementById('img-in-use-body');
-  if (bodyEl) bodyEl.textContent = inUseUrls.length + ' of your selected images are used in posts: ' + postTitles.map(t => escHtml(t)).join(', ') + '. What would you like to do with them?';async function deleteInUseAnyway() {
+  if (bodyEl) bodyEl.textContent = inUseUrls.length + ' of your selected images are used in posts: ' + postTitles.map(t => escHtml(t)).join(', ') + '. What would you like to do with them?';
+async function deleteInUseAnyway() {
 const url = _deleteInUseUrl;
 _deleteInUseUrl = null;
 closeModal('img-in-use-modal');
