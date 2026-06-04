@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // ── AUTH CHECK ───────────────────────────────────────────────────────────
+  // -- AUTH CHECK -----------------------------------------------------------
   const _adminKey = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
   const _sentAdmin = (req.headers['x-admin-key'] || req.body && req.body.adminKey || '').toLowerCase();
   const _tripCode = (req.body && req.body.tripCode) || req.headers['x-trip-code'] || '';
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     console.warn('[auth] Unauthorized request blocked');
     return res.status(401).json({ error: 'Authentication required.' });
   }
-  // ─────────────────────────────────────────────────────────────────────────
+  // -------------------------------------------------------------------------
 
   try {
     const { prompt, park, maxTokens = 1500 } = req.body || {};
@@ -62,9 +62,9 @@ export default async function handler(req, res) {
 
     const diningIntel = await getCacheSlice('dining_intel', 4000);
 
-    let system = 'You are a Disneyland and Disney California Adventure dining expert. Provide concise, practical dining recommendations. Respond in valid JSON only. No markdown, no explanation — just JSON in this format: {"recommendations":[{"name":"Restaurant Name","park":"DL|DCA","type":"table|quick","mustOrder":"item","tip":"short tip","rating":"4/5"}]}';
+    let system = 'You are a Disneyland and Disney California Adventure dining expert. Provide concise, practical dining recommendations. Respond in valid JSON only. No markdown, no explanation - just JSON in this format: {"recommendations":[{"name":"Restaurant Name","park":"DL|DCA","type":"table|quick","mustOrder":"item","tip":"short tip","rating":"4/5"}]}';
     if (diningIntel) {
-      system += '\n\n=== CURRENT DINING INTELLIGENCE (use this — do not search the web) ===\n' + diningIntel;
+      system += '\n\n=== CURRENT DINING INTELLIGENCE (use this - do not search the web) ===\n' + diningIntel;
     }
 
     console.log('dining recs for park:', park || 'all', 'dining_intel_injected:', !!diningIntel);
