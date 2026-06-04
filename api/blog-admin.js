@@ -1500,6 +1500,7 @@ function setHeroFromLibrary(url) {
 }
 
 async function loadImagesInline() {
+  const q = "'";
   const grid = document.getElementById('images-inline-grid');
   grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...</div>';
   try {
@@ -1508,7 +1509,7 @@ async function loadImagesInline() {
     if (!images.length) { grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.<\/div>'; return; }
     grid.innerHTML = '<div class="img-grid">' + images.map(img =>
       '<div class="img-cell" style="position:relative">' +
-        "<div class=\"img-cell-wrap\" onclick=\"openImageManager('browse')\">" +
+        '<div class="img-cell-wrap" onclick="openImageManager(' + q + 'browse' + q + ')">' +
           '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
           '<div class="img-cell-actions">' +
             '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
