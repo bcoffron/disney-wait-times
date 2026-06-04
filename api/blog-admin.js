@@ -856,14 +856,16 @@ await openPost(savedPost);
 } else {
 showView(savedView);
 }
-}onst savedView = sessionStorage.getItem('admin_current_view') || 'posts';
+}
+const savedView = sessionStorage.getItem('admin_current_view') || 'posts';
 const savedPost = sessionStorage.getItem('admin_current_post');
 if (savedView === 'editor' && savedPost) {
 await openPost(savedPost);
 } else {
 showView(savedView);
 }
-}onst savedView = sessionStorage.getItem('admin_current_view') || 'posts';
+}
+const savedView = sessionStorage.getItem('admin_current_view') || 'posts';
 const savedPost = sessionStorage.getItem('admin_current_post');
 if (savedView === 'editor' && savedPost) {
 await openPost(savedPost);
