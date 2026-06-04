@@ -1,3 +1,19 @@
+// ============================================================
+// ESCAPE SEQUENCE CONSTRAINT — READ BEFORE EDITING
+// ============================================================
+// This file is a Node.js ESM module. ADMIN_HTML is a top-level
+// template literal (`...`). Node processes ALL escape sequences
+// before sending HTML to the browser, so:
+//   \' inside script block  → becomes '  → breaks single-quoted JS strings
+//   \n inside script block  → literal newline → breaks single-quoted JS strings
+//   \" inside script block  → becomes "  → breaks double-quoted strings
+//   \/ in regex literals    → can break regex syntax
+// FIX RULES:
+//   \' → use "'" (double-quoted apostrophe concatenated in)
+//   \n → remove or replace with a space
+//   Regex with \/ → use new RegExp() constructor instead
+//   Backtick template literals inside script → use string concatenation
+// ============================================================
 export default function handler(req, res) {
 res.setHeader('Content-Type', 'text/html; charset=utf-8');
 res.setHeader('Cache-Control', 'no-store');
@@ -885,7 +901,7 @@ async function saveSettings() {
 // NAV / VIEWS
 // ============================================================
 function showView(v) {
-  ['posts','editor','images','settings','batch','drafts'].forEach(id => {.forEach(id => {
+  ['posts','editor','images','settings','batch','drafts'].forEach(id => {
     const el = document.getElementById(id + '-view');
     if (el) el.style.display = 'none';
   });
@@ -908,10 +924,7 @@ function showView(v) {
 
 // ============================================================
 // POSTS LIST
-// ============================================================
-async function loadPosts() {
-  try {
-    const r = await fetch(API_BASE + '/api/blog-index');
+// ===========  ['posts','editor','images','settings','batch','drafts'].forEach(id => {  const r = await fetch(API_BASE + '/api/blog-index');
     allPosts = await r.json();
     if (!Array.isArray(allPosts)) allPosts = [];
     renderPostList(allPosts.filter(p => p.published === true));
