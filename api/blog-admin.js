@@ -467,13 +467,15 @@ Posts
 <div class="field-group">
 <div class="field-label">Hero Image<\/div>
 <img id="hero-preview" class="hero-preview" src="" alt="" onerror="this.style.background='#eee'">
-<button class="btn-replace-hero" onclick="openImageManager('hero')">Replace image<\/button>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button class="btn-choose-hero" style="flex:1" onclick="openImageManager('hero')">Choose from Library<\/button>
+<button class="btn-choose-hero" style="flex:1" onclick="openHeroUpload()">Upload New<\/button>
+<\/div>
+<input type="file" id="hero-upload-input" accept="image/*" style="display:none">
+<div id="hero-upload-progress" style="display:none;font-size:11px;color:#4A7A7C;margin-top:4px"><\/div>
 <div style="margin-top:8px">
 <div class="field-label" style="margin-bottom:4px">Hero Image URL<\/div>
-<div class="hero-field-row">
 <input type="text" class="field-input" id="f-hero-url" placeholder="https://..." oninput="onHeroUrlChange();markDirty()" style="font-size:11px">
-<button class="btn-choose-hero" onclick="openImageManager('hero')">Choose from library<\/button>
-<\/div>
 <\/div>
 <div style="margin-top:8px">
 <div class="field-label" style="margin-bottom:4px">Alt Text<\/div>
@@ -708,6 +710,7 @@ Posts
 <div class="img-modal-actions">
 <button class="btn-upload-img" onclick="triggerUpload()">+ Add Photos<\/button>
 <button class="btn-close-img" onclick="closeImageManager()">&times;<\/button>
+<button class="btn-modal-cancel" id="img-picker-cancel" style="display:none;margin-right:8px" onclick="forceCloseImageManager()">Cancel<\/button>
 <\/div>
 <\/div>
 <div class="img-modal-body">
@@ -1440,14 +1443,32 @@ async function cancelSchedule() {
 // FIX 2: IMAGE MANAGER WITH UPLOAD QUEUE
 // ============================================================
 function openImageManager(ctx) {
-  imgManagerContext = ctx;
-  uploadQueue = [];
-  uploadDone = false;
-  renderUploadQueue();
-  document.getElementById('img-modal').classList.add('active');
-  setupDragDrop();
+imgManagerContext = ctx;
+uploadQueue = [];
+uploadDone = false;
+const modal = document.getElementById('img-modal');
+const titleEl = modal.querySelector('.img-modal-title');
+const dropZone = document.getElementById('img-drop-zone');
+const uploadQueueEl = document.getElementById('upload-queue');
+const addPhotosBtn = modal.querySelector('.btn-upload-img');
+const pickerCancelBtn = document.getElementById('img-picker-cancel');
+if (ctx === 'hero') {
+if (titleEl) titleEl.textContent = 'Choose from Library';
+if (dropZone) dropZone.style.display = 'none';
+if (uploadQueueEl) uploadQueueEl.style.display = 'none';
+if (addPhotosBtn) addPhotosBtn.style.display = 'none';
+if (pickerCancelBtn) pickerCancelBtn.style.display = 'inline-block';
+} else {
+if (titleEl) titleEl.textContent = 'Image Library';
+if (dropZone) dropZone.style.display = '';
+if (addPhotosBtn) addPhotosBtn.style.display = '';
+if (pickerCancelBtn) pickerCancelBtn.style.display = 'none';
+renderUploadQueue();
+setupDragDrop();
 }
-
+modal.classList.add('active');
+loadImages();
+}
 function closeImageManager() {
   // If there are queued files not yet uploaded, confirm
   if (uploadQueue.length > 0 && !uploadDone) {
@@ -1463,6 +1484,41 @@ function forceCloseImageManager() {
   uploadDone = false;
   document.getElementById('img-modal').classList.remove('active');
   if (uploadDone) loadImages();
+}
+
+function openHeroUpload() {
+const fileInput = document.getElementById('hero-upload-input');
+if (!fileInput) return;
+fileInput.onchange = async function() {
+const file = this.files[0];
+if (!file) return;
+this.value = '';
+const progress = document.getElementById('hero-upload-progress');
+if (progress) { progress.textContent = 'Uploading...'; progress.style.display = 'block'; }
+try {
+const r = await fetch(API_BASE + '/api/blog-upload-image', {
+method: 'POST',
+headers: { 'x-admin-key': token, 'x-filename': file.name, 'Content-Type': file.type },
+body: file
+});
+const data = await r.json();
+if (r.ok && data.url) {
+document.getElementById('hero-preview').src = data.url;
+document.getElementById('f-hero-url').value = data.url;
+document.getElementById('og-img').src = data.url;
+markDirty();
+if (progress) { progress.textContent = 'Uploaded!'; setTimeout(() => { progress.style.display = 'none'; }, 1500); }
+showToast('Hero image uploaded', 'success');
+} else {
+if (progress) { progress.textContent = 'Upload failed'; setTimeout(() => { progress.style.display = 'none'; }, 2000); }
+showToast('Upload failed', 'error');
+}
+} catch(e) {
+if (progress) { progress.textContent = 'Upload error'; setTimeout(() => { progress.style.display = 'none'; }, 2000); }
+showToast('Upload error', 'error');
+}
+};
+fileInput.click();
 }
 
 function setupDragDrop() {
@@ -1612,18 +1668,18 @@ async function loadImages() {
     const images = await r.json();
     if (!images.length) { grid.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
     grid.innerHTML = images.map(img =>
-      '<div class="img-cell" style="position:relative">' +
-        '<div class="img-cell-wrap" onclick="selectImage(' + "'" + escAttr(img.url) + "'" + ')">' +
-          '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
-          '<div class="img-cell-actions">' +
-            '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
-            '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete<\/button>' +
-          '<\/div>' +
-        '<\/div>' +
-        '<div class="img-cell-name">' + escHtml(img.filename) + '<\/div>' +
-        '<button class="img-set-hero-btn" onclick="setHeroFromLibrary(' + "'" + escAttr(img.url) + "'" + ')">Set as hero<\/button>' +
-      '<\/div>'
-    ).join('');
+'<div class="img-cell" style="position:relative">' +
+'<div class="img-cell-wrap" onclick="selectImage(' + "'" + escAttr(img.url) + "'" + ')">' +
+'<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
+(imgManagerContext !== 'hero' ? '<div class="img-cell-actions">' +
+'<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
+'<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete<\/button>' +
+'<\/div>' : '') +
+'<\/div>' +
+'<div class="img-cell-name">' + escHtml(img.filename) + '<\/div>' +
+(imgManagerContext !== 'hero' ? '<button class="img-set-hero-btn" onclick="setHeroFromLibrary(' + "'" + escAttr(img.url) + "'" + ')">Set as hero<\/button>' : '') +
+'<\/div>'
+).join('');
   } catch(e) {
     grid.innerHTML = '<div style="color:#C82030;font-size:13px;padding:20px">Failed to load images.<\/div>';
   }
