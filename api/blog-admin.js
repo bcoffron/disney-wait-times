@@ -641,6 +641,24 @@ Posts
 <\/div>
 <\/div>
 
+<!-- In-use image warning modal -->
+<div class="modal-overlay" id="img-in-use-modal">
+<div class="modal-box">
+<div class="modal-title">Image In Use<\/div>
+<div class="modal-body" id="img-in-use-body"><\/div>
+<div class="modal-actions" id="img-in-use-single-actions" style="display:flex">
+<button class="btn-modal-cancel" onclick="closeModal('img-in-use-modal')">Cancel<\/button>
+<button class="btn-modal-confirm" onclick="deleteInUseAnyway()" style="background:#C82030">Delete Anyway<\/button>
+<button class="btn-modal-stay" onclick="moveToUsedPhotos()">Move to Used Photos<\/button>
+<\/div>
+<div class="modal-actions" id="img-in-use-multi-actions" style="display:none">
+<button class="btn-modal-cancel" onclick="closeModal('img-in-use-modal')">Cancel<\/button>
+<button class="btn-modal-confirm" onclick="deleteMultiAnyway()" style="background:#C82030">Delete Anyway<\/button>
+<button class="btn-modal-stay" onclick="moveMultiToUsedPhotos()">Move to Used Photos<\/button>
+<\/div>
+<\/div>
+<\/div>
+
 <!-- Unsaved changes modal -->
 <div class="modal-overlay" id="unsaved-modal">
 <div class="modal-box">
@@ -733,6 +751,12 @@ let uploadDone = false;
 let batchZip = null;
 let batchPosts = [];
 let batchImages = {};
+// IN-USE DELETE state
+let _deleteInUseUrl = null;
+let _deleteInUseMultiUrls = null;
+let _deleteInUseSafeUrls = null;
+let _deleteFromView = null;
+
 // IMAGE SELECTION state
 let imgSelectMode = false;
 let selectedImgUrls = new Set();
@@ -1001,7 +1025,7 @@ function renderDraftsList() {
       '<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit<\/button>' +
       '<button class="btn-edit" style="color:#22A855" onclick="publishDraft(' + q + p.slug + q + ')">Publish<\/button>' +
       '<button class="btn-edit" style="color:#D97706" onclick="openPost(' + q + p.slug + q + ');setTimeout(openScheduleModal,400)">Schedule<\/button>' +
-      '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete<\/button>' +
+      '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ', ' + q + 'drafts' + q + ')">Delete<\/button>' +
       '<\/div><\/div>';
   }).join('');
 }
@@ -1308,9 +1332,7 @@ function previewPost() {
 // ============================================================
 // DELETE
 // ============================================================
-function quickDelete(slug) { currentPost = { slug }; confirmDelete(); }
-function confirmDelete() { document.getElementById('delete-modal').classList.add('active'); }
-
+function quickDelete(slug, fromView) { currentPost = { slug }; _deleteFromView = fromView || null; confirmDelete(); }
 async function executeDelete() {
   const slug = currentPost ? currentPost.slug : null;
   if (!slug) { closeModal('delete-modal'); return; }
@@ -1327,7 +1349,10 @@ async function executeDelete() {
       closeModal('delete-modal');
       showToast('Post deleted', 'success');
       currentPost = null; isDirty = false;
-      showView('posts'); await loadPosts();
+      await loadPosts();
+      if (_deleteFromView === 'drafts') { showView('drafts'); }
+      else { showView('posts'); }
+      _deleteFromView = null;
     } else { showToast('Delete failed', 'error'); }
   } catch(e) { showToast('Delete failed', 'error'); }
   finally { btn.textContent = 'Delete'; btn.disabled = false; }
@@ -1613,7 +1638,11 @@ function copyImgUrl(url, btn) {
 
 function deleteImage(url) {
   if (imgSelectMode) return;
-  if (!confirm('Delete this image?')) return;
+  // Check if image is in use
+  if (isImageInUse(url)) {
+    confirmDeleteInUse(url);
+    return;
+  }
   fetch(API_BASE + '/api/blog-images', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
@@ -1702,12 +1731,24 @@ function updateSelectBar() {
 function confirmMultiDelete() {
   const n = selectedImgUrls.size;
   if (!n) return;
-  if (!confirm('Delete ' + n + ' photo' + (n !== 1 ? 's' : '') + '? This cannot be undone.')) return;
   executeMultiDelete();
 }
 
 async function executeMultiDelete() {
   const urls = Array.from(selectedImgUrls);
+  // Check which ones are in use
+  const inUseUrls = urls.filter(u => isImageInUse(u));
+  const safeUrls = urls.filter(u => !isImageInUse(u));
+  if (inUseUrls.length > 0) {
+    // Show grouped warning
+    confirmMultiDeleteInUse(inUseUrls, safeUrls);
+    return;
+  }
+  // All safe -- delete immediately
+  await _doMultiDelete(urls);
+}
+
+async function _doMultiDelete(urls) {
   const btn = document.getElementById('btn-delete-selected');
   if (btn) { btn.disabled = true; btn.textContent = 'Deleting...'; }
   let failed = 0;
@@ -1725,6 +1766,101 @@ async function executeMultiDelete() {
   else showToast('Deleted ' + urls.length + ' image' + (urls.length !== 1 ? 's' : ''), 'success');
   exitSelectMode();
   await loadImagesInline();
+}
+
+function isImageInUse(url) {
+  return allPosts.some(p => p.heroImage === url || (p.body && p.body.indexOf(url) >= 0));
+}
+
+function getPostsUsingImage(url) {
+  return allPosts.filter(p => p.heroImage === url || (p.body && p.body.indexOf(url) >= 0));
+}
+
+function confirmDeleteInUse(url) {
+  _deleteInUseUrl = url;
+  const posts = getPostsUsingImage(url);
+  const postList = posts.map(p => escHtml(p.title || p.slug)).join(', ');
+  const bodyEl = document.getElementById('img-in-use-body');
+  if (bodyEl) bodyEl.textContent = 'This image is used in: ' + postList + '. What would you like to do?';
+  document.getElementById('img-in-use-multi-actions').style.display = 'none';
+  document.getElementById('img-in-use-single-actions').style.display = 'flex';
+  document.getElementById('img-in-use-modal').classList.add('active');
+}
+
+function confirmMultiDeleteInUse(inUseUrls, safeUrls) {
+  _deleteInUseMultiUrls = inUseUrls;
+  _deleteInUseSafeUrls = safeUrls;
+  const postTitles = [];
+  inUseUrls.forEach(url => {
+    getPostsUsingImage(url).forEach(p => {
+      const t = p.title || p.slug;
+      if (postTitles.indexOf(t) < 0) postTitles.push(t);
+    });
+  });
+  const bodyEl = document.getElementById('img-in-use-body');
+  if (bodyEl) bodyEl.textContent = inUseUrls.length + ' of your selected images are used in posts: ' + postTitles.map(t => escHtml(t)).join(', ') + '. What would you like to do with them?';
+  document.getElementById('img-in-use-single-actions').style.display = 'none';
+  document.getElementById('img-in-use-multi-actions').style.display = 'flex';
+  document.getElementById('img-in-use-modal').classList.add('active');
+}
+
+function moveToUsedPhotos() {
+  if (_deleteInUseUrl) {
+    const grid = document.getElementById('lib-img-grid');
+    if (grid) {
+      grid.querySelectorAll('.img-cell').forEach(cell => { if (cell.dataset.url === _deleteInUseUrl) cell.remove(); });
+    }
+    _deleteInUseUrl = null;
+  }
+  closeModal('img-in-use-modal');
+  showToast('Moved to Used Photos', 'success');
+}
+
+async function deleteInUseAnyway() {
+  const url = _deleteInUseUrl;
+  _deleteInUseUrl = null;
+  closeModal('img-in-use-modal');
+  if (!url) return;
+  try {
+    const r = await fetch(API_BASE + '/api/blog-images', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+      body: JSON.stringify({ url })
+    });
+    if (r.ok) { showToast('Deleted', 'success'); loadImagesInline(); }
+    else showToast('Delete failed', 'error');
+  } catch(e) { showToast('Delete failed', 'error'); }
+}
+
+function moveMultiToUsedPhotos() {
+  const inUseUrls = _deleteInUseMultiUrls || [];
+  const grid = document.getElementById('lib-img-grid');
+  if (grid) {
+    inUseUrls.forEach(url => {
+      grid.querySelectorAll('.img-cell').forEach(cell => { if (cell.dataset.url === url) cell.remove(); });
+    });
+  }
+  const safeUrls = _deleteInUseSafeUrls || [];
+  _deleteInUseMultiUrls = null; _deleteInUseSafeUrls = null;
+  closeModal('img-in-use-modal');
+  exitSelectMode();
+  if (safeUrls.length > 0) {
+    _doMultiDelete(safeUrls).then(() => {
+      showToast('In-use images moved to Used Photos', 'success');
+      loadImagesInline();
+    });
+  } else {
+    showToast('In-use images moved to Used Photos', 'success');
+  }
+}
+
+async function deleteMultiAnyway() {
+  const inUseUrls = _deleteInUseMultiUrls || [];
+  const safeUrls = _deleteInUseSafeUrls || [];
+  _deleteInUseMultiUrls = null; _deleteInUseSafeUrls = null;
+  closeModal('img-in-use-modal');
+  exitSelectMode();
+  await _doMultiDelete([...inUseUrls, ...safeUrls]);
 }
 
 async function loadImagesInline() {
