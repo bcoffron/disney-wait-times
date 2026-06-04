@@ -4730,7 +4730,7 @@ function generateFromSetup(params, callback) {
       prompt: prompt,
       mode: 'setup',
       maxTokens: 8000,
-      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {, tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
+      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}, { tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
     })
   })
   .then(function(r){return r.json();})
@@ -4772,7 +4772,7 @@ function aiChooseRides(params, callback) {
       prompt: prompt,
       mode: 'rides',
       maxTokens: 8000,
-      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {, tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
+      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}, { tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
     })
   })
   .then(function(r){return r.json();})
