@@ -1,4 +1,4 @@
-// config.js — SECURITY: API key is NEVER returned to clients
+// config.js - SECURITY: API key is NEVER returned to clients
 // The app calls Anthropic directly through Vercel endpoints only
 // This endpoint now only handles Pusher config (non-sensitive)
 
@@ -9,7 +9,7 @@ async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method === 'GET') {
-    // Only return non-sensitive config — NEVER the API key
+    // Only return non-sensitive config - NEVER the API key
     return res.status(200).json({
       pusherKey: process.env.PUSHER_KEY || '',
       pusherCluster: process.env.PUSHER_CLUSTER || 'us2'
