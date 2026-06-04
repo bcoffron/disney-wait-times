@@ -888,7 +888,7 @@ function renderDraftsSidebar(posts) {
     const scheduledDate = d.scheduledAt
       ? '<div class="draft-scheduled-date">' + formatScheduledDate(d.scheduledAt) + '<\/div>'
       : '';
-    return '<button class="draft-item" onclick="openPost(\'' + escHtml(d.slug) + '\')">' +
+    return '<button class="draft-item" onclick="openPost(' + "'" + escHtml(d.slug) + "'" + ')">' +
       '<div class="draft-item-row"><span class="draft-item-title">' + escHtml(d.title || 'Untitled') + '<\/span>' + scheduledBadge + '<\/div>' +
       scheduledDate + '<\/button>';
   }).join('');
@@ -1457,15 +1457,15 @@ async function loadImages() {
     if (!images.length) { grid.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
     grid.innerHTML = images.map(img =>
       '<div class="img-cell" style="position:relative">' +
-        '<div class="img-cell-wrap" onclick="selectImage(\'' + escAttr(img.url) + '\')">' +
+        '<div class="img-cell-wrap" onclick="selectImage(' + "'" + escAttr(img.url) + "'" + ')">' +
           '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
           '<div class="img-cell-actions">' +
-            '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(\'' + escAttr(img.url) + '\',this)">Copy URL<\/button>' +
-            '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(\'' + escAttr(img.url) + '\')">Delete<\/button>' +
+            '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
+            '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete<\/button>' +
           '<\/div>' +
         '<\/div>' +
         '<div class="img-cell-name">' + escHtml(img.filename) + '<\/div>' +
-        '<button class="img-set-hero-btn" onclick="setHeroFromLibrary(\'' + escAttr(img.url) + '\')">Set as hero<\/button>' +
+        '<button class="img-set-hero-btn" onclick="setHeroFromLibrary(' + "'" + escAttr(img.url) + "'" + ')">Set as hero<\/button>' +
       '<\/div>'
     ).join('');
   } catch(e) {
@@ -1508,11 +1508,11 @@ async function loadImagesInline() {
     if (!images.length) { grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.<\/div>'; return; }
     grid.innerHTML = '<div class="img-grid">' + images.map(img =>
       '<div class="img-cell" style="position:relative">' +
-        '<div class="img-cell-wrap" onclick="openImageManager(\'browse\')">' +
+        "<div class=\"img-cell-wrap\" onclick=\"openImageManager('browse')\">"' +
           '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
           '<div class="img-cell-actions">' +
-            '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(\'' + escAttr(img.url) + '\',this)">Copy URL<\/button>' +
-            '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(\'' + escAttr(img.url) + '\')">Delete<\/button>' +
+            '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
+            '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete<\/button>' +
           '<\/div>' +
         '<\/div>' +
         '<div class="img-cell-name">' + escHtml(img.filename) + '<\/div>' +
