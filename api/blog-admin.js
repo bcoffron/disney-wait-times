@@ -1104,18 +1104,6 @@ sessionStorage.setItem('admin_current_view', 'editor');
 sessionStorage.setItem('admin_current_post', slug);
 showView('editor');
 } catch(e) { showToast('Failed to load post', 'error'); }
-}Btn.style.display = 'none';
-}
-sessionStorage.setItem('admin_current_view', 'editor');
-sessionStorage.setItem('admin_current_post', slug);
-showView('editor');
-} catch(e) { showToast('Failed to load post', 'error'); }
-}Btn.style.display = 'none';
-}
-sessionStorage.setItem('admin_current_view', 'editor');
-sessionStorage.setItem('admin_current_post', slug);
-showView('editor');
-} catch(e) { showToast('Failed to load post', 'error'); }
 }
 function clearEditor() {
   document.getElementById('f-title').value = '';
