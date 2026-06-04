@@ -62,8 +62,8 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .btn-new-post:hover{background:#B05528}
 .search-input{width:100%;padding:10px 14px;border:1px solid rgba(7,30,37,0.12);border-radius:8px;font-size:13px;outline:none;background:white}
 .search-input:focus{border-color:#4A7A7C}
-.posts-table{margin-top:16px}
-.post-row{background:white;border-radius:10px;border:0.5px solid rgba(7,30,37,0.07);padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:6px;cursor:pointer;transition:box-shadow 0.15s}
+.posts-table{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.post-row{background:white;border-radius:10px;border:0.5px solid rgba(7,30,37,0.07);padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:box-shadow 0.15s}
 .post-row:hover{box-shadow:0 2px 8px rgba(7,30,37,0.08)}
 .post-thumb{width:60px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#eee}
 .post-title-cell{flex:1;font-size:13px;font-weight:600;color:#071E25;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
@@ -817,13 +817,23 @@ function renderPostList(posts) {
     table.innerHTML = '<div style="text-align:center;color:#8AACAE;padding:40px;font-size:14px">No posts yet.</div>';
     return;
   }
+  const q = "'";
   table.innerHTML = posts.map(p => {
     const parkCls = p.park === 'dl' ? 'park-dl' : p.park === 'wdw' ? 'park-wdw' : 'park-both';
     const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'Both';
     const statusCls = p.published ? 'status-published' : 'status-draft';
     const statusLabel = p.published ? 'Published' : 'Draft';
     const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-    return '<div class="post-row" onclick="openPost(\\'' + (p.slug) + '\\')"><img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=\\'\\'"><span class="post-title-cell">' + (escHtml(p.title||'Untitled')) + '</span><span class="park-pill ' + (parkCls) + '">' + (parkLabel) + '</span><span class="status-pill ' + (statusCls) + '">' + (statusLabel) + '</span><span class="post-date">' + (date) + '</span><div class="post-actions" onclick="event.stopPropagation()"><button class="btn-edit" onclick="openPost(\\'' + (p.slug);
+    return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
+      '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
+      '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
+      '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
+      '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
+      '<span class="post-date">' + date + '</span>' +
+      '<div class="post-actions" onclick="event.stopPropagation()">' +
+      '<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
+      '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
+      '</div></div>';
   }).join('');
 }
 
