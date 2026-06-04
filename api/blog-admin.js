@@ -1812,20 +1812,18 @@ async function _doMultiDelete(urls) {
       if (!r.ok) failed++;
     } catch(e) { failed++; }
   }
-  if (failed) showToast(failed + 'function confirmDeleteInUse(url) {
+  if (failed) showToast(failed + ' deletion(s) failed', 'error');
+else showToast('Deleted ' + urls.length + ' image' + (urls.length !== 1 ? 's' : ''), 'success');
+exitSelectMode();
+await loadImagesInline();
+}
+
+function confirmDeleteInUse(url) {
 _deleteInUseUrl = url;
 const posts = getPostsUsingImage(url);
 const postList = posts.map(p => escHtml(p.title || p.slug)).join(', ');
 const bodyEl = document.getElementById('img-in-use-body');
 if (bodyEl) bodyEl.textContent = 'This image is used in: ' + postList + '. Deleting it will permanently remove it from that post. Move to Used Photos to keep it accessible without cluttering the library.';
-document.getElementById('img-in-use-multi-actions').style.display = 'none';
-document.getElementById('img-in-use-single-actions').style.display = 'flex';
-document.getElementById('img-in-use-modal').classList.add('active');
-}t. Move to Used Photos to keep it accessible without cluttering the library.';
-document.getElementById('img-in-use-multi-actions').style.display = 'none';
-document.getElementById('img-in-use-single-actions').style.display = 'flex';
-document.getElementById('img-in-use-modal').classList.add('active');
-}t. Move to Used Photos to keep it accessible without cluttering the library.';
 document.getElementById('img-in-use-multi-actions').style.display = 'none';
 document.getElementById('img-in-use-single-actions').style.display = 'flex';
 document.getElementById('img-in-use-modal').classList.add('active');
