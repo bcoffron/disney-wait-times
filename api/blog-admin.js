@@ -1508,7 +1508,7 @@ async function loadImagesInline() {
     if (!images.length) { grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.<\/div>'; return; }
     grid.innerHTML = '<div class="img-grid">' + images.map(img =>
       '<div class="img-cell" style="position:relative">' +
-        "<div class=\"img-cell-wrap\" onclick=\"openImageManager('browse')\">"' +
+        "<div class=\"img-cell-wrap\" onclick=\"openImageManager('browse')\">" +
           '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
           '<div class="img-cell-actions">' +
             '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL<\/button>' +
