@@ -44,6 +44,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .nav-item.active{background:rgba(255,255,255,0.08);color:white}
 .nav-item svg{width:16px;height:16px;flex-shrink:0}
 .nav-badge{background:#ECA050;color:#071E25;font-size:9px;font-weight:800;border-radius:10px;padding:1px 6px;margin-left:auto}
+.nav-badge-draft{background:#D97706;color:white;font-size:9px;font-weight:800;border-radius:10px;padding:1px 6px;margin-left:auto}
 .sidebar-bottom{padding:10px 20px}
 .logout-btn{color:rgba(255,255,255,0.35);font-size:11px;cursor:pointer;border:none;background:none;font-family:'Outfit',sans-serif}
 .logout-btn:hover{color:rgba(255,255,255,0.6)}
@@ -328,8 +329,11 @@ Posts <span class="nav-badge" id="posts-badge">0<\/span>
 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"/><\/svg>
 New Post
 <\/button>
-<!-- DRAFTS SECTION - rendered by JS -->
-<div id="sidebar-drafts"><\/div>
+<button class="nav-item" id="nav-drafts" onclick="showView('drafts')">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/><\/svg>
+Drafts <span class="nav-badge-draft" id="drafts-badge">0<\/span>
+<\/button>
+
 <button class="nav-item" id="nav-images" onclick="showView('images')">
 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/><\/svg>
 Image Library
@@ -357,6 +361,16 @@ Batch Upload
 <\/div>
 <input type="text" class="search-input" placeholder="Search posts..." oninput="filterPosts(this.value)">
 <div class="posts-table" id="posts-table"><\/div>
+<\/div>
+
+<!-- Drafts list view -->
+<div id="drafts-view" style="display:none">
+<div class="posts-header">
+<h1 class="posts-title">Drafts<\/h1>
+<button class="btn-new-post" onclick="openNewPost()">+ New Post<\/button>
+<\/div>
+<input type="text" class="search-input" placeholder="Search drafts..." oninput="filterDrafts(this.value)" style="margin-bottom:8px">
+<div class="posts-table" id="drafts-table"><\/div>
 <\/div>
 
 <!-- Editor view -->
@@ -589,7 +603,7 @@ Posts
 <div style="font-size:32px;margin-bottom:8px">&#10003;<\/div>
 <div class="posts-title" style="font-size:16px;margin-bottom:4px" id="batch-complete-label"><\/div>
 <div style="font-size:12px;color:#8AACAE;margin-bottom:20px" id="batch-complete-sub"><\/div>
-<button class="btn-new-post" onclick="showView('posts');loadPosts()" style="margin-bottom:12px">Go to Drafts<\/button>
+<button class="btn-new-post" onclick="showView('drafts')" style="margin-bottom:12px">Go to Drafts<\/button>
 <\/div>
 <div id="batch-complete-results" style="padding:0 4px"><\/div>
 <div style="margin-top:12px">
@@ -871,7 +885,7 @@ async function saveSettings() {
 // NAV / VIEWS
 // ============================================================
 function showView(v) {
-  ['posts','editor','images','settings','batch'].forEach(id => {
+  ['posts','editor','images','settings','batch','drafts'].forEach(id => {.forEach(id => {
     const el = document.getElementById(id + '-view');
     if (el) el.style.display = 'none';
   });
@@ -881,7 +895,8 @@ function showView(v) {
     editor: { el: 'editor-view', nav: 'nav-new' },
     images: { el: 'images-view', nav: 'nav-images', cb: loadImagesInline },
     settings: { el: 'settings-view', nav: 'nav-settings' },
-    batch: { el: 'batch-view', nav: 'nav-batch' }
+    batch: { el: 'batch-view', nav: 'nav-batch' },
+    drafts: { el: 'drafts-view', nav: 'nav-drafts', cb: renderDraftsList }
   };
   const vm = viewMap[v];
   if (vm) {
@@ -901,33 +916,16 @@ async function loadPosts() {
     if (!Array.isArray(allPosts)) allPosts = [];
     renderPostList(allPosts.filter(p => p.published === true));
     renderDraftsSidebar(allPosts);
-    document.getElementById('posts-badge').textContent = allPosts.filter(p => p.published === true).length;
+    document.getElementById('posts-badge').textContent = allPosts.filter(p => p.published === true).length;    document.getElementById('drafts-badge').textContent = allPosts.filter(p => !p.published).length;
+
   } catch(e) { showToast('Failed to load posts', 'error'); }
 }
 
 function renderDraftsSidebar(posts) {
-  // Sort drafts: scheduled first (ascending), then plain drafts
-  const drafts = posts.filter(p => !p.published).sort((a, b) => {
-    if (a.scheduledAt && b.scheduledAt) return new Date(a.scheduledAt) - new Date(b.scheduledAt);
-    if (a.scheduledAt) return -1;
-    if (b.scheduledAt) return 1;
-    return 0;
-  });
-  const container = document.getElementById('sidebar-drafts');
-  if (!container) return;
-  if (!drafts.length) { container.innerHTML = ''; return; }
-  const items = drafts.map(d => {
-    const scheduledBadge = d.scheduledAt
-      ? '<span class="draft-pill-scheduled">Scheduled<\/span>'
-      : '<span class="draft-pill">Draft<\/span>';
-    const scheduledDate = d.scheduledAt
-      ? '<div class="draft-scheduled-date">' + formatScheduledDate(d.scheduledAt) + '<\/div>'
-      : '';
-    return '<button class="draft-item" onclick="openPost(' + "'" + escHtml(d.slug) + "'" + ')">' +
-      '<div class="draft-item-row"><span class="draft-item-title">' + escHtml(d.title || 'Untitled') + '<\/span>' + scheduledBadge + '<\/div>' +
-      scheduledDate + '<\/button>';
-  }).join('');
-  container.innerHTML = '<div class="drafts-divider"><\/div><div class="drafts-section"><div class="drafts-label">Drafts<\/div>' + items + '<\/div>';
+  const drafts = posts.filter(p => !p.published);
+  const badgeEl = document.getElementById('drafts-badge');
+  if (badgeEl) badgeEl.textContent = drafts.length;
+  window._allDrafts = drafts;
 }
 
 function renderPostList(posts) {
@@ -956,6 +954,72 @@ function renderPostList(posts) {
       '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete<\/button>' +
       '<\/div><\/div>';
   }).join('');
+}
+function renderDraftsList() {
+  const table = document.getElementById('drafts-table');
+  if (!table) return;
+  const drafts = (window._allDrafts || allPosts.filter(p => !p.published)).sort((a, b) => {
+    if (a.scheduledAt && b.scheduledAt) return new Date(a.scheduledAt) - new Date(b.scheduledAt);
+    if (a.scheduledAt) return -1;
+    if (b.scheduledAt) return 1;
+    return 0;
+  });
+  if (!drafts.length) {
+    table.innerHTML = '<div style="text-align:center;color:#8AACAE;padding:40px;font-size:14px">No drafts yet.<\/div>';
+    return;
+  }
+  const q = "'";
+  table.innerHTML = drafts.map(p => {
+    const parkCls = p.park === 'dl' ? 'park-dl' : p.park === 'wdw' ? 'park-wdw' : 'park-both';
+    const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'Both';
+    const statusCls = p.scheduledAt ? 'status-scheduled' : 'status-draft';
+    const statusLabel = p.scheduledAt ? 'Scheduled' : 'Draft';
+    const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+    return '<div class="post-row">' +
+      '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
+      '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '<\/span>' +
+      '<span class="park-pill ' + parkCls + '">' + parkLabel + '<\/span>' +
+      '<span class="status-pill ' + statusCls + '">' + statusLabel + '<\/span>' +
+      '<span class="post-date">' + date + '<\/span>' +
+      '<div class="post-actions">' +
+      '<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit<\/button>' +
+      '<button class="btn-edit" style="color:#22A855" onclick="publishDraft(' + q + p.slug + q + ')">Publish<\/button>' +
+      '<button class="btn-edit" style="color:#D97706" onclick="openPost(' + q + p.slug + q + ');setTimeout(openScheduleModal,400)">Schedule<\/button>' +
+      '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete<\/button>' +
+      '<\/div><\/div>';
+  }).join('');
+}
+
+function filterDrafts(q) {
+  if (!q) { renderDraftsList(); return; }
+  const lq = q.toLowerCase();
+  const filtered = (window._allDrafts || allPosts.filter(p => !p.published)).filter(p =>
+    ((p.title||'').toLowerCase().includes(lq) || (p.slug||'').toLowerCase().includes(lq))
+  );
+  window._allDrafts = filtered;
+  renderDraftsList();
+  window._allDrafts = allPosts.filter(p => !p.published);
+}
+
+async function publishDraft(slug) {
+  try {
+    const r = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(slug));
+    if (!r.ok) { showToast('Could not load draft', 'error'); return; }
+    const post = await r.json();
+    post.published = true;
+    post.updatedAt = new Date().toISOString();
+    const saveR = await fetch(API_BASE + '/api/blog-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+      body: JSON.stringify(post)
+    });
+    const data = await saveR.json();
+    if (saveR.ok && data.success) {
+      showToast('Published \u2713', 'success');
+      await loadPosts();
+      renderDraftsList();
+    } else { showToast('Publish failed', 'error'); }
+  } catch(e) { showToast('Publish failed', 'error'); }
 }
 
 function filterPosts(q) {
