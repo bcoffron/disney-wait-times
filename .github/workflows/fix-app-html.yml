@@ -1,0 +1,50 @@
+name: Fix app.html syntax error
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fix broken syntax in app.html
+        run: |
+          python3 - <<'EOF'
+          with open('app.html', 'r', encoding='utf-8') as f:
+              content = f.read()
+          
+          broken = ': {, tripCode: localStorage.getItem(\'tpcp_code\') or \'\' }'
+          fixed = ': {}, { tripCode: localStorage.getItem(\'tpcp_code\') or \'\' }'
+          
+          # Use the actual JS strings
+          broken_js = ": {, tripCode: localStorage.getItem('tpcp_code') || '' }"
+          fixed_js = ": {}, { tripCode: localStorage.getItem('tpcp_code') || '' }"
+          
+          count = content.count(broken_js)
+          print(f"Found {count} occurrences of broken pattern")
+          
+          content_fixed = content.replace(broken_js, fixed_js)
+          
+          remaining = content_fixed.count(broken_js)
+          print(f"Remaining broken patterns: {remaining}")
+          
+          with open('app.html', 'w', encoding='utf-8') as f:
+              f.write(content_fixed)
+          
+          print("Done!")
+          EOF
+
+      - name: Commit and push fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app.html
+          git commit -m "fix: repair broken JS syntax in app.html - Object.assign ternary fallback"
+          git push
