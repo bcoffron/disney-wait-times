@@ -1397,9 +1397,27 @@ function renderUploadQueue() {
 }
 
 function doneUpload() {
-  forceCloseImageManager();
+  // Reset JS state
+  uploadQueue = [];
+  uploadDone = false;
+  // Reset progress element
+  var prog = document.getElementById('upload-progress');
+  if (prog) { prog.textContent = ''; prog.style.display = 'none'; }
+  // Restore upload-queue DOM to original structure
+  var queueEl = document.getElementById('upload-queue');
+  if (queueEl) {
+    queueEl.style.display = 'none';
+    queueEl.innerHTML =
+      '<div class="field-label" style="margin-bottom:8px">Queue (<span id="queue-count">0<\/span> photo(s))<\/div>' +
+      '<div class="upload-queue-grid" id="upload-queue-grid"><\/div>' +
+      '<div class="upload-progress" id="upload-progress" style="display:none"><\/div>' +
+      '<button class="btn-upload-queue" id="btn-upload-queue" disabled onclick="startUploadQueue()">Upload 0 photo(s)<\/button>';
+  }
+  // Close modal directly
+  document.getElementById('img-modal').classList.remove('active');
+  // Reload inline grid with delay for CDN availability
   if (document.getElementById('images-view') && document.getElementById('images-view').style.display !== 'none') {
-    setTimeout(() => loadImagesInline(), 1000);
+    setTimeout(function() { loadImagesInline(); }, 2000);
   }
 }
 
@@ -1431,7 +1449,7 @@ async function uploadQueue_fn() {
       else { progress.textContent = 'Failed: ' + item.file.name; progress.style.color = '#C82030'; await sleep(1000); progress.style.color = '#0A4840'; }
     } catch(e) { progress.textContent = 'Upload error: ' + item.file.name; progress.style.color = '#C82030'; await sleep(1000); progress.style.color = '#0A4840'; }
   }
-  progress.textContent = successCount + ' of ' + total + ' uploaded &#10003;';
+  progress.textContent = successCount + ' of ' + total + ' uploaded \u2713';
   uploadQueue = [];
   uploadDone = true;
   renderUploadQueue();
