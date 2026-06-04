@@ -843,7 +843,7 @@ function doLogout() {
 // ============================================================
 // APP INIT
 // ============================================================
-aaasync function showApp() {
+async function showApp() {
 document.getElementById('login-screen').style.display = 'none';
 document.getElementById('app').style.display = 'block';
 initQuill();
