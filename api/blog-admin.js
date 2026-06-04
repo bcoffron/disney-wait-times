@@ -7,7 +7,7 @@ export default function handler(req, res) {
 const ADMIN_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8"
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Theme Park Co-Pilot &mdash; Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -192,8 +192,8 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .btn-close-img{background:none;border:none;font-size:20px;color:#8AACAE;cursor:pointer;line-height:1;padding:0 4px}
 .btn-close-img:hover{color:#071E25}
 .img-modal-body{padding:16px;overflow-y:auto;flex:1}
-.img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.img-cell{cursor:pointer;border-radius:8px;overflow:hidden;border:2px solid transparent;transition:border-color 0.15s;position:relative}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.img-cell{cursor:pointer;border-radius:8px;overflow:hidden;border:2px solid transparent;transition:border-color 0.15s;position:relative;aspect-ratio:16/9}
 .img-cell:hover{border-color:#4A7A7C}
 .img-cell:hover .img-cell-actions{opacity:1}
 .img-cell img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#eee}
@@ -1237,7 +1237,7 @@ async function loadImagesInline() {
     const r = await fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } });
     const images = await r.json();
     if (!images.length) { grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>'; return; }
-    grid.innerHTML = '<div class="img-grid">' + images.map(img => '<div class="img-cell"><div style="position:relative" onclick="openImageManager(\\'browse\\')"><img src="' + (escAttr(img.url)) + '" alt="' + (escAttr(img.filename)) + '" loading="lazy"><div class="img-cell-actions"><button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(\\'' + (escAttr(img.url))).join('') + '</div>';
+    grid.innerHTML = '<div class="img-grid">' + images.map(img => '<div class="img-cell"><div style="position:relative;aspect-ratio:16/9;overflow:hidden" onclick="openImageManager(\\'browse\\')"><img src="' + (escAttr(img.url)) + '" alt="' + (escAttr(img.filename)) + '" loading="lazy"><div class="img-cell-actions"><button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(\\'' + (escAttr(img.url))).join('') + '</div>';
   } catch(e) {
     grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.</div>';
   }
