@@ -520,7 +520,9 @@ Posts
 <button class="btn-schedule" id="btn-schedule" onclick="openScheduleModal()" style="display:none">Schedule<\/button>
 <button class="btn-publish" id="btn-publish" onclick="savePost(true)">Publish<\/button>
 <\/div>
-<\/div>/div>
+<\/div>
+<\/div>
+
 
 <!-- Images view -->
 <div id="images-view" style="display:none">
