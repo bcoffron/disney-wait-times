@@ -914,17 +914,22 @@ function setReadTimeMode(mode, updateSettings = true) {
 }
 
 async function saveSettings() {
-  const byline = document.getElementById('s-byline')?.value?.trim() || 'By the Theme Park Co-Pilot Team';
-  const postsPerPage = parseInt(document.getElementById('s-posts-per-page')?.value) || 30;
-  const readTimeMode = appSettings.readTimeMode || 'auto';
-  const settings = { byline, readTimeMode, postsPerPage };
-  appSettings = settings;
-  try {
-    const r = await fetch(API_BASE + '/api/blog-settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-      body: JSON.stringify(post)
+const byline = document.getElementById('s-byline')?.value?.trim() || 'By the Theme Park Co-Pilot Team';
+const postsPerPage = parseInt(document.getElementById('s-posts-per-page')?.value) || 30;
+const readTimeMode = appSettings.readTimeMode || 'auto';
+const settings = { byline, readTimeMode, postsPerPage };
+appSettings = settings;
+try {
+const r = await fetch(API_BASE + '/api/blog-settings', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify(settings)
 });
+if (r.ok) {
+const savedEl = document.getElementById('settings-saved');
+if (savedEl) { savedEl.style.opacity = '1'; setTimeout(() => { savedEl.style.opacity = '0'; }, 2000); }
+} else { showToast('Settings save failed', 'error'); }
+} catch(e) { showToast('Settings save failed', 'error'); }
 }
 function showView(v) {
 sessionStorage.setItem('admin_current_view', v);
