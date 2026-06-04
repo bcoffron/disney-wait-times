@@ -1,4 +1,4 @@
-mport jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { list, del } from '@vercel/blob';
 
 const rl = {};
