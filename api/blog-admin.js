@@ -546,7 +546,7 @@ Posts
 <\/div>
 <div id="batch-progress-screen" style="display:none">
 <div style="text-align:center;padding:40px 20px">
-<div style="font-size:32px;margin-bottom:16px">&#128197;<\/div>
+<div style="font-size:32px;margin-bottom:16px"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt="" style="width:32px;height:32px;border-radius:8px;border:1.5px solid #ECA050;object-fit:cover"><\/div>
 <div class="posts-title" style="font-size:16px;margin-bottom:8px" id="batch-progress-label">Uploading images...</div>
 <div class="batch-progress-bar"><div class="batch-progress-fill" id="batch-progress-fill" style="width:0%"><\/div><\/div>
 <div style="font-size:12px;color:#8AACAE;margin-top:8px" id="batch-progress-detail"><\/div>
@@ -1663,6 +1663,7 @@ async function executeBatchUpload() {
   // Phase 1: Upload images
   const imgKeys = Object.keys(batchImages);
   const imageUrlMap = {};
+        const filenameUrlMap = {};
   for (let i = 0; i < imgKeys.length; i++) {
     const relPath = imgKeys[i];
     if (progressLabel) progressLabel.textContent = 'Uploading images...';
@@ -1672,6 +1673,7 @@ async function executeBatchUpload() {
       const zipEntry = batchImages[relPath];
       const blob = await zipEntry.async('blob');
       const filename = relPath.split('/').pop();
+              if (filenameUrlMap[filename]) { imageUrlMap[relPath] = filenameUrlMap[filename]; continue; }
       const mimeType = filename.endsWith('.png') ? 'image/png' : filename.endsWith('.gif') ? 'image/gif' : filename.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
       const r = await fetch(API_BASE + '/api/blog-upload-image', {
         method: 'POST',
@@ -1679,7 +1681,8 @@ async function executeBatchUpload() {
         body: blob
       });
       const data = await r.json();
-      if (r.ok && data.url) { imageUrlMap[relPath] = data.url; }
+      if (r.ok && data.url) { imageUrlMap[relPath] = data.url;
+              filenameUrlMap[filename] = data.url; }
       else { results.push({ slug: relPath, status: 'warn', msg: 'Image upload failed: ' + relPath }); }
     } catch(e) { results.push({ slug: relPath, status: 'warn', msg: 'Image error: ' + relPath }); }
   }
