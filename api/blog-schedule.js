@@ -1,35 +1,42 @@
+import jwt from 'jsonwebtoken';
 import { put, list } from '@vercel/blob';
+
+async function readBlob(pathname) {
+  const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
+  const matches = (blobs || []).filter(b => b.pathname === pathname)
+    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  if (!matches.length) return null;
+  const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
+  if (!r.ok) return null;
+  return r.text().then(t => JSON.parse(t));
+}
 
 // POST /api/blog-schedule
 // Body: { slug, scheduledAt } — scheduledAt can be ISO string or null to cancel
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // JWT / token auth
-  const authHeader = req.headers['x-admin-key'] || '';
-  const expectedToken = process.env.ADMIN_JWT_SECRET || process.env.ADMIN_PASSWORD;
-  if (!authHeader || authHeader !== expectedToken) {
-    // Try JWT decode if it's a token
-    try {
-      const jwt = require('jsonwebtoken');
-      jwt.verify(authHeader, process.env.ADMIN_JWT_SECRET);
-    } catch(e) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+  const sentToken = req.headers['x-admin-key'] || '';
+  try {
+    jwt.verify(sentToken, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { slug, scheduledAt } = req.body;
-  if (!slug) return res.status(400).json({ error: 'slug required' });
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch(e) { return res.status(400).json({ error: 'Invalid JSON' }); }
+  }
+  const { slug, scheduledAt } = body || {};
+  if (!slug || !/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ error: 'Invalid or missing slug' });
 
   try {
-    // Find the post blob
-    const { blobs } = await list({ prefix: 'blog/posts/' + slug });
-    const postBlob = blobs.find(b => b.pathname === 'blog/posts/' + slug + '.json' || b.pathname.includes(slug));
-    if (!postBlob) return res.status(404).json({ error: 'Post not found: ' + slug });
-
-    const r = await fetch(postBlob.url);
-    if (!r.ok) return res.status(500).json({ error: 'Failed to fetch post' });
-    const post = await r.json();
+    const post = await readBlob('blog/posts/' + slug);
+    if (!post) return res.status(404).json({ error: 'Post not found: ' + slug });
 
     // Update scheduledAt
     if (scheduledAt === null || scheduledAt === undefined || scheduledAt === '') {
@@ -39,51 +46,29 @@ export default async function handler(req, res) {
     }
     post.updatedAt = new Date().toISOString();
 
-    // Save back
-    await put('blog/posts/' + slug + '.json', JSON.stringify(post), {
+    // Save post blob back
+    await put('blog/posts/' + slug, JSON.stringify(post), {
       access: 'public',
-      contentType: 'application/json',
-      allowOverwrite: true
+      allowOverwrite: true,
+      token: process.env.BLOB_READ_WRITE_TOKEN
     });
 
-    // Update index
-    await updateIndex(slug, post);
+    // Update index with scheduledAt
+    let index = (await readBlob('blog/posts/index')) || [];
+    const idx = index.findIndex(p => p.slug === slug);
+    if (idx >= 0) {
+      index[idx].scheduledAt = post.scheduledAt || null;
+      index[idx].updatedAt = post.updatedAt;
+    }
+    await put('blog/posts/index', JSON.stringify(index), {
+      access: 'public',
+      allowOverwrite: true,
+      token: process.env.BLOB_READ_WRITE_TOKEN
+    });
 
     return res.status(200).json({ success: true, slug, scheduledAt: post.scheduledAt || null });
   } catch(e) {
     console.error('blog-schedule error:', e);
     return res.status(500).json({ error: e.message });
-  }
-}
-
-async function updateIndex(slug, post) {
-  try {
-    const { blobs } = await list({ prefix: 'blog/posts/index' });
-    const indexBlob = blobs.find(b => b.pathname.includes('index'));
-    if (!indexBlob) return;
-    const r = await fetch(indexBlob.url);
-    if (!r.ok) return;
-    let index = await r.json();
-    if (!Array.isArray(index)) return;
-    const idx = index.findIndex(p => p.slug === slug);
-    const entry = {
-      slug: post.slug,
-      title: post.title,
-      park: post.park,
-      heroImage: post.heroImage,
-      published: post.published,
-      scheduledAt: post.scheduledAt || null,
-      updatedAt: post.updatedAt,
-      publishedAt: post.publishedAt
-    };
-    if (idx >= 0) { index[idx] = { ...index[idx], ...entry }; }
-    else { index.unshift(entry); }
-    await put('blog/posts/index.json', JSON.stringify(index), {
-      access: 'public',
-      contentType: 'application/json',
-      allowOverwrite: true
-    });
-  } catch(e) {
-    console.error('updateIndex error:', e);
   }
 }
