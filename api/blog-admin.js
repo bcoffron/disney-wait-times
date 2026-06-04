@@ -1305,7 +1305,6 @@ function openImageManager(ctx) {
   renderUploadQueue();
   document.getElementById('img-modal').classList.add('active');
   setupDragDrop();
-  loadImages();
 }
 
 function closeImageManager() {
@@ -1399,9 +1398,8 @@ function renderUploadQueue() {
 
 function doneUpload() {
   forceCloseImageManager();
-  loadImages();
   if (document.getElementById('images-view') && document.getElementById('images-view').style.display !== 'none') {
-    loadImagesInline();
+    setTimeout(() => loadImagesInline(), 1000);
   }
 }
 
@@ -1437,7 +1435,6 @@ async function uploadQueue_fn() {
   uploadQueue = [];
   uploadDone = true;
   renderUploadQueue();
-  loadImages();
 }
 
 // Alias
