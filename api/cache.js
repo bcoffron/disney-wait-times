@@ -6,7 +6,7 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 
-// VALID_KEYS — two-cache architecture
+// VALID_KEYS - two-cache architecture
 // Legacy keys kept for backwards compatibility
 // New architecture: park_intel_dl_stable (12-section stable), park_intel_dl_dynamic (4-section dynamic)
 const VALID_KEYS = [
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid key' });
   }
 
-  // GET — read from blob store (supports both legacy and new format)
+  // GET - read from blob store (supports both legacy and new format)
   if (req.method === 'GET') {
     try {
       const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         // Legacy format
         return res.json({ hit: true, data: parsed.data, ts: parsed.ts });
       } else {
-        // New format — return whole parsed object as data
+        // New format - return whole parsed object as data
         return res.json({ hit: true, data: parsed, ts: parsed.built_at || parsed.last_updated });
       }
     } catch(e) {
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST — write to blob store
+  // POST - write to blob store
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
     const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
