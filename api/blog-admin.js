@@ -923,7 +923,10 @@ async function saveSettings() {
     const r = await fetch(API_BASE + '/api/blog-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-      body: JSON.stfunction showView(v) {
+      body: JSON.stringify(post)
+});
+}
+function showView(v) {
 sessionStorage.setItem('admin_current_view', v);
 ['posts','editor','images','settings','batch','drafts'].forEach(id => {
 const el = document.getElementById(id + '-view');
@@ -944,24 +947,7 @@ document.getElementById(vm.el).style.display = 'block';
 document.getElementById(vm.nav)?.classList.add('active');
 if (vm.cb) vm.cb();
 }
-}'drafts-view', nav: 'nav-drafts', cb: renderDraftsList }
-};
-const vm = viewMap[v];
-if (vm) {
-document.getElementById(vm.el).style.display = 'block';
-document.getElementById(vm.nav)?.classList.add('active');
-if (vm.cb) vm.cb();
 }
-}'drafts-view', nav: 'nav-drafts', cb: renderDraftsList }
-};
-const vm = viewMap[v];
-if (vm) {
-document.getElementById(vm.el).style.display = 'block';
-document.getElementById(vm.nav)?.classList.add('active');
-if (vm.cb) vm.cb();
-}
-}
-
 // ============================================================
 // POSTS LIST
 // ============================================================
