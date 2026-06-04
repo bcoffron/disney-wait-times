@@ -272,11 +272,11 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .used-photo-cell:hover .img-cell-actions{opacity:1}
 .used-photo-title{font-size:10px;color:#4A7A7C;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:white;border-top:1px solid rgba(7,30,37,0.06)}
 /* MULTI-SELECT */
-.img-cell-check{position:absolute;top:6px;left:6px;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.85);background:rgba(7,30,37,0.3);display:none;z-index:2;pointer-events:none;box-sizing:border-box}
-.img-select-mode .img-cell-check{display:block}
+.img-cell-check{position:absolute;top:6px;left:6px;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.85);background:rgba(7,30,37,0.3);display:none;align-items:center;justify-content:center;z-index:2;pointer-events:none;box-sizing:border-box}
+.img-select-mode .img-cell-check{display:flex}
 .img-select-mode .img-cell{cursor:pointer!important}
 .img-cell.selected .img-cell-check{background:#4A7A7C;border-color:#4A7A7C}
-.img-cell.selected .img-cell-check::after{content:'';display:block;width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:rotate(45deg) translate(2px,-1px)}
+.img-cell.selected .img-cell-check::after{content:'';position:absolute;top:50%;left:50%;width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:translate(-50%,-60%) rotate(45deg)}
 .img-cell.selected{border-color:#4A7A7C!important}
 /* RESPONSIVE */
 @media(max-width:768px){
@@ -899,9 +899,9 @@ async function loadPosts() {
     const r = await fetch(API_BASE + '/api/blog-index');
     allPosts = await r.json();
     if (!Array.isArray(allPosts)) allPosts = [];
-    renderPostList(allPosts);
+    renderPostList(allPosts.filter(p => p.published === true));
     renderDraftsSidebar(allPosts);
-    document.getElementById('posts-badge').textContent = allPosts.length;
+    document.getElementById('posts-badge').textContent = allPosts.filter(p => p.published === true).length;
   } catch(e) { showToast('Failed to load posts', 'error'); }
 }
 
@@ -961,7 +961,7 @@ function renderPostList(posts) {
 function filterPosts(q) {
   if (!q) { renderPostList(allPosts); return; }
   const lq = q.toLowerCase();
-  renderPostList(allPosts.filter(p => (p.title||'').toLowerCase().includes(lq) || (p.slug||'').toLowerCase().includes(lq)));
+  renderPostList(allPosts.filter(p => p.published === true && ((p.title||'').toLowerCase().includes(lq) || (p.slug||'').toLowerCase().includes(lq))));
 }
 
 function formatScheduledDate(iso) {
