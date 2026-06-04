@@ -924,7 +924,10 @@ function showView(v) {
 
 // ============================================================
 // POSTS LIST
-// ===========  ['posts','editor','images','settings','batch','drafts'].forEach(id => {  const r = await fetch(API_BASE + '/api/blog-index');
+// ============================================================
+async function loadPosts() {
+  try {
+    const r = await fetch(API_BASE + '/api/blog-index');
     allPosts = await r.json();
     if (!Array.isArray(allPosts)) allPosts = [];
     renderPostList(allPosts.filter(p => p.published === true));
