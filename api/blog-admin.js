@@ -252,7 +252,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 <div class="login-card">
 <div class="login-icon"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt=""><\/div>
 <div class="login-label">Admin<\/div>
-<div class="login-wordmark">Theme Park Co&#10022;Pilot<\/div>
+<div class="login-wordmark">Theme Park Co<span style="color:#ECA050">&#10022;</span>Pilot<\/div>
 <input type="password" class="login-input" id="pw-input" placeholder="Admin password" autocomplete="current-password">
 <button class="login-btn" id="login-btn" onclick="doLogin()">Enter<\/button>
 <div class="login-error" id="login-error"><\/div>
@@ -265,7 +265,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 <nav class="sidebar" id="sidebar">
 <div class="sidebar-top">
 <div class="sidebar-icon"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt=""><\/div>
-<div class="sidebar-wordmark">Theme Park<br>Co&#10022;Pilot<\/div>
+<div class="sidebar-wordmark">Theme Park<br>Co<span style="color:#ECA050">&#10022;</span>Pilot<\/div>
 <\/div>
 <div class="sidebar-nav">
 <button class="nav-item active" id="nav-posts" onclick="showView('posts')">
