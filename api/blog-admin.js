@@ -1333,6 +1333,7 @@ function previewPost() {
 // DELETE
 // ============================================================
 function quickDelete(slug, fromView) { currentPost = { slug }; _deleteFromView = fromView || null; confirmDelete(); }
+function confirmDelete() { document.getElementById('delete-modal').classList.add('active'); }
 async function executeDelete() {
   const slug = currentPost ? currentPost.slug : null;
   if (!slug) { closeModal('delete-modal'); return; }
