@@ -129,7 +129,7 @@ export default async function handler(req, res) {
           }
         } catch (err) {
           console.error('[validator] Error:', err.message);
-          // Do not block save on validator error — log and continue
+          // Do not block save on validator error - log and continue
         }
       }
 // Save to shared trip blob
