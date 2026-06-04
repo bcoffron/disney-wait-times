@@ -1582,7 +1582,7 @@ async function loadImagesInline() {
       }
       // inline images in body
       if (post.body) {
-        const srcRegex = /src="(https?:\/\/[^"]+)"/g;
+        const srcRegex = new RegExp('src="(https?://[^"]+)"', 'g');
         let m;
         while ((m = srcRegex.exec(post.body)) !== null) {
           const imgUrl = m[1];
