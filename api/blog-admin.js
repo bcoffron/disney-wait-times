@@ -1445,7 +1445,7 @@ const dropZone = document.getElementById('img-drop-zone');
 const uploadQueueEl = document.getElementById('upload-queue');
 const addPhotosBtn = modal.querySelector('.btn-upload-img');
 const pickerCancelBtn = document.getElementById('img-picker-cancel');
-if (ctx === 'hero') {
+if (ctx === 'hero' || ctx === 'quill') {
 if (titleEl) titleEl.textContent = 'Choose from Library';
 if (dropZone) dropZone.style.display = 'none';
 if (uploadQueueEl) uploadQueueEl.style.display = 'none';
@@ -1460,7 +1460,7 @@ renderUploadQueue();
 setupDragDrop();
 }
 modal.classList.add('active');
-if (ctx === 'hero') { loadImages(); }
+if (ctx === 'hero' || ctx === 'quill') { loadImages(); }
 }
 function closeImageManager() {
   // If there are queued files not yet uploaded, confirm
