@@ -126,6 +126,8 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .ql-editor{min-height:100%;height:auto}
 .ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa;position:sticky;top:0;z-index:10}
 .ql-undo,.ql-redo{cursor:pointer}
+.ql-toolbar button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;margin:0 2px;border-radius:4px}
+.ql-toolbar button:hover{background:rgba(7,30,37,0.06)}
 /* FAQ */
 .faq-item-editor{background:#fafafa;border:1px solid rgba(7,30,37,0.08);border-radius:8px;padding:12px;margin-bottom:8px;position:relative}
 .faq-remove{position:absolute;top:8px;right:8px;background:none;border:none;color:#C82030;cursor:pointer;font-size:16px;line-height:1}
@@ -879,8 +881,8 @@ function initQuill() {
   if (toolbar) {
     const undoBtn = toolbar.querySelector('.ql-undo');
     const redoBtn = toolbar.querySelector('.ql-redo');
-    if (undoBtn) undoBtn.innerHTML = '&#8634;';
-    if (redoBtn) redoBtn.innerHTML = '&#8635;';
+    if (undoBtn) { undoBtn.innerHTML = '<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 14l-4-4 4-4'/><path d='M5 10h11a4 4 0 0 1 0 8h-1'/></svg>'; undoBtn.title = 'Undo'; }
+    if (redoBtn) { redoBtn.innerHTML = '<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M15 14l4-4-4-4'/><path d='M19 10H8a4 4 0 0 0 0 8h1'/></svg>'; redoBtn.title = 'Redo'; }
   }
   quill.on('text-change', () => { markDirty(); });
 }
