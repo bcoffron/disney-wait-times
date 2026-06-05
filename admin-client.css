@@ -92,8 +92,9 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .ql-container{border-radius:0 0 8px 8px!important;border-color:rgba(7,30,37,0.12)!important;height:calc(100vh - 300px);overflow-y:auto}
 .ql-editor{min-height:100%;height:auto}
 .ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa;position:sticky;top:0;z-index:10}
-.ql-undo,.ql-redo{cursor:pointer}
 .ql-snow .ql-toolbar button:hover,.ql-snow.ql-toolbar button:hover{background:rgba(7,30,37,0.06)!important}
+.ql-undo,.ql-redo{cursor:pointer}
+.ql-undo svg,.ql-redo svg{width:18px;height:18px}
 /* FAQ */
 .faq-item-editor{background:#fafafa;border:1px solid rgba(7,30,37,0.08);border-radius:8px;padding:12px;margin-bottom:8px;position:relative}
 .faq-remove{position:absolute;top:8px;right:8px;background:none;border:none;color:#C82030;cursor:pointer;font-size:16px;line-height:1}
