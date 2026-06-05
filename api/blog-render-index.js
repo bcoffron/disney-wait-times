@@ -91,6 +91,19 @@ export default async function handler(req, res) {
     var settings = await readSettings();
     var postsPerPage = settings.postsPerPage || 30;
     posts = posts.slice(0, postsPerPage);
+      // Fetch body snippets for search: fetch each post blob in parallel, extract first 2000 chars of body
+      try {
+        var bodyFetches = posts.map(function(p) {
+          return readBlob('blog/posts/' + p.slug).then(function(full) {
+            if (full && full.body) {
+              p.bodySnippet = (full.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000);
+            } else {
+              p.bodySnippet = '';
+            }
+          }).catch(function() { p.bodySnippet = ''; });
+        });
+        await Promise.all(bodyFetches);
+      } catch(e) { posts.forEach(function(p) { p.bodySnippet = p.bodySnippet || ''; }); }
 
 
       // Read featured slug from blob (plain text, not JSON — must NOT use readBlob which calls r.json())
@@ -121,7 +134,7 @@ export default async function handler(req, res) {
         + '<main><div class="post-grid" id="post-grid">' + featuredHtml + cardsHtml + '</div>' + (posts.length === 0 ? '<div style="text-align:center;padding:80px 40px;color:#4A7A7C;">No posts found.</div>' : '') + '</main>'
         + '<section class="newsletter" aria-label="Newsletter signup"><div><div class="newsletter-eyebrow">Stay in the know</div><div class="newsletter-title">Smarter days.<br><em>More magic.</em></div></div><form class="newsletter-form" action="https://disney-wait-times-lupt.vercel.app/api/subscribe" method="POST"><input class="newsletter-input" type="email" name="email" placeholder="your@email.com" required aria-label="Email address"><button class="newsletter-btn" type="submit">Get park tips \u2192</button></form></section>'
         + '<footer class="footer" role="contentinfo"><div class="footer-left">\u00a9 2026 Lunchbox Dad LLC \u00b7 Theme Park Co-Pilot \u00b7 hello@themeparkcopilot.com</div><div class="footer-right"><a href="https://themeparkcopilot.com" class="footer-link">Home</a><a href="/blog" class="footer-link">Blog</a><a href="https://themeparkcopilot.com/privacy" class="footer-link">Privacy</a><a href="https://themeparkcopilot.com/terms" class="footer-link">Terms</a></div></footer>'
-        + '<script>window._postData=' + JSON.stringify(posts.map(function(p){var bodyText=(p.body||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();return{slug:p.slug,title:p.title||'',intro:p.intro||p.metaDescription||'',category:p.category||'',park:p.park||'',body:bodyText.substring(0,2000)};})) + ';<\/script>'
+        + '<script>window._postData=' + JSON.stringify(posts.map(function(p){return{slug:p.slug,title:p.title||'',intro:p.intro||p.metaDescription||'',category:p.category||'',park:p.park||'',body:p.bodySnippet||''};})) + ';<\/script>'
         + '<script>' +
 '(function(){' +
 'var searchInput=document.getElementById("blog-search");' +
