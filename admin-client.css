@@ -95,6 +95,8 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .ql-editor{min-height:100%;height:auto}
 .ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa;position:sticky;top:0;z-index:10}
 .ql-snow .ql-toolbar button:hover,.ql-snow.ql-toolbar button:hover{background:rgba(7,30,37,0.06)!important}
+.ql-toolbar button svg{width:18px!important;height:18px!important;display:block!important;float:none!important}
+.ql-snow .ql-toolbar button{height:28px!important}
 .ql-undo,.ql-redo{cursor:pointer}
 .ql-undo svg,.ql-redo svg{width:18px;height:18px}
 /* FAQ */
@@ -267,6 +269,9 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .img-cell.selected .img-cell-check{background:#4A7A7C;border-color:#4A7A7C}
 .img-cell.selected .img-cell-check::after{content:'';position:absolute;top:50%;left:50%;width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:translate(-50%,-60%) rotate(45deg)}
 .img-cell.selected{border-color:#4A7A7C!important}
+/* VIDEO EMBED */
+.video-embed{position:relative;width:100%;padding-bottom:56.25%;height:0;margin:24px 0;border-radius:12px;overflow:hidden}
+.video-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:12px}
 /* RESPONSIVE */
 @media(max-width:768px){
 .sidebar{transform:translateX(-240px);transition:transform 0.2s}
