@@ -55,6 +55,7 @@ export default async function handler(req, res) {
       intro: post.intro, readTime: post.readTime,
       publishedAt: post.publishedAt, updatedAt: post.updatedAt,
       published: post.published,
+      tags: post.tags || [],
       bodySnippet: (post.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000)
     };
     const idx = index.findIndex(p => p.slug === post.slug);
