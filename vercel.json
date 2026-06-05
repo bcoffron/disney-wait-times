@@ -188,5 +188,12 @@
       "path": "/api/cron-publish",
       "schedule": "0 * * * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }
