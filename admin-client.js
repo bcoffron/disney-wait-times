@@ -416,6 +416,8 @@ function clearEditor() {
   document.getElementById('hero-preview').src = '';
   document.getElementById('faq-list').innerHTML = '';
   document.getElementById('related-list').innerHTML = '';
+  const tagsEl = document.getElementById('f-tags');
+  if (tagsEl) tagsEl.value = '';
   if (quill) quill.setContents([]);
   setFocal('center');
   applyReadTimeModeToField();
@@ -469,6 +471,7 @@ function populateEditor(post) {
   const relList = document.getElementById('related-list');
   relList.innerHTML = '';
   (post.related || []).forEach(rel => addRelatedRow(rel.slug));
+  document.getElementById('f-tags').value = (post.tags || []).join(', ');
   applyReadTimeModeToField();
   onMetaChange();
   updatePreviews();
@@ -594,7 +597,8 @@ function collectPost(publish) {
     intro: document.getElementById('f-intro').value.trim(),
     readTime, publishedAt: existingPublishedAt || now, updatedAt: now,
     published: isPublished, scheduledAt, body: bodyHtml, faqs, related,
-    cta: { type: ctaType, ...CTA_TEXT[ctaType] }
+    cta: { type: ctaType, ...CTA_TEXT[ctaType] },
+    tags: (document.getElementById('f-tags').value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean)
   };
 }
 
@@ -1522,6 +1526,34 @@ async function executeBatchUpload() {
     }).join('');
   }
 }
+// ============================================================
+// AUTO-GENERATE TAGS
+// ============================================================
+async function autoGenerateTags() {
+  const btn = document.getElementById('btn-auto-tags');
+  if (btn) { btn.textContent = 'Generating...'; btn.disabled = true; }
+  try {
+    const title = document.getElementById('f-title').value.trim();
+    const intro = document.getElementById('f-intro').value.trim();
+    const bodyHtml = quill ? quill.root.innerHTML : '';
+    const bodyText = bodyHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
+    const prompt = `Generate 8-12 SEO keyword tags for this blog post. Return only a comma-separated list of tags, nothing else.\nTitle: ${title}\nIntro: ${intro}\nBody excerpt: ${bodyText}`;
+    const r = await fetch(API_BASE + '/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await r.json();
+    if (r.ok && data.result) {
+      const tagsField = document.getElementById('f-tags');
+      if (tagsField) tagsField.value = data.result.trim();
+      markDirty();
+      showToast('Tags generated ✓', 'success');
+    } else { showToast('AI tag generation failed', 'error'); }
+  } catch(e) { showToast('AI tag generation failed', 'error'); }
+  finally { if (btn) { btn.textContent = 'Auto-generate tags'; btn.disabled = false; } }
+}
+
 // ============================================================
 // UTILS
 // ============================================================
