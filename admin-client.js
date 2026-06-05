@@ -608,7 +608,7 @@ function collectPost(publish) {
     heroImage, heroAlt: document.getElementById('f-hero-alt').value.trim(),
     heroFocal: document.getElementById('hero-preview').dataset.focal || 'center',
     intro: document.getElementById('f-intro').value.trim(),
-    readTime, publishedAt: existingPublishedAt || now, updatedAt: now,
+    readTime, publishedAt: (currentPost && currentPost.publishedAt) ? currentPost.publishedAt : new Date().toISOString(), updatedAt: new Date().toISOString(),
     published: isPublished, scheduledAt, body: bodyHtml, faqs, related,
     cta: { type: ctaType, ...CTA_TEXT[ctaType] },
     tags: (document.getElementById('f-tags').value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean)
