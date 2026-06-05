@@ -78,6 +78,7 @@ function doLogin() {
     if (data.token) {
       token = data.token;
       sessionStorage.setItem('tpcp_admin_token', token);
+sessionStorage.setItem('tpcp_admin_pw', pw);
       loginFailures = 0;
       showApp();
     } else {
@@ -134,7 +135,7 @@ function initQuill() {
       [{ 'header': 2 }],
       ['bold', 'italic'],
       [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-      ['link', 'image', 'video-embed'],
+      ['link', 'image'],
       ['undo', 'redo']
     ],
     handlers: {
@@ -151,7 +152,18 @@ function initQuill() {
     if (undoBtn) { undoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 0 1 0 8h-1"/></svg>'; undoBtn.title = 'Undo'; }
     if (redoBtn) { redoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14l4-4-4-4"/><path d="M19 10H8a4 4 0 0 0 0 8h1"/></svg>'; redoBtn.title = 'Redo'; }
   }
-  quill.getModule('toolbar').addHandler('video-embed', openVideoModal);
+  // Add video embed button manually to avoid blank toolbar gaps
+  const toolbar = quill.getModule('toolbar');
+  toolbar.addHandler('video-embed', openVideoModal);
+  const toolbarEl = document.querySelector('.ql-toolbar');
+  if (toolbarEl) {
+    const videoBtn = document.createElement('button');
+    videoBtn.className = 'ql-video-embed';
+    videoBtn.title = 'Embed Video';
+    videoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><polygon points="10,8 16,12 10,16"/></svg>';
+    videoBtn.addEventListener('click', openVideoModal);
+    toolbarEl.appendChild(videoBtn);
+  }
   quill.on('text-change', () => { markDirty(); });
 }
 
@@ -1540,19 +1552,20 @@ async function autoGenerateTags() {
     const intro = document.getElementById('f-intro').value || '';
     const body = (quill ? quill.getText() : '').substring(0, 500);
 
+    const adminPw = sessionStorage.getItem('tpcp_admin_pw') || '';
     const res = await fetch(API_BASE + '/api/ai', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-admin-key': token
+        'x-admin-key': adminPw
       },
       body: JSON.stringify({
-        message: 'Generate 8-12 SEO keyword tags for this blog post. Return only a comma-separated list of tags, nothing else. Title: ' + title + '. Intro: ' + intro + '. Body: ' + body
+        prompt: 'Generate 8-12 SEO keyword tags for this blog post. Return ONLY a comma-separated list of tags, nothing else. Title: ' + title + '. Intro: ' + intro + '. Body: ' + body
       })
     });
     const data = await res.json();
     console.log('AI response:', data);
-    const rawText = data.response || data.reply || data.text || data.answer || Object.values(data)[0] || '';
+    const rawText = data.text || data.response || data.reply || data.answer || '';
     const tags = rawText.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
     if (tags.length) {
       document.getElementById('f-tags').value = tags.join(', ');
