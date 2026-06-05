@@ -6,6 +6,7 @@ console.log('refactor works');
 const API_BASE = '';
 let token = sessionStorage.getItem('tpcp_admin_token') || '';
 let allPosts = [];
+let featuredSlug = null;
 let currentPost = null;
 let imgManagerContext = 'hero'
 let quill = null;
@@ -230,6 +231,7 @@ async function loadPosts() {
     const r = await fetch(API_BASE + '/api/blog-index');
     allPosts = await r.json();
     if (!Array.isArray(allPosts)) allPosts = [];
+    try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; } } catch(e) { featuredSlug = null; }
     renderPostList(allPosts.filter(p => p.published === true));
     renderDraftsSidebar(allPosts);
     document.getElementById('posts-badge').textContent = allPosts.filter(p => p.published === true).length;    document.getElementById('drafts-badge').textContent = allPosts.filter(p => !p.published).length;
@@ -267,6 +269,7 @@ function renderPostList(posts) {
       '<span class="post-date">' + date + '</span>' +
       '<div class="post-actions" onclick="event.stopPropagation()">' +
       '<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
+      '<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '★' : 'Feature') + '</button>' +
       '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
       '</div></div>';
   }).join('');
@@ -343,6 +346,27 @@ function filterPosts(q) {
   const lq = q.toLowerCase();
   renderPostList(allPosts.filter(p => p.published === true && ((p.title||'').toLowerCase().includes(lq) || (p.slug||'').toLowerCase().includes(lq))));
 }
+// ============================================================
+// FEATURE POST
+// ============================================================
+async function featurePost(slug) {
+  const isFeatured = featuredSlug === slug;
+  const newSlug = isFeatured ? null : slug;
+  try {
+    const r = await fetch(API_BASE + '/api/blog-feature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+      body: JSON.stringify({ slug: newSlug })
+    });
+    const data = await r.json();
+    if (r.ok && data.success) {
+      featuredSlug = data.featuredSlug || null;
+      renderPostList(allPosts.filter(p => p.published === true));
+      showToast(isFeatured ? 'Post unfeatured' : 'Post featured ★', 'success');
+    } else { showToast('Feature update failed', 'error'); }
+  } catch(e) { showToast('Feature update failed', 'error'); }
+}
+
 
 function formatScheduledDate(iso) {
   try {
