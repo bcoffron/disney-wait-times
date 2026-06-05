@@ -93,10 +93,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .ql-editor{min-height:100%;height:auto}
 .ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa;position:sticky;top:0;z-index:10}
 .ql-undo,.ql-redo{cursor:pointer}
-.ql-snow .ql-toolbar button,.ql-snow.ql-toolbar button{float:none!important;display:inline-block!important;width:28px!important;height:28px!important;padding:2px!important;margin:0 1px!important;border-radius:4px!important;vertical-align:middle!important;line-height:1!important}
 .ql-snow .ql-toolbar button:hover,.ql-snow.ql-toolbar button:hover{background:rgba(7,30,37,0.06)!important}
-.ql-snow .ql-toolbar button svg,.ql-snow.ql-toolbar button svg{float:none!important;display:block!important;width:18px!important;height:18px!important;margin:auto!important}
-.ql-snow .ql-toolbar .ql-formats{display:inline-flex!important;align-items:center!important;vertical-align:middle!important}
 /* FAQ */
 .faq-item-editor{background:#fafafa;border:1px solid rgba(7,30,37,0.08);border-radius:8px;padding:12px;margin-bottom:8px;position:relative}
 .faq-remove{position:absolute;top:8px;right:8px;background:none;border:none;color:#C82030;cursor:pointer;font-size:16px;line-height:1}
