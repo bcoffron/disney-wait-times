@@ -54,7 +54,8 @@ export default async function handler(req, res) {
       heroImage: post.heroImage, heroAlt: post.heroAlt,
       intro: post.intro, readTime: post.readTime,
       publishedAt: post.publishedAt, updatedAt: post.updatedAt,
-      published: post.published
+      published: post.published,
+      bodySnippet: (post.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000)
     };
     const idx = index.findIndex(p => p.slug === post.slug);
     if (idx >= 0) index[idx] = meta; else index.push(meta);
