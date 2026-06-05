@@ -3,63 +3,190 @@
     {
       "source": "/app.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" },
-        { "key": "Pragma", "value": "no-cache" },
-        { "key": "Expires", "value": "0" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/", "destination": "/api/home" },
-    { "source": "/blog", "destination": "/api/blog-render-index" },
-    { "source": "/blog/:slug", "destination": "/api/blog-render-post?slug=:slug" },
-    { "source": "/admin", "destination": "/api/blog-admin" },
-    { "source": "/api/blog-settings", "destination": "/api/blog-settings" },
-    { "source": "/api/blog-feature", "destination": "/api/blog-feature" },
-    { "source": "/api/blog-schedule", "destination": "/api/blog-schedule" },
-    { "source": "/api/cron-publish", "destination": "/api/cron-publish" },
-    { "source": "/admin-client.js", "destination": "/api/admin-js" },
-    { "source": "/admin-client.css", "destination": "/api/admin-css" },
-    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
-    { "source": "/robots.txt", "destination": "/api/robots" },
-    { "source": "/:path*", "destination": "/api/home" }
+    {
+      "source": "/",
+      "destination": "/api/home"
+    },
+    {
+      "source": "/index.html",
+      "destination": "/api/home"
+    },
+    {
+      "source": "/blog",
+      "destination": "/api/blog-render-index"
+    },
+    {
+      "source": "/blog/:slug",
+      "destination": "/api/blog-render-post?slug=:slug"
+    },
+    {
+      "source": "/admin",
+      "destination": "/api/blog-admin"
+    },
+    {
+      "source": "/api/blog-settings",
+      "destination": "/api/blog-settings"
+    },
+    {
+      "source": "/api/blog-feature",
+      "destination": "/api/blog-feature"
+    },
+    {
+      "source": "/api/blog-schedule",
+      "destination": "/api/blog-schedule"
+    },
+    {
+      "source": "/api/cron-publish",
+      "destination": "/api/cron-publish"
+    },
+    {
+      "source": "/admin-client.js",
+      "destination": "/api/admin-js"
+    },
+    {
+      "source": "/admin-client.css",
+      "destination": "/api/admin-css"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api/robots"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/api/home"
+    }
   ],
   "functions": {
-    "api/reoptimize.js": { "maxDuration": 120 },
-    "api/generateschedule.js": { "maxDuration": 120 },
-    "api/ai.js": { "maxDuration": 60 },
-    "api/cache.js": { "maxDuration": 30 },
-    "api/cache-health.js": { "maxDuration": 15 },
-    "api/cron-cache.js": { "maxDuration": 300 },
-    "api/cron-publish.js": { "maxDuration": 60 },
-    "api/waittimes.js": { "maxDuration": 15 },
-    "api/blog-auth.js": { "maxDuration": 10 },
-    "api/blog-post.js": { "maxDuration": 10 },
-    "api/blog-index.js": { "maxDuration": 10 },
-    "api/blog-save.js": { "maxDuration": 15 },
-    "api/blog-delete.js": { "maxDuration": 10 },
-    "api/blog-migrate.js": { "maxDuration": 120 },
-    "api/blog-render-index.js": { "maxDuration": 15 },
-    "api/blog-render-post.js": { "maxDuration": 15 },
-    "api/blog-admin.js": { "maxDuration": 10 },
-    "api/admin-js.js": { "maxDuration": 10 },
-    "api/admin-css.js": { "maxDuration": 10 },
-    "api/blog-images.js": { "maxDuration": 10 },
-    "api/blog-upload-image.js": { "maxDuration": 30 },
-    "api/blog-schedule.js": { "maxDuration": 15 },
-    "api/home.js": { "maxDuration": 10 },
-    "api/blog-settings.js": { "maxDuration": 10 },
-    "api/blog-feature.js": { "maxDuration": 10 },
-    "api/sitemap.js": { "maxDuration": 15 },
-    "api/robots.js": { "maxDuration": 10 }
+    "api/reoptimize.js": {
+      "maxDuration": 120
+    },
+    "api/generateschedule.js": {
+      "maxDuration": 120
+    },
+    "api/ai.js": {
+      "maxDuration": 60
+    },
+    "api/cache.js": {
+      "maxDuration": 30
+    },
+    "api/cache-health.js": {
+      "maxDuration": 15
+    },
+    "api/cron-cache.js": {
+      "maxDuration": 300
+    },
+    "api/cron-publish.js": {
+      "maxDuration": 60
+    },
+    "api/waittimes.js": {
+      "maxDuration": 15
+    },
+    "api/blog-auth.js": {
+      "maxDuration": 10
+    },
+    "api/blog-post.js": {
+      "maxDuration": 10
+    },
+    "api/blog-index.js": {
+      "maxDuration": 10
+    },
+    "api/blog-save.js": {
+      "maxDuration": 15
+    },
+    "api/blog-delete.js": {
+      "maxDuration": 10
+    },
+    "api/blog-migrate.js": {
+      "maxDuration": 120
+    },
+    "api/blog-render-index.js": {
+      "maxDuration": 15
+    },
+    "api/blog-render-post.js": {
+      "maxDuration": 15
+    },
+    "api/blog-admin.js": {
+      "maxDuration": 10
+    },
+    "api/admin-js.js": {
+      "maxDuration": 10
+    },
+    "api/admin-css.js": {
+      "maxDuration": 10
+    },
+    "api/blog-images.js": {
+      "maxDuration": 10
+    },
+    "api/blog-upload-image.js": {
+      "maxDuration": 30
+    },
+    "api/blog-schedule.js": {
+      "maxDuration": 15
+    },
+    "api/home.js": {
+      "maxDuration": 10
+    },
+    "api/blog-settings.js": {
+      "maxDuration": 10
+    },
+    "api/blog-feature.js": {
+      "maxDuration": 10
+    },
+    "api/sitemap.js": {
+      "maxDuration": 15
+    },
+    "api/robots.js": {
+      "maxDuration": 10
+    }
   },
   "crons": [
-    { "path": "/api/cron-cache?key=park_intel", "schedule": "0 3 */10 * *" },
-    { "path": "/api/cron-cache?key=dining_intel", "schedule": "0 4 1 * *" },
-    { "path": "/api/cron-cache?key=events_intel", "schedule": "0 3 */7 * *" },
-    { "path": "/api/cron-cache?key=park_hours_intel", "schedule": "0 3 */7 * *" },
-    { "path": "/api/cron-cache?key=park_intel_dl_stable", "schedule": "0 3 1 * *" },
-    { "path": "/api/cron-cache?key=park_intel_dl_dynamic", "schedule": "0 4 * * 1" },
-    { "path": "/api/cron-publish", "schedule": "0 * * * *" }
+    {
+      "path": "/api/cron-cache?key=park_intel",
+      "schedule": "0 3 */10 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=dining_intel",
+      "schedule": "0 4 1 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=events_intel",
+      "schedule": "0 3 */7 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=park_hours_intel",
+      "schedule": "0 3 */7 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=park_intel_dl_stable",
+      "schedule": "0 3 1 * *"
+    },
+    {
+      "path": "/api/cron-cache?key=park_intel_dl_dynamic",
+      "schedule": "0 4 * * 1"
+    },
+    {
+      "path": "/api/cron-publish",
+      "schedule": "0 * * * *"
+    }
   ]
 }
