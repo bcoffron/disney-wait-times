@@ -397,6 +397,19 @@ function clearEditor() {
   applyReadTimeModeToField();
   updatePreviews();
 }
+function newPost() {
+  currentPost = null;
+  isDirty = false;
+  sessionStorage.removeItem('admin_current_post');
+  clearEditor();
+  document.getElementById('btn-delete-post').style.display = 'none';
+  const schedulBtn = document.getElementById('btn-schedule');
+  if (schedulBtn) schedulBtn.style.display = 'none';
+  const backLabelEl = document.getElementById('editor-back-label');
+  if (backLabelEl) backLabelEl.textContent = '← Back to Posts';
+  showView('editor');
+}
+
 
 function applyReadTimeModeToField() {
   const rtInput = document.getElementById('f-readtime');
