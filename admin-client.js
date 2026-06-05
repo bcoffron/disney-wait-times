@@ -409,7 +409,7 @@ schedulBtn.style.color = post.scheduledAt ? '#D97706' : '';
 } else {
 schedulBtn.style.display = 'none';
 }
-sessionStorage.setItem('admin_current_view', 'editor');
+const publishBtn = document.getElementById('btn-publish'); if (post.published) { publishBtn.textContent = 'Update'; publishBtn.onclick = updatePost; } else { publishBtn.textContent = 'Go Live'; publishBtn.onclick = goLive; } sessionStorage.setItem('admin_current_view', 'editor');
 sessionStorage.setItem('admin_current_post', slug);
 showView('editor');
 } catch(e) { showToast('Failed to load post', 'error'); }
@@ -441,7 +441,7 @@ function newPost() {
   isDirty = false;
   sessionStorage.removeItem('admin_current_post');
   clearEditor();
-  document.getElementById('btn-delete-post').style.display = 'none';
+  document.getElementById('btn-delete-post').style.display = 'none'; const publishBtn = document.getElementById('btn-publish'); publishBtn.textContent = 'Go Live'; publishBtn.onclick = goLive;
   const schedulBtn = document.getElementById('btn-schedule');
   if (schedulBtn) schedulBtn.style.display = 'none';
   const backLabelEl = document.getElementById('editor-back-label');
@@ -608,20 +608,20 @@ function collectPost(publish) {
     heroImage, heroAlt: document.getElementById('f-hero-alt').value.trim(),
     heroFocal: document.getElementById('hero-preview').dataset.focal || 'center',
     intro: document.getElementById('f-intro').value.trim(),
-    readTime, publishedAt: (currentPost && currentPost.publishedAt) ? currentPost.publishedAt : new Date().toISOString(), updatedAt: new Date().toISOString(),
+    readTime, publishedAt: currentPost ? currentPost.publishedAt : null, updatedAt: new Date().toISOString(),
     published: isPublished, scheduledAt, body: bodyHtml, faqs, related,
     cta: { type: ctaType, ...CTA_TEXT[ctaType] },
     tags: (document.getElementById('f-tags').value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean)
   };
 }
 
-async function savePost(publish) {
-  const btn = publish ? document.getElementById('btn-publish') : document.getElementById('btn-save-draft');
+async function savePost(post) {
+  const btn = document.getElementById('btn-publish');
   const origText = btn.textContent;
-  btn.textContent = publish ? 'Publishing...' : 'Saving...';
+  btn.textContent = 'Saving...';
   btn.classList.add('btn-loading');
   btn.disabled = true;
-  const post = collectPost(publish);
+  
   if (!post.slug) { showToast('Slug is required', 'error'); btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; return; }
   try {
     const r = await fetch(API_BASE + '/api/blog-save', {
@@ -631,22 +631,22 @@ async function savePost(publish) {
     });
     const data = await r.json();
     if (r.ok && data.success) {
-      currentPost = { ...post, publishedAt: (currentPost && currentPost.publishedAt) ? currentPost.publishedAt : post.publishedAt };
+      currentPost = post;
       isDirty = false;
       document.getElementById('f-readtime').value = post.readTime;
       document.getElementById('f-published').checked = post.published;
       document.getElementById('status-label').textContent = post.published ? 'Published' : 'Draft';
       document.getElementById('btn-delete-post').style.display = 'block';
       // Hide schedule button after publishing
-      if (publish) document.getElementById('btn-schedule').style.display = 'none';
-      showToast(publish ? 'Published &#10003;' : 'Saved &#10003;', 'success');
+      if (post.published) document.getElementById('btn-schedule').style.display = 'none';
+      showToast(post.published ? 'Published &#10003;' : 'Saved &#10003;', 'success');
       await loadPosts();
     } else { showToast('Save failed &mdash; try again', 'error'); }
   } catch(e) { showToast('Save failed &mdash; try again', 'error'); }
   finally { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; }
 }
 
-function previewPost() {
+function goLive() { const post = collectPost(); post.published = true; post.publishedAt = new Date().toISOString(); post.scheduledAt = null; savePost(post); }function updatePost() { const post = collectPost(); post.published = true; savePost(post); }
   const slug = document.getElementById('f-slug').value.trim();
   if (slug) window.open('/blog/' + slug, '_blank');
 }
