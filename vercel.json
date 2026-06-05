@@ -15,6 +15,7 @@
     { "source": "/blog/:slug", "destination": "/api/blog-render-post?slug=:slug" },
     { "source": "/admin", "destination": "/api/blog-admin" },
     { "source": "/api/blog-settings", "destination": "/api/blog-settings" },
+    { "source": "/api/blog-feature", "destination": "/api/blog-feature" },
     { "source": "/api/blog-schedule", "destination": "/api/blog-schedule" },
     { "source": "/api/cron-publish", "destination": "/api/cron-publish" },
     { "source": "/admin-client.js", "destination": "/api/admin-js" },
@@ -48,6 +49,7 @@
     "api/blog-schedule.js": { "maxDuration": 15 },
     "api/home.js": { "maxDuration": 10 },
     "api/blog-settings.js": { "maxDuration": 10 },
+    "api/blog-feature.js": { "maxDuration": 10 },
     "api/sitemap.js": { "maxDuration": 15 },
     "api/robots.js": { "maxDuration": 10 }
   },
