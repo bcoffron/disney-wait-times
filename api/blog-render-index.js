@@ -93,9 +93,16 @@ export default async function handler(req, res) {
     posts = posts.slice(0, postsPerPage);
 
 
-      // Read featured slug from blob
+      // Read featured slug from blob (plain text, not JSON — must NOT use readBlob which calls r.json())
       var featuredSlug = null;
-      try { featuredSlug = await readBlob('blog:featured'); } catch(e) { featuredSlug = null; }
+      try {
+        var _fblobs = (await list({ prefix: 'blog:featured', limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN })).blobs || [];
+        var _fmatch = _fblobs.filter(function(b){ return b.pathname === 'blog:featured'; }).sort(function(a,b){ return new Date(b.uploadedAt)-new Date(a.uploadedAt); });
+        if (_fmatch.length) {
+          var _fr = await fetch(_fmatch[0].downloadUrl, { cache: 'no-store' });
+          if (_fr.ok) { var _ft = (await _fr.text()).trim(); featuredSlug = _ft || null; }
+        }
+      } catch(e) { featuredSlug = null; }
       // Pick hero: use featured post if valid, else fall back to first post
       var featuredPost = null;
       if (featuredSlug && typeof featuredSlug === 'string') {
@@ -150,7 +157,7 @@ export default async function handler(req, res) {
 '});' +
 '});' +
 'initSearch();' +
-'<\/script>''
+'<\/script>'
         + '</body></html>';
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
