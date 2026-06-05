@@ -4,7 +4,7 @@
 // This file is a Node.js ESM module. ADMIN_HTML is a top-level
 // template literal (`...`). Node processes ALL escape sequences
 // before sending HTML to the browser, so:
-//   \' inside script block  → becomes '  → breaks single-quoted JS strings
+//   \' inside script block  → becomes '  → breas single-quoted JS strings
 //   \n inside script block  → literal newline → breaks single-quoted JS strings
 //   \" inside script block  → becomes "  → breaks double-quoted strings
 //   \/ in regex literals    → can break regex syntax
@@ -881,8 +881,8 @@ function initQuill() {
   if (toolbar) {
     const undoBtn = toolbar.querySelector('.ql-undo');
     const redoBtn = toolbar.querySelector('.ql-redo');
-    if (undoBtn) { undoBtn.innerHTML = '<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 14l-4-4 4-4'/><path d='M5 10h11a4 4 0 0 1 0 8h-1'/></svg>'; undoBtn.title = 'Undo'; }
-    if (redoBtn) { redoBtn.innerHTML = '<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M15 14l4-4-4-4'/><path d='M19 10H8a4 4 0 0 0 0 8h1'/></svg>'; redoBtn.title = 'Redo'; }
+    if (undoBtn) { undoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 0 1 0 8h-1"/></svg>'; undoBtn.title = 'Undo'; }
+    if (redoBtn) { redoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14l4-4-4-4"/><path d="M19 10H8a4 4 0 0 0 0 8h1"/></svg>'; redoBtn.title = 'Redo'; }
   }
   quill.on('text-change', () => { markDirty(); });
 }
