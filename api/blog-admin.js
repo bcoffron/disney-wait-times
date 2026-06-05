@@ -128,6 +128,14 @@ Batch Upload
 <\/select>
 <\/div>
 <div class="field-group">
+<div class="field-label">Tags \/ Keywords<\/div>
+<div style="display:flex;gap:8px;align-items:flex-start">
+<input type="text" class="field-input" id="f-tags" placeholder="e.g. star wars, guardians, thrill rides" oninput="markDirty()" style="flex:1">
+<button type="button" id="btn-auto-tags" onclick="autoGenerateTags()" style="flex-shrink:0;background:none;border:1px solid #4A7A7C;color:#4A7A7C;border-radius:8px;padding:9px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap">Auto-generate tags<\/button>
+<\/div>
+<p class="slug-preview" style="margin-top:4px">Comma-separated. Helps search and SEO.<\/p>
+<\/div>
+<div class="field-group">
 <div class="field-label">Meta Description<\/div>
 <textarea class="field-textarea" id="f-meta" rows="3" placeholder="Meta description..." oninput="onMetaChange();markDirty()"><\/textarea>
 <div class="meta-counter" id="meta-counter">0 / 160<\/div>
