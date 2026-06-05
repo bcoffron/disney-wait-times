@@ -116,7 +116,7 @@ function normalizeEntry(e) {
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key, x-trip-code');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -243,6 +243,7 @@ async function handler(req, res) {
     systemPrompt += '\nIf the park closes at 11:00 PM, the last item must be at 10:30 PM or later.';
     systemPrompt += '\nNEVER end at 9:30 PM unless the cache confirms that is park closing time.';
     systemPrompt += '\nAfter any nighttime show (fireworks, World of Color, Fantasmic), always include post-show evening rides and a park exit strategy.';
+  systemPrompt += '\nAfter any nighttime show (fireworks, World of Color, Fantasmic!, Paint the Night), ALWAYS schedule 3-4 additional rides from when the show ends until 30 minutes before park closing. Disneyland typically closes at 11:00 PM or midnight -- check PARK_HOURS from cache. NEVER end the schedule more than 30 minutes before park closing time. The last scheduled item must be 10:30 PM or later for an 11 PM close, or 11:30 PM or later for a midnight close.';
 
     systemPrompt += '\n\nRESTROOM BREAK RULE:';
     systemPrompt += '\nMaximum ONE restroom break before noon (morning). Maximum ONE restroom break after noon (afternoon).';
