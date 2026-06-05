@@ -131,10 +131,10 @@ function initQuill() {
   if (quill) return;
   const toolbarOptions = {
     container: [
-      [{ 'header': false }, 'bold', 'italic'],
-      [{ header: 2 }, { header: 3 }],
-      [{ list: 'bullet' }, { list: 'ordered' }],
-      ['link', 'image'],
+      [{ 'header': 2 }],
+      ['bold', 'italic'],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      ['link', 'image', 'video-embed'],
       ['undo', 'redo']
     ],
     handlers: {
@@ -151,6 +151,7 @@ function initQuill() {
     if (undoBtn) { undoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 0 1 0 8h-1"/></svg>'; undoBtn.title = 'Undo'; }
     if (redoBtn) { redoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14l4-4-4-4"/><path d="M19 10H8a4 4 0 0 0 0 8h1"/></svg>'; redoBtn.title = 'Redo'; }
   }
+  quill.getModule('toolbar').addHandler('video-embed', openVideoModal);
   quill.on('text-change', () => { markDirty(); });
 }
 
@@ -1527,31 +1528,102 @@ async function executeBatchUpload() {
   }
 }
 // ============================================================
+// ============================================================
 // AUTO-GENERATE TAGS
 // ============================================================
 async function autoGenerateTags() {
   const btn = document.getElementById('btn-auto-tags');
-  if (btn) { btn.textContent = 'Generating...'; btn.disabled = true; }
+  btn.textContent = 'Generating...';
+  btn.disabled = true;
   try {
-    const title = document.getElementById('f-title').value.trim();
-    const intro = document.getElementById('f-intro').value.trim();
-    const bodyHtml = quill ? quill.root.innerHTML : '';
-    const bodyText = bodyHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
-    const prompt = `Generate 8-12 SEO keyword tags for this blog post. Return only a comma-separated list of tags, nothing else.\nTitle: ${title}\nIntro: ${intro}\nBody excerpt: ${bodyText}`;
-    const r = await fetch(API_BASE + '/api/ai', {
+    const title = document.getElementById('f-title').value || '';
+    const intro = document.getElementById('f-intro').value || '';
+    const body = (quill ? quill.getText() : '').substring(0, 500);
+
+    const res = await fetch(API_BASE + '/api/ai', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-      body: JSON.stringify({ prompt })
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-key': token
+      },
+      body: JSON.stringify({
+        message: 'Generate 8-12 SEO keyword tags for this blog post. Return only a comma-separated list of tags, nothing else. Title: ' + title + '. Intro: ' + intro + '. Body: ' + body
+      })
     });
-    const data = await r.json();
-    if (r.ok && data.result) {
-      const tagsField = document.getElementById('f-tags');
-      if (tagsField) tagsField.value = data.result.trim();
-      markDirty();
-      showToast('Tags generated ✓', 'success');
-    } else { showToast('AI tag generation failed', 'error'); }
-  } catch(e) { showToast('AI tag generation failed', 'error'); }
-  finally { if (btn) { btn.textContent = 'Auto-generate tags'; btn.disabled = false; } }
+    const data = await res.json();
+    console.log('AI response:', data);
+    const rawText = data.response || data.reply || data.text || data.answer || Object.values(data)[0] || '';
+    const tags = rawText.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+    if (tags.length) {
+      document.getElementById('f-tags').value = tags.join(', ');
+      showToast('Tags generated!', 'success');
+    } else {
+      console.error('No tags parsed from:', data);
+      showToast('No tags returned — check console', 'error');
+    }
+  } catch(e) {
+    console.error('autoGenerateTags error:', e);
+    showToast('AI generation failed: ' + e.message, 'error');
+  } finally {
+    btn.textContent = 'Auto-generate tags';
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// VIDEO EMBED
+// ============================================================
+function openVideoModal() {
+  document.getElementById('video-url-input').value = '';
+  document.getElementById('video-modal').style.display = 'flex';
+  setTimeout(function() { document.getElementById('video-url-input').focus(); }, 100);
+}
+
+function closeVideoModal() {
+  document.getElementById('video-modal').style.display = 'none';
+}
+
+function getVideoEmbed(url) {
+  // YouTube
+  var ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) {
+    return '<div class="video-embed"><iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '" frameborder="0" allowfullscreen loading="lazy"></iframe></div>';
+  }
+  // Instagram
+  if (url.indexOf('instagram.com') !== -1) {
+    var igUrl = url.split('?')[0].replace(/\/$/, '');
+    return '<div class="video-embed"><blockquote class="instagram-media" data-instgrm-permalink="' + igUrl + '/" data-instgrm-version="14"></blockquote><script async src="//www.instagram.com/embed.js"><\/script></div>';
+  }
+  // TikTok
+  var ttMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+  if (ttMatch) {
+    return '<div class="video-embed"><blockquote class="tiktok-embed" cite="' + url + '" data-video-id="' + ttMatch[1] + '"><section></section></blockquote><script async src="https://www.tiktok.com/embed.js"><\/script></div>';
+  }
+  // Twitter/X
+  var twMatch = url.match(/(?:twitter|x)\.com\/[^/]+\/status\/(\d+)/);
+  if (twMatch) {
+    return '<div class="video-embed"><blockquote class="twitter-tweet"><a href="' + url + '"></a></blockquote><script async src="https://platform.twitter.com/widgets.js"><\/script></div>';
+  }
+  // Facebook
+  if (url.indexOf('facebook.com') !== -1) {
+    return '<div class="video-embed"><iframe src="https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(url) + '&show_text=false" frameborder="0" allowfullscreen loading="lazy"></iframe></div>';
+  }
+  return null;
+}
+
+function insertVideo() {
+  var url = (document.getElementById('video-url-input').value || '').trim();
+  if (!url) return;
+  var embed = getVideoEmbed(url);
+  if (!embed) {
+    showToast('Unsupported URL. Try YouTube, Instagram, TikTok, Facebook, or Twitter/X.', 'error');
+    return;
+  }
+  var range = quill.getSelection(true);
+  quill.clipboard.dangerouslyPasteHTML(range ? range.index : quill.getLength(), embed);
+  markDirty();
+  closeVideoModal();
+  showToast('Video embedded!', 'success');
 }
 
 // ============================================================
