@@ -122,46 +122,42 @@ export default async function handler(req, res) {
         + '<section class="newsletter" aria-label="Newsletter signup"><div><div class="newsletter-eyebrow">Stay in the know</div><div class="newsletter-title">Smarter days.<br><em>More magic.</em></div></div><form class="newsletter-form" action="https://disney-wait-times-lupt.vercel.app/api/subscribe" method="POST"><input class="newsletter-input" type="email" name="email" placeholder="your@email.com" required aria-label="Email address"><button class="newsletter-btn" type="submit">Get park tips \u2192</button></form></section>'
         + '<footer class="footer" role="contentinfo"><div class="footer-left">\u00a9 2026 Lunchbox Dad LLC \u00b7 Theme Park Co-Pilot \u00b7 hello@themeparkcopilot.com</div><div class="footer-right"><a href="https://themeparkcopilot.com" class="footer-link">Home</a><a href="/blog" class="footer-link">Blog</a><a href="https://themeparkcopilot.com/privacy" class="footer-link">Privacy</a><a href="https://themeparkcopilot.com/terms" class="footer-link">Terms</a></div></footer>'
         + '<script>' +
-'function initSearch(){' +
+'(function(){' +
 'var searchInput=document.getElementById("blog-search");' +
+'var searchClear=document.getElementById("search-clear");' +
 'if(!searchInput)return;' +
-'searchInput.addEventListener("input",applyFilters);' +
-'searchInput.addEventListener("keyup",applyFilters);' +
-'var clearBtn=document.getElementById("search-clear");' +
-'if(clearBtn)clearBtn.addEventListener("click",function(){searchInput.value="";applyFilters();searchInput.focus();});' +
-'}' +
 'function applyFilters(){' +
-'var q=(document.getElementById("blog-search").value||"").toLowerCase().trim();' +
-'var activeBtn=document.querySelector(".filter-pill.active")||document.querySelector("[data-filter].active");' +
+'var q=(searchInput.value||"").toLowerCase().trim();' +
+'if(searchClear)searchClear.style.display=q?"block":"none";' +
+'var activeBtn=document.querySelector(".filter-pill.active");' +
 'var activeFilter=activeBtn?(activeBtn.dataset.filter||"all"):"all";' +
-'var clearBtn=document.getElementById("search-clear");' +
-'if(clearBtn)clearBtn.style.display=q?"block":"none";' +
-'var cards=document.querySelectorAll(".post-card");' +
 'var visibleCount=0;' +
-'cards.forEach(function(card){' +
+'document.querySelectorAll(".post-card").forEach(function(card){' +
 'var text=card.textContent.toLowerCase();' +
 'var category=card.dataset.category||"";' +
 'var matchesSearch=!q||text.includes(q);' +
-'var matchesFilter=activeFilter==="all"||category===activeFilter;' +
-'var show=matchesSearch&&matchesFilter;' +
-'card.style.display=show?"":"none";' +
-'if(show)visibleCount++;' +
+'var matchesFilter=activeFilter==="all"||category.indexOf(activeFilter)!==-1;' +
+'card.style.display=(matchesSearch&&matchesFilter)?"":"none";' +
+'if(matchesSearch&&matchesFilter)visibleCount++;' +
 '});' +
 'var noResults=document.getElementById("search-no-results");' +
 'if(!noResults){noResults=document.createElement("p");noResults.id="search-no-results";noResults.style.cssText="text-align:center;color:#8AACAE;padding:40px;font-family:Outfit,sans-serif;font-size:15px;";noResults.textContent="No guides found. Try a different search.";var grid=document.querySelector(".post-grid");if(grid)grid.parentNode.insertBefore(noResults,grid.nextSibling);}' +
 'noResults.style.display=visibleCount===0?"block":"none";' +
 '}' +
-'}' +
+'searchInput.addEventListener("input",applyFilters);' +
+'searchInput.addEventListener("keyup",applyFilters);' +
+'if(searchClear)searchClear.addEventListener("click",function(){searchInput.value="";applyFilters();searchInput.focus();});' +
+'window._applyFilters=applyFilters;' +
+'})();' +
 'document.querySelectorAll(".filter-pill").forEach(function(pill){' +
 'pill.addEventListener("click",function(){' +
 'document.querySelectorAll(".filter-pill").forEach(function(p){p.classList.remove("active");});' +
 'this.classList.add("active");' +
 'var si=document.getElementById("blog-search");if(si)si.value="";' +
 'var cb=document.getElementById("search-clear");if(cb)cb.style.display="none";' +
-'applyFilters();' +
+'if(window._applyFilters)window._applyFilters();' +
 '});' +
 '});' +
-'initSearch();' +
 '<\/script>'
         + '</body></html>';
 
