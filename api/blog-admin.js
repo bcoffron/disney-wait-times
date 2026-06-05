@@ -122,8 +122,9 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .readtime-row{display:flex;align-items:center;gap:8px}
 .readtime-label{font-size:13px;color:#8AACAE;white-space:nowrap}
 /* Quill override */
-.ql-container{border-radius:0 0 8px 8px!important;border-color:rgba(7,30,37,0.12)!important;min-height:400px}
-.ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa}
+.ql-container{border-radius:0 0 8px 8px!important;border-color:rgba(7,30,37,0.12)!important;height:calc(100vh - 300px);overflow-y:auto}
+.ql-editor{min-height:100%;height:auto}
+.ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa;position:sticky;top:0;z-index:10}
 .ql-undo,.ql-redo{cursor:pointer}
 /* FAQ */
 .faq-item-editor{background:#fafafa;border:1px solid rgba(7,30,37,0.08);border-radius:8px;padding:12px;margin-bottom:8px;position:relative}
