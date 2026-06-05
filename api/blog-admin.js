@@ -236,10 +236,10 @@ Batch Upload
 <\/div>
 <div class="action-bar-right">
 <button class="btn-cancel-edit" onclick="cancelEdit()">Cancel<\/button>
-<button class="btn-save-draft" id="btn-save-draft" onclick="savePost(false)">Save draft<\/button>
+<button class="btn-save-draft" id="btn-save-draft" onclick="saveDraft()">Save Draft<\/button>
 <button class="btn-preview-post" onclick="previewPost()">Preview<\/button>
 <button class="btn-schedule" id="btn-schedule" onclick="openScheduleModal()" style="display:none">Schedule<\/button>
-<button class="btn-publish" id="btn-publish" onclick="savePost(true)">Publish<\/button>
+<button class="btn-publish" id="btn-publish" onclick="goLive()">Go Live<\/button>
 <\/div>
 <\/div>
 <\/div>
