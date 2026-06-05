@@ -360,6 +360,9 @@ currentPost = post;
 populateEditor(post);
 isDirty = false;
 document.getElementById('btn-delete-post').style.display = 'block';
+    // Fix 3: Update back button label based on post type
+    const backLabelEl = document.getElementById('editor-back-label');
+    if (backLabelEl) backLabelEl.textContent = post.published ? '← Back to Live Posts' : '← Back to Drafts';
 // Show schedule button only for drafts
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
