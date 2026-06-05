@@ -631,7 +631,7 @@ async function savePost(publish) {
     });
     const data = await r.json();
     if (r.ok && data.success) {
-      currentPost = post;
+      currentPost = { ...post, publishedAt: (currentPost && currentPost.publishedAt) ? currentPost.publishedAt : post.publishedAt };
       isDirty = false;
       document.getElementById('f-readtime').value = post.readTime;
       document.getElementById('f-published').checked = post.published;
