@@ -102,7 +102,7 @@ function extractJSON(text) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key, x-trip-code');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -339,6 +339,7 @@ const ridePrefsContext = mustDo.length || skipRides.length ? [
     system += '\nThe LAST scheduled item each day must be at or after park closing time minus 30 minutes.';
     system += '\nIf there is a fireworks or nighttime show, MUST continue after with: (1) Post-show strategy tip, (2) Final evening rides with low waits, (3) Last call snack or treat, (4) Park exit strategy tip.';
     system += '\nNEVER end the schedule at 9:00 PM or 9:30 PM unless the cache confirms the park closes at that time.';
+  system += '\nAfter any nighttime show (fireworks, World of Color, Fantasmic!, Paint the Night), ALWAYS schedule 3-4 additional rides from when the show ends until 30 minutes before park closing. Disneyland typically closes at 11:00 PM or midnight -- check PARK_HOURS from cache. NEVER end the schedule more than 30 minutes before park closing time. The last scheduled item must be 10:30 PM or later for an 11 PM close, or 11:30 PM or later for a midnight close.';
     system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 80 characters. One concise sentence only. No multi-sentence notes. Short notes prevent truncation and keep cards readable on mobile.';
     system += '\nCHARACTER ENCODING RULE: NEVER use special symbols, emoji, checkmarks (- -), bullets (-), stars (--), or any non-ASCII characters in card titles (h field) or notes (n field). Use plain ASCII only. For confirmed reservations use the word Confirmed not a checkmark. For em-dashes use a plain hyphen (-). This prevents garbled text on mobile devices.';
 
