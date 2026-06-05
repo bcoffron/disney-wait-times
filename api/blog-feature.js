@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const authHeader = req.headers['x-admin-key'] || '';
     try {
-      jwt.verify(authHeader, process.env.ADMIN_JWT_SECRET);
+      jwt.verify(authHeader, process.env.JWT_SECRET);
     } catch(e) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -45,17 +45,17 @@ export default async function handler(req, res) {
       if (newSlug) {
         await put('blog:featured', newSlug, {
           access: 'public',
-          addRandomSuffix: false,
-          token: process.env.BLOB_READ_WRITE_TOKEN,
-          allowOverwrite: true
+          allowOverwrite: true,
+          contentType: 'text/plain',
+          token: process.env.BLOB_READ_WRITE_TOKEN
         });
       } else {
         // Store empty string to "unfeature" (blob must exist but be empty)
         await put('blog:featured', '', {
           access: 'public',
-          addRandomSuffix: false,
-          token: process.env.BLOB_READ_WRITE_TOKEN,
-          allowOverwrite: true
+          allowOverwrite: true,
+          contentType: 'text/plain',
+          token: process.env.BLOB_READ_WRITE_TOKEN
         });
       }
       return res.status(200).json({ success: true, featuredSlug: newSlug || null });
