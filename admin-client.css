@@ -95,6 +95,8 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .ql-undo,.ql-redo{cursor:pointer}
 .ql-toolbar button{width:28px;height:28px;padding:2px;margin:0 1px;border-radius:4px;display:inline-block;vertical-align:middle}
 .ql-toolbar button:hover{background:rgba(7,30,37,0.06)}
+.ql-toolbar .ql-formats button{display:inline-block!important;width:28px!important;height:28px!important;overflow:visible!important;padding:2px!important}
+.ql-toolbar .ql-formats button svg{width:18px!important;height:18px!important}
 /* FAQ */
 .faq-item-editor{background:#fafafa;border:1px solid rgba(7,30,37,0.08);border-radius:8px;padding:12px;margin-bottom:8px;position:relative}
 .faq-remove{position:absolute;top:8px;right:8px;background:none;border:none;color:#C82030;cursor:pointer;font-size:16px;line-height:1}
