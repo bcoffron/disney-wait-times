@@ -17,6 +17,8 @@
     { "source": "/api/blog-settings", "destination": "/api/blog-settings" },
     { "source": "/api/blog-schedule", "destination": "/api/blog-schedule" },
     { "source": "/api/cron-publish", "destination": "/api/cron-publish" },
+    { "source": "/admin-client.js", "destination": "/api/admin-js" },
+    { "source": "/admin-client.css", "destination": "/api/admin-css" },
     { "source": "/:path*", "destination": "/api/home" }
   ],
   "functions": {
@@ -37,6 +39,8 @@
     "api/blog-render-index.js": { "maxDuration": 15 },
     "api/blog-render-post.js": { "maxDuration": 15 },
     "api/blog-admin.js": { "maxDuration": 10 },
+    "api/admin-js.js": { "maxDuration": 10 },
+    "api/admin-css.js": { "maxDuration": 10 },
     "api/blog-images.js": { "maxDuration": 10 },
     "api/blog-upload-image.js": { "maxDuration": 30 },
     "api/blog-schedule.js": { "maxDuration": 15 },
