@@ -453,5 +453,20 @@ Drag &amp; drop images here, or click to select<br><span style="font-size:11px;o
 <\/div>
 <\/div>
 <\/div>
+<!-- Video Embed Modal (Fix 3) -->
+<div class="modal-overlay" id="video-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span class="modal-title">Embed Video<\/span>
+      <button onclick="closeVideoModal()" style="background:none;border:none;font-size:18px;color:#8AACAE;cursor:pointer;padding:0">&times;<\/button>
+    <\/div>
+    <p style="font-size:12px;color:#8AACAE;margin-bottom:12px">Paste a YouTube, Instagram, TikTok, Facebook, or Twitter\/X video URL<\/p>
+    <input type="text" id="video-url-input" placeholder="https://www.youtube.com/watch?v=..." style="width:100%;margin:0 0 12px;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:'Outfit',sans-serif;outline:none" />
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-modal-cancel" onclick="closeVideoModal()">Cancel<\/button>
+      <button class="btn-publish" onclick="insertVideo()">Insert<\/button>
+    <\/div>
+  <\/div>
+<\/div>
 <script src="/admin-client.js"><\/script>
 <\/body>`;
