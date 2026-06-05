@@ -1460,7 +1460,7 @@ renderUploadQueue();
 setupDragDrop();
 }
 modal.classList.add('active');
-loadImages();
+if (ctx === 'hero') { loadImages(); }
 }
 function closeImageManager() {
   // If there are queued files not yet uploaded, confirm
@@ -1684,6 +1684,13 @@ function copyImgUrl(url, btn) {
     btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = orig; }, 1500);
   }).catch(() => { showToast('Copy failed', 'error'); });
+}
+
+function isImageInUse(url) {
+  return allPosts.some(function(p) { return p.heroImage === url || (p.body && p.body.indexOf(url) >= 0); });
+}
+function getPostsUsingImage(url) {
+  return allPosts.filter(function(p) { return p.heroImage === url || (p.body && p.body.indexOf(url) >= 0); });
 }
 
 function deleteImage(url) {
