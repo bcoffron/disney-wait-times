@@ -132,20 +132,25 @@ export default async function handler(req, res) {
 '}' +
 'function applyFilters(){' +
 'var q=(document.getElementById("blog-search").value||"").toLowerCase().trim();' +
+'var activeBtn=document.querySelector(".filter-pill.active")||document.querySelector("[data-filter].active");' +
+'var activeFilter=activeBtn?(activeBtn.dataset.filter||"all"):"all";' +
 'var clearBtn=document.getElementById("search-clear");' +
 'if(clearBtn)clearBtn.style.display=q?"block":"none";' +
-'var activeFilter=document.querySelector(".filter-pill.active");' +
-'var filter=activeFilter?activeFilter.getAttribute("data-filter"):"all";' +
-'document.querySelectorAll(".post-card").forEach(function(card){' +
-'var cat=card.getAttribute("data-category")||"";' +
-'var filterMatch=(filter==="all"||cat.indexOf(filter)!==-1);' +
+'var cards=document.querySelectorAll(".post-card");' +
+'var visibleCount=0;' +
+'cards.forEach(function(card){' +
 'var text=card.textContent.toLowerCase();' +
-'var searchMatch=(!q||text.includes(q));' +
-'card.style.display=(filterMatch&&searchMatch)?"":"none";' +
+'var category=card.dataset.category||"";' +
+'var matchesSearch=!q||text.includes(q);' +
+'var matchesFilter=activeFilter==="all"||category===activeFilter;' +
+'var show=matchesSearch&&matchesFilter;' +
+'card.style.display=show?"":"none";' +
+'if(show)visibleCount++;' +
 '});' +
-'var visible=document.querySelectorAll(".post-card:not([style*=\'display: none\'])");' +
 'var noResults=document.getElementById("search-no-results");' +
-'if(noResults)noResults.style.display=visible.length===0?"block":"none";' +
+'if(!noResults){noResults=document.createElement("p");noResults.id="search-no-results";noResults.style.cssText="text-align:center;color:#8AACAE;padding:40px;font-family:Outfit,sans-serif;font-size:15px;";noResults.textContent="No guides found. Try a different search.";var grid=document.querySelector(".post-grid");if(grid)grid.parentNode.insertBefore(noResults,grid.nextSibling);}' +
+'noResults.style.display=visibleCount===0?"block":"none";' +
+'}' +
 '}' +
 'document.querySelectorAll(".filter-pill").forEach(function(pill){' +
 'pill.addEventListener("click",function(){' +
