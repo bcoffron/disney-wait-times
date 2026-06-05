@@ -1840,6 +1840,10 @@ function confirmMultiDeleteInUse(inUseUrls, safeUrls) {
   });
   const bodyEl = document.getElementById('img-in-use-body');
   if (bodyEl) bodyEl.textContent = inUseUrls.length + ' of your selected images are used in posts: ' + postTitles.map(t => escHtml(t)).join(', ') + '. What would you like to do with them?';
+  document.getElementById('img-in-use-multi-actions').style.display = 'flex';
+  document.getElementById('img-in-use-single-actions').style.display = 'none';
+  document.getElementById('img-in-use-modal').classList.add('active');
+}
 async function deleteInUseAnyway() {
 const url = _deleteInUseUrl;
 _deleteInUseUrl = null;
