@@ -121,6 +121,7 @@ export default async function handler(req, res) {
         + '<main><div class="post-grid" id="post-grid">' + featuredHtml + cardsHtml + '</div>' + (posts.length === 0 ? '<div style="text-align:center;padding:80px 40px;color:#4A7A7C;">No posts found.</div>' : '') + '</main>'
         + '<section class="newsletter" aria-label="Newsletter signup"><div><div class="newsletter-eyebrow">Stay in the know</div><div class="newsletter-title">Smarter days.<br><em>More magic.</em></div></div><form class="newsletter-form" action="https://disney-wait-times-lupt.vercel.app/api/subscribe" method="POST"><input class="newsletter-input" type="email" name="email" placeholder="your@email.com" required aria-label="Email address"><button class="newsletter-btn" type="submit">Get park tips \u2192</button></form></section>'
         + '<footer class="footer" role="contentinfo"><div class="footer-left">\u00a9 2026 Lunchbox Dad LLC \u00b7 Theme Park Co-Pilot \u00b7 hello@themeparkcopilot.com</div><div class="footer-right"><a href="https://themeparkcopilot.com" class="footer-link">Home</a><a href="/blog" class="footer-link">Blog</a><a href="https://themeparkcopilot.com/privacy" class="footer-link">Privacy</a><a href="https://themeparkcopilot.com/terms" class="footer-link">Terms</a></div></footer>'
+        + '<script>window._postData=' + JSON.stringify(posts.map(function(p){return{slug:p.slug,title:p.title||'',intro:p.intro||p.metaDescription||'',category:p.category||'',park:p.park||''};})) + ';<\/script>'
         + '<script>' +
 '(function(){' +
 'var searchInput=document.getElementById("blog-search");' +
@@ -133,7 +134,10 @@ export default async function handler(req, res) {
 'var activeFilter=activeBtn?(activeBtn.dataset.filter||"all"):"all";' +
 'var visibleCount=0;' +
 'document.querySelectorAll(".post-card").forEach(function(card){' +
-'var text=card.textContent.toLowerCase();' +
+'var href=card.getAttribute("href")||"";' +
+'var slug=href.replace("/blog/","");' +
+'var postData=(window._postData||[]).find(function(p){return p.slug===slug;});' +
+'var text=postData?(postData.title+" "+postData.intro+" "+postData.category).toLowerCase():card.textContent.toLowerCase();' +
 'var category=card.dataset.category||"";' +
 'var matchesSearch=!q||text.includes(q);' +
 'var matchesFilter=activeFilter==="all"||category.indexOf(activeFilter)!==-1;' +
