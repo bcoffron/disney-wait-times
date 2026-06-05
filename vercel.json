@@ -19,6 +19,8 @@
     { "source": "/api/cron-publish", "destination": "/api/cron-publish" },
     { "source": "/admin-client.js", "destination": "/api/admin-js" },
     { "source": "/admin-client.css", "destination": "/api/admin-css" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/robots.txt", "destination": "/api/robots" },
     { "source": "/:path*", "destination": "/api/home" }
   ],
   "functions": {
@@ -45,7 +47,9 @@
     "api/blog-upload-image.js": { "maxDuration": 30 },
     "api/blog-schedule.js": { "maxDuration": 15 },
     "api/home.js": { "maxDuration": 10 },
-    "api/blog-settings.js": { "maxDuration": 10 }
+    "api/blog-settings.js": { "maxDuration": 10 },
+    "api/sitemap.js": { "maxDuration": 15 },
+    "api/robots.js": { "maxDuration": 10 }
   },
   "crons": [
     { "path": "/api/cron-cache?key=park_intel", "schedule": "0 3 */10 * *" },
