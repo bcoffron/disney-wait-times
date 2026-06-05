@@ -153,8 +153,8 @@ function initQuill() {
     if (redoBtn) { redoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14l4-4-4-4"/><path d="M19 10H8a4 4 0 0 0 0 8h1"/></svg>'; redoBtn.title = 'Redo'; }
   }
   // Add video embed button manually to avoid blank toolbar gaps
-  const toolbar = quill.getModule('toolbar');
-  toolbar.addHandler('video-embed', openVideoModal);
+  const quillToolbar = quill.getModule('toolbar');
+  quillToolbar.addHandler('video-embed', openVideoModal);
   const toolbarEl = document.querySelector('.ql-toolbar');
   if (toolbarEl) {
     const videoBtn = document.createElement('button');
