@@ -7,7 +7,7 @@ const API_BASE = '';
 let token = sessionStorage.getItem('tpcp_admin_token') || '';
 let allPosts = [];
 let currentPost = null;
-let imgManagerContext = 'hero';
+let imgManagerContext = 'hero'
 let quill = null;
 let loginFailures = 0;
 let loginLocked = false;
@@ -38,14 +38,16 @@ let selectedImgUrls = new Set();
 function markDirty() { isDirty = true; }
 
 function cancelEdit() {
-  if (!isDirty) { showView('posts'); return; }
+  const dest = (currentPost && currentPost.published) ? 'posts' : 'drafts';
+  if (!isDirty) { showView(dest); return; }
   document.getElementById('unsaved-modal').classList.add('active');
 }
 
 function leaveWithoutSaving() {
   closeModal('unsaved-modal');
   isDirty = false;
-  showView('posts');
+  const dest = (currentPost && currentPost.published) ? 'posts' : 'drafts';
+  showView(dest);
 }
 
 // ============================================================
