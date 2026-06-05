@@ -93,8 +93,16 @@ export default async function handler(req, res) {
     posts = posts.slice(0, postsPerPage);
 
 
-      var featuredPost = posts[0];
-        var remainingPosts = posts.slice(1);
+      // Read featured slug from blob
+      var featuredSlug = null;
+      try { featuredSlug = await readBlob('blog:featured'); } catch(e) { featuredSlug = null; }
+      // Pick hero: use featured post if valid, else fall back to first post
+      var featuredPost = null;
+      if (featuredSlug && typeof featuredSlug === 'string') {
+        featuredPost = posts.find(function(p) { return p.slug === featuredSlug; }) || null;
+      }
+      if (!featuredPost) featuredPost = posts[0] || null;
+      var remainingPosts = posts.filter(function(p) { return p !== featuredPost; });
 
       var featuredHtml = featuredPost ? renderCard(featuredPost, true) : '';
         var cardsHtml = remainingPosts.map(function(p) { return renderCard(p, false); }).join('\n');
@@ -106,7 +114,43 @@ export default async function handler(req, res) {
         + '<main><div class="post-grid" id="post-grid">' + featuredHtml + cardsHtml + '</div>' + (posts.length === 0 ? '<div style="text-align:center;padding:80px 40px;color:#4A7A7C;">No posts found.</div>' : '') + '</main>'
         + '<section class="newsletter" aria-label="Newsletter signup"><div><div class="newsletter-eyebrow">Stay in the know</div><div class="newsletter-title">Smarter days.<br><em>More magic.</em></div></div><form class="newsletter-form" action="https://disney-wait-times-lupt.vercel.app/api/subscribe" method="POST"><input class="newsletter-input" type="email" name="email" placeholder="your@email.com" required aria-label="Email address"><button class="newsletter-btn" type="submit">Get park tips \u2192</button></form></section>'
         + '<footer class="footer" role="contentinfo"><div class="footer-left">\u00a9 2026 Lunchbox Dad LLC \u00b7 Theme Park Co-Pilot \u00b7 hello@themeparkcopilot.com</div><div class="footer-right"><a href="https://themeparkcopilot.com" class="footer-link">Home</a><a href="/blog" class="footer-link">Blog</a><a href="https://themeparkcopilot.com/privacy" class="footer-link">Privacy</a><a href="https://themeparkcopilot.com/terms" class="footer-link">Terms</a></div></footer>'
-        + '<script>document.addEventListener("DOMContentLoaded",function(){var pills=document.querySelectorAll(".filter-pill");var grid=document.getElementById("post-grid");var searchInput=document.getElementById("blog-search");var searchClear=document.getElementById("search-clear");function applyFilters(){var q=(searchInput?searchInput.value.toLowerCase().trim():"");var activeFilter=document.querySelector(".filter-pill.active");var filter=activeFilter?activeFilter.getAttribute("data-filter"):"all";var cards=grid.querySelectorAll(".post-card");cards.forEach(function(card){var cat=card.getAttribute("data-category")||"";var filterMatch=(filter==="all"||cat.indexOf(filter)!==-1);var title=(card.querySelector(".post-card__title")||{}).textContent||"";var intro=(card.querySelector(".post-card__intro")||{}).textContent||"";var tag=(card.querySelector(".post-tag")||{}).textContent||"";var searchMatch=(!q||(title+intro+tag).toLowerCase().indexOf(q)!==-1);card.style.display=(filterMatch&&searchMatch)?"":"none";});var visible=grid.querySelectorAll(".post-card:not([style*=\"display: none\"])");var noResults=document.getElementById("search-no-results");if(!noResults){noResults=document.createElement("p");noResults.id="search-no-results";noResults.style.cssText="text-align:center;color:#8AACAE;padding:40px;font-family:Outfit,sans-serif;";noResults.textContent="No guides found. Try a different search.";grid.parentNode.insertBefore(noResults,grid.nextSibling);}noResults.style.display=visible.length===0?"block":"none";}pills.forEach(function(pill){pill.addEventListener("click",function(){pills.forEach(function(p){p.classList.remove("active");});this.classList.add("active");if(searchInput){searchInput.value="";}if(searchClear){searchClear.style.display="none";}applyFilters();});});if(searchInput){searchInput.addEventListener("input",function(){if(searchClear){searchClear.style.display=this.value?"block":"none";}applyFilters();});searchInput.addEventListener("keyup",function(){if(searchClear){searchClear.style.display=this.value?"block":"none";}applyFilters();});}if(searchClear){searchClear.addEventListener("click",function(){searchInput.value="";searchClear.style.display="none";applyFilters();searchInput.focus();});}});<\/script>'
+        + '<script>' +
+'function initSearch(){' +
+'var searchInput=document.getElementById("blog-search");' +
+'if(!searchInput)return;' +
+'searchInput.addEventListener("input",applyFilters);' +
+'searchInput.addEventListener("keyup",applyFilters);' +
+'var clearBtn=document.getElementById("search-clear");' +
+'if(clearBtn)clearBtn.addEventListener("click",function(){searchInput.value="";applyFilters();searchInput.focus();});' +
+'}' +
+'function applyFilters(){' +
+'var q=(document.getElementById("blog-search").value||"").toLowerCase().trim();' +
+'var clearBtn=document.getElementById("search-clear");' +
+'if(clearBtn)clearBtn.style.display=q?"block":"none";' +
+'var activeFilter=document.querySelector(".filter-pill.active");' +
+'var filter=activeFilter?activeFilter.getAttribute("data-filter"):"all";' +
+'document.querySelectorAll(".post-card").forEach(function(card){' +
+'var cat=card.getAttribute("data-category")||"";' +
+'var filterMatch=(filter==="all"||cat.indexOf(filter)!==-1);' +
+'var text=card.textContent.toLowerCase();' +
+'var searchMatch=(!q||text.includes(q));' +
+'card.style.display=(filterMatch&&searchMatch)?"":"none";' +
+'});' +
+'var visible=document.querySelectorAll(".post-card:not([style*=\'display: none\'])");' +
+'var noResults=document.getElementById("search-no-results");' +
+'if(noResults)noResults.style.display=visible.length===0?"block":"none";' +
+'}' +
+'document.querySelectorAll(".filter-pill").forEach(function(pill){' +
+'pill.addEventListener("click",function(){' +
+'document.querySelectorAll(".filter-pill").forEach(function(p){p.classList.remove("active");});' +
+'this.classList.add("active");' +
+'var si=document.getElementById("blog-search");if(si)si.value="";' +
+'var cb=document.getElementById("search-clear");if(cb)cb.style.display="none";' +
+'applyFilters();' +
+'});' +
+'});' +
+'initSearch();' +
+'<\/script>''
         + '</body></html>';
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
