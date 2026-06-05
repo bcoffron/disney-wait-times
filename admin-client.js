@@ -1437,7 +1437,7 @@ async function executeBatchUpload() {
     // Replace image paths with CDN URLs
     if (post.heroImage && imageUrlMap[post.heroImage]) post.heroImage = imageUrlMap[post.heroImage];
     if (post.body) {
-      post.body = post.body.replace(/src="(images/[^"]+)"/g, (m, p1) => {
+      post.body = post.body.replace(new RegExp('src="(images\/[^"]+)"', 'g'), (m, p1) => {
         return 'src="' + (imageUrlMap[p1] || p1) + '"';
       });
     }
