@@ -719,7 +719,7 @@ async function confirmSchedule() {
   if (!slug) { showToast('Save the post first', 'error'); return; }
   // Save draft first to persist any unsaved changes
   if (isDirty) {
-    await savePost(false);
+    await saveDraft();
   }
   try {
     const r = await fetch(API_BASE + '/api/blog-schedule', {
