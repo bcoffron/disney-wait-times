@@ -648,7 +648,7 @@ async function savePost(post) {
 
 function goLive() { const post = collectPost(); post.published = true; post.publishedAt = new Date().toISOString(); post.scheduledAt = null; savePost(post); }
 // ============================================================
-function updatePost() { const post = collectPost(); post.published = true; savePost(post); }
+function updatePost() { console.log('updatePost called, currentPost.publishedAt:', currentPost && currentPost.publishedAt); const post = collectPost(); post.published = true; post.publishedAt = currentPost && currentPost.publishedAt ? currentPost.publishedAt : post.publishedAt; post.updatedAt = new Date().toISOString(); savePost(post); }
 function saveDraft() { const post = collectPost(); post.published = false; savePost(post); }
 function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); }
 function quickDelete(slug, fromView) { currentPost = { slug }; _deleteFromView = fromView || null; confirmDelete(); }
