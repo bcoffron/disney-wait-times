@@ -653,7 +653,14 @@ await loadPosts();
 finally { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; }
 }
 
-function goLive() { const post = collectPost(); post.published = true; post.publishedAt = new Date().toISOString(); post.scheduledAt = null; savePost(post); }
+function goLive() {
+  const post = collectPost();
+  post.published = true;
+  post.publishedAt = new Date().toISOString(); // always fresh on Go Live
+  post.updatedAt = new Date().toISOString();
+  post.scheduledAt = null;
+  savePost(post);
+}
 // ============================================================
 function updatePost() { console.log('updatePost called, currentPost.publishedAt:', currentPost && currentPost.publishedAt); const post = collectPost(); post.published = true; post.publishedAt = currentPost && currentPost.publishedAt ? currentPost.publishedAt : post.publishedAt; post.updatedAt = new Date().toISOString(); savePost(post); }
 function saveDraft() { const post = collectPost(); post.published = false; savePost(post); }
