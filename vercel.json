@@ -56,6 +56,10 @@
       "destination": "/api/cron-publish"
     },
     {
+      "source": "/api/blog-update-meta",
+      "destination": "/api/blog-update-meta"
+    },
+    {
       "source": "/admin-client.js",
       "destination": "/api/admin-js"
     },
@@ -141,6 +145,9 @@
       "maxDuration": 30
     },
     "api/blog-schedule.js": {
+      "maxDuration": 15
+    },
+    "api/blog-update-meta.js": {
       "maxDuration": 15
     },
     "api/home.js": {
