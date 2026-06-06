@@ -106,26 +106,23 @@ export default async function handler(req, res) {
       } catch(e) { posts.forEach(function(p) { p.bodySnippet = p.bodySnippet || ''; }); }
 
 
-      // Read featured slug from blob (plain text, not JSON — must NOT use readBlob which calls r.json())
-      var featuredSlug = null;
-      try {
-        var _fblobs = (await list({ prefix: 'blog:featured', limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN })).blobs || [];
-        var _fmatch = _fblobs.filter(function(b){ return b.pathname === 'blog:featured'; }).sort(function(a,b){ return new Date(b.uploadedAt)-new Date(a.uploadedAt); });
-      // Fetch pinned post slugs
-      let pinnedSlugs = [];
-      try {
-        const { blobs: pinBlobs } = await list({ prefix: 'blog:pins', limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN });
-        const pinMatch = (pinBlobs || []).filter(b => b.pathname === 'blog:pins').sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-        if (pinMatch.length) {
-          const pinRes = await fetch(pinMatch[0].downloadUrl, { cache: 'no-store' });
-          if (pinRes.ok) { const pinData = await pinRes.json(); pinnedSlugs = Array.isArray(pinData.pins) ? pinData.pins : []; }
-        }
-      } catch(e) { pinnedSlugs = []; }
-        if (_fmatch.length) {
-          var _fr = await fetch(_fmatch[0].downloadUrl, { cache: 'no-store' });
-          if (_fr.ok) { var _ft = (await _fr.text()).trim(); featuredSlug = _ft || null; }
-        }
-      } catch(e) { featuredSlug = null; }
+      // Fetch pinned post slugs (declared outside try so it's accessible after)
+let pinnedSlugs = [];
+try {
+const pinsRes = await fetch('https://disney-wait-times-lupt.vercel.app/api/blog-pins', { cache: 'no-store' });
+const pinsData = await pinsRes.json();
+pinnedSlugs = pinsData.pins || [];
+} catch(e) { pinnedSlugs = []; }
+// Read featured slug from blob (plain text, not JSON — must NOT use readBlob which calls r.json())
+var featuredSlug = null;
+try {
+var _fblobs = (await list({ prefix: 'blog:featured', limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN })).blobs || [];
+var _fmatch = _fblobs.filter(function(b){ return b.pathname === 'blog:featured'; }).sort(function(a,b){ return new Date(b.uploadedAt)-new Date(a.uploadedAt); });
+if (_fmatch.length) {
+var _fr = await fetch(_fmatch[0].downloadUrl, { cache: 'no-store' });
+if (_fr.ok) { var _ft = (await _fr.text()).trim(); featuredSlug = _ft || null; }
+}
+} catch(e) { featuredSlug = null; }
       // Pick hero: use featured post if valid, else fall back to first post
       var featuredPost = null;
       if (featuredSlug && typeof featuredSlug === 'string') {
