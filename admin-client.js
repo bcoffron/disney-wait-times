@@ -36,6 +36,19 @@ var allUsedUrls = new Set();
 var pinnedSlugs = [];
 
 // ============================================================
+// NORMALIZE URL (module-level so deleteImage and loadImagesInline can both use it)
+// ============================================================
+function normalizeUrl(url) {
+  try {
+    var u = new URL(url);
+    u.search = '';
+    return u.href.toLowerCase().replace(/\/$/, '');
+  } catch(e) {
+    return (url || '').toLowerCase().replace(/\/$/, '');
+  }
+}
+
+// ============================================================
 // DIRTY TRACKING
 // ============================================================
 function markDirty() { isDirty = true; }
@@ -1090,6 +1103,10 @@ return allPosts.filter(function(p) { return p.heroImage === url || (p.body && p.
 }
 
 function deleteImage(url) {
+  console.log('deleteImage called:', url);
+  console.log('allUsedUrls size:', allUsedUrls.size);
+  console.log('normalizeUrl result:', normalizeUrl(url));
+  console.log('isUsed:', allUsedUrls.has(normalizeUrl(url)));
   if (imgSelectMode) return;
   if (allUsedUrls.has(normalizeUrl(url))) {
     showImageDeleteWarning(url);
@@ -1350,16 +1367,6 @@ async function loadImagesInline() {
   grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...</div>';
   if (usedSection) usedSection.style.display = 'none';
 
-  // Normalize URLs: strip query strings, lowercase, no trailing slash
-  function normalizeUrl(url) {
-    try {
-      var u = new URL(url);
-      u.search = '';
-      return u.href.toLowerCase().replace(/\/$/, '');
-    } catch(e) {
-      return (url || '').toLowerCase().replace(/\/$/, '');
-    }
-  }
 
   // Fetch library images and ALL posts in parallel
   let images = [], publishedPosts = [];
