@@ -76,6 +76,10 @@
       "destination": "/api/robots"
     },
     {
+      "source": "/llms.txt",
+      "destination": "/llms.txt"
+    },
+    {
       "source": "/:path*",
       "destination": "/api/home"
     }
