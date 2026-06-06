@@ -58,6 +58,10 @@
       "destination": "/api/blog-feature"
     },
     {
+      "source": "/api/blog-pins",
+      "destination": "/api/blog-pins"
+    },
+    {
       "source": "/api/blog-schedule",
       "destination": "/api/blog-schedule"
     },
