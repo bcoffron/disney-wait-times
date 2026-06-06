@@ -1376,6 +1376,7 @@ async function loadImagesInline() {
       fetch(API_BASE + '/api/blog-index')
     ]);
     images = libRes.ok ? await libRes.json() : [];
+    if (!images || images.length === 0) return; // don't wipe library on failed fetch
     const allIdx = idxRes.ok ? await idxRes.json() : [];
     publishedPosts = Array.isArray(allIdx) ? allIdx.filter(p => p.published) : [];
   } catch(e) {
@@ -1383,51 +1384,30 @@ async function loadImagesInline() {
     return;
   }
 
-  // For posts missing heroImage in the index, fetch the individual post blob
-  const postsNeedingBlob = publishedPosts.filter(p => !p.heroImage);
-  if (postsNeedingBlob.length > 0) {
-    const blobFetches = postsNeedingBlob.map(p =>
-      fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(p.slug))
-        .then(r => r.ok ? r.json() : null)
-        .catch(() => null)
-    );
-    const blobs = await Promise.all(blobFetches);
-    blobs.forEach((blob, i) => {
-      if (blob && blob.heroImage) {
-        postsNeedingBlob[i].heroImage = blob.heroImage;
-      }
-      if (blob && blob.body && !postsNeedingBlob[i].body) {
-        postsNeedingBlob[i].body = blob.body;
-      }
-    });
-  }
-
-  // Build normalized set of ALL URLs currently used in live posts (hero + all body img srcs)
   allUsedUrls = new Set();
-  for (const post of publishedPosts) {
-    if (post.heroImage) allUsedUrls.add(normalizeUrl(post.heroImage));
-    // Robust regex: catches all img src formats including CDN URLs, query strings, GitHub raw URLs
-    var bodyImgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
-    var match;
-    while ((match = bodyImgRegex.exec(post.body || '')) !== null) {
-      allUsedUrls.add(normalizeUrl(match[1]));
-    }
+  // Fetch individual post bodies in batches of 5 to avoid rate limiting
+  // Process in batches of 5 to avoid rate limiting
+  const batchSize = 5;
+  for (let i = 0; i < publishedPosts.length; i += batchSize) {
+    const batch = publishedPosts.slice(i, i + batchSize);
+    await Promise.all(batch.map(async function(p) {
+      try {
+        const res = await fetch(API_BASE + '/api/blog-post?slug=' + p.slug);
+        if (!res.ok) return;
+        const post = await res.json();
+        var bodyImgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+        var match;
+        while ((match = bodyImgRegex.exec(post.body || '')) !== null) {
+          allUsedUrls.add(normalizeUrl(match[1]));
+        }
+        if (post.heroImage) allUsedUrls.add(normalizeUrl(post.heroImage));
+      } catch(e) {}
+    }));
+    // Small delay between batches
+    await new Promise(r => setTimeout(r, 200));
   }
 
-  const bodyFetches = publishedPosts.map(async function(p) {
-    try {
-      const res = await fetch(API_BASE + '/api/blog-post?slug=' + p.slug);
-      const post = await res.json();
-      var bodyImgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
-      var match;
-      while ((match = bodyImgRegex.exec(post.body || '')) !== null) {
-        allUsedUrls.add(normalizeUrl(match[1]));
-      }
-      if (post.heroImage) allUsedUrls.add(normalizeUrl(post.heroImage));
-    } catch(e) {}
-  });
-  await Promise.all(bodyFetches);
-
+  
   // Render library grid — show ONLY images NOT currently in use (normalized comparison)
   if (!images.length) {
     grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
