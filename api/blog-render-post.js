@@ -7,7 +7,7 @@ async function readBlob(pathname) {
   const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
   if (!matches.length) return null;
   const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
-  if (!r.ok) return null;
+  if (!r.ok) return null
   return r.json();
 }
 
@@ -63,7 +63,7 @@ function relatedHtml(related) {
   var cards = related.map(function(r) {
     var rPark = r.park || 'both';
     var rClass = rPark === 'dl' ? 'tag-abs-dl' : 'tag-abs-wdw';
-    var rLabel = rPark === 'dl' ? 'DISNEYLAND' : 'WALT DISNEY WORLD';
+    var rLabel = rPark === 'dl' ? 'DISNEYLAND' : 'WALT DISNEY WORLD';.article-body a { color: #1A6860; text-decoration: underline; } .article-body img, .article-body img[style] { width: 100% !important; max-width: 100% !important; height: auto !important; border-radius: 8px; margin: 24px 0; display: block; }
     return '<a class="related-card" href="/blog/' + esc(r.slug) + '"><span class="related-card-tag post-tag ' + rClass + '">' + rLabel + '</span><div class="related-card-title">' + esc(r.title) + '</div></a>';
   }).join('');
   return '<nav class="related" aria-label="Related posts"><h2 class="related-title">Keep reading</h2><div class="related-grid">' + cards + '</div></nav>';
