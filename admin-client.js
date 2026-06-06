@@ -273,7 +273,7 @@ function renderPostList(posts) {
     if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
     else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
     else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
-    const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+    const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
     return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
       '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
       '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
