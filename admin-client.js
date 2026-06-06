@@ -1268,115 +1268,129 @@ await _doMultiDelete([...inUseUrls, ...safeUrls]);
 }
 
 async function loadImagesInline() {
-const q = "'";
-const grid = document.getElementById('images-inline-grid');
-const usedSection = document.getElementById('used-photos-section');
-const usedGrid = document.getElementById('used-photos-grid');
-grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...</div>';
-if (usedSection) usedSection.style.display = 'none';
+  const q = "'";
+  const grid = document.getElementById('images-inline-grid');
+  const usedSection = document.getElementById('used-photos-section');
+  const usedGrid = document.getElementById('used-photos-grid');
+  grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...</div>';
+  if (usedSection) usedSection.style.display = 'none';
 
-// Fetch library images and ALL posts in parallel
-let images = [], publishedPosts = [];
-try {
-const [libRes, idxRes] = await Promise.all([
-fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } }),
-fetch(API_BASE + '/api/blog-index')
-]);
-images = libRes.ok ? await libRes.json() : [];
-const allIdx = idxRes.ok ? await idxRes.json() : [];
-publishedPosts = Array.isArray(allIdx) ? allIdx.filter(p => p.published) : [];
-} catch(e) {
-grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.</div>';
-return;
-}
+  // Fetch library images and ALL posts in parallel
+  let images = [], publishedPosts = [];
+  try {
+    const [libRes, idxRes] = await Promise.all([
+      fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } }),
+      fetch(API_BASE + '/api/blog-index')
+    ]);
+    images = libRes.ok ? await libRes.json() : [];
+    const allIdx = idxRes.ok ? await idxRes.json() : [];
+    publishedPosts = Array.isArray(allIdx) ? allIdx.filter(p => p.published) : [];
+  } catch(e) {
+    grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.</div>';
+    return;
+  }
 
-// Build set of ALL hero image URLs currently used in live posts
-const usedHeroUrls = new Set(
-publishedPosts.filter(p => p.heroImage).map(p => p.heroImage)
-);
+  // For posts missing heroImage in the index, fetch the individual post blob
+  const postsNeedingBlob = publishedPosts.filter(p => !p.heroImage);
+  if (postsNeedingBlob.length > 0) {
+    const blobFetches = postsNeedingBlob.map(p =>
+      fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(p.slug))
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+    );
+    const blobs = await Promise.all(blobFetches);
+    blobs.forEach((blob, i) => {
+      if (blob && blob.heroImage) {
+        postsNeedingBlob[i].heroImage = blob.heroImage;
+      }
+      if (blob && blob.body && !postsNeedingBlob[i].body) {
+        postsNeedingBlob[i].body = blob.body;
+      }
+    });
+  }
 
-// Also collect all in-body image URLs from posts
-const usedBodyUrls = new Set();
-for (const post of publishedPosts) {
-if (post.body) {
-const srcRegex = new RegExp('src="(https?://[^"]+)"', 'g');
-let m;
-while ((m = srcRegex.exec(post.body)) !== null) {
-usedBodyUrls.add(m[1]);
-}
-}
-}
+  // Build set of ALL URLs currently used in live posts (hero + all body img srcs)
+  const allUsedUrls = new Set();
+  for (const post of publishedPosts) {
+    if (post.heroImage) allUsedUrls.add(post.heroImage);
+    // Robust regex: catches all img src formats including CDN URLs, query strings, GitHub raw URLs
+    var bodyImgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+    var match;
+    while ((match = bodyImgRegex.exec(post.body || '')) !== null) {
+      allUsedUrls.add(match[1]);
+    }
+  }
 
-const allUsedUrls = new Set([...usedHeroUrls, ...usedBodyUrls]);
+  // Render library grid — show ONLY images NOT currently in use
+  if (!images.length) {
+    grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
+    updateSelectBar();
+  } else {
+    const libUrlSet = new Set(images.map(img => img.url));
+    const unusedImages = images.filter(img => !allUsedUrls.has(img.url));
+    const usedLibImages = images.filter(img => allUsedUrls.has(img.url));
 
-// Render library grid
-if (!images.length) {
-grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
-updateSelectBar();
-} else {
-const libUrlSet = new Set(images.map(img => img.url));
-grid.innerHTML = '<div class="img-grid" id="lib-img-grid">' + images.map(img => {
-const isSel = selectedImgUrls.has(img.url);
-const isUsed = allUsedUrls.has(img.url);
-return '<div class="img-cell' + (isSel ? ' selected' : '') + '" style="position:relative" data-url="' + escAttr(img.url) + '" onclick="imgCellClick(event,this,' + "'" + escAttr(img.url) + "'" + ')">' +
-'<div class="img-cell-check"></div>' +
-'<div class="img-cell-wrap">' +
-'<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
-(isUsed ? '<div class="img-in-use-badge">In Use</div>' : '') +
-'<div class="img-cell-actions">' +
-'<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL</button>' +
-'<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete</button>' +
-'</div>' +
-'</div>' +
-'<div class="img-cell-name">' + escHtml(img.filename) + '</div>' +
-'</div>';
-}).join('') + '</div>';
-updateSelectBar();
+    if (unusedImages.length === 0) {
+      grid.innerHTML = '<div class="coming-soon">All uploaded images are currently in use.</div>';
+    } else {
+      grid.innerHTML = '<div class="img-grid" id="lib-img-grid">' + unusedImages.map(img => {
+        const isSel = selectedImgUrls.has(img.url);
+        return '<div class="img-cell' + (isSel ? ' selected' : '') + '" style="position:relative" data-url="' + escAttr(img.url) + '" onclick="imgCellClick(event,this,' + "'" + escAttr(img.url) + "'" + ')">' +
+          '<div class="img-cell-check"></div>' +
+          '<div class="img-cell-wrap">' +
+          '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
+          '<div class="img-cell-actions">' +
+          '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL</button>' +
+          '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete</button>' +
+          '</div>' +
+          '</div>' +
+          '<div class="img-cell-name">' + escHtml(img.filename) + '</div>' +
+          '</div>';
+      }).join('') + '</div>';
+    }
+    updateSelectBar();
 
-// Build Used Photos: ALL hero images + body images from live posts
-// Show external URLs (not in Vercel Blob library) in the Used Photos section
-const usedEntries = [];
-const seenUrls = new Set(libUrlSet);
+    // Build Used Photos: ALL images currently referenced in any live post
+    // Includes both library images that are in use AND external URLs
+    const usedEntries = [];
+    const seenUrls = new Set();
 
-for (const post of publishedPosts) {
-const postTitle = post.title || post.slug || 'Untitled';
-// Hero image: show ALL external ones (GitHub raw, etc.)
-if (post.heroImage && post.heroImage.startsWith('http') && !seenUrls.has(post.heroImage)) {
-seenUrls.add(post.heroImage);
-usedEntries.push({ url: post.heroImage, postTitle });
-}
-// Body images: show external ones not already shown
-if (post.body) {
-const srcRegex = new RegExp('src="(https?://[^"]+)"', 'g');
-let m;
-while ((m = srcRegex.exec(post.body)) !== null) {
-const imgUrl = m[1];
-if (!seenUrls.has(imgUrl)) {
-seenUrls.add(imgUrl);
-usedEntries.push({ url: imgUrl, postTitle });
-}
-}
-}
-}
+    for (const post of publishedPosts) {
+      const postTitle = post.title || post.slug || 'Untitled';
+      // Hero image
+      if (post.heroImage && !seenUrls.has(post.heroImage)) {
+        seenUrls.add(post.heroImage);
+        usedEntries.push({ url: post.heroImage, postTitle });
+      }
+      // Body images — robust regex catches all formats
+      var bodyImgRegex2 = /<img[^>]+src=["']([^"']+)["']/gi;
+      var match2;
+      while ((match2 = bodyImgRegex2.exec(post.body || '')) !== null) {
+        const imgUrl = match2[1];
+        if (!seenUrls.has(imgUrl)) {
+          seenUrls.add(imgUrl);
+          usedEntries.push({ url: imgUrl, postTitle });
+        }
+      }
+    }
 
-if (usedEntries.length > 0 && usedSection && usedGrid) {
-usedSection.style.display = 'block';
-usedGrid.innerHTML = usedEntries.map(entry =>
-'<div class="used-photo-cell" style="position:relative">' +
-'<div class="img-cell-wrap">' +
-'<img src="' + escAttr(entry.url) + '" alt="' + escAttr(entry.postTitle) + '" loading="lazy" title="' + escAttr(entry.postTitle) + '" style="width:100%;height:100%;object-fit:cover;display:block">' +
-'<div class="img-cell-actions">' +
-'<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(entry.url) + "',this" + ')">Copy URL</button>' +
-'</div>' +
-'</div>' +
-'<div class="used-photo-title" title="' + escAttr(entry.postTitle) + '">' + escHtml(entry.postTitle) + '</div>' +
-'</div>'
-).join('');
-} else if (usedSection) {
-// No external images used — but library images may be in use (marked with badge above)
-usedSection.style.display = 'none';
-}
-}
+    if (usedEntries.length > 0 && usedSection && usedGrid) {
+      usedSection.style.display = 'block';
+      usedGrid.innerHTML = usedEntries.map(entry =>
+        '<div class="used-photo-cell" style="position:relative">' +
+        '<div class="img-cell-wrap">' +
+        '<img src="' + escAttr(entry.url) + '" alt="' + escAttr(entry.postTitle) + '" loading="lazy" title="' + escAttr(entry.postTitle) + '" style="width:100%;height:100%;object-fit:cover;display:block">' +
+        '<div class="img-cell-actions">' +
+        '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(entry.url) + "',this" + ')">Copy URL</button>' +
+        '</div>' +
+        '</div>' +
+        '<div class="used-photo-title" title="' + escAttr(entry.postTitle) + '">' + escHtml(entry.postTitle) + '</div>' +
+        '</div>'
+      ).join('');
+    } else if (usedSection) {
+      usedSection.style.display = 'none';
+    }
+  }
 }
 function selectImage(url) {
 if (imgManagerContext === 'hero') {
