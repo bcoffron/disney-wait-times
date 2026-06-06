@@ -16,6 +16,16 @@
           "value": "0"
         }
       ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
     }
   ],
   "rewrites": [
@@ -79,6 +89,13 @@
       "source": "/llms.txt",
       "destination": "/llms.txt"
     },
+    { "source": "/wp-admin", "destination": "/api/not-found" },
+    { "source": "/wp-admin/:path*", "destination": "/api/not-found" },
+    { "source": "/wp-login.php", "destination": "/api/not-found" },
+    { "source": "/xmlrpc.php", "destination": "/api/not-found" },
+    { "source": "/.env", "destination": "/api/not-found" },
+    { "source": "/config.php", "destination": "/api/not-found" },
+    { "source": "/.git/:path*", "destination": "/api/not-found" },
     {
       "source": "/:path*",
       "destination": "/api/home"
@@ -168,6 +185,9 @@
     },
     "api/robots.js": {
       "maxDuration": 10
+    },
+    "api/not-found.js": {
+      "maxDuration": 10
     }
   },
   "crons": [
@@ -197,7 +217,7 @@
     },
     {
       "path": "/api/cron-publish",
-      "schedule": "0 * * * *"
+      "schedule": "0,30 * * * *"
     }
   ],
   "redirects": [
