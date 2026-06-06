@@ -91,8 +91,9 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .readtime-row{display:flex;align-items:center;gap:8px}
 .readtime-label{font-size:13px;color:#8AACAE;white-space:nowrap}
 /* Quill override */
-.ql-container{border-radius:0 0 8px 8px!important;border-color:rgba(7,30,37,0.12)!important;height:calc(100vh - 300px);overflow-y:auto}
-.ql-editor{min-height:100%;height:auto}
+.ql-container{border-radius:0 0 8px 8px!important;border-color:rgba(7,30,37,0.12)!important;min-height:500px;overflow-y:auto}
+.ql-editor{min-height:500px;height:auto}
+.ql-editor img{width:100%!important;max-width:100%!important;height:auto!important;border-radius:8px;margin:16px 0;display:block}
 .ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa;position:sticky;top:0;z-index:10}
 .ql-snow .ql-toolbar button:hover,.ql-snow.ql-toolbar button:hover{background:rgba(7,30,37,0.06)!important}
 .ql-toolbar button svg{width:18px!important;height:18px!important;display:block!important;float:none!important}
