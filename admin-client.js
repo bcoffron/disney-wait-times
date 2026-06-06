@@ -714,33 +714,38 @@ title.textContent = 'Schedule Post';
 modal.classList.add('active');
 }
 
-async function confirmSchedule() {
-const dt = document.getElementById('schedule-datetime').value;
-if (!dt) { showToast('Pick a date and time', 'error'); return; }
-const scheduledAt = new Date(dt).toISOString();
-if (new Date(scheduledAt) <= new Date()) { showToast('Scheduled time must be in the future', 'error'); return; }
-const slug = document.getElementById('f-slug').value.trim() || (currentPost && currentPost.slug);
-if (!slug) { showToast('Save the post first', 'error'); return; }
-// Save draft first to persist any unsaved changes
-if (isDirty) {
-await saveDraft();
+function confirmSchedule() {
+  const input = document.getElementById('schedule-datetime').value;
+  if (!input) { showToast('Pick a date and time', 'error'); return; }
+  const localDate = new Date(input);
+  if (localDate <= new Date()) { showToast('Scheduled time must be in the future', 'error'); return; }
+  const utcString = localDate.toISOString();
+  saveDraftWithSchedule(utcString);
 }
-try {
-const r = await fetch(API_BASE + '/api/blog-schedule', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-body: JSON.stringify({ slug, scheduledAt })
-});
-const data = await r.json();
-if (r.ok && data.success) {
-if (currentPost) currentPost.scheduledAt = scheduledAt;
-closeModal('schedule-modal');
-const btn = document.getElementById('btn-schedule');
-btn.textContent = 'Scheduled · ' + formatScheduledDate(scheduledAt);
-showToast('Scheduled for ' + formatScheduledDate(scheduledAt), 'success');
-await loadPosts();
-} else { showToast('Schedule failed', 'error'); }
-} catch(e) { showToast('Schedule failed', 'error'); }
+
+async function saveDraftWithSchedule(utcString) {
+  const slug = document.getElementById('f-slug').value.trim() || (currentPost && currentPost.slug);
+  if (!slug) { showToast('Save the post first', 'error'); return; }
+  // Save draft first to persist any unsaved changes
+  if (isDirty) {
+    await saveDraft();
+  }
+  try {
+    const r = await fetch(API_BASE + '/api/blog-schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+      body: JSON.stringify({ slug, scheduledAt: utcString })
+    });
+    const data = await r.json();
+    if (r.ok && data.success) {
+      if (currentPost) currentPost.scheduledAt = utcString;
+      closeModal('schedule-modal');
+      const btn = document.getElementById('btn-schedule');
+      btn.textContent = 'Scheduled · ' + formatScheduledDate(utcString);
+      showToast('Scheduled for ' + formatScheduledDate(utcString), 'success');
+      await loadPosts();
+    } else { showToast('Schedule failed', 'error'); }
+  } catch(e) { showToast('Schedule failed', 'error'); }
 }
 
 async function cancelSchedule() {
