@@ -174,8 +174,10 @@ export default async function handler(req, res) {
 '  function refreshLoadMore() {' +
 '    var cards = document.querySelectorAll(\'.post-card:not(.post-card--featured)\');' +
 '    var visibleCards = Array.from(cards).filter(function(c) { return c.getAttribute(\'data-lm-hidden\') !== \'1\'; });' +
+'    var hiddenCards = Array.from(cards).filter(function(c) { return c.getAttribute(\'data-lm-hidden\') === \'1\'; });' +
+'    hiddenCards.forEach(function(card) { card.style.display = \'none\'; });' +
 '    visibleCards.forEach(function(card, i) {' +
-'      card.style.display = i < shown ? \'\'  : \'none\';' +
+'    card.style.display = i < shown ? \'\' : \'none\';' +
 '    });' +
 '    var btn = document.getElementById(\'load-more-btn\');' +
 '    if (btn) btn.style.display = visibleCards.length > shown ? \'\'  : \'none\';' +
