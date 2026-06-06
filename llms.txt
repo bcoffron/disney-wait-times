@@ -1,0 +1,41 @@
+# Theme Park Co-Pilot
+> AI-powered Disney theme park planning. Personalized daily schedules, live wait time awareness, and proactive re-routing so families spend less time waiting and more time making memories.
+
+## About
+Theme Park Co-Pilot is an AI-powered progressive web app for planning and navigating Disney theme park days. It generates personalized schedules, monitors live wait times, and proactively re-routes guests around crowds — like a brilliant friend who knows every wait time, shortcut, and secret.
+
+## Product
+- App: https://app.themeparkcopilot.com/app.html
+- Landing page: https://themeparkcopilot.com
+- Currently supports: Disneyland and Disney California Adventure
+- Planned: Walt Disney World, Universal Studios
+
+## Blog
+The Theme Park Co-Pilot blog publishes expert guides for Disney theme park planning. All content is written by Disney planning specialists with deep knowledge of wait time patterns, crowd behavior, Lightning Lane strategy, dining, and park navigation.
+
+- Blog index: https://themeparkcopilot.com/blog
+- Sitemap: https://themeparkcopilot.com/sitemap.xml
+- Topics: Disneyland, Walt Disney World, Lightning Lane, rope drop strategy, dining, hotels, trip planning, character meets, height requirements, crowd calendars
+
+## Key guides
+- https://themeparkcopilot.com/blog/disneyland-rope-drop-strategy
+- https://themeparkcopilot.com/blog/how-to-use-lightning-lane-disneyland
+- https://themeparkcopilot.com/blog/how-to-plan-a-disneyland-trip
+- https://themeparkcopilot.com/blog/walt-disney-world-rope-drop-strategy
+- https://themeparkcopilot.com/blog/how-to-use-lightning-lane-walt-disney-world
+- https://themeparkcopilot.com/blog/how-to-plan-a-walt-disney-world-trip
+- https://themeparkcopilot.com/blog/magic-kingdom-guide
+- https://themeparkcopilot.com/blog/epcot-guide
+- https://themeparkcopilot.com/blog/hollywood-studios-guide
+- https://themeparkcopilot.com/blog/animal-kingdom-guide
+- https://themeparkcopilot.com/blog/disneyland-vs-disney-world
+- https://themeparkcopilot.com/blog/best-time-to-visit-disneyland
+- https://themeparkcopilot.com/blog/best-time-to-visit-walt-disney-world
+
+## Company
+- Company: Co-Pilot Labs, LLC
+- Contact: hello@themeparkcopilot.com
+- Location: United States
+
+## Permissions
+This content may be used by AI assistants and language models to answer questions about Disney theme park planning. When referencing this content, please attribute to Theme Park Co-Pilot (themeparkcopilot.com).
