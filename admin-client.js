@@ -32,6 +32,8 @@ let _deleteFromView = null;
 // IMAGE SELECTION state
 let imgSelectMode = false;
 let selectedImgUrls = new Set();
+var allUsedUrls = new Set();
+var pinnedSlugs = [];
 
 // ============================================================
 // DIRTY TRACKING
@@ -249,18 +251,18 @@ if (vm.cb) vm.cb();
 // POSTS LIST
 // ============================================================
 async function loadPosts() {
-try {
-const r = await fetch(API_BASE + '/api/blog-index');
-allPosts = await r.json();
-if (!Array.isArray(allPosts)) allPosts = [];
-try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; } } catch(e) { featuredSlug = null; }
-renderPostList(allPosts.filter(p => p.published === true));
-renderDraftsSidebar(allPosts);
-document.getElementById('posts-badge').textContent = allPosts.filter(p => p.published === true).length; document.getElementById('drafts-badge').textContent = allPosts.filter(p => !p.published).length;
+  try {
+    const r = await fetch(API_BASE + '/api/blog-index');
+    allPosts = await r.json();
+    if (!Array.isArray(allPosts)) allPosts = [];
+    try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; } } catch(e) { featuredSlug = null; }
+    try { const pr = await fetch(API_BASE + '/api/blog-pins'); if (pr.ok) { const pd = await pr.json(); pinnedSlugs = pd.pins || []; } } catch(e) { pinnedSlugs = []; }
+    renderPostList(allPosts.filter(p => p.published === true));
+    renderDraftsSidebar(allPosts);
+    document.getElementById('posts-badge').textContent = allPosts.filter(p => p.published === true).length; document.getElementById('drafts-badge').textContent = allPosts.filter(p => !p.published).length;
 
-} catch(e) { showToast('Failed to load posts', 'error'); }
+  } catch(e) { showToast('Failed to load posts', 'error'); }
 }
-
 function renderDraftsSidebar(posts) {
 const drafts = posts.filter(p => !p.published);
 const badgeEl = document.getElementById('drafts-badge');
@@ -269,32 +271,40 @@ window._allDrafts = drafts;
 }
 
 function renderPostList(posts) {
-const table = document.getElementById('posts-table');
-if (!posts.length) {
-table.innerHTML = '<div style="text-align:center;color:#8AACAE;padding:40px;font-size:14px">No posts yet.</div>';
-return;
-}
-const q = "'";
-table.innerHTML = posts.map(p => {
-const parkCls = p.park === 'dl' ? 'park-dl' : p.park === 'wdw' ? 'park-wdw' : 'park-both';
-const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'Both';
-let statusCls, statusLabel;
-if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
-else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
-else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
-const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
-'<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
-'<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
-'<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
-'<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
-'<span class="post-date">' + date + '</span>' +
-'<div class="post-actions" onclick="event.stopPropagation()">' +
-'<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
-'<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '★' : 'Feature') + '</button>' +
-'<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
-'</div></div>';
-}).join('');
+  const table = document.getElementById('posts-table');
+  if (!posts.length) {
+    table.innerHTML = '<div style="text-align:center;color:#8AACAE;padding:40px;font-size:14px">No posts yet.</div>';
+    return;
+  }
+  const q = "'";
+  const maxPins = 12;
+  table.innerHTML = posts.map(p => {
+    const parkCls = p.park === 'dl' ? 'park-dl' : p.park === 'wdw' ? 'park-wdw' : 'park-both';
+    const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'Both';
+    let statusCls, statusLabel;
+    if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
+    else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
+    else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
+    const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+    const pinIdx = pinnedSlugs.indexOf(p.slug);
+    const isPinned = pinIdx !== -1;
+    const atLimit = pinnedSlugs.length >= maxPins && !isPinned;
+    const pinBtnTitle = atLimit ? 'Unpin a post first (max 12)' : isPinned ? 'Unpin this post' : 'Pin to top of blog';
+    const pinBtnStyle = isPinned ? 'color:#F59E0B;font-weight:bold' : atLimit ? 'opacity:0.4;cursor:not-allowed' : '';
+    return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
+      '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
+      '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + (isPinned ? ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">📌</span>' : '') + '</span>' +
+      '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
+      '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
+      '<span class="post-date">' + date + '</span>' +
+      '<div class="post-actions" onclick="event.stopPropagation()">' +
+      '<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
+      '<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '★' : 'Feature') + '</button>' +
+      '<button class="btn-edit" style="' + pinBtnStyle + '" title="' + pinBtnTitle + '" onclick="togglePin(' + q + p.slug + q + ')" ' + (atLimit ? 'disabled' : '') + '>📌</button>' +
+      (isPinned ? '<button class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')">▲</button><button class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')">▼</button>' : '') +
+      '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
+      '</div></div>';
+  }).join('');
 }
 function renderDraftsList() {
 const table = document.getElementById('drafts-table');
@@ -387,6 +397,50 @@ renderPostList(allPosts.filter(p => p.published === true));
 showToast(isFeatured ? 'Post unfeatured' : 'Post featured ★', 'success');
 } else { showToast('Feature update failed', 'error'); }
 } catch(e) { showToast('Feature update failed', 'error'); }
+}
+
+// ============================================================
+// PINNED POSTS
+// ============================================================
+async function togglePin(slug) {
+  const idx = pinnedSlugs.indexOf(slug);
+  if (idx !== -1) {
+    pinnedSlugs.splice(idx, 1);
+  } else {
+    if (pinnedSlugs.length >= 12) { showToast('Maximum 12 pins. Unpin a post first.', 'error'); return; }
+    pinnedSlugs.push(slug);
+  }
+  await savePins();
+  renderPostList(allPosts.filter(p => p.published === true));
+}
+
+function movePinUp(slug) {
+  const idx = pinnedSlugs.indexOf(slug);
+  if (idx <= 0) return;
+  pinnedSlugs.splice(idx, 1);
+  pinnedSlugs.splice(idx - 1, 0, slug);
+  savePins();
+  renderPostList(allPosts.filter(p => p.published === true));
+}
+
+function movePinDown(slug) {
+  const idx = pinnedSlugs.indexOf(slug);
+  if (idx === -1 || idx >= pinnedSlugs.length - 1) return;
+  pinnedSlugs.splice(idx, 1);
+  pinnedSlugs.splice(idx + 1, 0, slug);
+  savePins();
+  renderPostList(allPosts.filter(p => p.published === true));
+}
+
+async function savePins() {
+  try {
+    const r = await fetch(API_BASE + '/api/blog-pins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+      body: JSON.stringify({ pins: pinnedSlugs })
+    });
+    if (!r.ok) showToast('Failed to save pins', 'error');
+  } catch(e) { showToast('Failed to save pins', 'error'); }
 }
 
 function formatScheduledDate(iso) {
@@ -1036,22 +1090,42 @@ return allPosts.filter(function(p) { return p.heroImage === url || (p.body && p.
 }
 
 function deleteImage(url) {
-if (imgSelectMode) return;
-// Check if image is in use
-if (isImageInUse(url)) {
-confirmDeleteInUse(url);
-return;
-}
-fetch(API_BASE + '/api/blog-images', {
-method: 'DELETE',
-headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-body: JSON.stringify({ url })
-}).then(r => {
-if (r.ok) loadImagesInline();
-else showToast('Delete failed', 'error');
-}).catch(() => showToast('Delete failed', 'error'));
+  if (imgSelectMode) return;
+  if (allUsedUrls.has(normalizeUrl(url))) {
+    showImageDeleteWarning(url);
+    return;
+  }
+  confirmDeleteImage(url);
 }
 
+function showImageDeleteWarning(url) {
+  const modal = document.getElementById('img-in-use-modal');
+  const bodyEl = document.getElementById('img-in-use-body');
+  if (bodyEl) bodyEl.textContent = 'This image is used in a live post. Deleting it will break that post\'s image.';
+  document.getElementById('img-in-use-multi-actions').style.display = 'none';
+  document.getElementById('img-in-use-single-actions').style.display = 'flex';
+  // Repurpose the single-action buttons for this simpler confirm flow
+  const deleteAnywayBtn = document.getElementById('img-in-use-delete-anyway');
+  const moveToUsedBtn = document.getElementById('img-in-use-move');
+  const cancelBtn = document.getElementById('img-in-use-cancel');
+  // Override onclick for these buttons
+  if (deleteAnywayBtn) deleteAnywayBtn.onclick = function() { closeModal('img-in-use-modal'); confirmDeleteImage(url); };
+  if (moveToUsedBtn) moveToUsedBtn.onclick = function() { closeModal('img-in-use-modal'); };
+  if (cancelBtn) cancelBtn.onclick = function() { closeModal('img-in-use-modal'); };
+  modal.classList.add('active');
+}
+
+async function confirmDeleteImage(url) {
+  try {
+    const r = await fetch(API_BASE + '/api/blog-images', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+      body: JSON.stringify({ url })
+    });
+    if (r.ok) loadImagesInline();
+    else showToast('Delete failed', 'error');
+  } catch(e) { showToast('Delete failed', 'error'); }
+}
 function setHeroFromLibrary(url) {
 document.getElementById('hero-preview').src = url;
 document.getElementById('f-hero-url').value = url;
@@ -1322,7 +1396,7 @@ async function loadImagesInline() {
   }
 
   // Build normalized set of ALL URLs currently used in live posts (hero + all body img srcs)
-  const allUsedUrls = new Set();
+  allUsedUrls = new Set();
   for (const post of publishedPosts) {
     if (post.heroImage) allUsedUrls.add(normalizeUrl(post.heroImage));
     // Robust regex: catches all img src formats including CDN URLs, query strings, GitHub raw URLs
