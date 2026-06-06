@@ -646,15 +646,12 @@ async function savePost(post) {
   finally { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; }
 }
 
-function goLive() { const post = collectPost(); post.published = true; post.publishedAt = new Date().toISOString(); post.scheduledAt = null; savePost(post); }function updatePost() { const post = collectPost(); post.published = true; savePost(post); } function saveDraft() { const post = collectPost(); post.published = false; savePost(post); } function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); } function saveDraft() { const post = collectPost(); post.published = false; savePost(post); } function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); } function saveDraft() { const post = collectPost(); post.published = false; savePost(post); } function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); } function saveDraft() { const post = collectPost(); post.published = false; savePost(post); } function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); } function saveDraft() { const post = collectPost(); post.published = false; savePost(post); } function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); } function saveDraft() { const post = collectPost(); post.published = false; savePost(post); } function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); } function saveDraft() { const post = collectPost(); post.published = false; savePost(post); } function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); }
-  const slug = document.getElementById('f-slug').value.trim();
-  if (slug) window.open('/blog/' + slug, '_blank');
-}
-
+function goLive() { const post = collectPost(); post.published = true; post.publishedAt = new Date().toISOString(); post.scheduledAt = null; savePost(post); }
 // ============================================================
-// DELETE
-// ============================================================
-function saveDraft() { const post = collectPost(); post.published = false; savePost(post); } function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); } function quickDelete(slug, fromView) { currentPost = { slug }; _deleteFromView = fromView || null; confirmDelete(); }
+function updatePost() { const post = collectPost(); post.published = true; savePost(post); }
+function saveDraft() { const post = collectPost(); post.published = false; savePost(post); }
+function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); }
+function quickDelete(slug, fromView) { currentPost = { slug }; _deleteFromView = fromView || null; confirmDelete(); }
 function confirmDelete() { document.getElementById('delete-modal').classList.add('active'); }
 async function executeDelete() {
   const slug = currentPost ? currentPost.slug : null;
