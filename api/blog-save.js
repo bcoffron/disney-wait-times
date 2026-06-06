@@ -42,15 +42,7 @@ let body = req.body;
     if (!post || !post.slug) return res.status(400).json({ error: 'slug required' });
     if (!/^[a-z0-9-]+$/.test(post.slug)) return res.status(400).json({ error: 'Invalid slug format' });
 
-// Strip inline width/height/style attributes from img tags inserted by Quill
-if (post.body) {
-    post.body = post.body.replace(/<img([^>]*?)>/gi, function(match, attrs) {
-        attrs = attrs.replace(/\s*(width|height|style)=["'][^"']*["']/gi, '');
-        return '<img' + attrs + '>';
-    });
-}
 post.updatedAt = new Date().toISOString();
-Strip inline
 try {
     await put('blog/posts/' + post.slug, JSON.stringify(post), { access: 'public', allowOverwrite: true });
 
