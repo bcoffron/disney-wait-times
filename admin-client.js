@@ -190,6 +190,14 @@ const quillToolbar = quill.getModule('toolbar');
     }
   }
   quill.on('text-change', () => { markDirty(); });
+  quill.on('text-change', function() {
+    var imgs = quill.root.querySelectorAll('img');
+    imgs.forEach(function(img) {
+      img.removeAttribute('style');
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+    });
+  });
 }
 
 // ============================================================
