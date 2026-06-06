@@ -314,15 +314,15 @@ function renderPostList(posts) {
     const pinBtnStyle = isPinned ? 'color:#F59E0B;font-weight:bold' : atLimit ? 'opacity:0.4;cursor:not-allowed' : '';
     return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
       '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
-      '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + (isPinned ? ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">📌</span>' : '') + '</span>' +
+      '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + (isPinned ? ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">ð</span>' : '') + '</span>' +
       '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
       '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
       '<span class="post-date">' + date + '</span>' +
       '<div class="post-actions" onclick="event.stopPropagation()">' +
       '<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
-      '<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '★' : 'Feature') + '</button>' +
-      '<button class="btn-edit" style="' + pinBtnStyle + '" title="' + pinBtnTitle + '" onclick="togglePin(' + q + p.slug + q + ')" ' + (atLimit ? 'disabled' : '') + '>📌</button>' +
-      (isPinned ? '<button class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')">▲</button><button class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')">▼</button>' : '') +
+      '<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? 'â' : 'Feature') + '</button>' +
+      '<button class="btn-edit" style="' + pinBtnStyle + '" title="' + pinBtnTitle + '" onclick="togglePin(' + q + p.slug + q + ')" ' + (atLimit ? 'disabled' : '') + '>ð</button>' +
+      (isPinned ? '<button class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')">â²</button><button class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')">â¼</button>' : '') +
       '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
       '</div></div>';
   }).join('');
@@ -415,7 +415,7 @@ const data = await r.json();
 if (r.ok && data.success) {
 featuredSlug = data.featuredSlug || null;
 renderPostList(allPosts.filter(p => p.published === true));
-showToast(isFeatured ? 'Post unfeatured' : 'Post featured ★', 'success');
+showToast(isFeatured ? 'Post unfeatured' : 'Post featured â', 'success');
 } else { showToast('Feature update failed', 'error'); }
 } catch(e) { showToast('Feature update failed', 'error'); }
 }
@@ -482,12 +482,12 @@ isDirty = false;
 document.getElementById('btn-delete-post').style.display = 'block';
 // Fix 3: Update back button label based on post type
 const backLabelEl = document.getElementById('editor-back-label');
-if (backLabelEl) backLabelEl.textContent = post.published ? '← Back to Live Posts' : '← Back to Drafts';
+if (backLabelEl) backLabelEl.textContent = post.published ? 'â Back to Live Posts' : 'â Back to Drafts';
 // Show schedule button only for drafts
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
 schedulBtn.style.display = 'block';
-schedulBtn.textContent = post.scheduledAt ? ('Scheduled · ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
+schedulBtn.textContent = post.scheduledAt ? ('Scheduled Â· ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
 schedulBtn.style.color = post.scheduledAt ? '#D97706' : '';
 } else {
 schedulBtn.style.display = 'none';
@@ -528,7 +528,7 @@ document.getElementById('btn-delete-post').style.display = 'none'; const publish
 const schedulBtn = document.getElementById('btn-schedule');
 if (schedulBtn) schedulBtn.style.display = 'none';
 const backLabelEl = document.getElementById('editor-back-label');
-if (backLabelEl) backLabelEl.textContent = '← Back to Posts';
+if (backLabelEl) backLabelEl.textContent = 'â Back to Posts';
 showView('editor');
 }
 
@@ -824,7 +824,7 @@ async function saveDraftWithSchedule(utcString) {
       if (currentPost) currentPost.scheduledAt = utcString;
       closeModal('schedule-modal');
       const btn = document.getElementById('btn-schedule');
-      btn.textContent = 'Scheduled · ' + formatScheduledDate(utcString);
+      btn.textContent = 'Scheduled Â· ' + formatScheduledDate(utcString);
       showToast('Scheduled for ' + formatScheduledDate(utcString), 'success');
       await loadPosts();
     } else { showToast('Schedule failed', 'error'); }
@@ -1043,7 +1043,7 @@ const item = uploadQueue[i];
 progress.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '...';
 // Check large PNG
 if (item.file.type === 'image/png' && item.file.size > 1024 * 1024) {
-if (warning) { warning.textContent = 'Large PNG detected — consider JPG for faster load'; warning.style.display = 'block'; }
+if (warning) { warning.textContent = 'Large PNG detected â consider JPG for faster load'; warning.style.display = 'block'; }
 }
 try {
 const r = await fetch(API_BASE + '/api/blog-upload-image', {
@@ -1393,6 +1393,7 @@ async function loadImagesInline() {
   }
 
   allUsedUrls = new Set();
+  const fullPosts = []; // cache full post objects for Used Photos section
   // Fetch individual post bodies in batches of 5 to avoid rate limiting
   // Process in batches of 5 to avoid rate limiting
   const batchSize = 5;
@@ -1409,6 +1410,7 @@ async function loadImagesInline() {
           allUsedUrls.add(normalizeUrl(match[1]));
         }
         if (post.heroImage) allUsedUrls.add(normalizeUrl(post.heroImage));
+        fullPosts.push(post); // save full post for Used Photos section
       } catch(e) {}
     }));
     // Small delay between batches
@@ -1416,7 +1418,7 @@ async function loadImagesInline() {
   }
 
   
-  // Render library grid — show ONLY images NOT currently in use (normalized comparison)
+  // Render library grid â show ONLY images NOT currently in use (normalized comparison)
   if (!images.length) {
     grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
     updateSelectBar();
@@ -1447,7 +1449,7 @@ async function loadImagesInline() {
     const usedEntries = [];
     const seenNormalized = new Set();
 
-    for (const post of publishedPosts) {
+    for (const post of fullPosts) {
       const postTitle = post.title || post.slug || 'Untitled';
       // Hero image
       if (post.heroImage) {
@@ -1457,7 +1459,7 @@ async function loadImagesInline() {
           usedEntries.push({ url: post.heroImage, postTitle });
         }
       }
-      // Body images — robust regex catches all formats
+      // Body images â robust regex catches all formats
       var bodyImgRegex2 = /<img[^>]+src=["']([^"']+)["']/gi;
       var match2;
       while ((match2 = bodyImgRegex2.exec(post.body || '')) !== null) {
@@ -1724,7 +1726,7 @@ document.getElementById('f-tags').value = tags.join(', ');
 showToast('Tags generated!', 'success');
 } else {
 console.error('No tags parsed from:', data);
-showToast('No tags returned — check console', 'error');
+showToast('No tags returned â check console', 'error');
 }
 } catch(e) {
 console.error('autoGenerateTags error:', e);
