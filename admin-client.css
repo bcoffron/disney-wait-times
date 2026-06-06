@@ -285,3 +285,5 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 }
 .mobile-menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:150;background:#071E25;border:none;border-radius:8px;padding:8px;cursor:pointer}
 .mobile-menu-btn svg{width:20px;height:20px;color:white;stroke:currentColor}
+/* TOOLBAR SPACING */
+.ql-toolbar .ql-formats{margin-right:6px!important}
