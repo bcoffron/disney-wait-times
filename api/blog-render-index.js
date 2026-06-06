@@ -162,7 +162,7 @@ export default async function handler(req, res) {
 'if(!noResults){noResults=document.createElement("p");noResults.id="search-no-results";noResults.style.cssText="text-align:center;color:#8AACAE;padding:40px;font-family:Outfit,sans-serif;font-size:15px;";noResults.textContent="No guides found. Try a different search.";var grid=document.querySelector(".post-grid");if(grid)grid.parentNode.insertBefore(noResults,grid.nextSibling);}' +
 'noResults.style.display=visibleCount===0?"block":"none";' +
 'if(window._lmReset)window._lmReset();' +
-}' +
+'}' +
 'searchInput.addEventListener("input",applyFilters);' +
 'searchInput.addEventListener("keyup",applyFilters);' +
 'if(searchClear)searchClear.addEventListener("click",function(){searchInput.value="";applyFilters();searchInput.focus();});' +
