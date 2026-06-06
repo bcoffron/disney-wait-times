@@ -203,6 +203,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .img-cell-btn:hover{background:#071E25}
 .img-cell-btn.danger{background:rgba(200,32,48,0.85)}
 .img-cell-btn.danger:hover{background:#C82030}
+.img-in-use-badge{position:absolute;top:6px;left:6px;background:#22A855;color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;pointer-events:none;z-index:2;letter-spacing:0.04em;text-transform:uppercase}
 .img-set-hero-btn{display:block;width:100%;background:rgba(7,30,37,0.06);border:none;color:#4A7A7C;font-size:10px;font-weight:600;cursor:pointer;padding:4px 6px;font-family:'Outfit',sans-serif;border-top:1px solid rgba(7,30,37,0.06)}
 .img-set-hero-btn:hover{background:#4A7A7C;color:white}
 /* FIX 2: Upload Queue */
