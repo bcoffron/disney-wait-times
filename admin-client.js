@@ -648,6 +648,7 @@ document.getElementById('btn-delete-post').style.display = 'block';
 if (post.published) document.getElementById('btn-schedule').style.display = 'none';
 showToast(post.published ? 'Published &#10003;' : 'Saved &#10003;', 'success');
 await loadPosts();
+      if (post.published && document.getElementById('images-view') && document.getElementById('images-view').style.display !== 'none') { loadImagesInline(); }
 } else { showToast('Save failed &mdash; try again', 'error'); }
 } catch(e) { showToast('Save failed &mdash; try again', 'error'); }
 finally { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; }
@@ -1275,6 +1276,17 @@ async function loadImagesInline() {
   grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...</div>';
   if (usedSection) usedSection.style.display = 'none';
 
+  // Normalize URLs: strip query strings, lowercase, no trailing slash
+  function normalizeUrl(url) {
+    try {
+      var u = new URL(url);
+      u.search = '';
+      return u.href.toLowerCase().replace(/\/$/, '');
+    } catch(e) {
+      return (url || '').toLowerCase().replace(/\/$/, '');
+    }
+  }
+
   // Fetch library images and ALL posts in parallel
   let images = [], publishedPosts = [];
   try {
@@ -1309,26 +1321,24 @@ async function loadImagesInline() {
     });
   }
 
-  // Build set of ALL URLs currently used in live posts (hero + all body img srcs)
+  // Build normalized set of ALL URLs currently used in live posts (hero + all body img srcs)
   const allUsedUrls = new Set();
   for (const post of publishedPosts) {
-    if (post.heroImage) allUsedUrls.add(post.heroImage);
+    if (post.heroImage) allUsedUrls.add(normalizeUrl(post.heroImage));
     // Robust regex: catches all img src formats including CDN URLs, query strings, GitHub raw URLs
     var bodyImgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
     var match;
     while ((match = bodyImgRegex.exec(post.body || '')) !== null) {
-      allUsedUrls.add(match[1]);
+      allUsedUrls.add(normalizeUrl(match[1]));
     }
   }
 
-  // Render library grid — show ONLY images NOT currently in use
+  // Render library grid — show ONLY images NOT currently in use (normalized comparison)
   if (!images.length) {
     grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
     updateSelectBar();
   } else {
-    const libUrlSet = new Set(images.map(img => img.url));
-    const unusedImages = images.filter(img => !allUsedUrls.has(img.url));
-    const usedLibImages = images.filter(img => allUsedUrls.has(img.url));
+    const unusedImages = images.filter(img => !allUsedUrls.has(normalizeUrl(img.url)));
 
     if (unusedImages.length === 0) {
       grid.innerHTML = '<div class="coming-soon">All uploaded images are currently in use.</div>';
@@ -1350,25 +1360,28 @@ async function loadImagesInline() {
     }
     updateSelectBar();
 
-    // Build Used Photos: ALL images currently referenced in any live post
-    // Includes both library images that are in use AND external URLs
+    // Build Used Photos: ALL images referenced in any live post (normalized dedup)
     const usedEntries = [];
-    const seenUrls = new Set();
+    const seenNormalized = new Set();
 
     for (const post of publishedPosts) {
       const postTitle = post.title || post.slug || 'Untitled';
       // Hero image
-      if (post.heroImage && !seenUrls.has(post.heroImage)) {
-        seenUrls.add(post.heroImage);
-        usedEntries.push({ url: post.heroImage, postTitle });
+      if (post.heroImage) {
+        const norm = normalizeUrl(post.heroImage);
+        if (!seenNormalized.has(norm)) {
+          seenNormalized.add(norm);
+          usedEntries.push({ url: post.heroImage, postTitle });
+        }
       }
       // Body images — robust regex catches all formats
       var bodyImgRegex2 = /<img[^>]+src=["']([^"']+)["']/gi;
       var match2;
       while ((match2 = bodyImgRegex2.exec(post.body || '')) !== null) {
         const imgUrl = match2[1];
-        if (!seenUrls.has(imgUrl)) {
-          seenUrls.add(imgUrl);
+        const norm = normalizeUrl(imgUrl);
+        if (!seenNormalized.has(norm)) {
+          seenNormalized.add(norm);
           usedEntries.push({ url: imgUrl, postTitle });
         }
       }
