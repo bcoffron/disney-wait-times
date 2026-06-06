@@ -1414,6 +1414,20 @@ async function loadImagesInline() {
     }
   }
 
+  const bodyFetches = publishedPosts.map(async function(p) {
+    try {
+      const res = await fetch(API_BASE + '/api/blog-post?slug=' + p.slug);
+      const post = await res.json();
+      var bodyImgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+      var match;
+      while ((match = bodyImgRegex.exec(post.body || '')) !== null) {
+        allUsedUrls.add(normalizeUrl(match[1]));
+      }
+      if (post.heroImage) allUsedUrls.add(normalizeUrl(post.heroImage));
+    } catch(e) {}
+  });
+  await Promise.all(bodyFetches);
+
   // Render library grid — show ONLY images NOT currently in use (normalized comparison)
   if (!images.length) {
     grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
