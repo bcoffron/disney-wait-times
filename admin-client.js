@@ -482,7 +482,7 @@ isDirty = false;
 document.getElementById('btn-delete-post').style.display = 'block';
 // Fix 3: Update back button label based on post type
 const backLabelEl = document.getElementById('editor-back-label');
-if (backLabelEl) backLabelEl.textContent = post.published ? '&#8592; Back to Live Posts' : '&#8592; Back to Drafts';
+if (backLabelEl) backLabelEl.innerHTML = post.published ? '&#8592; Back to Live Posts' : '&#8592; Back to Drafts';
 // Show schedule button only for drafts
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
@@ -528,7 +528,7 @@ document.getElementById('btn-delete-post').style.display = 'none'; const publish
 const schedulBtn = document.getElementById('btn-schedule');
 if (schedulBtn) schedulBtn.style.display = 'none';
 const backLabelEl = document.getElementById('editor-back-label');
-if (backLabelEl) backLabelEl.textContent = 'â Back to Posts';
+if (backLabelEl) backLabelEl.innerHTML = '&#8592; Back to Posts';
 showView('editor');
 }
 
