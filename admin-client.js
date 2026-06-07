@@ -314,15 +314,15 @@ function renderPostList(posts) {
     const pinBtnStyle = isPinned ? 'color:#F59E0B;font-weight:bold' : atLimit ? 'opacity:0.4;cursor:not-allowed' : '';
     return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
       '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
-      '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + (isPinned ? ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">ð</span>' : '') + '</span>' +
+      '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + (isPinned ? ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">&#128204;</span>' : '') + '</span>' +
       '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
       '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
       '<span class="post-date">' + date + '</span>' +
       '<div class="post-actions" onclick="event.stopPropagation()">' +
       '<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
-      '<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? 'â' : 'Feature') + '</button>' +
-      '<button class="btn-edit" style="' + pinBtnStyle + '" title="' + pinBtnTitle + '" onclick="togglePin(' + q + p.slug + q + ')" ' + (atLimit ? 'disabled' : '') + '>ð</button>' +
-      (isPinned ? '<button class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')">â²</button><button class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')">â¼</button>' : '') +
+      '<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '&#128204;' : 'Feature') + '</button>' +
+      '<button class="btn-edit" style="' + pinBtnStyle + '" title="' + pinBtnTitle + '" onclick="togglePin(' + q + p.slug + q + ')" ' + (atLimit ? 'disabled' : '') + '>&#128204;</button>' +
+      (isPinned ? '<button class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')">&#9650;</button><button class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')">&#9660;</button>' : '') +
       '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
       '</div></div>';
   }).join('');
