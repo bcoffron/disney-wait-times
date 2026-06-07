@@ -477,19 +477,23 @@ async function togglePin(slug) {
   renderPostList(allPosts.filter(p => p.published === true));
 }
 
-function movePinUp(slug) {
+async function movePinUp(slug) {
+  console.log('movePinUp called:', slug);
+  console.log('pinnedSlugs before:', [...pinnedSlugs]);
   const idx = pinnedSlugs.indexOf(slug);
+  console.log('idx:', idx);
   if (idx <= 0) return;
   pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
-  savePins();
+  console.log('pinnedSlugs after:', [...pinnedSlugs]);
+  await savePins();
   loadPosts();
 }
 
-function movePinDown(slug) {
+async function movePinDown(slug) {
   const idx = pinnedSlugs.indexOf(slug);
   if (idx < 0 || idx >= pinnedSlugs.length - 1) return;
   pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
-  savePins();
+  await savePins();
   loadPosts();
 }
 
