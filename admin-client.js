@@ -8,7 +8,7 @@ let token = sessionStorage.getItem('tpcp_admin_token') || '';
 let allPosts = [];
 let featuredSlug = null;
 let currentPost = null;
-let imgManagerContext = 'hero'
+let imgManagerContext = 'hero
 let quill = null;
 let loginFailures = 0;
 let loginLocked = false;
@@ -482,7 +482,7 @@ isDirty = false;
 document.getElementById('btn-delete-post').style.display = 'block';
 // Fix 3: Update back button label based on post type
 const backLabelEl = document.getElementById('editor-back-label');
-if (backLabelEl) backLabelEl.innerHTML = post.published ? '&#8592; Back to Live Posts' : '&#8592; Back to Drafts';
+if (backLabelEl) backLabelEl.innerHTML = post.published ? '&larr; Back to Live Posts' : '&larr; Back to Drafts';
 // Show schedule button only for drafts
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
@@ -528,7 +528,7 @@ document.getElementById('btn-delete-post').style.display = 'none'; const publish
 const schedulBtn = document.getElementById('btn-schedule');
 if (schedulBtn) schedulBtn.style.display = 'none';
 const backLabelEl = document.getElementById('editor-back-label');
-if (backLabelEl) backLabelEl.innerHTML = '&#8592; Back to Posts';
+if (backLabelEl) backLabelEl.innerHTML = '&larr; Back to Posts';
 showView('editor');
 }
 
@@ -868,14 +868,14 @@ if (titleEl) titleEl.textContent = 'Choose from Library';
 if (dropZone) dropZone.style.display = 'none';
 if (uploadQueueEl) uploadQueueEl.style.display = 'none';
 if (addPhotosBtn) addPhotosBtn.style.display = 'none';
-if (pickerCancelBtn) pickerCancelBtn.style.display = 'inline-block';
+if (pickerCancelBtn) pickerCancelBtn.style.display = 'inline-block'; modal.style.background = '';
 } else {
 if (titleEl) titleEl.textContent = 'Image Library';
 if (dropZone) dropZone.style.display = '';
 if (addPhotosBtn) addPhotosBtn.style.display = '';
 if (pickerCancelBtn) pickerCancelBtn.style.display = 'none';
 renderUploadQueue();
-const imgGrid = document.getElementById('img-grid'); if (imgGrid) imgGrid.innerHTML = '';    setupDragDrop();
+const imgGrid = document.getElementById('img-grid'); if (imgGrid) imgGrid.innerHTML = ''; modal.style.background = 'rgba(7,30,37,1)'; setupDragDrop();
 }
 modal.classList.add('active');
 if (ctx === 'hero' || ctx === 'quill') { loadImages(); }
