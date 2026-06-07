@@ -155,11 +155,11 @@ function initQuill() {
       ],
     handlers: {
       image: function() { openImageManager('quill'); },
-      undo: function() { document.execCommand('undo'); },
-      redo: function() { document.execCommand('redo'); }
+      undo: function() { if (quill) quill.history.undo(); },
+      redo: function() { if (quill) quill.history.redo(); }
     }
   };
-  quill = new Quill('#quill-editor', { theme: 'snow', modules: { toolbar: toolbarOptions } });
+  quill = new Quill('#quill-editor', { theme: 'snow', modules: { toolbar: toolbarOptions, history: { delay: 1000, maxStack: 50, userOnly: true } } });
   const toolbar = document.querySelector('.ql-toolbar');
   if (toolbar) {
     const undoBtn = toolbar.querySelector('.ql-undo');
@@ -482,7 +482,7 @@ isDirty = false;
 document.getElementById('btn-delete-post').style.display = 'block';
 // Fix 3: Update back button label based on post type
 const backLabelEl = document.getElementById('editor-back-label');
-if (backLabelEl) backLabelEl.textContent = post.published ? 'â Back to Live Posts' : 'â Back to Drafts';
+if (backLabelEl) backLabelEl.textContent = post.published ? '&#8592; Back to Live Posts' : '&#8592; Back to Drafts';
 // Show schedule button only for drafts
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
@@ -875,7 +875,7 @@ if (dropZone) dropZone.style.display = '';
 if (addPhotosBtn) addPhotosBtn.style.display = '';
 if (pickerCancelBtn) pickerCancelBtn.style.display = 'none';
 renderUploadQueue();
-setupDragDrop();
+const imgGrid = document.getElementById('img-grid'); if (imgGrid) imgGrid.innerHTML = '';    setupDragDrop();
 }
 modal.classList.add('active');
 if (ctx === 'hero' || ctx === 'quill') { loadImages(); }
