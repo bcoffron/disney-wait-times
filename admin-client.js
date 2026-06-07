@@ -292,40 +292,82 @@ window._allDrafts = drafts;
 }
 
 function renderPostList(posts) {
-  const table = document.getElementById('posts-table');
-  if (!posts.length) {
-    table.innerHTML = '<div style="text-align:center;color:#8AACAE;padding:40px;font-size:14px">No posts yet.</div>';
-    return;
-  }
-  const q = "'";
-  const maxPins = 12;
-  table.innerHTML = posts.map(p => {
-    const parkCls = p.park === 'dl' ? 'park-dl' : p.park === 'wdw' ? 'park-wdw' : 'park-both';
-    const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'Both';
-    let statusCls, statusLabel;
-    if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
-    else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
-    else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
-    const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-    const pinIdx = pinnedSlugs.indexOf(p.slug);
-    const isPinned = pinIdx !== -1;
-    const atLimit = pinnedSlugs.length >= maxPins && !isPinned;
-    const pinBtnTitle = atLimit ? 'Unpin a post first (max 12)' : isPinned ? 'Unpin this post' : 'Pin to top of blog';
-    const pinBtnStyle = isPinned ? 'color:#F59E0B;font-weight:bold' : atLimit ? 'opacity:0.4;cursor:not-allowed' : '';
-    return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
-      '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
-      '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + (isPinned ? ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">&#128204;</span>' : '') + '</span>' +
-      '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
-      '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
-      '<span class="post-date">' + date + '</span>' +
-      '<div class="post-actions" onclick="event.stopPropagation()">' +
-      '<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
-      '<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '&#128204;' : 'Feature') + '</button>' +
-      '<button class="btn-edit" style="' + pinBtnStyle + '" title="' + pinBtnTitle + '" onclick="togglePin(' + q + p.slug + q + ')" ' + (atLimit ? 'disabled' : '') + '>&#128204;</button>' +
-      (isPinned ? '<button class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')">&#9650;</button><button class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')">&#9660;</button>' : '') +
-      '<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
-      '</div></div>';
-  }).join('');
+const table = document.getElementById('posts-table');
+const q = "'";
+const maxPins = 12;
+const pinnedPosts = pinnedSlugs.map(slug => posts.find(p => p.slug === slug)).filter(Boolean);
+const pinnedSlugSet = new Set(pinnedSlugs);
+const unpinnedPosts = posts.filter(p => !pinnedSlugSet.has(p.slug)).sort((a, b) => new Date(b.publishedAt||0) - new Date(a.publishedAt||0));
+
+// Section 1: Pinned Posts
+const pinnedCount = pinnedPosts.length;
+const totalPosts = posts.length;
+let pinnedHeader = '<div style="background:#0A4840;border-radius:10px 10px 0 0;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:2px">' +
+'<span style="font-weight:700;color:#E0F5EE;font-size:14px">Pinned Posts</span>' +
+'<span style="background:#1A6860;color:#7FFFD4;font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px">' + pinnedCount + ' of ' + maxPins + '</span>' +
+'</div>';
+
+let pinnedRows = '';
+if (pinnedPosts.length === 0) {
+pinnedRows = '<div style="background:rgba(20,90,80,0.15);border:1px dashed rgba(127,255,212,0.2);border-radius:0 0 10px 10px;padding:20px;text-align:center;color:#8AACAE;font-size:13px;margin-bottom:20px">No pinned posts yet. Pin a post below to feature it at the top of the blog.</div>';
+} else {
+pinnedRows = '<div style="background:rgba(20,90,80,0.12);border:1px solid rgba(127,255,212,0.15);border-radius:0 0 10px 10px;margin-bottom:20px">' +
+pinnedPosts.map((p, pinIdx) => {
+const parkCls = p.park === 'dl' ? 'park-dl' : p.park === 'wdw' ? 'park-wdw' : 'park-both';
+const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'Both';
+const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+const isFirst = pinIdx === 0;
+const isLast = pinIdx === pinnedPosts.length - 1;
+return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')" style="border-left:3px solid #1A6860">' +
+'<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
+'<span class="post-title-cell">' + escHtml(p.title||'Untitled') + ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">&#128204;</span></span>' +
+'<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
+'<span class="post-date">' + date + '</span>' +
+'<div class="post-actions" onclick="event.stopPropagation()">' +
+'<button class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')" ' + (isFirst ? 'disabled style="opacity:0.3"' : '') + '>&#9650;</button>' +
+'<button class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')" ' + (isLast ? 'disabled style="opacity:0.3"' : '') + '>&#9660;</button>' +
+'<button class="btn-edit" style="color:#F59E0B;font-weight:bold" title="Unpin this post" onclick="togglePin(' + q + p.slug + q + ')">Unpin</button>' +
+'<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
+'</div></div>';
+}).join('') +
+'</div>';
+}
+
+// Section 2: All Posts
+let allPostsHeader = '<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(7,30,37,0.1)">' +
+'<span style="font-weight:700;color:#071E25;font-size:14px">All Posts</span>' +
+'</div>';
+
+let allRows = '';
+if (unpinnedPosts.length === 0) {
+allRows = '<div style="text-align:center;color:#8AACAE;padding:40px;font-size:14px">No posts yet.</div>';
+} else {
+const atLimit = pinnedSlugs.length >= maxPins;
+allRows = unpinnedPosts.map(p => {
+const parkCls = p.park === 'dl' ? 'park-dl' : p.park === 'wdw' ? 'park-wdw' : 'park-both';
+const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'Both';
+let statusCls, statusLabel;
+if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
+else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
+else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
+const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+const pinDisabled = atLimit ? 'disabled title="Maximum pins reached — unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
+return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
+'<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
+'<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
+'<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
+'<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
+'<span class="post-date">' + date + '</span>' +
+'<div class="post-actions" onclick="event.stopPropagation()">' +
+'<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
+'<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '&#128204;' : 'Feature') + '</button>' +
+'<button class="btn-edit" ' + pinDisabled + ' onclick="togglePin(' + q + p.slug + q + ')">&#128204; Pin</button>' +
+'<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
+'</div></div>';
+}).join('');
+}
+
+table.innerHTML = pinnedHeader + pinnedRows + allPostsHeader + allRows;
 }
 function renderDraftsList() {
 const table = document.getElementById('drafts-table');
@@ -428,7 +470,7 @@ async function togglePin(slug) {
   if (idx !== -1) {
     pinnedSlugs.splice(idx, 1);
   } else {
-    if (pinnedSlugs.length >= 12) { showToast('Maximum 12 pins. Unpin a post first.', 'error'); return; }
+    if (pinnedSlugs.length >= 12) { alert('You\'ve reached the maximum number of pinned posts (12). Please unpin a post before pinning a new one.'); return; }
     pinnedSlugs.push(slug);
   }
   await savePins();
@@ -438,19 +480,17 @@ async function togglePin(slug) {
 function movePinUp(slug) {
   const idx = pinnedSlugs.indexOf(slug);
   if (idx <= 0) return;
-  pinnedSlugs.splice(idx, 1);
-  pinnedSlugs.splice(idx - 1, 0, slug);
+  pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
   savePins();
-  renderPostList(allPosts.filter(p => p.published === true));
+  loadPosts();
 }
 
 function movePinDown(slug) {
   const idx = pinnedSlugs.indexOf(slug);
-  if (idx === -1 || idx >= pinnedSlugs.length - 1) return;
-  pinnedSlugs.splice(idx, 1);
-  pinnedSlugs.splice(idx + 1, 0, slug);
+  if (idx < 0 || idx >= pinnedSlugs.length - 1) return;
+  pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
   savePins();
-  renderPostList(allPosts.filter(p => p.published === true));
+  loadPosts();
 }
 
 async function savePins() {
