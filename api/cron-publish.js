@@ -76,6 +76,14 @@ export default async function handler(req, res) {
         token: process.env.BLOB_READ_WRITE_TOKEN
       });
     }
+    if (published > 0) {
+      try {
+        await fetch('https://disney-wait-times-lupt.vercel.app/api/blog-reindex?token=tpcp-reindex-2026');
+        console.log('[cron-publish] Reindex triggered');
+      } catch(e) {
+        console.log('[cron-publish] Reindex failed:', e.message);
+      }
+    }
 
     return res.status(200).json({
       success: true,
