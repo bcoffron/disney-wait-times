@@ -7,7 +7,7 @@ const API_BASE = '';
 let token = sessionStorage.getItem('tpcp_admin_token') || '';
 let allPosts = [];
 let featuredSlug = null;
-let currentPost = null;
+let currentPost = null
 let imgManagerContext = 'hero'
 let quill = null;
 let loginFailures = 0;
@@ -500,6 +500,7 @@ async function movePinUp(slug) {
   const savedOrder = [...pinnedSlugs];
   await savePins();
   pinnedSlugs = savedOrder;
+  await new Promise(r => setTimeout(r, 300)); // wait for blob propagation
   await loadPosts();
 }
 
@@ -510,6 +511,7 @@ async function movePinDown(slug) {
   const savedOrder = [...pinnedSlugs];
   await savePins();
   pinnedSlugs = savedOrder;
+  await new Promise(r => setTimeout(r, 300)); // wait for blob propagation
   await loadPosts();
 }
 
