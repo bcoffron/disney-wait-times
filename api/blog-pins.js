@@ -1,6 +1,6 @@
 // api/blog-pins.js
-// GET  (public)  — returns { pins: ["slug1", "slug2", ...] }
-// POST (protected) — body: { pins: ["slug1", "slug2", ...] }
+// GET  (public)  â returns { pins: ["slug1", "slug2", ...] }
+// POST (protected) â body: { pins: ["slug1", "slug2", ...] }
 // Stores pinned post order in Vercel Blob under key: blog:pins
 
 import { list, put } from '@vercel/blob';
@@ -10,10 +10,10 @@ const BLOB_KEY = 'blog:pins';
 
 async function readPins() {
     try {
-          const { blobs } = await list({ prefix: BLOB_KEY, limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN });
+          const { blobs } = await list({ prefix: BLOB_KEY, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
           const match = (blobs || []).filter(b => b.pathname === BLOB_KEY).sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
           if (!match.length) return [];
-          const r = await fetch(match[0].downloadUrl, { cache: 'no-store' });
+          const r = await fetch(match[0].downloadUrl + '?t=' + Date.now(), { cache: 'no-store' });
           if (!r.ok) return [];
           const data = await r.json();
           return Array.isArray(data.pins) ? data.pins : [];
@@ -56,10 +56,11 @@ export default async function handler(req, res) {
               const { pins } = req.body;
               if (!Array.isArray(pins)) return res.status(400).json({ error: 'pins must be an array' });
               const limited = pins.slice(0, 12);
-              const blob = new Blob([JSON.stringify({ pins: limited })], { type: 'application/json' });
-              await put(BLOB_KEY, blob, {
+              await put(BLOB_KEY, JSON.stringify({ pins: limited }), {
                         access: 'public',
                         allowOverwrite: true,
+                        addRandomSuffix: false,
+                        contentType: 'application/json',
                         token: process.env.BLOB_READ_WRITE_TOKEN
               });
               return res.status(200).json({ success: true, pins: limited });
