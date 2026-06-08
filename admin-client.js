@@ -480,16 +480,18 @@ async function togglePin(slug) {
 }
 
 async function movePinUp(slug) {
+  console.log('movePinUp called, slug:', slug, 'pinnedSlugs:', pinnedSlugs.length);
   const idx = pinnedSlugs.indexOf(slug);
-  if (idx <= 0) return;
+  if (idx <= 0) { console.log('movePinUp: no-op, idx='+idx); return; }
   pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
   await savePins();
   await loadPosts();
 }
 
 async function movePinDown(slug) {
+  console.log('movePinDown called, slug:', slug, 'pinnedSlugs:', pinnedSlugs.length);
   const idx = pinnedSlugs.indexOf(slug);
-  if (idx < 0 || idx >= pinnedSlugs.length - 1) return;
+  if (idx < 0 || idx >= pinnedSlugs.length - 1) { console.log('movePinDown: no-op, idx='+idx); return; }
   pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
   await savePins();
   await loadPosts();
