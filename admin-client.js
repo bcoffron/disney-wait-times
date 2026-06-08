@@ -334,7 +334,6 @@ featuredSection = '<div style="background:#FFF8E8;border-radius:10px 10px 0 0;pa
 '<span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:4px">FEATURED</span>' +
 '<div class="post-actions" onclick="event.stopPropagation()">' +
 '<button type="button" class="btn-edit" onclick="openPost(' + q + fp.slug + q + ')">Edit</button>' +
-'<button type="button" class="btn-feat" onclick="featurePost(' + q + fp.slug + q + ')" style="color:#F59E0B">Unfeature</button>' +
 '<button type="button" class="btn-del" onclick="quickDelete(' + q + fp.slug + q + ')">Delete</button>' +
 '</div></div>';
 }
