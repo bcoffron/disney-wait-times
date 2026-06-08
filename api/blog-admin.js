@@ -7,11 +7,6 @@
 // This file only contains the HTML structure.
 // ============================================================
 export default function handler(req, res) {
-res.setHeader('Content-Type', 'text/html; charset=utf-8');
-res.setHeader('Cache-Control', 'no-store');
-res.status(200).send(html);
-
-
   const ts = Date.now();
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -471,4 +466,7 @@ Drag &amp; drop images here, or click to select<br><span style="font-size:11px;o
 <\/div>
 <script src="/admin-client.js?v=${ts}"><\/script>
 <\/body>`;
+res.setHeader('Content-Type', 'text/html; charset=utf-8');
+res.setHeader('Cache-Control', 'no-store');
+  res.status(200).send(html);
 }
