@@ -367,7 +367,7 @@ if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
 else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
 else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
 const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-const pinDisabled = atLimit ? 'disabled title="Maximum pins reached â unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
+const pinDisabled = atLimit ? 'disabled title="Maximum pins reached Ã¢ÂÂ unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
 return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
 '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
 '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
@@ -473,7 +473,7 @@ const data = await r.json();
 if (r.ok && data.success) {
 featuredSlug = data.featuredSlug || null;
 renderPostList(allPosts.filter(p => p.published === true));
-showToast(isFeatured ? 'Post unfeatured' : 'Post featured Ã¢ÂÂ', 'success');
+showToast(isFeatured ? 'Post unfeatured' : 'Post featured ÃÂ¢ÃÂÃÂ', 'success');
 } else { showToast('Feature update failed', 'error'); }
 } catch(e) { showToast('Feature update failed', 'error'); }
 }
@@ -544,7 +544,7 @@ if (backLabelEl) backLabelEl.innerHTML = post.published ? '&larr; Back to Live P
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
 schedulBtn.style.display = 'block';
-schedulBtn.textContent = post.scheduledAt ? ('Scheduled ÃÂ· ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
+schedulBtn.textContent = post.scheduledAt ? ('Scheduled ÃÂÃÂ· ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
 schedulBtn.style.color = post.scheduledAt ? '#D97706' : '';
 } else {
 schedulBtn.style.display = 'none';
@@ -836,9 +836,10 @@ const cancelBtn = document.getElementById('btn-cancel-schedule');
 const title = document.getElementById('schedule-modal-title');
 if (currentPost && currentPost.scheduledAt) {
 // Pre-fill with existing scheduled time
-const d = new Date(currentPost.scheduledAt);
-const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,16);
-dt.value = local;
+const localDatetime = new Date(currentPost.scheduledAt);
+const offset = localDatetime.getTimezoneOffset() * 60000;
+const localISO = new Date(localDatetime.getTime() - offset).toISOString().slice(0, 16);
+document.getElementById('schedule-datetime').value = localISO;
 cancelBtn.style.display = 'inline-block';
 title.textContent = 'Reschedule Post';
 } else {
@@ -881,7 +882,7 @@ async function saveDraftWithSchedule(utcString) {
       if (currentPost) currentPost.scheduledAt = utcString;
       closeModal('schedule-modal');
       const btn = document.getElementById('btn-schedule');
-      btn.textContent = 'Scheduled ÃÂ· ' + formatScheduledDate(utcString);
+      btn.textContent = 'Scheduled ÃÂÃÂ· ' + formatScheduledDate(utcString);
       showToast('Scheduled for ' + formatScheduledDate(utcString), 'success');
       await loadPosts();
     } else { showToast('Schedule failed', 'error'); }
@@ -1100,7 +1101,7 @@ const item = uploadQueue[i];
 progress.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '...';
 // Check large PNG
 if (item.file.type === 'image/png' && item.file.size > 1024 * 1024) {
-if (warning) { warning.textContent = 'Large PNG detected Ã¢ÂÂ consider JPG for faster load'; warning.style.display = 'block'; }
+if (warning) { warning.textContent = 'Large PNG detected ÃÂ¢ÃÂÃÂ consider JPG for faster load'; warning.style.display = 'block'; }
 }
 try {
 const r = await fetch(API_BASE + '/api/blog-upload-image', {
@@ -1475,7 +1476,7 @@ async function loadImagesInline() {
   }
 
   
-  // Render library grid Ã¢ÂÂ show ONLY images NOT currently in use (normalized comparison)
+  // Render library grid ÃÂ¢ÃÂÃÂ show ONLY images NOT currently in use (normalized comparison)
   if (!images.length) {
     grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
     updateSelectBar();
@@ -1516,7 +1517,7 @@ async function loadImagesInline() {
           usedEntries.push({ url: post.heroImage, postTitle });
         }
       }
-      // Body images Ã¢ÂÂ robust regex catches all formats
+      // Body images ÃÂ¢ÃÂÃÂ robust regex catches all formats
       var bodyImgRegex2 = /<img[^>]+src=["']([^"']+)["']/gi;
       var match2;
       while ((match2 = bodyImgRegex2.exec(post.body || '')) !== null) {
@@ -1783,7 +1784,7 @@ document.getElementById('f-tags').value = tags.join(', ');
 showToast('Tags generated!', 'success');
 } else {
 console.error('No tags parsed from:', data);
-showToast('No tags returned Ã¢ÂÂ check console', 'error');
+showToast('No tags returned ÃÂ¢ÃÂÃÂ check console', 'error');
 }
 } catch(e) {
 console.error('autoGenerateTags error:', e);
