@@ -2,7 +2,7 @@
 import { list } from '@vercel/blob';
 const rl = {};
 
-async function readBlob(pathname) 
+async function readBlob(pathname)  {
   const { blobs } = await list({ prefix: pathname, limit: 1000 , token: process.env.BLOB_READ_WRITE_TOKEN });
   const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
   if (!matches.length) return null;
