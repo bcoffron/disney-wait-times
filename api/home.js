@@ -4,22 +4,22 @@ const html = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Theme Park Co-Pilot &mdash; Coming Soon</title>
-<meta name="description" content="A calmer way to plan Disneyland is almost here. Join the early access list.">
+<title>Theme Park Co-Pilot — AI-Powered Disneyland &amp; Disney World Planner</title>
+<meta name="description" content="AI-powered Disneyland and Walt Disney World trip planner and guide. Build your perfect park day, monitor live wait times, and never waste time in the wrong line.">
   <!-- Canonical -->
     <link rel="canonical" href="https://themeparkcopilot.com">
       <!-- Open Graph / Social sharing -->
         <meta property="og:type" content="website">
           <meta property="og:url" content="https://themeparkcopilot.com">
-            <meta property="og:title" content="Theme Park Co-Pilot &#8212; Smarter days. More magic.">
-              <meta property="og:description" content="A calmer, less stressful way to plan your visits to Disneyland Resort, Walt Disney World, and Universal Studios. Coming soon &#8212; join the early access list.">
+            <meta property="og:title" content="Theme Park Co-Pilot — AI-Powered Disneyland &amp; Disney World Planner">
+              <meta property="og:description" content="AI-powered Disneyland and Walt Disney World trip planner and guide. Build your perfect park day, monitor live wait times, and never waste time in the wrong line.">
                 <meta property="og:image" content="https://app.themeparkcopilot.com/assets/brand/landing-photo-hero.svg">
                   <meta property="og:image:width" content="1200">
                     <meta property="og:image:height" content="630">
                       <!-- Twitter card -->
                         <meta name="twitter:card" content="summary_large_image">
-                          <meta name="twitter:title" content="Theme Park Co-Pilot &#8212; Smarter days. More magic.">
-                            <meta name="twitter:description" content="A calmer, less stressful way to plan your visits to Disneyland Resort, Walt Disney World, and Universal Studios. Coming soon.">
+                          <meta name="twitter:title" content="Theme Park Co-Pilot — AI-Powered Disneyland &amp; Disney World Planner">
+                            <meta name="twitter:description" content="AI-powered Disneyland and Walt Disney World trip planner and guide. Build your perfect park day, monitor live wait times, and never waste time in the wrong line.">
                               <meta name="twitter:image" content="https://app.themeparkcopilot.com/assets/brand/landing-photo-hero.svg">
                                 <link rel="icon" type="image/png" href="https://app.themeparkcopilot.com/assets/brand/favicon.PNG">
                                   <link rel="apple-touch-icon" href="https://app.themeparkcopilot.com/assets/brand/favicon.PNG">
@@ -31,7 +31,7 @@ const html = `<!DOCTYPE html>
                                               "@context": "https://schema.org",
                                                   "@type": "SoftwareApplication",
                                                       "name": "Theme Park Co-Pilot",
-                                                          "description": "AI-powered theme park planning app for Disneyland and Walt Disney World. Builds personalized schedules, monitors live wait times, and re-routes around crowds.",
+                                                          "description": "AI-powered Disneyland and Walt Disney World trip planner and guide. Build your perfect park day, monitor live wait times, and never waste time in the wrong line.",
                                                               "applicationCategory": "TravelApplication",
                                                                   "operatingSystem": "Web, iOS, Android",
                                                                       "url": "https://themeparkcopilot.com",
