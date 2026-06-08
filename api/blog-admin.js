@@ -12,6 +12,7 @@ res.setHeader('Cache-Control', 'no-store');
 res.status(200).send(ADMIN_HTML);
 }
 
+const ts = Date.now();
 const ADMIN_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,7 +23,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"><\/script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"><\/script>
-<link rel="stylesheet" href="/admin-client.css">
+<link rel="stylesheet" href="/admin-client.css?v=${ts}">
 <\/head>
 <body>
 <!-- MOBILE MENU BUTTON -->
@@ -468,5 +469,5 @@ Drag &amp; drop images here, or click to select<br><span style="font-size:11px;o
     <\/div>
   <\/div>
 <\/div>
-<script src="/admin-client.js"><\/script>
+<script src="/admin-client.js?v=${ts}"><\/script>
 <\/body>`;
