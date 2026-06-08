@@ -743,7 +743,7 @@ const related = [];
 document.querySelectorAll('#related-list .related-row select').forEach(sel => {
 const slug = sel.value;
 const post = allPosts.find(p => p.slug === slug);
-if (post) related.push({ slug: post.slug, park: post.park, title: post.title });
+if (post) related.push({ slug: post.slug, park: post.park, title: post.title, heroImage: post.heroImage || '' });
 });
 const slug = document.getElementById('f-slug').value.trim();
 const park = document.getElementById('f-park').value;
