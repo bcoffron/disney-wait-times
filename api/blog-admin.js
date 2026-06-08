@@ -9,11 +9,11 @@
 export default function handler(req, res) {
 res.setHeader('Content-Type', 'text/html; charset=utf-8');
 res.setHeader('Cache-Control', 'no-store');
-res.status(200).send(ADMIN_HTML);
-}
+res.status(200).send(html);
 
-const ts = Date.now();
-const ADMIN_HTML = `<!DOCTYPE html>
+
+  const ts = Date.now();
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"
@@ -471,3 +471,4 @@ Drag &amp; drop images here, or click to select<br><span style="font-size:11px;o
 <\/div>
 <script src="/admin-client.js?v=${ts}"><\/script>
 <\/body>`;
+}
