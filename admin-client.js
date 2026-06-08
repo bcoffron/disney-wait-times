@@ -311,18 +311,40 @@ function renderPostList(posts) {
 const table = document.getElementById('posts-table');
 const q = "'";
 const maxPins = 12;
-const pinnedPosts = pinnedSlugs.map(slug => posts.find(p => p.slug === slug)).filter(Boolean);
 const pinnedSlugSet = new Set(pinnedSlugs);
-const unpinnedPosts = posts.filter(p => !pinnedSlugSet.has(p.slug)).sort((a, b) => new Date(b.publishedAt||0) - new Date(a.publishedAt||0));
+const featuredPost = posts.find(p => p.slug === featuredSlug) || null;
+const pinnedPosts = pinnedSlugs.map(slug => posts.find(p => p.slug === slug)).filter(p => p && p.slug !== featuredSlug);
+const unpinnedPosts = posts.filter(p => !pinnedSlugSet.has(p.slug) && p.slug !== featuredSlug).sort((a,b) => new Date(b.publishedAt||0) - new Date(a.publishedAt||0));
 
-// Section 1: Pinned Posts
+// Section 0: Featured Post
+let featuredSection = '';
+if (featuredPost) {
+const fp = featuredPost;
+const fpParkCls = fp.park === 'dl' ? 'park-dl' : fp.park === 'wdw' ? 'park-wdw' : fp.park === 'uni' ? 'park-uni' : 'park-other';
+const fpParkLabel = fp.park === 'dl' ? 'Disneyland' : fp.park === 'wdw' ? 'Walt Disney World' : fp.park === 'uni' ? 'Universal' : (fp.park || '');
+const fpDate = fp.publishedAt ? new Date(fp.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+featuredSection = '<div style="background:linear-gradient(135deg,#78350F,#92400E);border-radius:10px 10px 0 0;padding:12px 16px;margin-bottom:2px">' +
+'<span style="font-weight:700;color:#FDE68A;font-size:14px">⭐ Featured Post</span>' +
+'</div>' +
+'<div class="post-row" onclick="openPost(' + q + fp.slug + q + ')" style="background:#1c1917;border-left:3px solid #F59E0B">' +
+'<img class="post-thumb" src="' + (fp.heroImage||'') + '" alt="">' +
+'<span class="post-title-cell">' + escHtml(fp.title||'Untitled') + '</span>' +
+'<span class="park-pill ' + fpParkCls + '">' + fpParkLabel + '</span>' +
+'<span class="post-date">' + fpDate + '</span>' +
+'<span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:4px">FEATURED</span>' +
+'<div class="post-actions" onclick="event.stopPropagation()">' +
+'<button type="button" class="btn-edit" onclick="openPost(' + q + fp.slug + q + ')">Edit</button>' +
+'<button type="button" class="btn-feat" onclick="featurePost(' + q + fp.slug + q + ')" style="color:#F59E0B">Unfeature</button>' +
+'<button type="button" class="btn-del" onclick="quickDelete(' + q + fp.slug + q + ')">Delete</button>' +
+'</div></div>';
+}
+
 const pinnedCount = pinnedPosts.length;
 const totalPosts = posts.length;
 let pinnedHeader = '<div style="background:#0A4840;border-radius:10px 10px 0 0;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:2px">' +
 '<span style="font-weight:700;color:#E0F5EE;font-size:14px">Pinned Posts</span>' +
 '<span style="background:#1A6860;color:#7FFFD4;font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px">' + pinnedCount + ' of ' + maxPins + '</span>' +
 '</div>';
-
 let pinnedRows = '';
 if (pinnedPosts.length === 0) {
 pinnedRows = '<div style="background:rgba(20,90,80,0.15);border:1px dashed rgba(127,255,212,0.2);border-radius:0 0 10px 10px;padding:20px;text-align:center;color:#8AACAE;font-size:13px;margin-bottom:20px">No pinned posts yet. Pin a post below to feature it at the top of the blog.</div>';
@@ -349,7 +371,6 @@ return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')" style="
 '</div>';
 }
 
-// Section 2: All Posts
 let allPostsHeader = '<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(7,30,37,0.1)">' +
 '<span style="font-weight:700;color:#071E25;font-size:14px">All Posts</span>' +
 '</div>';
@@ -367,7 +388,7 @@ if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
 else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
 else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
 const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-const pinDisabled = atLimit ? 'disabled title="Maximum pins reached Ã¢ÂÂ unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
+const pinDisabled = atLimit ? 'disabled title="Maximum pins reached ÃÂ¢ÃÂÃÂ unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
 return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
 '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
 '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
@@ -383,7 +404,8 @@ return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
 }).join('');
 }
 
-table.innerHTML = pinnedHeader + pinnedRows + allPostsHeader + allRows;
+
+table.innerHTML = featuredSection + pinnedHeader + pinnedRows + allPostsHeader + allRows;
 }
 function renderDraftsList() {
 const table = document.getElementById('drafts-table');
@@ -473,7 +495,7 @@ const data = await r.json();
 if (r.ok && data.success) {
 featuredSlug = data.featuredSlug || null;
 renderPostList(allPosts.filter(p => p.published === true));
-showToast(isFeatured ? 'Post unfeatured' : 'Post featured ÃÂ¢ÃÂÃÂ', 'success');
+showToast(isFeatured ? 'Post unfeatured' : 'Post featured ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ', 'success');
 } else { showToast('Feature update failed', 'error'); }
 } catch(e) { showToast('Feature update failed', 'error'); }
 }
@@ -544,7 +566,7 @@ if (backLabelEl) backLabelEl.innerHTML = post.published ? '&larr; Back to Live P
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
 schedulBtn.style.display = 'block';
-schedulBtn.textContent = post.scheduledAt ? ('Scheduled ÃÂÃÂ· ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
+schedulBtn.textContent = post.scheduledAt ? ('Scheduled ÃÂÃÂÃÂÃÂ· ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
 schedulBtn.style.color = post.scheduledAt ? '#D97706' : '';
 } else {
 schedulBtn.style.display = 'none';
@@ -882,7 +904,7 @@ async function saveDraftWithSchedule(utcString) {
       if (currentPost) currentPost.scheduledAt = utcString;
       closeModal('schedule-modal');
       const btn = document.getElementById('btn-schedule');
-      btn.textContent = 'Scheduled ÃÂÃÂ· ' + formatScheduledDate(utcString);
+      btn.textContent = 'Scheduled ÃÂÃÂÃÂÃÂ· ' + formatScheduledDate(utcString);
       showToast('Scheduled for ' + formatScheduledDate(utcString), 'success');
       await loadPosts();
     } else { showToast('Schedule failed', 'error'); }
@@ -1101,7 +1123,7 @@ const item = uploadQueue[i];
 progress.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '...';
 // Check large PNG
 if (item.file.type === 'image/png' && item.file.size > 1024 * 1024) {
-if (warning) { warning.textContent = 'Large PNG detected ÃÂ¢ÃÂÃÂ consider JPG for faster load'; warning.style.display = 'block'; }
+if (warning) { warning.textContent = 'Large PNG detected ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ consider JPG for faster load'; warning.style.display = 'block'; }
 }
 try {
 const r = await fetch(API_BASE + '/api/blog-upload-image', {
@@ -1476,7 +1498,7 @@ async function loadImagesInline() {
   }
 
   
-  // Render library grid ÃÂ¢ÃÂÃÂ show ONLY images NOT currently in use (normalized comparison)
+  // Render library grid ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ show ONLY images NOT currently in use (normalized comparison)
   if (!images.length) {
     grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
     updateSelectBar();
@@ -1517,7 +1539,7 @@ async function loadImagesInline() {
           usedEntries.push({ url: post.heroImage, postTitle });
         }
       }
-      // Body images ÃÂ¢ÃÂÃÂ robust regex catches all formats
+      // Body images ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ robust regex catches all formats
       var bodyImgRegex2 = /<img[^>]+src=["']([^"']+)["']/gi;
       var match2;
       while ((match2 = bodyImgRegex2.exec(post.body || '')) !== null) {
@@ -1784,7 +1806,7 @@ document.getElementById('f-tags').value = tags.join(', ');
 showToast('Tags generated!', 'success');
 } else {
 console.error('No tags parsed from:', data);
-showToast('No tags returned ÃÂ¢ÃÂÃÂ check console', 'error');
+showToast('No tags returned ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ check console', 'error');
 }
 } catch(e) {
 console.error('autoGenerateTags error:', e);
