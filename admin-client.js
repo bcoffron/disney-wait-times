@@ -1,3 +1,7 @@
+window.addEventListener('beforeunload', function(e) {
+  console.trace('PAGE IS UNLOADING - stack trace:');
+});
+
 console.log('refactor works');
 
 // ============================================================
@@ -488,6 +492,7 @@ function debouncedSavePins() {
 }
 
 function movePinUp(slug) {
+  console.log('movePinUp START - slug:', slug);
   const idx = pinnedSlugs.indexOf(slug);
   if (idx <= 0) return;
   pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
