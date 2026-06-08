@@ -1,6 +1,6 @@
 import { put, list } from '@vercel/blob';
 
-// api/cron-publish.js — runs every hour, publishes scheduled posts whose time has passed
+// api/cron-publish.js â runs every hour, publishes scheduled posts whose time has passed
 // Cron schedule: 0 * * * * (top of every hour)
 export default async function handler(req, res) {
   // Verify this is a legitimate cron call (Vercel sets Authorization header for cron)
@@ -40,9 +40,9 @@ export default async function handler(req, res) {
 
         // Publish it
         post.published = true;
-        delete post.scheduledAt;
-        post.publishedAt = post.publishedAt || now.toISOString();
-        post.updatedAt = now.toISOString();
+        post.publishedAt = new Date().toISOString();
+        post.scheduledAt = null;
+        post.updatedAt = new Date().toISOString();
 
         // Save post
         await put('blog/posts/' + post.slug, JSON.stringify(post), {
