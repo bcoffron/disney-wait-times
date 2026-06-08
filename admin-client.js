@@ -570,7 +570,7 @@ if (backLabelEl) backLabelEl.innerHTML = post.published ? '&larr; Back to Live P
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
 schedulBtn.style.display = 'block';
-schedulBtn.textContent = post.scheduledAt ? ('Scheduled ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ· ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
+schedulBtn.textContent = post.scheduledAt ? ('Scheduled - ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
 schedulBtn.style.color = post.scheduledAt ? '#D97706' : '';
 } else {
 schedulBtn.style.display = 'none';
@@ -908,7 +908,7 @@ async function saveDraftWithSchedule(utcString) {
       if (currentPost) currentPost.scheduledAt = utcString;
       closeModal('schedule-modal');
       const btn = document.getElementById('btn-schedule');
-      btn.textContent = 'Scheduled ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ· ' + formatScheduledDate(utcString);
+      btn.textContent = 'Scheduled - ' + formatScheduledDate(utcString);
       showToast('Scheduled for ' + formatScheduledDate(utcString), 'success');
       await loadPosts();
     } else { showToast('Schedule failed', 'error'); }
