@@ -271,10 +271,12 @@ if (vm.cb) vm.cb();
 // ============================================================
 // POSTS LIST
 // ============================================================
+var cachedPosts = [];
 async function loadPosts() {
   try {
     const r = await fetch(API_BASE + '/api/blog-index');
     allPosts = await r.json();
+    cachedPosts = allPosts;
     if (!Array.isArray(allPosts)) allPosts = [];
     try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; } } catch(e) { featuredSlug = null; }
     try { const pr = await fetch(API_BASE + '/api/blog-pins'); if (pr.ok) { const pd = await pr.json(); pinnedSlugs = pd.pins || []; } } catch(e) { pinnedSlugs = []; }
@@ -486,7 +488,7 @@ async function movePinUp(slug) {
   pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
   console.log('pinnedSlugs after:', [...pinnedSlugs]);
   await savePins();
-  loadPosts();
+  renderPostList(cachedPosts);
 }
 
 async function movePinDown(slug) {
@@ -494,7 +496,7 @@ async function movePinDown(slug) {
   if (idx < 0 || idx >= pinnedSlugs.length - 1) return;
   pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
   await savePins();
-  loadPosts();
+  renderPostList(cachedPosts);
 }
 
 async function savePins() {
