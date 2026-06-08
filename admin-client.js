@@ -491,7 +491,7 @@ function movePinUp(slug) {
   const idx = pinnedSlugs.indexOf(slug);
   if (idx <= 0) return;
   pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
-  renderPostList(cachedPosts);
+  renderPostList(allPosts.filter(p => p.published));
   debouncedSavePins();
 }
 
@@ -499,7 +499,7 @@ function movePinDown(slug) {
   const idx = pinnedSlugs.indexOf(slug);
   if (idx < 0 || idx >= pinnedSlugs.length - 1) return;
   pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
-  renderPostList(cachedPosts);
+  renderPostList(allPosts.filter(p => p.published));
   debouncedSavePins();
 }
 
