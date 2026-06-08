@@ -283,7 +283,9 @@ async function loadPosts() {
     const pr = await fetch(API_BASE + '/api/blog-pins');
     if (pr.ok) {
       const pd = await pr.json();
-      pinnedSlugs = pd.pins || [];
+      if (pinnedSlugs.length === 0) {
+        pinnedSlugs = pd.pins || [];
+      }
       console.log('pinnedSlugs loaded:', pinnedSlugs);
     } else {
       console.error('blog-pins fetch failed:', pr.status);
@@ -492,20 +494,22 @@ async function togglePin(slug) {
 }
 
 async function movePinUp(slug) {
-  console.log('movePinUp called, slug:', slug, 'pinnedSlugs:', pinnedSlugs.length);
   const idx = pinnedSlugs.indexOf(slug);
-  if (idx <= 0) { console.log('movePinUp: no-op, idx='+idx); return; }
+  if (idx <= 0) return;
   pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
+  const savedOrder = [...pinnedSlugs];
   await savePins();
+  pinnedSlugs = savedOrder;
   await loadPosts();
 }
 
 async function movePinDown(slug) {
-  console.log('movePinDown called, slug:', slug, 'pinnedSlugs:', pinnedSlugs.length);
   const idx = pinnedSlugs.indexOf(slug);
-  if (idx < 0 || idx >= pinnedSlugs.length - 1) { console.log('movePinDown: no-op, idx='+idx); return; }
+  if (idx < 0 || idx >= pinnedSlugs.length - 1) return;
   pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
+  const savedOrder = [...pinnedSlugs];
   await savePins();
+  pinnedSlugs = savedOrder;
   await loadPosts();
 }
 
