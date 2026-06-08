@@ -36,7 +36,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
 <div class="login-icon"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt=""><\/div>
 <div class="login-label">Admin<\/div>
 <div class="login-wordmark">Theme Park Co<span style="color:#ECA050">&#10022;<\/span>Pilot<\/div>
-<input type="password" class="login-input" id="pw-input" placeholder="Admin password" autocomplete="current-password">
+<input type="password" class="login-input" id="pw-input" placeholder="Admin password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){doLogin();return false;}">
 <button type="button" class="login-btn" id="login-btn" onclick="doLogin()">Enter<\/button>
 <div class="login-error" id="login-error"><\/div>
 <\/div>
