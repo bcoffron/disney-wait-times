@@ -327,10 +327,10 @@ return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')" style="
 '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
 '<span class="post-date">' + date + '</span>' +
 '<div class="post-actions" onclick="event.stopPropagation()">' +
-'<button class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')" ' + (isFirst ? 'disabled style="opacity:0.3"' : '') + '>&#9650;</button>' +
-'<button class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')" ' + (isLast ? 'disabled style="opacity:0.3"' : '') + '>&#9660;</button>' +
-'<button class="btn-edit" style="color:#F59E0B;font-weight:bold" title="Unpin this post" onclick="togglePin(' + q + p.slug + q + ')">Unpin</button>' +
-'<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
+'<button type="button" class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')" ' + (isFirst ? 'disabled style="opacity:0.3"' : '') + '>&#9650;</button>' +
+'<button type="button" class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')" ' + (isLast ? 'disabled style="opacity:0.3"' : '') + '>&#9660;</button>' +
+'<button type="button" class="btn-edit" style="color:#F59E0B;font-weight:bold" title="Unpin this post" onclick="togglePin(' + q + p.slug + q + ')">Unpin</button>' +
+'<button type="button" class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
 '</div></div>';
 }).join('') +
 '</div>';
@@ -362,10 +362,10 @@ return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
 '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
 '<span class="post-date">' + date + '</span>' +
 '<div class="post-actions" onclick="event.stopPropagation()">' +
-'<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
-'<button class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '&#128204;' : 'Feature') + '</button>' +
-'<button class="btn-edit" ' + pinDisabled + ' onclick="togglePin(' + q + p.slug + q + ')">&#128204; Pin</button>' +
-'<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
+'<button type="button" class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
+'<button type="button" class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '&#128204;' : 'Feature') + '</button>' +
+'<button type="button" class="btn-edit" ' + pinDisabled + ' onclick="togglePin(' + q + p.slug + q + ')">&#128204; Pin</button>' +
+'<button type="button" class="btn-del" onclick="quickDelete(' + q + p.slug + q + ')">Delete</button>' +
 '</div></div>';
 }).join('');
 }
@@ -399,10 +399,10 @@ return '<div class="post-row">' +
 '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
 '<span class="post-date">' + date + '</span>' +
 '<div class="post-actions">' +
-'<button class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
-'<button class="btn-edit" style="color:#22A855" onclick="publishDraft(' + q + p.slug + q + ')">Publish</button>' +
-'<button class="btn-edit" style="color:#D97706" onclick="openPost(' + q + p.slug + q + ');setTimeout(openScheduleModal,400)">Schedule</button>' +
-'<button class="btn-del" onclick="quickDelete(' + q + p.slug + q + ', ' + q + 'drafts' + q + ')">Delete</button>' +
+'<button type="button" class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
+'<button type="button" class="btn-edit" style="color:#22A855" onclick="publishDraft(' + q + p.slug + q + ')">Publish</button>' +
+'<button type="button" class="btn-edit" style="color:#D97706" onclick="openPost(' + q + p.slug + q + ');setTimeout(openScheduleModal,400)">Schedule</button>' +
+'<button type="button" class="btn-del" onclick="quickDelete(' + q + p.slug + q + ', ' + q + 'drafts' + q + ')">Delete</button>' +
 '</div></div>';
 }).join('');
 }
