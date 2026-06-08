@@ -331,8 +331,8 @@ return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')" style="
 '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
 '<span class="post-date">' + date + '</span>' +
 '<div class="post-actions" onclick="event.stopPropagation()">' +
-'<button type="button" class="btn-edit" title="Move up" onclick="movePinUp(' + q + p.slug + q + ')" ' + (isFirst ? 'disabled style="opacity:0.3"' : '') + '>&#9650;</button>' +
-'<button type="button" class="btn-edit" title="Move down" onclick="movePinDown(' + q + p.slug + q + ')" ' + (isLast ? 'disabled style="opacity:0.3"' : '') + '>&#9660;</button>' +
+'<button type="button" class="btn-edit btn-pin-move" title="Move up" onclick="event.stopPropagation();movePinUp(' + q + p.slug + q + ')" ' + (isFirst ? 'disabled style="opacity:0.3"' : '') + '>&#9650;</button>' +
+'<button type="button" class="btn-edit btn-pin-move" title="Move down" onclick="event.stopPropagation();movePinDown(' + q + p.slug + q + ')" ' + (isLast ? 'disabled style="opacity:0.3"' : '') + '>&#9660;</button>' +
 '<button type="button" class="btn-edit" style="color:#F59E0B;font-weight:bold" title="Unpin this post" onclick="togglePin(' + q + p.slug + q + ')">Unpin</button>' +
 '<button type="button" class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
 '</div></div>';
