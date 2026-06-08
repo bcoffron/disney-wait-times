@@ -1,5 +1,7 @@
-window.addEventListener('beforeunload', function(e) {
-  console.trace('PAGE IS UNLOADING - stack trace:');
+window.addEventListener('beforeunload', function() {
+  if (pinSaveTimer) {
+    savePins();
+  }
 });
 
 console.log('refactor works');
@@ -488,7 +490,7 @@ function debouncedSavePins() {
   clearTimeout(pinSaveTimer);
   pinSaveTimer = setTimeout(function() {
     savePins();
-  }, 500);
+  }, 0);
 }
 
 function movePinUp(slug) {
