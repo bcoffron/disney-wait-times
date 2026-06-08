@@ -323,10 +323,10 @@ const fp = featuredPost;
 const fpParkCls = fp.park === 'dl' ? 'park-dl' : fp.park === 'wdw' ? 'park-wdw' : fp.park === 'uni' ? 'park-uni' : 'park-other';
 const fpParkLabel = fp.park === 'dl' ? 'Disneyland' : fp.park === 'wdw' ? 'Walt Disney World' : fp.park === 'uni' ? 'Universal' : (fp.park || '');
 const fpDate = fp.publishedAt ? new Date(fp.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-featuredSection = '<div style="background:linear-gradient(135deg,#78350F,#92400E);border-radius:10px 10px 0 0;padding:12px 16px;margin-bottom:2px">' +
-'<span style="font-weight:700;color:#FDE68A;font-size:14px">⭐ Featured Post</span>' +
+featuredSection = '<div style="background:#FFF8E8;border-radius:10px 10px 0 0;padding:12px 16px;margin-bottom:2px">' +
+'<span style="font-weight:700;color:#92400E;font-size:14px">â­ Featured Post</span>' +
 '</div>' +
-'<div class="post-row" onclick="openPost(' + q + fp.slug + q + ')" style="background:#1c1917;border-left:3px solid #F59E0B">' +
+'<div class="post-row" onclick="openPost(' + q + fp.slug + q + ')" style="background:#FFFBF0;border-left:3px solid #ECA050">' +
 '<img class="post-thumb" src="' + (fp.heroImage||'') + '" alt="">' +
 '<span class="post-title-cell">' + escHtml(fp.title||'Untitled') + '</span>' +
 '<span class="park-pill ' + fpParkCls + '">' + fpParkLabel + '</span>' +
@@ -388,7 +388,7 @@ if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
 else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
 else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
 const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-const pinDisabled = atLimit ? 'disabled title="Maximum pins reached ÃÂ¢ÃÂÃÂ unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
+const pinDisabled = atLimit ? 'disabled title="Maximum pins reached ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
 return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
 '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
 '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
@@ -495,7 +495,7 @@ const data = await r.json();
 if (r.ok && data.success) {
 featuredSlug = data.featuredSlug || null;
 renderPostList(allPosts.filter(p => p.published === true));
-showToast(isFeatured ? 'Post unfeatured' : 'Post featured ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ', 'success');
+showToast(isFeatured ? 'Post unfeatured' : 'Post featured ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ', 'success');
 } else { showToast('Feature update failed', 'error'); }
 } catch(e) { showToast('Feature update failed', 'error'); }
 }
@@ -566,7 +566,7 @@ if (backLabelEl) backLabelEl.innerHTML = post.published ? '&larr; Back to Live P
 const schedulBtn = document.getElementById('btn-schedule');
 if (!post.published) {
 schedulBtn.style.display = 'block';
-schedulBtn.textContent = post.scheduledAt ? ('Scheduled ÃÂÃÂÃÂÃÂ· ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
+schedulBtn.textContent = post.scheduledAt ? ('Scheduled ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ· ' + formatScheduledDate(post.scheduledAt)) : 'Schedule';
 schedulBtn.style.color = post.scheduledAt ? '#D97706' : '';
 } else {
 schedulBtn.style.display = 'none';
@@ -904,7 +904,7 @@ async function saveDraftWithSchedule(utcString) {
       if (currentPost) currentPost.scheduledAt = utcString;
       closeModal('schedule-modal');
       const btn = document.getElementById('btn-schedule');
-      btn.textContent = 'Scheduled ÃÂÃÂÃÂÃÂ· ' + formatScheduledDate(utcString);
+      btn.textContent = 'Scheduled ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ· ' + formatScheduledDate(utcString);
       showToast('Scheduled for ' + formatScheduledDate(utcString), 'success');
       await loadPosts();
     } else { showToast('Schedule failed', 'error'); }
@@ -1123,7 +1123,7 @@ const item = uploadQueue[i];
 progress.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '...';
 // Check large PNG
 if (item.file.type === 'image/png' && item.file.size > 1024 * 1024) {
-if (warning) { warning.textContent = 'Large PNG detected ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ consider JPG for faster load'; warning.style.display = 'block'; }
+if (warning) { warning.textContent = 'Large PNG detected ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ consider JPG for faster load'; warning.style.display = 'block'; }
 }
 try {
 const r = await fetch(API_BASE + '/api/blog-upload-image', {
@@ -1498,7 +1498,7 @@ async function loadImagesInline() {
   }
 
   
-  // Render library grid ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ show ONLY images NOT currently in use (normalized comparison)
+  // Render library grid ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ show ONLY images NOT currently in use (normalized comparison)
   if (!images.length) {
     grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
     updateSelectBar();
@@ -1539,7 +1539,7 @@ async function loadImagesInline() {
           usedEntries.push({ url: post.heroImage, postTitle });
         }
       }
-      // Body images ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ robust regex catches all formats
+      // Body images ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ robust regex catches all formats
       var bodyImgRegex2 = /<img[^>]+src=["']([^"']+)["']/gi;
       var match2;
       while ((match2 = bodyImgRegex2.exec(post.body || '')) !== null) {
@@ -1806,7 +1806,7 @@ document.getElementById('f-tags').value = tags.join(', ');
 showToast('Tags generated!', 'success');
 } else {
 console.error('No tags parsed from:', data);
-showToast('No tags returned ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ check console', 'error');
+showToast('No tags returned ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ check console', 'error');
 }
 } catch(e) {
 console.error('autoGenerateTags error:', e);
