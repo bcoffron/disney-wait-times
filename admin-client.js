@@ -279,7 +279,19 @@ async function loadPosts() {
     cachedPosts = allPosts;
     if (!Array.isArray(allPosts)) allPosts = [];
     try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; } } catch(e) { featuredSlug = null; }
-    try { const pr = await fetch(API_BASE + '/api/blog-pins'); if (pr.ok) { const pd = await pr.json(); pinnedSlugs = pd.pins || []; } } catch(e) { pinnedSlugs = []; }
+  try {
+    const pr = await fetch(API_BASE + '/api/blog-pins');
+    if (pr.ok) {
+      const pd = await pr.json();
+      pinnedSlugs = pd.pins || [];
+      console.log('pinnedSlugs loaded:', pinnedSlugs);
+    } else {
+      console.error('blog-pins fetch failed:', pr.status);
+    }
+  } catch(e) {
+    console.error('blog-pins fetch error:', e.message);
+    pinnedSlugs = [];
+  }
     renderPostList(allPosts.filter(p => p.published === true));
     renderDraftsSidebar(allPosts);
     document.getElementById('posts-badge').textContent = allPosts.filter(p => p.published === true).length; document.getElementById('drafts-badge').textContent = allPosts.filter(p => !p.published).length;
