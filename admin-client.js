@@ -34,7 +34,7 @@ let imgSelectMode = false;
 let selectedImgUrls = new Set();
 var allUsedUrls = new Set();
 var pinnedSlugs = [];
-var isPinMoving = false;
+var pinSaveTimer = null;
 
 // ============================================================
 // NORMALIZE URL (module-level so deleteImage and loadImagesInline can both use it)
@@ -280,7 +280,7 @@ async function loadPosts() {
     cachedPosts = allPosts;
     if (!Array.isArray(allPosts)) allPosts = [];
     try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; } } catch(e) { featuredSlug = null; }
-    try { const pr = await fetch(API_BASE + '/api/blog-pins'); if (pr.ok) { const pd = await pr.json(); if (!isPinMoving) { pinnedSlugs = pd.pins || []; } } } catch(e) { if (!isPinMoving) { pinnedSlugs = []; } }
+    try { const pr = await fetch(API_BASE + '/api/blog-pins'); if (pr.ok) { const pd = await pr.json(); pinnedSlugs = pd.pins || []; } } catch(e) { pinnedSlugs = []; }
     renderPostList(allPosts.filter(p => p.published === true));
     renderDraftsSidebar(allPosts);
     document.getElementById('posts-badge').textContent = allPosts.filter(p => p.published === true).length; document.getElementById('drafts-badge').textContent = allPosts.filter(p => !p.published).length;
@@ -480,39 +480,39 @@ async function togglePin(slug) {
   renderPostList(allPosts.filter(p => p.published === true));
 }
 
-async function movePinUp(slug) {
-  isPinMoving = true;
-  console.log('movePinUp called:', slug);
-  console.log('pinnedSlugs before:', [...pinnedSlugs]);
-  const idx = pinnedSlugs.indexOf(slug);
-  console.log('idx:', idx);
-  if (idx <= 0) { isPinMoving = false; return; }
-  pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
-  console.log('pinnedSlugs after:', [...pinnedSlugs]);
-  await savePins();
-  renderPostList(cachedPosts);
-  isPinMoving = false;
+function debouncedSavePins() {
+  clearTimeout(pinSaveTimer);
+  pinSaveTimer = setTimeout(function() {
+    savePins();
+  }, 500);
 }
 
-async function movePinDown(slug) {
-  isPinMoving = true;
+function movePinUp(slug) {
   const idx = pinnedSlugs.indexOf(slug);
-  if (idx < 0 || idx >= pinnedSlugs.length - 1) { isPinMoving = false; return; }
-  pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
-  await savePins();
+  if (idx <= 0) return;
+  pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
   renderPostList(cachedPosts);
-  isPinMoving = false;
+  debouncedSavePins();
+}
+
+function movePinDown(slug) {
+  const idx = pinnedSlugs.indexOf(slug);
+  if (idx < 0 || idx >= pinnedSlugs.length - 1) return;
+  pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
+  renderPostList(cachedPosts);
+  debouncedSavePins();
 }
 
 async function savePins() {
   try {
-    const r = await fetch(API_BASE + '/api/blog-pins', {
+    await fetch(API_BASE + '/api/blog-pins', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
       body: JSON.stringify({ pins: pinnedSlugs })
     });
-    if (!r.ok) showToast('Failed to save pins', 'error');
-  } catch(e) { showToast('Failed to save pins', 'error'); }
+  } catch(e) {
+    console.error('savePins error:', e);
+  }
 }
 
 function formatScheduledDate(iso) {
