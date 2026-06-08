@@ -1,10 +1,4 @@
-window.addEventListener('beforeunload', function() {
-  if (pinSaveTimer) {
-    savePins();
-  }
-});
 
-console.log('refactor works');
 
 // ============================================================
 // STATE
@@ -40,7 +34,6 @@ let imgSelectMode = false;
 let selectedImgUrls = new Set();
 var allUsedUrls = new Set();
 var pinnedSlugs = [];
-var pinSaveTimer = null;
 
 // ============================================================
 // NORMALIZE URL (module-level so deleteImage and loadImagesInline can both use it)
@@ -486,28 +479,20 @@ async function togglePin(slug) {
   renderPostList(allPosts.filter(p => p.published === true));
 }
 
-function debouncedSavePins() {
-  clearTimeout(pinSaveTimer);
-  pinSaveTimer = setTimeout(function() {
-    savePins();
-  }, 0);
-}
-
-function movePinUp(slug) {
-  console.log('movePinUp START - slug:', slug);
+async function movePinUp(slug) {
   const idx = pinnedSlugs.indexOf(slug);
   if (idx <= 0) return;
   pinnedSlugs.splice(idx - 1, 0, pinnedSlugs.splice(idx, 1)[0]);
-  renderPostList(allPosts.filter(p => p.published));
-  debouncedSavePins();
+  await savePins();
+  await loadPosts();
 }
 
-function movePinDown(slug) {
+async function movePinDown(slug) {
   const idx = pinnedSlugs.indexOf(slug);
   if (idx < 0 || idx >= pinnedSlugs.length - 1) return;
   pinnedSlugs.splice(idx + 1, 0, pinnedSlugs.splice(idx, 1)[0]);
-  renderPostList(allPosts.filter(p => p.published));
-  debouncedSavePins();
+  await savePins();
+  await loadPosts();
 }
 
 async function savePins() {
