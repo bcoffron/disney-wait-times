@@ -1,3 +1,9 @@
+// Prevent any accidental form submissions from reloading the page
+document.addEventListener('submit', function(e) {
+  e.preventDefault();
+  console.warn('Form submit intercepted and blocked');
+});
+
 console.log('refactor works');
 
 // ============================================================
@@ -670,7 +676,7 @@ function addFaqItem(q, a) {
 const list = document.getElementById('faq-list');
 const div = document.createElement('div');
 div.className = 'faq-item-editor';
-div.innerHTML = '<button class="faq-remove" onclick="this.parentElement.remove();markDirty()">&times;</button>' +
+div.innerHTML = '<button type="button" class="faq-remove" onclick="this.parentElement.remove();markDirty()">&times;</button>' +
 '<div class="field-label" style="margin-bottom:6px">Question</div>' +
 '<input type="text" class="field-input" placeholder="Question" value="' + escHtml(q||'') + '" oninput="markDirty()" style="margin-bottom:8px">' +
 '<div class="field-label" style="margin-bottom:6px">Answer</div>' +
@@ -686,7 +692,7 @@ const list = document.getElementById('related-list');
 const div = document.createElement('div');
 div.className = 'related-row';
 const opts = allPosts.map(p => '<option value="' + p.slug + '" ' + (p.slug===selectedSlug?'selected':'') + '>' + escHtml(p.title||p.slug) + '</option>').join('');
-div.innerHTML = '<select onchange="markDirty()">' + opts + '</select><button class="related-remove" onclick="this.parentElement.remove();markDirty()">&times;</button>';
+div.innerHTML = '<select onchange="markDirty()">' + opts + '</select><button type="button" class="related-remove" onclick="this.parentElement.remove();markDirty()">&times;</button>';
 list.appendChild(div);
 }
 
@@ -1039,13 +1045,13 @@ gridEl.innerHTML = uploadQueue.map((item, idx) =>
 '<div class="queue-thumb">' +
 '<img src="' + item.dataUrl + '" alt="">' +
 '<div class="queue-thumb-name">' + escHtml(item.file.name) + '</div>' +
-'<button class="queue-thumb-remove" onclick="removeFromQueue(' + idx + ')">&times;</button>' +
+'<button type="button" class="queue-thumb-remove" onclick="removeFromQueue(' + idx + ')">&times;</button>' +
 '</div>'
 ).join('');
 }
 if (uploadDone) {
 if (btnUpload) {
-btnUpload.outerHTML = '<button class="btn-done-upload" onclick="doneUpload()">Done</button>';
+btnUpload.outerHTML = '<button type="button" class="btn-done-upload" onclick="doneUpload()">Done</button>';
 }
 } else {
 if (btnUpload) {
@@ -1070,7 +1076,7 @@ queueEl.innerHTML =
 '<div class="field-label" style="margin-bottom:8px">Queue (<span id="queue-count">0</span> photo(s))</div>' +
 '<div class="upload-queue-grid" id="upload-queue-grid"></div>' +
 '<div class="upload-progress" id="upload-progress" style="display:none"></div>' +
-'<button class="btn-upload-queue" id="btn-upload-queue" disabled onclick="startUploadQueue()">Upload 0 photo(s)</button>';
+'<button type="button" class="btn-upload-queue" id="btn-upload-queue" disabled onclick="startUploadQueue()">Upload 0 photo(s)</button>';
 }
 // Close modal directly
 document.getElementById('img-modal').classList.remove('active');
@@ -1133,12 +1139,12 @@ grid.innerHTML = images.map(img =>
 '<div class="img-cell-wrap" onclick="selectImage(' + "'" + escAttr(img.url) + "'" + ')">' +
 '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
 (imgManagerContext !== 'hero' ? '<div class="img-cell-actions">' +
-'<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL</button>' +
-'<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete</button>' +
+'<button type="button" class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL</button>' +
+'<button type="button" class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete</button>' +
 '</div>' : '') +
 '</div>' +
 '<div class="img-cell-name">' + escHtml(img.filename) + '</div>' +
-(imgManagerContext !== 'hero' ? '<button class="img-set-hero-btn" onclick="setHeroFromLibrary(' + "'" + escAttr(img.url) + "'" + ')">Set as hero</button>' : '') +
+(imgManagerContext !== 'hero' ? '<button type="button" class="img-set-hero-btn" onclick="setHeroFromLibrary(' + "'" + escAttr(img.url) + "'" + ')">Set as hero</button>' : '') +
 '</div>'
 ).join('');
 } catch(e) {
@@ -1486,8 +1492,8 @@ async function loadImagesInline() {
           '<div class="img-cell-wrap">' +
           '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
           '<div class="img-cell-actions">' +
-          '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL</button>' +
-          '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete</button>' +
+          '<button type="button" class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL</button>' +
+          '<button type="button" class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete</button>' +
           '</div>' +
           '</div>' +
           '<div class="img-cell-name">' + escHtml(img.filename) + '</div>' +
@@ -1530,7 +1536,7 @@ async function loadImagesInline() {
         '<div class="img-cell-wrap">' +
         '<img src="' + escAttr(entry.url) + '" alt="' + escAttr(entry.postTitle) + '" loading="lazy" title="' + escAttr(entry.postTitle) + '" style="width:100%;height:100%;object-fit:cover;display:block">' +
         '<div class="img-cell-actions">' +
-        '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(entry.url) + "',this" + ')">Copy URL</button>' +
+        '<button type="button" class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(entry.url) + "',this" + ')">Copy URL</button>' +
         '</div>' +
         '</div>' +
         '<div class="used-photo-title" title="' + escAttr(entry.postTitle) + '">' + escHtml(entry.postTitle) + '</div>' +
