@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 
 const allowedOrigins = [
   'https://themeparkcopilot.com',
+  'https://www.themeparkcopilot.com',
   'https://app.themeparkcopilot.com',
   'https://disney-wait-times-lupt.vercel.app'
 ];
@@ -19,10 +20,8 @@ export default async function handler(req, res) {
 
   // Fix 7: Restricted CORS
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (!origin) {
-    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
