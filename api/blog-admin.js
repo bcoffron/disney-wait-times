@@ -7,21 +7,6 @@
 // This file only contains the HTML structure.
 // ============================================================
 export default function handler(req, res) {
-  // Fix 7: Restricted CORS
-  const allowedOrigins = [
-    'https://themeparkcopilot.com',
-    'https://www.themeparkcopilot.com',
-    'https://app.themeparkcopilot.com',
-    'https://disney-wait-times-lupt.vercel.app'
-  ];
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
   const ts = Date.now();
   const html = `<!DOCTYPE html>
 <html lang="en">
