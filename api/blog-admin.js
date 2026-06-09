@@ -1,9 +1,9 @@
 // ============================================================
-// blog-admin.js — HTML SHELL ONLY
+// blog-admin.js â HTML SHELL ONLY
 // ============================================================
-// JS lives in: admin-client.js (served via /api/admin-js → /admin-client.js)
-// CSS lives in: admin-client.css (served via /api/admin-css → /admin-client.css)
-// Edit JS/CSS in those files — no escaping constraints there.
+// JS lives in: admin-client.js (served via /api/admin-js â /admin-client.js)
+// CSS lives in: admin-client.css (served via /api/admin-css â /admin-client.css)
+// Edit JS/CSS in those files â no escaping constraints there.
 // This file only contains the HTML structure.
 // ============================================================
 export default function handler(req, res) {
@@ -35,6 +35,43 @@ export default function handler(req, res) {
 <input type="password" class="login-input" id="pw-input" placeholder="Admin password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){doLogin();return false;}">
 <button type="button" class="login-btn" id="login-btn" onclick="doLogin()">Enter<\/button>
 <div class="login-error" id="login-error"><\/div>
+<p style="text-align:center;margin-top:12px;">
+  <a href="#" id="forgot-pw-link"
+     style="font-size:13px;color:#4A7A7C;text-decoration:none;">
+    Forgot password?
+  <\/a>
+<\/p>
+
+<div id="reset-request-form" style="display:none;padding:24px;">
+  <h3 style="margin-bottom:12px;">Reset Password<\/h3>
+  <p style="font-size:13px;color:#4A7A7C;margin-bottom:16px;">
+    Enter your admin email to receive a reset link.
+  <\/p>
+  <input type="email" id="reset-email" placeholder="your@email.com"
+    style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ccc;border-radius:6px;">
+  <button type="button" onclick="submitResetRequest()"
+    style="width:100%;padding:10px;background:#1A6860;color:#fff;border:none;border-radius:6px;cursor:pointer;">
+    Send Reset Link
+  <\/button>
+  <p style="text-align:center;margin-top:12px;">
+    <a href="#" onclick="showLogin()"
+       style="font-size:13px;color:#4A7A7C;text-decoration:none;">
+      Back to login
+    <\/a>
+  <\/p>
+<\/div>
+
+<div id="reset-confirm-form" style="display:none;padding:24px;">
+  <h3 style="margin-bottom:12px;">Set New Password<\/h3>
+  <input type="password" id="new-password" placeholder="New password (min 8 chars)"
+    style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ccc;border-radius:6px;">
+  <input type="password" id="confirm-password" placeholder="Confirm new password"
+    style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ccc;border-radius:6px;">
+  <button type="button" onclick="submitNewPassword()"
+    style="width:100%;padding:10px;background:#1A6860;color:#fff;border:none;border-radius:6px;cursor:pointer;">
+    Set New Password
+  <\/button>
+<\/div>
 <\/div>
 <\/div>
 
@@ -102,7 +139,7 @@ Batch Upload
 <!-- Editor view -->
 <div id="editor-view">
 <button type="button" class="editor-back" onclick="cancelEdit()">
-<span id="editor-back-label">← Back to Posts<\/span>
+<span id="editor-back-label">â Back to Posts<\/span>
 <\/button>
 <div class="editor-panels">
 <div class="editor-left">
