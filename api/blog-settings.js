@@ -8,6 +8,12 @@ const DEFAULTS = {
   postsPerPage: 30
 };
 
+const allowedOrigins = [
+  'https://themeparkcopilot.com',
+  'https://app.themeparkcopilot.com',
+  'https://disney-wait-times-lupt.vercel.app'
+];
+
 async function readBlob(pathname) {
   const { blobs } = await list({ prefix: pathname, limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN });
   const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
@@ -18,7 +24,13 @@ async function readBlob(pathname) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Fix 7: Restricted CORS
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -34,7 +46,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    // Fix 5: JWT verification FIRST before any data processing
     const sentToken = req.headers['x-admin-key'] || '';
+    if (!sentToken) return res.status(401).json({ error: 'Unauthorized' });
     try {
       jwt.verify(sentToken, process.env.JWT_SECRET);
     } catch(err) {
