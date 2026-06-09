@@ -12,7 +12,9 @@ async function handler(req, res) {
     // Only return non-sensitive config - NEVER the API key
     return res.status(200).json({
       pusherKey: process.env.PUSHER_KEY || '',
-      pusherCluster: process.env.PUSHER_CLUSTER || 'us2'
+      pusherCluster: process.env.PUSHER_CLUSTER || 'us2',
+            passGuest: process.env.PASS_GUEST || '',
+            passAdmin: process.env.PASS_ADMIN || ''
     });
   }
 
