@@ -1,6 +1,12 @@
 import jwt from 'jsonwebtoken';
 import { put, list } from '@vercel/blob';
 
+const allowedOrigins = [
+  'https://themeparkcopilot.com',
+  'https://app.themeparkcopilot.com',
+  'https://disney-wait-times-lupt.vercel.app'
+];
+
 async function readBlob(pathname) {
   const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
   const matches = (blobs || []).filter(b => b.pathname === pathname)
@@ -14,18 +20,26 @@ async function readBlob(pathname) {
 // POST /api/blog-schedule
 // Body: { slug, scheduledAt } — scheduledAt can be ISO string or null to cancel
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
+  // Fix 5: JWT verification FIRST before any data processing
   const sentToken = req.headers['x-admin-key'] || '';
+  if (!sentToken) return res.status(401).json({ error: 'Unauthorized' });
   try {
     jwt.verify(sentToken, process.env.JWT_SECRET);
   } catch (err) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  // Fix 7: Restricted CORS
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   let body = req.body;
   if (typeof body === 'string') {
@@ -38,7 +52,6 @@ export default async function handler(req, res) {
     const post = await readBlob('blog/posts/' + slug);
     if (!post) return res.status(404).json({ error: 'Post not found: ' + slug });
 
-    // Update scheduledAt
     if (scheduledAt === null || scheduledAt === undefined || scheduledAt === '') {
       delete post.scheduledAt;
     } else {
@@ -46,14 +59,12 @@ export default async function handler(req, res) {
     }
     post.updatedAt = new Date().toISOString();
 
-    // Save post blob back
     await put('blog/posts/' + slug, JSON.stringify(post), {
       access: 'public',
       allowOverwrite: true,
       token: process.env.BLOB_READ_WRITE_TOKEN
     });
 
-    // Update index with scheduledAt
     let index = (await readBlob('blog/posts/index')) || [];
     const idx = index.findIndex(p => p.slug === slug);
     if (idx >= 0) {
