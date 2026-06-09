@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { put } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 import Busboy from 'busboy';
 
 const rateLimit = new Map();
@@ -181,6 +181,26 @@ export default async function handler(req, res) {
         time: new Date().toISOString()
       });
       return res.status(400).json({ error: 'File content does not match claimed type' });
+    }
+
+    // Check for recent duplicate (same file size uploaded in last 5 minutes)
+    const { blobs } = await list({
+      prefix: 'blog-images/',
+      limit: 100,
+      token: process.env.BLOB_READ_WRITE_TOKEN
+    });
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const recentDuplicate = blobs.find(b => {
+      const uploadedAt = new Date(b.uploadedAt).getTime();
+      return b.size === fileBuffer.length && uploadedAt > fiveMinutesAgo;
+    });
+    if (recentDuplicate) {
+      return res.status(200).json({
+        success: true,
+        url: recentDuplicate.url,
+        filename: recentDuplicate.pathname.split('/').pop(),
+        deduplicated: true
+      });
     }
 
     // Fix 2 — Generate safe random filename (never use original)
