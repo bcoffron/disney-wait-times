@@ -1,19 +1,33 @@
 import { put, list } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).end();
+const allowedOrigins = [
+  'https://themeparkcopilot.com',
+  'https://app.themeparkcopilot.com',
+  'https://disney-wait-times-lupt.vercel.app'
+];
 
+export default async function handler(req, res) {
+  // Fix 5: JWT verification FIRST before any data processing
+  const token = req.headers['x-admin-key'];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
   try {
-    const token = req.headers['x-admin-key'];
     jwt.verify(token, process.env.JWT_SECRET);
   } catch(e) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  // Fix 7: Restricted CORS
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).end();
 
   const { slug, publishedAt, updatedAt } = req.body;
   if (!slug) return res.status(400).json({ error: 'slug required' });
