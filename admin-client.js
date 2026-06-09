@@ -26,7 +26,7 @@ let batchImages = {};
 // IN-USE DELETE state
 let _deleteInUseUrl = null;
 let _deleteInUseMultiUrls = null;
-loginFailures++;let _deleteFromView = null;
+let _deleteFromView = null;
 
 // IMAGE SELECTION state
 let imgSelectMode = false;
@@ -96,7 +96,7 @@ function doLogin() {
       loginFailures = 0;
       showApp();
     } else {
-DOMContentLoaded      document.getElementById('login-error').textContent = 'Incorrect password.';
+document.getElementById('login-error').textContent = 'Incorrect password.';
       btn.textContent = 'Enter';
       if (loginFailures >= 5) {
         loginLocked = true;
@@ -150,7 +150,7 @@ async function submitNewPassword() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, newPassword })
   });
-showResetRequest  if (data.success) { showToast('Password updated successfully', 'success'); window.history.replaceState({}, '', '/admin'); showLogin(); }
+if (data.success) { showToast('Password updated successfully', 'success'); window.history.replaceState({}, '', '/admin'); showLogin(); }
   else { showToast(data.error || 'Reset failed', 'error'); }
 }
 
