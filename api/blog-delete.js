@@ -14,14 +14,20 @@ async function readBlob(pathname) {
 export default async function handler(req, res) {
   // Fix 5: JWT verification FIRST before any data processing
   const sentToken = req.headers['x-admin-key'] || '';
-  if (!sentToken) return res.status(401).json({ error: 'Unauthorized' });
+    if (!sentToken) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
   try {
     jwt.verify(sentToken, process.env.JWT_SECRET);
   } catch (err) {
+        console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
     return res.status(401).json({ error: 'Unauthorized' });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
+  const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
+    const contentLength = parseInt(req.headers['content-length'] || '0');
+    if (contentLength > MAX_REQUEST_SIZE) {
+          return res.status(413).json({ error: 'Request too large' });
+    }
+  
   let body = req.body;
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch (e) { return res.status(400).json({ error: 'Invalid JSON' }); }
