@@ -1440,8 +1440,8 @@ const SHOWS=[
 var apiKey='', curDay=0, curTab='schedule';
 var waits={}, waitLastFetch=0;
 var weatherData=null;
-var PASS_GUEST='cw9dis2026';
-var PASS_ADMIN='cwdis2026admin';
+var PASS_GUEST='';
+var PASS_ADMIN='';
 var userRole='guest'; // 'admin' or 'guest'
 
 
@@ -1949,7 +1949,7 @@ function _aiFetch(endpoint, body) {
   var code = localStorage.getItem('tpcp_code') || '';
   var role = localStorage.getItem('tpcp_role') || 'guest';
   var headers = {'Content-Type': 'application/json'};
-  if (role === 'admin') { headers['x-admin-key'] = 'cwdis2026admin'; }
+  if (role === 'admin') { headers['x-admin-key'] = PASS_ADMIN; }
   var secureBody = Object.assign({}, body, { tripCode: code });
   return fetch(SYNC_BASE + endpoint, { method: 'POST', headers: headers, body: JSON.stringify(secureBody) });
 }
@@ -1993,7 +1993,7 @@ async function _aiProxy(body, cacheCtx){
   }
   const MAX_CACHE_CONTEXT=4000;const trimmedCache=(parkIntelCache||'').substring(0,MAX_CACHE_CONTEXT);var _rideCtx=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});var ctx=cacheCtx||(trimmedCache?(trimmedCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';if(_rideCtx)ctx=(_rideCtx+'\n'+ctx).substring(0,MAX_CACHE_CONTEXT+_rideCtx.length);
   try{
-    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:(function(){var h={'Content-Type':'application/json'};if(localStorage.getItem('tpcp_role')==='admin')h['x-admin-key']='cwdis2026admin';return h;})(),
+    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:(function(){var h={'Content-Type':'application/json'};if(localStorage.getItem('tpcp_role')==='admin')h['x-admin-key']=PASS_ADMIN;return h;})(),
       body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6'})});
     var d;
     try{d=await r.json();}catch(jsonErr){return{error:{message:'AI response parse error: '+r.status}};}
@@ -2025,7 +2025,7 @@ async function pullApiKey(){
     if(data.apiKey&&!apiKey){
       apiKey=data.apiKey;
       try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}
-      if(data.pusherKey){window.PUSHER_KEY=data.pusherKey;}if(data.pusherCluster){window.PUSHER_CLUSTER=data.pusherCluster;}
+      if(data.pusherKey){window.PUSHER_KEY=data.pusherKey;}if(data.pusherCluster){window.PUSHER_CLUSTER=data.pusherCluster;}if(data.passGuest)PASS_GUEST=data.passGuest;if(data.passAdmin)PASS_ADMIN=data.passAdmin;
       if(data.pusherKey){window.PUSHER_KEY=data.pusherKey;}if(data.pusherCluster){window.PUSHER_CLUSTER=data.pusherCluster;}
       console.log('API key pulled from server');
       // Hide the API setup card for guests
@@ -5546,7 +5546,7 @@ function obFinish() {
 }
 
 function ob8RenderSummary() {
-  console.log('_obTripConfig at step 8:', JSON.stringify(_obTripConfig));
+  console.log('_obTripConfig at step 8: loaded');
   var cfg = _obTripConfig || {};
   var card = document.getElementById('ob8SummaryCard');
   if (!card) return;
