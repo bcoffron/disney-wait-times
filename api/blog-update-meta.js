@@ -11,7 +11,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   if (req.method !== 'POST') return res.status(405).end();
-
+  const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
+    const contentLength = parseInt(req.headers['content-length'] || '0');
+    if (contentLength > MAX_REQUEST_SIZE) {
+          return res.status(413).json({ error: 'Request too large' });
+    }
+  
   const { slug, publishedAt, updatedAt } = req.body;
   if (!slug) return res.status(400).json({ error: 'slug required' });
   if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ error: 'Invalid slug format' });
