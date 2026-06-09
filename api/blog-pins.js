@@ -8,13 +8,6 @@ import jwt from 'jsonwebtoken';
 
 const BLOB_KEY = 'blog:pins';
 
-const allowedOrigins = [
-  'https://themeparkcopilot.com',
-  'https://www.themeparkcopilot.com',
-  'https://app.themeparkcopilot.com',
-  'https://disney-wait-times-lupt.vercel.app'
-];
-
 async function readPins() {
   try {
     const { blobs } = await list({ prefix: BLOB_KEY, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
@@ -30,18 +23,6 @@ async function readPins() {
 }
 
 export default async function handler(req, res) {
-  // Fix 7: Restricted CORS
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
   if (req.method === 'GET') {
     try {
       const pins = await readPins();
