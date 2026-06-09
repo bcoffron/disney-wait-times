@@ -343,6 +343,10 @@ const html = `<!DOCTYPE html>
 export default function handler(req, res) {
   // Fix 7: Restricted CORS
     res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader("Cache-Control", "no-store, no-cache");
     return res.status(200).send(html);
 }
