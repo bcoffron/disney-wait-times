@@ -41,6 +41,7 @@ export default function handler(req, res) {
     Forgot password?
   <\/a>
 <\/p>
+<\/div>
 
 <div id="reset-request-form" style="display:none;padding:24px;">
   <h3 style="margin-bottom:12px;">Reset Password<\/h3>
@@ -71,7 +72,6 @@ export default function handler(req, res) {
     style="width:100%;padding:10px;background:#1A6860;color:#fff;border:none;border-radius:6px;cursor:pointer;">
     Set New Password
   <\/button>
-<\/div>
 <\/div>
 <\/div>
 
