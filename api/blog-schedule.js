@@ -1,13 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { put, list } from '@vercel/blob';
 
-const allowedOrigins = [
-  'https://themeparkcopilot.com',
-  'https://www.themeparkcopilot.com',
-  'https://app.themeparkcopilot.com',
-  'https://disney-wait-times-lupt.vercel.app'
-];
-
 async function readBlob(pathname) {
   const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
   const matches = (blobs || []).filter(b => b.pathname === pathname)
@@ -29,15 +22,6 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-
-  // Fix 7: Restricted CORS
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   let body = req.body;
