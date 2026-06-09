@@ -2,22 +2,7 @@
 // Fix 3: Accept CRON_SECRET via header (primary) and legacy token via query param (temporary)
 import { list, put } from '@vercel/blob';
 
-const allowedOrigins = [
-  'https://themeparkcopilot.com',
-  'https://www.themeparkcopilot.com',
-  'https://app.themeparkcopilot.com',
-  'https://disney-wait-times-lupt.vercel.app'
-];
-
 export default async function handler(req, res) {
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
   // Fix 3: Accept new header (primary) or legacy URL param (temporary backward-compat)
   const secret = req.headers['x-reindex-secret'] || req.query.token;
   if (secret !== process.env.CRON_SECRET && secret !== 'tpcp-reindex-2026') {
