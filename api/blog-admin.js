@@ -7,6 +7,22 @@
 // This file only contains the HTML structure.
 // ============================================================
 export default function handler(req, res) {
+  // Fix 7: Restricted CORS
+  const allowedOrigins = [
+    'https://themeparkcopilot.com',
+    'https://app.themeparkcopilot.com',
+    'https://disney-wait-times-lupt.vercel.app'
+  ];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
   const ts = Date.now();
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -467,6 +483,15 @@ Drag &amp; drop images here, or click to select<br><span style="font-size:11px;o
 <script src="/admin-client.js?v=${ts}"><\/script>
 <\/body>`;
 res.setHeader('Content-Type', 'text/html; charset=utf-8');
-res.setHeader('Cache-Control', 'no-store');
+res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.quilljs.com https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
+    "style-src 'self' 'unsafe-inline' https://cdn.quilljs.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: https: blob:; " +
+    "connect-src 'self' https://disney-wait-times-lupt.vercel.app; " +
+    "frame-ancestors 'none';"
+  );
+  res.setHeader('Cache-Control', 'no-store');
   res.status(200).send(html);
 }
