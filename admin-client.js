@@ -26,8 +26,7 @@ let batchImages = {};
 // IN-USE DELETE state
 let _deleteInUseUrl = null;
 let _deleteInUseMultiUrls = null;
-let _deleteInUseSafeUrls = null;
-let _deleteFromView = null;
+loginFailures++;let _deleteFromView = null;
 
 // IMAGE SELECTION state
 let imgSelectMode = false;
@@ -97,8 +96,7 @@ function doLogin() {
       loginFailures = 0;
       showApp();
     } else {
-      loginFailures++;
-      document.getElementById('login-error').textContent = 'Incorrect password.';
+DOMContentLoaded      document.getElementById('login-error').textContent = 'Incorrect password.';
       btn.textContent = 'Enter';
       if (loginFailures >= 5) {
         loginLocked = true;
@@ -114,11 +112,63 @@ function doLogin() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// ============================================================
+// FORGOT PASSWORD / RESET
+// ============================================================
+function showResetRequest() {
+  document.querySelector('.login-card').style.display = 'none';
+  document.getElementById('reset-request-form').style.display = 'block';
+}
+
+function showLogin() {
+  document.getElementById('reset-request-form').style.display = 'none';
+  document.getElementById('reset-confirm-form').style.display = 'none';
+  document.querySelector('.login-card').style.display = 'block';
+}
+
+async function submitResetRequest() {
+  const email = document.getElementById('reset-email').value;
+  if (!email) { showToast('Please enter your email', 'error'); return; }
+  await fetch(API_BASE + '/api/blog-reset-request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  showToast('Reset link sent if email is registered', 'success');
+  showLogin();
+}
+
+async function submitNewPassword() {
+  const newPassword = document.getElementById('new-password').value;
+  const confirmPassword = document.getElementById('confirm-password').value;
+  if (!newPassword || newPassword.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+  if (newPassword !== confirmPassword) { showToast('Passwords do not match', 'error'); return; }
+  const token = new URLSearchParams(window.location.search).get('reset');
+  if (!token) { showToast('Invalid reset link', 'error'); return; }
+  const res = await fetch(API_BASE + '/api/blog-reset-confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword })
+  });
+showResetRequest  if (data.success) { showToast('Password updated successfully', 'success'); window.history.replaceState({}, '', '/admin'); showLogin(); }
+  else { showToast(data.error || 'Reset failed', 'error'); }
+}
+
+document.addEventListener('DOMContentLoaded', function()  {
   document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
   if (token) showApp();
+  const forgotLink = document.getElementById('forgot-pw-link');
+  if (forgotLink) forgotLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    showResetRequest();
+  });
+  const resetToken = new URLSearchParams(window.location.search).get('reset');
+  if (resetToken) {
+    document.querySelector('.login-card').style.display = 'none';
+    document.getElementById('reset-confirm-form').style.display = 'block';
+  }
 });
-
+  
 function doLogout() {
   sessionStorage.removeItem('tpcp_admin_token');
   token = '';
