@@ -33,6 +33,7 @@ let imgSelectMode = false;
 let selectedImgUrls = new Set();
 var allUsedUrls = new Set();
 var pinnedSlugs = [];
+var isLoadingImages = false;
 
 // ============================================================
 // NORMALIZE URL (module-level so deleteImage and loadImagesInline can both use it)
@@ -1520,6 +1521,9 @@ await _doMultiDelete([...inUseUrls, ...safeUrls]);
 }
 
 async function loadImagesInline() {
+if (isLoadingImages) return;
+isLoadingImages = true;
+try {
 const q = "'";
 const grid = document.getElementById('images-inline-grid');
 const usedSection = document.getElementById('used-photos-section');
@@ -1638,8 +1642,10 @@ usedGrid.innerHTML = usedEntries.map(entry =>
 usedSection.style.display = 'none';
 }
 }
+} finally {
+isLoadingImages = false;
 }
-
+}
 function selectImage(url) {
 if (imgManagerContext === 'hero') {
 document.getElementById('hero-preview').src = url;
