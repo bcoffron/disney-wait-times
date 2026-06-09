@@ -8,7 +8,12 @@ export default async function handler(req, res) {
   if (secret !== process.env.CRON_SECRET && secret !== 'tpcp-reindex-2026') {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-
+  const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
+    const contentLength = parseInt(req.headers['content-length'] || '0');
+    if (contentLength > MAX_REQUEST_SIZE) {
+          return res.status(413).json({ error: 'Request too large' });
+    }
+  
   try {
     let allBlobs = [], cursor;
     do {
