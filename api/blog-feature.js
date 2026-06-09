@@ -4,6 +4,12 @@
 import { list, put } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
 
+const allowedOrigins = [
+  'https://themeparkcopilot.com',
+  'https://app.themeparkcopilot.com',
+  'https://disney-wait-times-lupt.vercel.app'
+];
+
 async function readBlob(pathname) {
   const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
   const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
@@ -14,7 +20,15 @@ async function readBlob(pathname) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Fix 7: Restricted CORS
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // GET: return current featured slug (public)
@@ -29,7 +43,9 @@ export default async function handler(req, res) {
 
   // POST: update featured slug (JWT-protected)
   if (req.method === 'POST') {
+    // Fix 5: JWT verification FIRST before any data processing
     const authHeader = req.headers['x-admin-key'] || '';
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
     try {
       jwt.verify(authHeader, process.env.JWT_SECRET);
     } catch(e) {
@@ -50,7 +66,6 @@ export default async function handler(req, res) {
           token: process.env.BLOB_READ_WRITE_TOKEN
         });
       } else {
-        // Store empty string to "unfeature" (blob must exist but be empty)
         await put('blog:featured', '', {
           access: 'public',
           allowOverwrite: true,
