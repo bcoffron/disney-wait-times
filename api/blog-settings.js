@@ -18,6 +18,11 @@ async function readBlob(pathname) {
 }
 
 export default async function handler(req, res) {
+    const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
+    const contentLength = parseInt(req.headers['content-length'] || '0');
+    if (contentLength > MAX_REQUEST_SIZE) {
+          return res.status(413).json({ error: 'Request too large' });
+    }
   if (req.method === 'GET') {
     try {
       const stored = await readBlob('blog:settings');
