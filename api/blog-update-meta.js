@@ -1,13 +1,6 @@
 import { put, list } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
 
-const allowedOrigins = [
-  'https://themeparkcopilot.com',
-  'https://www.themeparkcopilot.com',
-  'https://app.themeparkcopilot.com',
-  'https://disney-wait-times-lupt.vercel.app'
-];
-
 export default async function handler(req, res) {
   // Fix 5: JWT verification FIRST before any data processing
   const token = req.headers['x-admin-key'];
@@ -17,15 +10,6 @@ export default async function handler(req, res) {
   } catch(e) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-
-  // Fix 7: Restricted CORS
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
   const { slug, publishedAt, updatedAt } = req.body;
