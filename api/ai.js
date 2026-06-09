@@ -84,7 +84,13 @@ export default async function handler(req, res) {
       if (req.method === 'OPTIONS') return res.status(200).end();
       if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // -- A: Request size limit (10k chars) -------------------------------------------
+    const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
+        const contentLength = parseInt(req.headers['content-length'] || '0');
+        if (contentLength > MAX_REQUEST_SIZE) {
+                  return res.status(413).json({ error: 'Request too large' });
+        }
+      
+      // -- A: Request size limit (10k chars) -------------------------------------------
   const MAX_REQUEST_SIZE = 10000;
       if (JSON.stringify(req.body).length > MAX_REQUEST_SIZE) {
               return res.status(400).json({ error: 'Request too large' });
@@ -93,8 +99,8 @@ export default async function handler(req, res) {
   // -- C: Per-IP daily AI cap -------------------------------------------------------
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
       if (!checkAILimit(ip)) {
-              console.warn('[SECURITY] AI rate limit exceeded:', { ip, time: new Date().toISOString() });
-              return res.status(429).json({ error: 'Too many requests' });
+                    console.warn('[SECURITY] Rate limit exceeded:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', time: new Date().toISOString() });
+            return res.status(429).json({ error: 'Too many requests' });
       }
 
   // -- Security logging -------------------------------------------------------------
@@ -111,8 +117,8 @@ export default async function handler(req, res) {
       const _isAdmin = _sentAdmin === _adminKey;
       const _isValidTrip = _tripCode && typeof _tripCode === 'string' && _tripCode.length >= 8;
       if (!_isAdmin && !_isValidTrip) {
-              console.warn('[auth] Unauthorized request blocked');
-              return res.status(401).json({ error: 'Authentication required.' });
+                  console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
+            return res.status(401).json({ error: 'Authentication required.' });
       }
       // -------------------------------------------------------------------------
 
