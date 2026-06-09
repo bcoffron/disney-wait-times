@@ -469,11 +469,11 @@ Drag &amp; drop images here, or click to select<br><span style="font-size:11px;o
 res.setHeader('Content-Type', 'text/html; charset=utf-8');
 res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://cdn.quilljs.com https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
-    "style-src 'self' 'unsafe-inline' https://cdn.quilljs.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.quilljs.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
+    "style-src 'self' 'unsafe-inline' https://cdn.quilljs.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: https: blob:; " +
-    "connect-src 'self' https://disney-wait-times-lupt.vercel.app; " +
+    "connect-src 'self' https://disney-wait-times-lupt.vercel.app https://themeparkcopilot.com; " +
     "frame-ancestors 'none';"
   );
   res.setHeader('Cache-Control', 'no-store');
