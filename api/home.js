@@ -341,6 +341,31 @@ const html = `<!DOCTYPE html>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <\/html>`;
 
 export default function handler(req, res) {
+  // Fix 7: Restricted CORS + Fix 4: CSP for public page
+  const allowedOrigins = [
+    'https://themeparkcopilot.com',
+    'https://app.themeparkcopilot.com',
+    'https://disney-wait-times-lupt.vercel.app'
+  ];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: https: blob:; " +
+    "connect-src 'self'; " +
+    "frame-ancestors 'none';"
+  );
+
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "no-store, no-cache");
     return res.status(200).send(html);
