@@ -14,6 +14,11 @@ async function readBlob(pathname) {
 }
 
 export default async function handler(req, res) {
+    const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
+    const contentLength = parseInt(req.headers['content-length'] || '0');
+    if (contentLength > MAX_REQUEST_SIZE) {
+          return res.status(413).json({ error: 'Request too large' });
+    }
   // GET: return current featured slug (public)
   if (req.method === 'GET') {
     try {
@@ -28,10 +33,11 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     // Fix 5: JWT verification FIRST before any data processing
     const authHeader = req.headers['x-admin-key'] || '';
-    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+        if (!authHeader) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
     try {
       jwt.verify(authHeader, process.env.JWT_SECRET);
     } catch(e) {
+            console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
