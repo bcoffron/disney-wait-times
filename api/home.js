@@ -8,7 +8,7 @@ const html = `<!DOCTYPE html>
 <meta name="description" content="AI-powered Disneyland and Walt Disney World trip planner and guide. Build your perfect park day, monitor live wait times, and never waste time in the wrong line.">
   <!-- Canonical -->
     <link rel="canonical" href="https://theeparkcopilot.com">
-      <!-- Open Graph / Social sharing --
+      <!-- Open Graph / Social sharing -
         <meta property="og:type" content="website">
           <meta property="og:url" content="https://themeparkcopilot.com">
             <meta property="og:title" content="Theme Park Co-Pilot — AI-Powered Disneyland &amp; Disney World Planner">
@@ -342,16 +342,6 @@ const html = `<!DOCTYPE html>
 
 eexport default function handler(req, res) {
   // Fix 7: Restricted CORS
-  res.setHeader('Content-Security-Policy',
-                    "default-src 'self'; " +
-                    "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
-                    "font-src 'self' https://fonts.gstatic.com; " +
-                    "img-src 'self' data: https: blob:; " +
-                    "connect-src 'self'; " +
-                    "frame-ancestors 'none';"
-                  );
-  
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "no-store, no-cache");
     return res.status(200).send(html);
