@@ -154,6 +154,20 @@ if (data.success) { showToast('Password updated successfully', 'success'); windo
   else { showToast(data.error || 'Reset failed', 'error'); }
 }
 
+// ============================================================
+// SHOW/HIDE PASSWORD TOGGLE
+// ============================================================
+function togglePasswordVisibility(inputId, btn) {
+  var input = document.getElementById(inputId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = '&#128683;';
+  } else {
+    input.type = 'password';
+    btn.innerHTML = '&#128065;';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function()  {
   document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
   if (token) showApp();
