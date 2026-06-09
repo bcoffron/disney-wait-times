@@ -79,7 +79,11 @@ export default async function handler(req, res) {
       if (contentLength > MAX_REQUEST_SIZE) {
               return res.status(413).json({ error: 'Request too large' });
       }
-    // Fix 7: Restricted CORS
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        // Fix 7: Restricted CORS
   // Fix 6: Rate limiting — 100 requests per IP per minute
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
