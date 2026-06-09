@@ -43,10 +43,11 @@ export const config = {
 export default async function handler(req, res) {
   // Fix 5: JWT verification FIRST before any data processing
   const sentToken = req.headers['x-admin-key'] || '';
-  if (!sentToken) return res.status(401).json({ error: 'Unauthorized' });
+    if (!sentToken) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
   try {
     jwt.verify(sentToken, process.env.JWT_SECRET);
   } catch {
+        console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -64,12 +65,14 @@ export default async function handler(req, res) {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   const rawContentType = req.headers['content-type'] || '';
   if (!rawContentType.startsWith('multipart/form-data') && !allowedTypes.some(t => rawContentType.includes(t))) {
+        console.warn('[SECURITY] Invalid file type rejected:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', contentType: req.headers['content-type'], time: new Date().toISOString() });
     return res.status(400).json({ error: 'Invalid file type. JPEG, PNG, WebP, GIF only.' });
   }
 
   // Fix 1: Rate limiting — 20 uploads per IP per hour
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
   if (!checkRateLimit(ip, 20, 60 * 60 * 1000)) {
+        console.warn('[SECURITY] Rate limit exceeded:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', time: new Date().toISOString() });
     return res.status(429).json({ error: 'Too many requests' });
   }
 
