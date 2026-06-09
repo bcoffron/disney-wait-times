@@ -34,6 +34,32 @@ function mimeFromFilename(filename) {
   return MIME_BY_EXT[ext] || 'image/jpeg';
 }
 
+// Fix 1 — Magic bytes validation
+function validateMagicBytes(buffer, contentType) {
+  const bytes = new Uint8Array(buffer);
+
+  if (contentType.includes('image/jpeg')) {
+    return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+  }
+  if (contentType.includes('image/png')) {
+    return bytes[0] === 0x89 && bytes[1] === 0x50 &&
+           bytes[2] === 0x4E && bytes[3] === 0x47 &&
+           bytes[4] === 0x0D && bytes[5] === 0x0A &&
+           bytes[6] === 0x1A && bytes[7] === 0x0A;
+  }
+  if (contentType.includes('image/webp')) {
+    return bytes[0] === 0x52 && bytes[1] === 0x49 &&
+           bytes[2] === 0x46 && bytes[3] === 0x46 &&
+           bytes[8] === 0x57 && bytes[9] === 0x45 &&
+           bytes[10] === 0x42 && bytes[11] === 0x50;
+  }
+  if (contentType.includes('image/gif')) {
+    return bytes[0] === 0x47 && bytes[1] === 0x49 &&
+           bytes[2] === 0x46 && bytes[3] === 0x38;
+  }
+  return false;
+}
+
 export const config = {
   api: {
     bodyParser: false, // CRITICAL — must be false or Vercel pre-consumes the stream
@@ -43,16 +69,23 @@ export const config = {
 export default async function handler(req, res) {
   // Fix 5: JWT verification FIRST before any data processing
   const sentToken = req.headers['x-admin-key'] || '';
-    if (!sentToken) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
+  if (!sentToken) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
   try {
     jwt.verify(sentToken, process.env.JWT_SECRET);
   } catch {
-        console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
+    console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   // Fix 7: Restricted CORS
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Fix 3 — Filename length limit
+  const originalFilename = req.headers['x-filename'] || '';
+  const MAX_FILENAME_LENGTH = 100;
+  if (originalFilename.length > MAX_FILENAME_LENGTH) {
+    return res.status(400).json({ error: 'Filename too long' });
+  }
 
   // Fix 2: Server-side file size check (header check before reading body)
   const MAX_SIZE = 4 * 1024 * 1024; // 4MB
@@ -65,20 +98,18 @@ export default async function handler(req, res) {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   const rawContentType = req.headers['content-type'] || '';
   if (!rawContentType.startsWith('multipart/form-data') && !allowedTypes.some(t => rawContentType.includes(t))) {
-        console.warn('[SECURITY] Invalid file type rejected:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', contentType: req.headers['content-type'], time: new Date().toISOString() });
+    console.warn('[SECURITY] Invalid file type rejected:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', contentType: req.headers['content-type'], time: new Date().toISOString() });
     return res.status(400).json({ error: 'Invalid file type. JPEG, PNG, WebP, GIF only.' });
   }
 
   // Fix 1: Rate limiting — 20 uploads per IP per hour
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
   if (!checkRateLimit(ip, 20, 60 * 60 * 1000)) {
-        console.warn('[SECURITY] Rate limit exceeded:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', time: new Date().toISOString() });
+    console.warn('[SECURITY] Rate limit exceeded:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', time: new Date().toISOString() });
     return res.status(429).json({ error: 'Too many requests' });
   }
 
   try {
-    const filename = req.headers['x-filename'] || ('upload-' + Date.now() + '.jpg');
-
     // Buffer the entire raw body first in all cases.
     const rawBody = await new Promise((resolve, reject) => {
       const chunks = [];
@@ -106,7 +137,7 @@ export default async function handler(req, res) {
         busboy.on('file', (_fieldname, fileStream, info) => {
           mime = (info.mimeType && info.mimeType !== 'application/octet-stream')
             ? info.mimeType
-            : mimeFromFilename(info.filename || filename);
+            : mimeFromFilename(info.filename || originalFilename);
           const parts = [];
           fileStream.on('data', d => parts.push(d));
           fileStream.on('end', () => { buf = Buffer.concat(parts); });
@@ -134,7 +165,7 @@ export default async function handler(req, res) {
       fileBuffer = rawBody;
       fileMime = rawContentType.startsWith('image/')
         ? rawContentType.split(';')[0].trim()
-        : mimeFromFilename(filename);
+        : mimeFromFilename(originalFilename);
 
       // Fix 2: Validate MIME type for raw uploads
       if (!allowedTypes.includes(fileMime)) {
@@ -142,7 +173,23 @@ export default async function handler(req, res) {
       }
     }
 
-    const blob = await put('blog-images/' + filename, fileBuffer, {
+    // Fix 1 — Magic bytes validation
+    if (!validateMagicBytes(fileBuffer, fileMime)) {
+      console.warn('[SECURITY] Magic bytes mismatch - possible file type spoofing:', {
+        ip: req.headers['x-forwarded-for']?.split(',')[0],
+        claimedType: fileMime,
+        time: new Date().toISOString()
+      });
+      return res.status(400).json({ error: 'File content does not match claimed type' });
+    }
+
+    // Fix 2 — Generate safe random filename (never use original)
+    const ext = fileMime.includes('jpeg') ? 'jpg' :
+                fileMime.includes('png') ? 'png' :
+                fileMime.includes('webp') ? 'webp' : 'gif';
+    const safeFilename = `blog-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+
+    const blob = await put('blog-images/' + safeFilename, fileBuffer, {
       access: 'public',
       contentType: fileMime,
       allowOverwrite: true,
@@ -150,7 +197,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       url: blob.url,
-      filename,
+      filename: safeFilename,
       uploadedAt: new Date().toISOString(),
     });
   } catch (err) {
