@@ -341,21 +341,7 @@ const html = `<!DOCTYPE html>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         <\/html>`;
 
 export default function handler(req, res) {
-  // Fix 7: Restricted CORS + Fix 4: CSP for public page
-  const allowedOrigins = [
-    'https://themeparkcopilot.com',
-    'https://www.themeparkcopilot.com',
-    'https://app.themeparkcopilot.com',
-    'https://disney-wait-times-lupt.vercel.app'
-  ];
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  res.setHeader('Content-Security-Policy',
+  // Fix 7: Restricted CORS + Fix 4: CSP for public page  res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
