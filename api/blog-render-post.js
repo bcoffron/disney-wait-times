@@ -99,20 +99,6 @@ const POST_CSS = '*, *::before, *::after { box-sizing: border-box; margin: 0; pa
 
 export default async function handler(req, res) {
   // Fix 7: Restricted CORS
-  const allowedOrigins = [
-    'https://themeparkcopilot.com',
-    'https://www.themeparkcopilot.com',
-    'https://app.themeparkcopilot.com',
-    'https://disney-wait-times-lupt.vercel.app'
-  ];
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
   // Fix 6: Rate limiting — 100 requests per IP per minute
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
