@@ -23,6 +23,11 @@ async function readPins() {
 }
 
 export default async function handler(req, res) {
+    const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
+    const contentLength = parseInt(req.headers['content-length'] || '0');
+    if (contentLength > MAX_REQUEST_SIZE) {
+          return res.status(413).json({ error: 'Request too large' });
+    }
   if (req.method === 'GET') {
     try {
       const pins = await readPins();
@@ -36,11 +41,13 @@ export default async function handler(req, res) {
     // Fix 5: JWT verification FIRST before any data processing
     const adminKey = req.headers['x-admin-key'] || '';
     if (!adminKey) {
+            console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
       return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
       jwt.verify(adminKey, process.env.JWT_SECRET);
     } catch(e) {
+            console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
