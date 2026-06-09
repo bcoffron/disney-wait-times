@@ -32,7 +32,7 @@ export default function handler(req, res) {
 <div class="login-icon"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt=""><\/div>
 <div class="login-label">Admin<\/div>
 <div class="login-wordmark">Theme Park Co<span style="color:#ECA050">&#10022;<\/span>Pilot<\/div>
-<input type="password" class="login-input" id="pw-input" placeholder="Admin password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){doLogin();return false;}">
+<div style="position:relative;"><input type="password" class="login-input" id="pw-input" placeholder="Admin password" autocomplete="current-password" style="padding-right:40px;" onkeydown="if(event.key==='Enter'){doLogin();return false;}"><button type="button" onclick="togglePasswordVisibility('pw-input', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#4A7A7C;font-size:16px;">&#128065;<\/button><\/div>
 <button type="button" class="login-btn" id="login-btn" onclick="doLogin()">Enter<\/button>
 <div class="login-error" id="login-error"><\/div>
 <p style="text-align:center;margin-top:12px;">
@@ -64,10 +64,8 @@ export default function handler(req, res) {
 
 <div id="reset-confirm-form" style="display:none;padding:24px;">
   <h3 style="margin-bottom:12px;">Set New Password<\/h3>
-  <input type="password" id="new-password" placeholder="New password (min 8 chars)"
-    style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ccc;border-radius:6px;">
-  <input type="password" id="confirm-password" placeholder="Confirm new password"
-    style="width:100%;padding:10px;margin-bottom:12px;border:1px solid #ccc;border-radius:6px;">
+  <div style="position:relative;margin-bottom:12px;"><input type="password" id="new-password" placeholder="New password (min 8 chars)" style="width:100%;padding:10px;padding-right:40px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;"><button type="button" onclick="togglePasswordVisibility('new-password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#4A7A7C;font-size:16px;">&#128065;<\/button><\/div>
+  <div style="position:relative;margin-bottom:12px;"><input type="password" id="confirm-password" placeholder="Confirm new password" style="width:100%;padding:10px;padding-right:40px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;"><button type="button" onclick="togglePasswordVisibility('confirm-password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#4A7A7C;font-size:16px;">&#128065;<\/button><\/div>
   <button type="button" onclick="submitNewPassword()"
     style="width:100%;padding:10px;background:#1A6860;color:#fff;border:none;border-radius:6px;cursor:pointer;">
     Set New Password
