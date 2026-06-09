@@ -1,18 +1,48 @@
 // api/blog-auth.js - POST /api/blog-auth - 5 attempts/IP/hour rate limit
 import jwt from 'jsonwebtoken';
-const attempts = {};
+
+const rateLimit = new Map();
+
+function checkRateLimit(ip, max, windowMs) {
+  const now = Date.now();
+  if (!rateLimit.has(ip)) {
+    rateLimit.set(ip, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  const record = rateLimit.get(ip);
+  if (now > record.resetAt) {
+    rateLimit.set(ip, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (record.count >= max) return false;
+  record.count++;
+  return true;
+}
+
+const allowedOrigins = [
+  'https://themeparkcopilot.com',
+  'https://app.themeparkcopilot.com',
+  'https://disney-wait-times-lupt.vercel.app'
+];
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-  const now = Date.now();
-  const hourMs = 60 * 60 * 1000;
-  if (!attempts[ip] || now - attempts[ip].start > hourMs) attempts[ip] = { count: 0, start: now };
-  attempts[ip].count++;
-  if (attempts[ip].count > 5) return res.status(429).json({ error: 'Too many attempts. Try again in an hour.' });
+
+  const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
+  if (!checkRateLimit(ip, 5, 60 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Too many attempts. Try again in an hour.' });
+  }
+
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) { return res.status(400).json({ error: 'Invalid JSON' }); } }
   const { password } = body || {};
