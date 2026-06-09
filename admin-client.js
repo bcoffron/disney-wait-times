@@ -150,6 +150,7 @@ async function submitNewPassword() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, newPassword })
   });
+  const data = await res.json();
 if (data.success) { showToast('Password updated successfully', 'success'); window.history.replaceState({}, '', '/admin'); showLogin(); }
   else { showToast(data.error || 'Reset failed', 'error'); }
 }
