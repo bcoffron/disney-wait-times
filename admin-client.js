@@ -1635,6 +1635,9 @@ usedGrid.innerHTML = usedEntries.map(entry =>
 '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(entry.url) + "',this" + ')">Copy URL</button>' +
 '</div>' +
 '</div>' +
+'<button type="button" class="btn-use-image" onclick="selectImage(\'' + escAttr(entry.url) + '\')" ' +
+'style="margin-top:6px;padding:4px 10px;background:#1A6860;color:#fff;border:none;' +
+'border-radius:4px;font-size:11px;cursor:pointer;">Use</button>' +
 '<div class="used-photo-title" title="' + escAttr(entry.postTitle) + '">' + escHtml(entry.postTitle) + '</div>' +
 '</div>'
 ).join('');
