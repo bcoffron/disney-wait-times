@@ -20,13 +20,6 @@ function checkRateLimit(ip, max, windowMs) {
   return true;
 }
 
-const allowedOrigins = [
-  'https://themeparkcopilot.com',
-  'https://www.themeparkcopilot.com',
-  'https://app.themeparkcopilot.com',
-  'https://disney-wait-times-lupt.vercel.app'
-];
-
 // MIME type lookup by extension — fallback when Content-Type header is absent/wrong
 const MIME_BY_EXT = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg',
@@ -58,12 +51,6 @@ export default async function handler(req, res) {
   }
 
   // Fix 7: Restricted CORS
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // Fix 2: Server-side file size check (header check before reading body)
