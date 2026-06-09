@@ -130,7 +130,16 @@
     "api/waittimes.js": {
       "maxDuration": 15
     },
-    "api/blog-auth.js": {
+    "api/blog-setup-password.js": {
+      "maxDuration": 30
+    },
+    "api/blog-reset-request.js": {
+      "maxDuration": 15
+    },
+    "api/blog-reset-confirm.js": {
+      "maxDuration": 30
+    },
+        "api/blog-auth.js": {
       "maxDuration": 10
     },
     "api/blog-post.js": {
