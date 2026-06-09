@@ -1,7 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { del, put, list } from '@vercel/blob';
 
-const rl = {};
+const allowedOrigins = [
+  'https://themeparkcopilot.com',
+  'https://app.themeparkcopilot.com',
+  'https://disney-wait-times-lupt.vercel.app'
+];
 
 async function readBlob(pathname) {
   const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
@@ -14,24 +18,26 @@ async function readBlob(pathname) {
 }
 
 export default async function handler(req, res) {
+  // Fix 5: JWT verification FIRST before any data processing
   const sentToken = req.headers['x-admin-key'] || '';
+  if (!sentToken) return res.status(401).json({ error: 'Unauthorized' });
   try {
     jwt.verify(sentToken, process.env.JWT_SECRET);
   } catch (err) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  // Fix 7: Restricted CORS
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'https://themeparkcopilot.com');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-  const now = Date.now();
-  if (!rl[ip] || now - rl[ip].start > 60000) rl[ip] = { count: 0, start: now };
-  rl[ip].count++;
-  if (rl[ip].count > 20) return res.status(429).json({ error: 'Rate limit exceeded' });
 
   let body = req.body;
   if (typeof body === 'string') {
@@ -47,7 +53,7 @@ export default async function handler(req, res) {
 
     let index = (await readBlob('blog/posts/index')) || [];
     index = index.filter(p => p.slug !== slug);
-    await put('blog/posts/index', JSON.stringify(index), { access: 'public', allowOverwrite: true , token: process.env.BLOB_READ_WRITE_TOKEN });
+    await put('blog/posts/index', JSON.stringify(index), { access: 'public', allowOverwrite: true, token: process.env.BLOB_READ_WRITE_TOKEN });
 
     return res.status(200).json({ success: true });
   } catch (err) {
