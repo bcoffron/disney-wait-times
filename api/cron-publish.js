@@ -78,7 +78,9 @@ export default async function handler(req, res) {
     }
     if (published > 0) {
       try {
-        await fetch('https://disney-wait-times-lupt.vercel.app/api/blog-reindex?token=tpcp-reindex-2026');
+        await fetch('https://disney-wait-times-lupt.vercel.app/api/blog-reindex', {
+          headers: { 'x-reindex-secret': process.env.CRON_SECRET }
+        });
         console.log('[cron-publish] Reindex triggered');
       } catch(e) {
         console.log('[cron-publish] Reindex failed:', e.message);
