@@ -23,19 +23,10 @@ async function readSettings() {
 
 function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-// Curated post order matching the live static site
-var POST_ORDER = ["disneyland-rope-drop-strategy","best-time-to-visit-disneyland","disney-world-on-site-vs-off-site-hotels","best-restaurants-disneyland","walt-disney-world-rope-drop-strategy","disneyland-on-site-vs-off-site-hotels","how-to-use-lightning-lane-disneyland","disney-world-character-dining-guide","disneyland-vs-disney-world","disneyland-tips-first-timers","disney-world-dining-plan-worth-it","how-to-use-lightning-lane-walt-disney-world","best-snacks-disneyland","walt-disney-world-tips-first-timers","disneyland-vs-disney-california-adventure","best-restaurants-disney-world","which-disney-world-park-should-you-visit-first","how-to-plan-a-disneyland-trip","best-time-to-visit-walt-disney-world","how-to-plan-a-walt-disney-world-trip","epcot-world-showcase-food-guide","animal-kingdom-guide","disneyland-with-kids","magic-kingdom-guide","universal-orlando-vs-disney-world","epcot-guide","disney-world-budget-tips","hollywood-studios-guide","disney-world-itinerary-7-days","disney-world-with-toddlers"];
-
 function sortPosts(posts) {
-    var ordered = [];
-    POST_ORDER.forEach(function(slug) {
-          var p = posts.find(function(x) { return x.slug === slug; });
-          if (p) ordered.push(p);
-    });
-var rest = posts.filter(function(p) { return !POST_ORDER.includes(p.slug); });
-        rest.sort(function(a, b) { return new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0); });
-        rest.forEach(function(p) { ordered.push(p); });
-    return ordered;
+        return posts.slice().sort(function(a, b) {
+                    return new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0);
+        });
 }
 
 function filterAttr(post) {
