@@ -20,11 +20,26 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
       ]
     }
   ],
@@ -74,6 +89,10 @@
       "destination": "/api/blog-update-meta"
     },
     {
+      "source": "/api/social-oembed",
+      "destination": "/api/social-oembed"
+    },
+    {
       "source": "/admin-client.js",
       "destination": "/api/admin-js"
     },
@@ -93,13 +112,34 @@
       "source": "/llms.txt",
       "destination": "/llms.txt"
     },
-    { "source": "/wp-admin", "destination": "/api/not-found" },
-    { "source": "/wp-admin/:path*", "destination": "/api/not-found" },
-    { "source": "/wp-login.php", "destination": "/api/not-found" },
-    { "source": "/xmlrpc.php", "destination": "/api/not-found" },
-    { "source": "/.env", "destination": "/api/not-found" },
-    { "source": "/config.php", "destination": "/api/not-found" },
-    { "source": "/.git/:path*", "destination": "/api/not-found" },
+    {
+      "source": "/wp-admin",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/wp-admin/:path*",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/wp-login.php",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/xmlrpc.php",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/.env",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/config.php",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/.git/:path*",
+      "destination": "/api/not-found"
+    },
     {
       "source": "/:path*",
       "destination": "/api/home"
@@ -139,7 +179,7 @@
     "api/blog-reset-confirm.js": {
       "maxDuration": 30
     },
-        "api/blog-auth.js": {
+    "api/blog-auth.js": {
       "maxDuration": 10
     },
     "api/blog-post.js": {
@@ -201,6 +241,9 @@
     },
     "api/not-found.js": {
       "maxDuration": 10
+    },
+    "api/social-oembed.js": {
+      "maxDuration": 15
     }
   },
   "crons": [
