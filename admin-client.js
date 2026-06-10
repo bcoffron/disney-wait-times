@@ -291,16 +291,35 @@ function initQuill() {
       quill.insertEmbed(range.index, 'video', srcMatch[1], Quill.sources.USER);
       quill.setSelection(range.index + 1, Quill.sources.SILENT);
       },
-      embed: function() {
-      const code = prompt('Paste the Instagram or TikTok embed code:');
-      if (!code) return;
-      if (!code.includes('<blockquote') && !code.includes('<iframe')) {
-         alert('That does not look like a valid embed code. Paste the full embed code from Instagram or TikTok.');
-         return;
+      embed: async function() {
+      const url = prompt('Paste a TikTok or Instagram post URL:');
+      if (!url) return;
+      const trimmed = url.trim();
+      if (!trimmed.includes('tiktok.com') && !trimmed.includes('instagram.com')) {
+        alert('Only TikTok and Instagram URLs are supported. For YouTube, use the video button.');
+        return;
       }
       const range = quill.getSelection(true);
-      quill.insertEmbed(range.index, 'rawembed', code.trim(), Quill.sources.USER);
-      quill.setSelection(range.index + 1, Quill.sources.SILENT);
+      try {
+        const token = sessionStorage.getItem('tpcp_admin_token');
+        const response = await fetch('/api/social-oembed', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-key': token,
+          },
+          body: JSON.stringify({ url: trimmed }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.error || 'Could not get embed. Try again.');
+          return;
+        }
+        quill.insertEmbed(range.index, 'rawembed', data.html, Quill.sources.USER);
+        quill.setSelection(range.index + 1, Quill.sources.SILENT);
+      } catch (err) {
+        alert('Network error. Try again.');
+      }
       }
     }
   };
