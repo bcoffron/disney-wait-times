@@ -257,7 +257,7 @@ var html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta nam
     "frame-ancestors 'none';"
   );
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
         return res.status(200).send(html);
   } catch (err) {
         console.error('blog-render-index error:', err.message, err.stack);
