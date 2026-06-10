@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
     // Save updated index
     if (published > 0) {
-      await put('blog/posts/index', JSON.stringify(index), {
+      index.sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));    await put('blog/posts/index', JSON.stringify(index), {
         access: 'public',
         allowOverwrite: true,
         token: process.env.BLOB_READ_WRITE_TOKEN
