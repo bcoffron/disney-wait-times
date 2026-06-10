@@ -247,21 +247,16 @@ class RawEmbedBlot extends BlockEmbed {
     const node = super.create();
     node.setAttribute('contenteditable', 'false');
     node.style.cssText = 'margin:24px 0;';
+    // Store the original raw HTML so save always uses the original blockquote+script
+    node.setAttribute('data-raw-embed', html);
+    // Set innerHTML for display, then strip scripts so embed.js never fires in editor
     node.innerHTML = html;
-    node.querySelectorAll('script').forEach(oldScript => {
-      const newScript = document.createElement('script');
-      if (oldScript.src) {
-        newScript.src = oldScript.src;
-        newScript.async = true;
-      } else {
-        newScript.textContent = oldScript.textContent;
-      }
-      oldScript.replaceWith(newScript);
-    });
+    node.querySelectorAll('script').forEach(s => s.remove());
     return node;
   }
   static value(node) {
-    return node.innerHTML;
+    // Always return the original raw HTML, not whatever the DOM was mutated to
+    return node.getAttribute('data-raw-embed') || node.innerHTML;
   }
 }
 RawEmbedBlot.blotName = 'rawembed';
