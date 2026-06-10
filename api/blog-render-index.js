@@ -32,9 +32,9 @@ function sortPosts(posts) {
           var p = posts.find(function(x) { return x.slug === slug; });
           if (p) ordered.push(p);
     });
-    posts.forEach(function(p) {
-          if (!POST_ORDER.includes(p.slug)) ordered.push(p);
-    });
+var rest = posts.filter(function(p) { return !POST_ORDER.includes(p.slug); });
+        rest.sort(function(a, b) { return new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0); });
+        rest.forEach(function(p) { ordered.push(p); });
     return ordered;
 }
 
