@@ -177,7 +177,18 @@ var html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta nam
   + '<nav class="nav" role="navigation" aria-label="Main navigation"><a href="https://themeparkcopilot.com" class="nav-left"><div class="nav-icon"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt="Theme Park Co-Pilot"></div><div class="nav-wordmark">Theme Park Co<span>&#10022;</span>Pilot</div></a><div class="nav-right"><a href="/blog" class="nav-link">Blog</a><a href="https://themeparkcopilot.com" class="nav-link">Home</a><a href="https://themeparkcopilot.com" class="nav-cta">Try free &#8594;</a></div></nav>'
   + '<div class="post-hero"><img src="' + esc(post.heroImage || '') + '" alt="' + esc(post.heroAlt || post.title) + '" style="width:100%;height:100%;object-fit:cover;' + focalStyle + '" loading="eager"><div class="post-hero-overlay"></div><div class="post-hero-tag"><span class="post-tag ' + tClass + '">' + tagLabel + '</span></div></div>'
   + '<div class="post-back"><a href="/blog" class="post-back__btn">&#8592; Back to all guides</a></div><article><header class="article-wrap">' + breadcrumbHtml(post) + '<div class="post-category">' + (post.category || '').replace(/&middot;/g, '&#183;').replace(/&amp;/g, '&') + '</div><h1 class="post-title">' + esc(post.title) + '</h1><div class="post-meta"><span class="post-byline">' + esc(byline) + '</span><span class="post-meta-sep">&middot;</span><span class="post-date">Published ' + formatDate(post.publishedAt) + '</span>' + updatedHtml + '</div><p class="post-intro">' + esc(post.intro || '') + '</p></header>'
-  + '<div class="article-wrap article-body-wrap"><div class="article-body">' + (post.body || '').replace(/^(\s*<p>\s*<\/p>\s*)+/i, '').trim() + '</div>'
+  + '<div class="article-wrap article-body-wrap"><div class="article-body">' + (function(rawBody) {
+  var body = (rawBody || '').replace(/^(\s*<p>\s*<\/p>\s*)+/i, '').trim();
+  body = body.replace(/<div class="ql-raw-embed"[^>]*data-raw-embed="([^"]*)"[^>]*>[\s\S]*?<\/div>/g, function(match, encoded) {
+    var decoded = encoded
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&');
+    return '<div class="ql-raw-embed" style="margin:24px 0;">' + decoded + '</div>';
+  });
+  return body;
+})(post.body) + '</div>'
   + '<div class="share-bar"><div class="share-label">Share this post</div><div class="share-buttons"><a href="https://www.facebook.com/sharer/sharer.php?u=' + shareUrl + '" class="share-btn share-btn-facebook" target="_blank" rel="noopener">Facebook</a><a href="https://twitter.com/intent/tweet?url=' + shareUrl + '&text=' + shareTitle + '" class="share-btn share-btn-x" target="_blank" rel="noopener">X</a><a href="https://pinterest.com/pin/create/button/?url=' + shareUrl + '&media=' + shareImg + '&description=' + shareTitle + '" class="share-btn share-btn-pinterest" target="_blank" rel="noopener">Pinterest</a><button class="share-btn share-btn-instagram" onclick="copyLink()" type="button">Instagram</button><button class="share-btn share-btn-copy share-tooltip" id="copy-btn" onclick="copyLink()" type="button"><span class="share-tooltip-text" id="copy-tip">Copied!</span>Copy link</button></div></div>'
   + ctaHtml(post.cta, post.park)
   + faqsHtml(post.faqs)
