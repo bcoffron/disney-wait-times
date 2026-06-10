@@ -283,7 +283,22 @@ function initQuill() {
     handlers: {
       image: function() { openImageManager('quill'); },
       undo: function() { if (quill) quill.history.undo(); },
-      redo: function() { if (quill) quill.history.redo(); }
+      redo: function() { if (quill) quill.history.redo(); },
+      video: function() {
+      const code = prompt('Paste the YouTube or Facebook embed code (<iframe ...>):');
+      if (!code) return;
+      const srcMatch = code.match(/src=["']([^"']+)["']/);
+      if (!srcMatch) {
+         alert('Could not find a src URL in that embed code. Make sure you paste the full <iframe> code from YouTube or Facebook.');
+         return;
+            },
+      embed: function() {
+      const code = prompt('Paste the Instagram or TikTok embed code:');
+      if (!code) return;
+      if (!code.includes('<blockquote') && !code.includes('<iframe')) {
+         alert('That does not look like a valid embed code. Paste the full embed code from Instagram or TikTok.');
+         return;
+            }
     }
   };
   quill = new Quill('#quill-editor', { theme: 'snow', modules: { toolbar: toolbarOptions, history: { delay: 1000, maxStack: 50, userOnly: true } } });
@@ -295,29 +310,6 @@ function initQuill() {
     if (redoBtn) { redoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14l4-4-4-4"/><path d="M19 10H8a4 4 0 0 0 0 8h1"/></svg>'; redoBtn.title = 'Redo'; }
   }
   // Toolbar handlers for video and embed buttons
-  quill.getModule('toolbar').addHandler('video', function() {
-    const code = prompt('Paste the YouTube or Facebook embed code (<iframe ...>):');
-    if (!code) return;
-    const srcMatch = code.match(/src=["']([^"']+)["']/);
-    if (!srcMatch) {
-      alert('Could not find a src URL in that embed code. Make sure you paste the full <iframe> code from YouTube or Facebook.');
-      return;
-    }
-    const range = quill.getSelection(true);
-    quill.insertEmbed(range.index, 'video', srcMatch[1], Quill.sources.USER);
-    quill.setSelection(range.index + 1, Quill.sources.SILENT);
-  });
-  quill.getModule('toolbar').addHandler('embed', function() {
-    const code = prompt('Paste the Instagram or TikTok embed code:');
-    if (!code) return;
-    if (!code.includes('<blockquote') && !code.includes('<iframe')) {
-      alert('That does not look like a valid embed code. Paste the full embed code from Instagram or TikTok.');
-      return;
-    }
-    const range = quill.getSelection(true);
-    quill.insertEmbed(range.index, 'rawembed', code.trim(), Quill.sources.USER);
-    quill.setSelection(range.index + 1, Quill.sources.SILENT);
-  });
     quill.on('text-change', () => { markDirty(); });
   quill.on('text-change', function() {
     var imgs = quill.root.querySelectorAll('img');
