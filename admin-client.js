@@ -209,6 +209,66 @@ async function showApp() {
     showView(savedView);
   }
 }
+// ============================================================
+// VIDEO BLOT
+// ============================================================
+const BlockEmbed = Quill.import('blots/block/embed');
+
+class VideoBlot extends BlockEmbed {
+  static create(url) {
+    const node = super.create();
+    node.setAttribute('contenteditable', 'false');
+    node.style.cssText = 'position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:24px 0;border-radius:8px;';
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('src', url);
+    iframe.setAttribute('frameborder', '0');
+    iframe.setAttribute('allowfullscreen', 'true');
+    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border-radius:8px;';
+    node.appendChild(iframe);
+    return node;
+  }
+  static value(node) {
+    const iframe = node.querySelector('iframe');
+    return iframe ? iframe.getAttribute('src') : '';
+  }
+}
+VideoBlot.blotName = 'video';
+VideoBlot.tagName = 'div';
+VideoBlot.className = 'ql-video-wrapper';
+Quill.register(VideoBlot, true);
+
+// ============================================================
+// RAW EMBED BLOT
+// ============================================================
+class RawEmbedBlot extends BlockEmbed {
+  static create(html) {
+    const node = super.create();
+    node.setAttribute('contenteditable', 'false');
+    node.style.cssText = 'margin:24px 0;';
+    node.innerHTML = html;
+    node.querySelectorAll('script').forEach(oldScript => {
+      const newScript = document.createElement('script');
+      if (oldScript.src) {
+        newScript.src = oldScript.src;
+        newScript.async = true;
+      } else {
+        newScript.textContent = oldScript.textContent;
+      }
+      oldScript.replaceWith(newScript);
+    });
+    return node;
+  }
+  static value(node) {
+    return node.innerHTML;
+  }
+}
+RawEmbedBlot.blotName = 'rawembed';
+RawEmbedBlot.tagName = 'div';
+RawEmbedBlot.className = 'ql-raw-embed';
+Quill.register(RawEmbedBlot, true);
+
 function initQuill() {
   if (quill) return;
   const toolbarOptions = {
@@ -217,6 +277,7 @@ function initQuill() {
       ['bold', 'italic'],
       [{ 'list': 'ordered' }, { 'list': 'bullet' }],
       ['link', 'image'],
+      ['video', 'embed'],
       ['undo', 'redo']
       ],
     handlers: {
@@ -233,29 +294,31 @@ function initQuill() {
     if (undoBtn) { undoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 0 1 0 8h-1"/></svg>'; undoBtn.title = 'Undo'; }
     if (redoBtn) { redoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14l4-4-4-4"/><path d="M19 10H8a4 4 0 0 0 0 8h1"/></svg>'; redoBtn.title = 'Redo'; }
   }
-  // Add video embed button manually to avoid blank toolbar gaps
-const quillToolbar = quill.getModule('toolbar');
-  quillToolbar.addHandler('video-embed', openVideoModal);
-  const toolbarEl = document.querySelector('.ql-toolbar');
-  if (toolbarEl) {
-    const videoBtn = document.createElement('button');
-    videoBtn.className = 'ql-video-embed';
-    videoBtn.title = 'Embed Video';
-    videoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><polygon points="10,8 16,12 10,16"/></svg>';
-    videoBtn.addEventListener('click', openVideoModal);
-    var imageBtn = document.querySelector('.ql-toolbar .ql-image');
-    if (imageBtn) {
-      var imageGroup = imageBtn.closest('.ql-formats');
-      if (imageGroup) {
-        imageGroup.appendChild(videoBtn);
-      } else {
-        toolbarEl.appendChild(videoBtn);
-      }
-    } else {
-      toolbarEl.appendChild(videoBtn);
+  // Toolbar handlers for video and embed buttons
+  quill.getModule('toolbar').addHandler('video', function() {
+    const code = prompt('Paste the YouTube or Facebook embed code (<iframe ...>):');
+    if (!code) return;
+    const srcMatch = code.match(/src=["']([^"']+)["']/);
+    if (!srcMatch) {
+      alert('Could not find a src URL in that embed code. Make sure you paste the full <iframe> code from YouTube or Facebook.');
+      return;
     }
-  }
-  quill.on('text-change', () => { markDirty(); });
+    const range = quill.getSelection(true);
+    quill.insertEmbed(range.index, 'video', srcMatch[1], Quill.sources.USER);
+    quill.setSelection(range.index + 1, Quill.sources.SILENT);
+  });
+  quill.getModule('toolbar').addHandler('embed', function() {
+    const code = prompt('Paste the Instagram or TikTok embed code:');
+    if (!code) return;
+    if (!code.includes('<blockquote') && !code.includes('<iframe')) {
+      alert('That does not look like a valid embed code. Paste the full embed code from Instagram or TikTok.');
+      return;
+    }
+    const range = quill.getSelection(true);
+    quill.insertEmbed(range.index, 'rawembed', code.trim(), Quill.sources.USER);
+    quill.setSelection(range.index + 1, Quill.sources.SILENT);
+  });
+    quill.on('text-change', () => { markDirty(); });
   quill.on('text-change', function() {
     var imgs = quill.root.querySelectorAll('img');
     imgs.forEach(function(img) {
@@ -453,7 +516,7 @@ if (p.published) { statusCls = 'status-published'; statusLabel = 'Published'; }
 else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Scheduled'; }
 else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
 const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-const pinDisabled = atLimit ? 'disabled title="Maximum pins reached ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
+const pinDisabled = atLimit ? 'disabled title="Maximum pins reached ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
 return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
 '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
 '<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
@@ -1193,7 +1256,7 @@ const item = uploadQueue[i];
 progress.textContent = 'Uploading ' + (i + 1) + ' of ' + total + '...';
 // Check large PNG
 if (item.file.type === 'image/png' && item.file.size > 1024 * 1024) {
-if (warning) { warning.textContent = 'Large PNG detected — consider JPG for faster load'; warning.style.display = 'block'; }
+if (warning) { warning.textContent = 'Large PNG detected â consider JPG for faster load'; warning.style.display = 'block'; }
 }
 try {
 const r = await fetch(API_BASE + '/api/blog-upload-image', {
@@ -1207,7 +1270,7 @@ if (r.ok && data.url) { successCount++; }
 else { progress.textContent = 'Failed: ' + item.file.name; progress.style.color = '#C82030'; await sleep(1000); progress.style.color = '#0A4840'; }
 } catch(e) { progress.textContent = 'Upload error: ' + item.file.name; progress.style.color = '#C82030'; await sleep(1000); progress.style.color = '#0A4840'; }
 }
-progress.textContent = successCount + ' of ' + total + ' uploaded ✓';
+progress.textContent = successCount + ' of ' + total + ' uploaded â';
 uploadQueue = [];
 uploadDone = true;
 renderUploadQueue();
@@ -1568,7 +1631,7 @@ fullPosts.push(post);
 .catch(function() {});
 });
 
-// Await ALL fetches before rendering — ensures no image appears in both sections
+// Await ALL fetches before rendering â ensures no image appears in both sections
 await Promise.all(bodyFetches);
 
 // Only now render the main grid with fully-filtered unused images
@@ -1885,7 +1948,7 @@ document.getElementById('f-tags').value = tags.join(', ');
 showToast('Tags generated!', 'success');
 } else {
 console.error('No tags parsed from:', data);
-showToast('No tags returned ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ check console', 'error');
+showToast('No tags returned ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ check console', 'error');
 }
 } catch(e) {
 console.error('autoGenerateTags error:', e);
