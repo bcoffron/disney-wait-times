@@ -101,6 +101,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .ql-snow .ql-toolbar button{height:28px!important}
 .ql-undo,.ql-redo{cursor:pointer}
 .ql-undo svg,.ql-redo svg{width:18px;height:18px}
+.ql-embed::before{content:'<>';font-size:11px;font-weight:700;font-family:monospace;line-height:24px}
 /* FAQ */
 .faq-item-editor{background:#fafafa;border:1px solid rgba(7,30,37,0.08);border-radius:8px;padding:12px;margin-bottom:8px;position:relative}
 .faq-remove{position:absolute;top:8px;right:8px;background:none;border:none;color:#C82030;cursor:pointer;font-size:16px;line-height:1}
