@@ -25,7 +25,7 @@ async function buildUsageMap() {
   } catch (e) {
     allPosts = null;
   }
-      !Array.isArray(allPosts) || !allPosts.length) return usageMap;
+          if (!Array.isArray(allPosts) || !allPosts.length) return usageMap;
 
   const postBodies = await Promise.all(
     allPosts.map(function(p) {
@@ -56,7 +56,7 @@ async function buildUsageMap() {
     }
   });
 
-      rn usageMap;
+          return usageMap;
 }
 
 export default async function handler(req, res) {
