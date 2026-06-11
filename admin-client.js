@@ -913,10 +913,8 @@ tags: (document.getElementById('f-tags').value || '').split(',').map(function(t)
 
 async function savePost(post) {
 const btn = document.getElementById('btn-publish');
-const origText = btn.textContent;
-btn.textContent = 'Saving...';
-btn.classList.add('btn-loading');
-btn.disabled = true;
+const origText = btn ? btn.textContent : '';
+if (btn) { btn.textContent = 'Saving...'; btn.classList.add('btn-loading'); btn.disabled = true; }
 
 if (!post.slug) { showToast('Slug is required', 'error'); btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; return; }
 try {
@@ -940,35 +938,32 @@ await loadPosts();
       if (post.published && document.getElementById('images-view') && document.getElementById('images-view').style.display !== 'none') { loadImagesInline(); }
 } else { showToast('Save failed &mdash; try again', 'error'); }
 } catch(e) { showToast('Save failed &mdash; try again', 'error'); }
-finally { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; }
+finally { if (btn) { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; } }
 }
 
 async function goLive() {
-  console.log('goLive called');
   const post = collectPost();
   post.published = true;
-  post.publishedAt = new Date().toISOString(); // always fresh on Go Live
+  post.publishedAt = new Date().toISOString();
   post.updatedAt = new Date().toISOString();
   post.scheduledAt = null;
-  await savePost(post);
-  console.log('savePost returned');
-  // After successful publish, trigger reindex
   try {
-    console.log('starting reindex');
+    await savePost(post);
+  } catch (e) {
+    console.warn('savePost error in goLive (non-fatal):', e);
+  }
+  try {
     await fetch(API_BASE + '/api/blog-reindex', {
       method: 'GET',
       headers: { 'x-reindex-secret': 'tpcp-reindex-2026' }
     });
-    console.log('reindex complete');
   } catch (e) {
-    // reindex failure is non-fatal — log but don't block the UX
-    console.warn('Reindex after publish failed:', e);
+    console.warn('Reindex after publish failed (non-fatal):', e);
   }
-  console.log('calling showView posts');
   showView('posts');
 }
 // ============================================================
-function updatePost() { console.log('updatePost called, currentPost.publishedAt:', currentPost && currentPost.publishedAt); const post = collectPost(); post.published = true; post.publishedAt = currentPost && currentPost.publishedAt ? currentPost.publishedAt : post.publishedAt; post.updatedAt = new Date().toISOString(); savePost(post); }
+function updatePost() { const post = collectPost(); post.published = true; post.publishedAt = currentPost && currentPost.publishedAt ? currentPost.publishedAt : post.publishedAt; post.updatedAt = new Date().toISOString(); savePost(post); }
 function saveDraft() { const post = collectPost(); post.published = false; savePost(post); }
 function previewPost() { const slug = document.getElementById('f-slug').value.trim(); if (slug) window.open('/blog/' + slug, '_blank'); }
 function quickDelete(slug, fromView) { currentPost = { slug }; _deleteFromView = fromView || null; confirmDelete(); }
