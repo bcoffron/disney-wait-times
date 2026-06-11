@@ -1272,7 +1272,7 @@ if (r.ok && data.url) { successCount++; }
 else { progress.textContent = 'Failed: ' + item.file.name; progress.style.color = '#C82030'; await sleep(1000); progress.style.color = '#0A4840'; }
 } catch(e) { progress.textContent = 'Upload error: ' + item.file.name; progress.style.color = '#C82030'; await sleep(1000); progress.style.color = '#0A4840'; }
 }
-progress.textContent = successCount + ' of ' + total + ' uploaded &#10003;';
+progress.textContent = successCount + ' of ' + total + ' uploaded';
 uploadQueue = [];
 uploadDone = true;
 renderUploadQueue();
