@@ -944,6 +944,7 @@ finally { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.d
 }
 
 async function goLive() {
+  console.log('goLive called');
   const post = collectPost();
   post.published = true;
   post.publishedAt = new Date().toISOString(); // always fresh on Go Live
