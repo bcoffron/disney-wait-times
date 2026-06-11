@@ -25,16 +25,14 @@ async function buildUsageMap() {
   } catch (e) {
     allPosts = null;
   }
-      console.log('[blog-images] index:', Array.isArray(allPosts) ? allPosts.length : 'null');
-  if (!Array.isArray(allPosts) || !allPosts.length) return usageMap;
+      !Array.isArray(allPosts) || !allPosts.length) return usageMap;
 
   const postBodies = await Promise.all(
     allPosts.map(function(p) {
       return readPostBlob('blog/posts/' + p.slug).catch(function() { return null; });
     })
   );
-      console.log('[blog-images] bodies:', postBodies.filter(Boolean).length, '/', postBodies.length);
-
+      
   postBodies.forEach(function(post) {
     if (!post) return;
     const entry = { slug: post.slug, published: !!post.published, title: post.title || post.slug };
@@ -58,8 +56,7 @@ async function buildUsageMap() {
     }
   });
 
-      console.log('[blog-images] usageMap size:', usageMap.size);
-  return usageMap;
+      rn usageMap;
 }
 
 export default async function handler(req, res) {
