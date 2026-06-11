@@ -31,23 +31,11 @@ let _deleteFromView = null;
 // IMAGE SELECTION state
 let imgSelectMode = false;
 let selectedImgUrls = new Set();
-var allUsedUrls = new Set();
 var pinnedSlugs = [];
 var isLoadingImages = false;
 
 // ============================================================
 // NORMALIZE URL (module-level so deleteImage and loadImagesInline can both use it)
-// ============================================================
-function normalizeUrl(url) {
-  try {
-    var u = new URL(url);
-    u.search = '';
-    return u.href.toLowerCase().replace(/\/$/, '');
-  } catch(e) {
-    return (url || '').toLowerCase().replace(/\/$/, '');
-  }
-}
-
 // ============================================================
 // DIRTY TRACKING
 // ============================================================
@@ -1333,38 +1321,30 @@ setTimeout(() => { btn.textContent = orig; }, 1500);
 }).catch(() => { showToast('Copy failed', 'error'); });
 }
 
-function isImageInUse(url) {
-return allPosts.some(function(p) { return p.heroImage === url || (p.body && p.body.indexOf(url) >= 0); });
-}
-function getPostsUsingImage(url) {
-return allPosts.filter(function(p) { return p.heroImage === url || (p.body && p.body.indexOf(url) >= 0); });
-}
 
 function deleteImage(url) {
-  console.log('deleteImage called:', url);
-  console.log('allUsedUrls size:', allUsedUrls.size);
-  console.log('normalizeUrl result:', normalizeUrl(url));
-  console.log('isUsed:', allUsedUrls.has(normalizeUrl(url)));
   if (imgSelectMode) return;
-  if (allUsedUrls.has(normalizeUrl(url))) {
-    showImageDeleteWarning(url);
+  var img = (window._currentImages || []).find(function(i) { return i.url === url; });
+  if (img && img.usedBy && img.usedBy.length > 0) {
+    showImageDeleteWarning(url, img.usedBy);
     return;
   }
   confirmDeleteImage(url);
 }
 
-function showImageDeleteWarning(url) {
-  const modal = document.getElementById('img-in-use-modal');
-  const bodyEl = document.getElementById('img-in-use-body');
-  if (bodyEl) bodyEl.textContent = 'This image is used in a live post. Deleting it will break that post\'s image.';
+function showImageDeleteWarning(url, usedBy) {
+  var modal = document.getElementById('img-in-use-modal');
+  var bodyEl = document.getElementById('img-in-use-body');
+  var postList = (usedBy || []).map(function(e) {
+    return '"' + (e.title || e.slug) + '" (' + (e.published ? 'published' : 'draft') + ')';
+  }).join(', ');
+  if (bodyEl) bodyEl.textContent = 'This image is used by: ' + postList + '. Remove it from the post before deleting.';
   document.getElementById('img-in-use-multi-actions').style.display = 'none';
   document.getElementById('img-in-use-single-actions').style.display = 'flex';
-  // Repurpose the single-action buttons for this simpler confirm flow
-  const deleteAnywayBtn = document.getElementById('img-in-use-delete-anyway');
-  const moveToUsedBtn = document.getElementById('img-in-use-move');
-  const cancelBtn = document.getElementById('img-in-use-cancel');
-  // Override onclick for these buttons
-  if (deleteAnywayBtn) deleteAnywayBtn.onclick = function() { closeModal('img-in-use-modal'); confirmDeleteImage(url); };
+  var deleteAnywayBtn = document.getElementById('img-in-use-delete-anyway');
+  var moveToUsedBtn = document.getElementById('img-in-use-move');
+  var cancelBtn = document.getElementById('img-in-use-cancel');
+  if (deleteAnywayBtn) deleteAnywayBtn.style.display = 'none';
   if (moveToUsedBtn) moveToUsedBtn.onclick = function() { closeModal('img-in-use-modal'); };
   if (cancelBtn) cancelBtn.onclick = function() { closeModal('img-in-use-modal'); };
   modal.classList.add('active');
@@ -1372,15 +1352,23 @@ function showImageDeleteWarning(url) {
 
 async function confirmDeleteImage(url) {
   try {
-    const r = await fetch(API_BASE + '/api/blog-images', {
+    var r = await fetch(API_BASE + '/api/blog-images', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({ url: url })
     });
-    if (r.ok) loadImagesInline();
-    else showToast('Delete failed', 'error');
-  } catch(e) { showToast('Delete failed', 'error'); }
+    if (r.ok) {
+      loadImagesInline();
+    } else if (r.status === 409) {
+      var data = await r.json();
+      showToast(data.error || 'Image is in use', 'error');
+      loadImagesInline();
+    } else {
+      showToast('Delete failed', 'error');
+    }
+  } catch (e) { showToast('Delete failed', 'error'); }
 }
+
 function setHeroFromLibrary(url) {
 document.getElementById('hero-preview').src = url;
 document.getElementById('f-hero-url').value = url;
@@ -1462,270 +1450,155 @@ executeMultiDelete();
 }
 
 async function executeMultiDelete() {
-const urls = Array.from(selectedImgUrls);
-// Check which ones are in use
-const inUseUrls = urls.filter(u => isImageInUse(u));
-const safeUrls = urls.filter(u => !isImageInUse(u));
-if (inUseUrls.length > 0) {
-// Show grouped warning
-confirmMultiDeleteInUse(inUseUrls, safeUrls);
-return;
-}
-// All safe -- delete immediately
-await _doMultiDelete(urls);
+  var urls = Array.from(selectedImgUrls);
+  var currentImages = window._currentImages || [];
+  var inUseUrls = urls.filter(function(u) {
+    var img = currentImages.find(function(i) { return i.url === u; });
+    return img && img.usedBy && img.usedBy.length > 0;
+  });
+  var safeUrls = urls.filter(function(u) {
+    var img = currentImages.find(function(i) { return i.url === u; });
+    return !img || !img.usedBy || img.usedBy.length === 0;
+  });
+  if (inUseUrls.length > 0) {
+    confirmMultiDeleteInUse(inUseUrls, safeUrls);
+    return;
+  }
+  await _doMultiDelete(urls);
 }
 
 async function _doMultiDelete(urls) {
-const btn = document.getElementById('btn-delete-selected');
-if (btn) { btn.disabled = true; btn.textContent = 'Deleting...'; }
-let failed = 0;
-for (const url of urls) {
-try {
-const r = await fetch(API_BASE + '/api/blog-images', {
-method: 'DELETE',
-headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-body: JSON.stringify({ url })
-});
-if (!r.ok) failed++;
-} catch(e) { failed++; }
-}
-if (failed) showToast(failed + ' deletion(s) failed', 'error');
-else showToast('Deleted ' + urls.length + ' image' + (urls.length !== 1 ? 's' : ''), 'success');
-exitSelectMode();
-await loadImagesInline();
+  var btn = document.getElementById('btn-delete-selected');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting...'; }
+  var failed = 0;
+  var blocked = 0;
+  for (var i = 0; i < urls.length; i++) {
+    try {
+      var r = await fetch(API_BASE + '/api/blog-images', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+        body: JSON.stringify({ url: urls[i] })
+      });
+      if (r.status === 409) { blocked++; }
+      else if (!r.ok) { failed++; }
+    } catch (e) { failed++; }
+  }
+  if (blocked) showToast(blocked + ' image(s) still in use and were not deleted', 'error');
+  else if (failed) showToast(failed + ' deletion(s) failed', 'error');
+  else showToast('Deleted ' + urls.length + ' image' + (urls.length !== 1 ? 's' : ''), 'success');
+  exitSelectMode();
+  await loadImagesInline();
 }
 
-function confirmDeleteInUse(url) {
-_deleteInUseUrl = url;
-const posts = getPostsUsingImage(url);
-const postList = posts.map(p => escHtml(p.title || p.slug)).join(', ');
-const bodyEl = document.getElementById('img-in-use-body');
-if (bodyEl) bodyEl.textContent = 'This image is used in: ' + postList + '. Deleting it will permanently remove it from that post. Move to Used Photos to keep it accessible without cluttering the library.';
-document.getElementById('img-in-use-multi-actions').style.display = 'none';
-document.getElementById('img-in-use-single-actions').style.display = 'flex';
-document.getElementById('img-in-use-modal').classList.add('active');
-}
+
 function confirmMultiDeleteInUse(inUseUrls, safeUrls) {
-_deleteInUseMultiUrls = inUseUrls;
-_deleteInUseSafeUrls = safeUrls;
-const postTitles = [];
-inUseUrls.forEach(url => {
-getPostsUsingImage(url).forEach(p => {
-const t = p.title || p.slug;
-if (postTitles.indexOf(t) < 0) postTitles.push(t);
-});
-});
-const bodyEl = document.getElementById('img-in-use-body');
-if (bodyEl) bodyEl.textContent = inUseUrls.length + ' of your selected images are used in posts: ' + postTitles.map(t => escHtml(t)).join(', ') + '. What would you like to do with them?';
-document.getElementById('img-in-use-multi-actions').style.display = 'flex';
-document.getElementById('img-in-use-single-actions').style.display = 'none';
-document.getElementById('img-in-use-modal').classList.add('active');
-}
-async function deleteInUseAnyway() {
-const url = _deleteInUseUrl;
-_deleteInUseUrl = null;
-closeModal('img-in-use-modal');
-if (!url) return;
-try {
-const r = await fetch(API_BASE + '/api/blog-images', {
-method: 'DELETE',
-headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-body: JSON.stringify({ url })
-});
-if (r.ok) {
-const affectedPosts = allPosts.filter(p => p.heroImage === url || (p.body && p.body.indexOf(url) >= 0));
-for (const postMeta of affectedPosts) {
-try {
-const pr = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(postMeta.slug));
-if (!pr.ok) continue;
-const post = await pr.json();
-let changed = false;
-if (post.heroImage === url) { post.heroImage = ''; changed = true; }
-if (post.body && post.body.indexOf(url) >= 0) {
-let b = post.body, idx = 0;
-while ((idx = b.indexOf(url, idx)) >= 0) {
-const tagStart = b.lastIndexOf('<img', idx);
-const tagEnd = b.indexOf('>', idx) + 1;
-if (tagStart >= 0 && tagEnd > 0) { b = b.slice(0, tagStart) + b.slice(tagEnd); idx = tagStart; } else { idx++; }
-}
-post.body = b; changed = true;
-}
-if (changed) {
-post.updatedAt = new Date().toISOString();
-await fetch(API_BASE + '/api/blog-save', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-body: JSON.stringify(post)
-});
-}
-} catch(pe) {}
-}
-if (affectedPosts.length) { await loadPosts(); }
-showToast('Deleted', 'success');
-loadImagesInline();
-} else showToast('Delete failed', 'error');
-} catch(e) { showToast('Delete failed', 'error'); }
-}
-function moveMultiToUsedPhotos() {
-const inUseUrls = _deleteInUseMultiUrls || [];
-const grid = document.getElementById('lib-img-grid');
-if (grid) {
-inUseUrls.forEach(url => {
-grid.querySelectorAll('.img-cell').forEach(cell => { if (cell.dataset.url === url) cell.remove(); });
-});
-}
-const safeUrls = _deleteInUseSafeUrls || [];
-_deleteInUseMultiUrls = null; _deleteInUseSafeUrls = null;
-closeModal('img-in-use-modal');
-exitSelectMode();
-if (safeUrls.length > 0) {
-_doMultiDelete(safeUrls).then(() => {
-showToast('In-use images moved to Used Photos', 'success');
-loadImagesInline();
-});
-} else {
-showToast('In-use images moved to Used Photos', 'success');
-}
+  _deleteInUseMultiUrls = inUseUrls;
+  _deleteInUseSafeUrls = safeUrls;
+  var currentImages = window._currentImages || [];
+  var postTitles = [];
+  inUseUrls.forEach(function(url) {
+    var img = currentImages.find(function(i) { return i.url === url; });
+    if (img && img.usedBy) {
+      img.usedBy.forEach(function(e) {
+        var label = (e.title || e.slug) + (e.published ? '' : ' (draft)');
+        if (postTitles.indexOf(label) < 0) postTitles.push(label);
+      });
+    }
+  });
+  var bodyEl = document.getElementById('img-in-use-body');
+  if (bodyEl) bodyEl.textContent = inUseUrls.length + ' of your selected images are used in: ' +
+    postTitles.map(function(t) { return escHtml(t); }).join(', ') +
+    '. Only the unused images will be deleted.';
+  document.getElementById('img-in-use-multi-actions').style.display = 'flex';
+  document.getElementById('img-in-use-single-actions').style.display = 'none';
+  document.getElementById('img-in-use-modal').classList.add('active');
 }
 
-async function deleteMultiAnyway() {
-const inUseUrls = _deleteInUseMultiUrls || [];
-const safeUrls = _deleteInUseSafeUrls || [];
-_deleteInUseMultiUrls = null; _deleteInUseSafeUrls = null;
-closeModal('img-in-use-modal');
-exitSelectMode();
-await _doMultiDelete([...inUseUrls, ...safeUrls]);
+
+function moveMultiToUsedPhotos() {
+  var safeUrls = _deleteInUseSafeUrls || [];
+  _deleteInUseMultiUrls = null;
+  _deleteInUseSafeUrls = null;
+  closeModal('img-in-use-modal');
+  exitSelectMode();
+  if (safeUrls.length > 0) {
+    _doMultiDelete(safeUrls).then(function() {
+      showToast('In-use images kept. Unused images deleted.', 'success');
+    });
+  } else {
+    showToast('No unused images selected to delete.', 'success');
+    loadImagesInline();
+  }
 }
 
 async function loadImagesInline() {
-if (isLoadingImages) return;
-isLoadingImages = true;
-try {
-const q = "'";
-const grid = document.getElementById('images-inline-grid');
-const usedSection = document.getElementById('used-photos-section');
-const usedGrid = document.getElementById('used-photos-grid');
-grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...</div>';
-if (usedSection) usedSection.style.display = 'none';
-
-// Fetch library images and ALL posts in parallel
-let images = [], publishedPosts = [];
-try {
-const [libRes, idxRes] = await Promise.all([
-fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } }),
-fetch(API_BASE + '/api/blog-index')
-]);
-images = libRes.ok ? await libRes.json() : [];
-if (!images || images.length === 0) return; // don't wipe library on failed fetch
-const allIdx = idxRes.ok ? await idxRes.json() : [];
-publishedPosts = Array.isArray(allIdx) ? allIdx.filter(p => p.published) : [];
-} catch(e) {
-grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.</div>';
-return;
+  if (isLoadingImages) return;
+  isLoadingImages = true;
+  try {
+    var q = "'";
+    var grid = document.getElementById('images-inline-grid');
+    var usedSection = document.getElementById('used-photos-section');
+    var usedGrid = document.getElementById('used-photos-grid');
+    grid.innerHTML = '<div style="color:#8AACAE;font-size:13px">Loading...</div>';
+    if (usedSection) usedSection.style.display = 'none';
+    var images = [];
+    try {
+      var libRes = await fetch(API_BASE + '/api/blog-images', { headers: { 'x-admin-key': token } });
+      images = libRes.ok ? await libRes.json() : [];
+      if (!images || images.length === 0) { grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>'; updateSelectBar(); return; }
+    } catch (e) {
+      grid.innerHTML = '<div style="color:#C82030;font-size:13px">Failed to load images.</div>';
+      return;
+    }
+    window._currentImages = images;
+    var unusedImages = images.filter(function(img) { return img.usedBy.length === 0; });
+    var usedImages = images.filter(function(img) { return img.usedBy.length > 0; });
+    if (unusedImages.length === 0) {
+      grid.innerHTML = '<div class="coming-soon">All uploaded images are currently in use.</div>';
+    } else {
+      grid.innerHTML = '<div class="img-grid" id="lib-img-grid">' + unusedImages.map(function(img) {
+        var isSel = selectedImgUrls.has(img.url);
+        return '<div class="img-cell' + (isSel ? ' selected' : '') + '" style="position:relative" data-url="' + escAttr(img.url) + '" onclick="imgCellClick(event,this,' + q + escAttr(img.url) + q + ')">' +
+          '<div class="img-cell-check"></div>' +
+          '<div class="img-cell-wrap">' +
+          '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
+          '<div class="img-cell-actions">' +
+          '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + q + escAttr(img.url) + q + ',this)">Copy URL</button>' +
+          '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + q + escAttr(img.url) + q + ')">Delete</button>' +
+          '</div>' +
+          '</div>' +
+          '<div class="img-cell-name">' + escHtml(img.filename) + '</div>' +
+          '</div>';
+      }).join('') + '</div>';
+    }
+    updateSelectBar();
+    if (usedImages.length > 0 && usedSection && usedGrid) {
+      usedSection.style.display = 'block';
+      usedGrid.innerHTML = usedImages.map(function(img) {
+        var postLabel = img.usedBy.map(function(e) {
+          return escHtml((e.title || e.slug) + (e.published ? '' : ' (draft)'));
+        }).join(', ');
+        return '<div class="used-photo-cell" style="position:relative">' +
+          '<div class="img-cell-wrap">' +
+          '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">' +
+          '<div class="img-cell-actions">' +
+          '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + q + escAttr(img.url) + q + ',this)">Copy URL</button>' +
+          '</div>' +
+          '</div>' +
+          '<button type="button" class="btn-use-image" onclick="selectImage(\'' + escAttr(img.url) + '\')" ' +
+          'style="margin-top:6px;padding:4px 10px;background:#1A6860;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">Use</button>' +
+          '<div class="used-photo-title" title="' + escAttr(postLabel) + '">' + postLabel + '</div>' +
+          '</div>';
+      }).join('');
+    } else if (usedSection) {
+      usedSection.style.display = 'none';
+    }
+  } finally {
+    isLoadingImages = false;
+  }
 }
 
-allUsedUrls = new Set();
-const fullPosts = []; // cache full post objects for Used Photos section
 
-// Fix 2: Collect ALL body fetch promises first, await them all before rendering
-// This prevents the grid from rendering before used-URL detection is complete
-const bodyFetches = publishedPosts.map(function(p) {
-return fetch(API_BASE + '/api/blog-post?slug=' + p.slug)
-.then(function(res) { return res.ok ? res.json() : null; })
-.then(function(post) {
-if (!post) return;
-var bodyImgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
-var match;
-while ((match = bodyImgRegex.exec(post.body || '')) !== null) {
-allUsedUrls.add(normalizeUrl(match[1]));
-}
-if (post.heroImage) allUsedUrls.add(normalizeUrl(post.heroImage));
-fullPosts.push(post);
-})
-.catch(function() {});
-});
-
-// Await ALL fetches before rendering â ensures no image appears in both sections
-await Promise.all(bodyFetches);
-
-// Only now render the main grid with fully-filtered unused images
-if (!images.length) {
-grid.innerHTML = '<div class="coming-soon">No images yet. Use Upload Image above.</div>';
-updateSelectBar();
-} else {
-const unusedImages = images.filter(img => !allUsedUrls.has(normalizeUrl(img.url)));
-
-if (unusedImages.length === 0) {
-grid.innerHTML = '<div class="coming-soon">All uploaded images are currently in use.</div>';
-} else {
-grid.innerHTML = '<div class="img-grid" id="lib-img-grid">' + unusedImages.map(img => {
-const isSel = selectedImgUrls.has(img.url);
-return '<div class="img-cell' + (isSel ? ' selected' : '') + '" style="position:relative" data-url="' + escAttr(img.url) + '" onclick="imgCellClick(event,this,' + "'" + escAttr(img.url) + "'" + ')">' +
-'<div class="img-cell-check"></div>' +
-'<div class="img-cell-wrap">' +
-'<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
-'<div class="img-cell-actions">' +
-'<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL</button>' +
-'<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete</button>' +
-'</div>' +
-'</div>' +
-'<div class="img-cell-name">' + escHtml(img.filename) + '</div>' +
-'</div>';
-}).join('') + '</div>';
-}
-updateSelectBar();
-
-// Build Used Photos: ALL images referenced in any live post (normalized dedup)
-const usedEntries = [];
-const seenNormalized = new Set();
-
-for (const post of fullPosts) {
-const postTitle = post.title || post.slug || 'Untitled';
-// Hero image
-if (post.heroImage) {
-const norm = normalizeUrl(post.heroImage);
-if (!seenNormalized.has(norm)) {
-seenNormalized.add(norm);
-usedEntries.push({ url: post.heroImage, postTitle });
-}
-}
-// Body images
-var bodyImgRegex2 = /<img[^>]+src=["']([^"']+)["']/gi;
-var match2;
-while ((match2 = bodyImgRegex2.exec(post.body || '')) !== null) {
-const imgUrl = match2[1];
-const norm = normalizeUrl(imgUrl);
-if (!seenNormalized.has(norm)) {
-seenNormalized.add(norm);
-usedEntries.push({ url: imgUrl, postTitle });
-}
-}
-}
-
-if (usedEntries.length > 0 && usedSection && usedGrid) {
-usedSection.style.display = 'block';
-usedGrid.innerHTML = usedEntries.map(entry =>
-'<div class="used-photo-cell" style="position:relative">' +
-'<div class="img-cell-wrap">' +
-'<img src="' + escAttr(entry.url) + '" alt="' + escAttr(entry.postTitle) + '" loading="lazy" title="' + escAttr(entry.postTitle) + '" style="width:100%;height:100%;object-fit:cover;display:block">' +
-'<div class="img-cell-actions">' +
-'<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(entry.url) + "',this" + ')">Copy URL</button>' +
-'</div>' +
-'</div>' +
-'<button type="button" class="btn-use-image" onclick="selectImage(\'' + escAttr(entry.url) + '\')" ' +
-'style="margin-top:6px;padding:4px 10px;background:#1A6860;color:#fff;border:none;' +
-'border-radius:4px;font-size:11px;cursor:pointer;">Use</button>' +
-'<div class="used-photo-title" title="' + escAttr(entry.postTitle) + '">' + escHtml(entry.postTitle) + '</div>' +
-'</div>'
-).join('');
-} else if (usedSection) {
-usedSection.style.display = 'none';
-}
-}
-} finally {
-isLoadingImages = false;
-}
-}
 function selectImage(url) {
 if (imgManagerContext === 'hero') {
 document.getElementById('hero-preview').src = url;
