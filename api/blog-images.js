@@ -10,7 +10,7 @@ async function readPostBlob(pathname) {
   if (!matches.length) return null;
   const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
   if (!r.ok) return null;
-  return r.text().then(function(t) { return JSON.parse(t); });
+  return r.text().then(function(t) { return SON.parse(t); });
 }
 
 function stripQuery(url) {
@@ -44,7 +44,7 @@ async function buildUsageMap() {
     }
 
     if (post.body) {
-      const re = /https://[^"'s]+.(?:jpg|jpeg|png|webp|gif)[^"'s]*/gi;
+      const re = /https:\/\/[^"'\s]+\.(?:jpg|jpeg|png|webp|gif)[^"'\s]*/gi;
       let m;
       while ((m = re.exec(post.body)) !== null) {
         const clean = stripQuery(m[0]);
