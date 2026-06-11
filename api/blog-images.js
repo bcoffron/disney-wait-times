@@ -10,7 +10,7 @@ async function readPostBlob(pathname) {
   if (!matches.length) return null;
   const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
   if (!r.ok) return null;
-  return r.text().then(function(t) { return SON.parse(t); });
+      return r.text().then(function(t) { return JSON.parse(t); });
 }
 
 function stripQuery(url) {
@@ -25,6 +25,7 @@ async function buildUsageMap() {
   } catch (e) {
     allPosts = null;
   }
+      console.log('[blog-images] index:', Array.isArray(allPosts) ? allPosts.length : 'null');
   if (!Array.isArray(allPosts) || !allPosts.length) return usageMap;
 
   const postBodies = await Promise.all(
@@ -32,6 +33,7 @@ async function buildUsageMap() {
       return readPostBlob('blog/posts/' + p.slug).catch(function() { return null; });
     })
   );
+      console.log('[blog-images] bodies:', postBodies.filter(Boolean).length, '/', postBodies.length);
 
   postBodies.forEach(function(post) {
     if (!post) return;
@@ -56,6 +58,7 @@ async function buildUsageMap() {
     }
   });
 
+      console.log('[blog-images] usageMap size:', usageMap.size);
   return usageMap;
 }
 
