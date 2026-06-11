@@ -313,7 +313,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     <div class="pt-toggle" id="hasReservationsToggle" onclick="ptToggle('hasReservationsToggle');ptReservationsToggle()"><div class="pt-toggle-knob"></div></div>
   </div>
   <div class="pt-vip-sub" id="reservationsSub">
-    <div class="pt-hint" style="margin-bottom:8px;">Enter each reservation on its own line — restaurant name and time</div>
+    <div class="pt-hint" style="margin-bottom:8px;">Enter each reservation on its own line -- restaurant name and time</div>
     <textarea class="pt-textarea" id="reservationsInput" placeholder="e.g.&#10;Cafe Orleans, 6:30 PM, Day 3&#10;Blue Bayou, 12:00 PM, Day 1" style="min-height:80px;font-size:12px;"></textarea>
   </div>
 
@@ -345,7 +345,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     </div>
     <div style="padding:14px 16px;">
       <div style="font-size:12px;color:#071E25;font-weight:600;margin-bottom:8px;">Before your trip, check the Info tab</div>
-      <div style="font-size:11px;color:#4A7A7C;line-height:1.55;">The Info tab in your schedule has everything you need — Lightning Lane tips, dining strategy, park hours, and day-of advice. It updates automatically as your trip gets closer.</div>
+      <div style="font-size:11px;color:#4A7A7C;line-height:1.55;">The Info tab in your schedule has everything you need -- Lightning Lane tips, dining strategy, park hours, and day-of advice. It updates automatically as your trip gets closer.</div>
     </div>
   </div>
 
@@ -358,7 +358,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
       </div>
       <div style="display:flex;gap:10px;align-items:flex-start;">
         <div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:4px;flex-shrink:0;"></div>
-        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Lightning Lane Multi Pass opens at 7am on the day — buy early for the best ride selection</div>
+        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Lightning Lane Multi Pass opens at 7am on the day -- buy early for the best ride selection</div>
       </div>
       <div style="display:flex;gap:10px;align-items:flex-start;">
         <div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:4px;flex-shrink:0;"></div>
@@ -376,7 +376,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 </div>
 
 <script>
-// ── State ───────────────────────────────────────────────
+// -- State -----------------------------------------------
 var ptCurrentStep = 1;
 var ptTotalSteps = 5;
 var ptSegValues = {};
@@ -384,7 +384,7 @@ var ptMemberCount = 0;
 
 var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Almost done!'];
 
-// ── Init ────────────────────────────────────────────────
+// -- Init ------------------------------------------------
 (function(){console.log("[pretrip] IIFE init start");
   // Check if edit mode
   var isEdit = (new URLSearchParams(window.location.search)).get('edit') === 'true';
@@ -397,10 +397,10 @@ var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Alm
   ptUpdateDayLabels();
 })();
 
-// ── Navigation ──────────────────────────────────────────
+// -- Navigation ------------------------------------------
 var _ptNextLock = false;
 function ptNext(){console.log("[pretrip] ptNext called");
-  if(_ptNextLock){ console.log("[pretrip] ptNext locked — ignoring double tap"); return; }
+  if(_ptNextLock){ console.log("[pretrip] ptNext locked -- ignoring double tap"); return; }
   _ptNextLock = true;
   setTimeout(function(){ _ptNextLock = false; }, 1500);
   ptSaveCurrentStep();
@@ -426,7 +426,7 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
   var next = document.getElementById('ptStep' + n);
   if(next){
     next.classList.add('active');
-    // Force scroll to top — target every possible container
+    // Force scroll to top -- target every possible container
     var scrollToTop = function() {
       try { window.scrollTo(0, 0); } catch(e){}
       try { document.documentElement.scrollTop = 0; } catch(e){}
@@ -464,7 +464,7 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
   }
 }
 
-// ── Segmented controls ──────────────────────────────────
+// -- Segmented controls ----------------------------------
 function ptSegSelect(segId, btn, value){console.log("[pretrip] ptSegSelect called");
   var seg = document.getElementById(segId);
   if(!seg) return;
@@ -473,7 +473,7 @@ function ptSegSelect(segId, btn, value){console.log("[pretrip] ptSegSelect calle
   ptSegValues[segId] = value;
 }
 
-// ── Single-select tiles ─────────────────────────────────
+// -- Single-select tiles ---------------------------------
 function ptTileSelect(groupId, tile, value){console.log("[pretrip] ptTileSelect called");
   var group = document.getElementById(groupId);
   if(!group) return;
@@ -481,19 +481,19 @@ function ptTileSelect(groupId, tile, value){console.log("[pretrip] ptTileSelect 
   tile.classList.add('selected');
 }
 
-// ── Multi-select chips ──────────────────────────────────
+// -- Multi-select chips ----------------------------------
 function ptChipToggle(chip){console.log("[pretrip] ptChipToggle called");
   chip.classList.toggle('selected');
 }
 
-// ── Checkboxes ──────────────────────────────────────────
+// -- Checkboxes ------------------------------------------
 function ptCheckToggle(id){console.log("[pretrip] ptCheckToggle called");
   var box = document.getElementById(id);
   if(!box) return;
   box.classList.toggle('checked');
 }
 
-// ── Toggle switches ─────────────────────────────────────
+// -- Toggle switches -------------------------------------
 function ptToggle(id){console.log("[pretrip] ptToggle called");
   var el = document.getElementById(id);
   if(!el) return;
@@ -528,7 +528,7 @@ function ptILLToggle(day){
   sub.classList.toggle('visible', tog.classList.contains('checked'));
 }
 
-// ── Members ─────────────────────────────────────────────
+// -- Members ---------------------------------------------
 function ptAddMember(name, age){console.log("[pretrip] ptAddMember called");
   ptMemberCount++;
   var id = ptMemberCount;
@@ -546,7 +546,7 @@ function ptRemoveMember(id){console.log("[pretrip] ptRemoveMember called");
   if(row) row.remove();
 }
 
-// ── Checklist sections ──────────────────────────────────
+// -- Checklist sections ----------------------------------
 function ptToggleSection(header){console.log("[pretrip] ptToggleSection called");
   var body = header.nextElementSibling;
   if(!body) return;
@@ -566,7 +566,7 @@ function ptClCheck(box, countId, total){console.log("[pretrip] ptClCheck called"
   else if(countEl){ countEl.style.color = '#4A7A7C'; }
 }
 
-// ── Day card builder (dynamic from dates) ───────────────
+// -- Day card builder (dynamic from dates) ---------------
 var _ptDayCount = 0;
 
 function ptGetDayCount() {
@@ -643,7 +643,7 @@ function ptUpdateDayCards() {
         '</div>' +
         '<div class="pt-check-row" onclick="ptCheckToggle(\'day'+n+'ILL\');ptILLToggle('+n+')" style="padding:6px 0;">' +
           '<div class="pt-check-box' + (prev.hasILL ? ' checked' : '') + '" id="day'+n+'ILL"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
-          '<div class="pt-check-label" style="font-size:11px;">Individual Lightning Lane (ILL) — paid per ride</div>' +
+          '<div class="pt-check-label" style="font-size:11px;">Individual Lightning Lane (ILL) -- paid per ride</div>' +
         '</div>' +
         '<div class="pt-vip-sub' + (prev.hasILL ? ' visible' : '') + '" id="day'+n+'ILLSub" style="margin-top:4px;">' +
           '<div class="pt-label" style="margin-bottom:4px;font-size:10px;">Which ILL rides? (e.g. Rise of the Resistance)</div>' +
@@ -670,12 +670,12 @@ function ptUpdateDayCards() {
   container.innerHTML = html;
 }
 
-// ── Day labels (legacy, kept for load-from-storage) ─────
+// -- Day labels (legacy, kept for load-from-storage) -----
 function ptUpdateDayLabels() {
   ptUpdateDayCards();
 }
 
-// ── Collect data ────────────────────────────────────────
+// -- Collect data ----------------------------------------
 function ptCollectData() {
   var count = ptGetDayCount() || _ptDayCount || 1;
   var startVal = document.getElementById('tripStart') ? document.getElementById('tripStart').value : '';
@@ -737,7 +737,7 @@ function ptCollectData() {
   };
 }
 
-// ── Save current step ───────────────────────────────────
+// -- Save current step -----------------------------------
 function ptSaveCurrentStep() {
   try {
     var d = ptCollectData();
@@ -745,7 +745,7 @@ function ptSaveCurrentStep() {
   } catch(e){}
 }
 
-// ── Load from storage ───────────────────────────────────
+// -- Load from storage -----------------------------------
 function ptLoadFromStorage() {
   try {
     var raw = localStorage.getItem('pretripData');
@@ -776,7 +776,7 @@ function ptLoadFromStorage() {
   } catch(e){}
 }
 
-// ── Schedule generation ─────────────────────────────────
+// -- Schedule generation ---------------------------------
 var SYNC_BASE = 'https://disney-wait-times-lupt.vercel.app';
 
 function ptShowGenerating(dayNum, totalDays) {
@@ -784,7 +784,7 @@ function ptShowGenerating(dayNum, totalDays) {
   if (bar) {
     bar.innerHTML = '<div style="background:#1A8880;border-radius:13px;padding:14px 16px;text-align:center;">' +
       '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Building your schedule...</div>' +
-      '<div style="font-size:11px;color:rgba(255,255,255,0.70);">Day ' + dayNum + ' of ' + totalDays + ' — this takes about 30 seconds per day</div>' +
+      '<div style="font-size:11px;color:rgba(255,255,255,0.70);">Day ' + dayNum + ' of ' + totalDays + ' -- this takes about 30 seconds per day</div>' +
       '<div style="margin-top:10px;height:4px;background:rgba(255,255,255,0.20);border-radius:2px;overflow:hidden;">' +
         '<div id="ptGenBar" style="height:100%;background:#fff;border-radius:2px;width:' + Math.round((dayNum-1)/totalDays*100) + '%;transition:width 0.5s ease;"></div>' +
       '</div>' +
@@ -798,7 +798,7 @@ function ptUpdateGenBar(dayNum, totalDays) {
   var label = document.querySelector('#ptCtaBar div div');
   if (label) {
     var sub = label.nextElementSibling;
-    if (sub) sub.textContent = 'Day ' + dayNum + ' of ' + totalDays + ' — almost there...';
+    if (sub) sub.textContent = 'Day ' + dayNum + ' of ' + totalDays + ' -- almost there...';
   }
 }
 
@@ -812,11 +812,11 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   var llContext = '';
   if (day.hasLL) {
     llContext = 'Lightning Lane: YES. ';
-    if (day.hasLLMP) llContext += 'Has LLMP (Lightning Lane Multi Pass) — include 3-4 specific LLMP booking tip cards throughout the day naming exact rides to book and when. ';
-    if (day.hasILL) llContext += 'Has ILL (Individual Lightning Lane) — paid per ride. ILL rides for this day: ' + (day.illRides || 'not specified') + '. Include ILL booking tip card at 7:00 AM telling them to purchase ILL immediately at park open. ';
-    if (!day.hasLLMP && !day.hasILL) llContext += 'Has Lightning Lane but type not specified — include general LL strategy tips. ';
+    if (day.hasLLMP) llContext += 'Has LLMP (Lightning Lane Multi Pass) -- include 3-4 specific LLMP booking tip cards throughout the day naming exact rides to book and when. ';
+    if (day.hasILL) llContext += 'Has ILL (Individual Lightning Lane) -- paid per ride. ILL rides for this day: ' + (day.illRides || 'not specified') + '. Include ILL booking tip card at 7:00 AM telling them to purchase ILL immediately at park open. ';
+    if (!day.hasLLMP && !day.hasILL) llContext += 'Has Lightning Lane but type not specified -- include general LL strategy tips. ';
   } else {
-    llContext = 'Lightning Lane: NO — do not include any LL booking tip cards. Schedule standby rides only. ';
+    llContext = 'Lightning Lane: NO -- do not include any LL booking tip cards. Schedule standby rides only. ';
   }
 
   var prompt = 'Build a complete theme park day schedule for Day ' + (dayIndex+1) + ' of ' + tripConfig.days.length + '. ' +
@@ -891,7 +891,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   }
 }
 
-// ── Finish / final step CTA ─────────────────────────────
+// -- Finish / final step CTA -----------------------------
 function ptFinish() {
   ptSaveCurrentStep();
   var d = ptCollectData();
@@ -928,7 +928,7 @@ function ptFinish() {
 
   function generateNext(idx) {
     if (idx >= totalDays) {
-      // All days done — save full schedule to Vercel Blob then redirect
+      // All days done -- save full schedule to Vercel Blob then redirect
       var finalConfig = Object.assign({}, tripConfig, {
         schedule: { days: generatedDays }
       });
@@ -960,7 +960,7 @@ function ptFinish() {
             errDiv.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;text-align:center;';
             bar.firstElementChild && bar.firstElementChild.appendChild(errDiv);
           }
-          errDiv.textContent = 'Day ' + (idx+1) + ' had trouble — continuing with next day...';
+          errDiv.textContent = 'Day ' + (idx+1) + ' had trouble -- continuing with next day...';
         }
         generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: [] });
       } else {
