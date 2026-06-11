@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- cache-bust: fix-object-assign-syntax 2026-06-11 -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Trip Setup &mdash; Theme Park Co-Pilot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -845,7 +846,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       mode: 'setup',
       maxTokens: 8000,
       tripConfig: tripConfig
-    })
+    }))
   })
   .then(function(r){ return r.json(); })
   .then(function(d) {
