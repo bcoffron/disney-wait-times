@@ -951,16 +951,20 @@ async function goLive() {
   post.updatedAt = new Date().toISOString();
   post.scheduledAt = null;
   await savePost(post);
+  console.log('savePost returned');
   // After successful publish, trigger reindex
   try {
+    console.log('starting reindex');
     await fetch(API_BASE + '/api/blog-reindex', {
       method: 'GET',
       headers: { 'x-reindex-secret': 'tpcp-reindex-2026' }
     });
+    console.log('reindex complete');
   } catch (e) {
     // reindex failure is non-fatal — log but don't block the UX
     console.warn('Reindex after publish failed:', e);
   }
+  console.log('calling showView posts');
   showView('posts');
 }
 // ============================================================
