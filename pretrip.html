@@ -851,8 +851,6 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   .then(function(r){ return r.json().then(function(d){ d._httpStatus=r.status; return d; }); })
   .then(function(d) {
     if (!d.ok || !d.text) {
-      if (retries < 3) {
-      if (!d.ok || !d.text) {
           console.error('[pretrip] Day ' + (dayIndex+1) + ' API error - HTTP ' + (d._httpStatus||'?') + ', ok:' + d.ok + ', error:' + JSON.stringify(d.error||null));
       if (retries < 3) {
         console.log('[pretrip] Day ' + (dayIndex+1) + ' failed, retry ' + (retries+1));ripConfig, dayIndex, retries+1, callback); }, 2000);
