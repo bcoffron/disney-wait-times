@@ -154,12 +154,6 @@ async function handler(req, res) {
               return res.status(413).json({ error: 'Request too large' });
       }
     
-    // -- A: Request size limit (10k chars) -------------------------------------------
-  const MAX_REQUEST_SIZE = 10000;
-    if (JSON.stringify(req.body).length > MAX_REQUEST_SIZE) {
-          return res.status(400).json({ error: 'Request too large' });
-    }
-
   // -- C: Per-IP daily AI cap -------------------------------------------------------
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
     if (!checkAILimit(ip)) {
