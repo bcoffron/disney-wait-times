@@ -59,7 +59,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const ADMIN_KEY = (process.env.ADMIN_KEY || 'tpcp2026admin').toLowerCase();
+  const ADMIN_KEY = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
 
   // GET: look up a code
   if (req.method === 'GET') {
