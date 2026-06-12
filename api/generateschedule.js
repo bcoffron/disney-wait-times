@@ -138,8 +138,8 @@ export default async function handler(req, res) {
       }
     
     // -- A: Request size limit (10k chars) -------------------------------------------
-  const MAX_REQUEST_SIZE = 10000;
-    if (JSON.stringify(req.body).length > MAX_REQUEST_SIZE) {
+  const MAX_BODY_SIZE = 10000;
+    if (JSON.stringify(req.body).length > MAX_BODY_SIZE) {
           return res.status(400).json({ error: 'Request too large' });
     }
 
