@@ -80,7 +80,7 @@ async function getCache(key) {
 export default async function handler(req, res) {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-key, x-trip-code');
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('X-Frame-Options', 'DENY');
       res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -94,12 +94,6 @@ export default async function handler(req, res) {
                   return res.status(413).json({ error: 'Request too large' });
         }
       
-      // -- A: Request size limit (10k chars) -------------------------------------------
-  const MAX_REQUEST_SIZE = 10000;
-      if (JSON.stringify(req.body).length > MAX_REQUEST_SIZE) {
-              return res.status(400).json({ error: 'Request too large' });
-      }
-
   // -- C: Per-IP daily AI cap -------------------------------------------------------
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
       if (!checkAILimit(ip)) {
