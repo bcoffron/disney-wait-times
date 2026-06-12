@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- cache-bust: fix-object-assign-syntax 2026-06-11 -->
+<!-- cache-bust: save-schedule-to-blob 2026-06-11 -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Trip Setup &mdash; Theme Park Co-Pilot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -940,7 +940,7 @@ function ptFinish() {
           body: JSON.stringify({
       tripCode: localStorage.getItem('tpcp_code') || '', code: code, tripData: { tripConfig: finalConfig } })
         })
-        .then(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); })
+        .then(function(){ fetch(SYNC_BASE+'/api/schedule',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},body:JSON.stringify({schedule:{days:generatedDays},dayIndex:0})}).finally(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); }); })
         .catch(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); });
       } else {
         window.location.href = 'app.html?from=setup&t=' + Date.now();
