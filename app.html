@@ -23,7 +23,7 @@
 <meta name="apple-mobile-web-app-title" content="Theme Park CP">
 <meta name="color-scheme" content="light">
 <base target="_blank">
-<title>Coffron/Woods Disneyland Trip</title>
+<title>Theme Park Co-Pilot</title>
 <script src="https://js.pusher.com/8.2/pusher.min.js" integrity="sha384-gA0TPBlnosOv77mNKhqDqUd7BMOqU7f5VlaEGFdyCus4A5l7JHELZ4K5dQMBSL1j" crossorigin="anonymous"></script>
 
 <style>
@@ -1050,19 +1050,19 @@ body.tw-guest .ai-opt-hero{display:none!important}
       <div class="day-tab" id="day-tab-1" onclick="setDay(0)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 1</span>
-          <span class="day-tab-date">Sun Jun 28</span>
+          <span class="day-tab-date"></span>
         </div>
       </div>
-      <div class="day-tab vip-tab" id="day-tab-2" onclick="setDay(1)" role="tab">
+      <div class="day-tab" id="day-tab-2" onclick="setDay(1)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 2</span>
-          <span class="day-tab-date">Mon Jun 29</span>
+          <span class="day-tab-date"></span>
         </div>
       </div>
       <div class="day-tab" id="day-tab-3" onclick="setDay(2)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 3</span>
-          <span class="day-tab-date">Tue Jun 30</span>
+          <span class="day-tab-date"></span>
         </div>
       </div>
     </div>
@@ -1422,9 +1422,9 @@ const CLOSED=[
 ];
 
 const DAYS=[
-{label:'Sunday Jun 28',sub:'Disneyland " Fireworks Night'},
-{label:'Monday Jun 29',sub:'VIP Tour \u00b7 Paint the Night Reserved \u00b7 World of Color Reserved'},
-{label:'Tuesday Jun 30',sub:'DCA morning \u2192 Disneyland evening \u00b7 Caf\u00e9 Orleans \u00b7 Fantasmic!'},
+  {label:'Day 1', sub:''},
+  {label:'Day 2', sub:''},
+  {label:'Day 3', sub:''}
 ];
 
 const SHOWS=[
@@ -1508,16 +1508,36 @@ function checkLock(){
             if (d.tripData) { window._loadedTripData = d.tripData; }
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
-              loadCustom();
-            } else {
-              // FIX 2: Fallback for legacy trips with schedule at /api/schedule
-              (function(){try{fetch(SYNC_BASE+'/api/schedule?t='+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(data){if(!data||data.empty||!data.schedule)return;customSched=data.schedule;renderSched();renderDayInfoBar();if(typeof renderVipBanner==='function')renderVipBanner(curDay);});}catch(e){}})();
+            // Phase 2: populate TRIP_CONFIG from canonical blob at runtime
+            if (window._loadedTripData && window._loadedTripData.tripConfig) {
+              var _ltc = window._loadedTripData.tripConfig;
+              if (_ltc.tripName) TRIP_CONFIG.tripName = _ltc.tripName;
+              if (_ltc.party) TRIP_CONFIG.party = _ltc.party;
+              if (_ltc.members) TRIP_CONFIG.members = _ltc.members;
+              if (_ltc.days && _ltc.days.length) {
+                TRIP_CONFIG.days = _ltc.days.map(function(dy, i) {
+                  return Object.assign({}, TRIP_CONFIG.days[i] || {}, {
+                    num: dy.num || (i+1), label: 'Day ' + (dy.num || (i+1)), date: dy.date || '',
+                    park: dy.park || 'Disneyland',
+                    isVip: !!dy.isVip, vipStart: dy.vipStart || '10:00', vipEnd: dy.vipEnd || '17:00',
+                    hasLL: !!dy.hasLL, hasLLMP: !!dy.hasLLMP, hasILL: !!dy.hasILL, hopTo: !!dy.hopTo
+                  });
+                });
+              }
+              // Update day tab DOM from populated TRIP_CONFIG.days
+              TRIP_CONFIG.days.forEach(function(dy, i) {
+                var tab = document.getElementById('day-tab-' + (i+1));
+                if (!tab) return;
+                var dateEl = tab.querySelector('.day-tab-date');
+                if (dateEl) dateEl.textContent = dy.date || '';
+                if (dy.isVip) tab.classList.add('vip-tab');
+                else tab.classList.remove('vip-tab');
+              });
             }
-            enterSplash(true);
-          } else {
-            // Guest role with no trip data
-            var guestRole=localStorage.getItem('tpcp_role')||'';
-            if(guestRole==='guest'){
+            if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
+              window._schedData = d.tripData.tripConfig.schedule;
+              loadCustom();
+            }
               if(typeof showGuestWaitingScreen==='function') showGuestWaitingScreen(d.tripName||'');
             } else {
               enterSplash(true);
@@ -1574,12 +1594,35 @@ function tryUnlock() {
       } catch(e) {}
       userRole = d.role;
       applyRoleUI();
+      // Phase 2: populate TRIP_CONFIG from canonical blob at runtime
+      if (window._loadedTripData && window._loadedTripData.tripConfig) {
+        var _ltc2 = window._loadedTripData.tripConfig;
+        if (_ltc2.tripName) TRIP_CONFIG.tripName = _ltc2.tripName;
+        if (_ltc2.party) TRIP_CONFIG.party = _ltc2.party;
+        if (_ltc2.members) TRIP_CONFIG.members = _ltc2.members;
+        if (_ltc2.days && _ltc2.days.length) {
+          TRIP_CONFIG.days = _ltc2.days.map(function(dy, i) {
+            return Object.assign({}, TRIP_CONFIG.days[i] || {}, {
+              num: dy.num || (i+1), label: 'Day ' + (dy.num || (i+1)), date: dy.date || '',
+              park: dy.park || 'Disneyland',
+              isVip: !!dy.isVip, vipStart: dy.vipStart || '10:00', vipEnd: dy.vipEnd || '17:00',
+              hasLL: !!dy.hasLL, hasLLMP: !!dy.hasLLMP, hasILL: !!dy.hasILL, hopTo: !!dy.hopTo
+            });
+          });
+        }
+        // Update day tab DOM from populated TRIP_CONFIG.days
+        TRIP_CONFIG.days.forEach(function(dy, i) {
+          var tab = document.getElementById('day-tab-' + (i+1));
+          if (!tab) return;
+          var dateEl = tab.querySelector('.day-tab-date');
+          if (dateEl) dateEl.textContent = dy.date || '';
+          if (dy.isVip) tab.classList.add('vip-tab');
+          else tab.classList.remove('vip-tab');
+        });
+      }
       if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
         window._schedData = d.tripData.tripConfig.schedule;
         loadCustom();
-      } else {
-        // FIX 2: Fallback for legacy trips with schedule at /api/schedule
-        (function(){try{fetch(SYNC_BASE+'/api/schedule?t='+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(data){if(!data||data.empty||!data.schedule)return;customSched=data.schedule;renderSched();renderDayInfoBar();if(typeof renderVipBanner==='function')renderVipBanner(curDay);});}catch(e){}})();
       }
       if (d.role === 'guest' || d.hasTrip) {
         enterSplash(true);
@@ -4149,7 +4192,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   }
 
   // Section 1: Share
-  var pw=TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'CWDIS2026-G';
+  var pw=TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'';
   var shareContent='<div class="share-body" style="padding:0 14px 14px;">'
     +'<p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4;">Send this to everyone in the group.</p>'
     +'<div class="share-info-box">'
@@ -4539,7 +4582,7 @@ async function _doChat(msg){
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
   var _rpc=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});
-  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot for Coffron/Woods family. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' RIDE NAME ALIAS: Space Mountain and Hyperspace Mountain are the same ride — always check both names in wait data when asked about either. WAIT TIME RULE: When asked about a specific ride wait time, always look it up in the live wait data above before answering. If the ride appears in the live data (under either name), state the exact current wait. If it is genuinely missing from the live data, say so and give a historical estimate from cache. Never say you cannot answer a wait time question. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' RIDE NAME ALIAS: Space Mountain and Hyperspace Mountain are the same ride — always check both names in wait data when asked about either. WAIT TIME RULE: When asked about a specific ride wait time, always look it up in the live wait data above before answering. If the ride appears in the live data (under either name), state the exact current wait. If it is genuinely missing from the live data, say so and give a historical estimate from cache. Never say you cannot answer a wait time question. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(!window.chatHistory)window.chatHistory=[];
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
@@ -4591,8 +4634,8 @@ function renderLockCountdowns(){
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function renderClosuresFromWaits(){if(!waits||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 
-function doShareText(){var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://themeparkcopilot.com\nCode: '+(TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'CWDIS2026-G')+'\n\nOpen in Safari > Share > Add to Home Screen!';if(navigator.share){navigator.share({title:'ThemeParkWize',text:msg,url:'https://themeparkcopilot.com'}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
-function doCopyLink(){var text='ThemeParkWize Disneyland App\nLink: https://themeparkcopilot.com\nCode: '+(TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'CWDIS2026-G');if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
+function doShareText(){var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://themeparkcopilot.com\nCode: '+(TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'')+'\n\nOpen in Safari > Share > Add to Home Screen!';if(navigator.share){navigator.share({title:'ThemeParkWize',text:msg,url:'https://themeparkcopilot.com'}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
+function doCopyLink(){var text='ThemeParkWize Disneyland App\nLink: https://themeparkcopilot.com\nCode: '+(TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'');if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
 
 var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40};
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
@@ -5217,27 +5260,17 @@ function closeSetupFinal(){
    NEW UI COMPONENTS JS
    =================================================== */
 var TRIP_CONFIG = {
-  tripName: 'Coffron/Woods Disneyland',
-  party: ['Dad', 'Mom', 'Kids'],
+  tripName: '',
+  party: [],
   days: [
-    {num: 1, label: 'Day 1', date: 'Sun Jun 28', park: 'Disneyland',            isVip: false},
-    {num: 2, label: 'Day 2', date: 'Mon Jun 29', park: 'California Adventure',  isVip:false},
-    {num: 3, label: 'Day 3', date: 'Tue Jun 30', park: 'Disneyland',            isVip: false},
+    {num:1, label:'Day 1', date:'', park:'Disneyland', isVip:false, vipStart:'10:00', vipEnd:'17:00', hasLL:false, hasLLMP:false, hasILL:false, hopTo:false},
+    {num:2, label:'Day 2', date:'', park:'Disneyland', isVip:false, vipStart:'10:00', vipEnd:'17:00', hasLL:false, hasLLMP:false, hasILL:false, hopTo:false},
+    {num:3, label:'Day 3', date:'', park:'Disneyland', isVip:false, vipStart:'10:00', vipEnd:'17:00', hasLL:false, hasLLMP:false, hasILL:false, hopTo:false}
   ],
-  firstParkDate: new Date('2026-06-28T08:00:00-07:00'),
-  guestCode: 'CWDIS2026-G',
-  officialHoursUrl: 'https://disneyland.disney.go.com/calendars/',
-  members: [
-    {firstName: 'Beau',    lastName: 'Coffron', lastInitial: 'C', color: '#C86030'},
-    {firstName: 'Linnea',  lastName: 'Coffron', lastInitial: 'C', color: '#1A6860'},
-    {firstName: 'Zach',    lastName: 'Coffron', lastInitial: 'C', color: '#071E25'},
-    {firstName: 'Abby',    lastName: 'Coffron', lastInitial: 'C', color: '#7040D0'},
-    {firstName: 'Michael', lastName: 'Coffron', lastInitial: 'C', color: '#C86030'},
-    {firstName: 'Jared',   lastName: 'Wood',    lastInitial: 'W', color: '#1A6860'},
-    {firstName: 'Andrea',  lastName: 'Wood',    lastInitial: 'W', color: '#071E25'},
-    {firstName: 'Tyler',   lastName: 'Wood',    lastInitial: 'W', color: '#7040D0'},
-    {firstName: 'Andrew',  lastName: 'Wood',    lastInitial: 'W', color: '#C86030'},
-  ],
+  firstParkDate: null,
+  guestCode: '',
+  officialHoursUrl: 'https://disneyland.disney.go.com/calendars/month/',
+  members: []
 };
 
 function getInitialActiveDay() {
