@@ -919,6 +919,19 @@ function ptFinish() {
     wantedRestaurants: d.wantedRestaurants,
     days: d.days,
     parkHopping: d.days.some(function(dy){ return dy.hopTo; }),
+    reservations: d.reservations || [],
+    dining: {
+      reservations: (d.reservations || []).map(function(s) {
+        if (!s || typeof s !== 'string') return null;
+        var parts = s.split(',').map(function(p) { return p.trim(); });
+        var name = parts[0] || '';
+        var time = parts[1] || '';
+        var dayRaw = parts[2] || '';
+        var dayMatch = dayRaw.match(/(\d+)/);
+        var day = dayMatch ? parseInt(dayMatch[1], 10) : null;
+        return name ? { name: name, time: time, day: day, isConfirmed: true } : null;
+      }).filter(Boolean)
+    },
     onboardingComplete: true
   };
 
