@@ -227,7 +227,7 @@ export default async function handler(req, res) {
           const specialEvts = (cacheCtx.SPECIAL_EVENTS || '').substring(0, 300);
           const tripCtx = (cacheCtx.TRIP_CONTEXT || '').substring(0, 600);
 // DINING_INTEL: verified current restaurant list from cache (Issue 1)
-const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 1500);
+const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
 
       const parkIntelContext = [
               'LAND MAP:\n' + landMap,
@@ -249,91 +249,60 @@ const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 1500);
 
       system += '\n\n=== CURRENT PARK INTELLIGENCE (use this --- do not search the web) ===\n' + parkIntelContext;
 
-// Issue 1: Inject dining intel and forbid hallucinated venue names
+// Issue 1: Inject dining intel with RESV= enforcement, dietary guard, retired blocklist
+      let _diParsed = null;
+      if (diningIntel && diningIntel.length > 20) {
+        try { _diParsed = JSON.parse(diningIntel); } catch(e2) { _diParsed = null; }
+      }
+      const _diRetired = (_diParsed && _diParsed._retired) ? _diParsed._retired : [];
+      const _diRules = (_diParsed && _diParsed._meta && _diParsed._meta.rules) ? _diParsed._meta.rules : [];
+      const _diData = (_diParsed && _diParsed.data) ? _diParsed.data : diningIntel;
 system += '\n\n=== VERIFIED DINING VENUES (AUTHORITATIVE SOURCE) ===';
-if (diningIntel && diningIntel.length > 20) {
-system += '\nThe following dining venues are confirmed current and open. ONLY use names from this list:\n' + diningIntel;
-} else {
-system += '\nNo dining_intel cache available. Use DINING_TIMING section above for venue guidance.';
-}
-system += '\n\n=== VENUE NAME PROHIBITION (CRITICAL --- NEVER VIOLATE) ===';
-system += '\nNEVER name a specific restaurant, dining location, or attraction from your own training knowledge.';
-system += '\nONLY use venue names that appear in the VERIFIED DINING VENUES or DINING_TIMING sections above.';
-system += '\nYour training data is years out of date and contains renamed, closed, and non-existent venues.';
-system += '\nIf a suitable venue is not in the cache, use a generic description:';
-system += '\n  Good: Quick-service lunch in Frontierland or Counter-service in Tomorrowland';
-system += '\n  Bad: Any specific restaurant name NOT confirmed in the cache above.';
-system += '\nThis rule applies to ALL meal types: sit-down, quick-service, snacks, and beverages.';
-
-      if (charContext) {
-              system += '\n\n=== ' + charContext + ' ===';
-              system += '\n\nCHARACTER MEET SCHEDULING RULES:';
-              system += '\n- Character priority for this trip: ' + charPriority;
-              if (charPriority === 'mustDo') {
-                        system += '\n- mustDo: Insert matching character meets even if a ride must be moved to accommodate. Do NOT skip any character whose category matches the trip preferences.';
-              } else {
-                        system += '\n- niceToHave: Insert character meets only at natural gaps (20+ min free between scheduled items). Never displace a ride entry to fit a character meet.';
-              }
-              system += '\n- NEVER schedule a character meet outside their typicalWindows (appearance window).';
-              system += '\n- NEVER place a character meet over a dining reservation, Lightning Lane Single Pass entry, or paid experience.';
-              system += '\n- One character meet per gap maximum --- never stack multiple meets back to back.';
-              system += '\n- Character meet schedule entry schema: { "t": "H:MM AM", "h": "Character Name", "type": "character", "n": "Location, Land --- Window start---end", "land": "Land Name", "typicalWait": 25, "vipAccessible": true, "disclaimer": true }';
-              system += '\n- The "n" field must combine location and appearance window as one string.';
-              system += '\n- Set disclaimer: true on all character entries so the app shows the schedule-change warning.';
+      if (_diData && _diData.length > 20) {
+system += '\nThe following is the ONLY authoritative list of dining venues. Use ONLY these names:';
+system += '\n' + _diData;
+      }
+      if (_diRetired.length > 0) {
+system += '\n\n=== RETIRED/CLOSED VENUES - NEVER MENTION ===';
+system += '\nDo NOT suggest, name, or reference any of these venues: ' + _diRetired.join(', ');
+      }
+      if (_diRules.length > 0) {
+system += '\n\n=== DINING RULES (MUST FOLLOW) ===';
+system += '\n' + _diRules.join('\n');
+      } else {
+system += '\n\nRESV= ENFORCEMENT RULES:';
+system += '\n- RESV=walkup: walk up any time. ONLY these venues fill a standard meal slot by default.';
+system += '\n- RESV=required: NEVER schedule as default meal. Only include if trip config has a CONFIRMED reservation. Otherwise optional suggestion: reservation required, book ~60 days out on Disneyland app.';
+system += '\n- RESV=recommended: may fill a meal slot but card must note wait risk and suggest booking ahead.';
+system += '\n- RESV=never_meal: NEVER place in any meal slot. Only as optional experience if group already booked it.';
+system += '\n- CACHE IS SINGLE SOURCE OF TRUTH: never name a venue or dish from training data, only from this file.';
+      }
+      const _hasDiet = tripConfig && tripConfig.groupProfile && tripConfig.groupProfile.dietary;
+      const _dietNeeds = _hasDiet ? (Array.isArray(tripConfig.groupProfile.dietary) ? tripConfig.groupProfile.dietary : [tripConfig.groupProfile.dietary]) : [];
+      if (_dietNeeds.length > 0) {
+system += '\n\nDIETARY: Show VEG/VEGAN/GF ONLY for group needs: ' + _dietNeeds.join(', ') + '. Only show if venue cache entry explicitly has that field.';
+      } else {
+system += '\n\nDo NOT show dietary tags (VEG/VEGAN/GF) unless the group selected that dietary need.';
       }
 
-      if (ridePrefsContext) {
-              system += '\n\nGUEST RIDE PREFERENCES:';
-              if (mustDo.length) {
-                        system += '\n\n=== MUST-DO RIDES (NON-NEGOTIABLE ANCHORS) ===';
-                        system += '\nEvery must-do ride MUST appear in the schedule. Cannot be removed.';
-                        system += '\nMust Do: ' + mustDo.join(', ');
-                        system += '\nWant To Do (if time allows): ' + (wantToDo.length ? wantToDo.join(', ') : 'all others');
-                        system += '\nSkip (NEVER schedule): ' + (skipRides.length ? skipRides.join(', ') : 'none');
-                        const riseInMust = mustDo.includes('Rise of the Resistance');
-                        const peterInMust = mustDo.includes("Peter Pan's Flight");
-                        let ropeDropGuide = '';
-                        if (riseInMust && peterInMust) {
-                                    ropeDropGuide = 'Rise of the Resistance rope drop first. Peter Pan in 4-6 PM lull.';
-                        } else if (riseInMust) {
-                                    ropeDropGuide = "Rope drop Galaxy's Edge: Rise of the Resistance first, Smugglers Run second.";
-                        } else if (peterInMust) {
-                                    ropeDropGuide = "Rope drop Fantasyland: Peter Pan's Flight first.";
-                        } else {
-                                    ropeDropGuide = 'Rope drop toward land with highest concentration of must-do rides.';
-                        }
-                        system += '\nROPE DROP FOR THIS GROUP: ' + ropeDropGuide;
-              } else if (skipRides.length) {
-                        system += '\nSkip list (NEVER schedule): ' + skipRides.join(', ');
-              }
-      }
-          system += '\n\n=== STRICT CONTENT RULES --- NEVER VIOLATE ===';
-          system += '\n1. Only schedule activities that are: (a) explicitly in the trip config, (b) real attractions verified in the park_intel cache, or (c) standard park activities (rides, dining, shows, photo ops, snack stops, tip cards, restroom breaks).';
-          system += '\n2. NEVER invent tour packages, special experiences, or paid add-ons not in the trip config.';
-          system += '\n3. NEVER schedule behind-the-scenes experiences, private tours, or special-access events that the user did not select during onboarding.';
-          system += '\n4. When uncertain, schedule a standard ride, dining suggestion, or tip card --- never invent a special experience.';
-
-      system += '\n\n=== CURRENT RIDE CLOSURES --- DO NOT SCHEDULE ===';
-          system += '\nThe following attractions are currently closed for refurbishment. NEVER schedule them as ride cards:';
-          system += '\n- Pirates of the Caribbean (DL) - closed for refurbishment, reopens TBD';
-          system += '\n- Buzz Lightyear Astro Blasters (DL) - closed since April 2025';
-          system += '\n- Inside Out Emotional Whirlwind (DCA) - closed for refurbishment';
-          system += '\n- Silly Symphony Swings (DCA) - closed since April 27 2025';
-          system += "\nRIDE RENAME: Splash Mountain no longer exists. It is now Tiana's Bayou Adventure and is fully open. Never reference Splash Mountain anywhere in the schedule.";
-          system += '\nThe CURRENT CLOSURES section above contains a full updated list of all closed attractions. Every ride listed there is unavailable. NEVER schedule a closed ride even if the user selected it as a must-do. Instead, insert a tip card explaining it is closed and suggesting the best alternative.';
-
-      system += '\n\n=== CONFIRMED RESERVATION ANCHOR RULE --- STRICTLY ENFORCED ===';
-          system += '\nConfirmed reservations from tripConfig.dining.reservations MUST appear in the schedule as type:"dining" cards at the exact time specified.';
-
-      system += '\n\n=== NOTE QUALITY STANDARD --- EVERY CARD MUST MEET THIS BAR ===';
-          system += '\nEvery card note (field "n") must include: (1) WHY this activity at this specific time, (2) GROUP-SPECIFIC CONTEXT, (3) PRACTICAL DETAIL. At least 2-3 sentences.';
-
-      const confirmedRestaurants = (tripConfig && tripConfig.dining && tripConfig.dining.reservations
-                                          ? tripConfig.dining.reservations : [])
-            .map(function(r) { return r && r.name ? r.name : null; })
-            .filter(Boolean);
-          console.log('[generateschedule] confirmedRestaurants:', JSON.stringify(confirmedRestaurants));
-          console.log('[generateschedule] tripConfig.dining:', JSON.stringify(tripConfig && tripConfig.dining));
+      // Part C: Parse flat reservation strings from tripConfig.reservations
+      // Merges with tripConfig.dining.reservations if structured objects exist
+      const _flatResArr = (tripConfig && Array.isArray(tripConfig.reservations)) ? tripConfig.reservations : [];
+      const _structuredResArr = (tripConfig && tripConfig.dining && Array.isArray(tripConfig.dining.reservations)) ? tripConfig.dining.reservations : [];
+      const _parsedFlatRes = _flatResArr.map(function(s) {
+        if (!s || typeof s !== 'string') return null;
+        const parts = s.split(',').map(function(p) { return p.trim(); });
+        const name = parts[0] || '';
+        const time = parts[1] || '';
+        const dayRaw = parts[2] || '';
+        const dayMatch = dayRaw.match(/(\d+)/);
+        const day = dayMatch ? parseInt(dayMatch[1], 10) : null;
+        return name ? { name: name, time: time, day: day, isConfirmed: true } : null;
+      }).filter(Boolean);
+      const _allReservations = _structuredResArr.concat(_parsedFlatRes);
+      const confirmedRestaurants = _allReservations.map(function(r) { return r && r.name ? r.name : null; }).filter(Boolean);
+      console.log('[generateschedule] _allReservations:', JSON.stringify(_allReservations));
+      console.log('[generateschedule] confirmedRestaurants:', JSON.stringify(confirmedRestaurants));
 
       if (tripConfig && !tripConfig._usedQuickService) tripConfig._usedQuickService = [];
           const usedQS = (tripConfig && tripConfig._usedQuickService) || [];
@@ -344,7 +313,15 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
 
       system += '\n\n=== DINING SYSTEM RULES --- NEVER VIOLATE ===';
           system += '\n\nCONFIRMED RESERVATIONS --- FIXED ANCHORS:';
-          system += '\nConfirmed: ' + (confirmedRestaurants.join(', ') || 'none');
+          const _resDetails = _allReservations.map(function(r) {
+            if (!r || !r.name) return null;
+            let d = r.name;
+            if (r.time) d += ' at ' + r.time;
+            if (r.day) d += ' (Day ' + r.day + ')';
+            return d;
+          }).filter(Boolean);
+          system += '\nConfirmed: ' + (_resDetails.join('; ') || 'none');
+          system += '\n\nCONFIRMED RESERVATION BLACKOUT RULE: When a confirmed dining reservation exists, that reservation IS the meal for that window. NEVER schedule any other restaurant, quick-service meal, or dining suggestion within ~2.5 hours of that reservation time. Do not offer alternatives for that meal slot. Example: if Cafe Orleans is confirmed at 7:00 PM, nothing else may be scheduled from 4:30 PM to 9:30 PM that day.';
           system += '\n\nQUICK SERVICE SUGGESTIONS (type: "quickservice"):';
           system += '\nAll AI-generated dining slots must use quick service restaurants ONLY.';
           system += '\nRULES:';
