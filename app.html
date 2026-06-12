@@ -3316,7 +3316,7 @@ async function reoptimize(){
   var box=document.getElementById('reoptBox');
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
-  var _rl=document.getElementById('reoptLoading');if(_rl)_rl.style.display='block';box.style.display='none';
+  var _rl=document.getElementById('reoptLoading');if(_rl){_rl.style.display='block';_rl.setAttribute('data-reopt-day',String(curDay));}box.style.display='none';
   btns.classList.remove('show');
   // loading spinner shown
   await ensureApiKey();
@@ -3876,8 +3876,8 @@ function renderSched(){
         if(_vd&&_vd.vipStart){var _vs=_vd.vipStart.match(/(\d+):(\d+)\s*(AM|PM)/i);if(_vs){_vipStart=parseInt(_vs[1]);if(_vs[3].toUpperCase()==='PM'&&_vipStart!==12)_vipStart+=12;}}
         if(_vd&&_vd.vipEnd){var _ve=_vd.vipEnd.match(/(\d+):(\d+)\s*(AM|PM)/i);if(_ve){_vipEnd=parseInt(_ve[1]);if(_ve[3].toUpperCase()==='PM'&&_vipEnd!==12)_vipEnd+=12;}}
       }catch(ex){}
-      var isVipWindow=cardHour>=_vipStart&&cardHour<=_vipEnd;
-      var isVipCard=e.type==='vip'||(e.h&&e.h.indexOf('VIP')>-1);
+      var isVipWindow=cardHour>=_vipStart&&cardHour<_vipEnd;
+      var isVipCard=e.type==='vip'||(e.h&&e.h.indexOf('VIP Tour')>-1);
       if(TRIP_CONFIG.days[curDay].isVip&&(isVipWindow||isVipCard)&&e.type!=='break'&&e.type!=='restroom'){bc+=' is-vip';}if(e.type==='break'||e.type==='restroom')bc+=' is-break';if(e.type==='photo')bc+=' is-photo';
       else if(e.type==='tip')bc+=' is-tip';
       else if(e.type==='snack')bc+=' is-snack';
@@ -4460,6 +4460,7 @@ function setDay(d){
   var et=document.getElementById('editToggle');et.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
   renderClosed();renderSched();renderDayInfoBar();
+  var _rlDay=document.getElementById('reoptLoading');if(_rlDay&&_rlDay.getAttribute('data-reopt-day')!==String(d)){_rlDay.style.display='none';}
   if(typeof renderVipBanner==='function')renderVipBanner(d);
 
   // Blob poll: start/stop based on role and day
@@ -5392,6 +5393,7 @@ function initSplash() {
     var countdownWrap = document.getElementById('splashCountdownWrap');
     if (sc && TRIP_CONFIG && TRIP_CONFIG.tripName) {
       if (titleEl) titleEl.textContent = TRIP_CONFIG.tripName;
+      var headerTitleEl = document.querySelector('.header-title'); if (headerTitleEl) headerTitleEl.textContent = TRIP_CONFIG.tripName;
       if (countdownWrap) countdownWrap.style.display = 'block';
       if (tripCard) {
         var datesEl = document.getElementById('splashTripDates');
