@@ -961,8 +961,8 @@ console.log('[ptFinish] trip blob write status: ' + writeResp._httpStatus + ', b
 if (!writeResp.ok) {
 console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unknown') + ', error: ' + (writeResp.error || 'unknown'));
 }
-// Write 2: keep /api/schedule in place (Phase 1 -- do NOT remove until Phase 2)
-fetch(SYNC_BASE+'/api/schedule',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},body:JSON.stringify({schedule:{days:generatedDays},dayIndex:0})}).finally(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); });
+              // Phase 2: redirect directly (Write 2 to /api/schedule retired)
+              window.location.href = 'app.html?from=setup&t=' + Date.now();
 })
 .catch(function(err){ console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = 'app.html?from=setup&t=' + Date.now(); });
       } else {
