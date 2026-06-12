@@ -21,7 +21,7 @@ function checkAILimit(ip) {
     return true;
 }
 
-// --------- Hardcoded model allowlist — never trust client-supplied model ---
+// --------- Hardcoded model allowlist --- never trust client-supplied model ---
 const MODEL = 'claude-haiku-4-5-20251001';
 
 // --------- buildCacheContext ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -286,17 +286,19 @@ async function handler(req, res) {
           systemPrompt += '\n8. Preserve ALL fields on type "snack", type "photo", and type "character" cards exactly as-is.';
           systemPrompt += '\n These non-ride card types must never have their notes replaced with one-liners.';
           systemPrompt += '\n9. ONLY ride cards (type: "ride") may have their time slots adjusted during optimization.';
-          systemPrompt += '\n Never replace any card note with a shorter version. Never genericize a specific note.';
-          systemPrompt += '\n\nSCHEDULE COMPLETENESS RULE (STRICTLY ENFORCED):';
-          systemPrompt += '\nThe optimized schedule MUST run through actual park closing time. NEVER end before 10:00 PM.';
-          systemPrompt += '\nPark hours are in the PARK INTELLIGENCE section above - use them as the authoritative source.';
-          systemPrompt += '\nIf the park closes at midnight, the last item must be at 11:00 PM or later.';
-          systemPrompt += '\nIf the park closes at 11:00 PM, the last item must be at 10:30 PM or later.';
-          systemPrompt += '\nNEVER end at 9:30 PM unless the cache confirms that is park closing time.';
-          systemPrompt += '\nAfter any nighttime show (fireworks, World of Color, Fantasmic), always include post-show evening rides and a park exit strategy.';
-          systemPrompt += '\nAfter any nighttime show (fireworks, World of Color, Fantasmic!, Paint the Night), ALWAYS schedule 3-4 additional rides from when the show ends until 30 minutes before park closing. Disneyland typically closes at 11:00 PM or midnight -- check PARK_HOURS from cache. NEVER end the schedule more than 30 minutes before park closing time. The last scheduled item must be 10:30 PM or later for an 11 PM close, or 11:30 PM or later for a midnight close.';
-
-      systemPrompt += '\n\nRESTROOM BREAK RULE:';
+          systemPrompt += '\n Never replace any card note with a shorter version. Never genericize a specificsystemPrompt += '\n\nSCHEDULE COMPLETENESS RULE (STRICTLY ENFORCED):';
+systemPrompt += '\nThe optimized schedule MUST run through actual park closing time. NEVER end before 10:00 PM.';
+systemPrompt += '\nPark hours are in the PARK INTELLIGENCE section above - use them as the authoritative source.';
+systemPrompt += '\nDisneyland summer hours are typically 11:00 PM or midnight. DCA is typically 10:00 PM or 11:00 PM.';
+systemPrompt += '\nThe LAST scheduled item must be within 30 minutes of park closing time.';
+systemPrompt += '\n  For 11 PM close: last activity must be 10:30 PM or later.';
+systemPrompt += '\n  For midnight close: last activity must be 11:30 PM or later.';
+systemPrompt += '\n  For 10 PM close: last activity must be 9:30 PM or later.';
+systemPrompt += '\nAfter any nighttime show (fireworks, World of Color, Fantasmic!, Paint the Night):';
+systemPrompt += '\n  ALWAYS schedule 3-5 additional rides from show end until 30 min before park closing.';
+systemPrompt += '\n  NEVER end the schedule with a park exit card while park is still open 45+ more minutes.';
+systemPrompt += '\nNEVER end a day at 8:50 PM or 9:00 PM unless that is confirmed park closing time from cache.';
+systemPrompt += '\n\nRESTROOM BREAK RULE:';
           systemPrompt += '\nMaximum ONE restroom break before noon (morning). Maximum ONE restroom break after noon (afternoon).';
           systemPrompt += '\nNEVER place two restroom/break cards within 90 minutes of each other.';
           systemPrompt += '\nNEVER place a restroom break immediately before or after a snack card.';
@@ -347,7 +349,7 @@ async function handler(req, res) {
       // Cap at 16000 (20 items ~11K chars, needs room)
       var cappedMessage = userMessage.substring(0, 16000);
 
-      // -- B: Model is hardcoded above as MODEL — never use req.body.model or any client value
+      // -- B: Model is hardcoded above as MODEL --- never use req.body.model or any client value
 
       console.log('[reoptimize] scheduleItems JSON length:', JSON.stringify(scheduleItems).length);
           console.log('[reoptimize] building from scheduleItems:', scheduleItems.length);
