@@ -840,7 +840,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
 
   fetch(SYNC_BASE + '/api/generateschedule', {
     method: 'POST',
-    headers: (function(){ var h={'Content-Type':'application/json'}; var c=localStorage.getItem('tpcp_code')||''; var r=localStorage.getItem('tpcp_role')||'guest'; if(r==='admin') h['x-admin-key']='tpcp2026admin'; return h; })(),
+    headers: (function(){ var h={'Content-Type':'application/json'}; var c=localStorage.getItem('tpcp_code')||''; var r=localStorage.getItem('tpcp_role')||'guest'; if(r==='admin') h['x-admin-key']='cwdis2026admin'; return h; })(),
     body: JSON.stringify(Object.assign({
       prompt: prompt,
       mode: 'setup',
@@ -950,7 +950,7 @@ function ptFinish() {
       if (code) {
         fetch(SYNC_BASE + '/api/trip', {
 method: 'POST',
-headers: {'Content-Type':'application/json','x-admin-key':'tpcp2026admin'},
+headers: {'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},
 body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } })
 })
 .then(function(r){ return r.json().then(function(d){ d._httpStatus = r.status; return d; }); })
@@ -962,7 +962,7 @@ if (!writeResp.ok) {
 console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unknown') + ', error: ' + (writeResp.error || 'unknown'));
 }
 // Write 2: keep /api/schedule in place (Phase 1 -- do NOT remove until Phase 2)
-fetch(SYNC_BASE+'/api/schedule',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':'tpcp2026admin'},body:JSON.stringify({schedule:{days:generatedDays},dayIndex:0})}).finally(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); });
+fetch(SYNC_BASE+'/api/schedule',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},body:JSON.stringify({schedule:{days:generatedDays},dayIndex:0})}).finally(function(){ window.location.href = 'app.html?from=setup&t=' + Date.now(); });
 })
 .catch(function(err){ console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = 'app.html?from=setup&t=' + Date.now(); });
       } else {
