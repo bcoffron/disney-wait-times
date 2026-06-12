@@ -20,7 +20,7 @@ let lastUpdated = null;
 async function readScheduleBlob() {
         try {
                     const { blobs } = await list({ prefix: SCHEDULE_BLOB_KEY });
-                    if (!blobs || blobs.length === 0) rreturn null;
+                    if (!blobs || blobs.length === 0) return null;
                     const resp = await fetch(blobs[0].url + '?t=' + Date.now());
                     if (!resp.ok) return null;
                     return await resp.json();
