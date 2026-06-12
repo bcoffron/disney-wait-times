@@ -66,6 +66,21 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
         }
   }
 
+
+  // --------- DINING_INTEL: dedicated restaurant list cache (Issue 1) -----------
+  try {
+    const { blobs: dib } = await list({ prefix: 'twize/dining_intel.json' });
+    if (dib && dib.length) {
+      const fetchUrl = dib[0].downloadUrl || dib[0].url;
+      const diData = await fetch(fetchUrl).then(r => r.json());
+      results['DINING_INTEL'] = typeof diData.data === 'string'
+        ? diData.data
+        : JSON.stringify(diData.data || diData);
+    }
+  } catch (e) {
+    console.error('[cache] dining_intel read error:', e.message);
+  }
+
   return results;
 }
 
@@ -211,6 +226,8 @@ export default async function handler(req, res) {
           const closures = (cacheCtx.CURRENT_CLOSURES || '').substring(0, 1000);
           const specialEvts = (cacheCtx.SPECIAL_EVENTS || '').substring(0, 300);
           const tripCtx = (cacheCtx.TRIP_CONTEXT || '').substring(0, 600);
+// DINING_INTEL: verified current restaurant list from cache (Issue 1)
+const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 1500);
 
       const parkIntelContext = [
               'LAND MAP:\n' + landMap,
@@ -231,6 +248,22 @@ export default async function handler(req, res) {
       let system = 'You are a Disneyland and Disney California Adventure theme park scheduling expert with deep knowledge of wait time patterns, rope drop strategies, and crowd flow. Generate detailed, realistic day schedules in valid JSON only. No markdown, no explanation, just JSON.';
 
       system += '\n\n=== CURRENT PARK INTELLIGENCE (use this --- do not search the web) ===\n' + parkIntelContext;
+
+// Issue 1: Inject dining intel and forbid hallucinated venue names
+system += '\n\n=== VERIFIED DINING VENUES (AUTHORITATIVE SOURCE) ===';
+if (diningIntel && diningIntel.length > 20) {
+system += '\nThe following dining venues are confirmed current and open. ONLY use names from this list:\n' + diningIntel;
+} else {
+system += '\nNo dining_intel cache available. Use DINING_TIMING section above for venue guidance.';
+}
+system += '\n\n=== VENUE NAME PROHIBITION (CRITICAL --- NEVER VIOLATE) ===';
+system += '\nNEVER name a specific restaurant, dining location, or attraction from your own training knowledge.';
+system += '\nONLY use venue names that appear in the VERIFIED DINING VENUES or DINING_TIMING sections above.';
+system += '\nYour training data is years out of date and contains renamed, closed, and non-existent venues.';
+system += '\nIf a suitable venue is not in the cache, use a generic description:';
+system += '\n  Good: Quick-service lunch in Frontierland or Counter-service in Tomorrowland';
+system += '\n  Bad: Any specific restaurant name NOT confirmed in the cache above.';
+system += '\nThis rule applies to ALL meal types: sit-down, quick-service, snacks, and beverages.';
 
       if (charContext) {
               system += '\n\n=== ' + charContext + ' ===';
@@ -304,6 +337,10 @@ export default async function handler(req, res) {
 
       if (tripConfig && !tripConfig._usedQuickService) tripConfig._usedQuickService = [];
           const usedQS = (tripConfig && tripConfig._usedQuickService) || [];
+// Issue 2: pull cross-day used venues from tripConfig.dining.usedVenues
+const usedVenues = (tripConfig && tripConfig.dining && tripConfig.dining.usedVenues) || [];
+const allUsedDining = Array.from(new Set([...usedQS, ...usedVenues]));
+console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringify(allUsedDining));
 
       system += '\n\n=== DINING SYSTEM RULES --- NEVER VIOLATE ===';
           system += '\n\nCONFIRMED RESERVATIONS --- FIXED ANCHORS:';
@@ -314,11 +351,12 @@ export default async function handler(req, res) {
           system += '\n1. Never use the same restaurant more than once across the entire trip';
           system += '\n2. Never use any restaurant in the confirmed list above';
           system += '\n3. Never use table service restaurants as primary recommendations';
-          system += '\n4. Always pick from quick service options in the DINING TIMING section of the cache';
+          system += '\n4. Always pick from venues in the VERIFIED DINING VENUES section above (from cache)';
           system += '\n5. You MAY mention a table service restaurant once per trip in a note line only --- one sentence maximum';
-          system += '\n6. Already used quick service restaurants this trip: ' + (usedQS.join(', ') || 'none');
+          system += '\n6. Already used dining venues this trip (DO NOT REPEAT ANY): ' + (allUsedDining.join(', ') || 'none');
           system += "\n7. PARK-SPECIFIC RULE: Only suggest restaurants physically located in the park the guest is currently in.";
           system += '\n8. NO REPEAT RULE (ABSOLUTE): Never use the same restaurant or snack location more than once across the ENTIRE trip.';
+system += '\n9. CROSS-DAY CHECK: The already-used list in rule 6 contains venues from prior days. Never use any of them.';
           system += '\n\nQUICK SERVICE CARD SCHEMA: { t: "12:00 PM", h: "Rancho del Zocalo Restaurante", type: "quickservice", n: "Counter service Mexican food in Frontierland.", topPick: "Carne Asada Platter", veg: "Cheese Enchiladas", kids: "Kids Cheese Quesadilla", land: "Frontierland" }';
           system += '\n\nSNACK STOPS (type: "snack"):';
           system += '\nSNACK FREQUENCY RULES (ABSOLUTE):\n- Maximum ONE snack stop in the morning (before noon) per day\n- Maximum ONE snack stop in the afternoon (after noon) per day\n- NEVER place two snack cards consecutively with less than 2 hours between them';
@@ -340,6 +378,17 @@ export default async function handler(req, res) {
           system += '\nDURING TOUR HOURS (10:00 AM to 5:00 PM): Do NOT schedule any ride cards. DO include a single VIP tour block entry at 10:00 AM: { t: "10:00 AM", h: "VIP Tour Begins", type: "vip", n: "Your guide takes over. Skip-the-line access for all major attractions.", land: "Disneyland" }';
 
       system += '\n\n=== SCHEDULE COMPLETENESS RULE - STRICTLY ENFORCED ===';
+system += '\nEvery day MUST have schedule entries from arrival time through ACTUAL PARK CLOSING TIME.';
+system += '\nCheck PARK_HOURS in the TRIP CONTEXT section for the actual closing time.';
+system += '\nDisneyland summer hours are typically 11:00 PM or midnight. DCA is typically 10:00 PM or 11:00 PM.';
+system += '\nThe LAST scheduled activity must be within 30 minutes of park closing time.';
+system += '\nAfter any nighttime show (fireworks, Fantasmic!, World of Color, Paint the Night):';
+system += '\n  ALWAYS schedule 3-5 additional rides from show end until 30 min before close.';
+system += '\n  NEVER end the schedule with a park exit or departure prep card while park is open 45+ more minutes.';
+system += '\n  For 11 PM close: last activity must be 10:30 PM or later.';
+system += '\n  For midnight close: last activity must be 11:30 PM or later.';
+system += '\n  For 10 PM close: last activity must be 9:30 PM or later.';
+system += '\nNEVER end a day at 8:50 PM or 9:00 PM unless that is confirmed park closing time from cache.';
           system += '\nEvery day MUST have schedule entries from arrival time through actual park closing time.';
           system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 80 characters. One concise sentence only.';
           system += '\nCHARACTER ENCODING RULE: NEVER use special symbols, emoji, checkmarks, bullets, stars, or any non-ASCII characters in card titles (h field) or notes (n field). Use plain ASCII only.';
@@ -357,12 +406,17 @@ export default async function handler(req, res) {
           system += '\nNever leave a gap longer than 45 minutes between consecutive schedule items.';
 
       system += '\n\n=== DINING PEAK HOURS RULE (ABSOLUTE) ===';
-          system += '\nNever schedule any QS meal between 12:00 PM and 1:00 PM. Lunch: schedule at 11:00-11:45 AM or 1:15-2:00 PM only.\n\nTIME BOUNDS RULE (ABSOLUTE):\nNever schedule any item before 7:00 AM or after park close.\n\nLIGHTNING LANE REMINDER CARDS (REQUIRED):\nEvery schedule must include Lightning Lane reminder tip cards throughout the day. Include:\n1. Opening LL tip (7:00-7:30 AM)\n2. Second booking reminder (~10:00 AM)\n3. Afternoon check (~1:30-2:00 PM)\n4. Final window (~4:00 PM)';
+system += '\nNever schedule any QS meal or sit-down dining between 12:00 PM and 1:30 PM (peak lunch rush).';
+system += '\nNever schedule any QS meal or sit-down dining between 5:30 PM and 7:30 PM (peak dinner rush).';
+system += '\nLUNCH windows: 11:00 AM-11:45 AM (early) OR 1:30 PM-2:30 PM (late).';
+system += '\nDINNER windows: 4:30 PM-5:30 PM (early) OR 7:30 PM-9:00 PM (late).';
+system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree. If the note says to avoid the 6-7 PM rush, the card time MUST be before 5:30 PM or after 7:30 PM. Never schedule a meal at 6:15 PM with a note warning about 6 PM crowds.';
+          system += '\nTIME BOUNDS RULE (ABSOLUTE):\nNever schedule any item before 7:00 AM or after park close.\n\nLIGHTNING LANE REMINDER CARDS (REQUIRED):\nEvery schedule must include Lightning Lane reminder tip cards throughout the day. Include:\n1. Opening LL tip (7:00-7:30 AM)\n2. Second booking reminder (~10:00 AM)\n3. Afternoon check (~1:30-2:00 PM)\n4. Final window (~4:00 PM)';
           system += '\n\nLIGHTNING LANE CARD SCHEMA (REQUIRED): Every LL booking tip card MUST include the ll field. Use this schema: { "t": "9:00 AM", "h": "Book [Ride Name] via Lightning Lane", "type": "tip", "land": "[Land Name]", "n": "Book now - return window typically X:XX PM", "ll": { "t": "multi", "a": "Book [Ride] LLMP now - return ~X:XX PM" }, "ride": "[Exact Ride Name]" }';
           system += '\nFor paid Individual Lightning Lane: use ll.t = "single". For LLMP: use ll.t = "multi".';
           system += '\nIf tripConfig shows hasLL: false or no Lightning Lane for this day, do NOT generate LL cards and do NOT include ll fields on any item.';
 
-      // -- B: Model is hardcoded — never use req.body.model or any client value
+      // -- B: Model is hardcoded --- never use req.body.model or any client value
       const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
               signal: controller.signal,
               method: 'POST',
