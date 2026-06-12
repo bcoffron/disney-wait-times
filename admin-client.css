@@ -14,6 +14,7 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .login-btn:hover{background:#B05528}
 .login-btn:disabled{background:#ccc;cursor:not-allowed}
 .login-error{color:#C82030;font-size:12px;margin-top:8px;min-height:18px}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0;color:#8AACAE;display:flex;align-items:center;justify-content:center;}
 /* APP SHELL */
 #app{display:none;min-height:100vh;background:#F4F6F7}
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:#071E25;padding:20px 0;display:flex;flex-direction:column;z-index:100;overflow-y:auto}
