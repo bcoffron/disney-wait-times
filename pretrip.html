@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- cache-bust: TPCP2026-phase1 2026-06-12 -
+<!-- cache-bust: TPCP2026-phase4 2026-06-13 -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Trip Setup &mdash; Theme Park Co-Pilot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gsttic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-higlight-color:transparent;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflow-x:hidden;}
 /* Header */
 .pt-header{background:#071E25;padding:14px 16px 0;position:sticky;top:0;z-index:100;}
@@ -388,8 +388,10 @@ var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Alm
 // -- Init ------------------------------------------------
 (function(){console.log("[pretrip] IIFE init start");
   // Check if edit mode
-  var isEdit = (new URLSearchParams(window.location.search)).get('edit') === 'true';
-  if(isEdit){ ptLoadFromStorage(); }
+  var _sp = new URLSearchParams(window.location.search);
+    var isEdit    = _sp.get('edit')    === 'true';
+      var isRebuild = _sp.get('rebuild') === 'true'
+  if (isEdit || isRebuild) { ptLoadFromBlob(isRebuild); }
 
   // Add initial members
 
@@ -765,6 +767,79 @@ function ptSaveCurrentStep() {
 }
 
 // -- Load from storage -----------------------------------
+function ptLoadFromBlob(isRebuild) {
+    var code = localStorage.getItem('tpcp_code') || '';
+      if (!code) { ptLoadFromStorage(); return; }
+        var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://disney-wait-times-lupt.vercel.app';
+          fetch(base + '/api/trip?code=' + encodeURIComponent(code))
+              .then(function(r) { return r.json(); })
+                  .then(function(data) {
+                        if (data && data.tripData && data.tripData.tripConfig) {
+                                ptRestoreFromConfig(data.tripData.tripConfig, isRebuild);
+                                      } else {
+                                              ptLoadFromStorage();
+                                                    }
+                                                        })
+                                                            .catch(function() { ptLoadFromStorage(); });
+                                                            }
+
+                                                            function ptRestoreFromConfig(cfg, isRebuild) {
+                                                              var nameEl = document.getElementById('ptTripName');
+                                                                if (nameEl && cfg.tripName) nameEl.value = cfg.tripName;
+                                                                  if (cfg.dates && cfg.dates.length) {
+                                                                      var sd = document.getElementById('ptStartDate');
+                                                                          var ed = document.getElementById('ptEndDate');
+                                                                              if (sd) sd.value = cfg.dates[0];
+                                                                                  if (ed) ed.value = cfg.dates[cfg.dates.length - 1];
+                                                                                      ptUpdateDayCards();
+                                                                                        }
+                                                                                          if (cfg.thrillLevel) {
+                                                                                              document.querySelectorAll('.pt-seg-btn[data-seg="thrillSeg"]').forEach(function(b) {
+                                                                                                    b.classList.toggle('active', b.dataset.val === cfg.thrillLevel);
+                                                                                                        });
+                                                                                                            if (typeof ptSegValues !== 'undefined') ptSegValues['thrillSeg'] = cfg.thrillLevel;
+                                                                                                              }
+                                                                                                                if (cfg.ridePreferences) {
+                                                                                                                    (cfg.ridePreferences.mustDo || []).forEach(function(ride) {
+                                                                                                                          var chip = document.querySelector('.pt-chip[data-ride="' + ride + '"]');
+                                                                                                                                if (chip) { chip.classList.add('selected'); chip.dataset.state = 'must'; }
+                                                                                                                                    });
+                                                                                                                                        (cfg.ridePreferences.skip || []).forEach(function(ride) {
+                                                                                                                                              var chip = document.querySelector('.pt-chip[data-ride="' + ride + '"]');
+                                                                                                                                                    if (chip) { chip.classList.add('selected'); chip.dataset.state = 'never'; }
+                                                                                                                                                        });
+                                                                                                                                                          }
+                                                                                                                                                            if (cfg.diningStyle) {
+                                                                                                                                                                document.querySelectorAll('.pt-seg-btn[data-seg="diningSeg"]').forEach(function(b) {
+                                                                                                                                                                      b.classList.toggle('active', b.dataset.val === cfg.diningStyle);
+                                                                                                                                                                          });
+                                                                                                                                                                              if (typeof ptSegValues !== 'undefined') ptSegValues['diningSeg'] = cfg.diningStyle;
+                                                                                                                                                                                }
+                                                                                                                                                                                  if (cfg.diningBudget) {
+                                                                                                                                                                                      document.querySelectorAll('.pt-seg-btn[data-seg="budgetSeg"]').forEach(function(b) {
+                                                                                                                                                                                            b.classList.toggle('active', b.dataset.val === cfg.diningBudget);
+                                                                                                                                                                                                });
+                                                                                                                                                                                                    if (typeof ptSegValues !== 'undefined') ptSegValues['budgetSeg'] = cfg.diningBudget;
+                                                                                                                                                                                                      }
+                                                                                                                                                                                                        if (cfg.days && cfg.days.length) {
+                                                                                                                                                                                                            cfg.days.forEach(function(day, i) {
+                                                                                                                                                                                                                  var n = i + 1;
+                                                                                                                                                                                                                        if (day.park) {
+                                                                                                                                                                                                                                document.querySelectorAll('#day' + n + 'ParkSeg .pt-seg-btn').forEach(function(b) {
+                                                                                                                                                                                                                                          b.classList.toggle('active', b.dataset.val === day.park);
+                                                                                                                                                                                                                                                  });
+                                                                                                                                                                                                                                                          if (typeof ptSegValues !== 'undefined') ptSegValues['day' + n + 'ParkSeg'] = day.park;
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                      if (day.hopTo && document.getElementById('day' + n + 'Hopper')) document.getElementById('day' + n + 'Hopper').classList.add('on');
+                                                                                                                                                                                                                                                                            if (day.hasLL && document.getElementById('day' + n + 'LL')) { document.getElementById('day' + n + 'LL').classList.add('on'); if (typeof ptLLToggle === 'function') ptLLToggle(n); }
+                                                                                                                                                                                                                                                                                  if (day.hasILL && document.getElementById('day' + n + 'ILL')) { document.getElementById('day' + n + 'ILL').classList.add('checked'); if (typeof ptILLToggle === 'function') ptILLToggle(n); }
+                                                                                                                                                                                                                                                                                        if (day.isVip && document.getElementById('day' + n + 'Vip')) { document.getElementById('day' + n + 'Vip').classList.add('on'); if (typeof ptVipToggle === 'function') ptVipToggle(n); }
+                                                                                                                                                                                                                                                                                            });
+                                                                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                                                                                if (isRebuild) { setTimeout(function() { ptFinish(); }, 300); }
+                                                                                                                                                                                                                                                                                                }
+
+
 function ptLoadFromStorage() {
   try {
     var raw = localStorage.getItem('pretripData');
@@ -996,7 +1071,7 @@ console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unk
     var _dayResStrings = _dayReservations.map(function(r) {
       return 'THIS DAY\'S CONFIRMED RESERVATION: ' + r.name + ' at ' + r.time;
     });
-    var dayTripConfig = Object.assign({}, tripConfig, {
+    var dayTripConfig = Object.assign({}, tripnfg, {
       reservations: _dayResStrings,
       dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations })
     });
