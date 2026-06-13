@@ -206,7 +206,8 @@ export default async function handler(req, res) {
 
       const cacheCtx = await buildCacheContext(
               ['LAND_MAP', 'WAIT_PATTERNS', 'ROPE_DROP_STRATEGY',
-                       'LIGHTNING_LANE_STRATEGY', 'DINING_TIMING', 'CROWD_FLOW'],
+                       'LIGHTNING_LANE_STRATEGY', 'DINING_TIMING', 'CROWD_FLOW',
+      'PARK_HOURS', 'PARK_HOP_STRATEGY'],
               true
             );
           console.log('[generateschedule] cacheCtx sections:', Object.keys(cacheCtx));
@@ -226,6 +227,8 @@ export default async function handler(req, res) {
           const closures = (cacheCtx.CURRENT_CLOSURES || '').substring(0, 1000);
           const specialEvts = (cacheCtx.SPECIAL_EVENTS || '').substring(0, 300);
           const tripCtx = (cacheCtx.TRIP_CONTEXT || '').substring(0, 600);
+const parkHours = (cacheCtx.PARK_HOURS || '').substring(0, 800);
+const parkHopStrategy = (cacheCtx.PARK_HOP_STRATEGY || '').substring(0, 600);
 // DINING_INTEL: verified current restaurant list from cache (Issue 1)
 const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
 
@@ -238,7 +241,9 @@ const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
               'CROWD FLOW:\n' + crowdFlow,
               'CURRENT CLOSURES:\n' + closures,
               'SPECIAL EVENTS:\n' + specialEvts,
-              'TRIP CONTEXT:\n' + tripCtx
+              'TRIP CONTEXT:\n' + tripCtx,
+  'PARK HOURS:\n' + parkHours,
+  'PARK HOP STRATEGY:\n' + parkHopStrategy
             ].join('\n\n');
 
       const charIntel = await getCharacterIntel(4000);
@@ -344,7 +349,7 @@ system += '\n9. CROSS-DAY CHECK: The already-used list in rule 6 contains venues
           system += '\nAfternoon break notes should mention that this is also a good time for shopping.';
 
       system += '\n\n=== PARK ARRIVAL RULE ===';
-          system += '\nAlways schedule guests to arrive 60 minutes (1 hour) before official park opening.';
+          system += '\nArrival: 1 hour before park open (use PARK HOURS cache for exact open time).'; system += '\nPRE-OPEN HOUR IS POSITIONING ONLY: arrival, bag check/security, walk to rope-drop land, waiting at the rope. These are type: tip cards. NEVER schedule type: ride before park opens.'; system += '\nFIRST RIDE RULE (ABSOLUTE): The first type:ride card MUST be at open-time + 5 minutes (e.g. 8:00 AM open -> first ride at 8:05 AM). Read actual open time from PARK HOURS cache. Never assume 8:00 AM. Never place a ride before or at arrival time.';
 
       system += '\n\n=== MORNING RHYTHM RULES --- REQUIRED ON ALL DAYS ===';
           system += '\nEvery day must include: (1) Arrival tip 60 min before open, (2) Rope drop / Lightning Lane tip, (3) First 2-3 rides, (4) MORNING SNACK between 9:00 AM and 10:30 AM, (5) RESTROOM BREAK (type: "break") before 10:30 AM, (6) Continue mid-morning rides.';
@@ -371,11 +376,11 @@ system += '\nNEVER end a day at 8:50 PM or 9:00 PM unless that is confirmed park
           system += '\nCHARACTER ENCODING RULE: NEVER use special symbols, emoji, checkmarks, bullets, stars, or any non-ASCII characters in card titles (h field) or notes (n field). Use plain ASCII only.';
 
       if (tripConfig && tripConfig.parkHopping) {
-              system += '\n\n=== PARK HOPPING RULE ===';
-              system += '\nThis group has park hopper tickets. Build the schedule to include a second park visit in the afternoon or evening.';
-              system += '\nDay 1 (starts Disneyland): hop to DCA after 5:00 PM.';
-              system += '\nDay 3 (starts DCA): hop to Disneyland around 3:00-4:00 PM.';
-              system += '\nDay 2 (VIP Tour): no park hop needed.';
+              system += '\n\n=== PARK HOPPING RULE (CACHE-DRIVEN) ===';
+              system += '\nThis group has park hopper tickets. Build the schedule to include a second park visit.';
+              system += '\nSTART at startPark (rope drop there per rope-drop rule above).'; system += '\nHOP TIMING: Consult PARK HOP STRATEGY cache section for data-driven hop window. Use the cache-recommended hop time. If no cache guidance, state the hop generically rather than inventing a precise time.';
+              system += '\nCONTINUE in second park until ~30 minutes before that park close (use PARK HOURS cache).';
+              
       }
           console.log('[generateschedule] mode:', mode || 'default', 'char_priority:', charPriority);
 
