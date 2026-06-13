@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- cache-bust: TPCP2026-phase1 2026-06-12 -->
+<!-- cache-bust: TPCP2026-phase1 2026-06-12 -
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Trip Setup &mdash; Theme Park Co-Pilot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gsttic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-higlight-color:transparent;}
 body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflow-x:hidden;}
 /* Header */
 .pt-header{background:#071E25;padding:14px 16px 0;position:sticky;top:0;z-index:100;}
@@ -508,6 +508,19 @@ function ptVipToggle(day){console.log("[pretrip] ptVipToggle called");
   sub.classList.toggle('visible', tog.classList.contains('on'));
 }
 
+function ptSyncStartPark(day, park) {
+  ptSegValues['day'+day+'StartPark'] = park;
+}
+
+function ptVipAutoHopper(day) {
+  var vipTog = document.getElementById('day'+day+'Vip');
+  var hopTog = document.getElementById('day'+day+'Hopper');
+  if (!vipTog || !hopTog) return;
+  if (vipTog.classList.contains('on') && !hopTog.classList.contains('on')) {
+    hopTog.classList.add('on');
+  }
+}
+
 function ptReservationsToggle(){
   var tog = document.getElementById('hasReservationsToggle');
   var sub = document.getElementById('reservationsSub');
@@ -617,17 +630,20 @@ function ptUpdateDayCards() {
   for (var n = 1; n <= count; n++) {
     var dateLabel = ptGetDateLabel(startVal, n - 1);
     var prev = saved[n-1] || {};
-    var parkDL = (!prev.park || prev.park === 'Disneyland') ? ' active' : '';
-    var parkDCA = prev.park === 'California Adventure' ? ' active' : '';
-    var parkBoth = prev.park === 'Both' ? ' active' : '';
-    if (!parkDL && !parkDCA && !parkBoth) parkDL = ' active';
+    var prevPark = prev.startPark || prev.park || 'Disneyland';
+    if (prevPark === 'Both') prevPark = 'Disneyland';
+    if (prevPark === 'California Adventure') prevPark = 'DCA';
+    var parkDL = (prevPark === 'Disneyland') ? ' active' : '';
+    var parkDCA = (prevPark === 'DCA') ? ' active' : '';
+    
+    if (!parkDL && !parkDCA) parkDL = ' active';
     html += '<div class="pt-day-card">' +
       '<div class="pt-day-card-header"><div>Day ' + n + '</div><div class="pt-day-date">' + dateLabel + '</div></div>' +
-      '<div class="pt-field"><div class="pt-label">Park</div>' +
+      '<div class="pt-field"><div class="pt-label">Which park will you start the day in?</div>' +
       '<div class="pt-seg" id="day'+n+'ParkSeg" style="margin-bottom:0;">' +
-        '<button class="pt-seg-btn'+parkDL+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'Disneyland\')">Disneyland</button>' +
-        '<button class="pt-seg-btn'+parkDCA+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'California Adventure\')">DCA</button>' +
-        '<button class="pt-seg-btn'+parkBoth+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'Both\')">Both</button>' +
+        '<button class="pt-seg-btn'+parkDL+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'Disneyland\');ptSyncStartPark('+n+',\'Disneyland\')">Disneyland</button>' +
+        '<button class="pt-seg-btn'+parkDCA+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'DCA\');ptSyncStartPark('+n+',\'DCA\')">DCA</button>' +
+        
       '</div></div>' +
       '<div class="pt-toggle-row" style="margin-top:10px;">' +
         '<div class="pt-toggle-label">Park hopper</div>' +
@@ -653,7 +669,7 @@ function ptUpdateDayCards() {
       '</div>' +
       '<div class="pt-toggle-row">' +
         '<div class="pt-toggle-label">VIP tour this day</div>' +
-        '<div class="pt-toggle' + (prev.isVip ? ' on' : '') + '" id="day'+n+'Vip" onclick="ptToggle(\'day'+n+'Vip\');ptVipToggle('+n+')"><div class="pt-toggle-knob"></div></div>' +
+        '<div class="pt-toggle' + (prev.isVip ? ' on' : '') + '" id="day'+n+'Vip" onclick="ptToggle(\'day'+n+'Vip\');ptVipAutoHopper('+n+');ptVipToggle('+n+')"><div class="pt-toggle-knob"></div></div>' +
       '</div>' +
       '<div class="pt-vip-sub' + (prev.isVip ? ' visible' : '') + '" id="day'+n+'VipSub">' +
         '<div class="pt-label" style="margin-bottom:6px;">Tour window</div>' +
@@ -666,7 +682,8 @@ function ptUpdateDayCards() {
       '</div>' +
     '</div>';
     // Re-register seg value
-    ptSegValues['day'+n+'ParkSeg'] = prev.park || 'Disneyland';
+    ptSegValues['day'+n+'ParkSeg'] = prevPark;
+    ptSegValues['day'+n+'StartPark'] = prevPark;
   }
   container.innerHTML = html;
 }
@@ -694,6 +711,7 @@ function ptCollectData() {
       num: n,
       date: startVal ? ptGetDateLabel(startVal, n-1) : '',
       park: park,
+      startPark: ptSegValues['day'+n+'StartPark'] || park,
       hopTo: document.getElementById('day'+n+'Hopper') ? document.getElementById('day'+n+'Hopper').classList.contains('on') : false,
       hasLL: hasLL,
       hasLLMP: hasLLMP,
@@ -770,7 +788,7 @@ function ptLoadFromStorage() {
         if (day.isVip && document.getElementById('day'+n+'Vip')) { document.getElementById('day'+n+'Vip').classList.add('on'); ptVipToggle(n); }
         if (day.vipStart && document.getElementById('day'+n+'VipStart')) document.getElementById('day'+n+'VipStart').value = day.vipStart;
         if (day.vipEnd && document.getElementById('day'+n+'VipEnd')) document.getElementById('day'+n+'VipEnd').value = day.vipEnd;
-        if (day.park) ptSegValues['day'+n+'ParkSeg'] = day.park;
+        if (day.park) { ptSegValues['day'+n+'ParkSeg'] = day.park; ptSegValues['day'+n+'StartPark'] = day.startPark || day.park; }
       });
     }
     if (d.wantedRestaurants && document.getElementById('wantedRestaurants')) document.getElementById('wantedRestaurants').value = d.wantedRestaurants;
@@ -971,7 +989,18 @@ console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unk
       return;
     }
     ptShowGenerating(idx + 1, totalDays);
-    ptGenerateDaySchedule(tripConfig, idx, 0, function(err, items) {
+    var _dayNum = idx + 1;
+    var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
+      ? tripConfig.dining.reservations.filter(function(r) { return r && r.day === _dayNum; })
+      : [];
+    var _dayResStrings = _dayReservations.map(function(r) {
+      return 'THIS DAY\'S CONFIRMED RESERVATION: ' + r.name + ' at ' + r.time;
+    });
+    var dayTripConfig = Object.assign({}, tripConfig, {
+      reservations: _dayResStrings,
+      dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations })
+    });
+    ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items) {
       if (err) {
         console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
         // Show error in progress bar but continue to next day
@@ -989,6 +1018,17 @@ console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unk
         generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: [] });
       } else {
         generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: items });
+      var _usedThisDay = [];
+      (items || []).forEach(function(item) {
+        if (item && (item.type === 'dining' || item.type === 'quickservice' || item.type === 'snack') && item.h) {
+          var vn = item.h.replace(/^(Lunch:|Dinner:|Breakfast:|Snack:|Morning Snack:|Afternoon Snack:)\s*/i, '').trim();
+          if (vn) _usedThisDay.push(vn);
+        }
+      });
+      if (!tripConfig.dining) tripConfig.dining = {};
+      if (!Array.isArray(tripConfig.dining.usedVenues)) tripConfig.dining.usedVenues = [];
+      tripConfig.dining.usedVenues = tripConfig.dining.usedVenues.concat(_usedThisDay);
+      console.log('[pretrip] Day '+(idx+1)+' venues:', JSON.stringify(_usedThisDay));
       }
       ptUpdateGenBar(idx + 1, totalDays);
       generateNext(idx + 1);
