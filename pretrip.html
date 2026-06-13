@@ -151,13 +151,6 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     </div>
   </div>
 
-  <div class="pt-section-label">Home park</div>
-  <div class="pt-seg" id="parkSeg" style="margin-bottom:12px;">
-    <button class="pt-seg-btn active" onclick="ptSegSelect('parkSeg',this,'Disneyland')">Disneyland</button>
-    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'DCA')">DCA</button>
-    <button class="pt-seg-btn" onclick="ptSegSelect('parkSeg',this,'Both')">Both</button>
-  </div>
-
 </div>
 
 <!-- STEP 2: RIDE PREFERENCES -->
@@ -736,7 +729,7 @@ function ptCollectData() {
   return {
     tripName: document.getElementById('tripName') ? document.getElementById('tripName').value.trim() : '',
     dates: { start: document.getElementById('tripStart') ? document.getElementById('tripStart').value : '', end: document.getElementById('tripEnd') ? document.getElementById('tripEnd').value : '' },
-    location: ptSegValues['parkSeg'] || 'Disneyland',
+    location: (function(){var ps={};days.forEach(function(dd){if(dd.park)ps[dd.park]=1;});var keys=Object.keys(ps);return keys.length>1?'Both':(keys[0]||'Disneyland');})(),
     thrillLevel: getTile('thrillTiles'),
     mustDo: getChips('mustDoChips'),
     neverSchedule: neverSchedule,
