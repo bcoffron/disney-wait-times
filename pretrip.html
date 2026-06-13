@@ -1076,7 +1076,7 @@ console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unk
     var _dayResStrings = _dayReservations.map(function(r) {
       return 'THIS DAY\'S CONFIRMED RESERVATION: ' + r.name + ' at ' + r.time;
     });
-    var dayTripConfig = Object.assign({}, tripnfg, {
+    var dayTripConfig = Object.assign({}, tripConfig, {
       reservations: _dayResStrings,
       dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations })
     });
