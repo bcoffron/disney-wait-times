@@ -2040,7 +2040,7 @@ async function _aiProxy(body, cacheCtx){
   const MAX_CACHE_CONTEXT=4000;const trimmedCache=(parkIntelCache||'').substring(0,MAX_CACHE_CONTEXT);var _rideCtx=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});var ctx=cacheCtx||(trimmedCache?(trimmedCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';if(_rideCtx)ctx=(_rideCtx+'\n'+ctx).substring(0,MAX_CACHE_CONTEXT+_rideCtx.length);
   try{
     var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:(function(){var h={'Content-Type':'application/json'};if(localStorage.getItem('tpcp_role')==='admin')h['x-admin-key']=PASS_ADMIN;return h;})(),
-      body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6'})});
+      body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6',tripCode:_tc,adminKey:(_role==='admin'?PASS_ADMIN:undefined)})});
     var d;
     try{d=await r.json();}catch(jsonErr){return{error:{message:'AI response parse error: '+r.status}};}
     if(d.ok)return{content:[{type:'text',text:d.text}]};
