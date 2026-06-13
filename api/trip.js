@@ -1,24 +1,5 @@
-
-        if (body.action === 'delete_blob') {
-          const { blobKey } = body;
-          if (!blobKey || typeof blobKey !== 'string') return res.status(400).json({ error: 'Missing blobKey' });
-          // Safety: only allow deleting trip_ blobs to prevent accidents
-          if (!blobKey.startsWith('twize/trip_') && !blobKey.startsWith('twize/current_schedule')) {
-            return res.status(400).json({ error: 'Only trip_ and current_schedule blobs may be deleted' });
-          }
-          try {
-            const { del, list } = await import('@vercel/blob');
-            const { blobs } = await list({ prefix: blobKey });
-            if (!blobs || blobs.length === 0) return res.status(200).json({ ok: true, deleted: 0 });
-            await del(blobs.map(b => b.url));
-            console.log('[trip] deleted blob(s):', blobKey, 'count:', blobs.length);
-            return res.status(200).json({ ok: true, deleted: blobs.length, key: blobKey });
-          } catch(e) {
-            return res.status(500).json({ error: e.message });
-          }
-        }
 // api/trip.js - Trip code registry handler
-import { put, list } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 import { validateSchedule } from './validate-schedule.js';
 
 const REGISTRY_KEY = 'twize/trip_registry.json';
@@ -44,9 +25,8 @@ async function writeRegistry(data) {
   });
 }
 
-
 function sanitizeJson(text) {
-  const lastBrace = text.lastIndexOf('}' + '}');
+  const lastBrace = text.lastIndexOf('}}');
   if (lastBrace > -1) return text.substring(0, lastBrace + 2);
   return text;
 }
@@ -129,7 +109,7 @@ export default async function handler(req, res) {
       if (tripData && tripData.tripConfig) {
         tripData.tripConfig.scheduleVersion = Date.now().toString();
       }
-                  // Validate schedule before saving
+      // Validate schedule before saving
       if (tripData && tripData.tripConfig && tripData.tripConfig.schedule) {
         try {
           const valResult = validateSchedule(
@@ -151,10 +131,10 @@ export default async function handler(req, res) {
           // Do not block save on validator error - log and continue
         }
       }
-// Save to shared trip blob
+      // Save to shared trip blob
       await writeTripBlob(entry.tripId, tripData);
-    const _blobBodyLen = JSON.stringify(tripData).length;
-    console.log('[ptFinish] trip blob write status: 200, bytes written: ' + _blobBodyLen + ', tripId: ' + entry.tripId);
+      const _blobBodyLen = JSON.stringify(tripData).length;
+      console.log('[ptFinish] trip blob write status: 200, bytes written: ' + _blobBodyLen + ', tripId: ' + entry.tripId);
 
       return res.status(200).json({ ok: true, tripId: entry.tripId });
     } catch (e) {
@@ -162,7 +142,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // PUT: admin registry management (seed codes, update registry)
+  // PUT: admin registry management (seed codes, update registry, delete blobs)
   if (req.method === 'PUT') {
     const sentKey = (req.headers['x-admin-key'] || '').toLowerCase();
     if (sentKey !== ADMIN_KEY) return res.status(403).json({ error: 'Unauthorized' });
@@ -185,6 +165,24 @@ export default async function handler(req, res) {
         if (!tripId || tripData === undefined) return res.status(400).json({ error: 'Missing tripId or tripData' });
         await writeTripBlob(tripId, tripData);
         return res.status(200).json({ ok: true, tripId });
+      }
+
+      if (body.action === 'delete_blob') {
+        const { blobKey } = body;
+        if (!blobKey || typeof blobKey !== 'string') return res.status(400).json({ error: 'Missing blobKey' });
+        // Safety: only allow deleting trip_ blobs to prevent accidents
+        if (!blobKey.startsWith('twize/trip_') && !blobKey.startsWith('twize/current_schedule')) {
+          return res.status(400).json({ error: 'Only trip_ and current_schedule blobs may be deleted' });
+        }
+        try {
+          const { blobs } = await list({ prefix: blobKey });
+          if (!blobs || blobs.length === 0) return res.status(200).json({ ok: true, deleted: 0 });
+          await del(blobs.map(b => b.url));
+          console.log('[trip] deleted blob(s):', blobKey, 'count:', blobs.length);
+          return res.status(200).json({ ok: true, deleted: blobs.length, key: blobKey });
+        } catch(e) {
+          return res.status(500).json({ error: e.message });
+        }
       }
 
       return res.status(400).json({ error: 'Unknown action' });
