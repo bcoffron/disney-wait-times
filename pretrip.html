@@ -1101,7 +1101,7 @@ console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unk
       var _usedThisDay = [];
       (items || []).forEach(function(item) {
         if (item && (item.type === 'dining' || item.type === 'quickservice' || item.type === 'snack') && item.h) {
-          var vn = item.h.replace(/^(Lunch:|Dinner:|Breakfast:|Snack:|Morning Snack:|Afternoon Snack:)\s*/i, '').trim();
+          var vn = item.h.replace(/^((Early|Late)\s+)?(Lunch|Dinner|Breakfast|Brunch|Snack|Morning Snack|Afternoon Snack|Meal)\s*:\s*/i, '').trim();
           if (vn) _usedThisDay.push(vn);
         }
       });
