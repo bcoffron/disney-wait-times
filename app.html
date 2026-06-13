@@ -5484,10 +5484,8 @@ var _obDays = [];
 var _obVipState = {}; // keyed by day index: { on: bool, start: str, end: str, perks: [] }
 
 function launchOnboarding(code, role, tripId) {
-  _obCode = code; _obRole = role; _obTripId = tripId;
-  var ov = document.getElementById('onboardingOverlay');
-  if (ov) ov.style.display = 'block';
-  obGoTo(1);
+  // Phase 4 Part B: canonical onboarding is pretrip.html -- redirect, retire in-app overlay
+  window.location.href = '/pretrip.html';
 }
 
 function obGoTo(step) {
