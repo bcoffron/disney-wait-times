@@ -22,14 +22,48 @@ UNIVERSAL RULES:
 7. When sources conflict -- use primary source for that section
 `;
 
+// ---- Dining governance (DL/DCA only) + permanent retired-venue exclusions ----
+const DINING_RETIRED = [
+  "Redd Rockett's Pizza Port -> renamed Alien Pizza Planet (2018, Tomorrowland, Disneyland). Never use the old name.",
+  "Pacific Wharf Cafe -> renamed Aunt Cass Cafe (DCA, San Fransokyo Square). Never use the old name; do not invent a 'Pacific Wharf Cafe' venue.",
+  "Route 66 Burger (Flo's V8) -> not on current menu; use current Flo's V8 Cafe items.",
+  "Pinocchio Village House / Pizza Port -> this is a Magic Kingdom (Walt Disney World) venue, NOT Disneyland. Never use for a Disneyland schedule."
+];
+const DINING_RULES = [
+  "CACHE IS SINGLE SOURCE OF TRUTH for venue and menu names -- never name a venue or dish from training data, only from this list.",
+  "Disneyland Resort ONLY: every venue park must be DL or DCA. Never reference Walt Disney World, Magic Kingdom, EPCOT, Hollywood Studios, Animal Kingdom, or any Florida venue.",
+  "RESV=walkup: may fill a standard meal slot by default. RESV=required/recommended: only as a default meal if the trip has a confirmed reservation, else optional suggestion. RESV=never_meal: never place in a meal slot.",
+  "Show VEG/VEGAN/GF only where the cache entry has a verified item for that need.",
+  "A confirmed reservation IS the meal for its window: nothing else within ~2.5 hours."
+];
+const DINING_ALLOWED_PARKS = ['DL','DCA'];
+const DINING_RETIRED_NAMES = ['redd rockett','pacific wharf cafe','route 66 burger','pinocchio','pizza port'];
+
+// Deterministic build-time filter: strip any venue not in DL/DCA or matching a retired name.
+// STRUCTURAL guarantee -- even if the build model ignores the prompt, bad venues never reach the blob.
+function filterDiningVenues(venues) {
+  const kept = [], stripped = [];
+  for (const v of (Array.isArray(venues) ? venues : [])) {
+    if (!v || !v.name) { continue; }
+    const park = String(v.park || '').toUpperCase();
+    const nameLc = String(v.name).toLowerCase();
+    const badPark = DINING_ALLOWED_PARKS.indexOf(park) === -1;
+    const retired = DINING_RETIRED_NAMES.some(function(r){ return nameLc.indexOf(r) !== -1; });
+    if (badPark || retired) { stripped.push(v.name + (badPark ? ' [park='+park+']' : ' [retired]')); }
+    else { kept.push(v); }
+  }
+  if (stripped.length) console.log('[cache] dining filter stripped: ' + JSON.stringify(stripped));
+  return kept;
+}
+
 const VALID_KEYS = [
-  'park_intel','dining_intel','events_intel','park_hours_intel','character_intel',
+  'park_intel','dining_intel','dining_intel_dl','dining_intel_wdw','events_intel','park_hours_intel','character_intel',
   'park_intel_dl_stable','park_intel_dl_dynamic',
   'park_intel_wdw_stable','park_intel_wdw_dynamic'
 ];
 
 const EXPIRY_DAYS = {
-  park_intel:10, dining_intel:30, events_intel:7, park_hours_intel:7, character_intel:7,
+  park_intel:10, dining_intel:30, dining_intel_dl:30, dining_intel_wdw:30, events_intel:7, park_hours_intel:7, character_intel:7,
   park_intel_dl_stable:30, park_intel_dl_dynamic:7,
   park_intel_wdw_stable:30, park_intel_wdw_dynamic:7
 };
@@ -37,6 +71,7 @@ const EXPIRY_DAYS = {
 const LEGACY_PROMPTS = {
   park_intel:{system:'Disneyland expert. 2024-2026 only.',user:'Search TouringPlans AllEars MiceChat 2025-2026 for current Disneyland rope drop strategy, Lightning Lane Multi Pass order, late June crowds, top 10 tips, best times per land. Dense actionable guide.',maxTokens:1500},
   dining_intel:{system:'Disneyland dining expert. 2024-2026 only.',user:'Search Disney Food Blog AllEars 2024-2026. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Circle Lamplight Lounge Flos V8 (DCA). Rating must-orders reservation tips each.',maxTokens:1500},
+  dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe).',maxTokens:3000},
   events_intel:{system:'Disneyland events expert.',user:'Special events Disneyland June 25 - July 5 2026: ticketed events, closures, July 4th, shows, fireworks. Specific dates.',maxTokens:800},
   park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours June 25 to July 5 2026. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 11 dates.',maxTokens:1000},
   character_intel:{system:'Disneyland character meet and greet expert. 2024-2026 only.',user:'Search AllEars MiceChat DisneyTouristBlog 2024-2026 for current Disneyland character meet and greet information. Return only valid JSON.',maxTokens:6000}
@@ -242,7 +277,41 @@ const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '\n\
   };
 }
 
+async function buildDiningDL(key, apiKey) {
+  const p = LEGACY_PROMPTS['dining_intel_dl'];
+  const augUser = SOURCE_AUTHORITY + '\n\nDINING GOVERNANCE:\n- ' + DINING_RULES.join('\n- ') + '\n\n' + p.user;
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:augUser}]})
+  });
+  const d = await resp.json();
+  if(d.error) throw new Error(d.error.message);
+  let text=''; for(const b of (d.content||[])) if(b.type==='text') text+=b.text;
+  if(text.length<50) throw new Error('Response too short');
+  const parsed = extractJson(text);
+  const rawVenues = (parsed && Array.isArray(parsed.venues)) ? parsed.venues : [];
+  const venues = filterDiningVenues(rawVenues);
+  const dataStr = venues.map(function(v){
+    var diet = [];
+    if(v.veg) diet.push('VEG:'+v.veg);
+    if(v.vegan) diet.push('VEGAN:'+v.vegan);
+    if(v.gf) diet.push('GF:'+v.gf);
+    return v.name+' ['+v.park+', '+(v.land||'')+'] RESV='+(v.resv||'walkup')+
+      ' | top:'+(v.topPick||'')+' | kids:'+(v.kids||'')+(diet.length?(' | '+diet.join(' ')):'');
+  }).join('\n');
+  await blobStore(key, {
+    data: dataStr,
+    venues: venues,
+    _retired: DINING_RETIRED,
+    _meta: { rules: DINING_RULES, park_scope:'DL', built_at:new Date().toISOString(), count:venues.length },
+    ts: Date.now()
+  });
+  return { key, length: dataStr.length, venues: venues.length, stripped: rawVenues.length - venues.length };
+}
+
 async function buildLegacy(key, apiKey) {
+  if(key === 'dining_intel_dl') return await buildDiningDL(key, apiKey);
   const p=LEGACY_PROMPTS[key];
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -341,7 +410,7 @@ export default async function handler(req, res) {
   }
 
   // -- LEGACY KEYS --
-  const legacyKeys = requestedKey ? [requestedKey] : ['park_intel','dining_intel','events_intel','park_hours_intel'];
+  const legacyKeys = requestedKey ? [requestedKey] : ['park_intel','dining_intel_dl','events_intel','park_hours_intel'];
   const results=[], errors=[];
 
   for(const k of legacyKeys) {

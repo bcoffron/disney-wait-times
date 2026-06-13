@@ -12,6 +12,8 @@ const CORS = {
 const VALID_KEYS = [
   'park_intel',
   'dining_intel',
+  'dining_intel_dl',
+  'dining_intel_wdw',
   'events_intel',
   'park_hours_intel',
   'character_intel',

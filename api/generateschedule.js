@@ -68,8 +68,14 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
 
 
   // --------- DINING_INTEL: dedicated restaurant list cache (Issue 1) -----------
+  // Prefer new DL-scoped key; fall back to legacy dining_intel during transition.
   try {
-    const { blobs: dib } = await list({ prefix: 'twize/dining_intel.json' });
+    let diKey = 'twize/dining_intel_dl.json';
+    let { blobs: dib } = await list({ prefix: diKey });
+    if (!dib || !dib.length) {
+      diKey = 'twize/dining_intel.json';
+      ({ blobs: dib } = await list({ prefix: diKey }));
+    }
     if (dib && dib.length) {
       const fetchUrl = dib[0].downloadUrl || dib[0].url;
       const diData = await fetch(fetchUrl).then(r => r.json());
@@ -78,7 +84,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
         : JSON.stringify(diData.data || diData);
     }
   } catch (e) {
-    console.error('[cache] dining_intel read error:', e.message);
+    console.error('[cache] dining_intel_dl/dining_intel read error:', e.message);
   }
 
   return results;

@@ -1,5 +1,5 @@
 // api/dining.js
-// Routes fetchDiningRecs through Vercel with dining_intel cache context
+// Routes fetchDiningRecs through Vercel with dining_intel_dl cache (falls back to legacy dining_intel during transition)
 import { list } from '@vercel/blob';
 
 async function getCacheSlice(key, maxChars = 4000) {
@@ -60,14 +60,14 @@ export default async function handler(req, res) {
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-    const diningIntel = await getCacheSlice('dining_intel', 4000);
+    const diningIntel = (await getCacheSlice('dining_intel_dl', 4000)) || (await getCacheSlice('dining_intel', 4000));
 
     let system = 'You are a Disneyland and Disney California Adventure dining expert. Provide concise, practical dining recommendations. Respond in valid JSON only. No markdown, no explanation - just JSON in this format: {"recommendations":[{"name":"Restaurant Name","park":"DL|DCA","type":"table|quick","mustOrder":"item","tip":"short tip","rating":"4/5"}]}';
     if (diningIntel) {
       system += '\n\n=== CURRENT DINING INTELLIGENCE (use this - do not search the web) ===\n' + diningIntel;
     }
 
-    console.log('dining recs for park:', park || 'all', 'dining_intel_injected:', !!diningIntel);
+    console.log('dining recs for park:', park || 'all', 'dining_intel_dl_injected:', !!diningIntel);
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
