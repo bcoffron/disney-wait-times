@@ -784,13 +784,13 @@ function ptLoadFromBlob(isRebuild) {
                                                             }
 
                                                             function ptRestoreFromConfig(cfg, isRebuild) {
-                                                              var nameEl = document.getElementById('ptTripName');
+                                                              var nameEl = document.getElementById('tripName');
                                                                 if (nameEl && cfg.tripName) nameEl.value = cfg.tripName;
                                                                   if (cfg.dates && cfg.dates.length) {
-                                                                      var sd = document.getElementById('ptStartDate');
-                                                                          var ed = document.getElementById('ptEndDate');
-                                                                              if (sd) sd.value = cfg.dates[0];
-                                                                                  if (ed) ed.value = cfg.dates[cfg.dates.length - 1];
+                                                                      var sd = document.getElementById('tripStart');
+                                                                          var ed = document.getElementById('tripEnd');
+                                                                              if (sd) sd.value = String(cfg.dates[0]).slice(0,10);
+                                                                                  if (ed) ed.value = String(cfg.dates[cfg.dates.length - 1]).slice(0,10);
                                                                                       ptUpdateDayCards();
                                                                                         }
                                                                                           if (cfg.thrillLevel) {
