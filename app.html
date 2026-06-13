@@ -1511,7 +1511,7 @@ function checkLock(){
             // Phase 2: populate TRIP_CONFIG from canonical blob at runtime
             if (window._loadedTripData && window._loadedTripData.tripConfig) {
               var _ltc = window._loadedTripData.tripConfig;
-              if (_ltc.tripName) TRIP_CONFIG.tripName = _ltc.tripName; var _htEl = document.querySelector('.header-title'); if (_htEl && _ltc.tripName) _htEl.textContent = _ltc.tripName; var _htEl = document.querySelector('.header-title'); if (_htEl && _ltc.tripName) _htEl.textContent = _ltc.tripName;
+              if (_ltc.tripName) TRIP_CONFIG.tripName = _ltc.tripName; var _htEl = document.querySelector('.header-title'); if (_htEl && _ltc.tripName) _htEl.textContent = _ltc.tripName;
               if (_ltc.party) TRIP_CONFIG.party = _ltc.party;
               if (_ltc.members) TRIP_CONFIG.members = _ltc.members;
               if (_ltc.days && _ltc.days.length) {
@@ -1537,8 +1537,10 @@ function checkLock(){
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
               loadCustom();
-            }
+              var _gwsEl=document.getElementById('guestWaitScreen'); if(_gwsEl) _gwsEl.style.display='none';
+            } else {
               if(typeof showGuestWaitingScreen==='function') showGuestWaitingScreen(d.tripName||'');
+            }
             } else {
               enterSplash(true);
               if (!localStorage.getItem('tpcp_onboardingComplete')) { launchOnboarding(tpcpCode,d.role,d.tripId||''); }
@@ -1597,7 +1599,7 @@ function tryUnlock() {
       // Phase 2: populate TRIP_CONFIG from canonical blob at runtime
       if (window._loadedTripData && window._loadedTripData.tripConfig) {
         var _ltc2 = window._loadedTripData.tripConfig;
-        if (_ltc2.tripName) TRIP_CONFIG.tripName = _ltc2.tripName; var _htEl2 = document.querySelector('.header-title'); if (_htEl2 && _ltc2.tripName) _htEl2.textContent = _ltc2.tripName; var _htEl2 = document.querySelector('.header-title'); if (_htEl2 && _ltc2.tripName) _htEl2.textContent = _ltc2.tripName;
+        if (_ltc2.tripName) TRIP_CONFIG.tripName = _ltc2.tripName; var _htEl2 = document.querySelector('.header-title'); if (_htEl2 && _ltc2.tripName) _htEl2.textContent = _ltc2.tripName;
         if (_ltc2.party) TRIP_CONFIG.party = _ltc2.party;
         if (_ltc2.members) TRIP_CONFIG.members = _ltc2.members;
         if (_ltc2.days && _ltc2.days.length) {
@@ -1623,6 +1625,7 @@ function tryUnlock() {
       if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
         window._schedData = d.tripData.tripConfig.schedule;
         loadCustom();
+        var _gwsEl2=document.getElementById('guestWaitScreen'); if(_gwsEl2) _gwsEl2.style.display='none';
       }
       if (d.role === 'guest' || d.hasTrip) {
         enterSplash(true);
