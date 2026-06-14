@@ -256,6 +256,10 @@
       "schedule": "0 4 1 * *"
     },
     {
+      "path": "/api/cron-cache?key=dining_intel_dl",
+      "schedule": "0 4 1 * *"
+    },
+    {
       "path": "/api/cron-cache?key=events_intel",
       "schedule": "0 3 */7 * *"
     },
