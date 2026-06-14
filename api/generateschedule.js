@@ -296,6 +296,14 @@ system += '\n\nDIETARY: Show VEG/VEGAN/GF ONLY for group needs: ' + _dietNeeds.j
 system += '\n\nDo NOT show dietary tags (VEG/VEGAN/GF) unless the group selected that dietary need.';
       }
 
+      // WDW contamination guard: rides/attractions/shows must be real Disneyland Resort ones (parallels dining governance)
+      system += '\n\n=== ATTRACTION GOVERNANCE (MUST FOLLOW) ===';
+      system += '\nEvery ride, attraction, and show you schedule MUST be a REAL, currently-operating Disneyland Resort attraction --- located in Disneyland Park or Disney California Adventure ONLY.';
+      system += '\nNEVER schedule a Walt Disney World / Florida attraction or any attraction that does not exist at the Disneyland Resort. Do NOT invent attractions.';
+      system += '\nWatch for WDW look-alikes that do NOT belong at Disneyland: Seven Dwarfs Mine Train, Tron Lightcycle Run, Expedition Everest, Avatar Flight of Passage, Kilimanjaro Safaris, Frozen Ever After, Rock n Roller Coaster, Tower of Terror (DL version is GONE --- it is Guardians: Mission Breakout at DCA now), Spaceship Earth, Test Track, Slinky Dog Dash. None of these exist at the Disneyland Resort --- never schedule them.';
+      system += '\nNEVER type a restaurant as a ride. A name like "Cinderella Royal Table", "Be Our Guest", "Blue Bayou", "Cafe Orleans" is DINING, never type:"ride". If it is a place to eat, it is a dining/quickservice/snack card, never a ride.';
+      system += '\nThe LAND MAP and WAIT PATTERNS in the PARK INTELLIGENCE section above are the authoritative list of valid Disneyland Resort attractions. If an attraction is not consistent with that intelligence, do NOT schedule it.';
+
       // Part C: Parse flat reservation strings from tripConfig.reservations
       // Merges with tripConfig.dining.reservations if structured objects exist
       const _flatResArr = (tripConfig && Array.isArray(tripConfig.reservations)) ? tripConfig.reservations : [];
