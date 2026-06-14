@@ -359,11 +359,15 @@ system += '\n9. CROSS-DAY CHECK: The already-used list in rule 6 contains venues
 
       system += '\n\n=== MORNING RHYTHM RULES --- REQUIRED ON ALL DAYS ===';
           system += '\nEvery day must include: (1) Arrival tip 60 min before open, (2) Rope drop / Lightning Lane tip, (3) First 2-3 rides, (4) MORNING SNACK between 9:00 AM and 10:30 AM, (5) RESTROOM BREAK (type: "break") before 10:30 AM, (6) Continue mid-morning rides.';
+          system += '\nEXCEPTION: On a VIP day, only items that fall BEFORE the VIP tour start time apply. Never place a morning snack or restroom break inside the VIP tour window.';
 
-      system += '\n\n=== VIP TOUR HOURS RULE ===';
-          system += '\nOn VIP days, the guide handles ALL attractions from vipStart to vipEnd.';
-          system += '\nFor Day 2 (VIP day, 10:00 AM to 5:00 PM tour):';
-          system += '\nDURING TOUR HOURS (10:00 AM to 5:00 PM): Do NOT schedule any ride cards. DO include a single VIP tour block entry at 10:00 AM: { t: "10:00 AM", h: "VIP Tour Begins", type: "vip", n: "Your guide takes over. Skip-the-line access for all major attractions.", land: "Disneyland" }';
+      system += '\n\n=== VIP TOUR HOURS RULE (ABSOLUTE - OVERRIDES MORNING RHYTHM AND NO-GAPS RULES) ===';
+          system += '\nOn a VIP day, the guide handles EVERYTHING from vipStart to vipEnd (read the exact times from the day config).';
+          system += '\nDURING THE TOUR WINDOW (vipStart to vipEnd): schedule ABSOLUTELY NOTHING -- no rides, no meals, no snacks, no restroom breaks, no tips. The morning-rhythm rule and the no-gaps rule DO NOT APPLY inside this window. A large gap here is CORRECT and REQUIRED.';
+          system += '\nInsert EXACTLY ONE card at vipStart representing the whole tour: { t: vipStart, h: "VIP Tour", type: "vip", n: "Your private guide handles all skip-the-line access from " + vipStart + " to " + vipEnd + ".", land: "" }. Put the start and end times in the note. Do not add a separate end card.';
+          system += '\nBEFORE vipStart: schedule normally (arrival, rope drop, morning rides/snack) only if the park opens before the tour starts -- fit rides into that pre-tour window.';
+          system += '\nAFTER vipEnd: resume normal scheduling (dinner, evening rides, nighttime shows, rides until ~30 min before close).';
+          system += '\nThe single VIP card is the ONLY entry between vipStart and vipEnd. Never label meals or snacks as occurring during the VIP tour.';
 
       system += '\n\n=== SCHEDULE COMPLETENESS RULE - STRICTLY ENFORCED ===';
 system += '\nEvery day MUST have schedule entries from arrival time through ACTUAL PARK CLOSING TIME.';
