@@ -5,9 +5,9 @@
 <!-- cache-bust: TPCP2026-phase4 2026-06-13 -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Trip Setup &mdash; Theme Park Co-Pilot</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fontsgoogleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/cs2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflow-x:hidden;}
@@ -398,7 +398,7 @@ var _ptNextLock = false;
 function ptNext(){console.log("[pretrip] ptNext called");
   if(_ptNextLock){ console.log("[pretrip] ptNext locked -- ignoring double tap"); return; }
   _ptNextLock = true;
-  setTimeout(function(){ _ptNextLock = false; }, 1500);
+  // lock cleared at end of ptGoToStep
   ptSaveCurrentStep();
   if(ptCurrentStep < ptTotalSteps){
     ptGoToStep(ptCurrentStep + 1);
@@ -455,8 +455,10 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
     ctaBtn.innerHTML = 'I\'m ready &mdash; show my schedule <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M8 3L13 8L8 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     ctaBtn.className = 'pt-cta-btn teal';
   } else {
-    ctaBtn.innerHTML = 'Continue <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M8 3L13 8L8 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    ctaBtn.className = 'pt-cta-btn';
+    ctaBtn.innerHTML = 'Continue <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M8 3L13 8L8 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="ro  ctaBtn.className = 'pt-cta-btn';
+  }
+  _ptNextLock = false;
+}t-cta-btn';
   }
 }
 
