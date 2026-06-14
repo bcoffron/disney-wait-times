@@ -287,7 +287,8 @@ async function handler(req, res) {
           systemPrompt += '\n8. Preserve ALL fields on type "snack", type "photo", and type "character" cards exactly as-is.';
           systemPrompt += '\n These non-ride card types must never have their notes replaced with one-liners.';
           systemPrompt += '\n9. ONLY ride cards (type: "ride") may have their time slots adjusted during optimization.';
-          systemPrompt += '\n Never replace any card note with a shorter version. Never genericize a specificsystemPrompt += '\n\nSCHEDULE COMPLETENESS RULE (STRICTLY ENFORCED):';
+          systemPrompt += '\n Never replace any card note with a shorter version. Never genericize a specific note.';
+          systemPrompt += '\n\nSCHEDULE COMPLETENESS RULE (STRICTLY ENFORCED):';
 systemPrompt += '\nThe optimized schedule MUST run through actual park closing time. NEVER end before 10:00 PM.';
 systemPrompt += '\nPark hours are in the PARK INTELLIGENCE section above - use them as the authoritative source.';
 systemPrompt += '\nDisneyland summer hours are typically 11:00 PM or midnight. DCA is typically 10:00 PM or 11:00 PM.';
