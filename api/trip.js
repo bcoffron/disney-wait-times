@@ -62,6 +62,11 @@ export default async function handler(req, res) {
 
   // GET: look up a code
   if (req.method === 'GET') {
+    // Per-user schedule data must never be cached by the browser or Vercel edge --
+    // stale reads after a rebuild were showing old schedules. Force a fresh read every time.
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const code = (req.query.code || '').trim();
     if (!code) return res.status(400).json({ error: 'Missing code' });
 
