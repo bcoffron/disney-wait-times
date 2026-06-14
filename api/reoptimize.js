@@ -1,3 +1,4 @@
+// redeploy-touch 2026-06-14: force Vercel to rebuild this function with current CORS headers (was serving stale deploy without Access-Control-Allow-Origin)
 import { list } from '@vercel/blob';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
