@@ -330,7 +330,9 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
 
       var modeContext = isInTrip
             ? 'MODE: In-trip --- reorder upcoming items using live wait times.\n' + (currentTime ? 'CURRENT TIME: ' + currentTime + '\n' : '') + (liveWaits ? 'LIVE WAIT TIMES:\n' + liveWaits + '\n' : '')
-              : 'MODE: Pre-trip --- optimize using historical patterns for trip dates, not today\'s live waits.\n';
+              : 'MODE: Pre-trip --- review the schedule against historical patterns for the trip dates (you do NOT have live waits yet).\n'
+                + 'IMPORTANT: This schedule was already built from the same historical data you have now. You have NO new information the builder did not have. Therefore making zero changes is the CORRECT and EXPECTED outcome unless you find a SPECIFIC, CONCRETE problem (e.g. a ride placed during its known peak window when an off-peak window exists the same day, or a clear geographic backtrack between adjacent items).\n'
+                + 'DO NOT invent or manufacture changes to appear useful. DO NOT make cosmetic reorderings. If the schedule is already sensible, return it UNCHANGED with an explanation that says it is already well-optimized for the trip dates and you will have live suggestions once they are in the park. Only return changes when you can name the concrete wait-time or walking-distance problem each change fixes.\n';
 
       // ------ Build user message ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
       var userMessage =
