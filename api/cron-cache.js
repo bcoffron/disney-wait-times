@@ -71,7 +71,7 @@ const EXPIRY_DAYS = {
 const LEGACY_PROMPTS = {
   park_intel:{system:'Disneyland expert. 2024-2026 only.',user:'Search TouringPlans AllEars MiceChat 2025-2026 for current Disneyland rope drop strategy, Lightning Lane Multi Pass order, late June crowds, top 10 tips, best times per land. Dense actionable guide.',maxTokens:1500},
   dining_intel:{system:'Disneyland dining expert. 2024-2026 only.',user:'Search Disney Food Blog AllEars 2024-2026. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Circle Lamplight Lounge Flos V8 (DCA). Rating must-orders reservation tips each.',maxTokens:1500},
-  dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe).',maxTokens:3000},
+  dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe). After any searches, your FINAL message must contain ONLY the JSON object inside a fenced code block: ```json{...}``` -- no commentary before or after the fence.',maxTokens:3000},
   events_intel:{system:'Disneyland events expert.',user:'Special events Disneyland June 25 - July 5 2026: ticketed events, closures, July 4th, shows, fireworks. Specific dates.',maxTokens:800},
   park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours June 25 to July 5 2026. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 11 dates.',maxTokens:1000},
   character_intel:{system:'Disneyland character meet and greet expert. 2024-2026 only.',user:'Search AllEars MiceChat DisneyTouristBlog 2024-2026 for current Disneyland character meet and greet information. Return only valid JSON.',maxTokens:6000}
@@ -196,12 +196,29 @@ async function blobStore(key, data) {
 }
 
 function extractJson(text) {
-  const fenceMatch = text.match(/\`\`\`(?:json)?\s*([\s\S]+?)\s*\`\`\`/);
+  if(!text) return null;
+  // 1. Try fenced ```json block first
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
   if(fenceMatch) { try { return JSON.parse(fenceMatch[1]); } catch(e) {} }
-  const jsonStart = text.indexOf('{', text.indexOf('\`\`\`') >= 0 ? text.indexOf('\`\`\`') : 0);
-  if(jsonStart < 0) return null;
-  const candidate = text.substring(jsonStart);
-  try { return JSON.parse(candidate); } catch(e) {}
+  // 2. Balanced-brace scan: find the first complete {...} object, ignoring trailing narration.
+  for(let start = text.indexOf('{'); start !== -1; start = text.indexOf('{', start + 1)) {
+    let depth = 0, inStr = false, esc = false;
+    for(let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if(esc) { esc = false; continue; }
+      if(ch === '\\') { esc = true; continue; }
+      if(ch === '"') { inStr = !inStr; continue; }
+      if(inStr) continue;
+      if(ch === '{') depth++;
+      else if(ch === '}') {
+        depth--;
+        if(depth === 0) {
+          const candidate = text.substring(start, i + 1);
+          try { return JSON.parse(candidate); } catch(e) { break; }
+        }
+      }
+    }
+  }
   return null;
 }
 
@@ -287,9 +304,14 @@ async function buildDiningDL(key, apiKey) {
   });
   const d = await resp.json();
   if(d.error) throw new Error(d.error.message);
-  let text=''; for(const b of (d.content||[])) if(b.type==='text') text+=b.text;
-  if(text.length<50) throw new Error('Response too short');
-  const parsed = extractJson(text);
+  // Collect every text block (web_search responses interleave text with tool blocks);
+  // join all, and also keep the longest single block as a fallback for JSON extraction.
+  let textParts=[]; for(const b of (d.content||[])) if(b.type==='text' && b.text) textParts.push(b.text);
+  const allText = textParts.join('\n');
+  if(allText.length<20) throw new Error('Response too short');
+  let parsed = extractJson(allText);
+  if(!parsed){ const longest = textParts.slice().sort(function(a,b){return b.length-a.length;})[0]||''; parsed = extractJson(longest); }
+  if(!parsed){ console.error('[cache] dining_intel_dl: no parseable JSON in response. First 300 chars: '+allText.slice(0,300)); throw new Error('dining_intel_dl: model returned no parseable venue JSON'); }
   const rawVenues = (parsed && Array.isArray(parsed.venues)) ? parsed.venues : [];
   const venues = filterDiningVenues(rawVenues);
   const dataStr = venues.map(function(v){
