@@ -142,6 +142,19 @@ function getKidsDefault(h, itemTime) {
 // Known park close times in minutes since midnight â D1, D2, D3
 const PARK_CLOSE = [24 * 60, 23 * 60, 22 * 60];
 
+// LL-return detection: matches "X (LLMP Return)", "X (Lightning Lane Return)", "X - Lightning Lane Return", "X LL Return", etc.
+function llReturnBaseName(h) {
+  const s = (h || '');
+  if (!/(ll|llmp|lightning lane)\s*return/i.test(s)) return null;
+  // strip the LL-return suffix/parenthetical to get the base ride name
+  let base = s
+    .replace(/\s*\((?:llmp|ll|lightning lane)\s*return\)\s*/i, '')
+    .replace(/\s*[-\u2013\u2014]\s*(?:llmp|ll|lightning lane)\s*return\s*/i, '')
+    .replace(/\s*(?:llmp|ll|lightning lane)\s*return\s*/i, '')
+    .trim();
+  return base.toLowerCase();
+}
+
 function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
   const corrections = [];
   const hardViolations = [];
@@ -522,6 +535,30 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
       return false;
     });
     day.items = kept;
+  });
+
+  // Rule 9d: DE-DUP near-back-to-back identical Lightning Lane RETURNS for the SAME ride.
+  // The model sometimes emits two LL-return cards for the same ride close together (e.g. 2 Rise returns).
+  // Keep the first, remove a second return for the same base ride within 120 minutes.
+  days.forEach((day, idx) => {
+    const items = (day.items || []);
+    const seen = []; // { base, min }
+    const removeIdx = [];
+    items.forEach((item, i) => {
+      const base = llReturnBaseName(item.h);
+      if (!base) return;
+      const min = timeToMinutes(item.t);
+      const dup = seen.find(s => s.base === base && Math.abs(s.min - min) <= 120);
+      if (dup) {
+        removeIdx.push(i);
+        corrections.push({ rule: 'duplicate-ll-return', day: idx + 1, item: item.h, action: 'removed second LL return for same ride within 120 min' });
+      } else {
+        seen.push({ base, min });
+      }
+    });
+    if (removeIdx.length) {
+      day.items = items.filter((_, i) => removeIdx.indexOf(i) === -1);
+    }
   });
 
   // Rule 10: Time bounds — remove items before 7:00 AM
