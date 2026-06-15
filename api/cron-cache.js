@@ -184,7 +184,13 @@ async function isFresh(key) {
     const blob = blobs.sort((a,b)=>new Date(b.uploadedAt)-new Date(a.uploadedAt))[0];
     const fetchUrl = blob.downloadUrl||blob.url;
     const data = await (await fetch(fetchUrl)).json();
-    return data&&data.ts&&(Date.now()-data.ts)/864e5 < EXPIRY_DAYS[key]*0.8;
+    if(!data || !data.ts) return false;
+    // An EMPTY cache is never 'fresh' -- a broken/empty build must not block its own retry.
+    // Dining caches store a venues[] array; legacy caches store a non-empty data string.
+    const emptyVenues = Array.isArray(data.venues) && data.venues.length === 0;
+    const emptyData = (typeof data.data === 'string') && data.data.trim().length === 0;
+    if(emptyVenues || emptyData) return false;
+    return (Date.now()-data.ts)/864e5 < EXPIRY_DAYS[key]*0.8;
   } catch(e){return false;}
 }
 
