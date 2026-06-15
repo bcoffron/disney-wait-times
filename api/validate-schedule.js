@@ -561,6 +561,49 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
     }
   });
 
+  // Rule 9e: MEAL LABEL correctness (structural) - strip contradictory early/late words.
+  // "early" valid: lunch <= 11:45 AM, dinner 4:30-5:30 PM. "late" valid: lunch 1:30-2:30 PM, dinner >= 7:30 PM.
+  days.forEach((day, idx) => {
+    (day.items || []).forEach(item => {
+      if (item.type !== 'dining' && item.type !== 'quickservice') return;
+      const title = item.h || '';
+      if (!/\b(early|late)\b/i.test(title)) return;
+      const min = timeToMinutes(item.t);
+      const hasEarly = /\bearly\b/i.test(title);
+      const hasLate = /\blate\b/i.test(title);
+      const isLunchTime = min >= 660 && min < 900;   // 11:00 AM - 3:00 PM
+      const isDinnerTime = min >= 900;               // 3:00 PM onward
+      let earlyOk = false, lateOk = false;
+      if (isLunchTime) { earlyOk = min <= 705; lateOk = min >= 810 && min <= 870; } // early<=11:45, late 1:30-2:30
+      else if (isDinnerTime) { earlyOk = min >= 990 && min <= 1050; lateOk = min >= 1170; } // early 4:30-5:30, late>=7:30
+      const stripEarly = hasEarly && !earlyOk;
+      const stripLate = hasLate && !lateOk;
+      if (stripEarly || stripLate) {
+        let newTitle = title;
+        if (stripEarly) newTitle = newTitle.replace(/\bearly\s+/i, '').replace(/\bearly\b/i, '');
+        if (stripLate) newTitle = newTitle.replace(/\blate\s+/i, '').replace(/\blate\b/i, '');
+        newTitle = newTitle.replace(/\s{2,}/g, ' ').trim();
+        // Capitalize a leading lowercased meal word left after stripping (e.g. "dinner: X" -> "Dinner: X")
+        newTitle = newTitle.replace(/^([a-z])/, (m) => m.toUpperCase());
+        item.h = newTitle;
+        corrections.push({ rule: 'meal-label-time', day: idx + 1, item: title, action: 'relabeled to: ' + newTitle + ' (early/late contradicted time ' + item.t + ')' });
+      }
+    });
+  });
+
+  // Rule 9f: MEAL must name a venue (structural flag) - a bare meal title with no restaurant is unhelpful.
+  days.forEach((day, idx) => {
+    (day.items || []).forEach(item => {
+      if (item.type !== 'dining' && item.type !== 'quickservice') return;
+      const t = (item.h || '').trim();
+      // bare = exactly a generic meal word, optionally with a leading "Quick", and NO venue (no colon/at/-)
+      const bare = /^(quick\s+)?(breakfast|brunch|lunch|dinner|meal|snack)$/i.test(t);
+      if (bare) {
+        hardViolations.push({ rule: 'meal-no-venue', day: idx + 1, item: t, detail: 'meal card has no venue name at ' + item.t });
+      }
+    });
+  });
+
   // Rule 10: Time bounds — remove items before 7:00 AM
   const PARK_OPEN_MIN = 420; // 7:00 AM
   days.forEach((day, dayNum) => {
