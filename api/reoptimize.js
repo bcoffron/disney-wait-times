@@ -250,6 +250,7 @@ async function handler(req, res) {
               '\n6. ALL ITEM TYPES: Apply optimization to rides, dining, snacks, breaks, ' +
               'and photo stops. A snack stop should be in the same land as surrounding rides. ' +
               'A bathroom break should be near the next attraction.' +
+              '\n7. PARK PRESENCE (ABSOLUTE - overrides wait/walking): At each moment the group is in EXACTLY ONE park. Every item (ride, dining, snack, break, character, and any Lightning Lane booking) at a given time MUST be in the park the group is physically in at that time. Do NOT reorder an item into a time when the group is in the other park. Do NOT move a Lightning Lane booking to a window when the group is not in that ride\'s park. Preserve the existing park sequence and any park-hop boundary in the schedule -- you may reorder WITHIN a park segment, but never move an attraction across a hop boundary into the wrong park, and never create a new hop. The group cannot travel between parks for a single ride. Park location is fixed; optimize only within it.' +
               '\n\nOUTPUT FORMAT (strict JSON only, no markdown):' +
               '\n{"sections":[{"title":"[park name]","entries":[' +
               '{"t":"8:00 AM","h":"Attraction Name","type":"ride",' +
