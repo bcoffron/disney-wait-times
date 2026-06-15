@@ -461,7 +461,40 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
       if (parsed && Array.isArray(parsed)) {
               try {
                         const safeConfig = tripConfig || {};
-                        const singleDaySchedule = { days: [{ items: parsed, park: (safeConfig.days && safeConfig.days[0] && safeConfig.days[0].park) || 'Disneyland' }] };
+                        const _day0 = (safeConfig.days && safeConfig.days[0]) || {};
+                        const _dayPark = _day0.park || 'Disneyland';
+                        // Parse close times from PARK_HOURS cache text (generic, any trip). Returns minutes-since-midnight.
+                        const _toMin = (h, mm, mer) => { let hh = parseInt(h, 10); const pm = /pm/i.test(mer); if (pm && hh !== 12) hh += 12; if (!pm && hh === 12) hh = 0; return hh * 60 + (mm ? parseInt(mm, 10) : 0); };
+                        const _hoursTxt = (cacheCtx.PARK_HOURS || '');
+                        function _closeFor(parkRe) {
+                          // find a line mentioning the park, take its closing time. Handle 'midnight' word and 12:00 AM (=end-of-day 1440).
+                          const lines = _hoursTxt.split(/\n/);
+                          for (const ln of lines) {
+                            if (!parkRe.test(ln)) continue;
+                            if (/midnight/i.test(ln)) return 24 * 60;
+                            const times = [...ln.matchAll(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM|noon)/gi)];
+                            if (times.length) {
+                              const t = times[times.length - 1];
+                              if (/noon/i.test(t[3])) return 12 * 60;
+                              let mins = _toMin(t[1], t[2], t[3]);
+                              if (mins === 0) mins = 24 * 60; // 12:00 AM as a CLOSING time = end-of-day midnight
+                              return mins;
+                            }
+                          }
+                          return null;
+                        }
+                        const _dlClose = _closeFor(/disneyland|\bDL\b/i);
+                        const _dcaClose = _closeFor(/california adventure|\bDCA\b/i);
+                        const _isDca = /california|dca|adventure/i.test(_dayPark);
+                        const _myClose = _isDca ? _dcaClose : _dlClose;
+                        const _bothMax = [_dlClose, _dcaClose].filter(x => typeof x === 'number');
+                        const _latest = _bothMax.length ? Math.max(..._bothMax) : null;
+                        const _dayObj = { items: parsed, park: _dayPark };
+                        if (typeof _myClose === 'number') _dayObj.closeMin = _myClose;
+                        // latestCloseMin only matters for hoppers (late second hop to later-closing park)
+                        if (safeConfig.parkHopping && typeof _latest === 'number') _dayObj.latestCloseMin = _latest;
+                        console.log('[generateschedule] close times -> DL:', _dlClose, 'DCA:', _dcaClose, 'dayPark:', _dayPark, 'closeMin:', _dayObj.closeMin, 'latestCloseMin:', _dayObj.latestCloseMin);
+                        const singleDaySchedule = { days: [_dayObj] };
                         const closedFromCache = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
                         console.log('[generateschedule] closed from cache:', JSON.stringify(closedFromCache));
                         const valResult = validateSchedule(singleDaySchedule, safeConfig, closedFromCache);
