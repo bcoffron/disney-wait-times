@@ -417,18 +417,24 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
     const sortedItems = [...items].sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
     const last = sortedItems[sortedItems.length - 1];
     const lastMin = last ? timeToMinutes(last.t) : -1;
-    const closeMin = PARK_CLOSE[idx] !== undefined ? PARK_CLOSE[idx] : 22 * 60;
-    if (lastMin >= 0 && lastMin < closeMin - 60) {
-      corrections.push({
-        rule: 'ends-early-warning',
+    const fallbackClose = PARK_CLOSE[idx] !== undefined ? PARK_CLOSE[idx] : 22 * 60;
+    const effectiveClose = (typeof day.latestCloseMin === 'number' && day.latestCloseMin > 0)
+      ? day.latestCloseMin
+      : ((typeof day.closeMin === 'number' && day.closeMin > 0) ? day.closeMin : fallbackClose);
+    const realLast = [...items]
+      .filter(i => ['ride','show','dining','quickservice','snack','character','vip'].indexOf(i.type) !== -1)
+      .sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t)).pop();
+    const realLastMin = realLast ? timeToMinutes(realLast.t) : lastMin;
+    if (realLastMin >= 0 && realLastMin < effectiveClose - 60) {
+      hardViolations.push({
+        rule: 'ends-early',
         day: dayNum,
-        detail: 'Schedule ends at ' + (last ? last.t : '?') +
-          ', park closes at ' + minutesToTime(closeMin) +
-          ' (gap: ' + Math.round((closeMin - lastMin) / 60) + ' hrs)',
-        action: 'flagged â manual regen recommended'
+        detail: 'Last activity ' + (realLast ? ('"' + realLast.h + '" at ' + realLast.t) : '?') +
+          ' but park open until ' + minutesToTime(effectiveClose) +
+          ' (underfilled by ~' + Math.round((effectiveClose - realLastMin) / 60) + ' hr); fill evening to ~30 min before close' +
+          ((day.latestCloseMin && day.closeMin && day.latestCloseMin > day.closeMin) ? ' (late hop to later-closing park available)' : '') + '.'
       });
     }
-
         // RULE 8: Peak lunch auto-correct (12:00 PM - 1:00 PM)
         items.forEach(item => {
                 if (item.type !== 'quickservice' && item.type !== 'dining') return;
