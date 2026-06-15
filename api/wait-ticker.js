@@ -72,6 +72,95 @@ async function writeBlobJson(key, data) {
   });
 }
 
+// Layer 1 helper: fetch the /schedule endpoint for a single park entity.
+// Returns the parsed JSON on success, or null on any failure.
+async function fetchParkSchedule(entityId) {
+  try {
+    var resp = await fetchWithTimeout(
+      'https://api.themeparks.wiki/v1/entity/' + entityId + '/schedule',
+      FETCH_TIMEOUT_MS
+    );
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch (e) {
+    console.error('[wait-ticker] fetchParkSchedule error for ' + entityId + ':', e.message);
+    return null;
+  }
+}
+
+// Layer 1: determine whether a park is currently open based on its published
+// operating schedule. Returns true (open), false (closed), or null (no usable
+// schedule found -- caller must fall back to attraction-status logic).
+//
+// The ThemeParks.wiki /schedule response includes a "timezone" field and a
+// "schedule" array. Each entry has a "type", "openingTime", and "closingTime"
+// in ISO-8601 with a timezone offset. We look for an OPERATING entry whose
+// date matches today in the park's local timezone, then check whether the
+// current moment falls within [openingTime, closingTime].
+function isOpenBySchedule(scheduleData) {
+  if (!scheduleData || !Array.isArray(scheduleData.schedule)) return null;
+
+  // Use the timezone reported by the API when available.
+  var tz = (typeof scheduleData.timezone === 'string' && scheduleData.timezone.length > 0)
+    ? scheduleData.timezone
+    : 'America/New_York';
+
+  var now = new Date();
+
+  // Determine today's date string (YYYY-MM-DD) in the park's local timezone.
+  var todayStr;
+  try {
+    todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
+  } catch (e) {
+    // en-CA locale gives YYYY-MM-DD format; fall back to UTC date if the tz
+    // string is invalid for some reason.
+    todayStr = now.toISOString().slice(0, 10);
+  }
+
+  // Find an OPERATING schedule entry for today.
+  var todayEntry = null;
+  for (var i = 0; i < scheduleData.schedule.length; i++) {
+    var entry = scheduleData.schedule[i];
+    if (entry.type === 'OPERATING' && entry.date === todayStr) {
+      todayEntry = entry;
+      break;
+    }
+  }
+
+  // No OPERATING entry for today means the park is closed today.
+  if (!todayEntry) return false;
+  if (!todayEntry.openingTime || !todayEntry.closingTime) return null;
+
+  var openTime = new Date(todayEntry.openingTime);
+  var closeTime = new Date(todayEntry.closingTime);
+
+  // Guard against unparseable timestamps.
+  if (isNaN(openTime.getTime()) || isNaN(closeTime.getTime())) return null;
+
+  // Current moment must be on or after opening and strictly before closing.
+  return now >= openTime && now < closeTime;
+}
+
+// Layer 1 primary gate: given schedule data for one or more sub-parks that
+// make up a resort group (e.g. DL + DCA for Disneyland Resort), return true
+// if ANY of them is currently within its operating window.
+// Returns null if none of the schedules yielded a usable determination (so the
+// caller falls back to attraction-status logic).
+function isResortOpenBySchedule(scheduleResults) {
+  var anyNull = false;
+  for (var i = 0; i < scheduleResults.length; i++) {
+    var result = isOpenBySchedule(scheduleResults[i]);
+    if (result === true) return true;
+    if (result === null) anyNull = true;
+  }
+  // If all determinations were false, resort is closed.
+  // If at least one was null (unusable), return null to signal fallback.
+  return anyNull ? null : false;
+}
+
+// Layer 2 fallback: check whether any ATTRACTION (not show/entertainment) in
+// the live-data array reports OPERATING status. Used only when schedule data
+// is unavailable.
 function isParkOpen(liveData) {
   if (!liveData || !Array.isArray(liveData)) return false;
   return liveData.some(function(r) {
@@ -121,13 +210,25 @@ async function fetchLandMap(entityId) {
 }
 
 async function buildTickerData() {
-  var [dlData, dcaData, mkData, epcotData, hsData, akData] = await Promise.all([
+  // Fetch live attraction data and schedule data for all parks in parallel.
+  var [
+    dlData, dcaData,
+    mkData, epcotData, hsData, akData,
+    dlSched, dcaSched,
+    mkSched, epcotSched, hsSched, akSched
+  ] = await Promise.all([
     fetchParkLive(DL_ID),
     fetchParkLive(DCA_ID),
     fetchParkLive(MK_ID),
     fetchParkLive(EPCOT_ID),
     fetchParkLive(HS_ID),
-    fetchParkLive(AK_ID)
+    fetchParkLive(AK_ID),
+    fetchParkSchedule(DL_ID),
+    fetchParkSchedule(DCA_ID),
+    fetchParkSchedule(MK_ID),
+    fetchParkSchedule(EPCOT_ID),
+    fetchParkSchedule(HS_ID),
+    fetchParkSchedule(AK_ID)
   ]);
 
   var [dlLands, dcaLands, mkLands, epcotLands, hsLands, akLands] = await Promise.all([
@@ -141,17 +242,39 @@ async function buildTickerData() {
 
   var dlLiveData = (dlData && dlData.liveData) ? dlData.liveData : [];
   var dcaLiveData = (dcaData && dcaData.liveData) ? dcaData.liveData : [];
-  var dlOpen = isParkOpen(dlLiveData) || isParkOpen(dcaLiveData);
-
   var mkLiveData = (mkData && mkData.liveData) ? mkData.liveData : [];
   var epcotLiveData = (epcotData && epcotData.liveData) ? epcotData.liveData : [];
   var hsLiveData = (hsData && hsData.liveData) ? hsData.liveData : [];
   var akLiveData = (akData && akData.liveData) ? akData.liveData : [];
-  var wdwOpen = isParkOpen(mkLiveData) || isParkOpen(epcotLiveData) || isParkOpen(hsLiveData) || isParkOpen(akLiveData);
+
+  // --- Layer 1: schedule-based open/closed determination (primary signal) ---
+  // Disneyland Resort: DL or DCA being open means "Disneyland" is open.
+  var dlScheduleResult = isResortOpenBySchedule([dlSched, dcaSched]);
+  var wdwScheduleResult = isResortOpenBySchedule([mkSched, epcotSched, hsSched, akSched]);
+
+  // --- Layer 2 fallback: attraction-status (used only when schedule is null) ---
+  var dlOpen, wdwOpen;
+
+  if (dlScheduleResult === null) {
+    // Schedule unavailable -- fall back to attraction-status check.
+    dlOpen = isParkOpen(dlLiveData) || isParkOpen(dcaLiveData);
+    console.warn('[wait-ticker] DL schedule unavailable, using attraction-status fallback');
+  } else {
+    dlOpen = dlScheduleResult;
+  }
+
+  if (wdwScheduleResult === null) {
+    wdwOpen = isParkOpen(mkLiveData) || isParkOpen(epcotLiveData) ||
+              isParkOpen(hsLiveData) || isParkOpen(akLiveData);
+    console.warn('[wait-ticker] WDW schedule unavailable, using attraction-status fallback');
+  } else {
+    wdwOpen = wdwScheduleResult;
+  }
 
   var prevData = await readBlobJson(TICKER_PREV_KEY);
   var prevMap = (prevData && prevData.rides) ? prevData.rides : {};
 
+  // Layer 2 ride list: ATTRACTION-only, OPERATING, numeric wait required.
   function extractRides(liveItems, landMap) {
     var rides = [];
     liveItems.forEach(function(r) {
