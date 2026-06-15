@@ -319,7 +319,8 @@ async function buildDiningDL(key, apiKey) {
   if(!parsed){ const longest = textParts.slice().sort(function(a,b){return b.length-a.length;})[0]||''; parsed = extractJson(longest); }
   if(!parsed){ console.error('[cache] dining_intel_dl: no parseable JSON in response. First 300 chars: '+allText.slice(0,300)); throw new Error('dining_intel_dl: model returned no parseable venue JSON'); }
   const rawVenues = (parsed && Array.isArray(parsed.venues)) ? parsed.venues : [];
-  console.log('[cache] dining_intel_dl parsed: rawVenues=' + rawVenues.length + ', parsedKeys=' + (parsed ? Object.keys(parsed).join(',') : 'none') + ', allTextLen=' + allText.length);
+  // console.error survives Vercel's log buffer better than console.log late in a long invocation.
+  console.error('[DININGDIAG] rawVenues=' + rawVenues.length + ' parsedKeys=' + (parsed ? Object.keys(parsed).join('|') : 'none') + ' allTextLen=' + allText.length + ' parsedSample=' + JSON.stringify(parsed).slice(0,400));
   const venues = filterDiningVenues(rawVenues);
   const dataStr = venues.map(function(v){
     var diet = [];
