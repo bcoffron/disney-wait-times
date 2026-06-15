@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- cache-bust: TPCP2026-phase4 2026-06-13 -->
+<!-- cache-bust: TPCP2026-phase5 2026-06-15 -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Trip Setup &mdash; Theme Park Co-Pilot</title>
 <link rel="preconnect" href="https://fontsgoogleapis.com">
@@ -249,6 +249,66 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     <div class="pt-check-row" onclick="ptCheckToggle('acc_service')">
       <div class="pt-check-box" id="acc_service"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="pt-check-label">Service animal in our group</div>
+    </div>
+  </div>
+
+  <div class="pt-section-label" style="margin-top:16px;">Shortest person in your group</div>
+  <div class="pt-hint" style="margin-bottom:8px;">This sets which rides everyone can ride together. We will plan rider swap for anything above it. No names needed.</div>
+  <div class="pt-tiles" id="heightTiles">
+    <div class="pt-tile selected" onclick="ptTileSelect('heightTiles',this,'over48')">
+      <div>
+        <div class="pt-tile-label">Everyone is 48&quot; or taller</div>
+        <div class="pt-tile-sub">Can ride everything</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="pt-tile" onclick="ptTileSelect('heightTiles',this,'46to48')">
+      <div>
+        <div class="pt-tile-label">46&quot; to 48&quot;</div>
+        <div class="pt-tile-sub">Almost everything</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="pt-tile" onclick="ptTileSelect('heightTiles',this,'40to46')">
+      <div>
+        <div class="pt-tile-label">40&quot; to 46&quot;</div>
+        <div class="pt-tile-sub">Most big rides, some off-limits</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="pt-tile" onclick="ptTileSelect('heightTiles',this,'under40')">
+      <div>
+        <div class="pt-tile-label">Under 40&quot; (102 cm)</div>
+        <div class="pt-tile-sub">Several big rides need swap</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+  </div>
+
+  <div class="pt-section-label" style="margin-top:16px;">Characters you would love to meet</div>
+  <div class="pt-hint" style="margin-bottom:8px;">Tap any that excite your group -- we will work in meet-and-greets.</div>
+  <div class="pt-chips" id="charChips">
+    <div class="pt-chip" onclick="ptChipToggle(this)">Princesses</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Mickey &amp; Friends</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Star Wars</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Pixar Pals</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Marvel Heroes</div>
+    <div class="pt-chip" onclick="ptChipToggle(this)">Villains</div>
+  </div>
+
+  <div class="pt-section-label" style="margin-top:12px;">Character priority</div>
+  <div class="pt-tiles" id="charPriorityTiles">
+    <div class="pt-tile selected" onclick="ptTileSelect('charPriorityTiles',this,'niceToHave')">
+      <div>
+        <div class="pt-tile-label">If convenient</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="pt-tile" onclick="ptTileSelect('charPriorityTiles',this,'mustDo')">
+      <div>
+        <div class="pt-tile-label">Must-do</div>
+      </div>
+      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
   </div>
 </div>
@@ -737,6 +797,23 @@ function ptCollectData() {
     neverSchedule: neverSchedule,
     avoidWater: avoidWater,
     accessibility: getChecks('acc_', ['mobility','height','spin','water','dark','service']),
+
+    minHeight: (ptSegValues['heightTiles'] || 'over48'),
+    characters: {
+      categories: (function(){
+        var raw = getChips('charChips');
+        var map = {
+          'Princesses': 'princess',
+          'Mickey & Friends': 'classic',
+          'Star Wars': 'star_wars',
+          'Pixar Pals': 'pixar',
+          'Marvel Heroes': 'marvel',
+          'Villains': 'villain'
+        };
+        return raw.map(function(l){ return map[l] || l; });
+      })(),
+      priority: (ptSegValues['charPriorityTiles'] || 'niceToHave')
+    },
     diningStyle: getTile('diningStyleTiles'),
     diningBudget: ptSegValues['budgetSeg'] || 'No preference',
     dietaryNeeds: getChips('dietChips'),
@@ -804,6 +881,29 @@ function ptLoadFromBlob(isRebuild) {
                                                                                                                                                     if (chip) { chip.classList.add('selected'); chip.dataset.state = 'never'; }
                                                                                                                                                         });
                                                                                                                                                           }
+
+                                                                                                                                                                if (cfg.minHeight) {
+                                                                                                                                                                  ptSegValues['heightTiles'] = cfg.minHeight;
+                                                                                                                                                                  document.querySelectorAll('#heightTiles .pt-tile').forEach(function(t) {
+                                                                                                                                                                    t.classList.remove('selected');
+                                                                                                                                                                    if (t.getAttribute('onclick') && t.getAttribute('onclick').indexOf("'" + cfg.minHeight + "'") !== -1) { t.classList.add('selected'); }
+                                                                                                                                                                  });
+                                                                                                                                                                }
+                                                                                                                                                                if (cfg.characters && cfg.characters.categories) {
+                                                                                                                                                                  var catToLabel = { 'princess': 'Princesses', 'classic': 'Mickey & Friends', 'star_wars': 'Star Wars', 'pixar': 'Pixar Pals', 'marvel': 'Marvel Heroes', 'villain': 'Villains' };
+                                                                                                                                                                  cfg.characters.categories.forEach(function(cat) {
+                                                                                                                                                                    var label = catToLabel[cat] || cat;
+                                                                                                                                                                    var chips = document.querySelectorAll('#charChips .pt-chip');
+                                                                                                                                                                    chips.forEach(function(chip) { if (chip.textContent.trim() === label) { chip.classList.add('selected'); } });
+                                                                                                                                                                  });
+                                                                                                                                                                }
+                                                                                                                                                                if (cfg.characters && cfg.characters.priority) {
+                                                                                                                                                                  ptSegValues['charPriorityTiles'] = cfg.characters.priority;
+                                                                                                                                                                  document.querySelectorAll('#charPriorityTiles .pt-tile').forEach(function(t) {
+                                                                                                                                                                    t.classList.remove('selected');
+                                                                                                                                                                    if (t.getAttribute('onclick') && t.getAttribute('onclick').indexOf("'" + cfg.characters.priority + "'") !== -1) { t.classList.add('selected'); }
+                                                                                                                                                                  });
+                                                                                                                                                                }
                                                                                                                                                             if (cfg.diningStyle) {
                                                                                                                                                                 document.querySelectorAll('.pt-seg-btn[data-seg="diningSeg"]').forEach(function(b) {
                                                                                                                                                                       b.classList.toggle('active', b.dataset.val === cfg.diningStyle);
