@@ -2053,25 +2053,7 @@ async function pushApiKey(key){
   if(!isAdmin()) return;
 }
 
-async function pullApiKey(){
-  if(isAdmin()) return; // admin uses their own locally saved key
-  try{
-    var r=await fetch(SYNC_BASE+'/api/config?t='+Date.now());
-    if(!r.ok) return;
-    var data=await r.json();
-    if(data.apiKey&&!apiKey){
-      apiKey=data.apiKey;
-      try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}
-      if(data.pusherKey){window.PUSHER_KEY=data.pusherKey;}if(data.pusherCluster){window.PUSHER_CLUSTER=data.pusherCluster;}
-      if(data.pusherKey){window.PUSHER_KEY=data.pusherKey;}if(data.pusherCluster){window.PUSHER_CLUSTER=data.pusherCluster;}
-      console.log('API key pulled from server');
-      // Hide the API setup card for guests
-      var setup=document.getElementById('apiSetupCard');
-      if(setup) setup.style.display='none';
-    }
-  }catch(e){console.warn('Pull API key:',e);}
-}
-
+async function pullApiKey(){ return; } // disabled: key is server-side only
 async function ensureApiKey(){if(!apiKey)await pullApiKey();}
 async function pushSchedule(){
   if(!isAdmin()) return;
@@ -2109,7 +2091,7 @@ async function pullSchedule(){
 }
 
 async function pushApiKey(key){if(!isAdmin())return;}
-async function pullApiKey(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/config?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.apiKey&&!apiKey){apiKey=data.apiKey;try{localStorage.setItem('disney_api_key',apiKey);}catch(e){}var s=document.getElementById('apiSetupCard');if(s&&typeof isAdmin==='function'&&!isAdmin())s.style.display='none';}}catch(e){console.warn('Pull API key:',e);}}
+async function pullApiKey(){ return; } // disabled: key is server-side only
 async function pushSchedule(){if(!isAdmin())return;try{var code=localStorage.getItem('tpcp_code')||'';if(!code)return;var days=[];for(var di=0;di<customSched.length;di++){var dayObj=customSched[di];if(dayObj&&dayObj.sections&&dayObj.sections[0]){days.push({park:dayObj.sections[0].title||'',items:dayObj.sections[0].entries||[]});}else{days.push({park:'',items:[]});}}var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ADMIN_API_KEY},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});console.log('Schedule saved to tripConfig.schedule');}catch(e){console.warn('Push schedule:',e);}}
 async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;renderSched();renderDayInfoBar();renderPreTripBanner();setTimeout(renderPreTripWeather,500);}catch(e){console.warn('Pull schedule:',e);}}
 function startScheduleSync(){
@@ -2931,10 +2913,10 @@ var editMode=false, customSched=[null,null,null], addSecIdx=null;
 var pendingReopt=null, dragSrc=null;
 
 //    API Key                                                                
-function loadKey(){try{apiKey=localStorage.getItem('disney_api_key')||'';}catch(e){}if(apiKey&&apiKey.startsWith('sk-')){(document.getElementById('apiSetup')||{style:{},value:'',textContent:''}).style.display='none';}}
-function saveKey(){var v=(document.getElementById('apiKeyInput')||{style:{},value:'',textContent:''}).value.trim();if(!v.startsWith('sk-')){alert('Enter a valid key starting with sk-');return;}apiKey=v;try{localStorage.setItem('disney_api_key',v);}catch(e){}(document.getElementById('apiSaved')||{style:{},value:'',textContent:''}).classList.add('show');(document.getElementById('apiSetup')||{style:{},value:'',textContent:''}).style.display='none';}
-function saveKey2(){var v=document.getElementById('apiKeyInput2').value.trim();if(!v.startsWith('sk-')){alert('Enter a valid key starting with sk-');return;}apiKey=v;try{localStorage.setItem('disney_api_key',v);}catch(e){}document.getElementById('apiSaved2').classList.add('show');}
-function resetKey(){apiKey='';try{localStorage.removeItem('disney_api_key');}catch(e){}(document.getElementById('apiSetup')||{style:{},value:'',textContent:''}).style.display='';(document.getElementById('apiKeyInput')||{style:{},value:'',textContent:''}).value='';(document.getElementById('apiSaved')||{style:{},value:'',textContent:''}).classList.remove('show');}
+function loadKey(){try{localStorage.removeItem('disney_api_key');}catch(e){}apiKey='server';var _s=document.getElementById('apiSetup');if(_s)_s.style.display='none';}
+function saveKey(){(document.getElementById('apiSaved')||{style:{},value:'',textContent:''}).classList.add('show');(document.getElementById('apiSetup')||{style:{},value:'',textContent:''}).style.display='none';}
+function saveKey2(){var _e=document.getElementById('apiSaved2');if(_e)_e.classList.add('show');}
+function resetKey(){apiKey='server';try{localStorage.removeItem('disney_api_key');}catch(e){}(document.getElementById('apiSetup')||{style:{},value:'',textContent:''}).style.display='';(document.getElementById('apiKeyInput')||{style:{},value:'',textContent:''}).value='';(document.getElementById('apiSaved')||{style:{},value:'',textContent:''}).classList.remove('show');}
 
 //    Deep links                                                             
 function openDisneyApp(){var a=document.createElement('a');a.href='https://disneyland.disney.go.com/wait-times/';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
@@ -3486,7 +3468,7 @@ async function runReoptimize(){
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
   var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},115000);
-    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,apiKey:apiKey,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{}),tripCode:localStorage.getItem('tpcp_code')||''
+    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{}),tripCode:localStorage.getItem('tpcp_code')||''
       }),signal:_reoptController.signal
     });
 
