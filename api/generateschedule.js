@@ -296,7 +296,14 @@ system += '\n\nDIETARY: Show VEG/VEGAN/GF ONLY for group needs: ' + _dietNeeds.j
 system += '\n\nDo NOT show dietary tags (VEG/VEGAN/GF) unless the group selected that dietary need.';
       }
 
-      // WDW contamination guard: rides/attractions/shows must be real Disneyland Resort ones (parallels dining governance)
+
+      const _mh = (tripConfig && tripConfig.minHeight) || 'over48';
+      if (_mh && _mh !== 'over48') {
+        const _lbl = _mh === 'under40' ? 'under 40 inches' : (_mh === '40to46' ? '40-46 inches' : '46-48 inches');
+        system += '\nGROUP HEIGHT CONSTRAINT: The shortest person in the group is ' + _lbl + '. For any attraction whose height requirement exceeds that, do NOT schedule it as a whole-group stop -- either skip it or schedule it as a rider swap and say so in the card note (n field). Never send the whole group to a ride the shortest member cannot board.';
+      }
+
+            // WDW contamination guard: rides/attractions/shows must be real Disneyland Resort ones (parallels dining governance)
       system += '\n\n=== ATTRACTION GOVERNANCE (MUST FOLLOW) ===';
       system += '\nEvery ride, attraction, and show you schedule MUST be a REAL, currently-operating Disneyland Resort attraction --- located in Disneyland Park or Disney California Adventure ONLY.';
       system += '\nNEVER schedule a Walt Disney World / Florida attraction or any attraction that does not exist at the Disneyland Resort. Do NOT invent attractions.';
