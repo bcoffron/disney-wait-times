@@ -279,6 +279,7 @@ system += '\nDo NOT suggest, name, or reference any of these venues: ' + _diReti
       }
       if (_diRules.length > 0) {
 system += '\n\n=== DINING RULES (MUST FOLLOW) ===';
+      system += '\nHOTEL & DOWNTOWN DISNEY DINING EXCLUSION (ABSOLUTE): NEVER schedule any restaurant located in a hotel or in Downtown Disney as a meal/snack in the day plan. These are OUTSIDE the theme parks and require leaving the park. Examples to NEVER auto-schedule: Goofy\'s Kitchen, Steakhouse 55, Napa Rose, Storytellers Cafe, Disney\'s PCH Grill, GCH Craftsman Grill, Tangaroa Terrace, Ballast Point, Catal, Naples, Splitsville, Black Tap, Tortilla Jo\'s, Salt & Straw, and any other hotel or Downtown Disney venue. The ONLY exception: if tripConfig has a CONFIRMED user-entered reservation at a specific hotel/Downtown Disney restaurant, include it at its reserved time as a dining card and note it is outside the park. Otherwise every meal must be an IN-PARK venue in the current park.';
 system += '\n' + _diRules.join('\n');
       } else {
 system += '\n\nRESV= ENFORCEMENT RULES:';
