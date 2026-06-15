@@ -41,6 +41,13 @@ function landToPark(land) {
   for (const k of DL_LANDS) { if (s.indexOf(k) !== -1) return 'DL'; }
   return null; // unknown land -> don't flag
 }
+// Hotel / Downtown Disney dining (OUTSIDE the parks) - never an in-park meal unless user-reserved.
+const HOTEL_DTD_VENUES = ['goofy\'s kitchen','storytellers cafe','storytellers','napa rose','steakhouse 55','disney\'s pch grill','pch grill','gch craftsman','craftsman grill','tangaroa terrace','ballast point','trader sam','catal','naples ristorante','naples','splitsville','black tap','tortilla jo','salt & straw','salt and straw','earl of sandwich','ralph brennan','jazz kitchen','la brea bakery','wetzel','sprinkles','marceline','centrico','paseo','ballast'];
+function isHotelOrDtdVenue(name) {
+  const s = (name || '').toLowerCase();
+  if (!s) return false;
+  return HOTEL_DTD_VENUES.some(v => s.indexOf(v) !== -1);
+}
 function normPark(p) {
   const s = (p || '').toLowerCase();
   if (s.indexOf('california') !== -1 || s.indexOf('dca') !== -1 || s.indexOf('adventure') !== -1) return 'DCA';
@@ -492,6 +499,29 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
         });
       }
     });
+  });
+
+  // Rule 9c: HOTEL/DTD DINING (structural) - remove hotel & Downtown Disney restaurants that slipped
+  // through, UNLESS the user entered a confirmed reservation for that venue.
+  const reservedNames = [];
+  if (tripConfig && Array.isArray(tripConfig.reservations)) {
+    tripConfig.reservations.forEach(r => {
+      const rn = (typeof r === 'string' ? r : (r && (r.name || r.venue || r.restaurant) || '')).toLowerCase();
+      if (rn) reservedNames.push(rn);
+    });
+  }
+  days.forEach((day, idx) => {
+    let kept = (day.items || []);
+    kept = kept.filter(item => {
+      if (item.type !== 'dining' && item.type !== 'quickservice') return true;
+      if (!isHotelOrDtdVenue(item.h)) return true;
+      // It's a hotel/DTD venue. Keep ONLY if user reserved it.
+      const isReserved = reservedNames.some(rn => (item.h || '').toLowerCase().indexOf(rn) !== -1 || rn.indexOf((item.h || '').toLowerCase()) !== -1);
+      if (isReserved) return true;
+      corrections.push({ rule: 'hotel-dtd-dining', day: idx + 1, item: item.h, action: 'removed - hotel/Downtown Disney venue, not an in-park meal and not user-reserved' });
+      return false;
+    });
+    day.items = kept;
   });
 
   // Rule 10: Time bounds — remove items before 7:00 AM
