@@ -397,27 +397,35 @@ export default async function handler(req, res) {
   if(!apiKey) return res.status(500).json({error:'No ANTHROPIC_API_KEY'});
 
   // -- DAILY RUN CAP --------------------------------------------------------
-  // Track how many times cron has run today via Vercel Blob
-  // Max 2 runs per day to prevent runaway costs
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const capKey = 'twize/daily_run_count_' + today + '.json';
-    const { blobs: capBlobs } = await list({ prefix: 'twize/daily_run_count_' + today });
-    let runCount = 0;
-    if (capBlobs && capBlobs.length) {
-      const capData = await (await fetch(capBlobs[0].downloadUrl || capBlobs[0].url)).json();
-      runCount = capData.count || 0;
+  // Track how many times cron has run today via Vercel Blob.
+  // Cap protects against runaway cost from scheduled crons; raised to 7 so clustered
+  // scheduled rebuilds (e.g. the 1st of the month) plus a few manual triggers fit.
+  // A FORCED manual run (force=1) is EXEMPT -- the cap must never block a deliberate manual rebuild.
+  const DAILY_RUN_CAP = 7;
+  const isForcedRun = req.query.force === '1';
+  if (!isForcedRun) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const capKey = 'twize/daily_run_count_' + today + '.json';
+      const { blobs: capBlobs } = await list({ prefix: 'twize/daily_run_count_' + today });
+      let runCount = 0;
+      if (capBlobs && capBlobs.length) {
+        const capData = await (await fetch(capBlobs[0].downloadUrl || capBlobs[0].url)).json();
+        runCount = capData.count || 0;
+      }
+      if (runCount >= DAILY_RUN_CAP) {
+        console.warn('[cron-cache] Daily run cap reached (' + runCount + ' runs today) -- aborting. Use force=1 for a manual rebuild.');
+        return res.status(429).json({ error: 'Daily run cap reached. Max ' + DAILY_RUN_CAP + ' cron runs per day. Use force=1 to override for a manual rebuild.' });
+      }
+      await put(capKey, JSON.stringify({ count: runCount + 1, lastRun: new Date().toISOString() }), {
+        access: 'public', addRandomSuffix: false, contentType: 'application/json', allowOverwrite: true
+      });
+      console.log('[cron-cache] Daily run count:', runCount + 1);
+    } catch(capErr) {
+      console.warn('[cron-cache] Could not check run cap:', capErr.message);
     }
-    if (runCount >= 2) {
-      console.warn('[cron-cache] Daily run cap reached (' + runCount + ' runs today) -- aborting');
-      return res.status(429).json({ error: 'Daily run cap reached. Max 2 cron runs per day.' });
-    }
-    await put(capKey, JSON.stringify({ count: runCount + 1, lastRun: new Date().toISOString() }), {
-      access: 'public', addRandomSuffix: false, contentType: 'application/json', allowOverwrite: true
-    });
-    console.log('[cron-cache] Daily run count:', runCount + 1);
-  } catch(capErr) {
-    console.warn('[cron-cache] Could not check run cap:', capErr.message);
+  } else {
+    console.log('[cron-cache] Forced run (force=1) -- bypassing daily cap');
   }
   // -------------------------------------------------------------------------
 
