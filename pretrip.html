@@ -1020,6 +1020,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
     'Dining style: ' + (tripConfig.diningStyle || '') + '. ' +
     'Dietary needs: ' + ((tripConfig.dietaryNeeds || []).join(', ') || 'none') + '. ' +
     'Accessibility: ' + ((tripConfig.accessibility || []).join(', ') || 'none') + '. ' +
+    'Shortest person height bracket: ' + (tripConfig.minHeight || 'over48') + ' (over48 = everyone 48in+, under40/40to46/46to48 = someone shorter; apply rider-swap/height rules accordingly). ' +
     'Restaurants to work in: ' + (tripConfig.wantedRestaurants || 'none') + '. ' +
     (tripConfig.reservations && tripConfig.reservations.length ?
       'CONFIRMED DINING RESERVATIONS (must appear in schedule at exact times): ' + tripConfig.reservations.join(' | ') + '. ' : '') +
@@ -1036,6 +1037,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         adminKey: (localStorage.getItem('tpcp_role')==='admin') ? 'cwdis2026admin' : undefined,
         tripConfig: {
           characters: tripConfig.characters,
+          minHeight: tripConfig.minHeight,
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
