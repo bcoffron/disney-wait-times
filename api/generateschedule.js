@@ -403,12 +403,22 @@ system += '\nNEVER end a day at 8:50 PM or 9:00 PM unless that is confirmed park
           system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 80 characters. One concise sentence only.';
           system += '\nCHARACTER ENCODING RULE: NEVER use special symbols, emoji, checkmarks, bullets, stars, or any non-ASCII characters in card titles (h field) or notes (n field). Use plain ASCII only.';
 
+      // === PARK PRESENCE MODEL (ABSOLUTE - overrides Lightning Lane and ride/dining selection) ===
+      system += '\n\n=== PARK PRESENCE MODEL (ABSOLUTE) ===';
+      system += '\nAt every moment of the day the group is physically in EXACTLY ONE park (Disneyland Park OR Disney California Adventure). The guest cannot be in two parks at once and cannot bounce between parks for a single ride. Track the CURRENT PARK as the day progresses.';
+      system += '\nEVERY ride, show, snack, dining, character meet, AND Lightning Lane booking you schedule at a given time MUST be located in the CURRENT PARK at that time. Never schedule an attraction or LL in the park the group is not currently in. Use the LAND MAP / cache to know which park each attraction and venue belongs to (e.g. Cozy Cone, Incredicoaster, Pixar Pier, Avengers Campus, Cars Land, San Fransokyo, Grizzly Peak = DCA; New Orleans Square, Fantasyland, Tomorrowland, Galaxy\'s Edge, Adventureland, Frontierland, Toontown, Main Street = Disneyland Park).';
+      system += '\nLIGHTNING LANE IS SUBORDINATE TO PARK PRESENCE: only book an LL for a ride in the park the group is in (or will be in) at the LL return window. Never book an LL that would require being in the other park while the schedule has the group in this one. Park location decides the plan; LL fits around it, never the reverse.';
+
       if (tripConfig && tripConfig.parkHopping) {
-              system += '\n\n=== PARK HOPPING RULE (CACHE-DRIVEN) ===';
-              system += '\nThis group has park hopper tickets. Build the schedule to include a second park visit.';
-              system += '\nSTART at startPark (rope drop there per rope-drop rule above).'; system += '\nHOP TIMING: Consult PARK HOP STRATEGY cache section for data-driven hop window. Use the cache-recommended hop time. If no cache guidance, state the hop generically rather than inventing a precise time.';
-              system += '\nCONTINUE in second park until ~30 minutes before that park close (use PARK HOURS cache).';
-              
+              system += '\n\n=== PARK HOPPING (HOPPER TICKETS - CACHE-DRIVEN) ===';
+              system += '\nThis group HAS park hopper tickets. Plan at least ONE hop. START at startPark and rope drop there.';
+              system += '\nFIRST HOP TIMING IS DATA-DRIVEN: use the PARK HOP STRATEGY / crowd-flow cache to choose the hop window (typically when the first park\'s priority rides are done and the second park\'s waits/value are better). Do NOT invent an arbitrary time or hop on a feeling. If the cache gives no specific guidance, hop after the morning priorities (late morning / early afternoon) and say so plainly.';
+              system += '\nAfter the hop, all rides/dining/LL must be in the SECOND park (per the PARK PRESENCE MODEL) until the next hop or end of day.';
+              system += '\nLATE SECOND HOP (IMPORTANT): If the two parks have DIFFERENT closing times, do NOT end the night when the earlier-closing park closes. If the group is in the earlier-closing park and the OTHER park is still open 1-2 hours longer, hop back to the later-closing park and keep riding until ~30 min before ITS close. Leaving one park at night does NOT mean going home -- use the extra open hours in the other park. Use the PARK HOURS cache for both parks\' close times. This applies even if it means a second hop late in the evening.';
+              system += '\nSchedule the final activity within ~30 min of the LATEST park close available to the group that day (whichever park is open latest).';
+      } else {
+              system += '\n\n=== SINGLE PARK (NO HOPPER) ===';
+              system += '\nThis group does NOT have park hopper tickets for this day. The ENTIRE day is in startPark ONLY. Do NOT schedule any ride, show, snack, dining, character meet, or LL in the other park at any point. There is no hop. Every item from arrival to close is in startPark.';
       }
           console.log('[generateschedule] mode:', mode || 'default', 'char_priority:', charPriority);
 
