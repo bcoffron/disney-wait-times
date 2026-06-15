@@ -30,6 +30,24 @@ const CLOSED_ATTRACTIONS_FALLBACK = [
   'Silly Symphony Swings'
 ];
 
+// LAND -> PARK map for park-presence enforcement.
+// DCA lands and DL lands. Lowercased substring match against item.land (and item.h as fallback).
+const DCA_LANDS = ['cars land','cozy cone','radiator springs','pixar pier','paradise gardens','incredicoaster','avengers campus','grizzly peak','san fransokyo','hollywood land','buena vista street','pacific wharf','pixar pal'];
+const DL_LANDS = ['main street','adventureland','new orleans square','frontierland','bayou country','critter country','fantasyland','mickey','toontown','tomorrowland','galaxy','star wars','pixie hollow'];
+function landToPark(land) {
+  const s = (land || '').toLowerCase();
+  if (!s) return null;
+  for (const k of DCA_LANDS) { if (s.indexOf(k) !== -1) return 'DCA'; }
+  for (const k of DL_LANDS) { if (s.indexOf(k) !== -1) return 'DL'; }
+  return null; // unknown land -> don't flag
+}
+function normPark(p) {
+  const s = (p || '').toLowerCase();
+  if (s.indexOf('california') !== -1 || s.indexOf('dca') !== -1 || s.indexOf('adventure') !== -1) return 'DCA';
+  if (s.indexOf('disneyland') !== -1 || s === 'dl') return 'DL';
+  return null;
+}
+
 // Parse ride names out of a CURRENT_CLOSURES cache text block
 function parseClosedFromCache(closuresText) {
   if (!closuresText || typeof closuresText !== 'string') return null;
@@ -450,6 +468,30 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
         detail: reservation.name + ' not found on Day ' + (targetDayIdx + 1)
       });
     }
+  });
+
+  // Rule 9b: PARK PRESENCE (structural) - flag items located in a park not visited this day.
+  // Non-hopper day: every item must be in day.park. Hopper day: items may be in startPark OR hopTo park.
+  days.forEach((day, idx) => {
+    if (day.isVip) return; // VIP day handled by the guide
+    const startPark = normPark(day.park) || 'DL';
+    const hopPark = normPark(day.hopTo);
+    const allowsHop = !!(tripConfig && tripConfig.parkHopping && hopPark);
+    const allowed = allowsHop ? [startPark, hopPark] : [startPark];
+    (day.items || []).forEach(item => {
+      // only rides/dining/quickservice/snack/show/character have a real land; skip tips/breaks
+      if (['tip','break'].indexOf(item.type) !== -1) return;
+      const p = landToPark(item.land) || landToPark(item.h);
+      if (!p) return; // unknown -> don't flag
+      if (allowed.indexOf(p) === -1) {
+        hardViolations.push({
+          rule: 'park-presence',
+          day: idx + 1,
+          item: item.h,
+          detail: (item.h || '') + ' is in ' + p + ' but day is ' + (allowsHop ? (startPark + '+' + hopPark) : startPark)
+        });
+      }
+    });
   });
 
   // Rule 10: Time bounds — remove items before 7:00 AM
