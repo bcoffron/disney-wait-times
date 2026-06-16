@@ -260,6 +260,16 @@ const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
 
       system += '\n\n=== CURRENT PARK INTELLIGENCE (use this --- do not search the web) ===\n' + parkIntelContext;
 
+      // === CHARACTER MEETS: inject the cache data + scheduling instruction (was computed but never injected) ===
+      if (charContext && charContext.trim()) {
+        system += '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext;
+        if (charPriority === 'mustDo') {
+          system += '\n\nCHARACTER SCHEDULING (MUST-DO): The group has marked character meets as a MUST-DO priority. You MUST schedule at least one character meet card on each day from the CHARACTER MEETS list above, matching the family\'s selected categories, in the correct park for that day. Use type: "character". Place each meet at a sensible time/land based on the cache windows (e.g. Galaxy\'s Edge for Star Wars, Town Square/Toontown for classic). NEVER invent a character or location not in the cache. Card schema: { t: "11:00 AM", h: "Meet [Character]", type: "character", n: "[where/tip from cache, under 80 chars]", land: "[Land]" }.';
+        } else {
+          system += '\n\nCHARACTER SCHEDULING (nice-to-have): Character meets are optional for this group. You MAY include one if it fits naturally near where the group already is, using type: "character" and only characters/locations from the cache above. Do not force it.';
+        }
+      }
+
 // Issue 1: Inject dining intel with RESV= enforcement, dietary guard, retired blocklist
       let _diParsed = null;
       if (diningIntel && diningIntel.length > 20) {
