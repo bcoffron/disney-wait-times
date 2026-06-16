@@ -200,14 +200,27 @@ function _parkHoursFor(parkHoursText, parkKey, dateStr) {
 // (whether to hop is the model's call — but if tripConfig says no hopper, one park is enforced).
 // We do NOT pick the hop time here arbitrarily; if hopping is allowed we create a single
 // hop boundary at a neutral midday point and let the model justify ride choices around it.
+// PER-DAY hop decision. A real hop needs a destination park that DIFFERS from the start park.
+// hopTo: true is just "hopper tickets exist" - it is NOT a destination and must not trigger a 2nd block.
+function resolveHopDestination(day, startPark) {
+  // Only treat as a hop if hopTo names a real park different from startPark.
+  // Guard: normPark expects a string; boolean true/false must not be passed through.
+  const rawHop = day && day.hopTo;
+  if (!rawHop || typeof rawHop !== 'string') return null; // boolean true, missing -> NO hop
+  const dest = normPark(rawHop);             // normPark returns 'DL' | 'DCA' | null
+  if (dest && dest !== startPark) return dest;
+  return null; // same-as-start or unrecognized string -> NO hop this day
+}
+
 function buildScaffold(tripConfig, dayIndex, cache) {
   const days = (tripConfig && tripConfig.schedule && tripConfig.schedule.days) || [];
   const day = days[dayIndex] || {};
   const parkHoursText = cache.PARK_HOURS || '';
 
   const startPark = /california|dca|adventure/i.test(day.park || '') ? 'DCA' : 'DL';
-  const otherPark = startPark === 'DL' ? 'DCA' : 'DL';
-  const hopper = !!(tripConfig && tripConfig.parkHopping);
+  const hopDest = resolveHopDestination(day, startPark); // per-day: null if no real named destination
+  const hopper = !!hopDest;                               // true only when hopDest names a different park
+  const otherPark = hopDest || startPark;                 // never invent the opposite park
 
   // Hours from cache (fallback to conservative defaults if cache line not found)
   const startHours = _parkHoursFor(parkHoursText, startPark, day.date) || { openMin: 8 * 60, closeMin: 23 * 60 };
