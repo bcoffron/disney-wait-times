@@ -202,14 +202,25 @@ function _parkHoursFor(parkHoursText, parkKey, dateStr) {
 // hop boundary at a neutral midday point and let the model justify ride choices around it.
 // PER-DAY hop decision. A real hop needs a destination park that DIFFERS from the start park.
 // hopTo: true is just "hopper tickets exist" - it is NOT a destination and must not trigger a 2nd block.
-function resolveHopDestination(day, startPark) {
-  // Only treat as a hop if hopTo names a real park different from startPark.
-  // Guard: normPark expects a string; boolean true/false must not be passed through.
+function resolveHopDestination(day, startPark, tripConfig) {
+  // 1) Explicit per-day destination wins (future onboarding may store hopTo: 'DCA').
+  //    Guard: normPark expects a string; a boolean true/false must not be passed through.
   const rawHop = day && day.hopTo;
-  if (!rawHop || typeof rawHop !== 'string') return null; // boolean true, missing -> NO hop
-  const dest = normPark(rawHop);             // normPark returns 'DL' | 'DCA' | null
-  if (dest && dest !== startPark) return dest;
-  return null; // same-as-start or unrecognized string -> NO hop this day
+  if (rawHop && typeof rawHop === 'string') {
+    const dest = normPark(rawHop);
+    if (dest && dest !== startPark) return dest; // real, different named destination
+    return null;                                  // same-as-start or unrecognized -> no hop
+  }
+  // 2) OPTION-2 RULE (no explicit per-day destination stored): if this group holds hopper
+  //    tickets, ALLOW a hop to the other park. This only creates the 2-block STRUCTURE; the
+  //    model+cache (PARK_HOP_STRATEGY) still decide whether/when to actually lean into it and
+  //    can keep most rides in the start park if the data says so. Code never forces the hop.
+  //    A day explicitly flagged single-park (day.singlePark === true) never hops.
+  if (day && day.singlePark === true) return null;
+  if (tripConfig && tripConfig.parkHopping) {
+    return startPark === 'DL' ? 'DCA' : 'DL';
+  }
+  return null; // no hopper tickets -> single park
 }
 
 function buildScaffold(tripConfig, dayIndex, cache) {
@@ -218,7 +229,7 @@ function buildScaffold(tripConfig, dayIndex, cache) {
   const parkHoursText = cache.PARK_HOURS || '';
 
   const startPark = /california|dca|adventure/i.test(day.park || '') ? 'DCA' : 'DL';
-  const hopDest = resolveHopDestination(day, startPark); // per-day: null if no real named destination
+  const hopDest = resolveHopDestination(day, startPark, tripConfig); // explicit dest, else option-2 hopper rule
   const hopper = !!hopDest;                               // true only when hopDest names a different park
   const otherPark = hopDest || startPark;                 // never invent the opposite park
 
