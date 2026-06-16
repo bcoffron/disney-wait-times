@@ -1122,6 +1122,8 @@ function ptFinish() {
     days: d.days,
     parkHopping: d.days.some(function(dy){ return dy.hopTo; }),
     reservations: d.reservations || [],
+    minHeight: d.minHeight || 'over48',
+    characters: d.characters || { categories: [], priority: 'niceToHave' },
     dining: {
       reservations: (d.reservations || []).map(function(s) {
         if (!s || typeof s !== 'string') return null;
