@@ -192,7 +192,7 @@ export default async function handler(req, res) {
 
   // -- D: 30-second timeout on Anthropic API calls ----------------------------------
   const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 90000);
     try {
           const { prompt, mode, maxTokens = 8000, tripConfig } = req.body || {};
 
@@ -524,4 +524,4 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
     }
 };
 
-handler.config = { maxDuration: 30 };
+handler.config = { maxDuration: 90 };
