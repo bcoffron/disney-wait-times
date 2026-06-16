@@ -1103,14 +1103,14 @@ body.tw-guest .ai-opt-hero{display:none!important}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           </div>
           <div class="reopt-summary-text">
-            <div class="reopt-summary-title">Smoothed out your next few hours</div>
+            <div class="reopt-summary-title" id="reoptSummaryTitle">Smoothed out your next few hours</div>
             <div class="reopt-summary-sub" id="reoptSummarySub">Your schedule is already optimized</div>
           </div>
         </div>
         <div class="reopt-body">
-        <div class="reopt-label">What Changed</div>
+        <div class="reopt-label" id="reoptChangedLabel">What Changed</div>
         <div style="margin-bottom:12px;">
-          <div style="font-size:16px;font-weight:700;color:var(--color-text);margin-bottom:3px;">Here's your optimized plan</div>
+          <div id="reoptPlanHeading" style="font-size:16px;font-weight:700;color:var(--color-text);margin-bottom:3px;">Here's your optimized plan</div>
           <div id="reoptAcceptHint" style="font-size:13px;color:var(--color-text-muted);">Tap <strong>Accept Changes</strong> to apply this to your schedule.</div>
         </div>
         <div class="reopt-text" id="reoptText"></div>
@@ -3494,7 +3494,13 @@ async function runReoptimize(){
       // Update summary bar with change count
       var changedCount=0;if(window._aiOptOriginalItems&&pendingReopt&&pendingReopt.sections&&pendingReopt.sections[0]&&pendingReopt.sections[0].entries)pendingReopt.sections[0].entries.forEach(function(entry,idx){if(window._aiOptOriginalItems[idx]&&window._aiOptOriginalItems[idx].h!==entry.h)changedCount++;});
       var subEl=document.getElementById('reoptSummarySub');
-      if(subEl)subEl.textContent=changedCount===0?'Your schedule is already optimized':changedCount+' items reordered for better timing';
+      if(subEl)subEl.textContent=changedCount===0?'You already have the best plan':changedCount+' items reordered for better timing';
+      var _titleEl=document.getElementById('reoptSummaryTitle');
+      if(_titleEl)_titleEl.textContent=changedCount===0?'Your plan is already optimized':'Smoothed out your next few hours';
+      var _changedLbl=document.getElementById('reoptChangedLabel');
+      if(_changedLbl)_changedLbl.style.display=changedCount===0?'none':'';
+      var _planHd=document.getElementById('reoptPlanHeading');
+      if(_planHd)_planHd.textContent=changedCount===0?'No changes needed':"Here's your optimized plan";
       var _rl3=document.getElementById('reoptLoading');if(_rl3)_rl3.style.display='none';box.style.display='block';
       btns.classList.add('show');
       var _reoptApply=btns.querySelector('.reopt-apply');var _reoptDismiss=btns.querySelector('.reopt-dismiss');var _reoptNote=document.getElementById('reoptReviewNote');if(changedCount===0){if(_reoptApply)_reoptApply.style.display='none';if(_reoptNote)_reoptNote.style.display='none';if(_reoptDismiss){_reoptDismiss.textContent='Got it ✓';_reoptDismiss.onclick=function(){dismissReopt();};}}else{if(_reoptApply){_reoptApply.style.display='';_reoptApply.onclick=function(){applyReopt();};}if(_reoptNote)_reoptNote.style.display='';if(_reoptDismiss){_reoptDismiss.textContent='Keep Original';_reoptDismiss.onclick=function(){dismissReopt();};}}
