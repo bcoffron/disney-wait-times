@@ -813,6 +813,47 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     });
   });
 
+  // Rule 9p: HEIGHT / RIDER-SWAP (structural). The prompt applies this inconsistently (some days got swap
+  // notes, others none). Here we guarantee it: for any ride whose height minimum exceeds the group's
+  // shortest member, ensure the card note flags a rider swap. Height table uses well-established DLR minimums.
+  const HEIGHT_REQ = [
+    { min: 48, names: ['incredicoaster'] },
+    { min: 42, names: ['matterhorn', 'goofy\'s sky school', 'goofys sky school'] },
+    { min: 40, names: ['big thunder', 'space mountain', 'tiana', 'rise of the resistance', 'guardians of the galaxy', 'mission breakout', 'radiator springs racers'] },
+    { min: 35, names: ['gadget', 'go coaster', 'luigi'] },
+    { min: 32, names: ['mater\'s junkyard', 'maters junkyard', 'jumpin jellyfish', 'golden zephyr'] }
+  ];
+  const groupMinHeight = (function() {
+    const mh = tripConfig && tripConfig.minHeight;
+    if (mh === 'under40') return 38;   // shortest member under 40in -> treat as 38
+    if (mh === '40to46') return 43;    // 40-46in -> use 43 midpoint
+    if (mh === '46to48' || mh === '46to48') return 47;
+    return 48;                          // over48 / default -> everyone can ride, no swaps
+  })();
+  function rideHeightMin(name) {
+    const s = (name || '').toLowerCase();
+    for (const tier of HEIGHT_REQ) {
+      if (tier.names.some(n => s.indexOf(n) !== -1)) return tier.min;
+    }
+    return 0; // no height requirement
+  }
+  if (groupMinHeight < 48) {
+    days.forEach((day, idx) => {
+      (day.items || []).forEach(item => {
+        if (item.type !== 'ride') return;
+        const req = rideHeightMin(item.h);
+        if (req > 0 && req > groupMinHeight) {
+          const note = (item.n || '');
+          if (!/rider swap|rider switch|too short|height/i.test(note)) {
+            item.n = (note ? note.replace(/\s*$/, '') + ' ' : '') + 'Rider swap: requires ' + req + 'in; shortest member cannot board.';
+            // keep note within the 80-char guidance where possible
+            corrections.push({ rule: 'height-rider-swap', day: idx + 1, item: item.h, action: 'added rider-swap note (ride requires ' + req + 'in)' });
+          }
+        }
+      });
+    });
+  }
+
   return {
     valid: hardViolations.length === 0,
     schedule,
