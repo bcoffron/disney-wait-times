@@ -256,7 +256,7 @@ const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
           const charContext = buildCharacterContext(charIntel, tripConfig, 4000);
           const charPriority = (tripConfig && tripConfig.characters && tripConfig.characters.priority) || 'niceToHave';
 
-      let system = 'You are a Disneyland and Disney California Adventure theme park scheduling expert with deep knowledge of wait time patterns, rope drop strategies, and crowd flow. Generate detailed, realistic day schedules in valid JSON only. No markdown, no explanation, just JSON.';
+      let system = 'You are the genius best friend who knows Disneyland and Disney California Adventure inside out -- thinking ahead so this family does not have to. Your one rule: EVERY decision (ride order, timing, the hop, dining, character stops, Lightning Lane) must come from the CACHE DATA below -- wait-time patterns, rope-drop and hop strategy, crowd flow, park hours, the verified dining and character lists. Do NOT invent wait times, best windows, hop times, ride names, or venues. If the cache does not support a claim, do not make it. Give the best move the DATA shows, never a guess that merely sounds good. Output valid JSON only -- no markdown, just JSON.';
 
       system += '\n\n=== CURRENT PARK INTELLIGENCE (use this --- do not search the web) ===\n' + parkIntelContext;
 
@@ -279,7 +279,7 @@ system += '\nDo NOT suggest, name, or reference any of these venues: ' + _diReti
       }
       if (_diRules.length > 0) {
 system += '\n\n=== DINING RULES (MUST FOLLOW) ===';
-      system += '\nHOTEL & DOWNTOWN DISNEY DINING EXCLUSION (ABSOLUTE): NEVER schedule any restaurant located in a hotel or in Downtown Disney as a meal/snack in the day plan. These are OUTSIDE the theme parks and require leaving the park. Examples to NEVER auto-schedule: Goofy\'s Kitchen, Steakhouse 55, Napa Rose, Storytellers Cafe, Disney\'s PCH Grill, GCH Craftsman Grill, Tangaroa Terrace, Ballast Point, Catal, Naples, Splitsville, Black Tap, Tortilla Jo\'s, Salt & Straw, and any other hotel or Downtown Disney venue. The ONLY exception: if tripConfig has a CONFIRMED user-entered reservation at a specific hotel/Downtown Disney restaurant, include it at its reserved time as a dining card and note it is outside the park. Otherwise every meal must be an IN-PARK venue in the current park.';
+      system += '\nMeals must be IN-PARK venues from the cache. Do not place hotel or Downtown Disney restaurants unless the trip config has a confirmed reservation there.';
 system += '\n' + _diRules.join('\n');
       } else {
 system += '\n\nRESV= ENFORCEMENT RULES:';
@@ -308,7 +308,7 @@ system += '\n\nDo NOT show dietary tags (VEG/VEGAN/GF) unless the group selected
       system += '\n\n=== ATTRACTION GOVERNANCE (MUST FOLLOW) ===';
       system += '\nEvery ride, attraction, and show you schedule MUST be a REAL, currently-operating Disneyland Resort attraction --- located in Disneyland Park or Disney California Adventure ONLY.';
       system += '\nNEVER schedule a Walt Disney World / Florida attraction or any attraction that does not exist at the Disneyland Resort. Do NOT invent attractions.';
-      system += '\nWatch for WDW look-alikes that do NOT belong at Disneyland: Seven Dwarfs Mine Train, Tron Lightcycle Run, Expedition Everest, Avatar Flight of Passage, Kilimanjaro Safaris, Frozen Ever After, Rock n Roller Coaster, Tower of Terror (DL version is GONE --- it is Guardians: Mission Breakout at DCA now), Spaceship Earth, Test Track, Slinky Dog Dash. None of these exist at the Disneyland Resort --- never schedule them.'; system += '\nRENAMED/CLOSED DL ATTRACTIONS (use ONLY the current name, NEVER the old one, and NEVER schedule both as if they are two different rides): Splash Mountain no longer exists --- it is now TIANA\'S BAYOU ADVENTURE (schedule Tiana\'s Bayou Adventure, never "Splash Mountain"). Pirates of the Caribbean may be in seasonal refurb --- check CLOSURES. Never output two cards for what is actually the same ride under old and new names.';
+      system += '\nSchedule ONLY attractions in the cache LAND MAP / WAIT PATTERNS. No Walt Disney World rides, no invented rides. Current names only (Tiana\'s Bayou Adventure, never Splash Mountain); never list the same ride twice.';
       system += '\nNEVER type a restaurant as a ride. A name like "Cinderella Royal Table", "Be Our Guest", "Blue Bayou", "Cafe Orleans" is DINING, never type:"ride". If it is a place to eat, it is a dining/quickservice/snack card, never a ride.';
       system += '\nThe LAND MAP and WAIT PATTERNS in the PARK INTELLIGENCE section above are the authoritative list of valid Disneyland Resort attractions. If an attraction is not consistent with that intelligence, do NOT schedule it.';
 
@@ -431,12 +431,12 @@ system += '\nNever schedule any QS meal or sit-down dining between 12:00 PM and 
 system += '\nNever schedule any QS meal or sit-down dining between 5:30 PM and 7:30 PM (peak dinner rush).';
 system += '\nLUNCH windows: 11:00 AM-11:45 AM (early) OR 1:30 PM-2:30 PM (late).';
 system += '\nDINNER windows: 4:30 PM-5:30 PM (early) OR 7:30 PM-9:00 PM (late).';
-      system += '\n\nMEAL LABELING RULE (ABSOLUTE): Every meal card MUST name a real in-park venue from the dining cache. NEVER output a meal card titled only "Early Dinner", "Lunch", "Dinner", or "Quick Lunch" with no restaurant -- the title must include the venue, e.g. "Dinner: Cafe Orleans" or "Lunch at Rancho del Zocalo". NEVER use the words "early" or "late" in a meal title unless the time matches: a meal at 6:00-7:30 PM is NOT "early dinner" (early dinner is 4:30-5:30 PM). If unsure, just label it "Dinner: [Venue]" or "Lunch: [Venue]" with no early/late word. The descriptor must never contradict the card time.';
+      system += '\n\nMeal titles name the venue: "Dinner: Cafe Orleans", never a bare "Dinner" or "Early Dinner".';
 system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree. If the note says to avoid the 6-7 PM rush, the card time MUST be before 5:30 PM or after 7:30 PM. Never schedule a meal at 6:15 PM with a note warning about 6 PM crowds.';
           system += '\nTIME BOUNDS RULE (ABSOLUTE):\nNever schedule any item before 7:00 AM or after park close.\n\nLIGHTNING LANE REMINDER CARDS (REQUIRED):\nEvery schedule must include Lightning Lane reminder tip cards throughout the day. Include:\n1. Opening LL tip (7:00-7:30 AM)\n2. Second booking reminder (~10:00 AM)\n3. Afternoon check (~1:30-2:00 PM)\n4. Final window (~4:00 PM)';
           system += '\n\nLIGHTNING LANE CARD SCHEMA (REQUIRED): Every LL booking tip card MUST include the ll field. Use this schema: { "t": "9:00 AM", "h": "Book [Ride Name] via Lightning Lane", "type": "tip", "land": "[Land Name]", "n": "Book now - return window typically X:XX PM", "ll": { "t": "multi", "a": "Book [Ride] LLMP now - return ~X:XX PM" }, "ride": "[Exact Ride Name]" }';
           system += '\nFor paid Individual Lightning Lane: use ll.t = "single". For LLMP: use ll.t = "multi".';
-          system += '\nSINGLE PASS RIDES (CRITICAL - ABSOLUTE): At the Disneyland Resort, ONLY two rides use Lightning Lane Single Pass (Individual Lightning Lane), purchased per-ride, NOT part of Multi Pass: (1) Star Wars: Rise of the Resistance (Disneyland Park) and (2) Radiator Springs Racers (Disney California Adventure). For these two rides you MUST use ll.t = "single" and refer to it as "Lightning Lane Single Pass" or "Individual Lightning Lane" -- NEVER "LLMP", "Multi Pass", or "Lightning Lane Multi Pass". They are booked individually (one per ride per day), not from the Multi Pass rotation. EVERY OTHER Lightning Lane ride uses Multi Pass (ll.t = "multi"). Do not call any other ride a Single Pass ride, and never call Rise of the Resistance or Radiator Springs Racers a Multi Pass ride.';
+          system += '\nRise of the Resistance and Radiator Springs Racers are Single Pass (ll.t="single"); every other LL ride is Multi Pass (ll.t="multi").';
           system += '\nIf tripConfig shows hasLL: false or no Lightning Lane for this day, do NOT generate LL cards and do NOT include ll fields on any item.';
 
       // -- B: Model is hardcoded --- never use req.body.model or any client value
