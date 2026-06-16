@@ -267,6 +267,140 @@ function buildScaffold(tripConfig, dayIndex, cache) {
 }
 
 // ============================================================================
+// ENFORCEMENT LAYER (the part that actually makes physics non-negotiable).
+// The model PROPOSES; this code ASSIGNS each item to the block its time falls in
+// and REJECTS anything physically impossible (wrong park for that block, a 2nd
+// hop the scaffold never declared, a duplicate meal slot). Prompts get ignored;
+// code does not. Same land->park source of truth as validate-schedule.js.
+// ============================================================================
+const DCA_LANDS = ['cars land','cozy cone','radiator springs','pixar pier','paradise gardens','incredicoaster','avengers campus','grizzly peak','san fransokyo','hollywood land','buena vista street','pacific wharf','pixar pal'];
+const DL_LANDS = ['main street','adventureland','new orleans square','frontierland','bayou country','critter country','fantasyland','mickey','toontown','tomorrowland','galaxy','star wars','pixie hollow'];
+function landToPark(land) {
+  const s = (land || '').toLowerCase();
+  if (!s) return null;
+  for (const k of DCA_LANDS) { if (s.indexOf(k) !== -1) return 'DCA'; }
+  for (const k of DL_LANDS) { if (s.indexOf(k) !== -1) return 'DL'; }
+  return null;
+}
+function normPark(p) {
+  const s = (p || '').toLowerCase();
+  if (s.indexOf('california') !== -1 || s.indexOf('dca') !== -1 || s.indexOf('adventure') !== -1) return 'DCA';
+  if (s.indexOf('disneyland') !== -1 || s === 'dl') return 'DL';
+  return null;
+}
+// Which block (and therefore which park) a given time belongs to.
+function blockParkAtMin(scaffold, min) {
+  for (const b of scaffold.blocks) { if (min >= b.startMin && min < b.endMin) return b.park; }
+  // before first / after last -> clamp to nearest block
+  if (min < scaffold.blocks[0].startMin) return scaffold.blocks[0].park;
+  return scaffold.blocks[scaffold.blocks.length - 1].park;
+}
+
+// HARD ENFORCEMENT: take the model's items, keep only what's physically possible for the
+// block each item's time lands in. Wrong-park items are dropped and replaced with a single
+// gap marker per affected block (naming the CORRECT park). Returns {items, corrections}.
+function enforceScaffold(rawItems, scaffold) {
+  const corrections = [];
+  const items = (rawItems || []).slice().map(it => Object.assign({}, it));
+  items.forEach(it => { it._min = _t2m(it.t); });
+  items.sort((a, b) => (a._min < 0 ? 1 : b._min < 0 ? -1 : a._min - b._min));
+
+  // PHYSICS vs STRATEGY: the model OWNS the hop time (strategy). We do NOT impose the
+  // scaffold's coded boundary. Instead we DETECT the model's FIRST hop from its own output
+  // and enforce park-consistency around THAT. Items before the hop must be in startPark,
+  // items at/after must be in the destination park. Any SECOND hop (back to startPark) is the
+  // physically-impossible case the scaffold forbids -> those later wrong-park items are dropped.
+  const startPark = scaffold.startPark;
+  const destPark = scaffold.otherPark;
+  let hopMin = -1;
+  if (scaffold.hopper) {
+    for (const it of items) {
+      const h = (it.h || '');
+      const isHopTip = /\bhop\b|arrive/i.test(h) && (it.type === 'tip');
+      if (isHopTip) {
+        const tipPark = normPark(h);
+        if (tipPark === destPark && it._min >= 0) { hopMin = it._min; break; }
+      }
+    }
+    // fallback: first destination-park ride/meal marks the hop if no explicit tip
+    if (hopMin < 0) {
+      for (const it of items) {
+        const p = landToPark(it.land) || landToPark(it.h);
+        if (p === destPark && it._min >= 0) { hopMin = it._min; break; }
+      }
+    }
+  }
+  // expectedParkAt: physics given the (model-chosen) hop time.
+  function expectedParkAt(min) {
+    if (!scaffold.hopper || hopMin < 0) return scaffold.blocks[0].park; // single-park day
+    return (min >= 0 && min >= hopMin) ? destPark : startPark;
+  }
+
+  const droppedByPark = {};
+  const kept = [];
+  let hopSeen = false;
+  for (const it of items) {
+    const type = it.type || '';
+    const exp = expectedParkAt(it._min >= 0 ? it._min : scaffold.dayOpen);
+    if (type === 'tip' || type === 'break') {
+      // A hop/arrive tip is allowed only if it matches the single allowed hop (start->dest).
+      const isHopTip = /\bhop\b|arrive (disney|disney california|dca|disneyland)/i.test(it.h || '');
+      if (isHopTip && scaffold.hopper) {
+        const tipPark = normPark(it.h);
+        if (tipPark === destPark && !hopSeen) { hopSeen = true; kept.push(it); continue; }       // the one real hop
+        if (tipPark === startPark && hopSeen) {                                                    // hop BACK = invented 2nd hop
+          corrections.push({ rule: 'scaffold-extra-hop', item: it.h, action: 'dropped - scaffold allows a single hop only' });
+          continue;
+        }
+      }
+      kept.push(it);
+      continue;
+    }
+    const itemPark = landToPark(it.land) || landToPark(it.h);
+    if (!itemPark) { kept.push(it); continue; }
+    if (itemPark !== exp) {
+      corrections.push({ rule: 'scaffold-wrong-park', item: it.h, t: it.t,
+        action: 'dropped - ' + itemPark + ' item where you are physically in ' + exp });
+      if (droppedByPark[exp] == null || (it._min >= 0 && it._min < droppedByPark[exp])) {
+        droppedByPark[exp] = it._min >= 0 ? it._min : scaffold.dayOpen;
+      }
+      continue;
+    }
+    kept.push(it);
+  }
+  // Drop orphaned "head back to <startPark>" tips left over from a removed 2nd hop
+  // (a hop-back tip with no startPark ride following it is meaningless).
+  if (scaffold.hopper && hopMin >= 0) {
+    for (let i = kept.length - 1; i >= 0; i--) {
+      const it = kept[i];
+      if ((it.type === 'tip') && /head back|return to|back to (disneyland|disney california)/i.test(it.h || '')) {
+        const tipPark = normPark(it.h);
+        // any real ride after this tip in tipPark?
+        const hasFollowingSamePark = kept.slice(i + 1).some(j => {
+          const p = landToPark(j.land) || landToPark(j.h);
+          return p === tipPark && ['ride','show','character','quickservice','dining','snack'].indexOf(j.type) !== -1;
+        });
+        if (!hasFollowingSamePark) {
+          corrections.push({ rule: 'scaffold-orphan-hop-tip', item: it.h, action: 'dropped - hop-back tip with nothing after it' });
+          kept.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  // add one gap marker per block that lost an item, naming the correct park
+  Object.keys(droppedByPark).forEach(park => {
+    const parkFull = park === 'DCA' ? 'Disney California Adventure' : 'Disneyland Park';
+    kept.push({ t: _m2t(droppedByPark[park]), type: 'tip',
+      h: 'Open time - pick something in ' + parkFull + ' here',
+      n: 'A suggestion here was in the wrong park and was removed. Tap Ask AI for a nearby option.' });
+  });
+  kept.forEach(it => { delete it._min; });
+  kept.sort((a, b) => { const ma = _t2m(a.t), mb = _t2m(b.t); return ma < 0 ? 1 : mb < 0 ? -1 : ma - mb; });
+  return { items: kept, corrections };
+}
+
+// ============================================================================
 // PROMPT LAYER: render the scaffold + ask the model to FILL it (strategy).
 // The model receives: the fixed blocks (park + time span), the meal slots
 // (park + off-peak window), and the full cache. It chooses rides, order,
@@ -380,18 +514,25 @@ export default async function handler(req, res) {
       let items = extractJSON(text);
       if (!Array.isArray(items)) return res.status(200).json({ ok: false, error: 'Model did not return an array', text });
 
-      // --- VALIDATE: same safety net as the working path ---
+      // --- ENFORCE PHYSICS (hard): assign each item to its block, drop wrong-park items.
+      // This is what makes the scaffold real - the model's invented evening hop / DL-lunch-in-DCA
+      // get removed by CODE, not by asking the model nicely. ---
+      const enf = enforceScaffold(items, scaffold);
+      const enforcedItems = enf.items;
+      console.log('[scaffold] enforcement removed', enf.corrections.length, 'physically-impossible items');
+
+      // --- VALIDATE: same safety net as the working path, now running on park-correct items ---
       const closedFromCache = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
       const _day = (tripConfig.schedule && tripConfig.schedule.days && tripConfig.schedule.days[dayIndex]) || {};
-      const singleDay = { days: [{ park: _day.park, date: _day.date, items,
+      const singleDay = { days: [{ park: _day.park, date: _day.date, items: enforcedItems,
         closeMin: scaffold.dayClose, latestCloseMin: scaffold.dayClose,
         hopTo: scaffold.hopper ? (scaffold.otherPark === 'DCA' ? 'Disney California Adventure' : 'Disneyland') : null }] };
       const safeConfig = Object.assign({}, tripConfig);
       const valResult = validateSchedule(singleDay, safeConfig, closedFromCache, []);
-      const validatedItems = (valResult.schedule && valResult.schedule.days[0] && valResult.schedule.days[0].items) || items;
+      const validatedItems = (valResult.schedule && valResult.schedule.days[0] && valResult.schedule.days[0].items) || enforcedItems;
 
       return res.status(200).json({ ok: true, scaffold: { blocks: scaffold.blocks, mealSlots: scaffold.mealSlots },
-        text, parsed: validatedItems, corrections: valResult.corrections, model: data.model });
+        text, parsed: validatedItems, corrections: enf.corrections.concat(valResult.corrections), model: data.model });
     } catch (e) {
       clearTimeout(timeout);
       if (e.name === 'AbortError') return res.status(504).json({ error: 'AI request timed out' });
