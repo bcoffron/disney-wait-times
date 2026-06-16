@@ -261,35 +261,8 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
 
     // RULE 4: Morning snack required (non-VIP days only)
     if (!isVipDay) {
-      // Remove extra morning snacks — max 1 before noon
-      const morningSnackItems = items.filter(i => i.type === 'snack' && timeToMinutes(i.t) < 720);
-      if (morningSnackItems.length > 1) {
-        // Keep only the first one, remove the rest
-        let kept = false;
-        items = items.filter(i => {
-          if (i.type === 'snack' && timeToMinutes(i.t) < 720) {
-            if (!kept) { kept = true; return true; }
-            corrections.push({ rule: 'duplicate-morning-snack', day: dayNum, item: i.h, action: 'removed duplicate morning snack' });
-            return false;
-          }
-          return true;
-        });
-        day.items = items;
-      }
-      // Remove extra afternoon snacks — max 1 after noon
-      const afternoonSnackItems = items.filter(i => i.type === 'snack' && timeToMinutes(i.t) >= 720);
-      if (afternoonSnackItems.length > 1) {
-        let kept = false;
-        items = items.filter(i => {
-          if (i.type === 'snack' && timeToMinutes(i.t) >= 720) {
-            if (!kept) { kept = true; return true; }
-            corrections.push({ rule: 'duplicate-afternoon-snack', day: dayNum, item: i.h, action: 'removed duplicate afternoon snack' });
-            return false;
-          }
-          return true;
-        });
-        day.items = items;
-      }
+      // (Morning-snack dedup handled by Rule 9q final cleanup, which keeps the venue-named one.)
+      // (Afternoon-snack dedup handled by Rule 9q final cleanup, which keeps the venue-named one.)
       // Remove consecutive snack + break or break + snack (within 30 minutes of each other)
       for (let ci = 0; ci < items.length - 1; ci++) {
         const curr = items[ci];
@@ -497,29 +470,62 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     }
   });
 
-  // Rule 9b: PARK PRESENCE (structural) - flag items located in a park not visited this day.
-  // Non-hopper day: every item must be in day.park. Hopper day: items may be in startPark OR hopTo park.
+  // Rule 9b: PARK PRESENCE (structural, TIME-AWARE, REMOVES wrong-park items + leaves a gap marker).
+  // Non-hopper day: every item must be in day.park.
+  // Hopper day: items BEFORE the hop must be in startPark; items AT/AFTER the hop must be in the hop (destination) park.
+  // A Disneyland restaurant scheduled after hopping to DCA is wrong even though DL is "visited" that day.
   days.forEach((day, idx) => {
     if (day.isVip) return; // VIP day handled by the guide
+    const items = day.items || [];
     const startPark = normPark(day.park) || 'DL';
-    const hopPark = normPark(day.hopTo);
-    const allowsHop = !!(tripConfig && tripConfig.parkHopping && hopPark);
-    const allowed = allowsHop ? [startPark, hopPark] : [startPark];
-    (day.items || []).forEach(item => {
-      // only rides/dining/quickservice/snack/show/character have a real land; skip tips/breaks
-      if (['tip','break'].indexOf(item.type) !== -1) return;
+    // Detect the hop: a tip card whose title mentions hopping, and which park it goes TO.
+    let hopMin = -1, hopPark = null;
+    items.forEach(it => {
+      if (/\bhop\b/i.test(it.h || '') && /to /i.test(it.h || '')) {
+        const m = timeToMinutes(it.t);
+        if (m >= 0) { hopMin = m; hopPark = normPark(it.h) || normPark(day.hopTo); }
+      }
+    });
+    const isHopper = !!(tripConfig && tripConfig.parkHopping) && hopMin >= 0 && hopPark;
+    items.forEach(item => {
+      if (['tip','break'].indexOf(item.type) !== -1) return; // tips/breaks have no firm park
       const p = landToPark(item.land) || landToPark(item.h);
-      if (!p) return; // unknown -> don't flag
-      if (allowed.indexOf(p) === -1) {
+      if (!p) return; // unknown land -> don't touch
+      let expectedPark;
+      if (isHopper) {
+        const im = timeToMinutes(item.t);
+        expectedPark = (im >= 0 && im >= hopMin) ? hopPark : startPark;
+      } else {
+        expectedPark = startPark;
+      }
+      if (p !== expectedPark) {
+        item._remove = true;
         corrections.push({
           rule: 'park-presence',
           day: idx + 1,
           item: item.h,
-          action: 'flagged (non-blocking)',
-          detail: (item.h || '') + ' is in ' + p + ' but day is ' + (allowsHop ? (startPark + '+' + hopPark) : startPark)
+          action: 'removed - in ' + p + ' but should be in ' + expectedPark + (isHopper ? ' at this time (relative to the hop)' : ''),
+          gap: true,
+          t: item.t
         });
       }
     });
+    // Replace removed items with a single gap marker so the day shows where to fill.
+    const removedTimes = items.filter(i => i._remove).map(i => i.t);
+    day.items = items.filter(i => !i._remove);
+    if (removedTimes.length) {
+      day.items.push({
+        t: removedTimes[0],
+        type: 'tip',
+        h: 'Open time - pick something in ' + (isHopper ? 'the right park' : startPark) + ' here',
+        n: 'A suggestion here was in the wrong park and was removed. Tap Ask AI for a nearby option.'
+      });
+      // keep the day sorted by time
+      day.items.sort((a, b) => {
+        const ma = timeToMinutes(a.t), mb = timeToMinutes(b.t);
+        if (ma < 0) return 1; if (mb < 0) return -1; return ma - mb;
+      });
+    }
   });
 
   // Rule 9c: HOTEL/DTD DINING (structural) - remove hotel & Downtown Disney restaurants that slipped
@@ -853,6 +859,75 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
       });
     });
   }
+
+  // Rule 9q: FINAL MEAL/SNACK CLEANUP (runs LAST so earlier rules + the gap-filler can't re-introduce dupes).
+  // Enforces: max 1 morning snack, max 1 afternoon snack, max 1 lunch, max 1 dinner per day; and flags any
+  // meal/snack card that names no venue (vague "Morning Snack" / "Dinner" with no restaurant).
+  days.forEach((day, idx) => {
+    if (day.isVip) return;
+    let items = day.items || [];
+    const NOON = 720;
+    function mealSlot(it) {
+      const h = (it.h || '').toLowerCase();
+      const m = timeToMinutes(it.t);
+      if (it.type === 'snack') return m >= 0 && m < NOON ? 'morning-snack' : 'afternoon-snack';
+      if (it.type === 'dining' || it.type === 'quickservice') {
+        if (/breakfast/.test(h)) return 'breakfast';
+        if (/dinner/.test(h)) return 'dinner';
+        if (/lunch/.test(h)) return 'lunch';
+        // infer by time if not labeled
+        if (m >= 0 && m < 11 * 60) return 'breakfast';
+        if (m >= 16 * 60) return 'dinner';
+        return 'lunch';
+      }
+      return null;
+    }
+    function isReserved(it) {
+      return (tripConfig && tripConfig.dining && tripConfig.dining.reservations || []).some(r => r && r.name && (it.h || '').toLowerCase().includes(r.name.toLowerCase()));
+    }
+    function hasVenue(it) {
+      const v = (it.h || '').replace(/^((early|late|morning|afternoon|evening)\s+)?(breakfast|brunch|lunch|dinner|snack|meal)\s*[:\-]?\s*/i, '').trim();
+      return v.length >= 3;
+    }
+    // Group meal/snack items by slot, keep the BEST one (reserved > has-venue > earliest), remove the rest.
+    const bySlot = {};
+    items.forEach((it, i) => {
+      const slot = mealSlot(it);
+      if (!slot) return;
+      (bySlot[slot] = bySlot[slot] || []).push(i);
+    });
+    const removeIdx = {};
+    Object.keys(bySlot).forEach(slot => {
+      const idxs = bySlot[slot];
+      if (idxs.length <= 1) return;
+      // score: reserved=2, has-venue=1, else 0; tie-break earliest time
+      let bestI = idxs[0], bestScore = -1, bestMin = Infinity;
+      idxs.forEach(i => {
+        const it = items[i];
+        const score = isReserved(it) ? 2 : (hasVenue(it) ? 1 : 0);
+        const m = timeToMinutes(it.t); const mm = m < 0 ? Infinity : m;
+        if (score > bestScore || (score === bestScore && mm < bestMin)) { bestScore = score; bestMin = mm; bestI = i; }
+      });
+      idxs.forEach(i => {
+        if (i === bestI) return;
+        removeIdx[i] = true;
+        corrections.push({ rule: 'duplicate-meal-slot', day: idx + 1, item: items[i].h, action: 'removed extra ' + slot + ' (kept the best one for that slot)' });
+      });
+    });
+    items = items.filter((it, i) => !removeIdx[i]);
+    // Flag vague meal/snack cards with no venue named.
+    items.forEach(it => {
+      const slot = mealSlot(it);
+      if (!slot) return;
+      const h = (it.h || '');
+      // strip the meal-word prefix; if nothing meaningful remains, there's no venue
+      const venuePart = h.replace(/^((early|late|morning|afternoon|evening)\s+)?(breakfast|brunch|lunch|dinner|snack|meal)\s*[:\-]?\s*/i, '').trim();
+      if (!venuePart || venuePart.length < 3) {
+        corrections.push({ rule: 'meal-no-venue', day: idx + 1, item: h, action: 'flagged - names no venue (vague meal/snack card)' });
+      }
+    });
+    day.items = items;
+  });
 
   return {
     valid: hardViolations.length === 0,
