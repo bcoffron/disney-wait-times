@@ -426,9 +426,10 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
       .sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t)).pop();
     const realLastMin = realLast ? timeToMinutes(realLast.t) : lastMin;
     if (realLastMin >= 0 && realLastMin < effectiveClose - 60) {
-      hardViolations.push({
+      corrections.push({
         rule: 'ends-early',
         day: dayNum,
+        action: 'flagged (non-blocking)',
         detail: 'Last activity ' + (realLast ? ('"' + realLast.h + '" at ' + realLast.t) : '?') +
           ' but park open until ' + minutesToTime(effectiveClose) +
           ' (underfilled by ~' + Math.round((effectiveClose - realLastMin) / 60) + ' hr); fill evening to ~30 min before close' +
@@ -510,10 +511,11 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
       const p = landToPark(item.land) || landToPark(item.h);
       if (!p) return; // unknown -> don't flag
       if (allowed.indexOf(p) === -1) {
-        hardViolations.push({
+        corrections.push({
           rule: 'park-presence',
           day: idx + 1,
           item: item.h,
+          action: 'flagged (non-blocking)',
           detail: (item.h || '') + ' is in ' + p + ' but day is ' + (allowsHop ? (startPark + '+' + hopPark) : startPark)
         });
       }
@@ -605,7 +607,7 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
       // bare = exactly a generic meal word, optionally with a leading "Quick", and NO venue (no colon/at/-)
       const bare = /^(quick\s+)?(breakfast|brunch|lunch|dinner|meal|snack)$/i.test(t);
       if (bare) {
-        hardViolations.push({ rule: 'meal-no-venue', day: idx + 1, item: t, detail: 'meal card has no venue name at ' + item.t });
+        corrections.push({ rule: 'meal-no-venue', day: idx + 1, item: t, action: 'flagged (non-blocking)', detail: 'meal card has no venue name at ' + item.t });
       }
     });
   });
