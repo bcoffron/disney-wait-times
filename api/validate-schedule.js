@@ -929,6 +929,33 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     day.items = items;
   });
 
+  // Rule 9r: OFF-PEAK DINING (structural flag). The app is smarter than the crowd: it does NOT eat at peak
+  // times. Lunch peak = 12:00-1:00 PM, dinner peak = 6:00-7:00 PM. Smart windows are just outside those
+  // (e.g. lunch 11:00-11:45 or 1:00-1:45; dinner 4:30-5:30 or 7:30+). Flag any meal landing in the peak so
+  // it can be nudged. Never flags a confirmed reservation (the guest chose that time). NOTE: this is a flag,
+  // not an auto-move, because the smart alternative window is a strategic call the cache/model should make;
+  // the scaffold will place meals in off-peak windows up front so this rarely fires.
+  days.forEach((day, idx) => {
+    if (day.isVip) return;
+    (day.items || []).forEach(item => {
+      if (['dining', 'quickservice'].indexOf(item.type) === -1) return;
+      const isReserved = (tripConfig && tripConfig.dining && tripConfig.dining.reservations || []).some(r => r && r.name && (item.h || '').toLowerCase().includes(r.name.toLowerCase()));
+      if (isReserved) return;
+      const m = timeToMinutes(item.t);
+      if (m < 0) return;
+      const inLunchPeak = m >= 12 * 60 && m < 13 * 60;     // 12:00-12:59 PM
+      const inDinnerPeak = m >= 18 * 60 && m < 19 * 60;    // 6:00-6:59 PM
+      if (inLunchPeak || inDinnerPeak) {
+        corrections.push({
+          rule: 'dining-peak-hour',
+          day: idx + 1,
+          item: item.h,
+          action: 'flagged - meal at ' + item.t + ' is in the ' + (inLunchPeak ? 'lunch (12-1)' : 'dinner (6-7)') + ' peak; smarter to shift just outside the rush'
+        });
+      }
+    });
+  });
+
   return {
     valid: hardViolations.length === 0,
     schedule,
