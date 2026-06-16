@@ -545,6 +545,36 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
     day.items = kept;
   });
 
+  // Rule 9g: SINGLE PASS correction (structural). Rise of the Resistance + Radiator Springs Racers are
+  // Lightning Lane Single Pass (ILL), never Multi Pass. Force ll.t='single' and fix LLMP/Multi Pass wording.
+  function isSinglePassRide(name) {
+    const s = (name || '').toLowerCase();
+    return s.indexOf('rise of the resistance') !== -1 || s.indexOf('radiator springs') !== -1;
+  }
+  days.forEach((day, idx) => {
+    (day.items || []).forEach(item => {
+      const refersSingle = isSinglePassRide(item.h) || isSinglePassRide(item.ride) || (item.ll && isSinglePassRide(item.ll.a));
+      if (!refersSingle) return;
+      let changed = false;
+      if (item.ll && typeof item.ll === 'object') {
+        if (item.ll.t !== 'single') { item.ll.t = 'single'; changed = true; }
+        if (typeof item.ll.a === 'string' && /llmp|multi pass/i.test(item.ll.a)) {
+          item.ll.a = item.ll.a.replace(/lightning lane multi pass/ig, 'Lightning Lane Single Pass').replace(/multi pass/ig, 'Single Pass').replace(/\bLLMP\b/g, 'Single Pass');
+          changed = true;
+        }
+      }
+      if (typeof item.h === 'string' && /llmp|multi pass/i.test(item.h)) {
+        item.h = item.h.replace(/lightning lane multi pass/ig, 'Lightning Lane Single Pass').replace(/multi pass/ig, 'Single Pass').replace(/\bLLMP\b/g, 'Single Pass');
+        changed = true;
+      }
+      if (typeof item.n === 'string' && /llmp|multi pass/i.test(item.n)) {
+        item.n = item.n.replace(/lightning lane multi pass/ig, 'Lightning Lane Single Pass').replace(/multi pass/ig, 'Single Pass').replace(/\bLLMP\b/g, 'Single Pass');
+        changed = true;
+      }
+      if (changed) corrections.push({ rule: 'single-pass-fix', day: idx + 1, item: item.h, action: 'forced Single Pass (ILL) for Rise/Radiator Springs - not Multi Pass' });
+    });
+  });
+
   // Rule 9d: DE-DUP near-back-to-back identical Lightning Lane RETURNS for the SAME ride.
   // The model sometimes emits two LL-return cards for the same ride close together (e.g. 2 Rise returns).
   // Keep the first, remove a second return for the same base ride within 120 minutes.
