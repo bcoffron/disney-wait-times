@@ -155,7 +155,7 @@ function llReturnBaseName(h) {
   return base.toLowerCase();
 }
 
-function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
+function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, priorDining) {
   const corrections = [];
   const hardViolations = [];
 
@@ -654,6 +654,113 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache) {
       }
       return true;
     });
+  });
+
+  // Rule 9h: RENAME correction (structural) - Splash Mountain is now Tiana's Bayou Adventure.
+  // The model keeps emitting the retired name; replace it in-place rather than relying on the prompt.
+  const RENAMES = [
+    { from: /splash\s*mountain/ig, to: "Tiana's Bayou Adventure" }
+  ];
+  days.forEach((day, idx) => {
+    (day.items || []).forEach(item => {
+      RENAMES.forEach(rn => {
+        ['h', 'n', 'ride'].forEach(f => {
+          if (typeof item[f] === 'string' && rn.from.test(item[f])) {
+            item[f] = item[f].replace(rn.from, rn.to);
+            corrections.push({ rule: 'attraction-rename', day: idx + 1, item: item.h, action: 'renamed to current attraction name' });
+          }
+        });
+      });
+    });
+  });
+
+  // Rule 9l: SEASONAL OVERLAY correction (structural) - Haunted Mansion Holiday is a fall/winter overlay
+  // (roughly Sep-Jan). For a summer trip it is just Haunted Mansion. Strip the "Holiday" qualifier unless
+  // the cache closures/events confirm the overlay is running. We don't have the date here, so we rely on
+  // tripConfig: if no overlay flag is set, normalize to the base ride name.
+  const overlayActive = tripConfig && tripConfig._hauntedMansionHoliday === true;
+  if (!overlayActive) {
+    days.forEach((day, idx) => {
+      (day.items || []).forEach(item => {
+        ['h', 'n', 'ride'].forEach(f => {
+          if (typeof item[f] === 'string' && /haunted\s*mansion\s*holiday/ig.test(item[f])) {
+            item[f] = item[f].replace(/haunted\s*mansion\s*holiday/ig, 'Haunted Mansion');
+            corrections.push({ rule: 'seasonal-overlay', day: idx + 1, item: item.h, action: 'Haunted Mansion Holiday overlay not running this trip - normalized to Haunted Mansion' });
+          }
+        });
+      });
+    });
+  }
+
+  // Rule 9i: CROSS-DAY DINING DEDUP (structural). The validator runs per-day, so prior days' venues are
+  // passed in via priorDining. Remove a dining/quickservice/snack card whose venue was already used on a
+  // previous day (the no-repeat rule the prompt keeps violating, e.g. Tiana's Palace twice).
+  function venueBase(h) {
+    return (h || '')
+      .replace(/^((Early|Late)\s+)?(Lunch|Dinner|Breakfast|Brunch|Snack|Morning Snack|Afternoon Snack|Meal)\s*:\s*/i, '')
+      .replace(/\s*\(.*?\)\s*$/, '')
+      .trim()
+      .toLowerCase();
+  }
+  const priorVenues = Array.isArray(priorDining) ? priorDining.map(v => (v || '').toLowerCase().trim()).filter(Boolean) : [];
+  if (priorVenues.length) {
+    days.forEach((day, idx) => {
+      const items = day.items || [];
+      items.forEach(item => {
+        if (['dining', 'quickservice', 'snack'].indexOf(item.type) === -1) return;
+        // never remove a confirmed reservation
+        const isReserved = (tripConfig && tripConfig.dining && tripConfig.dining.reservations || []).some(r => r && r.name && (item.h || '').toLowerCase().includes(r.name.toLowerCase()));
+        if (isReserved) return;
+        const vb = venueBase(item.h);
+        if (vb && priorVenues.some(pv => pv === vb || pv.indexOf(vb) !== -1 || vb.indexOf(pv) !== -1)) {
+          item._remove = true;
+          corrections.push({ rule: 'cross-day-dining-repeat', day: idx + 1, item: item.h, action: 'removed - venue already used on a prior day' });
+        }
+      });
+      day.items = items.filter(i => !i._remove);
+    });
+  }
+
+  // Rule 9j: LL BOOKING SPACING (structural). Two Lightning Lane BOOKING tips within 60 min is unworkable
+  // (you can only hold a limited number / must wait between bookings). Keep the first, flag/space the rest.
+  days.forEach((day, idx) => {
+    const items = day.items || [];
+    const llBookings = items
+      .filter(i => i.ll && /book/i.test((i.h || '') + (i.ll && i.ll.a || '')))
+      .sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
+    for (let i = 1; i < llBookings.length; i++) {
+      const prevMin = timeToMinutes(llBookings[i - 1].t);
+      const curMin = timeToMinutes(llBookings[i].t);
+      if (prevMin >= 0 && curMin >= 0 && (curMin - prevMin) < 60) {
+        corrections.push({ rule: 'll-booking-too-close', day: idx + 1, item: llBookings[i].h, action: 'two LL bookings within 60 min - space them out (flagged)' });
+      }
+    }
+  });
+
+  // Rule 9k: ROPE-DROP + LL CONFLICT (structural). If a ride is rope-dropped (ridden in the first ~45 min),
+  // do NOT also book a Lightning Lane for the SAME ride - it is contradictory (e.g. rope-drop Radiator
+  // Springs Racers AND buy its Single Pass). Remove the redundant LL booking for that ride.
+  days.forEach((day, idx) => {
+    const items = day.items || [];
+    // find earliest real ride time = rope drop window start
+    const rideTimes = items.filter(i => i.type === 'ride').map(i => timeToMinutes(i.t)).filter(m => m >= 0);
+    if (!rideTimes.length) return;
+    const firstRide = Math.min.apply(null, rideTimes);
+    const ropeDropEnd = firstRide + 45;
+    // rides ridden during rope drop
+    const ropeDropped = items
+      .filter(i => i.type === 'ride' && timeToMinutes(i.t) >= 0 && timeToMinutes(i.t) <= ropeDropEnd)
+      .map(i => (i.h || '').toLowerCase().replace(/\s*\(.*?\)\s*$/, '').trim());
+    items.forEach(item => {
+      if (!item.ll) return;
+      const llRide = ((item.ride || item.h || '')).toLowerCase().replace(/^book\s+/i, '').replace(/\s+via lightning lane.*/i, '').replace(/\s*\(.*?\)\s*$/, '').trim();
+      if (!llRide) return;
+      if (ropeDropped.some(rd => rd && (rd === llRide || rd.indexOf(llRide) !== -1 || llRide.indexOf(rd) !== -1))) {
+        item._remove = true;
+        corrections.push({ rule: 'ropedrop-ll-conflict', day: idx + 1, item: item.h, action: 'removed redundant LL - ride is rope-dropped, no LL needed' });
+      }
+    });
+    day.items = items.filter(i => !i._remove);
   });
 
   return {

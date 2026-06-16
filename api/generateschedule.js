@@ -508,7 +508,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
                         const singleDaySchedule = { days: [_dayObj] };
                         const closedFromCache = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
                         console.log('[generateschedule] closed from cache:', JSON.stringify(closedFromCache));
-                        const valResult = validateSchedule(singleDaySchedule, safeConfig, closedFromCache);
+                        const valResult = validateSchedule(singleDaySchedule, safeConfig, closedFromCache, allUsedDining);
                         const validatedItems = valResult.schedule.days[0].items;
                         if (valResult.corrections && valResult.corrections.length > 0) {
                                     console.log('[generateschedule] validator corrections:', JSON.stringify(valResult.corrections));
