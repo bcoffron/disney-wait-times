@@ -763,6 +763,56 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     day.items = items.filter(i => !i._remove);
   });
 
+  // Rule 9m: TITLE CLEANUP (structural). Strip a leading "Ride:" / "Show:" prefix the model sometimes
+  // prepends to titles, and fix malformed either/or cards like "Ride: X or Y (Snack)".
+  days.forEach((day, idx) => {
+    (day.items || []).forEach(item => {
+      if (typeof item.h !== 'string') return;
+      const before = item.h;
+      // remove a leading type-word prefix that duplicates the card type
+      item.h = item.h.replace(/^\s*(Ride|Show|Attraction)\s*:\s*/i, '');
+      // a snack card that still says "(Snack)" or offers a ride either/or is malformed - flag it
+      if (item.type === 'snack' && /\bor\b/i.test(item.h) && /\(snack\)/i.test(before)) {
+        corrections.push({ rule: 'malformed-snack-card', day: idx + 1, item: before, action: 'flagged - snack card written as a ride either/or; needs a real snack venue' });
+      }
+      if (item.h !== before) {
+        corrections.push({ rule: 'title-prefix-cleanup', day: idx + 1, item: before, action: 'removed redundant type prefix from title' });
+      }
+    });
+  });
+
+  // Rule 9n: SAME-RIDE LL DEDUP (structural). Do not book a Lightning Lane for the SAME ride more than once
+  // in a day (e.g. Big Thunder Mountain booked as LL twice). Keep the first booking, remove later duplicates.
+  days.forEach((day, idx) => {
+    const items = day.items || [];
+    const seenLLRides = {};
+    items.forEach(item => {
+      if (!item.ll) return;
+      const ride = ((item.ride || item.h || '')).toLowerCase().replace(/^book\s+/i, '').replace(/\s+via lightning lane.*/i, '').replace(/lightning lane.*/i, '').replace(/\s*\(.*?\)\s*$/, '').trim();
+      if (!ride) return;
+      if (seenLLRides[ride]) {
+        item._remove = true;
+        corrections.push({ rule: 'duplicate-ll-same-ride', day: idx + 1, item: item.h, action: 'removed - LL already booked for ' + ride + ' earlier today' });
+      } else {
+        seenLLRides[ride] = true;
+      }
+    });
+    day.items = items.filter(i => !i._remove);
+  });
+
+  // Rule 9o: LL TITLE NAMING (structural). Replace generic "Book Lightning Lane Multi Pass #N" titles with
+  // the actual ride name so the card is useful: "Book Big Thunder Mountain (Lightning Lane)".
+  days.forEach((day, idx) => {
+    (day.items || []).forEach(item => {
+      if (!item.ll) return;
+      if (typeof item.h === 'string' && /lightning lane (multi|single) pass\s*#?\d*/i.test(item.h) && item.ride) {
+        const passType = item.ll.t === 'single' ? 'Single Pass' : 'Lightning Lane';
+        item.h = 'Book ' + item.ride + ' (' + passType + ')';
+        corrections.push({ rule: 'll-title-naming', day: idx + 1, item: item.ride, action: 'named the ride in the LL booking title' });
+      }
+    });
+  });
+
   return {
     valid: hardViolations.length === 0,
     schedule,
