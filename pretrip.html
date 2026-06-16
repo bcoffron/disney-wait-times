@@ -1063,11 +1063,20 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       return;
     }
     try {
-      var text = d.text.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      var start = text.indexOf('[');
-      var end = text.lastIndexOf(']');
-      if (start === -1 || end === -1) throw new Error('No JSON array');
-      var items = JSON.parse(text.substring(start, end+1));
+      // Prefer the server-VALIDATED items (validate-schedule.js corrections: snack dedup, height rider-swap,
+      // Splash rename, LL fixes, character meets, etc.). Only fall back to raw text if parsed is absent.
+      var items;
+      if (Array.isArray(d.parsed) && d.parsed.length) {
+        items = d.parsed;
+        console.log('[pretrip] Day ' + (dayIndex+1) + ' using server-validated items (' + items.length + ')');
+      } else {
+        var text = d.text.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        var start = text.indexOf('[');
+        var end = text.lastIndexOf(']');
+        if (start === -1 || end === -1) throw new Error('No JSON array');
+        items = JSON.parse(text.substring(start, end+1));
+        console.log('[pretrip] Day ' + (dayIndex+1) + ' WARN: no d.parsed, fell back to raw text');
+      }
       callback(null, items);
     } catch(e) {
       if (retries < 3) {
