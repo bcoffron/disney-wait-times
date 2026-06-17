@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-    const { dayIndex, tripConfig, maxTokens = 8000 } = body;
+    const { dayIndex, tripConfig, maxTokens = 8000, priorRides = [] } = body;
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
     if (typeof dayIndex !== 'number' || !tripConfig) {
@@ -176,6 +176,12 @@ export default async function handler(req, res) {
 + 'Never schedule: ' + (((tripConfig.ridePreferences || {}).skip || tripConfig.neverSchedule || []).join(', ') || 'none') + '.\n'
 + 'Character interest: ' + (((tripConfig.characters || {}).categories || []).join(', ') || 'none') + ' (priority ' + ((tripConfig.characters || {}).priority || 'niceToHave') + ').\n'
 + 'Shortest person height: ' + (shortest > 0 ? shortest + ' inches (apply rider-swap on taller-requirement rides)' : 'everyone meets all height requirements') + '.\n\n'
++ (Array.isArray(priorRides) && priorRides.length
+    ? 'CROSS-DAY VARIETY (soft preference, NOT a hard rule): earlier days of this trip already scheduled these rides: '
+      + priorRides.join(', ') + '. Favor FRESH attractions the group has not done yet so the trip feels varied across days. '
+      + 'It is fine to repeat a true must-do headliner the group loves (e.g. a top coaster or a marquee ride on their must-do list), '
+      + 'but do not fill the day with repeats when good unused attractions remain in this block.\n'
+    : '')
 + 'PARK BLOCKS FOR TODAY (physics -- you cannot leave these):\n' + blockText + '\n\n'
 + 'STRATEGY CACHE (verified sources -- use to decide rope-drop, waits, LL, dining timing):\n' + stratText;
 
