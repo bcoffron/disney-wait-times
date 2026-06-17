@@ -168,11 +168,22 @@ export default async function handler(req, res) {
     const shortest = (tripConfig.groupProfile && typeof tripConfig.groupProfile.shortestHeightInches === 'number')
       ? tripConfig.groupProfile.shortestHeightInches : 0;
 
-    // ---- strategy context (prose cache the model reads to DECIDE) ----
+    // ---- strategy context (the cache the model reads to DECIDE) ----
+    // PER-SECTION budgets so EVERY strategy section reaches the model. A single global slice(0,5000)
+    // previously let WAIT_PATTERNS (~14KB of raw multipliers) eat the whole budget and silently drop
+    // LIGHTNING_LANE_STRATEGY, DINING_TIMING, and PARK_HOP_STRATEGY entirely -- so the model was deciding
+    // LL/dining/hop with NO cache data. WAIT_PATTERNS is capped tighter (it's bulk numbers); the
+    // actionable prose sections get enough room to arrive whole.
+    const STRAT_BUDGET = { ROPE_DROP_STRATEGY: 2000, WAIT_PATTERNS: 3500, LIGHTNING_LANE_STRATEGY: 6500, DINING_TIMING: 6500, PARK_HOP_STRATEGY: 5000 };
     const strat = [];
     ['ROPE_DROP_STRATEGY', 'WAIT_PATTERNS', 'LIGHTNING_LANE_STRATEGY', 'DINING_TIMING', 'PARK_HOP_STRATEGY']
-      .forEach(k => { if (sections[k]) strat.push(k + ':\n' + (typeof sections[k] === 'string' ? sections[k] : JSON.stringify(sections[k]))); });
-    const stratText = strat.join('\n\n').slice(0, 5000);
+      .forEach(k => {
+        if (!sections[k]) return;
+        const raw = typeof sections[k] === 'string' ? sections[k] : JSON.stringify(sections[k]);
+        const cap = STRAT_BUDGET[k] || 3000;
+        strat.push(k + ':\n' + (raw.length > cap ? raw.slice(0, cap) : raw));
+      });
+    const stratText = strat.join('\n\n');
 
     // ---- reservations the user explicitly entered (must appear at their times) ----
     // A confirmed reservation exists on exactly ONE day. Bind it to its day (PHYSICS): only surface
@@ -246,7 +257,8 @@ export default async function handler(req, res) {
       + 'but do not fill the day with repeats when good unused attractions remain in this block. EXCEPTION: the starting-park rope-drop and any must-do headliner may repeat freely -- variety applies to filler rides, never to the best opener.\n'
     : '')
 + 'PARK BLOCKS FOR TODAY (physics -- you cannot leave these):\n' + blockText + '\n\n'
-+ 'STRATEGY CACHE (verified sources -- use to decide rope-drop, waits, LL, dining timing):\n' + stratText;
++ 'STRATEGY CACHE (verified sources -- use to decide rope-drop, waits, LL, dining timing):\n' + stratText
++ (dining ? '\n\nDINING INTEL (verified venue detail -- use for which venue to pick and why; still obey the block VENUE lists for what is physically available):\n' + String(dining).slice(0, 4000) : '');
 
     // ---- model call ----
     const controller = new AbortController();
