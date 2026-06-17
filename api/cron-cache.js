@@ -24,23 +24,21 @@ UNIVERSAL RULES:
 
 // ---- Dining governance (DL/DCA only) + permanent retired-venue exclusions ----
 const DINING_RETIRED = [
-  "Redd Rockett's Pizza Port -> renamed Alien Pizza Planet (2018, Tomorrowland, Disneyland). Never use the old name.",
-  "Pacific Wharf Cafe -> renamed Aunt Cass Cafe (DCA, San Fransokyo Square). Never use the old name; do not invent a 'Pacific Wharf Cafe' venue.",
-  "Route 66 Burger (Flo's V8) -> not on current menu; use current Flo's V8 Cafe items.",
-  "Pinocchio Village House / Pizza Port -> this is a Magic Kingdom (Walt Disney World) venue, NOT Disneyland. Never use for a Disneyland schedule."
+"Redd Rockett's Pizza Port -> renamed Alien Pizza Planet (2018, Tomorrowland, Disneyland). Never use the old name.",
+"Pacific Wharf Cafe -> renamed Aunt Cass Cafe (DCA, San Fransokyo Square). Never use the old name; do not invent a 'Pacific Wharf Cafe' venue.",
+"Route 66 Burger (Flo's V8) -> not on current menu; use current Flo's V8 Cafe items.",
+"Pinocchio Village House / Pizza Port -> this is a Magic Kingdom (Walt Disney World) venue, NOT Disneyland. Never use for a Disneyland schedule."
 ];
 const DINING_RULES = [
-  "CACHE IS SINGLE SOURCE OF TRUTH for venue and menu names -- never name a venue or dish from training data, only from this list.",
-  "Disneyland Resort ONLY: every venue park must be DL or DCA. Never reference Walt Disney World, Magic Kingdom, EPCOT, Hollywood Studios, Animal Kingdom, or any Florida venue.",
-  "RESV=walkup: may fill a standard meal slot by default. RESV=required/recommended: only as a default meal if the trip has a confirmed reservation, else optional suggestion. RESV=never_meal: never place in a meal slot.",
-  "Show VEG/VEGAN/GF only where the cache entry has a verified item for that need.",
-  "A confirmed reservation IS the meal for its window: nothing else within ~2.5 hours."
+"CACHE IS SINGLE SOURCE OF TRUTH for venue and menu names -- never name a venue or dish from training data, only from this list.",
+"Disneyland Resort ONLY: every venue park must be DL or DCA. Never reference Walt Disney World, Magic Kingdom, EPCOT, Hollywood Studios, Animal Kingdom, or any Florida venue.",
+"RESV=walkup: may fill a standard meal slot by default. RESV=required/recommended: only as a default meal if the trip has a confirmed reservation, else optional suggestion. RESV=never_meal: never place in a meal slot.",
+"Show VEG/VEGAN/GF only where the cache entry has a verified item for that need.",
+"A confirmed reservation IS the meal for its window: nothing else within ~2.5 hours."
 ];
 const DINING_ALLOWED_PARKS = ['DL','DCA'];
 const DINING_RETIRED_NAMES = ['redd rockett','pacific wharf cafe','route 66 burger','pinocchio','pizza port'];
 
-// Deterministic build-time filter: strip any venue not in DL/DCA or matching a retired name.
-// STRUCTURAL guarantee -- even if the build model ignores the prompt, bad venues never reach the blob.
 function filterDiningVenues(venues) {
   const kept = [], stripped = [];
   for (const v of (Array.isArray(venues) ? venues : [])) {
@@ -95,7 +93,7 @@ const STABLE_SECTION_PROMPTS = {
   },
   ROPE_DROP_STRATEGY:{
     system:'You are a Disneyland rope drop strategy expert. 2024-2026 knowledge. Specific advice for a group of 9.',
-    user:`Search TouringPlans, KennyThePirate.com, and r/Disneyland for the best Disneyland and DCA rope drop strategies 2024-2026. Provide a comprehensive rope drop guide for a group of 9 people including children. For Disneyland cover THREE paths: Path A Fantasyland first (Peter Pan then other classic rides then Matterhorn); Path B Adventureland first (Indiana Jones then Haunted Mansion area); Path C Tomorrowland and Galaxy Edge first (Space Mountain then Rise of the Resistance). For each path: exact attraction sequence with realistic timing, which path wins on light vs heavy crowd days, walk-in time needed before official park open, how boarding group system affects Rise of the Resistance if applicable, what to do in the 10-10:30AM window after rope drop completes, how to handle a group of 9 moving together. Cover DCA rope drop separately: Radiator Springs Racers strategy which reaches 90-120 min by 10AM, Guardians timing, best DCA morning sequence. Include Early Entry tips if staying onsite and recommended arrival time at main gate for summer weekend.`,
+    user:`Search TouringPlans, KennyThePirate.com, and r/Disneyland for the best Disneyland and DCA rope drop strategies 2024-2026. Provide a comprehensive rope drop guide for a group of 9 people including children. For Disneyland cover THREE paths: Path A Fantasyland first (Peter Pan then other classic rides then Matterhorn); Path B Adventureland first (Indiana Jones then Haunted Mansion area); Path C Tomorrowland and Galaxy Edge first (Space Mountain then Rise of the Resistance). For each path: exact attraction sequence with realistic timing, which path wins on light vs heavy crowd days, walk-in time needed before official park open, how boarding group system affects Rise of the Resistance if applicable, what to do in the 10-10:30AM window after rope drop completes, how to handle a group of 9 moving together. Cover DCA rope drop separately: Radiator Springs Racers strategy which reaches 90-120 min by 10 AM, Guardians timing, best DCA morning sequence. Include Early Entry tips if staying onsite and recommended arrival time at main gate for summer weekend.`,
     maxTokens:2000
   },
   LIGHTNING_LANE_STRATEGY:{
@@ -137,6 +135,62 @@ const STABLE_SECTION_PROMPTS = {
     system:'You are a Disneyland comfort and logistics expert with specific knowledge of June weather in Anaheim CA.',
     user:`Search weather data and Disneyland guest forums for June weather patterns and comfort strategies at Disneyland 2024-2026. Cover June weather: typical temperature range for late June highs lows morning vs afternoon, June Gloom phenomenon what it is and when it clears, humidity levels, rain probability in late June how rare, what to pack. Heat strategy: best shade routes through the park by land, best indoor air-conditioned rides for hot afternoon breaks, misting areas locations, indoor shows and experiences for midday cool-down, water refill stations where and if refills are free. Sunscreen and comfort: application spots locations near first aid, staying hydrated free water options. What to wear: comfortable shoes, layering strategy for morning cool and afternoon heat, what not to wear. If it rains: where to get ponchos cost and locations, which rides still operate in light rain, what closes in rain, note that crowds thin significantly. Evening comfort: temperature drop after dark bring a layer, best strategy for fireworks viewing comfort.`,
     maxTokens:1500
+  },
+  // -----------------------------------------------------------------------
+  // CATALOG: machine-readable attraction + venue catalog (Step 1 foundation)
+  // Hard fields -- park is a stored fact, never inferred from land name.
+  // After build: self-parse-check is run in buildSingleSection; build fails if
+  // the returned JSON does not parse completely. Never truncated.
+  // -----------------------------------------------------------------------
+  CATALOG:{
+    system:'You are a Disneyland Resort attraction and dining catalog expert. Return ONLY valid, complete JSON. No markdown preamble, no prose, no truncation. The entire response must be a single JSON object that parses cleanly.',
+    user:`Build a complete, machine-readable catalog of every currently-operating attraction and dining venue at Disneyland Resort (Disneyland Park + Disney California Adventure ONLY). Use AllEars, TouringPlans, and official Disneyland sources 2025-2026.
+
+Return ONLY this JSON object (no markdown fences, no prose, just the raw JSON):
+{
+  "attractions": [
+    {
+      "id": "rise_of_the_resistance",
+      "name": "Star Wars: Rise of the Resistance",
+      "park": "DL",
+      "land": "Star Wars: Galaxy's Edge",
+      "heightInches": 40,
+      "llKind": "single",
+      "ropeDropValue": "high",
+      "typicalPeakWait": 90
+    }
+  ],
+  "venues": [
+    {
+      "id": "blue_bayou",
+      "name": "Blue Bayou Restaurant",
+      "park": "DL",
+      "land": "New Orleans Square",
+      "service": "table",
+      "reservationPolicy": "recommended"
+    }
+  ]
+}
+
+FIELD RULES:
+- park: MUST be exactly "DL" (Disneyland Park) or "DCA" (Disney California Adventure). Never WDW, never Florida venues.
+- heightInches: Use these EXACT values from the DLR height table: Incredicoaster=48; Matterhorn Bobsleds=42; Goofy's Sky School=42; Big Thunder Mountain Railroad=40; Space Mountain=40; Tiana's Bayou Adventure=40; Star Wars Rise of the Resistance=40; Guardians of the Galaxy Mission Breakout=40; Radiator Springs Racers=40; Gadget's Go Coaster=35; Luigi's Rollickin' Roadsters=32; Mater's Junkyard Jamboree=32; all other attractions=0.
+- llKind: "single" ONLY for Rise of the Resistance and Radiator Springs Racers. "multi" for all other Lightning Lane rides. "none" for all non-LL attractions.
+- ropeDropValue: "high" for rides where rope drop saves 45+ min (Rise, RSR, Space Mountain, Indiana Jones, Big Thunder, Peter Pan, Web-Slingers, Guardians). "med" for rides where rope drop saves 20-45 min. "low" for rides with consistently short waits all day.
+- typicalPeakWait: median wait in minutes at peak (summer weekend 11am-2pm) from TouringPlans data. Use 0 for non-timed experiences.
+- service (venues only): "quickservice", "table", or "snack"
+- reservationPolicy (venues only): "required", "recommended", or "walkup"
+- id: lowercase snake_case, unique, ASCII only
+
+Include ALL currently-operating attractions in both parks (aim for 40+ attractions).
+Include ALL major dining venues from both parks that appear in current Disney Food Blog and AllEars coverage (aim for 35+ venues).
+Carnation Cafe: service="table", reservationPolicy="recommended" (it is table service, NOT quick service).
+Aunt Cass Cafe (NOT Pacific Wharf Cafe): park="DCA".
+Alien Pizza Planet (NOT Redd Rockett's): park="DL".
+Pirates of the Caribbean: include but note in a "status" field if currently closed for refurbishment.
+
+Output the complete JSON object. Do not truncate. Do not add any text before or after the JSON.`,
+    maxTokens:6000
   }
 };
 
@@ -183,19 +237,24 @@ async function isFresh(key) {
     if(!blobs||!blobs.length) return false;
     const blob = blobs.sort((a,b)=>new Date(b.uploadedAt)-new Date(a.uploadedAt))[0];
     const fetchUrl = blob.downloadUrl||blob.url;
-    const data = await (await fetch(fetchUrl)).json();
-    if(!data || !data.ts) return false;
-    // An EMPTY cache is never 'fresh' -- a broken/empty build must not block its own retry.
-    // Dining caches store a venues[] array; legacy caches store a non-empty data string.
-    const emptyVenues = Array.isArray(data.venues) && data.venues.length === 0;
-    const emptyData = (typeof data.data === 'string') && data.data.trim().length === 0;
+    const raw = await (await fetch(fetchUrl)).json();
+    // Support both blob shapes: {data:{ts}, ts} (legacy) and {data:{...}, ts} (current)
+    const ts = (raw && raw.ts) || (raw && raw.data && raw.data.ts) || null;
+    if(!ts) return false;
+    const emptyVenues = raw && raw.data && Array.isArray(raw.data.venues) && raw.data.venues.length === 0;
+    const emptyData = raw && raw.data && (typeof raw.data === 'string') && raw.data.trim().length === 0;
     if(emptyVenues || emptyData) return false;
-    return (Date.now()-data.ts)/864e5 < EXPIRY_DAYS[key]*0.8;
+    const tsMs = typeof ts === 'number' ? ts : new Date(ts).getTime();
+    return (Date.now()-tsMs)/864e5 < EXPIRY_DAYS[key]*0.8;
   } catch(e){return false;}
 }
 
-async function blobStore(key, data) {
-  const blob = await put('twize/'+key+'.json', JSON.stringify(data), {
+// FIX: blobStore wraps the cache data as {data: cacheData, ts: Date.now()} so that
+// all readers using stableData.data.sections (generateschedule, cache-health, scaffold)
+// continue to work correctly. The live blob has this shape; this aligns the writer to match.
+async function blobStore(key, cacheData) {
+  const payload = { data: cacheData, ts: Date.now() };
+  const blob = await put('twize/'+key+'.json', JSON.stringify(payload), {
     access:'public', addRandomSuffix:false, contentType:'application/json', allowOverwrite:true
   });
   return blob.url;
@@ -203,10 +262,8 @@ async function blobStore(key, data) {
 
 function extractJson(text) {
   if(!text) return null;
-  // 1. Try fenced ```json block first
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
   if(fenceMatch) { try { return JSON.parse(fenceMatch[1]); } catch(e) {} }
-  // 2. Balanced-brace scan: find the first complete {...} object, ignoring trailing narration.
   for(let start = text.indexOf('{'); start !== -1; start = text.indexOf('{', start + 1)) {
     let depth = 0, inStr = false, esc = false;
     for(let i = start; i < text.length; i++) {
@@ -242,24 +299,47 @@ async function callClaude(prompt, apiKey) {
   return text;
 }
 
-// Build a single section and merge into existing blob
 async function buildSingleSection(cacheKey, sectionName, apiKey) {
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
   if(!promptMap[sectionName]) throw new Error('Unknown section: '+sectionName);
-  
+
   const prompt = promptMap[sectionName];
-const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '\n\nNow build the ' + sectionName + ' section:\n\n' + prompt.user});
-    const text = await callClaude(augmentedPrompt, apiKey);
-  
+  const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '\n\nNow build the ' + sectionName + ' section:\n\n' + prompt.user});
+  const text = await callClaude(augmentedPrompt, apiKey);
+
   let sectionData;
   if(sectionName==='LAND_MAP'||sectionName==='WAIT_PATTERNS') {
     const parsed = extractJson(text);
     sectionData = parsed || text;
+  } else if(sectionName==='CATALOG') {
+    // CATALOG requires a fully parseable JSON object -- no prose, no truncation.
+    // Self-parse-check: if the response does not parse as a complete {attractions, venues} object,
+    // the build fails loudly here rather than storing broken data.
+    let parsed = null;
+    // First try: direct parse (model should return raw JSON per the prompt)
+    try { parsed = JSON.parse(text.trim()); } catch(e) {}
+    // Second try: extract JSON object via brace-matching (handles any accidental preamble)
+    if(!parsed) { parsed = extractJson(text); }
+    if(!parsed) {
+      throw new Error('[CATALOG] self-parse-check FAIL: model returned non-parseable content. First 300 chars: ' + text.substring(0, 300));
+    }
+    if(!Array.isArray(parsed.attractions) || parsed.attractions.length === 0) {
+      throw new Error('[CATALOG] self-parse-check FAIL: attractions array missing or empty. Keys: ' + Object.keys(parsed).join(','));
+    }
+    if(!Array.isArray(parsed.venues) || parsed.venues.length === 0) {
+      throw new Error('[CATALOG] self-parse-check FAIL: venues array missing or empty. Keys: ' + Object.keys(parsed).join(','));
+    }
+    // Verify re-serialization round-trips cleanly
+    try { JSON.parse(JSON.stringify(parsed)); } catch(e) {
+      throw new Error('[CATALOG] self-parse-check FAIL: round-trip stringify failed: ' + e.message);
+    }
+    console.log('[CATALOG] self-parse-check PASS: attractions=' + parsed.attractions.length + ' venues=' + parsed.venues.length);
+    sectionData = parsed; // store as object, not string
   } else {
     sectionData = text;
   }
-  
+
   // Read existing blob to merge
   let existingCache = null;
   try {
@@ -267,10 +347,12 @@ const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '\n\
     if(blobs&&blobs.length) {
       const blob = blobs[0];
       const fetchUrl = blob.downloadUrl||blob.url;
-      existingCache = await (await fetch(fetchUrl)).json();
+      const raw = await (await fetch(fetchUrl)).json();
+      // Handle both blob shapes: {data:{sections,...}, ts} and {sections,...}
+      existingCache = (raw && raw.data && raw.data.sections) ? raw.data : raw;
     }
   } catch(e) { console.log('No existing cache, starting fresh'); }
-  
+
   const isStableCache = cacheKey.includes('stable');
   const cacheData = existingCache || {
     built_at:new Date().toISOString(),
@@ -280,18 +362,18 @@ const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '\n\
     sections:{},
     section_meta:{}
   };
-  
+
   if(!cacheData.sections) cacheData.sections={};
   if(!cacheData.section_meta) cacheData.section_meta={};
-  
+
   cacheData.sections[sectionName] = sectionData;
   cacheData.section_meta[sectionName] = {built:true, length:text.length, built_at:new Date().toISOString()};
   cacheData.last_section_built = sectionName;
   cacheData.last_updated = new Date().toISOString();
   cacheData.sections_built = Object.values(cacheData.section_meta).filter(m=>m.built).length;
-  
+
   await blobStore(cacheKey, cacheData);
-  
+
   return {
     section:sectionName,
     length:text.length,
@@ -310,8 +392,6 @@ async function buildDiningDL(key, apiKey) {
   });
   const d = await resp.json();
   if(d.error) throw new Error(d.error.message);
-  // Collect every text block (web_search responses interleave text with tool blocks);
-  // join all, and also keep the longest single block as a fallback for JSON extraction.
   let textParts=[]; for(const b of (d.content||[])) if(b.type==='text' && b.text) textParts.push(b.text);
   const allText = textParts.join('\n');
   if(allText.length<20) throw new Error('Response too short');
@@ -319,7 +399,6 @@ async function buildDiningDL(key, apiKey) {
   if(!parsed){ const longest = textParts.slice().sort(function(a,b){return b.length-a.length;})[0]||''; parsed = extractJson(longest); }
   if(!parsed){ console.error('[cache] dining_intel_dl: no parseable JSON in response. First 300 chars: '+allText.slice(0,300)); throw new Error('dining_intel_dl: model returned no parseable venue JSON'); }
   const rawVenues = (parsed && Array.isArray(parsed.venues)) ? parsed.venues : [];
-  // console.error survives Vercel's log buffer better than console.log late in a long invocation.
   console.error('[DININGDIAG] rawVenues=' + rawVenues.length + ' parsedKeys=' + (parsed ? Object.keys(parsed).join('|') : 'none') + ' allTextLen=' + allText.length + ' parsedSample=' + JSON.stringify(parsed).slice(0,400));
   const venues = filterDiningVenues(rawVenues);
   const dataStr = venues.map(function(v){
@@ -330,12 +409,17 @@ async function buildDiningDL(key, apiKey) {
     return v.name+' ['+v.park+', '+(v.land||'')+'] RESV='+(v.resv||'walkup')+
       ' | top:'+(v.topPick||'')+' | kids:'+(v.kids||'')+(diet.length?(' | '+diet.join(' ')):'');
   }).join('\n');
-  await blobStore(key, {
+  // dining_intel_dl uses legacy blobStore shape: {data: venueLineString, venues: [...], ...}
+  // This matches what buildDiningDL has always written and what the cache API legacy path returns.
+  const diningPayload = {
     data: dataStr,
     venues: venues,
     _retired: DINING_RETIRED,
     _meta: { rules: DINING_RULES, park_scope:'DL', built_at:new Date().toISOString(), count:venues.length },
     ts: Date.now()
+  };
+  const blob = await put('twize/'+key+'.json', JSON.stringify(diningPayload), {
+    access:'public', addRandomSuffix:false, contentType:'application/json', allowOverwrite:true
   });
   return { key, length: dataStr.length, venues: venues.length, stripped: rawVenues.length - venues.length };
 }
@@ -358,7 +442,11 @@ async function buildLegacy(key, apiKey) {
     const parsed = extractJson(text);
     if(parsed) value = parsed;
   }
-  await blobStore(key, {data:value, ts:Date.now()});
+  // Legacy keys use the old {data, ts} shape written directly (not via blobStore wrapper)
+  const legacyPayload = {data:value, ts:Date.now()};
+  const blob = await put('twize/'+key+'.json', JSON.stringify(legacyPayload), {
+    access:'public', addRandomSuffix:false, contentType:'application/json', allowOverwrite:true
+  });
   return {key, length:text.length};
 }
 
@@ -380,7 +468,6 @@ async function setRateLimit() {
 }
 
 export default async function handler(req, res) {
-  // AUTH FIRST -- before anything else, before any imports or blob calls
   const secret = process.env.CRON_SECRET;
   const isAuthed = secret && req.headers.authorization === ('Bearer '+secret);
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
@@ -393,16 +480,9 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
   if(req.method==='OPTIONS') return res.status(200).end();
 
-  // Auth already handled at top of function
-
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if(!apiKey) return res.status(500).json({error:'No ANTHROPIC_API_KEY'});
 
-  // -- DAILY RUN CAP --------------------------------------------------------
-  // Track how many times cron has run today via Vercel Blob.
-  // Cap protects against runaway cost from scheduled crons; raised to 7 so clustered
-  // scheduled rebuilds (e.g. the 1st of the month) plus a few manual triggers fit.
-  // A FORCED manual run (force=1) is EXEMPT -- the cap must never block a deliberate manual rebuild.
   const DAILY_RUN_CAP = 7;
   const isForcedRun = req.query.force === '1';
   if (!isForcedRun) {
@@ -429,14 +509,11 @@ export default async function handler(req, res) {
   } else {
     console.log('[cron-cache] Forced run (force=1) -- bypassing daily cap');
   }
-  // -------------------------------------------------------------------------
 
   const force = req.query.force === '1';
   const requestedKey = req.query.key;
   const requestedSection = req.query.section;
 
-  // -- SECTION-BY-SECTION BUILD MODE --
-  // GET /api/cron-cache?key=park_intel_dl_stable&section=LAND_MAP&force=1
   if(requestedKey && (requestedKey.includes('_dl_') || requestedKey.includes('_wdw_')) && requestedSection) {
     if(!VALID_KEYS.includes(requestedKey)) return res.status(400).json({error:'Invalid key'});
     try {
@@ -447,7 +524,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // -- LEGACY KEYS --
   const legacyKeys = requestedKey ? [requestedKey] : ['park_intel','dining_intel_dl','events_intel','park_hours_intel'];
   const results=[], errors=[];
 
