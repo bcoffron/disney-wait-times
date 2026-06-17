@@ -13,7 +13,7 @@
 // existing d.parsed handling is unchanged.
 
 import { list } from '@vercel/blob';
-import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, parseHourMin } from './schedule-engine.js';
+import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, parseHourMin, isAttractionAvailable } from './schedule-engine.js';
 
 const MODEL = 'claude-sonnet-4-6';
 
@@ -39,6 +39,42 @@ async function loadStableSections() {
   return out;
 }
 
+// Load the WEEKLY dynamic blob (closures, events) -- separate cadence from the monthly CATALOG.
+async function loadDynamicSections() {
+  try {
+    const { blobs } = await list({ prefix: 'twize/park_intel_dl_dynamic.json' });
+    if (blobs && blobs.length) {
+      const url = blobs[0].downloadUrl || blobs[0].url;
+      const blob = await fetch(url).then(r => r.json());
+      return (blob.data && blob.data.sections) || blob.sections || {};
+    }
+  } catch (e) { console.error('[v2] dynamic read error:', e.message); }
+  return {};
+}
+
+// Build a closure-override map { normalizedName: {status, reopenDate, reopenConfidence} } from the
+// structured weekly CLOSURES section. This is the FRESH source of truth for open/closed and reopen
+// dates; it overrides the monthly CATALOG's per-attraction status fields (which can be ~30 days stale).
+// If the structured section is absent (older cache), returns null and v2 falls back to CATALOG fields.
+function buildClosureOverrides(dynamicSections) {
+  if (!dynamicSections) return null;
+  let cl = dynamicSections.CLOSURES;
+  if (typeof cl === 'string') { try { cl = JSON.parse(cl); } catch (e) { cl = null; } }
+  if (!Array.isArray(cl)) return null;
+  const norm = x => String(x || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  const map = {};
+  cl.forEach(c => {
+    if (c && c.name) {
+      map[norm(c.name)] = {
+        status: c.status != null ? c.status : 'closed_for_refurbishment',
+        reopenDate: c.reopenDate != null ? c.reopenDate : null,
+        reopenConfidence: c.reopenConfidence != null ? c.reopenConfidence : 'unknown'
+      };
+    }
+  });
+  return Object.keys(map).length ? map : null;
+}
+
 async function loadParkHours() {
   // PARK_HOURS lives in the dynamic blob's TRIP_CONTEXT in some builds and as a top-level
   // structured array in others; the client also has window.PARK_HOURS. We accept it from
@@ -56,8 +92,8 @@ function minToLabel(min) {
 }
 
 // Build a compact candidate menu string for one park block from the CATALOG.
-function candidateMenu(catalog, park, shortestHeightInches) {
-  const f = buildCatalogFilter(catalog, park); // drops wrong-park AND v.exclude===true
+function candidateMenu(catalog, park, shortestHeightInches, tripDate, closureOverrides) {
+  const f = buildCatalogFilter(catalog, park, tripDate, closureOverrides); // drops wrong-park, excluded, AND closed-on-trip-date
   const rideLines = f.attractions
     .map(a => {
       const tooTall = (shortestHeightInches > 0 && a.heightInches > shortestHeightInches);
@@ -122,6 +158,13 @@ export default async function handler(req, res) {
       return res.status(503).json({ error: 'CATALOG unavailable in cache; cannot run v2.' });
     }
 
+    // ---- WEEKLY closures (date-aware). The structured CLOSURES section is the fresh source of truth
+    // for open/closed + reopen dates; it overrides the monthly CATALOG status. tripDate is THIS day's
+    // date, so a ride closed-but-reopening-before-our-visit is correctly treated as available. ----
+    const dynamicSections = await loadDynamicSections();
+    const closureOverrides = buildClosureOverrides(dynamicSections);
+    const tripDate = (day && day.date) ? String(day.date).slice(0, 10) : null;
+
     const shortest = (tripConfig.groupProfile && typeof tripConfig.groupProfile.shortestHeightInches === 'number')
       ? tripConfig.groupProfile.shortestHeightInches : 0;
 
@@ -141,7 +184,7 @@ export default async function handler(req, res) {
 
     // ---- build the SLIM per-block prompt ----
     const blockText = blocks.map((b, i) => {
-      const menu = candidateMenu(catalog, b.park, shortest);
+      const menu = candidateMenu(catalog, b.park, shortest, tripDate, closureOverrides);
       return 'BLOCK ' + (i + 1) + ' -- ' + b.park + ' from ' + minToLabel(b.startMin) + ' to ' + minToLabel(b.endMin) + '.\n'
         + 'You may ONLY use attractions and venues from THIS block\'s lists (they are physically in ' + b.park + '):\n'
         + 'RIDES (' + menu.rideCount + '):\n' + menu.rideLines + '\n'
@@ -240,7 +283,7 @@ export default async function handler(req, res) {
       const _parkRideSet = {};
       blocks.forEach(b => {
         if (!_parkRideSet[b.park]) {
-          const f = buildCatalogFilter(catalog, b.park);
+          const f = buildCatalogFilter(catalog, b.park, tripDate, closureOverrides);
           _parkRideSet[b.park] = new Set(f.attractions.map(a => _norm(a.name)));
         }
       });
@@ -278,10 +321,10 @@ export default async function handler(req, res) {
       const startPark = blocks[0].park;
       const startOpen = blocks[0].startMin;
       // high-value rope-drop rides in the starting park, headliner (single ILL) first
-      // operating check mirrors buildCatalogFilter: never rope-drop a closed/refurb ride
-      const _isOperating = a => { const st = a && a.status ? String(a.status).toLowerCase().trim() : ''; return !st || st === 'open' || st === 'operating' || st === 'operational'; };
+      // date-aware availability (same rule as buildCatalogFilter): never rope-drop a ride that's
+      // closed THROUGH the trip date; a ride reopening before our visit is eligible.
       const rdPool = catalog.attractions
-        .filter(a => a.park === startPark && a.ropeDropValue === 'high' && a.exclude !== true && _isOperating(a))
+        .filter(a => a.park === startPark && a.ropeDropValue === 'high' && a.exclude !== true && isAttractionAvailable(a, tripDate, closureOverrides))
         .sort((a, b) => (a.llKind === 'single' ? -1 : 0) - (b.llKind === 'single' ? -1 : 0));
       // names already scheduled as rides today (cleaned)
       const usedNames = new Set(parsed.filter(it => it && it.type === 'ride')

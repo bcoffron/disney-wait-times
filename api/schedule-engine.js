@@ -136,22 +136,55 @@ export function whichParkAt(blocks, min) {
 // Filters catalog attractions and venues for a specific park.
 // CRITICAL: venues with exclude === true are always dropped (e.g. Magic Key Terrace).
 // ---------------------------------------------------------------------------
-export function buildCatalogFilter(catalog, park) {
+// Normalize an attraction name for matching against closure-override entries.
+function normAttr(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// DATE-AWARE AVAILABILITY (physics): is this attraction open on the trip day?
+// A ride is AVAILABLE unless it is closed THROUGH the trip date.
+//   - effective status/reopen come from the closureOverrides map (fresh, weekly CLOSURES) when present,
+//     else from the attraction's own catalog fields (monthly CATALOG status/reopenDate).
+//   - operating status  -> available.
+//   - closed, no reopen date / confidence 'unknown' -> NOT available (we can't promise it opens).
+//   - closed WITH a reopenDate on/before the trip day -> available IF confidence is 'confirmed' or
+//     'rumored' (the caller has chosen to show rumored reopenings); 'unknown' stays hidden.
+//   - closed WITH a reopenDate AFTER the trip day -> NOT available (still closed when we visit).
+// tripDate is an ISO 'YYYY-MM-DD' string for the day being built; when absent, fall back to the
+// old behavior (operating status only) so callers that don't pass a date are unchanged.
+export function isAttractionAvailable(attraction, tripDate, closureOverrides) {
+  const a = attraction || {};
+  // resolve effective closure info: override map wins over catalog fields
+  let status = a.status, reopenDate = a.reopenDate, reopenConfidence = a.reopenConfidence;
+  if (closureOverrides) {
+    const ov = closureOverrides[normAttr(a.name)];
+    if (ov) {
+      status = ov.status != null ? ov.status : status;
+      reopenDate = ov.reopenDate != null ? ov.reopenDate : reopenDate;
+      reopenConfidence = ov.reopenConfidence != null ? ov.reopenConfidence : reopenConfidence;
+    }
+  }
+  const st = status ? String(status).toLowerCase().trim() : '';
+  const operating = !st || st === 'open' || st === 'operating' || st === 'operational';
+  if (operating) return true;
+  // closed in some form from here on
+  if (!tripDate) return false; // no date context -> conservative (old behavior): closed = hidden
+  if (!reopenDate) return false; // closed, no known reopen -> hidden
+  const conf = reopenConfidence ? String(reopenConfidence).toLowerCase().trim() : 'unknown';
+  if (conf === 'unknown') return false; // closed with a date we don't trust -> hidden
+  // reopenDate is 'YYYY-MM-DD'; available if it reopens on or before the trip day
+  return String(reopenDate).slice(0, 10) <= String(tripDate).slice(0, 10);
+}
+
+export function buildCatalogFilter(catalog, park, tripDate, closureOverrides) {
   if (!catalog || typeof park !== 'string') {
     return { attractions: [], venues: [] };
   }
   const p = park.toUpperCase();
-  // An attraction is OPERATING unless its catalog `status` is set to a non-operating value.
-  // Closed/refurb rides (e.g. status 'closed_for_refurbishment') must NEVER become candidates --
-  // recommending a closed ride is a trust-breaking error. Treat any status that isn't explicitly
-  // open/operating as closed, so future refurbs the cache adds are excluded with no code change.
-  const isOperating = a => {
-    const st = a && a.status ? String(a.status).toLowerCase().trim() : '';
-    if (!st) return true;
-    return st === 'open' || st === 'operating' || st === 'operational';
-  };
   return {
-    attractions: (catalog.attractions || []).filter(a => a && String(a.park).toUpperCase() === p && a.exclude !== true && isOperating(a)),
+    attractions: (catalog.attractions || []).filter(a =>
+      a && String(a.park).toUpperCase() === p && a.exclude !== true
+        && isAttractionAvailable(a, tripDate, closureOverrides)),
     venues:      (catalog.venues      || []).filter(v => v && String(v.park).toUpperCase() === p && v.exclude !== true)
   };
 }

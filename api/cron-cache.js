@@ -201,6 +201,32 @@ const DYNAMIC_SECTION_PROMPTS = {
     user:`Search disneylandresort.com, AllEars.net, and TouringPlans.com for ALL current ride closures and refurbishments at Disneyland and DCA as of today 2026. For each closed or refurbished attraction provide: attraction name and park DL or DCA, closure type scheduled refurbishment unplanned seasonal or permanent, expected reopening date if known or best estimate, what caused the closure if known, alternative recommendation for guests who planned to ride it. Pay special attention to Pirates of the Caribbean current status and expected return date. List any major E-ticket closures. Note any new closures announced for summer 2026. Format as clear readable text that could be read to a guest planning their visit.`,
     maxTokens:1500
   },
+  CLOSURES:{
+    system:'You are a Disneyland Resort current-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
+    user:`Search disneylandresort.com, AllEars.net, TouringPlans.com, Disney Tourist Blog, and MousePlanet for EVERY attraction at Disneyland Park (DL) and Disney California Adventure (DCA) that is currently CLOSED or down for refurbishment, or has a known upcoming closure overlapping summer 2026.
+
+Return ONLY this JSON array (raw, no fences):
+[
+  {
+    "name": "Exact attraction name as it appears in the catalog",
+    "park": "DL",
+    "status": "closed_for_refurbishment",
+    "reopenDate": "2026-06-26",
+    "reopenConfidence": "rumored",
+    "note": "Short human-readable detail (source + why)."
+  }
+]
+
+FIELD RULES:
+- name: the attraction's exact common name. park: "DL" or "DCA" only.
+- status: always "closed_for_refurbishment" for any closure/refurb/seasonal-down attraction in this list.
+- reopenDate: the expected reopening date as strict ISO "YYYY-MM-DD" if a date is known or reported; otherwise null. Convert any phrasing ("late June", "July 1st") to a concrete date when a specific one is reported; if only a vague window with no date, use null.
+- reopenConfidence: "confirmed" if Disney has officially posted/published the reopening date (e.g. on the official calendar); "rumored" if the date comes from cast-member reports, fan sites, or unofficial leaks but is not officially posted; "unknown" if no reliable date exists. Be honest -- do NOT mark a date "confirmed" unless an official Disney source published it.
+- note: one short sentence (source + reason). ASCII only.
+
+Pay special attention to Pirates of the Caribbean and Inside Out Emotional Whirlwind -- report their exact current status, reopenDate, and reopenConfidence. Only include attractions that are actually closed/affected; do NOT list operating rides. Output the complete JSON array only.`,
+    maxTokens:1500
+  },
   SPECIAL_EVENTS:{
     system:'You are a Disneyland special events expert. Focus specifically on June 28-30 2026.',
     user:`Search Disneyland official site, AllEars, and MiceChat for special events hard ticket events seasonal overlays or entertainment changes at Disneyland Resort during or surrounding June 28-30 2026. Investigate: Disneyland 70th Anniversary the park opens July 17 2026 (opened July 17 1955) are there summer 2026 anniversary celebrations starting before July 17 what special entertainment decorations or experiences happening in late June; Summer 2026 events any summer-specific entertainment special dining events or unique experiences; 4th of July proximity June 28-30 is just before July 4th week are there any early celebrations starting that weekend any extra fireworks or patriotic overlays; Hard ticket events any separately ticketed evening events that would affect park access on June 28-30; Entertainment changes any shows or parades recently added changed or removed for summer 2026. Be specific with dates. Note if something was announced but not yet confirmed.`,
@@ -494,6 +520,13 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
   if(sectionName==='LAND_MAP'||sectionName==='WAIT_PATTERNS') {
     const parsed = extractJson(text);
     sectionData = parsed || text;
+  } else if(sectionName==='CLOSURES') {
+    // Structured closure list consumed by v2 (date-aware availability). Must be a JSON array;
+    // if the model returns prose, store [] rather than poisoning the consumer with a string.
+    const parsed = extractJson(text);
+    sectionData = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.closures) ? parsed.closures : []);
+    if(!Array.isArray(sectionData)) sectionData = [];
+    console.log('[CLOSURES] parsed ' + sectionData.length + ' closure entries');
   } else if(sectionName==='CATALOG') {
     // CATALOG requires a fully parseable JSON object -- no prose, no truncation.
     // Attractions come from the model; venues are built deterministically from
