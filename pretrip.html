@@ -1069,6 +1069,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   // physics-vs-strategy scaffold endpoint instead of the free-form generator. Response
   // shape is identical ({ok, text, parsed, ...}) so all downstream handling is unchanged.
   var _useScaffold = /[?&]scaffold=1\b/.test(window.location.search);
+  var _useV2 = /[?&]engine=v2\b/.test(window.location.search);
   // The scaffold endpoint reads tripConfig.schedule.days[].park/date/hopTo. Build that view
   // from tripConfig.days (which carries per-day park/date/hop at generate time).
   var _scaffoldTripConfig = {
@@ -1086,8 +1087,29 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       return { park: dd.park, date: dd.date, hopTo: dd.hopTo || (dd.startPark && dd.park && dd.startPark!==dd.park ? dd.park : null), isVip: dd.isVip };
     }) }
   };
-  var _endpoint = _useScaffold ? '/api/generateschedule-scaffold' : '/api/generateschedule';
-  var _body = _useScaffold
+  // V2 ENGINE PARALLEL PATH (?engine=v2): server-side physics via deriveBlocks + CATALOG candidate
+  // filtering on Sonnet. Reads tripConfig.days[].intent (Step 3). Response shape identical ({ok,text,parsed}).
+  var _v2TripConfig = {
+    tripName: tripConfig.tripName,
+    thrillLevel: tripConfig.thrillLevel,
+    characters: tripConfig.characters,
+    minHeight: tripConfig.minHeight,
+    groupProfile: tripConfig.groupProfile,
+    ridePreferences: tripConfig.ridePreferences || { mustDo: tripConfig.mustDo || [], skip: tripConfig.neverSchedule || [] },
+    neverSchedule: tripConfig.neverSchedule || [],
+    reservations: tripConfig.reservations || [],
+    parkHopping: tripConfig.parkHopping,
+    dining: { reservations: (tripConfig.dining && tripConfig.dining.reservations) || [], usedVenues: (tripConfig.dining && tripConfig.dining.usedVenues) || [] },
+    days: (tripConfig.days || []).map(function(dd){
+      return { num: dd.num, date: dd.date, park: dd.park, startPark: dd.startPark, hopTo: dd.hopTo, hopAtMin: dd.hopAtMin, isVip: dd.isVip, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP, hasILL: dd.hasILL, illRides: dd.illRides, intent: dd.intent };
+    })
+  };
+  var _endpoint = _useV2 ? '/api/generateschedule-v2' : (_useScaffold ? '/api/generateschedule-scaffold' : '/api/generateschedule');
+  var _body = _useV2
+    ? { dayIndex: dayIndex, maxTokens: 8000, tripCode: localStorage.getItem('tpcp_code') || '',
+        adminKey: (localStorage.getItem('tpcp_role')==='admin') ? 'cwdis2026admin' : undefined,
+        tripConfig: _v2TripConfig }
+    : _useScaffold
     ? { dayIndex: dayIndex, maxTokens: 8000, tripCode: localStorage.getItem('tpcp_code') || '',
         adminKey: (localStorage.getItem('tpcp_role')==='admin') ? 'cwdis2026admin' : undefined,
         tripConfig: _scaffoldTripConfig }
@@ -1107,7 +1129,8 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
           }
         }
       };
-  if (_useScaffold) console.log('[pretrip] Day ' + (dayIndex+1) + ' using SCAFFOLD path');
+  if (_useV2) console.log('[pretrip] Day ' + (dayIndex+1) + ' using V2 ENGINE path');
+  else if (_useScaffold) console.log('[pretrip] Day ' + (dayIndex+1) + ' using SCAFFOLD path');
   fetch(SYNC_BASE + _endpoint, {
     method: 'POST',
     headers: (function(){ var h={'Content-Type':'application/json'}; var c=localStorage.getItem('tpcp_code')||''; var r=localStorage.getItem('tpcp_role')||'guest'; if(r==='admin') h['x-admin-key']='cwdis2026admin'; return h; })(),
