@@ -1069,7 +1069,8 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   // physics-vs-strategy scaffold endpoint instead of the free-form generator. Response
   // shape is identical ({ok, text, parsed, ...}) so all downstream handling is unchanged.
   var _useScaffold = /[?&]scaffold=1\b/.test(window.location.search);
-  var _useV2 = /[?&]engine=v2\b/.test(window.location.search);
+  // v2 is now the DEFAULT engine. Opt OUT to the legacy generator with ?engine=legacy (instant fallback).
+  var _useV2 = !/[?&]engine=legacy\b/.test(window.location.search);
   // The scaffold endpoint reads tripConfig.schedule.days[].park/date/hopTo. Build that view
   // from tripConfig.days (which carries per-day park/date/hop at generate time).
   var _scaffoldTripConfig = {
