@@ -278,8 +278,10 @@ export default async function handler(req, res) {
       const startPark = blocks[0].park;
       const startOpen = blocks[0].startMin;
       // high-value rope-drop rides in the starting park, headliner (single ILL) first
+      // operating check mirrors buildCatalogFilter: never rope-drop a closed/refurb ride
+      const _isOperating = a => { const st = a && a.status ? String(a.status).toLowerCase().trim() : ''; return !st || st === 'open' || st === 'operating' || st === 'operational'; };
       const rdPool = catalog.attractions
-        .filter(a => a.park === startPark && a.ropeDropValue === 'high')
+        .filter(a => a.park === startPark && a.ropeDropValue === 'high' && a.exclude !== true && _isOperating(a))
         .sort((a, b) => (a.llKind === 'single' ? -1 : 0) - (b.llKind === 'single' ? -1 : 0));
       // names already scheduled as rides today (cleaned)
       const usedNames = new Set(parsed.filter(it => it && it.type === 'ride')

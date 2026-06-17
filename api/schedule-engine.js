@@ -141,8 +141,17 @@ export function buildCatalogFilter(catalog, park) {
     return { attractions: [], venues: [] };
   }
   const p = park.toUpperCase();
+  // An attraction is OPERATING unless its catalog `status` is set to a non-operating value.
+  // Closed/refurb rides (e.g. status 'closed_for_refurbishment') must NEVER become candidates --
+  // recommending a closed ride is a trust-breaking error. Treat any status that isn't explicitly
+  // open/operating as closed, so future refurbs the cache adds are excluded with no code change.
+  const isOperating = a => {
+    const st = a && a.status ? String(a.status).toLowerCase().trim() : '';
+    if (!st) return true;
+    return st === 'open' || st === 'operating' || st === 'operational';
+  };
   return {
-    attractions: (catalog.attractions || []).filter(a => a && String(a.park).toUpperCase() === p),
+    attractions: (catalog.attractions || []).filter(a => a && String(a.park).toUpperCase() === p && a.exclude !== true && isOperating(a)),
     venues:      (catalog.venues      || []).filter(v => v && String(v.park).toUpperCase() === p && v.exclude !== true)
   };
 }
