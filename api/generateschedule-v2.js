@@ -175,12 +175,30 @@ export default async function handler(req, res) {
     const stratText = strat.join('\n\n').slice(0, 5000);
 
     // ---- reservations the user explicitly entered (must appear at their times) ----
+    // A confirmed reservation exists on exactly ONE day. Bind it to its day (PHYSICS): only surface
+    // it on its own day, and tell the model to AVOID that venue on every other day so a single
+    // reservation can't be scattered across days (e.g. a Day-3 Cafe Orleans dinner showing up as a
+    // Day-1 lunch). Day numbering: structured r.day and string "Day N" are 1-based == dayIndex+1.
+    const thisDayNum = dayIndex + 1;
     const flatRes = Array.isArray(tripConfig.reservations) ? tripConfig.reservations : [];
     const structRes = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations)) ? tripConfig.dining.reservations : [];
-    const resLines = []
-      .concat(flatRes.map(s => typeof s === 'string' ? s : JSON.stringify(s)))
-      .concat(structRes.map(r => (r && r.name) ? (r.name + (r.time ? ' @ ' + r.time : '') + (r.day ? ' (day ' + r.day + ')' : '')) : ''))
+    // extract a 1-based day from a string reservation like "cafe orleans, 5:30pm, Day 3" (null if none)
+    const dayOfStr = str => { const m = String(str).match(/day\s*(\d+)/i); return m ? Number(m[1]) : null; };
+    // reservation lines for THIS day only (string with no day -> show on all days, can't tell)
+    const resLinesToday = []
+      .concat(flatRes.filter(str => { const d = dayOfStr(str); return d == null || d === thisDayNum; })
+        .map(str => typeof str === 'string' ? str : JSON.stringify(str)))
+      .concat(structRes.filter(r => r && r.name && (r.day == null || Number(r.day) === thisDayNum))
+        .map(r => r.name + (r.time ? ' @ ' + r.time : '')))
       .filter(Boolean);
+    // venues reserved on OTHER days -> the model must NOT schedule these today (avoids scatter)
+    const otherDayResNames = []
+      .concat(flatRes.filter(str => { const d = dayOfStr(str); return d != null && d !== thisDayNum; })
+        .map(str => String(str).split(',')[0].trim()))
+      .concat(structRes.filter(r => r && r.name && r.day != null && Number(r.day) !== thisDayNum)
+        .map(r => r.name))
+      .filter(Boolean);
+    const resLines = resLinesToday;
 
     // ---- build the SLIM per-block prompt ----
     const blockText = blocks.map((b, i) => {
@@ -207,7 +225,8 @@ export default async function handler(req, res) {
 + '- Open the day with a rope-drop ride IN THE STARTING PARK (the first block\'s park): pick the highest-value ropeDrop=high attraction from THAT block\'s list. This rope-drop choice OVERRIDES cross-day variety -- a strong rope-drop in the park you are actually standing in matters more than avoiding a repeat, so repeat it if it is the best opener. Never open with a meal, and never rope-drop a ride from the other park.\n'
 + '- Fill the first block primarily with attractions from the STARTING park before the hop -- do not lean on the second park\'s list to fill the morning.\n'
 + '- Pick venues from the lists. service=table means a sit-down meal (a reservation or walk-up list); quickservice is a counter grab; lounge is a walk-up lounge. Do not treat a table-service spot as a quick grab.\n'
-+ (resLines.length ? '- CONFIRMED RESERVATIONS that MUST appear at their stated times: ' + resLines.join(' | ') + '\n' : '')
++ (resLines.length ? '- CONFIRMED RESERVATIONS for THIS day that MUST appear at their stated times: ' + resLines.join(' | ') + '\n' : '')
++ (otherDayResNames.length ? '- These venues are reserved on a DIFFERENT day, so do NOT schedule them today: ' + otherDayResNames.join(' | ') + '\n' : '')
 + (llOn ? '- Lightning Lane is ON: include 2-4 LL booking tip cards naming exact rides/times. ll="single" rides are Individual Lightning Lane (paid); ll="multi" are Lightning Lane Multi Pass.\n' : '- Lightning Lane is OFF: standby only, no LL tip cards.\n')
 + '- Include a morning snack and an afternoon snack (real venue names from the lists, not "Morning Snack").\n'
 + '- If the group has character interest and a character category fits, include 1-2 character meets as type "character" with a real location.\n'
