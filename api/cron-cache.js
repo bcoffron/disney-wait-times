@@ -262,8 +262,23 @@ async function blobStore(key, cacheData) {
 
 function extractJson(text) {
   if(!text) return null;
+  // Try direct parse first (handles raw JSON responses)
+  try { return JSON.parse(text.trim()); } catch(e) {}
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
   if(fenceMatch) { try { return JSON.parse(fenceMatch[1]); } catch(e) {} }
+  // Try array-first (model may return [...] without wrapper)
+  for(let start = text.indexOf('['); start !== -1; start = text.indexOf('[', start + 1)) {
+    let depth = 0, inStr = false, esc = false;
+    for(let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if(esc) { esc = false; continue; }
+      if(ch === '\\') { esc = true; continue; }
+      if(ch === '"') { inStr = !inStr; continue; }
+      if(inStr) continue;
+      if(ch === '[') depth++;
+      else if(ch === ']') { depth--; if(depth === 0) { const c = text.substring(start, i+1); try { return JSON.parse(c); } catch(e) { break; } } }
+    }
+  }
   for(let start = text.indexOf('{'); start !== -1; start = text.indexOf('{', start + 1)) {
     let depth = 0, inStr = false, esc = false;
     for(let i = start; i < text.length; i++) {
@@ -317,19 +332,29 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
     // Self-parse-check: if the response does not parse as a complete {attractions, venues} object,
     // the build fails loudly here rather than storing broken data.
     let parsed = null;
-    // First try: direct parse (model should return raw JSON per the prompt)
-    try { parsed = JSON.parse(text.trim()); } catch(e) {}
-    // Second try: extract JSON object via brace-matching (handles any accidental preamble)
-    if(!parsed) { parsed = extractJson(text); }
+    parsed = extractJson(text); // handles raw JSON, fenced blocks, array-first, and brace-matching
     if(!parsed) {
       throw new Error('[CATALOG] self-parse-check FAIL: model returned non-parseable content. First 300 chars: ' + text.substring(0, 300));
     }
+    // Normalize: if model returned an array directly, treat it as attractions list
+    if(Array.isArray(parsed)) {
+      // Determine if it looks like an attractions array or a venues array
+      const first = parsed[0] || {};
+      if(first.heightInches !== undefined || first.llKind !== undefined || first.ropeDropValue !== undefined) {
+        parsed = { attractions: parsed, venues: [] };
+        console.log('[CATALOG] model returned array -- wrapped as {attractions, venues:[]}');
+      } else if(first.service !== undefined || first.reservationPolicy !== undefined) {
+        parsed = { attractions: [], venues: parsed };
+        console.log('[CATALOG] model returned venues array -- wrapped as {attractions:[], venues}');
+      } else {
+        throw new Error('[CATALOG] self-parse-check FAIL: model returned unrecognized array. First item keys: ' + Object.keys(first).join(','));
+      }
+    }
+    // If model returned {attractions} without venues, that is acceptable -- venues come from dining_intel_dl
     if(!Array.isArray(parsed.attractions) || parsed.attractions.length === 0) {
       throw new Error('[CATALOG] self-parse-check FAIL: attractions array missing or empty. Keys: ' + Object.keys(parsed).join(','));
     }
-    if(!Array.isArray(parsed.venues) || parsed.venues.length === 0) {
-      throw new Error('[CATALOG] self-parse-check FAIL: venues array missing or empty. Keys: ' + Object.keys(parsed).join(','));
-    }
+    if(!Array.isArray(parsed.venues)) { parsed.venues = []; }
     // Verify re-serialization round-trips cleanly
     try { JSON.parse(JSON.stringify(parsed)); } catch(e) {
       throw new Error('[CATALOG] self-parse-check FAIL: round-trip stringify failed: ' + e.message);
