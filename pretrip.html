@@ -575,6 +575,7 @@ function ptVipAutoHopper(day) {
   if (!vipTog || !hopTog) return;
   if (vipTog.classList.contains('on') && !hopTog.classList.contains('on')) {
     hopTog.classList.add('on');
+    if (typeof ptHopperToggle === 'function') ptHopperToggle(day);
   }
 }
 
@@ -585,6 +586,12 @@ function ptReservationsToggle(){
   sub.classList.toggle('visible', tog.classList.contains('on'));
 }
 
+function ptHopperToggle(day){
+  var tog = document.getElementById('day'+day+'Hopper');
+  var sub = document.getElementById('day'+day+'HopSub');
+  if(!tog||!sub) return;
+  sub.classList.toggle('visible', tog.classList.contains('on'));
+}
 function ptLLToggle(day){
   var tog = document.getElementById('day'+day+'LL');
   var sub = document.getElementById('day'+day+'LLSub');
@@ -704,7 +711,19 @@ function ptUpdateDayCards() {
       '</div></div>' +
       '<div class="pt-toggle-row" style="margin-top:10px;">' +
         '<div class="pt-toggle-label">Park hopper</div>' +
-        '<div class="pt-toggle' + (prev.hopper ? ' on' : '') + '" id="day'+n+'Hopper" onclick="ptToggle(\'day'+n+'Hopper\')"><div class="pt-toggle-knob"></div></div>' +
+        '<div class="pt-toggle' + (prev.hopper ? ' on' : '') + '" id="day'+n+'Hopper" onclick="ptToggle(\'day'+n+'Hopper\');ptHopperToggle('+n+')"><div class="pt-toggle-knob"></div></div>' +
+      '</div>' +
+      '<div class="pt-vip-sub' + (prev.hopper ? ' visible' : '') + '" id="day'+n+'HopSub">' +
+        '<div class="pt-label" style="margin-bottom:4px;font-size:10px;">About what time will you hop to the other park?</div>' +
+        '<select class="pt-input" id="day'+n+'HopTime">' +
+          '<option value="660"' + ((prev.hopAtMin||780)==660?' selected':'') + '>11:00 AM</option>' +
+          '<option value="720"' + ((prev.hopAtMin||780)==720?' selected':'') + '>12:00 PM</option>' +
+          '<option value="780"' + ((prev.hopAtMin||780)==780?' selected':'') + '>1:00 PM</option>' +
+          '<option value="840"' + ((prev.hopAtMin||780)==840?' selected':'') + '>2:00 PM</option>' +
+          '<option value="900"' + ((prev.hopAtMin||780)==900?' selected':'') + '>3:00 PM</option>' +
+          '<option value="960"' + ((prev.hopAtMin||780)==960?' selected':'') + '>4:00 PM</option>' +
+          '<option value="1020"' + ((prev.hopAtMin||780)==1020?' selected':'') + '>5:00 PM</option>' +
+        '</select>' +
       '</div>' +
       '<div class="pt-toggle-row">' +
         '<div class="pt-toggle-label">Lightning Lane this day</div>' +
@@ -770,6 +789,21 @@ function ptCollectData() {
       park: park,
       startPark: ptSegValues['day'+n+'StartPark'] || park,
       hopTo: document.getElementById('day'+n+'Hopper') ? document.getElementById('day'+n+'Hopper').classList.contains('on') : false,
+      hopAtMin: (function(){ var s=document.getElementById('day'+n+'HopTime'); return s?parseInt(s.value,10):780; })(),
+      intent: (function(){
+        var sp = (ptSegValues['day'+n+'StartPark'] || park);
+        var spCode = /dca|california/i.test(sp) ? 'DCA' : 'DL';
+        var hopOn = document.getElementById('day'+n+'Hopper') && document.getElementById('day'+n+'Hopper').classList.contains('on');
+        var atSel = document.getElementById('day'+n+'HopTime');
+        var atMin = atSel ? parseInt(atSel.value,10) : 780;
+        var vipOn = document.getElementById('day'+n+'Vip') && document.getElementById('day'+n+'Vip').classList.contains('on');
+        function hm(t){ if(!t) return null; var p=String(t).split(':'); return parseInt(p[0],10)*60+parseInt(p[1]||'0',10); }
+        return {
+          startPark: spCode,
+          hop: hopOn ? { toPark: (spCode==='DL'?'DCA':'DL'), atMin: atMin } : null,
+          vip: vipOn ? { startMin: hm((document.getElementById('day'+n+'VipStart')||{}).value), endMin: hm((document.getElementById('day'+n+'VipEnd')||{}).value) } : null
+        };
+      })(),
       hasLL: hasLL,
       hasLLMP: hasLLMP,
       hasILL: hasILL,
@@ -926,6 +960,8 @@ function ptLoadFromBlob(isRebuild) {
                                                                                                                                                                                                                                                           if (typeof ptSegValues !== 'undefined') ptSegValues['day' + n + 'ParkSeg'] = day.park;
                                                                                                                                                                                                                                                                 }
                                                                                                                                                                                                                                                                       if (day.hopTo && document.getElementById('day' + n + 'Hopper')) document.getElementById('day' + n + 'Hopper').classList.add('on');
+        if (day.hopAtMin && document.getElementById('day' + n + 'HopTime')) document.getElementById('day' + n + 'HopTime').value = String(day.hopAtMin);
+        if (day.hopTo) { var _hsA = document.getElementById('day' + n + 'HopSub'); if (_hsA) _hsA.classList.add('visible'); }
                                                                                                                                                                                                                                                                             if (day.hasLL && document.getElementById('day' + n + 'LL')) { document.getElementById('day' + n + 'LL').classList.add('on'); if (typeof ptLLToggle === 'function') ptLLToggle(n); }
                                                                                                                                                                                                                                                                                   if (day.hasILL && document.getElementById('day' + n + 'ILL')) { document.getElementById('day' + n + 'ILL').classList.add('checked'); if (typeof ptILLToggle === 'function') ptILLToggle(n); }
                                                                                                                                                                                                                                                                                         if (day.isVip && document.getElementById('day' + n + 'Vip')) { document.getElementById('day' + n + 'Vip').classList.add('on'); if (typeof ptVipToggle === 'function') ptVipToggle(n); }
@@ -951,6 +987,8 @@ function ptLoadFromStorage() {
       d.days.forEach(function(day, i) {
         var n = i + 1;
         if (day.hopTo && document.getElementById('day'+n+'Hopper')) document.getElementById('day'+n+'Hopper').classList.add('on');
+        if (day.hopAtMin && document.getElementById('day'+n+'HopTime')) document.getElementById('day'+n+'HopTime').value = String(day.hopAtMin);
+        if (day.hopTo) { var _hsB = document.getElementById('day'+n+'HopSub'); if (_hsB) _hsB.classList.add('visible'); }
         if (day.hasLL && document.getElementById('day'+n+'LL')) { document.getElementById('day'+n+'LL').classList.add('on'); ptLLToggle(n); }
         if (day.hasLLMP && document.getElementById('day'+n+'LLMP')) document.getElementById('day'+n+'LLMP').classList.add('checked');
         if (day.hasILL && document.getElementById('day'+n+'ILL')) { document.getElementById('day'+n+'ILL').classList.add('checked'); ptILLToggle(n); }
@@ -1158,6 +1196,13 @@ function ptFinish() {
     reservations: d.reservations || [],
     minHeight: d.minHeight || 'over48',
     characters: d.characters || { categories: [], priority: 'niceToHave' },
+    groupProfile: {
+      size: (parseInt(document.getElementById('groupSize') && document.getElementById('groupSize').value,10)||9),
+      shortestHeightInches: (function(h){ return h==='under40'?38 : h==='40to46'?40 : h==='46to48'?46 : 0; })(d.minHeight||'over48'),
+      dietary: d.dietaryNeeds || [],
+      characterCategories: (d.characters && d.characters.categories) ? d.characters.categories : [],
+      characterPriority: (d.characters && d.characters.priority) ? d.characters.priority : 'niceToHave'
+    },
     dining: {
       reservations: (d.reservations || []).map(function(s) {
         if (!s || typeof s !== 'string') return null;
