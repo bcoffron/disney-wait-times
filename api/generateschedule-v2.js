@@ -13,7 +13,7 @@
 // existing d.parsed handling is unchanged.
 
 import { list } from '@vercel/blob';
-import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter } from './schedule-engine.js';
+import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, parseHourMin } from './schedule-engine.js';
 
 const MODEL = 'claude-sonnet-4-6';
 
@@ -217,7 +217,45 @@ export default async function handler(req, res) {
       if (s !== -1 && e !== -1) parsed = JSON.parse(t.substring(s, e + 1));
     } catch (e) { /* leave parsed null; client falls back to text */ }
 
-    return res.status(200).json({ ok: true, text, parsed, model: data.model, _engine: 'v2', _blocks: blocks });
+    // ---- PHYSICS ENFORCEMENT (code, not prompt): drop any RIDE scheduled into a block whose park
+    // does not contain it. The model is told to stay in-block, but prompt rules can lose to the data;
+    // this guarantees a ride's time falls in a block whose park's catalog actually has that ride.
+    // Conservative: only drops type 'ride' items we can confidently match as wrong-park. Never touches
+    // meals/tips/shows/snacks. Does NOT regenerate or insert filler (that was the scaffold's failure). ----
+    let _enforce = { dropped: [] };
+    if (Array.isArray(parsed) && parsed.length) {
+      // precompute per-park ride name sets (normalized) from the catalog
+      const _norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+      const _parkRideSet = {};
+      blocks.forEach(b => {
+        if (!_parkRideSet[b.park]) {
+          const f = buildCatalogFilter(catalog, b.park);
+          _parkRideSet[b.park] = new Set(f.attractions.map(a => _norm(a.name)));
+        }
+      });
+      const _kept = [];
+      parsed.forEach(it => {
+        if (it && it.type === 'ride' && it.t) {
+          const tm = parseHourMin(it.t);
+          const parkAt = whichParkAt(blocks, tm);
+          const set = _parkRideSet[parkAt];
+          // strip rope-drop / LL adornments for matching, same as client cleaning
+          const rideName = _norm(String(it.h || '').replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, '').replace(/\s*\(ll[^)]*\)\s*$/i, '').replace(/\s*\(night[^)]*\)\s*$/i, ''));
+          // Only drop if we have a catalog set for that park AND the ride is genuinely absent from it
+          // (i.e. it belongs to the OTHER park). If set is missing, keep (fail open, never over-drop).
+          if (set && set.size && !set.has(rideName)) {
+            // confirm it actually exists in some OTHER park before dropping (so we don't drop a name the
+            // catalog simply lacks, e.g. a show mislabeled as a ride)
+            const inOtherPark = Object.keys(_parkRideSet).some(p => p !== parkAt && _parkRideSet[p].has(rideName));
+            if (inOtherPark) { _enforce.dropped.push({ t: it.t, h: it.h, scheduledIn: parkAt }); return; }
+          }
+        }
+        _kept.push(it);
+      });
+      if (_enforce.dropped.length) { parsed = _kept; }
+    }
+
+    return res.status(200).json({ ok: true, text, parsed, model: data.model, _engine: 'v2', _blocks: blocks, _enforce });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
