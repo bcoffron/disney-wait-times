@@ -188,7 +188,7 @@ export default async function handler(req, res) {
 
     // ---- model call ----
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 110000);
     let data;
     try {
       const aRes = await fetch('https://api.anthropic.com/v1/messages', {
