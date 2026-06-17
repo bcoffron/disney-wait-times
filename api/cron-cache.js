@@ -157,7 +157,8 @@ Return ONLY this JSON object (no markdown fences, no prose, just the raw JSON):
       "heightInches": 40,
       "llKind": "single",
       "ropeDropValue": "high",
-      "typicalPeakWait": 90
+      "typicalPeakWait": 90,
+      "status": "operating"
     }
   ],
   "venues": [
@@ -177,7 +178,7 @@ FIELD RULES:
 - heightInches: Use these EXACT values from the DLR height table: Incredicoaster=48; Matterhorn Bobsleds=42; Goofy's Sky School=42; Big Thunder Mountain Railroad=40; Space Mountain=40; Tiana's Bayou Adventure=40; Star Wars Rise of the Resistance=40; Guardians of the Galaxy Mission Breakout=40; Radiator Springs Racers=40; Gadget's Go Coaster=35; Luigi's Rollickin' Roadsters=32; Mater's Junkyard Jamboree=32; all other attractions=0.
 - llKind: "single" ONLY for Rise of the Resistance and Radiator Springs Racers. "multi" for all other Lightning Lane rides. "none" for all non-LL attractions.
 - ropeDropValue: "high" for rides where rope drop saves 45+ min (Rise, RSR, Space Mountain, Indiana Jones, Big Thunder, Peter Pan, Web-Slingers, Guardians). "med" for rides where rope drop saves 20-45 min. "low" for rides with consistently short waits all day.
-- typicalPeakWait: median wait in minutes at peak (summer weekend 11am-2pm) from TouringPlans data. Use 0 for non-timed experiences.
+- typicalPeakWait: median wait in minutes at peak (summer weekend 11am-2pm) from TouringPlans data. Use 0 for non-timed experiences.\n- status: REQUIRED on every attraction. Use exactly "operating" if the ride is open for the trip window, or exactly "closed_for_refurbishment" if it is closed/down for refurbishment, scheduled rehab, or any reason during the trip window. Base this on current confirmed 2025-2026 closure info from official Disneyland, AllEars, and TouringPlans -- the SAME closure reality you would report in a current-closures list. Check EVERY attraction, not just well-known ones; if you are unsure whether a ride is open, default to "operating". Do not invent closures.
 - service (venues only): "quickservice", "table", or "snack"
 - reservationPolicy (venues only): "required", "recommended", or "walkup"
 - id: lowercase snake_case, unique, ASCII only
@@ -187,7 +188,7 @@ Include ALL major dining venues from both parks that appear in current Disney Fo
 Carnation Cafe: service="table", reservationPolicy="recommended" (it is table service, NOT quick service).
 Aunt Cass Cafe (NOT Pacific Wharf Cafe): park="DCA".
 Alien Pizza Planet (NOT Redd Rockett's): park="DL".
-Pirates of the Caribbean: include but note in a "status" field if currently closed for refurbishment.
+Set the "status" field correctly for EVERY attraction per the status field rule above (open ride -> "operating"; any ride closed/down for refurbishment during the trip -> "closed_for_refurbishment"). Pay particular attention to confirming Pirates of the Caribbean current status.
 
 Output the complete JSON object. Do not truncate. Do not add any text before or after the JSON.`,
     maxTokens:6000
