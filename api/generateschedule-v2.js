@@ -255,6 +255,53 @@ export default async function handler(req, res) {
       if (_enforce.dropped.length) { parsed = _kept; }
     }
 
+    // ---- ROPE-DROP GUARANTEE (physics, code-enforced): the morning is the most important hour and
+    // rope-drop strategy differs by park. After wrong-park drops, ensure the day OPENS with a real
+    // rope-drop ride IN THE STARTING PARK. If the first ride isn't a starting-park ropeDrop=high ride,
+    // prepend the best available one at park open. Picks the single-ILL headliner first (Rise for DL,
+    // Radiator Springs for DCA), else the first high-value rope-drop ride in the starting park that the
+    // model didn't already schedule. Deterministic -- no model dependency. ----
+    _enforce.ropeDrop = null;
+    if (Array.isArray(parsed) && parsed.length && blocks.length) {
+      const _norm2 = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+      const startPark = blocks[0].park;
+      const startOpen = blocks[0].startMin;
+      // high-value rope-drop rides in the starting park, headliner (single ILL) first
+      const rdPool = catalog.attractions
+        .filter(a => a.park === startPark && a.ropeDropValue === 'high')
+        .sort((a, b) => (a.llKind === 'single' ? -1 : 0) - (b.llKind === 'single' ? -1 : 0));
+      // names already scheduled as rides today (cleaned)
+      const usedNames = new Set(parsed.filter(it => it && it.type === 'ride')
+        .map(it => _norm2(String(it.h || '').replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, '').replace(/\s*\(ll[^)]*\)\s*$/i, '').replace(/\s*\(night[^)]*\)\s*$/i, ''))));
+      // find the first actual RIDE of the day (by time) and whether it's a starting-park rope-drop ride
+      const ridesByTime = parsed.filter(it => it && it.type === 'ride' && it.t)
+        .sort((a, b) => parseHourMin(a.t) - parseHourMin(b.t));
+      const firstRide = ridesByTime[0];
+      const startParkHighSet = new Set(rdPool.map(a => _norm2(a.name)));
+      const firstRideIsStartRopeDrop = firstRide && startParkHighSet.has(_norm2(String(firstRide.h || '')
+        .replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, '').replace(/\s*\(ll[^)]*\)\s*$/i, '')));
+      if (!firstRideIsStartRopeDrop && rdPool.length) {
+        // Prefer pulling forward a high rope-drop ride the model ALREADY scheduled (headliner/single-ILL
+        // first) so we don't strand it or add a second headliner; else introduce the best unused one;
+        // else reuse the headliner (a repeat is fine for the single most important slot of the day).
+        const pick = rdPool.find(a => usedNames.has(_norm2(a.name)))
+          || rdPool.find(a => !usedNames.has(_norm2(a.name)))
+          || rdPool[0];
+        const openItem = {
+          t: minToLabel(startOpen),
+          h: 'Rope Drop: ' + pick.name,
+          type: 'ride',
+          n: 'Be at the gate before open and head straight here -- ' + pick.name + ' builds the longest lines fastest, so riding it first saves the most time of any move all day.',
+          land: pick.land
+        };
+        // remove any existing copy of this exact ride so it isn't duplicated, then prepend
+        parsed = parsed.filter(it => !(it && it.type === 'ride' && _norm2(String(it.h || '')
+          .replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, '').replace(/\s*\(ll[^)]*\)\s*$/i, '')) === _norm2(pick.name)));
+        parsed.unshift(openItem);
+        _enforce.ropeDrop = { added: pick.name, park: startPark, at: openItem.t };
+      }
+    }
+
     return res.status(200).json({ ok: true, text, parsed, model: data.model, _engine: 'v2', _blocks: blocks, _enforce });
   } catch (e) {
     return res.status(500).json({ error: e.message });
