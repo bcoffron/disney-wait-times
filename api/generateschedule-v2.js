@@ -178,7 +178,7 @@ export default async function handler(req, res) {
 + 'Shortest person height: ' + (shortest > 0 ? shortest + ' inches (apply rider-swap on taller-requirement rides)' : 'everyone meets all height requirements') + '.\n\n'
 + (Array.isArray(priorRides) && priorRides.length
     ? 'CROSS-DAY VARIETY (soft preference, NOT a hard rule): earlier days of this trip already scheduled these rides: '
-      + priorRides.join(', ') + '. Favor FRESH attractions the group has not done yet so the trip feels varied across days. '
+      + [...new Set(priorRides)].slice(-18).join(', ') + '. Favor FRESH attractions the group has not done yet so the trip feels varied across days. '
       + 'It is fine to repeat a true must-do headliner the group loves (e.g. a top coaster or a marquee ride on their must-do list), '
       + 'but do not fill the day with repeats when good unused attractions remain in this block.\n'
     : '')
