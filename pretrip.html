@@ -1108,6 +1108,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   var _body = _useV2
     ? { dayIndex: dayIndex, maxTokens: 8000, tripCode: localStorage.getItem('tpcp_code') || '',
         adminKey: (localStorage.getItem('tpcp_role')==='admin') ? 'cwdis2026admin' : undefined,
+        priorRides: (tripConfig._priorRides || []),
         tripConfig: _v2TripConfig }
     : _useScaffold
     ? { dayIndex: dayIndex, maxTokens: 8000, tripCode: localStorage.getItem('tpcp_code') || '',
@@ -1317,6 +1318,17 @@ console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unk
       if (!Array.isArray(tripConfig.dining.usedVenues)) tripConfig.dining.usedVenues = [];
       tripConfig.dining.usedVenues = tripConfig.dining.usedVenues.concat(_usedThisDay);
       console.log('[pretrip] Day '+(idx+1)+' venues:', JSON.stringify(_usedThisDay));
+      // Cross-day ride variety: accumulate ride names so later days favor fresh attractions (v2 priorRides)
+      var _ridesThisDay = [];
+      (items || []).forEach(function(item) {
+        if (item && item.type === 'ride' && item.h) {
+          var rn = item.h.replace(/^Rope Drop:\s*/i, '').replace(/\s*\(LL[^)]*\)\s*$/i, '').trim();
+          if (rn && _ridesThisDay.indexOf(rn) === -1) _ridesThisDay.push(rn);
+        }
+      });
+      if (!Array.isArray(tripConfig._priorRides)) tripConfig._priorRides = [];
+      _ridesThisDay.forEach(function(rn){ if (tripConfig._priorRides.indexOf(rn) === -1) tripConfig._priorRides.push(rn); });
+      console.log('[pretrip] Day '+(idx+1)+' rides accumulated; priorRides now '+tripConfig._priorRides.length);
       }
       ptUpdateGenBar(idx + 1, totalDays);
       generateNext(idx + 1);
