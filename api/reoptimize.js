@@ -246,7 +246,7 @@ async function handler(req, res) {
               '\n4. ANCHORED ITEMS: Never move dining reservations, confirmed shows, or ' +
               'any item with type "dining" that has isConfirmed=true. Keep them at their ' +
               'exact scheduled time.' +
-              '\n5. APPLY CLOSURES: Never include any attraction listed in CURRENT CLOSURES.' +
+              '\n5. CLOSURES ARE INFORMATIONAL ONLY: The rides in the schedule you receive were ALREADY checked against closures by the planner that built it -- every ride present is intended to be there. Do NOT drop or remove a ride because it appears in the CURRENT CLOSURES text (that text can be stale and is not date-aware). This rule never overrides Rule 3 (return every item). Use the closures text only to avoid reordering a ride into a time window when it is temporarily down.' +
               '\n6. ALL ITEM TYPES: Apply optimization to rides, dining, snacks, breaks, ' +
               'and photo stops. A snack stop should be in the same land as surrounding rides. ' +
               'A bathroom break should be near the next attraction.' +
