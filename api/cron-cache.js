@@ -553,21 +553,6 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
       throw new Error('[CATALOG] self-parse-check FAIL: final round-trip stringify failed: ' + e.message);
     }
     sectionData = parsed;
-} else {
-        throw new Error('[CATALOG] self-parse-check FAIL: model returned unrecognized array. First item keys: ' + Object.keys(first).join(','));
-      }
-    }
-    // If model returned {attractions} without venues, that is acceptable -- venues come from dining_intel_dl
-    if(!Array.isArray(parsed.attractions) || parsed.attractions.length === 0) {
-      throw new Error('[CATALOG] self-parse-check FAIL: attractions array missing or empty. Keys: ' + Object.keys(parsed).join(','));
-    }
-    if(!Array.isArray(parsed.venues)) { parsed.venues = []; }
-    // Verify re-serialization round-trips cleanly
-    try { JSON.parse(JSON.stringify(parsed)); } catch(e) {
-      throw new Error('[CATALOG] self-parse-check FAIL: round-trip stringify failed: ' + e.message);
-    }
-    console.log('[CATALOG] self-parse-check PASS: attractions=' + parsed.attractions.length + ' venues=' + parsed.venues.length);
-    sectionData = parsed; // store as object, not string
   } else {
     sectionData = text;
   }
