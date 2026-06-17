@@ -223,6 +223,17 @@ export default async function handler(req, res) {
     // Conservative: only drops type 'ride' items we can confidently match as wrong-park. Never touches
     // meals/tips/shows/snacks. Does NOT regenerate or insert filler (that was the scaffold's failure). ----
     let _enforce = { dropped: [] };
+    // Single source of truth for normalizing a schedule item's ride name for catalog matching.
+    // Strips rope-drop prefixes (colon form 'Rope Drop:' AND dash form 'Rope Drop -/\u2014') and
+    // trailing (LL...)/(night...) adornments, then lowercases/strips punctuation. NOTE the colon
+    // branch requires an actual colon ([^:]*: not [^:]*:?) -- the old optional-colon form was greedy
+    // and ate colonless 'Rope Drop \u2014 X' strings down to empty, so wrong-park leaks failed open.
+    const cleanRideName = h => String(h || '')
+      .replace(/^rope drop[^:]*:\s*/i, '')
+      .replace(/^rope drop\s*[\u2014-]\s*/i, '')
+      .replace(/\s*\((ll|lightning)[^)]*\)\s*$/i, '')
+      .replace(/\s*\(night[^)]*\)\s*$/i, '')
+      .toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
     if (Array.isArray(parsed) && parsed.length) {
       // precompute per-park ride name sets (normalized) from the catalog
       const _norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
@@ -240,7 +251,7 @@ export default async function handler(req, res) {
           const parkAt = whichParkAt(blocks, tm);
           const set = _parkRideSet[parkAt];
           // strip rope-drop / LL adornments for matching, same as client cleaning
-          const rideName = _norm(String(it.h || '').replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, '').replace(/\s*\(ll[^)]*\)\s*$/i, '').replace(/\s*\(night[^)]*\)\s*$/i, ''));
+          const rideName = cleanRideName(it.h);
           // Only drop if we have a catalog set for that park AND the ride is genuinely absent from it
           // (i.e. it belongs to the OTHER park). If set is missing, keep (fail open, never over-drop).
           if (set && set.size && !set.has(rideName)) {
@@ -272,14 +283,13 @@ export default async function handler(req, res) {
         .sort((a, b) => (a.llKind === 'single' ? -1 : 0) - (b.llKind === 'single' ? -1 : 0));
       // names already scheduled as rides today (cleaned)
       const usedNames = new Set(parsed.filter(it => it && it.type === 'ride')
-        .map(it => _norm2(String(it.h || '').replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, '').replace(/\s*\(ll[^)]*\)\s*$/i, '').replace(/\s*\(night[^)]*\)\s*$/i, ''))));
+        .map(it => cleanRideName(it.h)));
       // find the first actual RIDE of the day (by time) and whether it's a starting-park rope-drop ride
       const ridesByTime = parsed.filter(it => it && it.type === 'ride' && it.t)
         .sort((a, b) => parseHourMin(a.t) - parseHourMin(b.t));
       const firstRide = ridesByTime[0];
       const startParkHighSet = new Set(rdPool.map(a => _norm2(a.name)));
-      const firstRideIsStartRopeDrop = firstRide && startParkHighSet.has(_norm2(String(firstRide.h || '')
-        .replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, '').replace(/\s*\(ll[^)]*\)\s*$/i, '')));
+      const firstRideIsStartRopeDrop = firstRide && startParkHighSet.has(cleanRideName(firstRide.h));
       if (!firstRideIsStartRopeDrop && rdPool.length) {
         // Prefer pulling forward a high rope-drop ride the model ALREADY scheduled (headliner/single-ILL
         // first) so we don't strand it or add a second headliner; else introduce the best unused one;
@@ -295,8 +305,8 @@ export default async function handler(req, res) {
           land: pick.land
         };
         // remove any existing copy of this exact ride so it isn't duplicated, then prepend
-        parsed = parsed.filter(it => !(it && it.type === 'ride' && _norm2(String(it.h || '')
-          .replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, '').replace(/\s*\(ll[^)]*\)\s*$/i, '')) === _norm2(pick.name)));
+        parsed = parsed.filter(it => !(it && it.type === 'ride' &&
+          cleanRideName(it.h) === cleanRideName(pick.name)));
         parsed.unshift(openItem);
         _enforce.ropeDrop = { added: pick.name, park: startPark, at: openItem.t };
       }
