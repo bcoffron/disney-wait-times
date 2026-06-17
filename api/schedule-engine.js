@@ -141,6 +141,32 @@ function normAttr(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 }
 
+// Parse a date that may be ISO ('2026-06-26') or a display string ('Jun 28, 2026') into a
+// comparable number YYYYMMDD (e.g. 20260626), or null if unparseable. Used for closure date math.
+function toComparableDate(d) {
+  if (!d) return null;
+  const s = String(d).trim();
+  // ISO yyyy-mm-dd (optionally with time)
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return Number(m[1] + m[2] + m[3]);
+  // Display 'Mon DD, YYYY' / 'Month DD YYYY'
+  const MON = { jan:'01', feb:'02', mar:'03', apr:'04', may:'05', jun:'06', jul:'07', aug:'08', sep:'09', oct:'10', nov:'11', dec:'12' };
+  m = s.match(/^([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})/);
+  if (m) {
+    const mm = MON[m[1].toLowerCase()];
+    if (mm) return Number(m[3] + mm + (m[2].length === 1 ? '0' + m[2] : m[2]));
+  }
+  // Last resort: Date.parse
+  const t = Date.parse(s);
+  if (!isNaN(t)) {
+    const dt = new Date(t);
+    const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getUTCDate()).padStart(2, '0');
+    return Number('' + dt.getUTCFullYear() + mm + dd);
+  }
+  return null;
+}
+
 // DATE-AWARE AVAILABILITY (physics): is this attraction open on the trip day?
 // A ride is AVAILABLE unless it is closed THROUGH the trip date.
 //   - effective status/reopen come from the closureOverrides map (fresh, weekly CLOSURES) when present,
@@ -172,8 +198,11 @@ export function isAttractionAvailable(attraction, tripDate, closureOverrides) {
   if (!reopenDate) return false; // closed, no known reopen -> hidden
   const conf = reopenConfidence ? String(reopenConfidence).toLowerCase().trim() : 'unknown';
   if (conf === 'unknown') return false; // closed with a date we don't trust -> hidden
-  // reopenDate is 'YYYY-MM-DD'; available if it reopens on or before the trip day
-  return String(reopenDate).slice(0, 10) <= String(tripDate).slice(0, 10);
+  // available if it reopens on or before the trip day (parse both ISO and display date formats)
+  const rd = toComparableDate(reopenDate);
+  const td = toComparableDate(tripDate);
+  if (rd == null || td == null) return false; // can't compare dates reliably -> stay hidden (conservative)
+  return rd <= td;
 }
 
 export function buildCatalogFilter(catalog, park, tripDate, closureOverrides) {
