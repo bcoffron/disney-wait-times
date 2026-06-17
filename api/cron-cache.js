@@ -460,6 +460,23 @@ async function buildCatalogVenues(cacheKey) {
   }
 
   console.log('[CATALOG] buildCatalogVenues: parsed ' + venues.length + ' venues from ' + lines.length + ' lines');
+
+  // Guaranteed entries: venues that are reliably absent from dining_intel_dl
+  // (Magic Key Terrace never appears in dining coverage; Carthay Circle Lounge is frequently omitted)
+  const normVenueNames = venues.map(function(v){ return normalizeName(v.name); });
+  const GUARANTEED = [
+    { id: 'carthay_circle_lounge', name: 'Carthay Circle Lounge', park: 'DCA', land: 'Buena Vista Street',
+      service: 'lounge', reservationPolicy: 'walkup', walkupEase: 'lounge' },
+    { id: 'magic_key_terrace', name: 'Magic Key Terrace', park: 'DCA', land: 'Buena Vista Street',
+      service: 'quickservice', reservationPolicy: 'walkup', walkupEase: 'easy', exclude: true }
+  ];
+  for (const g of GUARANTEED) {
+    if (normVenueNames.indexOf(normalizeName(g.name)) === -1) {
+      venues.push(g);
+      console.log('[CATALOG] buildCatalogVenues: injected guaranteed entry: ' + g.name);
+    }
+  }
+
   return venues;
 }
 
