@@ -314,6 +314,155 @@ async function callClaude(prompt, apiKey) {
   return text;
 }
 
+
+// ---------------------------------------------------------------------------
+// CATALOG.venues builder  (FINAL spec -- supersedes prior venue spec)
+// Reads dining_intel_dl, parses the newline-delimited string, applies
+// hardcoded service / walkupEase / exclude classifications from Beau's
+// authoritative 2026 dining info.  Classification does NOT come from RESV=.
+// ---------------------------------------------------------------------------
+function normalizeName(s) {
+  // lowercase, strip common accent chars, collapse spaces
+  return String(s).toLowerCase()
+    .replace(/é/g,'e').replace(/è/g,'e').replace(/ê/g,'e')
+    .replace(/à/g,'a').replace(/â/g,'a').replace(/ô/g,'o')
+    .replace(/ù/g,'u').replace(/û/g,'u').replace(/î/g,'i')
+    .replace(/ï/g,'i').replace(/ç/g,'c')
+    .replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+}
+
+// TABLE-SERVICE allowlist (DL + DCA)
+const CATALOG_TABLE_NAMES = [
+  'blue bayou restaurant','cafe orleans','carnation cafe','river belle terrace',
+  'carthay circle restaurant','wine country trattoria'
+];
+// LOUNGE list: name -> walkupEase override
+const CATALOG_LOUNGE_MAP = {
+  'ogas cantina': 'walkupOnly',
+  'lamplight lounge': 'lounge',
+  'carthay circle lounge': 'lounge'
+};
+// walkupEase curated map
+const CATALOG_WALKUP_EASE = {
+  'ogas cantina': 'walkupOnly',
+  'plaza inn': 'walkupOnly',
+  'blue bayou restaurant': 'hard',
+  'carthay circle restaurant': 'hard',
+  'carnation cafe': 'easy',
+  'river belle terrace': 'easy',
+  'wine country trattoria': 'easy',
+  'cafe orleans': 'easy',
+  'lamplight lounge': 'lounge',
+  'carthay circle lounge': 'lounge'
+};
+// EXCLUDE list
+const CATALOG_EXCLUDE_NAMES = ['magic key terrace'];
+// PLAZA INN special case
+const CATALOG_PLAZA_INN = 'plaza inn';
+// Snack keyword patterns
+const CATALOG_SNACK_KEYWORDS = ['churro','cart','stand','popcorn','pretzel','ice cream','cold brew','coffee','fruit'];
+// Character dining venues (walkupEase = "hard")
+const CATALOG_CHARACTER_DINING_KEYWORDS = ['character','breakfast with','dining experience'];
+
+function classifyVenue(rawName) {
+  const n = normalizeName(rawName);
+  const service_override = null;
+
+  // EXCLUDE
+  if (CATALOG_EXCLUDE_NAMES.some(function(x){ return n.indexOf(x) !== -1; })) {
+    return { service: 'quickservice', walkupEase: 'easy', exclude: true };
+  }
+  // LOUNGE
+  if (Object.prototype.hasOwnProperty.call(CATALOG_LOUNGE_MAP, n)) {
+    return { service: 'lounge', walkupEase: CATALOG_LOUNGE_MAP[n], exclude: false };
+  }
+  // PLAZA INN special case
+  if (n.indexOf(CATALOG_PLAZA_INN) !== -1) {
+    return { service: 'quickservice', walkupEase: 'walkupOnly', exclude: false };
+  }
+  // TABLE-SERVICE
+  if (CATALOG_TABLE_NAMES.indexOf(n) !== -1) {
+    // Character dining -> hard
+    const we = CATALOG_WALKUP_EASE[n] !== undefined ? CATALOG_WALKUP_EASE[n] : 'easy';
+    return { service: 'table', walkupEase: we, exclude: false };
+  }
+  // Check character dining keywords -> table + hard
+  if (CATALOG_CHARACTER_DINING_KEYWORDS.some(function(kw){ return n.indexOf(kw) !== -1; })) {
+    return { service: 'table', walkupEase: 'hard', exclude: false };
+  }
+  // SNACK
+  if (CATALOG_SNACK_KEYWORDS.some(function(kw){ return n.indexOf(kw) !== -1; })) {
+    return { service: 'snack', walkupEase: 'easy', exclude: false };
+  }
+  // Default: quickservice
+  const we2 = CATALOG_WALKUP_EASE[n] !== undefined ? CATALOG_WALKUP_EASE[n] : 'easy';
+  return { service: 'quickservice', walkupEase: we2, exclude: false };
+}
+
+function venueIdFromName(name) {
+  return normalizeName(name).replace(/ /g, '_').replace(/[^a-z0-9_]/g, '');
+}
+
+async function buildCatalogVenues(cacheKey) {
+  // Read dining_intel_dl blob
+  let diningData = null;
+  try {
+    const { blobs } = await list({ prefix: 'twize/dining_intel_dl.json' });
+    if (blobs && blobs.length) {
+      const blob = blobs.sort(function(a,b){ return new Date(b.uploadedAt)-new Date(a.uploadedAt); })[0];
+      const fetchUrl = blob.downloadUrl || blob.url;
+      diningData = await (await fetch(fetchUrl)).json();
+    }
+  } catch(e) {
+    console.log('[CATALOG] buildCatalogVenues: failed to fetch dining_intel_dl:', e.message);
+  }
+
+  if (!diningData) {
+    console.log('[CATALOG] buildCatalogVenues: no dining_intel_dl blob found -- returning empty venues');
+    return [];
+  }
+
+  // dining_intel_dl stores the venue lines in .data as a newline-delimited string
+  const raw = diningData.data;
+  if (!raw || typeof raw !== 'string') {
+    console.log('[CATALOG] buildCatalogVenues: dining_intel_dl.data is not a string, type=' + typeof raw);
+    return [];
+  }
+
+  const lines = raw.split('\n').filter(function(l){ return l.trim().length > 0; });
+  const lineRe = /^(.+?)\s*\[(DL|DCA),\s*(.+?)\]\s*RESV=(\w+)/;
+  const venues = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const m = line.match(lineRe);
+    if (!m) {
+      console.log('[CATALOG] buildCatalogVenues: skipping unparseable line ' + i + ': ' + line.substring(0,80));
+      continue;
+    }
+    const name = m[1].trim();
+    const park = m[2];
+    const land = m[3].trim();
+    const reservationPolicy = m[4]; // "required" | "recommended" | "walkup"
+
+    const cls = classifyVenue(name);
+    const venue = {
+      id: venueIdFromName(name),
+      name: name,
+      park: park,
+      land: land,
+      service: cls.service,
+      reservationPolicy: reservationPolicy,
+      walkupEase: cls.walkupEase
+    };
+    if (cls.exclude) { venue.exclude = true; }
+    venues.push(venue);
+  }
+
+  console.log('[CATALOG] buildCatalogVenues: parsed ' + venues.length + ' venues from ' + lines.length + ' lines');
+  return venues;
+}
+
 async function buildSingleSection(cacheKey, sectionName, apiKey) {
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
@@ -329,16 +478,15 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
     sectionData = parsed || text;
   } else if(sectionName==='CATALOG') {
     // CATALOG requires a fully parseable JSON object -- no prose, no truncation.
-    // Self-parse-check: if the response does not parse as a complete {attractions, venues} object,
-    // the build fails loudly here rather than storing broken data.
+    // Attractions come from the model; venues are built deterministically from
+    // dining_intel_dl using hardcoded classification rules (FINAL spec).
     let parsed = null;
-    parsed = extractJson(text); // handles raw JSON, fenced blocks, array-first, and brace-matching
+    parsed = extractJson(text);
     if(!parsed) {
       throw new Error('[CATALOG] self-parse-check FAIL: model returned non-parseable content. First 300 chars: ' + text.substring(0, 300));
     }
-    // Normalize: if model returned an array directly, treat it as attractions list
+    // Normalize: if model returned an array directly
     if(Array.isArray(parsed)) {
-      // Determine if it looks like an attractions array or a venues array
       const first = parsed[0] || {};
       if(first.heightInches !== undefined || first.llKind !== undefined || first.ropeDropValue !== undefined) {
         parsed = { attractions: parsed, venues: [] };
@@ -347,6 +495,65 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
         parsed = { attractions: [], venues: parsed };
         console.log('[CATALOG] model returned venues array -- wrapped as {attractions:[], venues}');
       } else {
+        throw new Error('[CATALOG] self-parse-check FAIL: model returned unrecognized array. First item keys: ' + Object.keys(first).join(','));
+      }
+    }
+    if(!Array.isArray(parsed.attractions) || parsed.attractions.length === 0) {
+      throw new Error('[CATALOG] self-parse-check FAIL: attractions array missing or empty. Keys: ' + Object.keys(parsed).join(','));
+    }
+    // Build venues from dining_intel_dl using curated hardcoded classification
+    let builtVenues = [];
+    try {
+      builtVenues = await buildCatalogVenues(cacheKey);
+    } catch(ve) {
+      console.log('[CATALOG] buildCatalogVenues threw: ' + ve.message);
+      builtVenues = [];
+    }
+    parsed.venues = builtVenues;
+
+    // ---- self-parse-check ----
+    const _spCheck = function(label, got, expected) {
+      if(got !== expected) throw new Error('[CATALOG] self-parse-check FAIL: ' + label + ' expected=' + expected + ' got=' + got);
+    };
+    const _findV = function(name) { const n2 = normalizeName(name); return parsed.venues.find(function(v){ return normalizeName(v.name) === n2; }); };
+    // Round-trip
+    try { JSON.parse(JSON.stringify({ attractions: parsed.attractions, venues: parsed.venues })); }
+    catch(e) { throw new Error('[CATALOG] self-parse-check FAIL: round-trip stringify failed: ' + e.message); }
+    // venues non-empty
+    if(parsed.venues.length === 0) throw new Error('[CATALOG] self-parse-check FAIL: venues.length === 0 (was dining_intel_dl built yet?)');
+    // Table service assertions
+    ['Blue Bayou Restaurant','Cafe Orleans','Carnation Cafe','River Belle Terrace','Carthay Circle Restaurant','Wine Country Trattoria'].forEach(function(nm){
+      const v = _findV(nm); if(!v) { console.log('[CATALOG] self-parse-check WARN: table venue not found in venues: ' + nm); return; }
+      _spCheck(nm + '.service', v.service, 'table');
+    });
+    // Lounge assertions
+    ['Lamplight Lounge','Carthay Circle Lounge',"Oga's Cantina"].forEach(function(nm){
+      const v = _findV(nm); if(!v) { console.log('[CATALOG] self-parse-check WARN: lounge not found: ' + nm); return; }
+      _spCheck(nm + '.service', v.service, 'lounge');
+    });
+    // Plaza Inn
+    const piV = _findV('Plaza Inn');
+    if(piV) _spCheck('Plaza Inn.service', piV.service, 'quickservice');
+    // Magic Key Terrace
+    const mktV = _findV('Magic Key Terrace');
+    if(mktV) _spCheck('Magic Key Terrace.exclude', mktV.exclude, true);
+    // Known counter spots
+    const bengalV = parsed.venues.find(function(v){ return normalizeName(v.name).indexOf('bengal') !== -1; });
+    if(bengalV) _spCheck('Bengal Barbecue.service', bengalV.service, 'quickservice');
+    const flosV = parsed.venues.find(function(v){ return normalizeName(v.name).indexOf('flo') !== -1; });
+    if(flosV) _spCheck("Flo's V8.service", flosV.service, 'quickservice');
+
+    const tableCount = parsed.venues.filter(function(v){ return v.service==='table'; }).length;
+    const loungeCount = parsed.venues.filter(function(v){ return v.service==='lounge'; }).length;
+    const excludedCount = parsed.venues.filter(function(v){ return v.exclude===true; }).length;
+    console.log('[CATALOG] self-parse-check PASS: attractions=' + parsed.attractions.length + ' venues=' + parsed.venues.length + ' table=' + tableCount + ' lounge=' + loungeCount + ' excluded=' + excludedCount);
+
+    // Verify re-serialization round-trips cleanly (final check)
+    try { JSON.parse(JSON.stringify(parsed)); } catch(e) {
+      throw new Error('[CATALOG] self-parse-check FAIL: final round-trip stringify failed: ' + e.message);
+    }
+    sectionData = parsed;
+} else {
         throw new Error('[CATALOG] self-parse-check FAIL: model returned unrecognized array. First item keys: ' + Object.keys(first).join(','));
       }
     }
