@@ -24,6 +24,54 @@ function checkAILimit(ip) {
 // --------- Hardcoded model allowlist — never trust client-supplied model ---
 const MODEL = 'claude-haiku-4-5-20251001';
 
+// --------- fetchLiveWaits: current standby waits straight from ThemeParks.wiki -------------------
+// Same source and entity IDs as api/waittimes.js. Ask AI was told (in its system prompt) that it has
+// "live wait data" but nothing ever supplied it, so "what's the wait right now" fell back to historical
+// patterns and the model hedged. This makes the claim true. Returns a compact text block the model can
+// read directly, plus a flag so the prompt can adapt. Distinguishes three states per ride: a live
+// number (operating), DOWN (temporarily not running -- report as down, do not invent a number), and
+// simply absent (not in today's live feed -- only then fall back to historical). Fail-soft: on any
+// error returns { text: '', ok: false } so a live-data outage never breaks Ask AI.
+async function fetchLiveWaits() {
+      const DL_ID = '7340550b-c14d-4def-80bb-acdb51d49a66';
+      const DCA_ID = '832fcd51-ea19-4e77-85c7-75d5843b127c';
+      try {
+              const ctrl = new AbortController();
+              const to = setTimeout(() => ctrl.abort(), 8000);
+              const [dlResp, dcaResp] = await Promise.all([
+                      fetch('https://api.themeparks.wiki/v1/entity/' + DL_ID + '/live', { signal: ctrl.signal }),
+                      fetch('https://api.themeparks.wiki/v1/entity/' + DCA_ID + '/live', { signal: ctrl.signal })
+              ]);
+              clearTimeout(to);
+              const [dlData, dcaData] = await Promise.all([dlResp.json(), dcaResp.json()]);
+              const rows = [];
+              const collect = (data, park) => {
+                      (data.liveData || [])
+                              .filter(r => r.entityType === 'ATTRACTION')
+                              .forEach(r => {
+                                      const w = (r.queue && r.queue.STANDBY && typeof r.queue.STANDBY.waitTime === 'number') ? r.queue.STANDBY.waitTime : null;
+                                      rows.push({ name: r.name, wait: w, status: r.status || '', park });
+                              });
+              };
+              collect(dlData, 'DL');
+              collect(dcaData, 'DCA');
+              if (!rows.length) return { text: '', ok: false };
+              // operating rides with a number, sorted by park then name; plus a separate down/closed list
+              const operating = rows.filter(r => r.status === 'OPERATING' && r.wait !== null)
+                      .sort((a, b) => (a.park + a.name).localeCompare(b.park + b.name))
+                      .map(r => r.park + ' ' + r.name + ': ' + r.wait + ' min');
+              const down = rows.filter(r => r.status && r.status !== 'OPERATING')
+                      .map(r => r.park + ' ' + r.name + ' (' + r.status + ')');
+              const stamp = new Date().toISOString();
+              let text = 'LIVE STANDBY WAITS (real-time from ThemeParks.wiki, fetched ' + stamp + '):\n';
+              text += operating.length ? operating.join('\n') : '(no operating standby waits reported right now)';
+              if (down.length) text += '\nCURRENTLY DOWN / NOT OPERATING: ' + down.join('; ');
+              return { text: text, ok: true };
+      } catch (e) {
+              return { text: '', ok: false };
+      }
+}
+
 // --------- buildCacheContext ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 async function buildCacheContext(sectionNames, includeDynamic = false) {
       const results = {};
@@ -152,9 +200,16 @@ export default async function handler(req, res) {
               if (hoursCache) parkHours = '\nPARK HOURS:\n' + JSON.stringify(hoursCache).substring(0, 400);
       } catch(e) {}
 
+  // ------ Fetch LIVE standby waits (real-time) so "what's the wait right now" works ---------------
+  // Historical WAIT PATTERNS already live in the cache context below; this adds the actual current
+  // numbers. Fail-soft: if the live feed is unavailable, liveWaits.ok is false and we tell the model
+  // to use historical patterns instead (rather than letting it hedge or invent a number).
+  const liveWaits = await fetchLiveWaits();
+
   // ------ Build all-sections context string, capped proportionally ---------------------------------------------
   const fullContext = [
           'TRIP CONTEXT:\n' + (cacheCtx.TRIP_CONTEXT || '').substring(0, 1500),
+          (liveWaits.ok ? liveWaits.text.substring(0, 2500) : 'LIVE STANDBY WAITS: unavailable right now -- use the historical WAIT PATTERNS below to estimate, and say the estimate is based on typical patterns for this time.'),
           'ROPE DROP STRATEGY:\n' + (cacheCtx.ROPE_DROP_STRATEGY || '').substring(0, 800),
           'WAIT PATTERNS:\n' + (cacheCtx.WAIT_PATTERNS || '').substring(0, 800),
           'CROWD FLOW:\n' + (cacheCtx.CROWD_FLOW || '').substring(0, 500),
@@ -172,7 +227,7 @@ export default async function handler(req, res) {
 
   // ------ Build system prompt --- inject cache context ---------------------------------------------------------------------------------------
   let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend --- specific, warm, and actionable.';
-      systemPrompt += '\n\nCRITICAL RULE \u2014 NEVER hedge or say information is unavailable:\nYou have complete park intelligence including park hours, live wait data, current closures, and trip-specific context.\nNEVER say: "I cannot retrieve", "wasn\'t available", "check the website", "I don\'t have that information", or any similar hedge.\nPARK HOURS: Always read from the PARK HOURS section in your context. That is the authoritative source.\nROPE DROP STRATEGY: Use the ROPE DROP STRATEGY section in your context \u2014 it is the authoritative, verified source and is updated regularly. Do NOT recite a fixed ride order from memory; the best rope-drop pick varies by park and conditions, so read it from the context.\nCLOSURES: Use the CURRENT CLOSURES section in your context as the authoritative, weekly-updated source for what is closed. Do NOT state any specific ride is closed from memory \u2014 a ride is only closed if the CURRENT CLOSURES context says so, and a ride with a reopening date on or before the trip is OPEN. If a ride is not mentioned as closed in your context, treat it as operating.\nYou are a brilliant knowledgeable friend. Answer every question directly and confidently using the data in your context.';
+      systemPrompt += '\n\nCRITICAL RULE \u2014 NEVER hedge or say information is unavailable:\nYou have complete park intelligence including park hours, live wait data, current closures, and trip-specific context.\nNEVER say: "I cannot retrieve", "wasn\'t available", "check the website", "I don\'t have that information", or any similar hedge.\nLIVE WAITS: The LIVE STANDBY WAITS section holds real-time standby times fetched just now. When asked "what\'s the wait right now" for a ride, READ ITS NUMBER FROM THAT SECTION and give it directly. If the ride is listed under CURRENTLY DOWN / NOT OPERATING, say it is currently down right now (do NOT invent a wait number for it), then add what the typical wait is when it is running. ONLY if a ride is not in the LIVE STANDBY WAITS section at all should you estimate from the historical WAIT PATTERNS, and when you do, say the number is a typical-pattern estimate, not a live reading. If the LIVE STANDBY WAITS section says it is unavailable, estimate from WAIT PATTERNS and say so.\nPARK HOURS: Always read from the PARK HOURS section in your context. That is the authoritative source.\nROPE DROP STRATEGY: Use the ROPE DROP STRATEGY section in your context \u2014 it is the authoritative, verified source and is updated regularly. Do NOT recite a fixed ride order from memory; the best rope-drop pick varies by park and conditions, so read it from the context.\nCLOSURES: Use the CURRENT CLOSURES section in your context as the authoritative, weekly-updated source for what is closed. Do NOT state any specific ride is closed from memory \u2014 a ride is only closed if the CURRENT CLOSURES context says so, and a ride with a reopening date on or before the trip is OPEN. If a ride is not mentioned as closed in your context, treat it as operating.\nYou are a brilliant knowledgeable friend. Answer every question directly and confidently using the data in your context.';
       systemPrompt += '\n\nCHARACTER ENCODING RULE (ABSOLUTE): Respond in plain ASCII text ONLY. NEVER use emoji, emoticons, pictographs, decorative symbols, checkmarks, stars, arrows, or any non-ASCII characters anywhere in your response. No exceptions. Use plain words and standard punctuation only.';
       systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + fullContext;
       if (ridePrefsHeader) systemPrompt += '\n\n' + ridePrefsHeader;
