@@ -1336,7 +1336,12 @@ console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unk
       var _showsThisDay = [];
       (items || []).forEach(function(item) {
         if (item && (item.type === 'show' || item.type === 'dining') && item.h) {
-          var sn = item.h.replace(/\s*\((Confirmed Reservation|Reservation)\)\s*/ig, ' ').replace(/\s*[-\u2014]\s*(Dinner|Lunch|Breakfast)\s*$/i, '').replace(/\s+/g, ' ').trim();
+          var sn = item.h
+            .replace(/\s*\((Confirmed Reservation|Reservation)\)\s*/ig, ' ')
+            .replace(/\s*[-\u2013\u2014]\s*(Dinner|Lunch|Breakfast)\s*$/i, '')
+            .replace(/\s+(at|in)\s+(Disneyland|Disney California Adventure|DCA|California Adventure|Galaxy'?s Edge)\b.*$/i, '')
+            .replace(/\s*[-\u2013\u2014:]\s*(Happiness!?|A Disney Spectacular|Nighttime Spectacular|The Musical)\s*$/i, '')
+            .replace(/\s+/g, ' ').trim();
           if (sn && _showsThisDay.indexOf(sn) === -1) _showsThisDay.push(sn);
         }
       });
