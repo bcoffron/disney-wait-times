@@ -7139,9 +7139,10 @@ function checkForWaitSpikes() {
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   // Find next 2 upcoming ride cards
-  const rideCards = Array.from(document.querySelectorAll('.schedule-card[data-type="ride"]'))
+  const rideCards = Array.from(document.querySelectorAll('.ride-block'))
+    .filter(card => card.querySelector('.wait-pill'))
     .filter(card => {
-      const timeEl = card.querySelector('.card-time, .time-hour');
+      const timeEl = card.querySelector('.ride-time');
       if (!timeEl) return false;
       const timeText = timeEl.textContent.trim();
       const cardMinutes = parseTimeToMinutes(timeText);
@@ -7150,8 +7151,8 @@ function checkForWaitSpikes() {
     .slice(0, 2);
 
   rideCards.forEach(card => {
-    const rideName = card.querySelector('.card-title, .schedule-title')?.textContent?.trim();
-    const waitEl = card.querySelector('.wait-pill, [class*="wait"]');
+    const rideName = card.querySelector('.ride-name')?.textContent?.trim();
+    const waitEl = card.querySelector('.wait-pill');
     if (!rideName || !waitEl) return;
 
     const waitText = waitEl.textContent.replace(/[^0-9]/g, '');
@@ -7211,8 +7212,7 @@ function dismissWaitSpikeToast() {
 function handleWaitSpikeReroute() {
   dismissWaitSpikeToast();
   // Trigger the existing AI Optimize flow
-  if (typeof showAIOptimize === 'function') showAIOptimize();
-  else document.getElementById('aiOptimizeBtn')?.click();
+  if (typeof aiOptGated === 'function') aiOptGated();
 }
 
 // Check every 5 minutes
