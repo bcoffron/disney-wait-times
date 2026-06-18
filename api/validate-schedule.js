@@ -475,7 +475,7 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
   // Hopper day: items BEFORE the hop must be in startPark; items AT/AFTER the hop must be in the hop (destination) park.
   // A Disneyland restaurant scheduled after hopping to DCA is wrong even though DL is "visited" that day.
   days.forEach((day, idx) => {
-    if (day.isVip) return; // VIP day handled by the guide
+    if (tripConfig && tripConfig.days && tripConfig.days[idx] && tripConfig.days[idx].isVip === true) return; // VIP day handled by the guide
     const items = day.items || [];
     const startPark = normPark(day.park) || 'DL';
     // Detect the hop: a tip card whose title mentions hopping, and which park it goes TO.
@@ -646,7 +646,7 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
   // Rule 10: Time bounds — remove items before 7:00 AM
   const PARK_OPEN_MIN = 420; // 7:00 AM
   days.forEach((day, dayNum) => {
-    if (day.isVip) return;
+    if (tripConfig && tripConfig.days && tripConfig.days[dayNum] && tripConfig.days[dayNum].isVip === true) return;
     day.items = day.items.filter(item => {
       const itemMin = timeToMinutes(item.t);
       if (itemMin >= 0 && itemMin < PARK_OPEN_MIN) {
@@ -859,7 +859,7 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
   // Enforces: max 1 morning snack, max 1 afternoon snack, max 1 lunch, max 1 dinner per day; and flags any
   // meal/snack card that names no venue (vague "Morning Snack" / "Dinner" with no restaurant).
   days.forEach((day, idx) => {
-    if (day.isVip) return;
+    if (tripConfig && tripConfig.days && tripConfig.days[idx] && tripConfig.days[idx].isVip === true) return;
     let items = day.items || [];
     const NOON = 720;
     function mealSlot(it) {
@@ -931,7 +931,7 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
   // not an auto-move, because the smart alternative window is a strategic call the cache/model should make;
   // the scaffold will place meals in off-peak windows up front so this rarely fires.
   days.forEach((day, idx) => {
-    if (day.isVip) return;
+    if (tripConfig && tripConfig.days && tripConfig.days[idx] && tripConfig.days[idx].isVip === true) return;
     (day.items || []).forEach(item => {
       if (['dining', 'quickservice'].indexOf(item.type) === -1) return;
       const isReserved = (tripConfig && tripConfig.dining && tripConfig.dining.reservations || []).some(r => r && r.name && (item.h || '').toLowerCase().includes(r.name.toLowerCase()));
