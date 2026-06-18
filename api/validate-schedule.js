@@ -510,21 +510,16 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
         });
       }
     });
-    // Replace removed items with a single gap marker so the day shows where to fill.
-    const removedTimes = items.filter(i => i._remove).map(i => i.t);
-    day.items = items.filter(i => !i._remove);
-    if (removedTimes.length) {
-      day.items.push({
-        t: removedTimes[0],
-        type: 'tip',
-        h: 'Open time - pick something in ' + (isHopper ? 'the right park' : startPark) + ' here',
-        n: 'A suggestion here was in the wrong park and was removed. Tap Ask AI for a nearby option.'
-      });
-      // keep the day sorted by time
-      day.items.sort((a, b) => {
-        const ma = timeToMinutes(a.t), mb = timeToMinutes(b.t);
-        if (ma < 0) return 1; if (mb < 0) return -1; return ma - mb;
-      });
+    // Remove wrong-park items SILENTLY. Do NOT insert a user-visible placeholder: an apologetic
+    // "a suggestion was in the wrong park and was removed" card must never face the user (it reads as
+    // a defect). v2's enforcement pass already drops wrong-park RIDES against the authoritative catalog
+    // before save; this rule is a backstop for non-ride wrong-park items (dining/show/character) that
+    // v2's rides-only drop doesn't cover. If silent drops ever leave a visible hole, that's a signal to
+    // fix the FILL at the source (v2 night-fill / generation), not to re-announce the removal here.
+    const _removedCount = items.filter(i => i._remove).length;
+    if (_removedCount) {
+      day.items = items.filter(i => !i._remove);
+      corrections.push({ rule: 'park-presence-cleanup', day: idx + 1, action: 'removed ' + _removedCount + ' wrong-park item(s) silently (no placeholder)' });
     }
   });
 
