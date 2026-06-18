@@ -396,12 +396,22 @@ export default async function handler(req, res) {
         .sort((a, b) => parseHourMin(a.t) - parseHourMin(b.t));
       const firstRide = ridesByTime[0];
       const startParkHighSet = new Set(rdPool.map(a => _norm2(a.name)));
-      const firstRideIsStartRopeDrop = firstRide && startParkHighSet.has(_norm2(cleanRideName(firstRide.h)));
+      // The single-ILL headliner (ropeDropValue high + llKind single, e.g. Rise for DL, Radiator Springs
+      // for DCA) is the MOST time-sensitive opener: you cannot Multi-Pass it and its standby explodes
+      // first. If the starting park has one, the day should OPEN with it specifically -- not merely with
+      // "some" high rope-drop ride. So when a single-ILL headliner exists, require the first ride to be
+      // THAT ride; otherwise fall back to the looser "any starting-park high rope-drop" test.
+      const headliner = rdPool.find(a => a.llKind === 'single');
+      const firstRideClean = firstRide ? _norm2(cleanRideName(firstRide.h)) : null;
+      const firstRideIsStartRopeDrop = headliner
+        ? (firstRideClean === _norm2(headliner.name))
+        : (firstRide && startParkHighSet.has(firstRideClean));
       if (!firstRideIsStartRopeDrop && rdPool.length) {
-        // Prefer pulling forward a high rope-drop ride the model ALREADY scheduled (headliner/single-ILL
-        // first) so we don't strand it or add a second headliner; else introduce the best unused one;
-        // else reuse the headliner (a repeat is fine for the single most important slot of the day).
-        const pick = rdPool.find(a => usedNames.has(_norm2(a.name)))
+        // Prefer the single-ILL headliner if the starting park has one (the highest-priority opener);
+        // else pull forward a high rope-drop ride the model ALREADY scheduled so we don't strand it or
+        // add a second headliner; else introduce the best unused one; else reuse the first in the pool.
+        const pick = headliner
+          || rdPool.find(a => usedNames.has(_norm2(a.name)))
           || rdPool.find(a => !usedNames.has(_norm2(a.name)))
           || rdPool[0];
         const openItem = {
