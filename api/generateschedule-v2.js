@@ -239,7 +239,7 @@ export default async function handler(req, res) {
 + '- Pick venues from the lists. service=table means a sit-down meal (a reservation or walk-up list); quickservice is a counter grab; lounge is a walk-up lounge. Do not treat a table-service spot as a quick grab.\n'
 + (resLines.length ? '- CONFIRMED RESERVATIONS for THIS day that MUST appear at their stated times: ' + resLines.join(' | ') + '\n' : '')
 + (otherDayResNames.length ? '- These venues are reserved on a DIFFERENT day, so do NOT schedule them today: ' + otherDayResNames.join(' | ') + '\n' : '')
-+ (llOn ? '- Lightning Lane is ON: include 2-4 LL booking tip cards naming exact rides/times. ll="single" rides are Individual Lightning Lane (paid); ll="multi" are Lightning Lane Multi Pass. TIMING (Disney rules -- follow exactly): (a) the FIRST Lightning Lane Multi Pass booking tip must be placed right at park entry, at the ' + minToLabel(blocks[0].startMin) + ' open time (booking opens when you enter -- do not place the first LL tip mid-morning). (b) Each subsequent Lightning Lane Multi Pass booking tip must be at least 2 HOURS after the previous LL booking tip -- you cannot book your next Multi Pass selection until 2 hours after the prior one (or after you redeem it). Space the LL tip cards accordingly; never put two LL booking tips within 2 hours of each other. Individual Lightning Lane (ll="single", paid) purchases are separate and not subject to the 2-hour rule.\n' : '- Lightning Lane is OFF: standby only, no LL tip cards.\n')
++ (llOn ? 'LIGHTNING LANE REMINDERS (Lightning Lane is ON): add standalone booking-reminder cards (type "tip") that guide the group to use Lightning Lane Multi Pass optimally. HOW LLMP ACTUALLY WORKS AT DISNEYLAND (follow this mechanic exactly, do NOT invent fixed booking clock-times): you hold ONE Multi Pass selection at a time; you book your next selection the moment you tap into your current Lightning Lane ride (or 2 hours after booking, whichever comes first) -- in practice you re-book right when you tap in, so bookings are paced by your ride flow, NOT by a fixed 2-hour clock. So: (1) FIRST reminder card at park entry (' + minToLabel(blocks[0].startMin) + '): "book your #1 priority LLMP-eligible ride now." (2) Then ONE reminder card for EACH additional LLMP-eligible ride the group will do that day, in priority order -- place each reminder right before/at the LLMP ride they will be tapping into when that booking unlocks, framed as event-driven: e.g. "While you tap into [current LLMP ride], book your next Lightning Lane: [next priority ride]." Cover EVERY LLMP-eligible ride in the day with its own reminder so nothing is missed; the last LLMP ride needs no "next" reminder. Name the specific rides (ll="multi" attractions). Do NOT state an exact booking time as if it were known -- the timing is driven by when they tap in. Individual Lightning Lane / Single Pass (ll="single", e.g. Rise of the Resistance, Radiator Springs Racers) are SEPARATE one-time paid buys -- mention them once if relevant but they are NOT part of the Multi Pass reminder chain.\n' : '- Lightning Lane is OFF: standby only, no LL reminder cards.\n')
 + '- Include a morning snack and an afternoon snack (real venue names from the lists, not "Morning Snack").\n'
 + '- If the group has character interest and a character category fits, include 1-2 character meets as type "character" with a real location.\n'
 + 'OUTPUT: Return ONLY a raw JSON array (no prose, no markdown) of items with fields: t ("H:MM AM"), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (one warm sentence explaining why/when), land (land name). Order by time.';
@@ -496,14 +496,18 @@ export default async function handler(req, res) {
       }
     }
 
-    // ---- LL-TIMING CHECK (verifier, NOT an injector): when Lightning Lane is on, the model is told to
-    // (a) place the first LLMP booking tip at park open and (b) keep LLMP booking tips >=2 hours apart
-    // (Disney's booking rule). LL ride choice + timing is strategy the model owns, so we do NOT rewrite
-    // it here -- we only MEASURE compliance and record violations in _enforce.llTiming so it's verifiable
-    // and any drift can escalate the prompt rather than be silently wrong. Identifies LLMP booking tips
-    // as type 'tip' whose text mentions Lightning Lane / LLMP / Multi Pass booking (excludes Individual LL
-    // purchase tips, which aren't subject to the 2-hour rule). ----
-    _enforce.llTiming = null;
+    // ---- LL-REMINDER CHECK (verifier, NOT an injector): when Lightning Lane is on, the model is told to
+    // add standalone LLMP booking-reminder cards -- the FIRST at park entry, then one per LLMP-eligible
+    // ride, framed event-driven ("book your next when you tap in"). LL ride choice + reminder content is
+    // strategy the model owns, so we do NOT rewrite it here. We only MEASURE: (a) at least one reminder
+    // exists, and (b) the FIRST reminder is at/near park open. We deliberately do NOT flag the gap between
+    // reminders: Disneyland LLMP unlocks your next booking when you TAP IN (or 2h after booking, whichever
+    // comes first) -- in practice you re-book at tap-in, so sub-2-hour gaps are the NORMAL, optimal pattern,
+    // not a violation. (The old 2-hour-floor check was based on a misreading of the rule and flagged correct
+    // schedules; it has been removed.) We record the reminder cadence for visibility only. Identifies LLMP
+    // reminders as type 'tip' mentioning Lightning Lane / LLMP / Multi Pass booking (excludes Individual LL /
+    // Single Pass, which are separate one-time buys). ----
+    _enforce.llReminders = null;
     if (Array.isArray(parsed) && parsed.length && llOn && blocks.length) {
       const isLLMPTip = it => {
         if (!it || it.type !== 'tip' || !it.t) return false;
@@ -519,20 +523,16 @@ export default async function handler(req, res) {
         .sort((a, b) => a.min - b.min);
       const openMin = blocks[0].startMin;
       const violations = [];
-      if (llTips.length) {
-        // (a) first LLMP tip should be at/near open (within 30 min of open)
-        if (llTips[0].min > openMin + 30) {
-          violations.push({ rule: 'first-not-at-open', firstTip: llTips[0].t, open: minToLabel(openMin) });
-        }
-        // (b) consecutive LLMP tips >=2h (120 min) apart
-        for (let i = 1; i < llTips.length; i++) {
-          const gap = llTips[i].min - llTips[i - 1].min;
-          if (gap < 120) {
-            violations.push({ rule: 'tips-too-close', a: llTips[i - 1].t, b: llTips[i].t, gapMin: gap });
-          }
-        }
+      if (!llTips.length) {
+        violations.push({ rule: 'no-ll-reminders' });
+      } else if (llTips[0].min > openMin + 30) {
+        // first reminder should land at/near open (within 30 min) -- the one real timing rule
+        violations.push({ rule: 'first-not-at-open', firstTip: llTips[0].t, open: minToLabel(openMin) });
       }
-      _enforce.llTiming = { count: llTips.length, tips: llTips.map(x => x.t), violations: violations };
+      // gaps recorded for visibility only -- NOT violations (sub-2h is normal/optimal)
+      const gaps = [];
+      for (let i = 1; i < llTips.length; i++) gaps.push(llTips[i].min - llTips[i - 1].min);
+      _enforce.llReminders = { count: llTips.length, tips: llTips.map(x => x.t), gapsMin: gaps, violations: violations };
     }
 
     // ---- NIGHT-FILL CHECK (verifier, NOT a filler): measure whether the last real activity reaches
