@@ -1415,10 +1415,7 @@ function showParkClosedState(){
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
 const CLOSED=[
-  {n:'Pirates of the Caribbean (DL)',d:'Closed for refurbishment — no reopening date announced'},
-  {n:'Buzz Lightyear Astro Blasters (DL)',d:'Closed since April 2025 — may reopen for Toy Story 5'},
-  {n:'Inside Out Emotional Whirlwind (DCA)',d:'Closed for refurbishment — no reopening date announced'},
-  {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27, 2025 — no reopening date announced'},
+  {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27, 2026 — no reopening date announced'},
 ];
 
 const DAYS=[
@@ -3549,7 +3546,7 @@ function renderClosed(){
     +'<div class="sec-hdr"><div class="sec-lbl">Rides Closed Jun 28\u201330</div><div class="sec-line"></div></div>'
     +CLOSED.map(function(c){return '<div class="ride-block" style="margin-bottom:7px"><div class="ride-main"><div style="font-size:20px;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-lock"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/></svg></div><div class="ride-body"><div class="ride-name" style="color:var(--red)">'+c.n+'</div><div class="ride-note">'+c.d+'</div></div></div></div>';}).join('')
     +'<div class="sec-hdr" style="margin-top:16px"><div class="sec-lbl">Dining Notes</div><div class="sec-line"></div></div>'
-    +'<div class="ride-block"><div class="ride-main"><div style="font-size:20px;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-alert-triangle"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.871l-8.106 -13.534a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg></div><div class="ride-body"><div class="ride-name" style="color:var(--yellow)">Blue Bayou Restaurant</div><div class="ride-note">Open but obstructed views & possible construction noise during Pirates refurb. Skip it this trip \u2014 Caf\u00e9 Orleans next door is the better choice.</div></div></div></div>'
+    +'<div class="ride-block"><div class="ride-main"><div style="font-size:20px;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-alert-triangle"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.871l-8.106 -13.534a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg></div><div class="ride-body"><div class="ride-name" style="color:var(--color-teal-active)">Blue Bayou Restaurant</div><div class="ride-note">Open and fully reopened \u2014 Pirates of the Caribbean returns June 26, so the classic bayou-side dining experience is back. Reservations recommended.</div></div></div></div>'
     +'<div style="margin-top:16px;padding:11px 13px;background:var(--navy-card);border:1px solid var(--navy-border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6">'
     +'<b style="color:var(--text)">Note:</b> Always check the Disneyland app the morning of your visit for any additional same-day closures or changes.'
     +'</div>'
@@ -6058,7 +6055,7 @@ var _OB_RIDES = [
   { name: "Soarin' Around the World", land: "Hollywood Land", park: "DCA" }
 ];
 // Rides currently closed (greyed out)
-var _OB_CLOSED_RIDES = ["Pirates of the Caribbean", "Buzz Lightyear Astro Blasters"];
+var _OB_CLOSED_RIDES = [];
 // Per-ride tier state: 'mustDo' | 'wantToDo' | 'skip'
 var _obRideTiers = {};
 var _obHeightEnabled = false;
