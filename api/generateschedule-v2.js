@@ -456,6 +456,46 @@ export default async function handler(req, res) {
       _enforce.vipCollapse = { window: minToLabel(vS) + '-' + minToLabel(vE), removed: removed, replacedWithOneCard: true };
     }
 
+    // ---- CROSS-DAY SHOW DEDUP (physics, code-enforced backstop): the prompt asks the model not to
+    // repeat a nighttime show across days, but the model ignores that rule often enough that it can't be
+    // trusted (verified: Fantasmic landed on Day 2 AND Day 3 with the canonical name in priorShows and an
+    // explicit instruction). So enforce it in code: canonical-normalize each SHOW item's name and, if it
+    // matches a show already used on a prior day (priorShows, itself canonical from pretrip), DROP the
+    // duplicate show. We do NOT fabricate a replacement show -- v2 has no authoritative alternate-show
+    // catalog (shows come from the model + cache context, not buildCatalogFilter), and inventing one would
+    // violate the data principle. Dropping leaves no hole: the evening strategy schedules 2-4 rides AFTER
+    // the show, which remain in place, so the night stays full of normal ride cards. A repeated-show day
+    // simply loses its second-night spectacular -- which is the correct outcome of the hard no-repeat rule.
+    // Dinners are NOT code-dropped here: a sit-down dinner is a time-anchored meal slot (dropping it would
+    // leave the group with no dinner), and dinner repeats were already verified fixed by the priorShows
+    // prompt rule. This backstop is scoped to shows, where the drop is safe. ----
+    _enforce.showDedup = null;
+    if (Array.isArray(parsed) && parsed.length && Array.isArray(priorShows) && priorShows.length) {
+      // canonicalizer mirrors pretrip.html _normShow EXACTLY (same strips, same order) so a name produced
+      // this day compares equal to the canonical name pretrip stored for a prior day.
+      const _normShowName = h => String(h || '')
+        .replace(/\s*\((Confirmed Reservation|Reservation)\)\s*/ig, ' ')
+        .replace(/\s*[-\u2013\u2014]\s*(Dinner|Lunch|Breakfast)\s*$/i, '')
+        .replace(/\s+(at|in)\s+(Disneyland|Disney California Adventure|DCA|California Adventure|Galaxy'?s Edge)\b.*$/i, '')
+        .replace(/\s*[-\u2013\u2014:]\s*(Happiness!?|A Disney Spectacular|Nighttime Spectacular|The Musical)\s*$/i, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+      const priorSet = new Set(priorShows.map(_normShowName));
+      const droppedShows = [];
+      const kept = parsed.filter(it => {
+        if (it && it.type === 'show' && it.h && priorSet.has(_normShowName(it.h))) {
+          droppedShows.push({ t: it.t, h: it.h });
+          return false;
+        }
+        return true;
+      });
+      if (droppedShows.length) {
+        parsed = kept;
+        _enforce.showDedup = { dropped: droppedShows };
+      }
+    }
+
     // ---- NIGHT-FILL CHECK (verifier, NOT a filler): measure whether the last real activity reaches
     // close. We deliberately do NOT inject evening cards here -- code-appended rides can't carry the
     // model's warm note, and night cards must read identically to day cards. So this only RECORDS the
