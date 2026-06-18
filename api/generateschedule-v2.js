@@ -239,7 +239,7 @@ export default async function handler(req, res) {
 + '- Pick venues from the lists. service=table means a sit-down meal (a reservation or walk-up list); quickservice is a counter grab; lounge is a walk-up lounge. Do not treat a table-service spot as a quick grab.\n'
 + (resLines.length ? '- CONFIRMED RESERVATIONS for THIS day that MUST appear at their stated times: ' + resLines.join(' | ') + '\n' : '')
 + (otherDayResNames.length ? '- These venues are reserved on a DIFFERENT day, so do NOT schedule them today: ' + otherDayResNames.join(' | ') + '\n' : '')
-+ (llOn ? 'LIGHTNING LANE REMINDERS (Lightning Lane is ON): add standalone booking-reminder cards (type "tip") that guide the group to use Lightning Lane Multi Pass optimally. HOW LLMP ACTUALLY WORKS AT DISNEYLAND (follow this mechanic exactly, do NOT invent fixed booking clock-times): you hold ONE Multi Pass selection at a time; you book your next selection the moment you tap into your current Lightning Lane ride (or 2 hours after booking, whichever comes first) -- in practice you re-book right when you tap in, so bookings are paced by your ride flow, NOT by a fixed 2-hour clock. So: (1) FIRST reminder card at park entry (' + minToLabel(blocks[0].startMin) + '): "book your #1 priority LLMP-eligible ride now." (2) Then ONE reminder card for EACH additional LLMP-eligible ride the group will do that day, in priority order -- place each reminder right before/at the LLMP ride they will be tapping into when that booking unlocks, framed as event-driven: e.g. "While you tap into [current LLMP ride], book your next Lightning Lane: [next priority ride]." Cover EVERY LLMP-eligible ride in the day with its own reminder so nothing is missed; the last LLMP ride needs no "next" reminder. Name the specific rides (ll="multi" attractions). Do NOT state an exact booking time as if it were known -- the timing is driven by when they tap in. Individual Lightning Lane / Single Pass (ll="single", e.g. Rise of the Resistance, Radiator Springs Racers) are SEPARATE one-time paid buys -- mention them once if relevant but they are NOT part of the Multi Pass reminder chain.\n' : '- Lightning Lane is OFF: standby only, no LL reminder cards.\n')
++ (llOn ? 'LIGHTNING LANE REMINDERS (Lightning Lane is ON): add standalone booking-reminder cards (type "tip") that guide the group to use Lightning Lane Multi Pass optimally. HOW LLMP ACTUALLY WORKS AT DISNEYLAND (follow this mechanic exactly, do NOT invent fixed booking clock-times): you hold ONE Multi Pass selection at a time; you book your next selection the moment you tap into your current Lightning Lane ride (or 2 hours after booking, whichever comes first) -- in practice you re-book right when you tap in, so bookings are paced by your ride flow, NOT by a fixed 2-hour clock. So: (1) FIRST reminder card at park entry (' + minToLabel(blocks[0].startMin) + '): "book your #1 priority LLMP-eligible ride now." (2) Then up to FOUR more reminder cards (HARD CAP: 5 LL reminder cards TOTAL per day, INCLUDING the park-open one -- never exceed 5, and do not let LL cards dominate the timeline), one for each of the highest-priority LLMP-eligible rides in priority order. Place each reminder right before/at the LLMP ride they will be tapping into when that booking unlocks, framed as event-driven: e.g. "While you tap into [current LLMP ride], book your next Lightning Lane: [next priority ride]." Cover the TOP rides only -- if there are more than 5 LLMP-eligible rides, pick the 5 highest-priority / longest-wait ones and skip reminders for the rest (guests can rebook those on their own when they tap in). Name the specific rides (ll="multi" attractions). Do NOT state an exact booking time as if it were known -- the timing is driven by when they tap in. Individual Lightning Lane / Single Pass (ll="single", e.g. Rise of the Resistance, Radiator Springs Racers) are SEPARATE one-time paid buys -- mention them once if relevant but they are NOT part of the Multi Pass reminder chain.\n' : '- Lightning Lane is OFF: standby only, no LL reminder cards.\n')
 + '- Include a morning snack and an afternoon snack (real venue names from the lists, not "Morning Snack").\n'
 + '- If the group has character interest and a character category fits, include 1-2 character meets as type "character" with a real location.\n'
 + 'OUTPUT: Return ONLY a raw JSON array (no prose, no markdown) of items with fields: t ("H:MM AM"), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (one warm sentence explaining why/when), land (land name). Order by time.';
@@ -517,10 +517,24 @@ export default async function handler(req, res) {
         const isIndividual = /individual lightning lane|\bill\b|single lightning lane/.test(txt) && !/multi ?pass/.test(txt);
         return mentionsLL && mentionsBook && !isIndividual;
       };
-      const llTips = parsed.filter(isLLMPTip)
+      let llTips = parsed.filter(isLLMPTip)
         .map(it => ({ t: it.t, min: parseHourMin(it.t), h: it.h }))
         .filter(x => x.min >= 0)
         .sort((a, b) => a.min - b.min);
+      // HARD CAP (code-enforced, since prompt counts get ignored): max 5 LL reminder cards/day,
+      // including the park-open one. The earliest 5 by time are the highest-priority chain (entry +
+      // the first rides tapped into); trim the rest out of `parsed` so LL cards never dominate the day.
+      let llTrimmed = 0;
+      if (llTips.length > 5) {
+        const keepSet = new Set(llTips.slice(0, 5).map(x => x.t + '||' + x.h));
+        const before = parsed.length;
+        parsed = parsed.filter(it => {
+          if (!isLLMPTip(it)) return true;
+          return keepSet.has(it.t + '||' + it.h);
+        });
+        llTrimmed = before - parsed.length;
+        llTips = llTips.slice(0, 5);
+      }
       const openMin = blocks[0].startMin;
       const violations = [];
       if (!llTips.length) {
@@ -532,7 +546,7 @@ export default async function handler(req, res) {
       // gaps recorded for visibility only -- NOT violations (sub-2h is normal/optimal)
       const gaps = [];
       for (let i = 1; i < llTips.length; i++) gaps.push(llTips[i].min - llTips[i - 1].min);
-      _enforce.llReminders = { count: llTips.length, tips: llTips.map(x => x.t), gapsMin: gaps, violations: violations };
+      _enforce.llReminders = { count: llTips.length, tips: llTips.map(x => x.t), gapsMin: gaps, trimmed: llTrimmed, violations: violations };
     }
 
     // ---- NIGHT-FILL CHECK (verifier, NOT a filler): measure whether the last real activity reaches
