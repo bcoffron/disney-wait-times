@@ -478,15 +478,32 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     if (tripConfig && tripConfig.days && tripConfig.days[idx] && tripConfig.days[idx].isVip === true) return; // VIP day handled by the guide
     const items = day.items || [];
     const startPark = normPark(day.park) || 'DL';
-    // Detect the hop: a tip card whose title mentions hopping, and which park it goes TO.
+    // Detect the hop. AUTHORITATIVE SOURCE: the per-day intent object the generator itself uses
+    // (tripConfig.days[idx].intent.hop = { toPark, atMin }). The generator derives its park BLOCKS from
+    // this, so the validator must read the SAME thing or the two disagree. The previous version only
+    // detected a hop from a literal "hop to" tip card in the items -- but the generator does not emit
+    // such a card (it encodes the hop in block structure), so hopMin stayed -1, the whole day was forced
+    // to startPark, and a correct DL-morning -> DCA-afternoon day had its entire post-hop block deleted.
     let hopMin = -1, hopPark = null;
-    items.forEach(it => {
-      if (/\bhop\b/i.test(it.h || '') && /to /i.test(it.h || '')) {
-        const m = timeToMinutes(it.t);
-        if (m >= 0) { hopMin = m; hopPark = normPark(it.h) || normPark(day.hopTo); }
-      }
-    });
-    const isHopper = !!(tripConfig && tripConfig.parkHopping) && hopMin >= 0 && hopPark;
+    const dayCfg = (tripConfig && tripConfig.days && tripConfig.days[idx]) || null;
+    const intentHop = dayCfg && dayCfg.intent && dayCfg.intent.hop;
+    if (intentHop && typeof intentHop.atMin === 'number' && intentHop.toPark) {
+      hopMin = intentHop.atMin;
+      hopPark = normPark(intentHop.toPark);
+    } else if (dayCfg && dayCfg.hopTo && typeof dayCfg.hopAtMin === 'number' && dayCfg.toPark) {
+      // secondary: explicit hop fields on the day config
+      hopMin = dayCfg.hopAtMin;
+      hopPark = normPark(dayCfg.toPark);
+    } else {
+      // legacy fallback: detect a "hop to" tip card in the items (older trips without intent)
+      items.forEach(it => {
+        if (/\bhop\b/i.test(it.h || '') && /to /i.test(it.h || '')) {
+          const m = timeToMinutes(it.t);
+          if (m >= 0) { hopMin = m; hopPark = normPark(it.h) || normPark(day.hopTo); }
+        }
+      });
+    }
+    const isHopper = !!(tripConfig && tripConfig.parkHopping) && hopMin >= 0 && !!hopPark;
     items.forEach(item => {
       if (['tip','break'].indexOf(item.type) !== -1) return; // tips/breaks have no firm park
       const p = landToPark(item.land) || landToPark(item.h);
