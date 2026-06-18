@@ -1110,6 +1110,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
     ? { dayIndex: dayIndex, maxTokens: 8000, tripCode: localStorage.getItem('tpcp_code') || '',
         adminKey: (localStorage.getItem('tpcp_role')==='admin') ? 'cwdis2026admin' : undefined,
         priorRides: (tripConfig._priorRides || []),
+        priorShows: (tripConfig._priorShows || []),
         tripConfig: _v2TripConfig }
     : _useScaffold
     ? { dayIndex: dayIndex, maxTokens: 8000, tripCode: localStorage.getItem('tpcp_code') || '',
@@ -1330,6 +1331,18 @@ console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unk
       if (!Array.isArray(tripConfig._priorRides)) tripConfig._priorRides = [];
       _ridesThisDay.forEach(function(rn){ if (tripConfig._priorRides.indexOf(rn) === -1) tripConfig._priorRides.push(rn); });
       console.log('[pretrip] Day '+(idx+1)+' rides accumulated; priorRides now '+tripConfig._priorRides.length);
+      // Cross-day NO-REPEAT for nighttime shows + sit-down (table-service) dinners (v2 priorShows, HARD rule).
+      // quickservice/counter meals are NOT tracked here -- they may repeat. Only type 'show' and 'dining'.
+      var _showsThisDay = [];
+      (items || []).forEach(function(item) {
+        if (item && (item.type === 'show' || item.type === 'dining') && item.h) {
+          var sn = item.h.replace(/\s*\((Confirmed Reservation|Reservation)\)\s*/ig, ' ').replace(/\s*[-\u2014]\s*(Dinner|Lunch|Breakfast)\s*$/i, '').replace(/\s+/g, ' ').trim();
+          if (sn && _showsThisDay.indexOf(sn) === -1) _showsThisDay.push(sn);
+        }
+      });
+      if (!Array.isArray(tripConfig._priorShows)) tripConfig._priorShows = [];
+      _showsThisDay.forEach(function(sn){ if (tripConfig._priorShows.indexOf(sn) === -1) tripConfig._priorShows.push(sn); });
+      console.log('[pretrip] Day '+(idx+1)+' shows/dinners accumulated; priorShows now '+tripConfig._priorShows.length);
       }
       ptUpdateGenBar(idx + 1, totalDays);
       generateNext(idx + 1);
