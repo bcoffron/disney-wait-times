@@ -239,7 +239,7 @@ export default async function handler(req, res) {
 + '- Pick venues from the lists. service=table means a sit-down meal (a reservation or walk-up list); quickservice is a counter grab; lounge is a walk-up lounge. Do not treat a table-service spot as a quick grab.\n'
 + (resLines.length ? '- CONFIRMED RESERVATIONS for THIS day that MUST appear at their stated times: ' + resLines.join(' | ') + '\n' : '')
 + (otherDayResNames.length ? '- These venues are reserved on a DIFFERENT day, so do NOT schedule them today: ' + otherDayResNames.join(' | ') + '\n' : '')
-+ (llOn ? '- Lightning Lane is ON: include 2-4 LL booking tip cards naming exact rides/times. ll="single" rides are Individual Lightning Lane (paid); ll="multi" are Lightning Lane Multi Pass.\n' : '- Lightning Lane is OFF: standby only, no LL tip cards.\n')
++ (llOn ? '- Lightning Lane is ON: include 2-4 LL booking tip cards naming exact rides/times. ll="single" rides are Individual Lightning Lane (paid); ll="multi" are Lightning Lane Multi Pass. TIMING (Disney rules -- follow exactly): (a) the FIRST Lightning Lane Multi Pass booking tip must be placed right at park entry, at the ' + minToLabel(blocks[0].startMin) + ' open time (booking opens when you enter -- do not place the first LL tip mid-morning). (b) Each subsequent Lightning Lane Multi Pass booking tip must be at least 2 HOURS after the previous LL booking tip -- you cannot book your next Multi Pass selection until 2 hours after the prior one (or after you redeem it). Space the LL tip cards accordingly; never put two LL booking tips within 2 hours of each other. Individual Lightning Lane (ll="single", paid) purchases are separate and not subject to the 2-hour rule.\n' : '- Lightning Lane is OFF: standby only, no LL tip cards.\n')
 + '- Include a morning snack and an afternoon snack (real venue names from the lists, not "Morning Snack").\n'
 + '- If the group has character interest and a character category fits, include 1-2 character meets as type "character" with a real location.\n'
 + 'OUTPUT: Return ONLY a raw JSON array (no prose, no markdown) of items with fields: t ("H:MM AM"), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (one warm sentence explaining why/when), land (land name). Order by time.';
@@ -494,6 +494,45 @@ export default async function handler(req, res) {
         parsed = kept;
         _enforce.showDedup = { dropped: droppedShows };
       }
+    }
+
+    // ---- LL-TIMING CHECK (verifier, NOT an injector): when Lightning Lane is on, the model is told to
+    // (a) place the first LLMP booking tip at park open and (b) keep LLMP booking tips >=2 hours apart
+    // (Disney's booking rule). LL ride choice + timing is strategy the model owns, so we do NOT rewrite
+    // it here -- we only MEASURE compliance and record violations in _enforce.llTiming so it's verifiable
+    // and any drift can escalate the prompt rather than be silently wrong. Identifies LLMP booking tips
+    // as type 'tip' whose text mentions Lightning Lane / LLMP / Multi Pass booking (excludes Individual LL
+    // purchase tips, which aren't subject to the 2-hour rule). ----
+    _enforce.llTiming = null;
+    if (Array.isArray(parsed) && parsed.length && llOn && blocks.length) {
+      const isLLMPTip = it => {
+        if (!it || it.type !== 'tip' || !it.t) return false;
+        const txt = ((it.h || '') + ' ' + (it.n || '')).toLowerCase();
+        const mentionsLL = /lightning lane|llmp|multi ?pass/.test(txt);
+        const mentionsBook = /book|reserve|grab|select|tap|return time|next selection|window opens/.test(txt);
+        const isIndividual = /individual lightning lane|\bill\b|single lightning lane/.test(txt) && !/multi ?pass/.test(txt);
+        return mentionsLL && mentionsBook && !isIndividual;
+      };
+      const llTips = parsed.filter(isLLMPTip)
+        .map(it => ({ t: it.t, min: parseHourMin(it.t), h: it.h }))
+        .filter(x => x.min >= 0)
+        .sort((a, b) => a.min - b.min);
+      const openMin = blocks[0].startMin;
+      const violations = [];
+      if (llTips.length) {
+        // (a) first LLMP tip should be at/near open (within 30 min of open)
+        if (llTips[0].min > openMin + 30) {
+          violations.push({ rule: 'first-not-at-open', firstTip: llTips[0].t, open: minToLabel(openMin) });
+        }
+        // (b) consecutive LLMP tips >=2h (120 min) apart
+        for (let i = 1; i < llTips.length; i++) {
+          const gap = llTips[i].min - llTips[i - 1].min;
+          if (gap < 120) {
+            violations.push({ rule: 'tips-too-close', a: llTips[i - 1].t, b: llTips[i].t, gapMin: gap });
+          }
+        }
+      }
+      _enforce.llTiming = { count: llTips.length, tips: llTips.map(x => x.t), violations: violations };
     }
 
     // ---- NIGHT-FILL CHECK (verifier, NOT a filler): measure whether the last real activity reaches
