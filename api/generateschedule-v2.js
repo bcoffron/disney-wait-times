@@ -299,12 +299,12 @@ export default async function handler(req, res) {
     let _enforce = { dropped: [] };
     // Single source of truth for normalizing a schedule item's ride name for catalog matching.
     // Strips rope-drop prefixes (colon form 'Rope Drop:' AND dash form 'Rope Drop -/\u2014') and
-    // trailing (LL...)/(night...) adornments, then lowercases/strips punctuation. NOTE the colon
-    // branch requires an actual colon ([^:]*: not [^:]*:?) -- the old optional-colon form was greedy
-    // and ate colonless 'Rope Drop \u2014 X' strings down to empty, so wrong-park leaks failed open.
+    // trailing (LL...)/(night...) adornments, then lowercases/strips punctuation. ORDERING: em-dash
+    // form MUST run before colon form -- 'Rope Drop \u2014 Star Wars: Rise of ...' has a colon in
+    // the ride name; the colon-form regex [^:]*: would eat through 'Star Wars:' and strip too much.
     const cleanRideName = h => String(h || '')
-      .replace(/^rope drop[^:]*:\s*/i, '')
       .replace(/^rope drop\s*[\u2014-]\s*/i, '')
+      .replace(/^rope drop[^:]*:\s*/i, '')
       .replace(/\s*\((ll|lightning)[^)]*\)\s*$/i, '')
       .replace(/\s*\(night[^)]*\)\s*$/i, '')
       .toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
