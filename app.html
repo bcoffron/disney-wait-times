@@ -357,7 +357,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 }
 
 
-/* Hero artwork zone â sky gradient + castle */
+/* Hero artwork zone — sky gradient + castle */
 .splash-hero {
   position: relative;
   flex: 0 0 340px;
@@ -396,7 +396,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   pointer-events: none;
 }
 
-/* Castle SVG â anchored to bottom of hero zone */
+/* Castle SVG — anchored to bottom of hero zone */
 .splash-castle {
   position: absolute;
   left: 50%;
@@ -409,7 +409,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   pointer-events: none;
 }
 
-/* Star twinkles â sky portion only */
+/* Star twinkles — sky portion only */
 .splash-stars {
   position: absolute;
   inset: 0 0 40% 0;
@@ -432,7 +432,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   50% { opacity: 0.85; transform: scale(1); }
 }
 
-/* Content zone â dark, all text + buttons */
+/* Content zone — dark, all text + buttons */
 .splash-content {
   flex: 1 1 0;
   min-height: 0;
@@ -1168,12 +1168,12 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
       <!-- Part 6: Add new entry trigger -->
       <div class="vn-add-trigger" id="vnAddTrigger" onclick="vnOpenInput()">
-        <span class="vn-add-placeholder">Tap to add your notesâ¦</span>
+        <span class="vn-add-placeholder">Tap to add your notes…</span>
       </div>
 
       <!-- Inline input (hidden until triggered) -->
       <div class="vn-input-area" id="vnInputArea" style="display:none">
-        <textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notesâ¦" rows="3"></textarea>
+        <textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notes…" rows="3"></textarea>
         <div class="vn-input-actions">
           <button type="button" class="vn-btn-save" onclick="vnSaveEntry()">Save</button>
           <button type="button" class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button>
@@ -1326,7 +1326,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
 <script>
 // v202605241200 cache bust=100
-// App version: 813c1e1 â updated automatically on deploy
+// App version: 813c1e1 — updated automatically on deploy
 // Safety stub - real function defined later
 function fixEncoding(s) {
   if (!s) return '';
@@ -1547,7 +1547,7 @@ function checkLock(){
           }
         })
         .catch(function(){
-          // network error â leave splash as-is
+          // network error — leave splash as-is
         });
       return;
     }
@@ -2105,7 +2105,7 @@ function startScheduleSync(){
     // Guest: pull API key first, then poll schedule
     pullApiKey();
     pullSchedule();
-    // NOTE: schedule polling interval removed â _blobPollInterval handles sync via /api/trip
+    // NOTE: schedule polling interval removed — _blobPollInterval handles sync via /api/trip
     // schedSyncInterval=setInterval(pullSchedule,2*60*1000); // DISABLED
     // setInterval(pullApiKey,5*60*1000); // DISABLED
   }
@@ -2147,7 +2147,7 @@ function startNotesSync(){
   if(window._notesSyncStarted) return;
   window._notesSyncStarted = true;
   pullVipNotes();
-  // NOTE: vipnotes polling interval removed â _blobPollInterval handles sync via /api/trip
+  // NOTE: vipnotes polling interval removed — _blobPollInterval handles sync via /api/trip
   // notesSyncInterval=setInterval(pullVipNotes,30*1000); // DISABLED
 }
 
@@ -2183,7 +2183,7 @@ function showScheduleToast(){
 const PUSHER_ENABLED = false; // Set to true to re-enable Pusher real-time sync
 
 async function initPusher(){
-  if (!PUSHER_ENABLED) return; // Pusher disabled â using Vercel Blob poll instead
+  if (!PUSHER_ENABLED) return; // Pusher disabled — using Vercel Blob poll instead
   if(typeof Pusher === 'undefined') return;
   if(!window.PUSHER_KEY || !window.PUSHER_CLUSTER) {
     try {
@@ -2215,7 +2215,7 @@ async function initPusher(){
   }catch(e){console.error('Pusher init error',e);}
 }
 
-// ===== VERCEL BLOB POLL â replaces Pusher real-time sync =====
+// ===== VERCEL BLOB POLL — replaces Pusher real-time sync =====
 // Polls /api/trip every 10s for schedule + VIP notes updates
 // To re-enable Pusher: set PUSHER_ENABLED = true above and remove this poll
 
@@ -5339,7 +5339,7 @@ function submitTripCode() {
     .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
     .then(function(result) {
       inp.disabled = false;
-      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure â'; }
+      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure →'; }
       if (result.status !== 200 || !result.data.valid) {
         var msg = result.status === 403 ? 'That code has expired or is inactive.' : "That code wasn't found. Check it and try again.";
         if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
@@ -5366,7 +5366,7 @@ function submitTripCode() {
     })
     .catch(function() {
       inp.disabled = false;
-      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure â'; }
+      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure →'; }
       if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
     });
 }
@@ -5418,7 +5418,7 @@ function initSplash() {
         if (datesEl && TRIP_CONFIG.days && TRIP_CONFIG.days.length) {
           var first = TRIP_CONFIG.days[0].date || '';
           var last = TRIP_CONFIG.days[TRIP_CONFIG.days.length - 1].date || '';
-          datesEl.textContent = first + (last && last !== first ? ' â ' + last : '');
+          datesEl.textContent = first + (last && last !== first ? ' – ' + last : '');
         }
         if (locEl) locEl.textContent = 'Anaheim, CA';
         if (parksEl) {
@@ -5478,10 +5478,10 @@ function obGoTo(step) {
   var nextBtn = document.getElementById('obNextBtn');
   if (nextBtn) {
     if (step === 8) {
-      nextBtn.textContent = 'Build my schedule â';
+      nextBtn.textContent = 'Build my schedule →';
       nextBtn.style.background = '#C86030';
     } else {
-      nextBtn.textContent = 'Next â';
+      nextBtn.textContent = 'Next →';
       nextBtn.style.background = '#1A6860';
     }
   }
@@ -5574,7 +5574,7 @@ function ob8RenderSummary() {
     var dN = new Date(cfg.dates[cfg.dates.length - 1] + "T12:00:00");
     var opts = { month: "short", day: "numeric" };
     var dateRangeStr = d0.toLocaleDateString("en-US", opts) + (cfg.dates.length > 1 ? " \u2013 " + dN.toLocaleDateString("en-US", opts) : "");
-    parts.push(cfg.dates.length + " day" + (cfg.dates.length !== 1 ? "s" : "") + " at " + parkStr + " Â· " + dateRangeStr);
+    parts.push(cfg.dates.length + " day" + (cfg.dates.length !== 1 ? "s" : "") + " at " + parkStr + " · " + dateRangeStr);
   }
   // Group size
   if (cfg.group && cfg.group.total > 0) {
@@ -5588,7 +5588,7 @@ function ob8RenderSummary() {
     if (u40 > 0) gParts.push(u40 + " little one" + (u40 !== 1 ? "s" : ""));
     if (h4048 > 0) gParts.push(h4048 + " kid" + (h4048 !== 1 ? "s" : ""));
     if (o48 > 0) gParts.push(o48 + " adult" + (o48 !== 1 ? "s" : ""));
-    parts.push(gParts.join(" Â· "));
+    parts.push(gParts.join(" · "));
     if (g.afternoonBreak) parts.push("Afternoon break planned");
   }
   // Ride style
@@ -5597,7 +5597,7 @@ function ob8RenderSummary() {
     var styleStr = [];
     if (r.intensity) styleStr.push(r.intensity.charAt(0).toUpperCase() + r.intensity.slice(1) + " intensity");
     if (r.pace) styleStr.push(r.pace.charAt(0).toUpperCase() + r.pace.slice(1) + " pace");
-    if (styleStr.length > 0) parts.push(styleStr.join(" Â· "));
+    if (styleStr.length > 0) parts.push(styleStr.join(" · "));
     if (r.mustDo) parts.push("Must-dos: " + r.mustDo);
     if (r.avoid) parts.push("Avoiding: " + r.avoid);
   }
@@ -5606,7 +5606,7 @@ function ob8RenderSummary() {
     var ll = cfg.lightningLane;
     if (ll.multiPass) {
       var llStr = "Lightning Lane Multi Pass";
-      if (ll.singlePass && ll.singlePass.length > 0) llStr += " Â· " + ll.singlePass.length + " LLSP";
+      if (ll.singlePass && ll.singlePass.length > 0) llStr += " · " + ll.singlePass.length + " LLSP";
       parts.push(llStr);
     }
   }
@@ -5669,7 +5669,7 @@ function ob8Complete() {
   var pill = document.getElementById('obSetupPill');
   if (pill) pill.style.display = 'none';
   if (typeof showSchedule === 'function') showSchedule(0);
-  // Scroll to top of schedule after generation â double rAF ensures layout is complete
+  // Scroll to top of schedule after generation — double rAF ensures layout is complete
   requestAnimationFrame(function() {
     requestAnimationFrame(function() {
       window.scrollTo(0, 0);
@@ -5727,7 +5727,7 @@ function obRenderDayRows() {
       var d = new Date(startDate + 'T00:00:00');
       d.setDate(d.getDate() + i);
       var shortDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      dayLabel += ' Â· ' + shortDate;
+      dayLabel += ' · ' + shortDate;
       dayDateStr = shortDate;
     }
     var vipOn = _obVipState[i] && _obVipState[i].on;
@@ -6084,7 +6084,7 @@ function obRenderRideList() {
   var lastLand = '';
   _OB_RIDES.forEach(function(ride) {
     if (ride.land !== lastLand) {
-      html += '<div style="font-size:10px;font-weight:700;color:#4A7A7C;letter-spacing:0.05em;text-transform:uppercase;margin:' + (lastLand ? '10px' : '2px') + ' 0 4px;">' + ride.land + ' Â· ' + ride.park + '</div>';
+      html += '<div style="font-size:10px;font-weight:700;color:#4A7A7C;letter-spacing:0.05em;text-transform:uppercase;margin:' + (lastLand ? '10px' : '2px') + ' 0 4px;">' + ride.land + ' · ' + ride.park + '</div>';
       lastLand = ride.land;
     }
     var isClosed = _OB_CLOSED_RIDES.indexOf(ride.name) > -1;
@@ -6186,7 +6186,7 @@ function obDefaultLLSPRides() {
     "Matterhorn Bobsleds", "Space Mountain", "Big Thunder Mountain",
     "Incredicoaster", "Mickey & Minnie's Runaway Railway",
     "Millennium Falcon: Smugglers Run", "Soarin' Over California",
-    "Star Tours â The Adventures Continue"
+    "Star Tours – The Adventures Continue"
   ];
 }
 
@@ -6199,10 +6199,10 @@ function obParseLLSPRides(text) {
     "Matterhorn Bobsleds", "Space Mountain", "Big Thunder Mountain",
     "Incredicoaster", "Mickey & Minnie's Runaway Railway",
     "Millennium Falcon: Smugglers Run", "Soarin' Over California",
-    "Star Tours â The Adventures Continue"
+    "Star Tours – The Adventures Continue"
   ];
   // Return all known rides found in text, plus any not found
-  var found = known.filter(function(r) { return text.includes(r.split(':')[0].split('â')[0].trim()); });
+  var found = known.filter(function(r) { return text.includes(r.split(':')[0].split('–')[0].trim()); });
   return found.length > 3 ? found : known;
 }
 
@@ -6329,15 +6329,15 @@ function obInitStep6() {
   obRenderReservationEntries();
   // Render dining style tiles
   obRenderTiles('obDiningStyleTiles', [
-    { value: 'quickService', label: 'Quick service â keep it fast' },
-    { value: 'mix', label: 'Mix â one sit-down, rest quick service' },
-    { value: 'tableService', label: 'Table service â we love a good meal' }
+    { value: 'quickService', label: 'Quick service — keep it fast' },
+    { value: 'mix', label: 'Mix — one sit-down, rest quick service' },
+    { value: 'tableService', label: 'Table service — we love a good meal' }
   ], _obDiningStyle, function(v) { _obDiningStyle = v; });
   // Render dining priority tiles
   obRenderTiles('obDiningPriorityTiles', [
-    { value: 'fuel', label: 'Fuel â food is secondary to rides' },
-    { value: 'balanced', label: 'Balanced â we enjoy a good meal' },
-    { value: 'foodie', label: 'Foodie â dining is part of the experience' }
+    { value: 'fuel', label: 'Fuel — food is secondary to rides' },
+    { value: 'balanced', label: 'Balanced — we enjoy a good meal' },
+    { value: 'foodie', label: 'Foodie — dining is part of the experience' }
   ], _obDiningPriority, function(v) { _obDiningPriority = v; });
   obRenderToggle('obKidsMealsToggle', _obKidsMeals);
   // Fetch dining intel for chip options and reservation names
@@ -7442,7 +7442,7 @@ setTimeout(checkForWaitSpikes, 30000);
 
         <div id="obStep6New" class="ob-step" style="display:none;">
       <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Reservations.</h2>
-      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">These are fixed anchors â AI builds your day around them.</p>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">These are fixed anchors — AI builds your day around them.</p>
 
       <!-- Add buttons -->
       <div class="ob-field">
@@ -7576,7 +7576,7 @@ setTimeout(checkForWaitSpikes, 30000);
         done = 'true';
         try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
       } else {
-        // _loadedTripData not yet set â retry in 1 second
+        // _loadedTripData not yet set — retry in 1 second
         setTimeout(nudgeCheckAndShow, 1000);
         return;
       }
@@ -7622,10 +7622,10 @@ setTimeout(checkForWaitSpikes, 30000);
     var charPriority = (cfg.characters && cfg.characters.priority) || cfg.charPriority || '';
     var paradesPref = (cfg.entertainment && cfg.entertainment.parades) || cfg.parades || '';
     var sections = [
-      { name: 'Trip Basics', summary: (cfg.tripName || 'Trip') + ' Â· ' + daysCount + ' day' + (daysCount !== 1 ? 's' : ''), step: 1 },
+      { name: 'Trip Basics', summary: (cfg.tripName || 'Trip') + ' · ' + daysCount + ' day' + (daysCount !== 1 ? 's' : ''), step: 1 },
       { name: 'Your Group', summary: totalGuests + ' guest' + (totalGuests !== 1 ? 's' : ''), step: 2 },
-      { name: 'Ride Preferences', summary: [intensity, pace].filter(Boolean).join(' Â· ') || 'Not set', step: 3 },
-      { name: 'Lightning Lane', summary: (multiPass ? 'Multi Pass on' : 'Multi Pass off') + (singleCount > 0 ? ' Â· ' + singleCount + ' LLSP' : ''), step: 4 },
+      { name: 'Ride Preferences', summary: [intensity, pace].filter(Boolean).join(' · ') || 'Not set', step: 3 },
+      { name: 'Lightning Lane', summary: (multiPass ? 'Multi Pass on' : 'Multi Pass off') + (singleCount > 0 ? ' · ' + singleCount + ' LLSP' : ''), step: 4 },
       { name: 'Character Meets', summary: charPriority || 'Not set', step: 5 },
       { name: 'Reservations', summary: reservCount > 0 ? reservCount + ' reservation' + (reservCount !== 1 ? 's' : '') : 'None added', step: 6 },
       { name: 'Shows & Entertainment', summary: paradesPref ? paradesPref + ' parades' : 'Not set', step: 7 }
@@ -7668,11 +7668,11 @@ setTimeout(checkForWaitSpikes, 30000);
     rebuildArea.style.cssText = 'padding:16px;display:none;';
     var rebuildBtn = document.createElement('button');
     rebuildBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;';
-    rebuildBtn.textContent = 'Rebuild my schedule with these changes â';
+    rebuildBtn.textContent = 'Rebuild my schedule with these changes →';
     rebuildBtn.onclick = rebuildSchedule;
     var rebuildNote = document.createElement('p');
     rebuildNote.style.cssText = 'font-size:11px;color:#4A6670;line-height:1.4;text-align:center;margin:8px 0 0;';
-    rebuildNote.textContent = 'Iâll keep your reservations and Lightning Lane times locked in and rebuild everything else around your changes.';
+    rebuildNote.textContent = 'I’ll keep your reservations and Lightning Lane times locked in and rebuild everything else around your changes.';
     rebuildArea.appendChild(rebuildBtn);
     rebuildArea.appendChild(rebuildNote);
     overlay.appendChild(rebuildArea);
@@ -7801,7 +7801,7 @@ setTimeout(checkForWaitSpikes, 30000);
     copyEl.textContent = copy;
     var subBtn = document.createElement('button');
     subBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:10px;';
-    subBtn.textContent = 'Subscribe now â';
+    subBtn.textContent = 'Subscribe now →';
     subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
     var dimBtn = document.createElement('button');
     dimBtn.style.cssText = 'width:100%;background:transparent;border:1px solid rgba(7,30,37,0.15);border-radius:12px;padding:12px;font-family:Outfit,sans-serif;font-size:14px;font-weight:600;color:#4A6670;cursor:pointer;';
@@ -7828,7 +7828,7 @@ setTimeout(checkForWaitSpikes, 30000);
     bannerText.textContent = 'Your trial has ended. Subscribe to unlock your full trip.';
     var subBtn = document.createElement('button');
     subBtn.style.cssText = 'background:#C86030;border:none;border-radius:20px;padding:5px 12px;font-family:Outfit,sans-serif;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;margin-left:10px;';
-    subBtn.textContent = 'Subscribe â';
+    subBtn.textContent = 'Subscribe →';
     subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
     banner.appendChild(bannerText);
     banner.appendChild(subBtn);
@@ -7841,7 +7841,7 @@ setTimeout(checkForWaitSpikes, 30000);
           var msg = document.createElement('div');
           msg.id = 'softWallAiMsg';
           msg.style.cssText = 'font-size:10px;color:#4A6670;text-align:center;padding:4px 0;';
-          msg.textContent = 'Your trial has ended â subscribe to continue using AI features';
+          msg.textContent = 'Your trial has ended — subscribe to continue using AI features';
           aiOpt.parentNode.insertBefore(msg, aiOpt.nextSibling);
         }
       };
@@ -7864,10 +7864,10 @@ setTimeout(checkForWaitSpikes, 30000);
     titleEl.textContent = 'Your trial has ended.';
     var copyEl = document.createElement('div');
     copyEl.style.cssText = 'font-size:14px;color:rgba(255,255,255,0.60);line-height:1.5;margin-bottom:28px;';
-    copyEl.textContent = 'Subscribe to pick up right where you left off â your trip details are saved.';
+    copyEl.textContent = 'Subscribe to pick up right where you left off — your trip details are saved.';
     var subBtn = document.createElement('button');
     subBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:16px;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;color:#fff;cursor:pointer;';
-    subBtn.textContent = 'Subscribe to unlock â';
+    subBtn.textContent = 'Subscribe to unlock →';
     subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
     inner.appendChild(brandEl);
     inner.appendChild(titleEl);
