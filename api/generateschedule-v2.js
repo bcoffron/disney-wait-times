@@ -359,13 +359,13 @@ export default async function handler(req, res) {
         .sort((a, b) => (a.llKind === 'single' ? -1 : 0) - (b.llKind === 'single' ? -1 : 0));
       // names already scheduled as rides today (cleaned)
       const usedNames = new Set(parsed.filter(it => it && it.type === 'ride')
-        .map(it => cleanRideName(it.h)));
+        .map(it => _norm2(cleanRideName(it.h))));
       // find the first actual RIDE of the day (by time) and whether it's a starting-park rope-drop ride
       const ridesByTime = parsed.filter(it => it && it.type === 'ride' && it.t)
         .sort((a, b) => parseHourMin(a.t) - parseHourMin(b.t));
       const firstRide = ridesByTime[0];
       const startParkHighSet = new Set(rdPool.map(a => _norm2(a.name)));
-      const firstRideIsStartRopeDrop = firstRide && startParkHighSet.has(cleanRideName(firstRide.h));
+      const firstRideIsStartRopeDrop = firstRide && startParkHighSet.has(_norm2(cleanRideName(firstRide.h)));
       if (!firstRideIsStartRopeDrop && rdPool.length) {
         // Prefer pulling forward a high rope-drop ride the model ALREADY scheduled (headliner/single-ILL
         // first) so we don't strand it or add a second headliner; else introduce the best unused one;
