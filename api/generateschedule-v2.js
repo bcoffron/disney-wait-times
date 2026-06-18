@@ -230,11 +230,12 @@ export default async function handler(req, res) {
 + '2. Respect each block\'s park and time window. Items must fall inside their block\'s start/end.\n'
 + '3. Exactly ONE lunch and ONE dinner across the day, each in whatever block covers that time. Lunch 11:00-11:45 or 1:00-1:45 (NEVER 12-1). Dinner 4:30-5:30 or 7:30+ (NEVER 6-7).\n'
 + '4. Never list the same ride twice in one day -- not within a block and NOT across blocks. Each ride name appears at most once in the whole day.\n'
-+ '5. Day starts at the first block\'s open time and ends by the last block\'s close time.\n'
++ '5. Day starts at the first block\'s open time and STAYS ACTIVE until ~30 minutes before the last block\'s close time. The last scheduled ride/show must be no earlier than 30 min before close -- an evening that ends 2-3 hours early is wrong. Fill the whole day.\n'
 + (vip ? '6. VIP TOUR from ' + minToLabel(vip.startMin) + ' to ' + minToLabel(vip.endMin) + '. The guide MEETS THE GROUP exactly at ' + minToLabel(vip.startMin) + ' (the tour start time) -- schedule the "guide meets your group" item AT ' + minToLabel(vip.startMin) + ', never earlier. Do NOT put any VIP/guide item before the start time. BEFORE ' + minToLabel(vip.startMin) + ' and AFTER ' + minToLabel(vip.endMin) + ', plan a completely normal self-guided day (rope drop, standby/Lightning Lane rides, meals) as if there were no tour -- the morning before the tour should include a normal starting-park rope-drop ride. DURING the window the guide leads and handles skip-the-line; mark those items type "tip"/"ride" with a note that the guide leads, and do NOT schedule normal standby rides against the guide -- the guide picks rides live.\n' : '')
 + 'STRATEGY (you decide, using this verified cache data -- vary by crowd/wait, do not be robotic):\n'
 + '- Open the day with a rope-drop ride IN THE STARTING PARK (the first block\'s park): pick the highest-value ropeDrop=high attraction from THAT block\'s list. This rope-drop choice OVERRIDES cross-day variety -- a strong rope-drop in the park you are actually standing in matters more than avoiding a repeat, so repeat it if it is the best opener. Never open with a meal, and never rope-drop a ride from the other park.\n'
 + '- Fill the first block primarily with attractions from the STARTING park before the hop -- do not lean on the second park\'s list to fill the morning.\n'
++ '- FILL THE EVENING TO CLOSE: the nighttime spectacular (fireworks, World of Color, Fantasmic!) is a MIDPOINT of the night, NOT the end. After it, schedule 2-4 more rides until ~30 min before close -- standby waits drop to their lowest of the day during and right after the show, so this is prime ride time. These late rides are normal ride cards (same format, same warm one-sentence note) -- never label them differently or treat them as filler. Pick the night show ONCE for the trip across all days; do not repeat the same spectacular on multiple days.\n'
 + '- Pick venues from the lists. service=table means a sit-down meal (a reservation or walk-up list); quickservice is a counter grab; lounge is a walk-up lounge. Do not treat a table-service spot as a quick grab.\n'
 + (resLines.length ? '- CONFIRMED RESERVATIONS for THIS day that MUST appear at their stated times: ' + resLines.join(' | ') + '\n' : '')
 + (otherDayResNames.length ? '- These venues are reserved on a DIFFERENT day, so do NOT schedule them today: ' + otherDayResNames.join(' | ') + '\n' : '')
@@ -385,6 +386,29 @@ export default async function handler(req, res) {
           cleanRideName(it.h) === cleanRideName(pick.name)));
         parsed.unshift(openItem);
         _enforce.ropeDrop = { added: pick.name, park: startPark, at: openItem.t };
+      }
+    }
+
+    // ---- NIGHT-FILL CHECK (verifier, NOT a filler): measure whether the last real activity reaches
+    // close. We deliberately do NOT inject evening cards here -- code-appended rides can't carry the
+    // model's warm note, and night cards must read identically to day cards. So this only RECORDS the
+    // gap in _enforce.underfilled; the fill itself is the prompt's job (Rule 5 + the evening strategy
+    // line). If live verification shows the model still ends early, escalate the prompt -- not filler. ----
+    _enforce.underfilled = null;
+    if (Array.isArray(parsed) && parsed.length && blocks.length) {
+      const lastBlockClose = blocks[blocks.length - 1].endMin;
+      const realTypes = ['ride', 'show', 'dining', 'quickservice', 'snack', 'character'];
+      const lastRealMin = parsed
+        .filter(it => it && realTypes.indexOf(it.type) !== -1 && it.t)
+        .reduce((mx, it) => Math.max(mx, parseHourMin(it.t)), -1);
+      if (lastRealMin >= 0 && lastRealMin < lastBlockClose - 45) {
+        _enforce.underfilled = {
+          lastActivityMin: lastRealMin,
+          lastActivity: minToLabel(lastRealMin),
+          closeMin: lastBlockClose,
+          close: minToLabel(lastBlockClose),
+          gapMin: lastBlockClose - lastRealMin
+        };
       }
     }
 
