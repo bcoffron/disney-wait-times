@@ -403,7 +403,34 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                         title: s.title || '',
                         entries: (s.entries || []).map(normalizeEntry)
               }));
-              return res.status(200).json({ sections: normalized, explanation: parsed.explanation || 'Schedule optimized.' });
+              // ---- CHANGE DETECTION: tell the client whether anything actually moved, so it can show an
+              // honest result. The bug being fixed: the result sheet always said "N items reordered / Tap
+              // Accept Changes" even when the severity gate correctly returned the schedule UNCHANGED -- the
+              // client was inventing a count and always showing the Accept UI. The server is the only place
+              // that can compare reliably, so we diff the optimized sequence against the input here and return
+              // an explicit { changed, changeCount }. A card counts as "moved" if its time changed or its
+              // position in the time-ordered sequence differs from the input. Identity = normalized title/name
+              // so re-noted-but-same-slot cards don't read as changes.
+              const _norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+              const _name = e => _norm(e.h || e.title || e.name || '');
+              const _origByName = {};
+              (Array.isArray(scheduleItems) ? scheduleItems : []).forEach(it => {
+                      const k = _norm(it.h || it.title || it.name || '');
+                      if (k) _origByName[k] = (it.t || it.time || '');
+              });
+              let changeCount = 0;
+              const outEntries = [];
+              normalized.forEach(sec => (sec.entries || []).forEach(e => outEntries.push(e)));
+              outEntries.forEach(e => {
+                      const k = _name(e);
+                      if (!k) return;
+                      const origT = _origByName[k];
+                      const newT = (e.t || e.time || '');
+                      // a card is "changed" if it is new, or its time slot moved
+                      if (origT === undefined || origT === '' || origT !== newT) changeCount++;
+              });
+              const changed = changeCount > 0;
+              return res.status(200).json({ sections: normalized, explanation: parsed.explanation || 'Schedule optimized.', changed: changed, changeCount: changeCount });
       }
 
       return res.status(200).json({ error: 'Parse failed', raw: text.substring(0, 8000) });
