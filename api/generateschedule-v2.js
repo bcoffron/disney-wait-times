@@ -235,6 +235,7 @@ export default async function handler(req, res) {
 + 'STRATEGY (you decide, using this verified cache data -- vary by crowd/wait, do not be robotic):\n'
 + '- Open the day with a rope-drop ride IN THE STARTING PARK (the first block\'s park): pick the highest-value ropeDrop=high attraction from THAT block\'s list. This rope-drop choice OVERRIDES cross-day variety -- a strong rope-drop in the park you are actually standing in matters more than avoiding a repeat, so repeat it if it is the best opener. Never open with a meal, and never rope-drop a ride from the other park.\n'
 + '- Fill the first block primarily with attractions from the STARTING park before the hop -- do not lean on the second park\'s list to fill the morning.\n'
++ '- WRONG-PARK TIPS ARE FORBIDDEN: every card (ride AND tip) must belong to the park of the block its time falls in. Do NOT, in an early block, emit a rope-drop tip, a "Book Lightning Lane" tip, a "head to" tip, or any actionable instruction that names a ride in the OTHER park (the park you have not hopped to yet). There is no "Block 2 rope drop" for the second park -- you rope-drop ONCE, in the starting park, at open. Lightning Lane bookings for the second park only make sense AFTER the hop time; do not schedule them while still in the first park.\n'
 + '- FILL THE EVENING TO CLOSE: the nighttime spectacular (fireworks, World of Color, Fantasmic!) is a MIDPOINT of the night, NOT the end. After it, schedule 2-4 more rides until ~30 min before close -- standby waits drop to their lowest of the day during and right after the show, so this is prime ride time. These late rides are normal ride cards (same format, same warm one-sentence note) -- never label them differently or treat them as filler. Pick the night show ONCE for the trip across all days; do not repeat the same spectacular on multiple days.\n'
 + '- Pick venues from the lists. service=table means a sit-down meal (a reservation or walk-up list); quickservice is a counter grab; lounge is a walk-up lounge. Do not treat a table-service spot as a quick grab.\n'
 + (resLines.length ? '- CONFIRMED RESERVATIONS for THIS day that MUST appear at their stated times: ' + resLines.join(' | ') + '\n' : '')
@@ -338,6 +339,31 @@ export default async function handler(req, res) {
             // catalog simply lacks, e.g. a show mislabeled as a ride)
             const inOtherPark = Object.keys(_parkRideSet).some(p => p !== parkAt && _parkRideSet[p].has(rideName));
             if (inOtherPark) { _enforce.dropped.push({ t: it.t, h: it.h, scheduledIn: parkAt }); return; }
+          }
+        }
+        // tip/character cards can carry actionable wrong-park guidance even when no ride card does
+        // (e.g. on a hop day the model invents a pre-hop "Rope Drop -- Peter Pan's Flight (DL Block 2)"
+        // or "Book Next Lightning Lane: Haunted Mansion (DL)" inside the morning DCA block). Those
+        // bypass the ride-only check above. Drop a tip/character ONLY when it is an actionable NOW
+        // instruction (rope drop / book LL / head to) AND its text names a ride that belongs to the
+        // OTHER park for the block it sits in. Passive future mentions ("after you hop to DL...") are
+        // left alone: they are not rope-drop/book-now phrasings, so they don't match actionableRe.
+        else if (it && (it.type === 'tip' || it.type === 'character') && it.t) {
+          const tm = parseHourMin(it.t);
+          const parkAt = whichParkAt(blocks, tm);
+          const ownSet = _parkRideSet[parkAt];
+          const rawTxt = String((it.h || '') + ' ' + (it.n || '')).toLowerCase();
+          // normalize the haystack the SAME way ride names are normalized (strip punctuation), so an
+          // apostrophe in "Peter Pan's Flight" doesn't defeat the substring match against "peter pans flight"
+          const txt = _norm(rawTxt);
+          const actionableRe = /rope drop|book (your |the |next )?(a )?lightning lane|book next|grab (a )?lightning lane|head (straight )?to|make your way to|first ride|ride this first/i;
+          if (ownSet && ownSet.size && actionableRe.test(rawTxt)) {
+            const wrongParkRide = Object.keys(_parkRideSet).some(p => {
+              if (p === parkAt) return false;
+              return [..._parkRideSet[p]].some(name =>
+                name.length >= 6 && txt.includes(name) && !ownSet.has(name));
+            });
+            if (wrongParkRide) { _enforce.dropped.push({ t: it.t, h: it.h, scheduledIn: parkAt, kind: it.type }); return; }
           }
         }
         _kept.push(it);
