@@ -389,6 +389,30 @@ export default async function handler(req, res) {
       }
     }
 
+    // ---- ARRIVAL GUARANTEE (physics, code-enforced, EVERY day no exceptions): the day must open with
+    // an "arrive ~1 hour before park open" positioning card, BEFORE the rope-drop ride. The prompt can't
+    // be trusted to do this every time, and it's a universal rule, so code guarantees it. The card is a
+    // normal 'tip' card with a warm note -- reads identically to every other card. Placed at open-minus-60
+    // and physically first in the array (also earliest by time, so any client/validator time-sort keeps
+    // it first). De-dupes any arrival card the model already wrote. ----
+    _enforce.arrival = null;
+    if (Array.isArray(parsed) && blocks.length) {
+      const startOpenMin = blocks[0].startMin;
+      const arriveMin = Math.max(0, startOpenMin - 60);
+      // remove any arrival/positioning card the model already added, so we don't double up
+      parsed = parsed.filter(it => !(it && it.type === 'tip' &&
+        /\barriv|be at the (gate|park|entrance)|before (the )?park opens|rope ?drop positioning|get to the gate/i.test(it.h || '')));
+      const arriveItem = {
+        t: minToLabel(arriveMin),
+        h: 'Arrive at the park',
+        type: 'tip',
+        n: 'Get to the gate about an hour before the ' + minToLabel(startOpenMin) + ' open -- clearing security and bag check early puts you at the rope ready to go, which is the single biggest head start on the day.',
+        land: (blocks[0].park === 'DCA') ? 'Esplanade / DCA Entrance' : 'Esplanade / Main Entrance'
+      };
+      parsed.unshift(arriveItem);
+      _enforce.arrival = { at: arriveItem.t, open: minToLabel(startOpenMin) };
+    }
+
     // ---- NIGHT-FILL CHECK (verifier, NOT a filler): measure whether the last real activity reaches
     // close. We deliberately do NOT inject evening cards here -- code-appended rides can't carry the
     // model's warm note, and night cards must read identically to day cards. So this only RECORDS the
