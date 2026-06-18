@@ -92,8 +92,18 @@ function minToLabel(min) {
 }
 
 // Build a compact candidate menu string for one park block from the CATALOG.
-function candidateMenu(catalog, park, shortestHeightInches, tripDate, closureOverrides) {
+function candidateMenu(catalog, park, shortestHeightInches, tripDate, closureOverrides, reservedVenueSet) {
   const f = buildCatalogFilter(catalog, park, tripDate, closureOverrides); // drops wrong-park, excluded, AND closed-on-trip-date
+  const _vn = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  // STRUCTURAL: a reservation-REQUIRED venue is only a real option if the trip holds a reservation for it.
+  // Otherwise the model keeps suggesting fine-dining (Carthay Circle Restaurant) as a spontaneous meal.
+  // Drop required venues the group has not reserved; keep walkup/lounge/quickservice venues as-is.
+  const usableVenues = f.venues.filter(v => {
+    if ((v.reservationPolicy || 'walkup') === 'required') {
+      return reservedVenueSet && reservedVenueSet.has(_vn(v.name));
+    }
+    return true;
+  });
   const rideLines = f.attractions
     .map(a => {
       const tooTall = (shortestHeightInches > 0 && a.heightInches > shortestHeightInches);
@@ -103,12 +113,12 @@ function candidateMenu(catalog, park, shortestHeightInches, tripDate, closureOve
         + (tooTall ? ' (HEIGHT: someone in group is below this -- include a rider-swap note if used)' : '');
     })
     .join('\n');
-  const venueLines = f.venues
+  const venueLines = usableVenues
     .map(v => '- ' + v.name + ' [' + v.land + '] ' + (v.service || 'quickservice')
       + ' resv=' + (v.reservationPolicy || 'walkup')
       + (v.walkupEase ? ' walkup=' + v.walkupEase : ''))
     .join('\n');
-  return { rideLines, venueLines, rideCount: f.attractions.length, venueCount: f.venues.length };
+  return { rideLines, venueLines, rideCount: f.attractions.length, venueCount: usableVenues.length };
 }
 
 export default async function handler(req, res) {
@@ -211,9 +221,25 @@ export default async function handler(req, res) {
       .filter(Boolean);
     const resLines = resLinesToday;
 
+    // ---- reserved-venue name set across the WHOLE trip (normalized) ----
+    // A reservationPolicy:"required" venue (e.g. Carthay Circle Restaurant) should only ever be offered
+    // to the model if the trip actually holds a reservation for it. Day-binding is handled separately by
+    // resLines/otherDayResNames; this set just answers "is this required venue reserved at all on the
+    // trip?" so candidateMenu can drop required venues the group has no reservation for. The group's only
+    // reservation here is Cafe Orleans -> Carthay (required) gets filtered out, fixing the bug where it was
+    // suggested as a spur-of-the-moment dinner against a "quick service mostly" preference.
+    const _vnorm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+    const reservedVenueSet = new Set(
+      []
+        .concat(flatRes.map(str => String(str).split(',')[0]))
+        .concat(structRes.map(r => (r && r.name) || ''))
+        .map(_vnorm)
+        .filter(Boolean)
+    );
+
     // ---- build the SLIM per-block prompt ----
     const blockText = blocks.map((b, i) => {
-      const menu = candidateMenu(catalog, b.park, shortest, tripDate, closureOverrides);
+      const menu = candidateMenu(catalog, b.park, shortest, tripDate, closureOverrides, reservedVenueSet);
       return 'BLOCK ' + (i + 1) + ' -- ' + b.park + ' from ' + minToLabel(b.startMin) + ' to ' + minToLabel(b.endMin) + '.\n'
         + 'You may ONLY use attractions and venues from THIS block\'s lists (they are physically in ' + b.park + '):\n'
         + 'RIDES (' + menu.rideCount + '):\n' + menu.rideLines + '\n'
@@ -325,7 +351,7 @@ export default async function handler(req, res) {
         const _nfUsed = new Set(parsed.filter(it => it && it.type === 'ride')
           .map(it => _nfNorm(String(it.h || '').replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, ''))));
         // candidate rides for the CLOSING block's park, minus what's already used
-        const _nfMenu = candidateMenu(catalog, _nfPark, shortest, tripDate, closureOverrides);
+        const _nfMenu = candidateMenu(catalog, _nfPark, shortest, tripDate, closureOverrides, reservedVenueSet);
         const _nfPool = (_nfMenu.attractions || [])
           .filter(a => !_nfUsed.has(_nfNorm(a.name)))
           .map(a => a.name + (a.land ? ' (' + a.land + ')' : ''));
@@ -457,6 +483,30 @@ export default async function handler(req, res) {
       if (_enforce.dropped.length) { parsed = _kept; }
     }
 
+    // ---- SNACK-VENUE GUARD (physics, code-enforced): a "snack" card must be a walk-up / counter grab,
+    // never a sit-down meal. The model kept putting Carthay Circle Lounge (service "lounge") into snack
+    // slots -- an elevated, order-from-a-menu sit-down spot, not a walk-around snack. The CATALOG venue
+    // tags are correct (service: table | lounge | quick), so we enforce off them: drop any snack card
+    // whose name matches a catalog venue tagged service "table" or "lounge". Snacks at quick-service /
+    // cart / stand venues, and generic snacks that match no sit-down venue, are left alone. ----
+    _enforce.snackVenueDropped = [];
+    if (Array.isArray(parsed) && parsed.length && catalog && Array.isArray(catalog.venues)) {
+      const _snorm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+      const _svc = {};
+      catalog.venues.forEach(v => { const k = _snorm(v.name); if (k) _svc[k] = String(v.service || 'quickservice').toLowerCase(); });
+      const sitDown = s => s === 'table' || s === 'lounge';
+      const _kept2 = [];
+      parsed.forEach(it => {
+        if (it && it.type === 'snack') {
+          const txt = _snorm((it.h || ''));
+          // match against any sit-down venue name appearing in the snack card's title
+          const hitSitDown = Object.keys(_svc).some(name => name.length >= 6 && sitDown(_svc[name]) && txt.includes(name));
+          if (hitSitDown) { _enforce.snackVenueDropped.push({ t: it.t, h: it.h }); return; }
+        }
+        _kept2.push(it);
+      });
+      if (_enforce.snackVenueDropped.length) { parsed = _kept2; }
+    }
     // ---- ROPE-DROP GUARANTEE (physics, code-enforced): the morning is the most important hour and
     // rope-drop strategy differs by park. After wrong-park drops, ensure the day OPENS with a real
     // rope-drop ride IN THE STARTING PARK. If the first ride isn't a starting-park ropeDrop=high ride,
