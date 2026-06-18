@@ -413,6 +413,45 @@ export default async function handler(req, res) {
       _enforce.arrival = { at: arriveItem.t, open: minToLabel(startOpenMin) };
     }
 
+    // ---- VIP SINGLE-CARD COLLAPSE (physics, code-enforced): on a VIP-tour day the guide leads the
+    // whole window, so the schedule must show ONE card spanning vip.startMin -> vip.endMin, not a string
+    // of scattered ride/meal/character cards. The ride-by-ride detail lives in the shared live-notes
+    // component (pushed to everyone logged in, editable like a Google doc) -- NOT in static schedule
+    // cards. So: drop every item whose time falls inside the VIP window and replace with a single VIP
+    // card at the start time. Items BEFORE the window (arrival, rope-drop, morning rides) and AFTER it
+    // (evening) are untouched -- the morning/evening stay normal self-guided cards. ----
+    _enforce.vipCollapse = null;
+    if (Array.isArray(parsed) && parsed.length && intent.vip &&
+        typeof intent.vip.startMin === 'number' && typeof intent.vip.endMin === 'number') {
+      const vS = intent.vip.startMin, vE = intent.vip.endMin;
+      const before = parsed.length;
+      // keep only items strictly OUTSIDE the window (start-exclusive at end so a card exactly at vE,
+      // e.g. a "tour ends" handoff, is treated as inside and removed too)
+      const kept = parsed.filter(it => {
+        if (!it || !it.t) return true; // untimed items (rare) pass through
+        const m = parseHourMin(it.t);
+        if (m < 0) return true;
+        return m < vS || m > vE;
+      });
+      const removed = before - kept.length;
+      const vipCard = {
+        t: minToLabel(vS),
+        h: 'VIP Tour',
+        type: 'vip',
+        n: 'Your VIP guide leads the group from ' + minToLabel(vS) + ' to ' + minToLabel(vE) + ', handling every line and routing live -- just follow along. The running ride list and any updates show up in your shared trip notes.',
+        land: (blocks[0] && blocks[0].park === 'DCA') ? 'Disney California Adventure' : 'Disneyland'
+      };
+      kept.push(vipCard);
+      // keep the day time-sorted (untimed items sink to the end)
+      kept.sort((a, b) => {
+        const ma = a && a.t ? parseHourMin(a.t) : 100000;
+        const mb = b && b.t ? parseHourMin(b.t) : 100000;
+        return ma - mb;
+      });
+      parsed = kept;
+      _enforce.vipCollapse = { window: minToLabel(vS) + '-' + minToLabel(vE), removed: removed, replacedWithOneCard: true };
+    }
+
     // ---- NIGHT-FILL CHECK (verifier, NOT a filler): measure whether the last real activity reaches
     // close. We deliberately do NOT inject evening cards here -- code-appended rides can't carry the
     // model's warm note, and night cards must read identically to day cards. So this only RECORDS the
@@ -421,7 +460,7 @@ export default async function handler(req, res) {
     _enforce.underfilled = null;
     if (Array.isArray(parsed) && parsed.length && blocks.length) {
       const lastBlockClose = blocks[blocks.length - 1].endMin;
-      const realTypes = ['ride', 'show', 'dining', 'quickservice', 'snack', 'character'];
+      const realTypes = ['ride', 'show', 'dining', 'quickservice', 'snack', 'character', 'vip'];
       const lastRealMin = parsed
         .filter(it => it && realTypes.indexOf(it.type) !== -1 && it.t)
         .reduce((mx, it) => Math.max(mx, parseHourMin(it.t)), -1);
