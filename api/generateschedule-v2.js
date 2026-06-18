@@ -297,6 +297,91 @@ export default async function handler(req, res) {
       if (s !== -1 && e !== -1) parsed = JSON.parse(t.substring(s, e + 1));
     } catch (e) { /* leave parsed null; client falls back to text */ }
 
+    // ---- NIGHT-FILL RE-PROMPT (structural, but the MODEL still authors the cards): the single most
+    // common evening failure is the model treating the nighttime spectacular (fireworks / World of Color
+    // / Fantasmic!) as the FINALE and stopping there, leaving 1-2 hours of open park unscheduled. Live
+    // verification confirmed this: days ended on the show at 8:30-9:20 PM against a 10-11 PM close even
+    // with the prompt's evening rule present. Pure prompt escalation did not move it, and dumb code-
+    // appended filler can't carry a warm note. So when the parsed day ends > 45 min before the last
+    // block's close, fire ONE focused follow-up call asking the model for ONLY the post-show ride cards
+    // needed to bridge to ~20 min before close -- same warm format, rides in the closing block's park
+    // that were not already used today. The new cards are spliced into `parsed` BEFORE physics
+    // enforcement below, so they pass through the same wrong-park / dedup / sort guards as everything
+    // else. This is inherently PER-DAY: a day that already fills to close (gap <= 45) never triggers it,
+    // so a perfectly-timed evening is left untouched. ----
+    _enforce.nightFillReprompt = null;
+    if (Array.isArray(parsed) && parsed.length && blocks.length) {
+      const _nfClose = blocks[blocks.length - 1].endMin;
+      const _nfPark = blocks[blocks.length - 1].park;
+      const _nfReal = ['ride', 'show', 'dining', 'quickservice', 'snack', 'character', 'vip'];
+      const _nfLast = parsed
+        .filter(it => it && _nfReal.indexOf(it.type) !== -1 && it.t)
+        .reduce((mx, it) => Math.max(mx, parseHourMin(it.t)), -1);
+      // only re-prompt when there is a real gap AND enough room for at least ~2 rides (>= 50 min)
+      if (_nfLast >= 0 && _nfLast < _nfClose - 45 && (_nfClose - _nfLast) >= 50) {
+        // rides already on today's plan (cleaned/normalized) so we don't ask for repeats
+        const _nfNorm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+        const _nfUsed = new Set(parsed.filter(it => it && it.type === 'ride')
+          .map(it => _nfNorm(String(it.h || '').replace(/^rope drop[^:]*:?\s*/i, '').replace(/^rope drop\s*[\u2014-]\s*/i, ''))));
+        // candidate rides for the CLOSING block's park, minus what's already used
+        const _nfMenu = candidateMenu(catalog, _nfPark, shortest, tripDate, closureOverrides);
+        const _nfPool = (_nfMenu.attractions || [])
+          .filter(a => !_nfUsed.has(_nfNorm(a.name)))
+          .map(a => a.name + (a.land ? ' (' + a.land + ')' : ''));
+        const _nfNeed = Math.max(2, Math.min(4, Math.round((_nfClose - _nfLast) / 35)));
+        if (_nfPool.length) {
+          const _nfSys = 'You add late-evening ride cards to an existing theme-park day. Output ONLY a JSON array of new ride-card objects, no prose, no markdown. Each object: {"t":"H:MM PM","h":"Ride Name","type":"ride","n":"one warm friendly sentence","land":"Land Name"}. Waits drop to their lowest of the day during and right after the nighttime show, so these late rides are prime time -- write them as normal, appealing ride cards, never as filler or afterthoughts.';
+          const _nfUser = 'The day is in ' + _nfPark + ' and the park is open until ' + minToLabel(_nfClose)
+            + '. The current plan already ends at ' + minToLabel(_nfLast) + ', which leaves the evening empty -- the nighttime spectacular is a MIDPOINT of the night, not the end. Add ' + _nfNeed
+            + ' more ride cards, spaced from about ' + minToLabel(_nfLast + 15) + ' to about ' + minToLabel(_nfClose - 20)
+            + ', so the day stays active until close. Choose ONLY from these ' + _nfPark + ' rides that are not already on the plan: '
+            + _nfPool.slice(0, 30).join('; ') + '. Return ONLY the JSON array of the NEW cards.';
+          try {
+            const _nfCtl = new AbortController();
+            const _nfTo = setTimeout(() => _nfCtl.abort(), 45000);
+            const _nfRes = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+              body: JSON.stringify({ model: MODEL, max_tokens: 1500, system: _nfSys, messages: [{ role: 'user', content: _nfUser }] }),
+              signal: _nfCtl.signal
+            });
+            clearTimeout(_nfTo);
+            const _nfData = await _nfRes.json();
+            const _nfText = (_nfData.content && _nfData.content[0] && _nfData.content[0].text) || '';
+            let _nfCards = null;
+            try {
+              const tt = _nfText.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+              const ss = tt.indexOf('['), ee = tt.lastIndexOf(']');
+              if (ss !== -1 && ee !== -1) _nfCards = JSON.parse(tt.substring(ss, ee + 1));
+            } catch (ee) { _nfCards = null; }
+            if (Array.isArray(_nfCards) && _nfCards.length) {
+              // accept only well-formed ride cards strictly AFTER the current last activity and before close,
+              // not duplicating a ride already on the plan
+              const _nfAdded = [];
+              _nfCards.forEach(c => {
+                if (!c || c.type !== 'ride' || !c.t || !c.h) return;
+                const cm = parseHourMin(c.t);
+                if (cm <= _nfLast || cm >= _nfClose) return;
+                const key = _nfNorm(c.h);
+                if (_nfUsed.has(key)) return;
+                _nfUsed.add(key);
+                _nfAdded.push({ t: c.t, h: String(c.h), type: 'ride', n: String(c.n || ''), land: String(c.land || '') });
+              });
+              if (_nfAdded.length) {
+                parsed = parsed.concat(_nfAdded);
+                parsed.sort((a, b) => {
+                  const ma = a && a.t ? parseHourMin(a.t) : 100000;
+                  const mb = b && b.t ? parseHourMin(b.t) : 100000;
+                  return ma - mb;
+                });
+                _enforce.nightFillReprompt = { gapMin: _nfClose - _nfLast, requested: _nfNeed, added: _nfAdded.length, lastWas: minToLabel(_nfLast), close: minToLabel(_nfClose) };
+              }
+            }
+          } catch (ee) { /* re-prompt failed; leave the day as-is, underfilled check still records the gap */ }
+        }
+      }
+    }
+
     // ---- PHYSICS ENFORCEMENT (code, not prompt): drop any RIDE scheduled into a block whose park
     // does not contain it. The model is told to stay in-block, but prompt rules can lose to the data;
     // this guarantees a ride's time falls in a block whose park's catalog actually has that ride.
