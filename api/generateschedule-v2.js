@@ -309,6 +309,7 @@ export default async function handler(req, res) {
     // enforcement below, so they pass through the same wrong-park / dedup / sort guards as everything
     // else. This is inherently PER-DAY: a day that already fills to close (gap <= 45) never triggers it,
     // so a perfectly-timed evening is left untouched. ----
+    let _enforce = { dropped: [] };
     _enforce.nightFillReprompt = null;
     if (Array.isArray(parsed) && parsed.length && blocks.length) {
       const _nfClose = blocks[blocks.length - 1].endMin;
@@ -387,7 +388,7 @@ export default async function handler(req, res) {
     // this guarantees a ride's time falls in a block whose park's catalog actually has that ride.
     // Conservative: only drops type 'ride' items we can confidently match as wrong-park. Never touches
     // meals/tips/shows/snacks. Does NOT regenerate or insert filler (that was the scaffold's failure). ----
-    let _enforce = { dropped: [] };
+    // (_enforce is declared earlier, before the night-fill re-prompt block, so that block can record into it.)
     // Single source of truth for normalizing a schedule item's ride name for catalog matching.
     // Strips rope-drop prefixes (colon form 'Rope Drop:' AND dash form 'Rope Drop -/\u2014') and
     // trailing (LL...)/(night...) adornments, then lowercases/strips punctuation. ORDERING: em-dash
