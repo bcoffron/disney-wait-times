@@ -1,0 +1,25 @@
+{
+  "name": "Theme Park Co-Pilot",
+  "short_name": "Co-Pilot",
+  "description": "Smarter days. More magic. AI-powered Disney park planning and real-time guidance.",
+  "start_url": "/app.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#071E25",
+  "theme_color": "#071E25",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -141,6 +141,14 @@
       "destination": "/api/not-found"
     },
     {
+      "source": "/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/sw.js"
+    },
+    {
       "source": "/:path*",
       "destination": "/api/home"
     }
