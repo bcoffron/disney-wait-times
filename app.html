@@ -6896,7 +6896,7 @@ function closeAltSheet() {
 }
 function selectAlt(name) {
   closeAltSheet();
-  showToast('Switched to ' + name + '. Original re-inserted into schedule.');
+  showToast('Switched to ' + name + '.');
 }
 
 /* --- VIP day banner --- */
@@ -7324,15 +7324,304 @@ function dismissWaitSpikeToast() {
 }
 
 function handleWaitSpikeReroute() {
-  dismissWaitSpikeToast();
-  // Trigger the existing AI Optimize flow
-  if (typeof aiOptGated === 'function') aiOptGated();
+  var toast = document.getElementById('waitSpikeToast');
+  var rn = (toast && toast.dataset.rideName) ? toast.dataset.rideName : '';
+  tpcpReroute(rn);
 }
 
 // Check every 5 minutes
 setInterval(checkForWaitSpikes, 5 * 60 * 1000);
 // First check after 30 seconds on load (gives wait times time to load)
 setTimeout(checkForWaitSpikes, 30000);
+
+// ============================================================
+// WAIT-SPIKE REROUTE: SWAP CORE  (app.html integration)
+// Base: 5b279f277604fcc5e4b42d0c54665800ac2bccee
+// ============================================================
+
+// --- Coord cache ---
+var _rideCoords = null;
+
+function tpcpNormName(n) {
+  if (!n) return '';
+  return String(n)
+    .replace(/^Rope Drop[:\s]*/i, '')
+    .replace(/\s*\(Lightning Lane.*?\)\s*/i, '')
+    .replace(/\s*\(LL.*?\)\s*/i, '')
+    .replace(/[''\u2019]/g, '')
+    .replace(/[^a-z0-9\s]/gi, ' ')
+    .replace(/\bsoarin around the world\b/i, 'soarin over california')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .trim();
+}
+
+function tpcpCoordLookup(name) {
+  if (!_rideCoords) return null;
+  var n = tpcpNormName(name);
+  if (_rideCoords[n]) return _rideCoords[n];
+  var keys = Object.keys(_rideCoords);
+  var found = keys.find(function(k) {
+    return k.indexOf(n) === 0 || n.indexOf(k) === 0;
+  });
+  return found ? _rideCoords[found] : null;
+}
+
+async function tpcpEnsureCoords() {
+  if (_rideCoords) return;
+  try {
+    var resp = await fetch(SYNC_BASE + '/api/ride-coords');
+    var data = await resp.json();
+    if (data && data.rides) {
+      _rideCoords = {};
+      data.rides.forEach(function(r) {
+        _rideCoords[tpcpNormName(r.name)] = {lat: r.lat, lon: r.lon, park: r.park, name: r.name};
+      });
+    }
+  } catch(e) {
+    _rideCoords = {};
+  }
+}
+
+// --- Ported swap engine (verbatim from swap_engine_TESTED.js) ---
+
+function tpcpDistM(a, b) {
+  var R = 6371000;
+  var toRad = function(x) { return x * Math.PI / 180; };
+  var dLat = toRad(b.lat - a.lat), dLon = toRad(b.lon - a.lon);
+  var la1 = toRad(a.lat), la2 = toRad(b.lat);
+  var h = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+var TPCP_LAND_PARK = {
+  'star wars: galaxy\u2019s edge': 'DL',
+  'adventureland': 'DL',
+  'frontierland': 'DL',
+  'bayou country': 'DL',
+  'new orleans square': 'DL',
+  'fantasyland': 'DL',
+  'tomorrowland': 'DL',
+  'mickey\u2019s toontown': 'DL',
+  'main street, u.s.a.': 'DL',
+  'critter country': 'DL',
+  'cars land': 'DCA',
+  'avengers campus': 'DCA',
+  'pixar pier': 'DCA',
+  'grizzly peak': 'DCA',
+  'paradise gardens park': 'DCA',
+  'hollywood land': 'DCA',
+  'buena vista street': 'DCA',
+  'san fransokyo square': 'DCA'
+};
+
+function tpcpParkOfLand(land) {
+  return TPCP_LAND_PARK[(land || '').toLowerCase()] || null;
+}
+
+function tpcpTimeToMin(t) {
+  if (!t) return -1;
+  var m = String(t).match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return -1;
+  var h = parseInt(m[1]), mn = parseInt(m[2]);
+  var pm = m[3].toUpperCase() === 'PM';
+  if (pm && h !== 12) h += 12;
+  if (!pm && h === 12) h = 0;
+  return h * 60 + mn;
+}
+
+var TPCP_SHORT_MAX = 30;
+var TPCP_WALK_OK_M = 450;
+var TPCP_WALK_FAR_M = 900;
+
+function tpcpDecideSwap(items, spikedIdx, liveWaitOf, coordOf, nowMin) {
+  var spiked = items[spikedIdx];
+  var spikedPark = tpcpParkOfLand(spiked.land);
+  var spikedCoord = coordOf(spiked.h);
+  if (!spikedPark) return {action: 'advise', reason: 'unknown-park'};
+  var cands = [];
+  for (var i = 0; i < items.length; i++) {
+    if (i === spikedIdx) continue;
+    var it = items[i];
+    if (!it || it.type !== 'ride' || !it.h) continue;
+    if (tpcpParkOfLand(it.land) !== spikedPark) continue;
+    var itMin = tpcpTimeToMin(it.t);
+    if (itMin <= nowMin) continue;
+    var lw = liveWaitOf(it.h);
+    if (!lw || lw.status !== 'OPERATING' || typeof lw.wait !== 'number') continue;
+    if (lw.wait > TPCP_SHORT_MAX) continue;
+    var c = coordOf(it.h);
+    var d = (spikedCoord && c) ? tpcpDistM(spikedCoord, c) : null;
+    cands.push({idx: i, ride: it, wait: lw.wait, when: itMin, dist: d});
+  }
+  if (!cands.length) return {action: 'advise', reason: 'no-same-park-short-ride'};
+  cands.forEach(function(c) {
+    var soon = c.when - nowMin;
+    var walkPenalty = 0;
+    if (c.dist === null) walkPenalty = 30;
+    else if (c.dist <= TPCP_WALK_OK_M) walkPenalty = 0;
+    else if (c.dist <= TPCP_WALK_FAR_M) walkPenalty = 45;
+    else walkPenalty = 120;
+    c.score = soon + walkPenalty;
+  });
+  cands.sort(function(a, b) { return a.score - b.score; });
+  var best = cands[0];
+  return {
+    action: 'swap',
+    targetIdx: best.idx,
+    target: best.ride,
+    targetWait: best.wait,
+    distM: best.dist,
+    spikedIdx: spikedIdx,
+    swapTimes: {spikedNewT: best.ride.t, targetNewT: spiked.t}
+  };
+}
+
+// --- Adapters ---
+
+function tpcpLiveWaitOf(name) {
+  var lw = lookupWait(name);
+  if (!lw) return null;
+  return {wait: (typeof lw.w === 'number') ? lw.w : null, status: lw.s || ''};
+}
+
+function tpcpCoordOf(name) {
+  return tpcpCoordLookup(name);
+}
+
+// --- Apply swap (trust-critical: both rides stay on plan) ---
+
+function tpcpApplySwap(spikedName, targetName) {
+  var data = JSON.parse(JSON.stringify(getCurDay()));
+  var spikedEntry = null, targetEntry = null;
+  var spikedSec = -1, targetSec = -1;
+  data.sections.forEach(function(sec, si) {
+    (sec.entries || []).forEach(function(e) {
+      var n = tpcpNormName(e.h || e.name || '');
+      if (!spikedEntry && n === tpcpNormName(spikedName)) { spikedEntry = e; spikedSec = si; }
+      if (!targetEntry && n === tpcpNormName(targetName)) { targetEntry = e; targetSec = si; }
+    });
+  });
+  if (!spikedEntry || !targetEntry) {
+    showToast('Could not find both rides &mdash; no change made.');
+    return;
+  }
+  // Swap .t values only -- both entries remain on the plan
+  var tmpT = spikedEntry.t;
+  spikedEntry.t = targetEntry.t;
+  targetEntry.t = tmpT;
+  // Re-sort affected sections by .t so array order matches render order
+  var secsSeen = [];
+  [spikedSec, targetSec].forEach(function(si) {
+    if (secsSeen.indexOf(si) === -1) {
+      secsSeen.push(si);
+      data.sections[si].entries.sort(function(a, b) {
+        return tpcpTimeToMin(a.t) - tpcpTimeToMin(b.t);
+      });
+    }
+  });
+  customSched[curDay] = data;
+  saveCustom(curDay);   // saveCustom calls pushSchedule() when admin
+  renderSched();
+}
+
+// --- Flatten today's schedule items for the engine ---
+
+function tpcpFlatItems() {
+  var day = getCurDay();
+  if (!day || !day.sections) return [];
+  var items = [];
+  day.sections.forEach(function(sec) {
+    (sec.entries || []).forEach(function(e) {
+      items.push({t: e.t, h: e.h, type: e.type, land: e.land});
+    });
+  });
+  return items;
+}
+
+var _tpcpPendingSwap = null;
+
+// --- Main reroute (admin-only) ---
+
+async function tpcpReroute(rideName) {
+  if (!isAdmin()) { dismissWaitSpikeToast(); return; }
+  dismissWaitSpikeToast();
+  await tpcpEnsureCoords();
+  var items = tpcpFlatItems();
+  var spikedIdx = -1;
+  var normSpike = tpcpNormName(rideName);
+  for (var i = 0; i < items.length; i++) {
+    if (tpcpNormName(items[i].h) === normSpike) { spikedIdx = i; break; }
+  }
+  var spikedLand = (spikedIdx > -1) ? (items[spikedIdx].land || '') : '';
+  var spikedPark = tpcpParkOfLand(spikedLand);
+  var now = new Date();
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  if (spikedIdx === -1) {
+    var alts0 = (ALTS[spikedLand] || []).slice(0, 5).map(function(n) {
+      var lw0 = tpcpLiveWaitOf(n);
+      return {name: n, wait: (lw0 && lw0.wait !== null) ? lw0.wait : null, note: ''};
+    }).filter(function(o) { return o.wait !== null; });
+    openAltSheet(rideName, alts0);
+    var titleEl0 = document.getElementById('altSheetTitle');
+    if (titleEl0) titleEl0.textContent = rideName + ' \u2014 alternatives';
+    return;
+  }
+  var result = tpcpDecideSwap(items, spikedIdx, tpcpLiveWaitOf, tpcpCoordOf, nowMin);
+  if (result.action === 'swap') {
+    var tgt = result.target;
+    var parkLabel = (spikedPark === 'DL') ? 'Disneyland' : 'Disney California Adventure';
+    var newTime = result.swapTimes.spikedNewT;
+    _tpcpPendingSwap = {
+      spikedName: rideName,
+      targetName: tgt.h,
+      targetWait: result.targetWait,
+      parkLabel: parkLabel,
+      newTime: newTime
+    };
+    openAltSheet(
+      rideName,
+      [{name: tgt.h, wait: result.targetWait, note: 'On your plan \u2014 ' + result.targetWait + ' min now'}]
+    );
+    var titleEl = document.getElementById('altSheetTitle');
+    if (titleEl) titleEl.textContent = rideName + ' jumped \u2014 here\u2019s the swap';
+    var optsEl = document.getElementById('altSheetOptions');
+    if (optsEl) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('style',
+        'display:block;width:100%;margin-top:14px;padding:13px 0;' +
+        'background:#1A6860;color:#fff;border:none;border-radius:10px;' +
+        'font-size:15px;font-weight:600;cursor:pointer;');
+      btn.textContent = 'Move it for me \u2014 do ' + tgt.h + ' next, ' + rideName + ' moves to ' + newTime;
+      btn.onclick = function() { tpcpConfirmSwap(); };
+      optsEl.appendChild(btn);
+    }
+  } else {
+    var altNames = ALTS[spikedLand] || [];
+    var altOpts = altNames.map(function(n) {
+      var lw2 = tpcpLiveWaitOf(n);
+      return {name: n, wait: (lw2 && lw2.wait !== null) ? lw2.wait : null, note: ''};
+    }).filter(function(o) { return o.wait !== null && o.wait <= 45; })
+      .sort(function(a, b) { return a.wait - b.wait; })
+      .slice(0, 5);
+    var hdrText = rideName + ' is slammed right now \u2014 short waits nearby';
+    if (result.reason === 'unknown-park') hdrText = rideName + ' \u2014 alternatives nearby';
+    openAltSheet(rideName, altOpts);
+    var titleEl3 = document.getElementById('altSheetTitle');
+    if (titleEl3) titleEl3.textContent = hdrText;
+  }
+}
+
+function tpcpConfirmSwap() {
+  if (!_tpcpPendingSwap) return;
+  var s = _tpcpPendingSwap;
+  _tpcpPendingSwap = null;
+  closeAltSheet();
+  tpcpApplySwap(s.spikedName, s.targetName);
+  showToast('Do ' + s.targetName + ' next \u2014 ' + s.spikedName +
+    ' moved to your ' + s.newTime + ' slot. Both in ' + s.parkLabel + '.');
+}
 </script>
 <div id="onboardingOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:#EEF5F4;overflow-y:auto;font-family:'Outfit',sans-serif;">
   <!-- Progress bar + header -->
