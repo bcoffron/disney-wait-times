@@ -4,7 +4,7 @@
   "type": "module",
   "description": "CORS proxy and cache server for ThemeParkWize",
   "dependencies": {
-    "@vercel/blob": "0.27.3",
+    "@vercel/blob": "2.0.1",
     "bcryptjs": "^2.4.3",
     "busboy": "^1.6.0",
     "pusher": "^5.2.0",
