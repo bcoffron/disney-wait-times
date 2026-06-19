@@ -1237,11 +1237,6 @@ body.tw-guest .ai-opt-hero{display:none!important}
     <!-- INFO TAB -->
     <div id="tabInfo" style="display:none">
       <div style="padding:16px;">
-        <!-- TEMP push-alert test button (remove after delivery test) -->
-        <div id="tpcpAlertTestRow" style="margin-bottom:14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;">
-          <button onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;width:100%;">Enable wait alerts (test)</button>
-          <div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:'Outfit',sans-serif;margin-top:8px;line-height:1.4;"></div>
-        </div>
         <!-- Edit Trip Details button (admin only) -->
         <div id="editTripDetailsRow" style="display:none;margin-bottom:12px;">
           <button onclick="openEditTripDetails()" style="background:transparent;border:1px solid rgba(7,30,37,0.15);border-radius:8px;padding:6px 10px;font-size:9px;font-weight:600;color:#4A7A7C;font-family:'Outfit',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
@@ -4399,6 +4394,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
     +'<div class="info-tab-header"><div class="info-tab-eyebrow">Trip Info</div></div>'
+    +'<div id="tpcpAlertTestRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable wait alerts (test)</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div></div>'
     +buildInfoSection('hours','Park Hours',clockIcon,hoursContent)
     +buildInfoSection('weather','Trip Weather Forecast',sunIcon,weatherContent())
     +buildInfoSection('crowds','Crowd Forecast',chartIcon,crowdContent())
