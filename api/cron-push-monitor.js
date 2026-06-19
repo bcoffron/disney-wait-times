@@ -47,12 +47,36 @@ function safeTripCode(raw) {
 function normName(s) {
 	return (s || '')
 		.toLowerCase()
+		// strip a leading "Rope Drop" marker the schedule prepends to some items
+		.replace(/^\s*rope\s*drop\s*[-:\u2013\u2014]?\s*/i, '')
 		.replace(/\s*\((?:llmp|ll|lightning lane)\s*return\)\s*/i, ' ')
 		.replace(/\s*[-\u2013\u2014]\s*(?:llmp|ll|lightning lane)\s*return\s*/i, ' ')
 		.replace(/\s*(?:llmp|ll|lightning lane)\s*return\s*/i, ' ')
 		.replace(/[\u2019']/g, '')
 		.replace(/[^a-z0-9]+/g, ' ')
 		.trim();
+}
+
+// Aliases for rides whose schedule name and live-feed name genuinely differ
+// (not just punctuation). Keys/values are normName() outputs.
+const NAME_ALIASES = {
+	'soarin around the world': 'soarin over california'
+};
+
+// Resolve a schedule ride name to a live-wait record. Tries, in order:
+// exact normalized match, alias, then bidirectional prefix (handles live names
+// with extra suffixes like "Pixar Pal-A-Round - Swinging").
+function resolveLive(scheduleName, liveByName, liveKeys) {
+	const k = normName(scheduleName);
+	if (liveByName[k]) return liveByName[k];
+	if (NAME_ALIASES[k] && liveByName[NAME_ALIASES[k]]) return liveByName[NAME_ALIASES[k]];
+	// prefix match: schedule "pixar pal a round" vs live "pixar pal a round swinging"
+	for (let i = 0; i < liveKeys.length; i++) {
+		const lk = liveKeys[i];
+		if (lk === k) return liveByName[lk];
+		if (lk.indexOf(k + ' ') === 0 || k.indexOf(lk + ' ') === 0) return liveByName[lk];
+	}
+	return null;
 }
 
 // Parse a per-day date that may be ISO ("2026-06-28") or human ("Jun 28, 2026")
@@ -211,6 +235,7 @@ export default async function handler(req, res) {
 			}
 		};
 		ingest(dlData); ingest(dcaData);
+		const liveKeys = Object.keys(liveByName);
 
 		const summary = [];
 
@@ -254,9 +279,9 @@ export default async function handler(req, res) {
 			const spikes = [];
 
 			for (const it of rideItems) {
-				const key = normName(it.h);
-				const live = liveByName[key];
+				const live = resolveLive(it.h, liveByName, liveKeys);
 				if (!live || live.status !== 'OPERATING') continue;
+				const key = normName(live.name); // key state by the stable live name
 				const cur = live.wait;
 				const prevRec = state.rides[key] || {};
 				const prev = (typeof prevRec.wait === 'number') ? prevRec.wait : null;
