@@ -1200,6 +1200,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
     <!-- WAIT TIMES TAB -->
     <div id="tabWaits" style="display:none">
+       <div style="margin-bottom:12px"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div id="waitStatus" style="font-size:12px;color:var(--text-muted)"></div>
         <button id="waitRefreshBtn" onclick="doRefreshWaits()" style="font-size:12px;color:var(--magic);background:none;border:1px solid rgba(27,47,160,0.2);padding:5px 12px;border-radius:99px;font-family:inherit;cursor:pointer;font-weight:600">Refresh</button>
@@ -2131,14 +2132,46 @@ function tpcpUrlB64ToUint8(base64){
   for(var i=0;i<raw.length;i++){arr[i]=raw.charCodeAt(i);}
   return arr;
 }
+async function tpcpAlertsAreOn(){
+  try{
+    if(!('serviceWorker' in navigator)||!('PushManager' in window)) return false;
+    if(typeof Notification==='undefined'||Notification.permission!=='granted') return false;
+    var reg=await navigator.serviceWorker.ready;
+    var sub=await reg.pushManager.getSubscription();
+    return !!sub;
+  }catch(e){ return false; }
+}
+function tpcpSetAlertBtn(btn,on){
+  if(!btn) return;
+  if(on){
+    btn.innerHTML='&#10003; Wait Time Alerts Enabled';
+    btn.style.background='#E0F5E8';
+    btn.style.color='#0F6830';
+    btn.style.cursor='default';
+    btn.disabled=true;
+  }else{
+    btn.innerHTML='Enable Wait Time Alerts';
+    btn.style.background='#1A6860';
+    btn.style.color='#fff';
+    btn.style.cursor='pointer';
+    btn.disabled=false;
+  }
+}
+async function tpcpRefreshAlertButtons(){
+  var on=await tpcpAlertsAreOn();
+  var btns=document.querySelectorAll('.tpcp-alert-btn');
+  for(var i=0;i<btns.length;i++){ tpcpSetAlertBtn(btns[i],on); }
+}
 async function tpcpAlertTestTap(){
   var el=document.getElementById('tpcpAlertTestStatus');
   if(el)el.textContent='Requesting permission...';
   try{
     var res=await tpcpEnableWaitAlerts();
-    if(el){
-      if(res&&res.ok){el.textContent='Subscribed! '+res.count+' device(s) registered for this trip.';el.style.color='#1A6860';}
-      else{el.textContent='Could not enable: '+((res&&res.reason)||'unknown')+(res&&res.status?(' ('+res.status+')'):'');el.style.color='#C86030';}
+    if(res&&res.ok){
+      if(el){el.textContent='You are all set - we will alert you when waits spike.';el.style.color='#0F6830';}
+      tpcpRefreshAlertButtons();
+    }else{
+      if(el){el.textContent='Could not enable: '+((res&&res.reason)||'unknown')+(res&&res.status?(' ('+res.status+')'):'');el.style.color='#C86030';}
     }
   }catch(e){ if(el){el.textContent='Error: '+(e&&e.message);el.style.color='#C86030';} }
 }
@@ -4394,7 +4427,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
     +'<div class="info-tab-header"><div class="info-tab-eyebrow">Trip Info</div></div>'
-    +'<div id="tpcpAlertTestRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable wait alerts (test)</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div></div>'
+    +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div></div>'
     +buildInfoSection('hours','Park Hours',clockIcon,hoursContent)
     +buildInfoSection('weather','Trip Weather Forecast',sunIcon,weatherContent())
     +buildInfoSection('crowds','Crowd Forecast',chartIcon,crowdContent())
@@ -4576,6 +4609,7 @@ function setTab(t){
   if(t==='shows')renderShows&&renderShows();
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
+  if(t==='waits'||t==='info'){ if(typeof tpcpRefreshAlertButtons==='function') tpcpRefreshAlertButtons(); }
   setTimeout(function() {
   document.documentElement.scrollTop = 0;
   window.scrollTo(0, 0);
