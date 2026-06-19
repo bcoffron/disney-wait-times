@@ -2350,8 +2350,14 @@ function startBlobPoll() {
         var hash = JSON.stringify(data.tripData);
         if (hash === _blobPollLastHash) return;
         _blobPollLastHash = hash;
-        // Update schedule for guests
+        // Update schedule for guests: ingest the fresh schedule into _schedData +
+        // rebuild customSched (via the same loadCustom path used on initial load)
+        // BEFORE re-rendering. Without this, renderSched redraws stale data.
         if (role === 'guest') {
+          if (data.tripData.tripConfig && data.tripData.tripConfig.schedule) {
+            window._schedData = data.tripData.tripConfig.schedule;
+            if (typeof loadCustom === 'function') loadCustom();
+          }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
           if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
         }
