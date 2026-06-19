@@ -1237,6 +1237,11 @@ body.tw-guest .ai-opt-hero{display:none!important}
     <!-- INFO TAB -->
     <div id="tabInfo" style="display:none">
       <div style="padding:16px;">
+        <!-- TEMP push-alert test button (remove after delivery test) -->
+        <div id="tpcpAlertTestRow" style="margin-bottom:14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;">
+          <button onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;width:100%;">Enable wait alerts (test)</button>
+          <div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:'Outfit',sans-serif;margin-top:8px;line-height:1.4;"></div>
+        </div>
         <!-- Edit Trip Details button (admin only) -->
         <div id="editTripDetailsRow" style="display:none;margin-bottom:12px;">
           <button onclick="openEditTripDetails()" style="background:transparent;border:1px solid rgba(7,30,37,0.15);border-radius:8px;padding:6px 10px;font-size:9px;font-weight:600;color:#4A7A7C;font-family:'Outfit',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
@@ -2130,6 +2135,17 @@ function tpcpUrlB64ToUint8(base64){
   var arr=new Uint8Array(raw.length);
   for(var i=0;i<raw.length;i++){arr[i]=raw.charCodeAt(i);}
   return arr;
+}
+async function tpcpAlertTestTap(){
+  var el=document.getElementById('tpcpAlertTestStatus');
+  if(el)el.textContent='Requesting permission...';
+  try{
+    var res=await tpcpEnableWaitAlerts();
+    if(el){
+      if(res&&res.ok){el.textContent='Subscribed! '+res.count+' device(s) registered for this trip.';el.style.color='#1A6860';}
+      else{el.textContent='Could not enable: '+((res&&res.reason)||'unknown')+(res&&res.status?(' ('+res.status+')'):'');el.style.color='#C86030';}
+    }
+  }catch(e){ if(el){el.textContent='Error: '+(e&&e.message);el.style.color='#C86030';} }
 }
 async function tpcpEnableWaitAlerts(){
   try{
