@@ -258,6 +258,9 @@
     },
     "api/social-oembed.js": {
       "maxDuration": 15
+    },
+    "api/cron-push-monitor.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -296,6 +299,14 @@
     {
       "path": "/api/cron-publish",
       "schedule": "0,30 * * * *"
+    },
+    {
+      "path": "/api/cron-push-monitor",
+      "schedule": "*/5 14-23 * * *"
+    },
+    {
+      "path": "/api/cron-push-monitor",
+      "schedule": "*/5 0-6 * * *"
     }
   ],
   "redirects": [
