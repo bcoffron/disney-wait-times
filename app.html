@@ -14,14 +14,16 @@
 <meta name="version" content="202605281200-v135">
 <meta name="app-version" content="6efa34c">
   <link rel="icon" type="image/png" href="/assets/brand/favicon.PNG">
-<link rel="apple-touch-icon" href="/assets/icon-512.PNG">
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-512.PNG">
-<link rel="apple-touch-icon-precomposed" sizes="180x180" href="/assets/icon-512.PNG">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Theme Park CP">
 <meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#071E25">
 <base target="_blank">
 <title>Theme Park Co-Pilot</title>
 <script src="https://js.pusher.com/8.2/pusher.min.js" integrity="sha384-gA0TPBlnosOv77mNKhqDqUd7BMOqU7f5VlaEGFdyCus4A5l7JHELZ4K5dQMBSL1j" crossorigin="anonymous"></script>
@@ -7912,5 +7914,18 @@ setTimeout(checkForWaitSpikes, 30000);
     }
   });
   </script>
+<script>
+  (function(){
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function(){
+        navigator.serviceWorker.register('/sw.js').then(function(reg){
+          console.log('[PWA] service worker registered, scope:', reg.scope);
+        }).catch(function(err){
+          console.log('[PWA] service worker registration failed:', err);
+        });
+      });
+    }
+  })();
+</script>
 </body>
 </html>
