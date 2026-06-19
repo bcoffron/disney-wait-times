@@ -46,16 +46,6 @@
   "rewrites": [
     {
       "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.themeparkcopilot.com"
-        }
-      ],
-      "destination": "/app.html"
-    },
-    {
-      "source": "/",
       "destination": "/api/home"
     },
     {
