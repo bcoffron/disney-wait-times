@@ -2121,6 +2121,47 @@ async function pushVipNotes(dayIdx,val){
   }catch(e){}
 }
 
+//    Web push: enable wait-spike alerts for this trip
+var TPCP_VAPID_PUBLIC_KEY='BGlV30uXIaqPvUBF5GW8cRDGlDdjxGdvet9hi6i6uGKL132fncv5gyX9n2r2f3hz8o23Ijm-ckFCjVUGigLWCPM';
+function tpcpUrlB64ToUint8(base64){
+  var pad='='.repeat((4-base64.length%4)%4);
+  var b=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');
+  var raw=atob(b);
+  var arr=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;i++){arr[i]=raw.charCodeAt(i);}
+  return arr;
+}
+async function tpcpEnableWaitAlerts(){
+  try{
+    if(!('serviceWorker' in navigator)||!('PushManager' in window)){
+      return {ok:false,reason:'unsupported'};
+    }
+    var code=localStorage.getItem('tpcp_code')||'';
+    if(!code){return {ok:false,reason:'no-trip-code'};}
+    var perm=await Notification.requestPermission();
+    if(perm!=='granted'){return {ok:false,reason:'denied'};}
+    var reg=await navigator.serviceWorker.ready;
+    var sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:tpcpUrlB64ToUint8(TPCP_VAPID_PUBLIC_KEY)
+      });
+    }
+    var r=await fetch(SYNC_BASE+'/api/push-subscribe',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-trip-code':code},
+      body:JSON.stringify({tripCode:code,subscription:sub.toJSON()})
+    });
+    var data=await r.json().catch(function(){return {};});
+    if(r.ok&&data.ok){return {ok:true,count:data.count};}
+    return {ok:false,reason:'server',status:r.status};
+  }catch(e){
+    console.warn('[push] enable failed',e&&e.message);
+    return {ok:false,reason:'error'};
+  }
+}
+
 async function pullVipNotes(){
   try{
     var r=await fetch(SYNC_BASE+'/api/vipnotes?t='+Date.now());
