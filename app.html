@@ -7394,16 +7394,16 @@ function tpcpDistM(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-var TPCP_LAND_PARK = {
-  'star wars: galaxy\u2019s edge': 'DL',
+var TPCP_LAND_PARK_NORM = {
+  'star wars galaxys edge': 'DL',
   'adventureland': 'DL',
   'frontierland': 'DL',
   'bayou country': 'DL',
   'new orleans square': 'DL',
   'fantasyland': 'DL',
   'tomorrowland': 'DL',
-  'mickey\u2019s toontown': 'DL',
-  'main street, u.s.a.': 'DL',
+  'mickeys toontown': 'DL',
+  'main street usa': 'DL',
   'critter country': 'DL',
   'cars land': 'DCA',
   'avengers campus': 'DCA',
@@ -7416,7 +7416,8 @@ var TPCP_LAND_PARK = {
 };
 
 function tpcpParkOfLand(land) {
-  return TPCP_LAND_PARK[(land || '').toLowerCase()] || null;
+  var key = (land || '').toLowerCase().replace(/['\u2018\u2019]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return TPCP_LAND_PARK_NORM[key] || null;
 }
 
 function tpcpTimeToMin(t) {
