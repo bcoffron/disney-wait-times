@@ -1200,7 +1200,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
     <!-- WAIT TIMES TAB -->
     <div id="tabWaits" style="display:none">
-       <div style="margin-top:14px;margin-bottom:12px"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button></div>
+       <div style="margin-top:14px;margin-bottom:12px"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpWaitsAlertHelp"></div></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div id="waitStatus" style="font-size:12px;color:var(--text-muted)"></div>
         <button id="waitRefreshBtn" onclick="doRefreshWaits()" style="font-size:12px;color:var(--magic);background:none;border:1px solid rgba(27,47,160,0.2);padding:5px 12px;border-radius:99px;font-family:inherit;cursor:pointer;font-weight:600">Refresh</button>
@@ -2161,6 +2161,31 @@ async function tpcpRefreshAlertButtons(){
   var on=await tpcpAlertsAreOn();
   var btns=document.querySelectorAll('.tpcp-alert-btn');
   for(var i=0;i<btns.length;i++){ tpcpSetAlertBtn(btns[i],on); }
+  var wh=document.getElementById('tpcpWaitsAlertHelp');
+  if(wh&&!wh.firstChild){ wh.innerHTML=tpcpAlertHelpHTML(); }
+}
+// ---- Wait-alerts explainer accordion (Info + Waits tabs) ----
+function tpcpAlertHelpBodyHTML(){
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent||'');
+  var main='We keep an eye on the rides in your plan. If a wait suddenly spikes or drops, we&rsquo;ll send a heads-up so you can choose to pivot if you like &mdash; no need to keep refreshing the wait times yourself.';
+  var ios=isIOS?('<div style="margin-top:8px;">On iPhone, add Theme Park Co-Pilot to your home screen first so alerts can reach you.</div>'):'';
+  return '<div style="font-size:11px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;line-height:1.5;padding:8px 2px 2px;">'+main+ios+'</div>';
+}
+function tpcpAlertHelpHTML(){
+  return '<div class="tpcp-alert-help" style="margin-top:8px;">'
+    +'<button type="button" onclick="tpcpToggleAlertHelp(this)" aria-expanded="false" style="background:none;border:none;padding:4px 0;font-size:11px;font-weight:600;color:#1A6860;font-family:\'Outfit\',sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;width:100%;text-align:left;">'
+    +'<span class="tpcp-help-caret" style="display:inline-block;transition:transform .15s;font-size:9px;">&#9656;</span>How do wait alerts work?</button>'
+    +'<div class="tpcp-help-body" style="display:none;">'+tpcpAlertHelpBodyHTML()+'</div></div>';
+}
+function tpcpToggleAlertHelp(btn){
+  var wrap=btn.parentNode; if(!wrap)return;
+  var body=wrap.querySelector('.tpcp-help-body');
+  var caret=btn.querySelector('.tpcp-help-caret');
+  if(!body)return;
+  var open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  btn.setAttribute('aria-expanded',open?'false':'true');
+  if(caret)caret.style.transform=open?'rotate(0deg)':'rotate(90deg)';
 }
 async function tpcpAlertTestTap(){
   var el=document.getElementById('tpcpAlertTestStatus');
@@ -4427,7 +4452,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
     +'<div class="info-tab-header"><div class="info-tab-eyebrow">Trip Info</div></div>'
-    +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div></div>'
+    +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div>'+tpcpAlertHelpHTML()+'</div>'
     +buildInfoSection('hours','Park Hours',clockIcon,hoursContent)
     +buildInfoSection('weather','Trip Weather Forecast',sunIcon,weatherContent())
     +buildInfoSection('crowds','Crowd Forecast',chartIcon,crowdContent())
