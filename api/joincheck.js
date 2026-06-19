@@ -1,4 +1,4 @@
-// api/_join-check.js  -- THROWAWAY diagnostic, delete after use.
+// api/joincheck.js  -- THROWAWAY diagnostic, delete after use.
 // Server-side three-way name join: schedule rides <-> live waits <-> coords cache.
 // Admin-gated. Returns only miss lists (no sensitive data).
 
