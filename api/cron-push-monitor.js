@@ -22,9 +22,14 @@ const DL_ID = '7340550b-c14d-4def-80bb-acdb51d49a66';
 const DCA_ID = '832fcd51-ea19-4e77-85c7-75d5843b127c';
 
 // Spike thresholds (mirror client spike toast)
-const LOW_MAX = 30;     // previous wait must have been <= this
-const SPIKE_MIN = 45;   // current wait must be >= this
+const LOW_MAX = 30;     // previous wait must have been <= this (spike)
+const SPIKE_MIN = 45;   // current wait must be >= this (spike)
 const ALERT_COOLDOWN_MIN = 90; // do not re-alert the same ride within this many minutes
+// Drop detection (opportunistic, sparing): ride was high, now genuinely short.
+const DROP_PREV_MIN = 45;   // previous wait must have been >= this
+const DROP_NOW_MAX = 15;    // current wait must be <= this (genuinely short, not just lower)
+const DROP_DELTA_MIN = 35;  // must have dropped at least this much (avoid 50->40 noise)
+const DROP_DAY_CUTOFF_MIN = 21 * 60; // do not send drop alerts after 9 PM (little day left to use it)
 
 // Park hours guard (Pacific). Outside this window, skip entirely.
 const PARK_OPEN_HOUR_PT = 7;   // 7 AM PT
@@ -277,6 +282,7 @@ export default async function handler(req, res) {
 			const nowMin = pt.hour * 60 + pt.minute;
 			let firedThisTrip = 0;
 			const spikes = [];
+			const drops = [];
 
 			for (const it of rideItems) {
 				const live = resolveLive(it.h, liveByName, liveKeys);
@@ -286,20 +292,31 @@ export default async function handler(req, res) {
 				const prevRec = state.rides[key] || {};
 				const prev = (typeof prevRec.wait === 'number') ? prevRec.wait : null;
 				const lastAlert = (typeof prevRec.lastAlertMin === 'number') ? prevRec.lastAlertMin : -99999;
+				const lastDrop = (typeof prevRec.lastDropMin === 'number') ? prevRec.lastDropMin : -99999;
 
-				// spike: had a previous low reading, now high, and not in cooldown
+				// spike: had a previous low reading, now high, and not in spike cooldown
 				const isSpike = prev !== null && prev <= LOW_MAX && cur >= SPIKE_MIN
 					&& (nowMin - lastAlert) >= ALERT_COOLDOWN_MIN;
 
+				// drop: was high, now genuinely short, dropped a lot, day not over, not in drop cooldown.
+				// Spikes take priority -- a ride can't be both (cur can't be >=45 and <=15), but guard anyway.
+				const isDrop = !isSpike && prev !== null && prev >= DROP_PREV_MIN && cur <= DROP_NOW_MAX
+					&& (prev - cur) >= DROP_DELTA_MIN
+					&& nowMin < DROP_DAY_CUTOFF_MIN
+					&& (nowMin - lastDrop) >= ALERT_COOLDOWN_MIN;
+
 				if (isSpike) {
 					spikes.push({ name: live.name, from: prev, to: cur });
-					state.rides[key] = { wait: cur, lastAlertMin: nowMin };
+					state.rides[key] = { wait: cur, lastAlertMin: nowMin, lastDropMin: lastDrop };
+				} else if (isDrop) {
+					drops.push({ name: live.name, from: prev, to: cur });
+					state.rides[key] = { wait: cur, lastAlertMin: lastAlert, lastDropMin: nowMin };
 				} else {
-					state.rides[key] = { wait: cur, lastAlertMin: lastAlert };
+					state.rides[key] = { wait: cur, lastAlertMin: lastAlert, lastDropMin: lastDrop };
 				}
 			}
 
-			// fire one notification per trip summarizing the worst spike (avoid spamming many at once)
+			// fire one notification per trip. Spikes are urgent and take priority over drops.
 			if (spikes.length) {
 				spikes.sort((a, b) => b.to - a.to);
 				const worst = spikes[0];
@@ -312,10 +329,22 @@ export default async function handler(req, res) {
 				};
 				const r = await sendToTrip(code, payload);
 				firedThisTrip = r.sent;
+			} else if (drops.length) {
+				// opportunistic, gentle: pick the biggest drop (lowest current wait)
+				drops.sort((a, b) => a.to - b.to);
+				const best = drops[0];
+				const payload = {
+					title: 'Short wait on your plan',
+					body: best.name + ' just dropped to ~' + best.to + ' min and it\u2019s on your plan \u2014 want to grab it now?',
+					url: '/app.html',
+					tag: 'tpcp-wait-drop'
+				};
+				const r = await sendToTrip(code, payload);
+				firedThisTrip = r.sent;
 			}
 
 			await writeJsonBlob(stateKey, state);
-			summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, spikes: spikes.length, sent: firedThisTrip });
+			summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, spikes: spikes.length, drops: drops.length, sent: firedThisTrip });
 		}
 
 		console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));
