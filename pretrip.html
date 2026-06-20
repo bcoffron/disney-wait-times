@@ -1257,11 +1257,23 @@ function ptFinish() {
     var ap = h < 12 ? 'AM' : 'PM'; var h12 = h % 12; if (h12 === 0) h12 = 12;
     return h12 + ':' + m + ' ' + ap;
   }
+  function _ptToISO(dateStr) {
+    // The day config stores human dates like "Jun 28, 2026"; the park-hours cache is keyed by ISO
+    // "2026-06-28". Convert via Date, formatting from LOCAL components so the calendar day never shifts
+    // across a timezone boundary. Returns '' if unparseable.
+    if (!dateStr || typeof dateStr !== 'string') return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr; // already ISO
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    var y = d.getFullYear(); var m = String(d.getMonth() + 1).padStart(2, '0'); var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
   function _ptBuildParkHours(cacheObj) {
     // cacheObj: { "2026-06-28": { dl:{open,close}, dca:{open,close} }, ... }
     if (!cacheObj || typeof cacheObj !== 'object') return null;
     var arr = (tripConfig.days || []).map(function(dy) {
-      var date = dy.date; var rec = date ? cacheObj[date] : null;
+      var iso = _ptToISO(dy.date);
+      var rec = (iso && cacheObj[iso]) || (dy.date ? cacheObj[dy.date] : null);
       if (!rec) return null;
       var dl = rec.dl || rec.DL || {}; var dca = rec.dca || rec.DCA || {};
       var out = {};
