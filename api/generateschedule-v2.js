@@ -17,6 +17,7 @@ import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, p
 import { getRopeDropRanking, normRideName } from './schedule-rules.js';
 import { assignRopeDropsAcrossDays } from './schedule-skeleton.js';
 import { enforceBreaks, enforceMealWindows, enforceExclusions } from './schedule-corrections.js';
+import { assignShowsAcrossDays, applyShowAssignment } from './schedule-shows.js';
 
 const MODEL = 'claude-sonnet-4-6';
 
@@ -623,44 +624,41 @@ export default async function handler(req, res) {
       _enforce.vipCollapse = { window: minToLabel(vS) + '-' + minToLabel(vE), removed: removed, replacedWithOneCard: true };
     }
 
-    // ---- CROSS-DAY SHOW DEDUP (physics, code-enforced backstop): the prompt asks the model not to
-    // repeat a nighttime show across days, but the model ignores that rule often enough that it can't be
-    // trusted (verified: Fantasmic landed on Day 2 AND Day 3 with the canonical name in priorShows and an
-    // explicit instruction). So enforce it in code: canonical-normalize each SHOW item's name and, if it
-    // matches a show already used on a prior day (priorShows, itself canonical from pretrip), DROP the
-    // duplicate show. We do NOT fabricate a replacement show -- v2 has no authoritative alternate-show
-    // catalog (shows come from the model + cache context, not buildCatalogFilter), and inventing one would
-    // violate the data principle. Dropping leaves no hole: the evening strategy schedules 2-4 rides AFTER
-    // the show, which remain in place, so the night stays full of normal ride cards. A repeated-show day
-    // simply loses its second-night spectacular -- which is the correct outcome of the hard no-repeat rule.
-    // Dinners are NOT code-dropped here: a sit-down dinner is a time-anchored meal slot (dropping it would
-    // leave the group with no dinner), and dinner repeats were already verified fixed by the priorShows
-    // prompt rule. This backstop is scoped to shows, where the drop is safe. ----
-    _enforce.showDedup = null;
-    if (Array.isArray(parsed) && parsed.length && Array.isArray(priorShows) && priorShows.length) {
-      // canonicalizer mirrors pretrip.html _normShow EXACTLY (same strips, same order) so a name produced
-      // this day compares equal to the canonical name pretrip stored for a prior day.
-      const _normShowName = h => String(h || '')
-        .replace(/\s*\((Confirmed Reservation|Reservation)\)\s*/ig, ' ')
-        .replace(/\s*[-\u2013\u2014]\s*(Dinner|Lunch|Breakfast)\s*$/i, '')
-        .replace(/\s+(at|in)\s+(Disneyland|Disney California Adventure|DCA|California Adventure|Galaxy'?s Edge)\b.*$/i, '')
-        .replace(/\s*[-\u2013\u2014:]\s*(Happiness!?|A Disney Spectacular|Nighttime Spectacular|The Musical)\s*$/i, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLowerCase();
-      const priorSet = new Set(priorShows.map(_normShowName));
-      const droppedShows = [];
-      const kept = parsed.filter(it => {
-        if (it && it.type === 'show' && it.h && priorSet.has(_normShowName(it.h))) {
-          droppedShows.push({ t: it.t, h: it.h });
-          return false;
-        }
-        return true;
+    // ---- CROSS-DAY SHOW + PARADE ASSIGNMENT (DATA + deterministic; single source of truth =
+    // the cache SHOWS catalog, with a verified seed fallback in schedule-shows.js exactly like the
+    // rope-drop DEFAULT ranking). Mirrors the rope-drop cross-day pattern: the full trip-wide
+    // assignment is recomputed from tripConfig.days on EVERY per-day call and indexed by dayIndex,
+    // so the separate per-day calls agree without needing future knowledge. This REPLACES the old
+    // drop-only dedup -- instead of deleting a repeated show and leaving a night with no spectacular,
+    // we ASSIGN a DISTINCT show to each night: no trip-wide repeats, up to 2 shows/night, fireworks
+    // only on a flagged fireworks night where the group is physically in that park at showtime, and
+    // each show matched to a showtime the group can actually reach (e.g. a late Fantasmic after the
+    // 10pm hop-back). Then strip the model's improvised/duplicate/outdated show cards and insert the
+    // authoritative assigned ones (canonical name + showtime + warm note). Tested in tests/test-shows.mjs.
+    _enforce.showAssignment = null;
+    if (Array.isArray(parsed)) {
+      const showsData = (dynamicSections && dynamicSections.SHOWS) ? dynamicSections.SHOWS : null;
+      const allDays = (days || []).map((d, i) => {
+        const di = (d && d.intent) || {
+          startPark: /dca|california/i.test((d && (d.startPark || d.park)) || '') ? 'DCA' : 'DL',
+          hop: null, vip: null
+        };
+        let ph = Array.isArray(tripConfig.parkHours) ? parseParkHoursForDate(tripConfig.parkHours, i) : null;
+        if (!ph) ph = { DL: { openMin: 480, closeMin: 1380 }, DCA: { openMin: 480, closeMin: 1320 } };
+        let bl = deriveBlocks(di, ph);
+        bl = appendEveningHopBack(bl, ph);
+        return { dayIndex: i, dateISO: (d && d.date) ? String(d.date).slice(0, 10) : null, blocks: bl, vip: di.vip || null };
       });
-      if (droppedShows.length) {
-        parsed = kept;
-        _enforce.showDedup = { dropped: droppedShows };
-      }
+      const showPlan = assignShowsAcrossDays({ days: allDays, showsData });
+      const myShows = showPlan[dayIndex] || [];
+      const applied = applyShowAssignment(parsed, myShows);
+      parsed = applied.parsed;
+      _enforce.showAssignment = {
+        assigned: myShows.map(s => ({ t: s.t, h: s.name, type: s.type })),
+        stripped: applied.stripped,
+        inserted: applied.inserted,
+        source: (showsData ? 'cache' : 'seed')
+      };
     }
 
     // ---- LL-REMINDER CHECK (verifier, NOT an injector): when Lightning Lane is on, the model is told to
