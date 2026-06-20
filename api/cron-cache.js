@@ -635,6 +635,21 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
   if(!cacheData.section_meta) cacheData.section_meta={};
 
   cacheData.sections[sectionName] = sectionData;
+
+  // SHOWS: verified summer-2026 literal -- injected on every dynamic-blob write.
+  // Update this literal (not the code) when the seasonal lineup changes.
+  // Do NOT model-generate this section; the fixed literal is intentional.
+  if (!cacheKey.includes('stable')) {
+    cacheData.sections.SHOWS = {
+      "shows": [
+        { "name": "World of Color - Happiness!", "park": "DCA", "type": "spectacular", "showtimes": ["9:00 PM"] },
+        { "name": "Fantasmic!",                  "park": "DL",  "type": "spectacular", "showtimes": ["9:00 PM", "10:30 PM"] },
+        { "name": "Wondrous Journeys",           "park": "DL",  "type": "fireworks",   "showtimes": ["9:35 PM"] },
+        { "name": "Paint the Night Parade",      "park": "DL",  "type": "parade",      "showtimes": ["8:45 PM"] }
+      ],
+      "fireworksRule": { "summerNightlyStart": "2026-05-22", "summerNightlyEnd": "2026-08-09" }
+    };
+  }
   cacheData.section_meta[sectionName] = {built:true, length:text.length, built_at:new Date().toISOString()};
   cacheData.last_section_built = sectionName;
   cacheData.last_updated = new Date().toISOString();
