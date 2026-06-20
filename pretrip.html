@@ -1244,10 +1244,33 @@ function ptFinish() {
     onboardingComplete: true
   };
 
+  var code = localStorage.getItem('tpcp_code') || '';
+
+  // Persist the trip config to the blob IMMEDIATELY, before generation starts.
+  // Generation can fail, hang, or be interrupted; if the only config write is the
+  // terminal one (after all days generate), a failed generation loses the entire
+  // config and the generator/validator then run blind on an empty config. This
+  // early write guarantees the config survives regardless of generation outcome.
+  // The terminal write below re-saves config + schedule once generation completes.
+  if (code) {
+    try {
+      fetch(SYNC_BASE + '/api/trip', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},
+        body: JSON.stringify({ code: code, tripData: { tripConfig: tripConfig } })
+      })
+      .then(function(r){ return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
+      .then(function(resp){
+        console.log('[ptFinish] EARLY config write status: ' + resp._httpStatus + ', ok: ' + (resp.ok ? 'true' : 'false') + (resp.error ? ', error: ' + resp.error : ''));
+        if (!resp.ok) { console.error('[ptFinish] EARLY config write FAILED - error: ' + (resp.error || 'unknown')); }
+      })
+      .catch(function(err){ console.error('[ptFinish] EARLY config write network error:', err && err.message); });
+    } catch (e) { console.error('[ptFinish] EARLY config write threw:', e && e.message); }
+  }
+
   // Show progress UI
   ptShowGenerating(1, totalDays);
 
-  var code = localStorage.getItem('tpcp_code') || '';
   var generatedDays = [];
 
   function generateNext(idx) {
