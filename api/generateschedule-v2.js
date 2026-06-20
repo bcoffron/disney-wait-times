@@ -891,23 +891,27 @@ export default async function handler(req, res) {
       parsed = _ml.items;
       _enforce.mealsMoved = _ml.moved.length ? _ml.moved : null;
 
-      // guarantee a "Park Hop to {park}" card at EVERY park transition (the configured midday hop
-      // AND any appended evening hop-back), so a hop is always visible even if the model omitted it
-      // or the wrong-park guard dropped the model's card (which happens when the model places the hop
-      // card a few minutes before the boundary minute). Runs AFTER the guard, so inserted cards
-      // survive. Skips a transition that falls inside the VIP tour window (the guide handles that
-      // hop). Skips insertion if a real hop card already sits within 30 min (no duplicate); the
-      // /hop (?:back )?to / test matches actual hop cards but NOT LL reminders like "...for after the
-      // park hop".
+      // PARK-HOP CARDS (physics, strip-and-reinsert): the model emits its own hop cards that often
+      // don't match the real block structure -- duplicates, a hop into a park it is already in, or a
+      // hop a few minutes off the boundary -- and the old 30-min near-dedup missed pairs that were
+      // farther apart (observed Day 2: three hop cards including a duplicate). So drop EVERY
+      // model-authored hop card, then insert exactly one at each real park transition. The
+      // authoritative hop times come from the intent (configured midday hop) plus any appended
+      // evening hop-back block -- same authoritative-override pattern as the rope-drop opener and the
+      // show assignment. The strip matches on the card TITLE only ("[Park] Hop (back) to <park>"),
+      // which no ride/meal/show ever uses, so an LL reminder that merely MENTIONS a "park hop" in its
+      // note text is never removed. A transition that lands strictly INSIDE the VIP tour window is
+      // skipped (the collapsed VIP card covers it); a transition landing exactly AT vip.endMin is the
+      // after-tour hop and IS shown (boundary is exclusive), which fixes the missing DL->DCA hop on
+      // the VIP day.
+      const _hopTitle = /^\s*(park\s+)?hop\s+(back\s+)?to\b/i;
+      parsed = (parsed || []).filter(it => !(it && _hopTitle.test(String(it.h || ''))));
       _enforce.hopCardsInserted = [];
-      const _hopNear = /hop (?:back )?to /i;
       for (let _bi = 1; _bi < blocks.length; _bi++) {
         const _prev = blocks[_bi - 1], _cur = blocks[_bi];
         if (!_cur || !_prev || _cur.park === _prev.park) continue;
         const _tMin = _cur.startMin;
-        if (intent && intent.vip && _tMin >= intent.vip.startMin && _tMin <= intent.vip.endMin) continue;
-        const _near = parsed.some(it => it && _hopNear.test(String(it.h || '')) && Math.abs(parseHourMin(it.t) - _tMin) <= 30);
-        if (_near) continue;
+        if (intent && intent.vip && _tMin >= intent.vip.startMin && _tMin < intent.vip.endMin) continue;
         const _label = _cur.park === 'DCA' ? 'Disney California Adventure' : 'Disneyland';
         const _note = _cur.hopBack
           ? 'Head back to ' + _label + ' for the rest of the night -- it stays open later, so the evening rides here have short post-show waits.'
