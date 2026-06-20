@@ -343,7 +343,7 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
         day.items = items;
       }
       const morningBreaks = items.filter(i =>
-        i.type === 'break' && timeToMinutes(i.t) >= 0 && timeToMinutes(i.t) < 660
+        i.type === 'break' && timeToMinutes(i.t) >= 0 && timeToMinutes(i.t) < 720
       );
       if (morningBreaks.length === 0) {
         const rides = items.filter(i => i.type === 'ride')
@@ -384,6 +384,26 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
         corrections.push({ rule: 'afternoon-break-missing', day: dayNum,
           action: 'inserted afternoon break at ' + minutesToTime(insertMin) });
       }
+
+      // Normalize break NOTE wording to match the break's actual time. The model sometimes writes an
+      // "Afternoon restroom stop..." note on a 10 AM break (mislabeled). This runs on every break (model-
+      // authored or validator-inserted) so the wording always matches the clock. Only rewrites the note;
+      // leaves the title ("Restroom Break") and timing untouched.
+      items.forEach(i => {
+        if (i.type !== 'break') return;
+        const m = timeToMinutes(i.t);
+        if (m < 0) return;
+        let note;
+        if (m < 720) note = 'Quick morning restroom stop. Facilities are nearby.';
+        else if (m < 1020) note = 'Afternoon restroom stop. A good moment to regroup before the evening.';
+        else note = 'Evening restroom stop. Facilities are nearby.';
+        if (i.n !== note) {
+          i.n = note;
+          corrections.push({ rule: 'break-note-time-label', day: dayNum, item: i.h,
+            action: 'normalized break note to match ' + i.t });
+        }
+      });
+      day.items = items;
     }
 
     // RULE 7: Schedule ends too early â soft warning
@@ -450,6 +470,37 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
                 day.items = items;
         }
   });
+
+  // Rule 9s: EXCLUDED RIDES (structural). The group explicitly opted out of certain attractions during
+  // onboarding (tripConfig.ridePreferences.skip, a.k.a. neverSchedule). The prompt asks the model to
+  // avoid them, but the model occasionally schedules one anyway (e.g. as a late-evening filler). Remove
+  // any ride/show card whose name matches an excluded attraction. Matching is normalized (lowercase,
+  // alphanumerics only) and substring-tolerant so "Rope Drop: Grizzly River Run" or "Grizzly River Run
+  // (single rider)" still match the excluded "Grizzly River Run".
+  const _exNorm = s => String(s || '').toLowerCase().replace(/^rope drop[^:]*:?\s*/i, '').replace(/[^a-z0-9]/g, '');
+  const excludedRaw = (tripConfig && tripConfig.ridePreferences && Array.isArray(tripConfig.ridePreferences.skip) && tripConfig.ridePreferences.skip)
+    || (tripConfig && Array.isArray(tripConfig.neverSchedule) && tripConfig.neverSchedule)
+    || [];
+  const excludedNorm = excludedRaw.map(_exNorm).filter(x => x.length >= 4);
+  if (excludedNorm.length) {
+    days.forEach((day, idx) => {
+      const items = day.items || [];
+      let removed = 0;
+      const kept = items.filter(it => {
+        if (!it || (it.type !== 'ride' && it.type !== 'show')) return true;
+        const h = _exNorm(it.h);
+        const hit = excludedNorm.some(ex => h === ex || h.indexOf(ex) !== -1 || ex.indexOf(h) !== -1);
+        if (hit) {
+          removed++;
+          corrections.push({ rule: 'excluded-ride', day: idx + 1, item: it.h,
+            action: 'removed - on the group exclusion list' });
+          return false;
+        }
+        return true;
+      });
+      if (removed) day.items = kept;
+    });
+  }
 
   // RULE 6: Confirmed reservations must be present â HARD VIOLATION
   const reservations = (tripConfig && tripConfig.dining && tripConfig.dining.reservations) || [];

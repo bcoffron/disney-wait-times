@@ -533,6 +533,18 @@ export default async function handler(req, res) {
         typeof intent.vip.startMin === 'number' && typeof intent.vip.endMin === 'number') {
       const vS = intent.vip.startMin, vE = intent.vip.endMin;
       const before = parsed.length;
+      // Before clearing the window, RESCUE a dinner the model placed inside it. The prompt requires one
+      // dinner/day, but the model often anchors it around 4:30-5:30 -- which can fall inside the VIP
+      // window and get cleared with everything else, leaving the day with no dinner. Pull the LAST such
+      // in-window dining card out and re-place it just after the tour ends, preserving the model's venue
+      // choice (strategy stays with the model; we only move it). Snacks/quickservice are left to the
+      // normal evening flow; this rescue is specifically for a dining-type meal so dinner survives.
+      let _rescuedDinner = null;
+      parsed.forEach(it => {
+        if (!it || it.type !== 'dining' || !it.t) return;
+        const m = parseHourMin(it.t);
+        if (m >= vS && m <= vE) _rescuedDinner = it; // keep the latest in-window dining card
+      });
       // keep only items strictly OUTSIDE the window (start-exclusive at end so a card exactly at vE,
       // e.g. a "tour ends" handoff, is treated as inside and removed too)
       const kept = parsed.filter(it => {
@@ -542,6 +554,13 @@ export default async function handler(req, res) {
         return m < vS || m > vE;
       });
       const removed = before - kept.length;
+      // If the day now has NO dining card after the tour and we rescued one, re-place it 30 min after
+      // the tour ends (a natural dinner slot once the guide hands off).
+      const hasPostTourDinner = kept.some(it => it && it.type === 'dining' && it.t && parseHourMin(it.t) > vE);
+      if (_rescuedDinner && !hasPostTourDinner) {
+        const dinnerMin = Math.min(vE + 30, 1410);
+        kept.push(Object.assign({}, _rescuedDinner, { t: minToLabel(dinnerMin) }));
+      }
       const vipCard = {
         t: minToLabel(vS),
         h: 'VIP Tour',
