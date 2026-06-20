@@ -103,7 +103,13 @@ function candidateMenu(catalog, park, shortestHeightInches, tripDate, closureOve
   // Otherwise the model keeps suggesting fine-dining (Carthay Circle Restaurant) as a spontaneous meal.
   // Drop required venues the group has not reserved; keep walkup/lounge/quickservice venues as-is.
   const usableVenues = f.venues.filter(v => {
-    if ((v.reservationPolicy || 'walkup') === 'required') {
+    // PHYSICS rule: a sit-down (service:table) venue OR a reservation-REQUIRED venue is only a real
+    // option if the trip actually holds a reservation for it. Table-service walk-ups are NOT offered
+    // spontaneously -- no table-service venue appears on the schedule unless explicitly reserved.
+    // Quickservice and lounges stay as walk-up options.
+    const policy = (v.reservationPolicy || 'walkup');
+    const isTable = String(v.service || 'quickservice').toLowerCase() === 'table';
+    if (policy === 'required' || isTable) {
       return reservedVenueSet && reservedVenueSet.has(_vn(v.name));
     }
     return true;
@@ -537,6 +543,17 @@ export default async function handler(req, res) {
           n: 'Be at the gate before open and head straight here -- ' + canonical + ' is the top rope-drop priority for the park you start in, so riding it first saves the most time of any move all day.',
           land: attr ? attr.land : undefined
         };
+        // DE-COLLIDE: the model often also places ITS own opener at park-open (the same minute as our
+        // authoritative opener), leaving two ride cards stacked at the open time (e.g. Peter Pan + Rise
+        // both at 8:00). Bump any OTHER ride still sitting exactly at the open minute to ~25 min later
+        // (one rope-drop ride's worth) so the day opens with a single ride, then the next. Only nudges
+        // ride cards; the arrival tip and first LL-booking reminder at open are left in place.
+        for (let _i = 0; _i < parsed.length; _i++) {
+          const _it = parsed[_i];
+          if (_it && _it.type === 'ride' && _it.t && parseHourMin(_it.t) === startOpen) {
+            _it.t = minToLabel(startOpen + 25);
+          }
+        }
         parsed.unshift(openItem);
         _enforce.ropeDrop = { chosen: canonical, rank: myPick.rank, reason: myPick.reason, source: ranking.source, at: openItem.t };
       }
