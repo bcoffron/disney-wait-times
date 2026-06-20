@@ -10,6 +10,9 @@
 import {
   normRideName,
   ARRIVAL_LEAD_MIN,
+  NOON,
+  isMealTimeForbidden,
+  nearestAllowedMealMin,
 } from './schedule-rules.js';
 
 // ---------------------------------------------------------------------------
@@ -93,4 +96,61 @@ export function assignRopeDropsAcrossDays({ days, ranking, excludedNorm, isAvail
 // The arrival card minute: ARRIVAL_LEAD_MIN before the starting park's open.
 export function arrivalMin(startOpenMin) {
   return Math.max(0, startOpenMin - ARRIVAL_LEAD_MIN);
+}
+
+// ---------------------------------------------------------------------------
+// MEAL-SLOT ANCHORS (which meals the code fixes a time for; the model fills the venue)
+// ---------------------------------------------------------------------------
+
+// Classify a reservation's minute as the meal it covers, so the skeleton does not also add an
+// app meal slot for that meal. Returns 'lunch' | 'dinner' | null.
+export function classifyReservationMeal(min) {
+  if (typeof min !== 'number') return null;
+  if (min >= 11 * 60 && min < 15 * 60) return 'lunch';   // 11:00-3:00
+  if (min >= 16 * 60 && min <= 22 * 60) return 'dinner';  // 4:00-10:00
+  return null;
+}
+
+// Decide lunch/dinner anchor slots for a day. A slot fixes the TIME only; the model picks a
+// venue in the correct park for that time. Rules:
+//  - If a reservation already covers a meal, no app slot for it.
+//  - If the meal's natural time falls inside a VIP tour window, the tour covers it -> no slot.
+//  - Otherwise place it at the nearest allowed (non-peak) clean time, within park bounds, and
+//    (for dinner) after any VIP tour ends.
+// Returns { lunch: slot|null, dinner: slot|null } where slot = { kind, min, needsVenue:true }.
+export function placeMealSlots({ dayStartMin, dayEndMin, reservations = [], vipWindow = null }) {
+  const covered = new Set();
+  for (const r of (reservations || [])) {
+    const m = classifyReservationMeal(typeof r.min === 'number' ? r.min : NaN);
+    if (m) covered.add(m);
+  }
+  const inVip = (min) =>
+    vipWindow && typeof vipWindow.startMin === 'number' &&
+    min >= vipWindow.startMin && min < vipWindow.endMin;
+
+  const slots = { lunch: null, dinner: null };
+
+  // LUNCH -- natural target 11:30
+  if (!covered.has('lunch')) {
+    const target = 11 * 60 + 30;
+    if (!inVip(target)) {
+      const min = nearestAllowedMealMin(target, { minBound: dayStartMin, maxBound: dayEndMin });
+      if (min !== null && !inVip(min)) slots.lunch = { kind: 'lunch', min, needsVenue: true };
+    }
+    // target inside VIP window -> the tour covers lunch -> no slot
+  }
+
+  // DINNER -- natural target 6:00, after any VIP tour
+  if (!covered.has('dinner')) {
+    let target = 18 * 60;
+    let minBound = dayStartMin;
+    if (vipWindow && typeof vipWindow.endMin === 'number') {
+      minBound = Math.max(minBound, vipWindow.endMin);
+      if (target < vipWindow.endMin) target = vipWindow.endMin + 60;
+    }
+    const min = nearestAllowedMealMin(target, { minBound, maxBound: dayEndMin });
+    if (min !== null && !inVip(min)) slots.dinner = { kind: 'dinner', min, needsVenue: true };
+  }
+
+  return slots;
 }

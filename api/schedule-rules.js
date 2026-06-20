@@ -23,6 +23,35 @@ export const NOON = 12 * 60;        // 720
 export const MIDNIGHT = 24 * 60;    // 1440
 
 // ---------------------------------------------------------------------------
+// TIME FORMAT HELPERS (single home for "H:MM AM" <-> minutes-since-midnight)
+// Kept here so the skeleton, corrections, and validator all parse/format times
+// identically. "12:00 AM" as a CLOSE time is treated as 1440 (end of day) by
+// labelToMin when asCloseTime is set; otherwise midnight = 0.
+// ---------------------------------------------------------------------------
+
+export function labelToMin(t, opts = {}) {
+  if (typeof t !== 'string') return -1;
+  const m = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!m) return -1;
+  let h = parseInt(m[1], 10) % 12;
+  const min = parseInt(m[2], 10);
+  if (/pm/i.test(m[3])) h += 12;
+  let total = h * 60 + min;
+  if (opts.asCloseTime && total === 0) total = MIDNIGHT; // midnight close = 1440
+  return total;
+}
+
+export function minToLabel(min) {
+  if (typeof min !== 'number' || min < 0) return '';
+  let m = min % MIDNIGHT; // wrap 1440 -> 0 for display as 12:00 AM
+  const h24 = Math.floor(m / 60);
+  const mm = m % 60;
+  const ap = h24 < 12 ? 'AM' : 'PM';
+  let h12 = h24 % 12; if (h12 === 0) h12 = 12;
+  return h12 + ':' + String(mm).padStart(2, '0') + ' ' + ap;
+}
+
+// ---------------------------------------------------------------------------
 // MEAL RULES
 // Beau's confirmed, established rule: NO app-chosen meal may fall inside a peak window.
 // Reservations are the ONLY exception (they are fixed points the guest chose).
