@@ -1100,6 +1100,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
     neverSchedule: tripConfig.neverSchedule || [],
     reservations: tripConfig.reservations || [],
     parkHopping: tripConfig.parkHopping,
+    parkHours: tripConfig.parkHours,
     dining: { reservations: (tripConfig.dining && tripConfig.dining.reservations) || [], usedVenues: (tripConfig.dining && tripConfig.dining.usedVenues) || [] },
     days: (tripConfig.days || []).map(function(dd){
       return { num: dd.num, date: dd.date, park: dd.park, startPark: dd.startPark, hopTo: dd.hopTo, hopAtMin: dd.hopAtMin, isVip: dd.isVip, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP, hasILL: dd.hasILL, illRides: dd.illRides, intent: dd.intent };
