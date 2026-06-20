@@ -930,6 +930,38 @@ export default async function handler(req, res) {
       });
     }
 
+    // GENERAL DE-COLLISION (physics): no two RIDE cards may share the same minute -- you can't be on
+    // two attractions at once. The model occasionally stacks rides at one time anywhere in the day
+    // (observed: Haunted Mansion + Jungle Cruise both at 11:15 PM in the hop-back window); the
+    // rope-drop opener de-collision only covered park-open. Walk the time-sorted cards and, for any
+    // ride landing at or before the previous ride's minute, nudge it +10 (capped just under the day's
+    // close) so ride times strictly increase. Only rides move; meals/shows/tips/LL reminders may
+    // legitimately overlap a ride and are left in place. Re-sort afterward for a clean timeline.
+    if (Array.isArray(parsed) && parsed.length) {
+      const _fm = (x) => (x && x.t ? parseHourMin(x.t) : 100000);
+      const _closeMin = blocks.length ? blocks[blocks.length - 1].endMin : 1440;
+      parsed.sort((a, b) => _fm(a) - _fm(b));
+      _enforce.rideDeCollisions = [];
+      let _lastRide = -1;
+      for (let _i = 0; _i < parsed.length; _i++) {
+        const _it = parsed[_i];
+        if (!_it || _it.type !== 'ride' || !_it.t) continue;
+        const _m = parseHourMin(_it.t);
+        if (_m <= _lastRide) {
+          const _nm = Math.min(_lastRide + 10, _closeMin - 1);
+          if (_nm > _m) {
+            _enforce.rideDeCollisions.push({ ride: _it.h, from: _it.t, to: minToLabel(_nm) });
+            _it.t = minToLabel(_nm);
+          }
+          _lastRide = Math.max(_nm, _m);
+        } else {
+          _lastRide = _m;
+        }
+      }
+      if (!_enforce.rideDeCollisions.length) _enforce.rideDeCollisions = null;
+      parsed.sort((a, b) => _fm(a) - _fm(b));
+    }
+
     _enforce.underfilled = null;
     if (Array.isArray(parsed) && parsed.length && blocks.length) {
       const lastBlockClose = blocks[blocks.length - 1].endMin;
