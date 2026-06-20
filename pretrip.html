@@ -1244,6 +1244,59 @@ function ptFinish() {
     onboardingComplete: true
   };
 
+  // Populate tripConfig.parkHours from the park_hours_intel cache for THIS trip's dates,
+  // so the generator targets the real close times (e.g. DL open until midnight) instead of
+  // a generic fallback. parseParkHoursForDate expects an array indexed by day, each entry
+  // { dl: "<open> <close>", dca: "<open> <close>" } as 12-hour strings (midnight close = "12:00 AM").
+  // We fetch the cache, build the array keyed by each day's date, then proceed. If the fetch
+  // fails, we proceed without parkHours (generator falls back to its defaults) -- never block save.
+  function _ptHM(hhmm) {
+    // "08:00" (24h) -> "8:00 AM"; "00:00" close -> "12:00 AM" (parseHourMin maps that to 1440/midnight)
+    if (!hhmm || typeof hhmm !== 'string') return '';
+    var p = hhmm.split(':'); var h = parseInt(p[0], 10); var m = p[1] || '00';
+    var ap = h < 12 ? 'AM' : 'PM'; var h12 = h % 12; if (h12 === 0) h12 = 12;
+    return h12 + ':' + m + ' ' + ap;
+  }
+  function _ptBuildParkHours(cacheObj) {
+    // cacheObj: { "2026-06-28": { dl:{open,close}, dca:{open,close} }, ... }
+    if (!cacheObj || typeof cacheObj !== 'object') return null;
+    var arr = (tripConfig.days || []).map(function(dy) {
+      var date = dy.date; var rec = date ? cacheObj[date] : null;
+      if (!rec) return null;
+      var dl = rec.dl || rec.DL || {}; var dca = rec.dca || rec.DCA || {};
+      var out = {};
+      if (dl.open && dl.close) out.dl = _ptHM(dl.open) + '  ' + _ptHM(dl.close);
+      if (dca.open && dca.close) out.dca = _ptHM(dca.open) + '  ' + _ptHM(dca.close);
+      return out;
+    });
+    // only return if at least one day resolved real hours
+    return arr.some(function(x) { return x && (x.dl || x.dca); }) ? arr : null;
+  }
+  function _ptContinueFinish() {
+    ptFinishAfterHours(tripConfig, d, totalDays);
+  }
+  (function _ptFetchHours() {
+    try {
+      fetch(SYNC_BASE + '/api/cache?key=park_hours_intel&t=' + Date.now(), {
+        headers: { 'x-admin-key': 'cwdis2026admin' }, cache: 'no-store'
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var cacheObj = (j && j.data) ? j.data : j;
+        var ph = _ptBuildParkHours(cacheObj);
+        if (ph) { tripConfig.parkHours = ph; console.log('[ptFinish] parkHours populated from cache for ' + ph.length + ' days'); }
+        else { console.warn('[ptFinish] park_hours_intel cache had no usable hours for trip dates; using generator defaults'); }
+      })
+      .catch(function(err){ console.error('[ptFinish] park hours fetch failed:', err && err.message); })
+      .then(_ptContinueFinish);
+    } catch (e) {
+      console.error('[ptFinish] park hours fetch threw:', e && e.message);
+      _ptContinueFinish();
+    }
+  })();
+}
+
+function ptFinishAfterHours(tripConfig, d, totalDays) {
   var code = localStorage.getItem('tpcp_code') || '';
 
   // Persist the trip config to the blob IMMEDIATELY, before generation starts.
