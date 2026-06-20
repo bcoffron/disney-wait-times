@@ -148,6 +148,7 @@ export function normRideName(s) {
   return String(s || '')
     .toLowerCase()
     .replace(/^\s*rope drop\s*[:\u2013\u2014-]?\s*/i, '')
+    .replace(/^\s*star wars\s*[:\u2013\u2014-]?\s*/i, '')
     .replace(/[^a-z0-9]/g, '');
 }
 
