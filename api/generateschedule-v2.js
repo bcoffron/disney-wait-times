@@ -124,6 +124,33 @@ function candidateMenu(catalog, park, shortestHeightInches, tripDate, closureOve
   return { rideLines, venueLines, rideCount: f.attractions.length, venueCount: usableVenues.length };
 }
 
+// Extract the FIRST complete, balanced JSON array from model text. Scans from the first '[' and
+// matches its closing ']' by bracket depth, ignoring '[' or ']' that appear inside string literals.
+// This is robust to anything the model adds AFTER the array (explanatory prose, a second code block,
+// a stray bracket) -- the old indexOf('[')..lastIndexOf(']') approach spanned to the last bracket
+// anywhere in the text and threw "Unexpected non-whitespace after JSON" whenever extra content
+// followed the array, which silently produced an EMPTY day (observed on the complex VIP day).
+// Returns the array substring, or null if no balanced array is found (e.g. truncated output).
+function extractFirstJsonArray(text) {
+  if (!text) return null;
+  const start = text.indexOf('[');
+  if (start === -1) return null;
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') { inStr = true; continue; }
+    if (c === '[') depth++;
+    else if (c === ']') { depth--; if (depth === 0) return text.slice(start, i + 1); }
+  }
+  return null; // unbalanced (likely truncated) -> caller leaves parsed null
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -322,8 +349,8 @@ export default async function handler(req, res) {
     let parsed = null;
     try {
       const t = text.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      const s = t.indexOf('['), e = t.lastIndexOf(']');
-      if (s !== -1 && e !== -1) parsed = JSON.parse(t.substring(s, e + 1));
+      const arr = extractFirstJsonArray(t);
+      if (arr) parsed = JSON.parse(arr);
     } catch (e) { /* leave parsed null; client falls back to text */ }
 
     // ---- NIGHT-FILL RE-PROMPT (structural, but the MODEL still authors the cards): the single most
@@ -721,8 +748,8 @@ export default async function handler(req, res) {
             let _nfCards = null;
             try {
               const tt = _nfText.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
-              const ss = tt.indexOf('['), ee = tt.lastIndexOf(']');
-              if (ss !== -1 && ee !== -1) _nfCards = JSON.parse(tt.substring(ss, ee + 1));
+              const _nfArr = extractFirstJsonArray(tt);
+              if (_nfArr) _nfCards = JSON.parse(_nfArr);
             } catch (ee) { _nfCards = null; }
             if (Array.isArray(_nfCards) && _nfCards.length) {
               // accept only well-formed ride cards strictly AFTER the current last activity and before close,
@@ -764,8 +791,20 @@ export default async function handler(req, res) {
       _enforce.breaksCapped = _bk.removed.length ? _bk.removed : null;
 
       const _resList = (tripConfig.dining && tripConfig.dining.reservations) || tripConfig.reservations || [];
-      const _reservedNames = new Set(_resList.map(r => normRideName((r && (r.name || r.venue)) || '')).filter(Boolean));
-      const _isReserved = (it) => !!(it && (it.isReserved === true || it.isConfirmed === true || _reservedNames.has(normRideName(it.h))));
+      const _reservedNames = Array.from(new Set(
+        _resList.map(r => normRideName((r && (typeof r === 'string' ? r : (r.name || r.venue))) || '')).filter(Boolean)
+      ));
+      // A card is a reservation (exempt from meal-window moves) if it carries a reservation flag, OR
+      // the generator labeled it a "Reservation" (e.g. "Cafe Orleans -- Dinner Reservation"), OR its
+      // name substring-matches a configured reservation venue. Name-equality alone was too strict --
+      // the card title appends "Dinner Reservation", so the Day-3 Cafe Orleans booking was being moved.
+      const _isReserved = (it) => {
+        if (!it) return false;
+        if (it.isReserved === true || it.isConfirmed === true) return true;
+        if (/reservation/i.test(String(it.h || ''))) return true;
+        const n = normRideName(it.h);
+        return !!n && _reservedNames.some(rn => rn && (n.indexOf(rn) !== -1 || rn.indexOf(n) !== -1));
+      };
       const _dayBounds = { startMin: blocks[0] ? blocks[0].startMin : 0, endMin: blocks.length ? blocks[blocks.length - 1].endMin : undefined };
       const _ml = enforceMealWindows(parsed, { isReserved: _isReserved, dayBounds: _dayBounds });
       parsed = _ml.items;
