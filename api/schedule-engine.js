@@ -217,3 +217,35 @@ export function buildCatalogFilter(catalog, park, tripDate, closureOverrides) {
     venues:      (catalog.venues      || []).filter(v => v && String(v.park).toUpperCase() === p && v.exclude !== true)
   };
 }
+
+// ---------------------------------------------------------------------------
+// appendEveningHopBack
+// Park-hopper optimization (PHYSICS-adjacent, additive): a guest with hoppers should END the day in
+// the park that closes LATEST. When the configured single hop leaves them in the EARLIER-closing
+// park for the evening (e.g. DL morning -> DCA afternoon, but DCA closes 10pm while DL is open until
+// midnight), append a final block that hops them BACK to the later-closing park for the late night.
+// Without this, the day correctly fills only to the earlier park's close and ends ~30 min before
+// that -- hours before the resort actually closes.
+//
+// Rule: if the start park (the one they'd hop back to) closes >= minGap minutes LATER than the park
+// the last block ends in, append { park: startPark, startMin: <end of last block>, endMin:
+// startParkClose, hopBack: true }. Otherwise return blocks unchanged. Only applies to 2-park hop
+// days; single-park days and days that already end in the later-closing park are untouched.
+//
+// Pure. Does not mutate the input array. parkHoursForDate is the { DL:{closeMin}, DCA:{closeMin} }
+// shape from parseParkHoursForDate; when absent, returns blocks unchanged (no hop-back guessed).
+export function appendEveningHopBack(blocks, parkHoursForDate, opts) {
+  const minGap = (opts && typeof opts.minGapMin === 'number') ? opts.minGapMin : 60;
+  if (!Array.isArray(blocks) || blocks.length < 2) return blocks;       // single-park day: nothing to do
+  if (!parkHoursForDate) return blocks;                                  // unknown hours: don't guess
+  const startPark = blocks[0].park;
+  const last = blocks[blocks.length - 1];
+  const lastPark = last.park;
+  if (startPark === lastPark) return blocks;                             // already ends where it started
+  const startClose = (parkHoursForDate[startPark] || {}).closeMin;
+  const endParkClose = (parkHoursForDate[lastPark] || {}).closeMin;
+  if (typeof startClose !== 'number' || typeof endParkClose !== 'number') return blocks;
+  if (startClose <= endParkClose + minGap) return blocks;                // end park closes last (or close enough): keep as-is
+  // hop back to the later-closing start park for the remaining evening
+  return blocks.concat([{ park: startPark, startMin: last.endMin, endMin: startClose, hopBack: true }]);
+}

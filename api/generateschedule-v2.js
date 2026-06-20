@@ -13,7 +13,7 @@
 // existing d.parsed handling is unchanged.
 
 import { list } from '@vercel/blob';
-import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, parseHourMin, isAttractionAvailable } from './schedule-engine.js';
+import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, parseHourMin, isAttractionAvailable, appendEveningHopBack } from './schedule-engine.js';
 import { getRopeDropRanking, normRideName } from './schedule-rules.js';
 import { assignRopeDropsAcrossDays } from './schedule-skeleton.js';
 import { enforceBreaks, enforceMealWindows, enforceExclusions } from './schedule-corrections.js';
@@ -188,7 +188,14 @@ export default async function handler(req, res) {
       // sane DLR summer fallback; real hours come from the client passing tripConfig.parkHours
       parkHoursForDate = { DL: { openMin: 480, closeMin: 1380 }, DCA: { openMin: 480, closeMin: 1320 } };
     }
-    const blocks = deriveBlocks(intent, parkHoursForDate);
+    let blocks = deriveBlocks(intent, parkHoursForDate);
+    // Park-hopper optimization: if the configured hop would leave the day ending in the
+    // earlier-closing park while the start park is open meaningfully later, append an evening
+    // hop-back block so the day runs until ~30 min before the LATEST park close (not the earlier
+    // one). Additive: single-park days and days already ending in the later-closing park are
+    // unchanged. Everything downstream (blockText, whichParkAt wrong-park guard, night-fill) is
+    // block-driven, so it adapts to the 3rd block automatically.
+    blocks = appendEveningHopBack(blocks, parkHoursForDate);
 
     // ---- CATALOG (the machine-readable physics layer) ----
     const { sections, dining } = await loadStableSections();
@@ -276,6 +283,19 @@ export default async function handler(req, res) {
         + 'VENUES (' + menu.venueCount + '):\n' + menu.venueLines;
     }).join('\n\n');
 
+    // If an evening hop-back block was appended, tell the model explicitly so it adds the hop card
+    // and fills that block (its menu is the same park as an earlier block, so it must use rides not
+    // already used). Empty string on normal days.
+    const _hb = blocks.find(b => b && b.hopBack);
+    const hopBackNote = _hb
+      ? ('EVENING HOP-BACK: the LAST block returns to ' + _hb.park + ' for the late evening because '
+         + _hb.park + ' stays open later than the park you were in before it. Add a brief "Park Hop to '
+         + (_hb.park === 'DCA' ? 'Disney California Adventure' : 'Disneyland') + '" tip card at '
+         + minToLabel(_hb.startMin) + ', then fill that block with ' + _hb.park
+         + ' rides you have NOT used earlier in the day, running until ~30 min before '
+         + minToLabel(_hb.endMin) + '. This is prime time -- post-show waits are at their lowest.\n\n')
+      : '';
+
     const llOn = !!day.hasLL;
     const vip = intent.vip;
 
@@ -318,7 +338,7 @@ export default async function handler(req, res) {
     ? 'NO-REPEAT (HARD RULE): earlier days of this trip already used these nighttime shows and sit-down dinners: '
       + [...new Set(priorShows)].join(', ') + '. Do NOT schedule any of these again on this day -- the nighttime spectacular (fireworks, World of Color, Fantasmic!) and sit-down/table-service dinners must each appear only ONCE across the whole trip. Treat a show or venue as ALREADY USED even if you would name it slightly differently -- match on the core name and ignore location/edition suffixes (e.g. "Fantasmic!" = "Fantasmic! at Disneyland"; "World of Color" = "World of Color -- Happiness!"). Pick a DIFFERENT show and a DIFFERENT sit-down dinner today. (This is stricter than ride variety: rides may repeat for must-dos; shows and table-service dinners may not.)\n'
     : '')
-+ 'PARK BLOCKS FOR TODAY (physics -- you cannot leave these):\n' + blockText + '\n\n'
++ 'PARK BLOCKS FOR TODAY (physics -- you cannot leave these):\n' + blockText + '\n\n' + hopBackNote
 + 'STRATEGY CACHE (verified sources -- use to decide rope-drop, waits, LL, dining timing):\n' + stratText
 + (dining ? '\n\nDINING INTEL (verified venue detail -- use for which venue to pick and why; still obey the block VENUE lists for what is physically available):\n' + String(dining).slice(0, 4000) : '');
 
@@ -817,8 +837,23 @@ export default async function handler(req, res) {
       parsed = _ml.items;
       _enforce.mealsMoved = _ml.moved.length ? _ml.moved : null;
 
-      // enforceMealWindows can change an item's time, so re-sort chronologically (same comparator
-      // used after night-fill) to keep the timeline ordered.
+      // guarantee a "Park Hop to {park}" card at each appended evening hop-back transition, so the
+      // second hop is always visible even if the model omitted it. Skips insertion if a hop card
+      // already sits within 30 min of the transition (no duplicate).
+      _enforce.hopBackCard = null;
+      const _hbBlocks = blocks.filter(b => b && b.hopBack);
+      for (const hb of _hbBlocks) {
+        const near = parsed.some(it => it && /\bhop\b/i.test(String(it.h || '')) && Math.abs(parseHourMin(it.t) - hb.startMin) <= 30);
+        if (!near) {
+          const label = hb.park === 'DCA' ? 'Disney California Adventure' : 'Disneyland';
+          parsed.push({ t: minToLabel(hb.startMin), h: 'Park Hop to ' + label, type: 'tip',
+            n: 'Head back to ' + label + ' for the rest of the night -- it stays open later, so the evening rides here have short post-show waits.', land: '' });
+          _enforce.hopBackCard = { at: minToLabel(hb.startMin), park: hb.park };
+        }
+      }
+
+      // enforceMealWindows / hop-back insertion can change ordering, so re-sort chronologically
+      // (same comparator used after night-fill) to keep the timeline ordered.
       parsed.sort((a, b) => {
         const ma = a && a.t ? parseHourMin(a.t) : 100000;
         const mb = b && b.t ? parseHourMin(b.t) : 100000;
