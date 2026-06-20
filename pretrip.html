@@ -1290,7 +1290,7 @@ function ptFinish() {
   (function _ptFetchHours() {
     try {
       fetch(SYNC_BASE + '/api/cache?key=park_hours_intel&t=' + Date.now(), {
-        headers: { 'x-admin-key': 'cwdis2026admin' }, cache: 'no-store'
+        cache: 'no-store'
       })
       .then(function(r){ return r.json(); })
       .then(function(j){
