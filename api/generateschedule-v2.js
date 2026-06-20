@@ -930,6 +930,32 @@ export default async function handler(req, res) {
       });
     }
 
+    // GENERAL RIDE DE-DUPLICATION (physics/quality): each attraction appears at most once per day.
+    // The model sometimes lists the same ride twice, often under alias names the rope-drop dedup
+    // (which only covers the chosen opener) misses -- e.g. "Rise of the Resistance" and "Star Wars:
+    // Rise of the Resistance" on the same day. Keep the FIRST occurrence in time order and drop later
+    // duplicates of the same normalized ride name. Recorded in _enforce.rideDupesRemoved.
+    if (Array.isArray(parsed) && parsed.length) {
+      const _fmD = (x) => (x && x.t ? parseHourMin(x.t) : 100000);
+      const _orderedDup = parsed.slice().sort((a, b) => _fmD(a) - _fmD(b));
+      const _seenRides = new Set();
+      const _dropRefs = new Set();
+      const _dropNames = [];
+      for (const _it of _orderedDup) {
+        if (!_it || _it.type !== 'ride') continue;
+        const _n = normRideName(cleanRideName(_it.h));
+        if (!_n) continue;
+        if (_seenRides.has(_n)) { _dropRefs.add(_it); _dropNames.push(_it.h); }
+        else _seenRides.add(_n);
+      }
+      if (_dropRefs.size) {
+        parsed = parsed.filter(it => !_dropRefs.has(it));
+        _enforce.rideDupesRemoved = _dropNames;
+      } else {
+        _enforce.rideDupesRemoved = null;
+      }
+    }
+
     // GENERAL DE-COLLISION (physics): no two RIDE cards may share the same minute -- you can't be on
     // two attractions at once. The model occasionally stacks rides at one time anywhere in the day
     // (observed: Haunted Mansion + Jungle Cruise both at 11:15 PM in the hop-back window); the
