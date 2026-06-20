@@ -729,6 +729,45 @@ export default async function handler(req, res) {
       const gaps = [];
       for (let i = 1; i < llTips.length; i++) gaps.push(llTips[i].min - llTips[i - 1].min);
       _enforce.llReminders = { count: llTips.length, tips: llTips.map(x => x.t), gapsMin: gaps, trimmed: llTrimmed, violations: violations };
+
+      // ---- LL-CHAIN COHERENCE (deterministic rewrite): the model frames each reminder "while you tap
+      // into [X], book [Y]" but doesn't track which Multi Pass you're actually holding, so [X] often names
+      // the wrong ride (observed Day 0: "book Indiana" then "while tapping TIANA'S, book Haunted Mansion"
+      // -- you're holding Indiana, not Tiana's). At Disneyland your next Multi Pass unlocks when you tap
+      // your CURRENT one, so each link's "tap into" ride must be the ride booked by the PREVIOUS card. We
+      // keep the model's ride CHOICES and ORDER (strategy) and only fix the chain REFERENCES (coherence).
+      // Two kinds of cards: an ANCHOR ("Book Lightning Lane: X", no tap reference) starts/!resets a chain --
+      // this is also how a fresh chain begins in the second park after a hop -- and is left as-is; a LINK
+      // ("while tapping into Y, book Z") has its tap-into rewritten to the previous booked ride. A link that
+      // re-books the ride you're already holding is redundant and dropped. Idempotent: an already-correct
+      // chain (e.g. the post-hop DL chain) rewrites to itself.
+      const _tapRe = /tap(?:ping)?\s+into|while\s+you\s+tap|when\s+you\s+tap/i;
+      const _bookedOf = it => { const p = String(it.h || '').split(/lightning lane:\s*/i); return p.length > 1 ? p[p.length - 1].trim() : ''; };
+      const _orderedLL = parsed.filter(isLLMPTip)
+        .map(it => ({ it, min: parseHourMin(it.t) }))
+        .filter(x => x.min >= 0)
+        .sort((a, b) => a.min - b.min)
+        .map(x => x.it);
+      const _llOrder = [];
+      const _llDrop = new Set();
+      let _llRewrote = 0;
+      let _prevBooked = '';
+      for (let _k = 0; _k < _orderedLL.length; _k++) {
+        const _card = _orderedLL[_k];
+        const _booked = _bookedOf(_card);
+        if (!_booked) continue; // unparseable title; leave the card untouched
+        const _isLink = _tapRe.test(String(_card.h || ''));
+        if (_isLink && _prevBooked) {
+          if (normRideName(_booked) === normRideName(_prevBooked)) { _llDrop.add(_card); continue; } // redundant re-book
+          _card.h = 'While you tap into ' + _prevBooked + ', book your next Lightning Lane: ' + _booked;
+          _card.n = 'As you scan into ' + _prevBooked + ', your next Lightning Lane unlocks -- book ' + _booked + ' right then so your return windows keep flowing.';
+          _llRewrote++;
+        }
+        _prevBooked = _booked;
+        _llOrder.push((_isLink ? '> ' : '* ') + _booked);
+      }
+      if (_llDrop.size) parsed = parsed.filter(it => !_llDrop.has(it));
+      _enforce.llChain = _orderedLL.length ? { order: _llOrder, rewrote: _llRewrote, dropped: _llDrop.size } : null;
     }
 
     // ---- NIGHT-FILL CHECK (verifier, NOT a filler): measure whether the last real activity reaches
