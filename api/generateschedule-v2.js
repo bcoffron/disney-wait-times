@@ -930,6 +930,58 @@ export default async function handler(req, res) {
       });
     }
 
+    // MID-SCHEDULE GAP-FILL (physics/quality backstop): the model sometimes leaves a long dead hole in
+    // the middle of an open-park stretch -- e.g. a ~2h hole between an afternoon ride and a 9pm show, or
+    // after dinner before the evening rides. The night-fill backstop above covers only the CLOSING gap;
+    // this covers INTERIOR gaps between two real-activity cards. Free time is measured from when the
+    // group is actually free (meals/shows occupy time; the VIP tour card occupies through vip.endMin), so
+    // a pre-reservation wind-down isn't mistaken for dead time. Any free gap over GAP_MIN that sits
+    // entirely inside one park block gets ~one unused ride per hour from that park, placed evenly and
+    // kept clear of the next card (so a pre-show window is never crowded). Rides only; dedup +
+    // de-collision run after this and clean up incidental overlaps. The model still authors the day --
+    // this just guarantees no dead multi-hour holes while a park is open.
+    if (Array.isArray(parsed) && parsed.length && blocks.length) {
+      const GAP_MIN = 75, CLEAR_BEFORE = 15, CLEAR_AFTER = 10;
+      const REALG = ['ride', 'show', 'dining', 'quickservice', 'snack', 'character', 'vip'];
+      const gDur = it => { const ty = it && it.type; if (ty === 'dining') return 50; if (ty === 'quickservice') return 20; if (ty === 'snack') return 15; if (ty === 'show') return 30; return 0; };
+      const gFree = it => (it && it.type === 'vip' && intent && intent.vip) ? intent.vip.endMin : (parseHourMin(it.t) + gDur(it));
+      const gNorm = s => normRideName(cleanRideName(s));
+      const gUsed = new Set(parsed.filter(it => it && it.type === 'ride').map(it => gNorm(it.h)));
+      const gNotes = [
+        'Waits dip in this window -- a good time to slip in another ride.',
+        'Short wait right about now -- worth hopping on while you are nearby.',
+        'An easy one to add while you are in this part of the park.'
+      ];
+      const gReals = parsed.filter(it => it && REALG.indexOf(it.type) !== -1 && it.t)
+        .sort((a, b) => parseHourMin(a.t) - parseHourMin(b.t));
+      const gAdded = [];
+      for (let _i = 0; _i + 1 < gReals.length; _i++) {
+        const aFree = gFree(gReals[_i]);
+        const bStart = parseHourMin(gReals[_i + 1].t);
+        const freeGap = bStart - aFree;
+        if (freeGap <= GAP_MIN) continue;
+        if (intent && intent.vip && bStart <= intent.vip.endMin) continue; // gap lies inside the tour
+        // gap must sit entirely within ONE park block (never straddle a hop boundary)
+        const gPark = whichParkAt(blocks, aFree + Math.floor(freeGap / 2));
+        if (!gPark || gPark !== whichParkAt(blocks, aFree + 1) || gPark !== whichParkAt(blocks, bStart - 1)) continue;
+        const gFilter = buildCatalogFilter(catalog, gPark, tripDate, closureOverrides);
+        const gPool = (gFilter.attractions || []).filter(a => a && !gUsed.has(gNorm(a.name)));
+        if (!gPool.length) continue;
+        const n = Math.min(Math.floor(freeGap / 60), gPool.length);
+        let pi = 0;
+        for (let k = 1; k <= n; k++) {
+          const t = aFree + Math.round(freeGap * k / (n + 1));
+          if (t <= aFree + CLEAR_AFTER || t >= bStart - CLEAR_BEFORE) continue;
+          if (pi >= gPool.length) break;
+          const a = gPool[pi++];
+          gUsed.add(gNorm(a.name));
+          gAdded.push({ t: minToLabel(t), h: String(a.name), type: 'ride', n: gNotes[gAdded.length % gNotes.length], land: String(a.land || '') });
+        }
+      }
+      if (gAdded.length) { parsed = parsed.concat(gAdded); _enforce.midGapFill = gAdded.map(x => x.t + ' ' + x.h); }
+      else { _enforce.midGapFill = null; }
+    }
+
     // GENERAL RIDE DE-DUPLICATION (physics/quality): each attraction appears at most once per day.
     // The model sometimes lists the same ride twice, often under alias names the rope-drop dedup
     // (which only covers the chosen opener) misses -- e.g. "Rise of the Resistance" and "Star Wars:
