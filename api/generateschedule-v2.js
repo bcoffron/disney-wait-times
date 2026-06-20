@@ -16,7 +16,7 @@ import { list } from '@vercel/blob';
 import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, parseHourMin, isAttractionAvailable } from './schedule-engine.js';
 import { getRopeDropRanking, normRideName } from './schedule-rules.js';
 import { assignRopeDropsAcrossDays } from './schedule-skeleton.js';
-import { enforceBreaks, enforceMealWindows } from './schedule-corrections.js';
+import { enforceBreaks, enforceMealWindows, enforceExclusions } from './schedule-corrections.js';
 
 const MODEL = 'claude-sonnet-4-6';
 
@@ -786,6 +786,13 @@ export default async function handler(req, res) {
     // (reservations exempt). v2 previously never ran the validator, so these rules had no effect on
     // the live path; applying them here is what makes them real.
     if (Array.isArray(parsed) && parsed.length) {
+      // hard exclusion backstop: remove any attraction the group asked never to schedule, even if the
+      // model added it from its own knowledge (the candidate-menu filter is only a soft prevention).
+      const _exNorm = new Set(((((tripConfig.ridePreferences || {}).skip) || tripConfig.neverSchedule || []) || []).map(normRideName));
+      const _ex = enforceExclusions(parsed, { excludedNorm: _exNorm });
+      parsed = _ex.items;
+      _enforce.excluded = _ex.removed.length ? _ex.removed : null;
+
       const _bk = enforceBreaks(parsed);
       parsed = _bk.items;
       _enforce.breaksCapped = _bk.removed.length ? _bk.removed : null;

@@ -10,6 +10,7 @@
 import {
   labelToMin,
   minToLabel,
+  normRideName,
   BREAK_MORNING_CUTOFF,
   MAX_MORNING_BREAKS,
   MAX_AFTERNOON_BREAKS,
@@ -77,4 +78,31 @@ export function enforceMealWindows(items, opts = {}) {
     return Object.assign({}, it, { t: minToLabel(newMin) });
   });
   return { items: out, moved };
+}
+
+// ---------------------------------------------------------------------------
+// EXCLUSIONS: a hard guarantee that a ride the group asked never to schedule cannot appear in the
+// output. The generator filters the candidate MENU, but the model can still add an excluded ride
+// from its own knowledge (observed: "Roger Rabbit's Car Toon Spin" on a DL day despite being on the
+// skip list). This is the deterministic backstop applied to the final items. Matches by normalized
+// name, exact OR substring (so a skip-list "Finding Nemo" also removes "Finding Nemo Submarine
+// Voyage"). Only attraction-type cards (ride/show/character) are filtered; meals/tips/breaks are not.
+// ---------------------------------------------------------------------------
+export function enforceExclusions(items, opts = {}) {
+  const ex = opts.excludedNorm instanceof Set ? opts.excludedNorm : new Set();
+  const list = Array.isArray(items) ? items : [];
+  if (!ex.size) return { items: list, removed: [] };
+  const exArr = Array.from(ex).filter(Boolean);
+  const removed = [];
+  const out = list.filter(it => {
+    if (!it) return false;
+    const t = it.type;
+    if (t !== 'ride' && t !== 'show' && t !== 'character') return true;
+    const n = normRideName(it.h);
+    if (!n) return true;
+    const hit = exArr.some(rn => n === rn || n.indexOf(rn) !== -1 || rn.indexOf(n) !== -1);
+    if (hit) { removed.push({ t: it.t, h: it.h }); return false; }
+    return true;
+  });
+  return { items: out, removed };
 }
