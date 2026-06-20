@@ -967,6 +967,11 @@ export default async function handler(req, res) {
         const gFilter = buildCatalogFilter(catalog, gPark, tripDate, closureOverrides);
         const gPool = (gFilter.attractions || []).filter(a => a && !gUsed.has(gNorm(a.name)));
         if (!gPool.length) continue;
+        // prefer lower-demand attractions for a quick gap-fill -- dropping a long-wait headliner into a
+        // short window would blow the timing and the "waits dip now" note would be wrong. Headliners
+        // (ropeDropValue 'high') sort last and are only used if nothing lighter is left.
+        const gRank = v => (v === 'high' ? 2 : (v === 'med' ? 1 : 0));
+        gPool.sort((a, b) => gRank(a.ropeDropValue) - gRank(b.ropeDropValue));
         const n = Math.min(Math.floor(freeGap / 60), gPool.length);
         let pi = 0;
         for (let k = 1; k <= n; k++) {
