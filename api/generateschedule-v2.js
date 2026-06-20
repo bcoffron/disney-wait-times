@@ -468,16 +468,19 @@ export default async function handler(req, res) {
       // THAT ride; otherwise fall back to the looser "any starting-park high rope-drop" test.
       const headliner = rdPool.find(a => a.llKind === 'single');
       const firstRideClean = firstRide ? _norm2(cleanRideName(firstRide.h)) : null;
-      const firstRideIsStartRopeDrop = headliner
-        ? (firstRideClean === _norm2(headliner.name))
-        : (firstRide && startParkHighSet.has(firstRideClean));
+      // The model now draws rope-drop from the ranked ROPE_DROP_STRATEGY cache (e.g. Peter Pan #1 for
+      // DL, which is NOT the single-ILL headliner). So ANY starting-park high rope-drop ride opening the
+      // day is valid -- do NOT demand the single-ILL headliner specifically, or we force a SECOND
+      // rope-drop card on top of the model's correct ranked pick (the double-rope-drop bug). The enforcer
+      // is only a safety net for when the model fails to open with any rope-drop ride at all.
+      const firstRideIsStartRopeDrop = !!(firstRide && startParkHighSet.has(firstRideClean));
       if (!firstRideIsStartRopeDrop && rdPool.length) {
-        // Prefer the single-ILL headliner if the starting park has one (the highest-priority opener);
-        // else pull forward a high rope-drop ride the model ALREADY scheduled so we don't strand it or
-        // add a second headliner; else introduce the best unused one; else reuse the first in the pool.
-        const pick = headliner
-          || rdPool.find(a => usedNames.has(_norm2(a.name)))
+        // Model didn't open with a starting-park rope-drop ride at all. Add one: prefer a high rope-drop
+        // ride the model ALREADY scheduled (pull it forward, don't strand it or add a duplicate); else
+        // introduce the best unused one; else the headliner; else the first in the pool.
+        const pick = rdPool.find(a => usedNames.has(_norm2(a.name)))
           || rdPool.find(a => !usedNames.has(_norm2(a.name)))
+          || headliner
           || rdPool[0];
         const openItem = {
           t: minToLabel(startOpen),
