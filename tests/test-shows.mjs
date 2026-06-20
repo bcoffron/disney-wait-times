@@ -71,5 +71,17 @@ const idxRideLate = R.parsed.findIndex(it => /Big Thunder/.test(it.h));
 ok(idxParade < idxRideLate, 'parade card sorts before the 10:15 PM ride');
 
 console.log('');
+
+// ---- REGRESSION: real tripConfig uses DISPLAY-format dates ("Jun 30, 2026"), not ISO ----
+console.log('== regression: display-format dates ("Jun 30, 2026") still gate fireworks ==');
+const Ddisp = assignShowsAcrossDays({ days: [
+  { dayIndex:0, dateISO:'Jun 28, 2026', blocks: D1.blocks, vip:null },
+  { dayIndex:1, dateISO:'Jun 29, 2026', blocks: D2.blocks, vip:{startMin:600,endMin:1020} },
+  { dayIndex:2, dateISO:'Jun 30, 2026', blocks: D3.blocks, vip:null }
+], showsData:null });
+ok(Ddisp[2].some(s => /Wondrous Journeys/.test(s.name) && s.type==='fireworks'), 'display-date Jun 30 -> Wondrous Journeys fireworks assigned on Day 3');
+ok(Ddisp[0].some(s=>/World of Color/.test(s.name)) && Ddisp[1].some(s=>/Fantasmic/.test(s.name)) && Ddisp[2].some(s=>/Paint the Night/.test(s.name)), 'display-date assignment matches ISO assignment');
+ok(isFireworksNight('Jun 30, 2026', DEFAULT_SHOWS.fireworksRule) === true, 'isFireworksNight parses display format');
+
 console.log(fail === 0 ? ('ALL ' + pass + ' SHOW TESTS PASS') : (pass + ' pass / ' + fail + ' FAIL'));
 process.exit(fail === 0 ? 0 : 1);

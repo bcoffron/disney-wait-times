@@ -647,7 +647,7 @@ export default async function handler(req, res) {
         if (!ph) ph = { DL: { openMin: 480, closeMin: 1380 }, DCA: { openMin: 480, closeMin: 1320 } };
         let bl = deriveBlocks(di, ph);
         bl = appendEveningHopBack(bl, ph);
-        return { dayIndex: i, dateISO: (d && d.date) ? String(d.date).slice(0, 10) : null, blocks: bl, vip: di.vip || null };
+        return { dayIndex: i, dateISO: (d && d.date) ? String(d.date) : null, blocks: bl, vip: di.vip || null };
       });
       const showPlan = assignShowsAcrossDays({ days: allDays, showsData });
       const myShows = showPlan[dayIndex] || [];
