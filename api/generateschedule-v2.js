@@ -742,7 +742,18 @@ export default async function handler(req, res) {
       // re-books the ride you're already holding is redundant and dropped. Idempotent: an already-correct
       // chain (e.g. the post-hop DL chain) rewrites to itself.
       const _tapRe = /tap(?:ping)?\s+into|while\s+you\s+tap|when\s+you\s+tap/i;
-      const _bookedOf = it => { const p = String(it.h || '').split(/lightning lane:\s*/i); return p.length > 1 ? p[p.length - 1].trim() : ''; };
+      const _bookedOf = it => {
+        let b = String(it.h || '').split(/lightning lane:\s*/i).pop().trim();
+        // the model sometimes appends its own chain clause AFTER the ride name ("Tiana's -- while
+        // tapping into Indiana Jones"); cut a trailing clause that starts with a separator (em/en dash,
+        // spaced hyphen, comma, or paren) followed by chain language, so we keep just the ride name.
+        // Ride names with incidental punctuation (e.g. "Pixar Pal-A-Round", "Millennium Falcon: Smugglers
+        // Run") are unaffected because the strip requires a chain word right after the separator.
+        b = b.replace(/\s*[\u2014\u2013-]\s*(?:while|as you|when you|after you|right (?:after|when)|then|book|tap)\b.*$/i, '').trim();
+        b = b.replace(/\s*,\s*(?:while|as you|when you|then|book|tap)\b.*$/i, '').trim();
+        b = b.replace(/\s*\((?:while|as you|when you|tap)\b.*$/i, '').trim();
+        return b;
+      };
       const _orderedLL = parsed.filter(isLLMPTip)
         .map(it => ({ it, min: parseHourMin(it.t) }))
         .filter(x => x.min >= 0)
