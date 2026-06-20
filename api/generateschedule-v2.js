@@ -837,20 +837,31 @@ export default async function handler(req, res) {
       parsed = _ml.items;
       _enforce.mealsMoved = _ml.moved.length ? _ml.moved : null;
 
-      // guarantee a "Park Hop to {park}" card at each appended evening hop-back transition, so the
-      // second hop is always visible even if the model omitted it. Skips insertion if a hop card
-      // already sits within 30 min of the transition (no duplicate).
-      _enforce.hopBackCard = null;
-      const _hbBlocks = blocks.filter(b => b && b.hopBack);
-      for (const hb of _hbBlocks) {
-        const near = parsed.some(it => it && /\bhop\b/i.test(String(it.h || '')) && Math.abs(parseHourMin(it.t) - hb.startMin) <= 30);
-        if (!near) {
-          const label = hb.park === 'DCA' ? 'Disney California Adventure' : 'Disneyland';
-          parsed.push({ t: minToLabel(hb.startMin), h: 'Park Hop to ' + label, type: 'tip',
-            n: 'Head back to ' + label + ' for the rest of the night -- it stays open later, so the evening rides here have short post-show waits.', land: '' });
-          _enforce.hopBackCard = { at: minToLabel(hb.startMin), park: hb.park };
-        }
+      // guarantee a "Park Hop to {park}" card at EVERY park transition (the configured midday hop
+      // AND any appended evening hop-back), so a hop is always visible even if the model omitted it
+      // or the wrong-park guard dropped the model's card (which happens when the model places the hop
+      // card a few minutes before the boundary minute). Runs AFTER the guard, so inserted cards
+      // survive. Skips a transition that falls inside the VIP tour window (the guide handles that
+      // hop). Skips insertion if a real hop card already sits within 30 min (no duplicate); the
+      // /hop (?:back )?to / test matches actual hop cards but NOT LL reminders like "...for after the
+      // park hop".
+      _enforce.hopCardsInserted = [];
+      const _hopNear = /hop (?:back )?to /i;
+      for (let _bi = 1; _bi < blocks.length; _bi++) {
+        const _prev = blocks[_bi - 1], _cur = blocks[_bi];
+        if (!_cur || !_prev || _cur.park === _prev.park) continue;
+        const _tMin = _cur.startMin;
+        if (intent && intent.vip && _tMin >= intent.vip.startMin && _tMin <= intent.vip.endMin) continue;
+        const _near = parsed.some(it => it && _hopNear.test(String(it.h || '')) && Math.abs(parseHourMin(it.t) - _tMin) <= 30);
+        if (_near) continue;
+        const _label = _cur.park === 'DCA' ? 'Disney California Adventure' : 'Disneyland';
+        const _note = _cur.hopBack
+          ? 'Head back to ' + _label + ' for the rest of the night -- it stays open later, so the evening rides here have short post-show waits.'
+          : 'Time to hop over to ' + _label + ' -- your afternoon and evening plans are over here now.';
+        parsed.push({ t: minToLabel(_tMin), h: 'Park Hop to ' + _label, type: 'tip', n: _note, land: '' });
+        _enforce.hopCardsInserted.push({ at: minToLabel(_tMin), park: _cur.park, hopBack: !!_cur.hopBack });
       }
+      if (!_enforce.hopCardsInserted.length) _enforce.hopCardsInserted = null;
 
       // enforceMealWindows / hop-back insertion can change ordering, so re-sort chronologically
       // (same comparator used after night-fill) to keep the timeline ordered.
