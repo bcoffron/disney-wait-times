@@ -14,6 +14,9 @@
 
 import { list } from '@vercel/blob';
 import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, parseHourMin, isAttractionAvailable } from './schedule-engine.js';
+import { getRopeDropRanking, normRideName } from './schedule-rules.js';
+import { assignRopeDropsAcrossDays } from './schedule-skeleton.js';
+import { enforceBreaks, enforceMealWindows } from './schedule-corrections.js';
 
 const MODEL = 'claude-sonnet-4-6';
 
@@ -259,7 +262,7 @@ export default async function handler(req, res) {
 + '5. Day starts at the first block\'s open time and STAYS ACTIVE until ~30 minutes before the last block\'s close time. The last scheduled ride/show must be no earlier than 30 min before close -- an evening that ends 2-3 hours early is wrong. Fill the whole day.\n'
 + (vip ? '6. VIP TOUR from ' + minToLabel(vip.startMin) + ' to ' + minToLabel(vip.endMin) + '. The guide MEETS THE GROUP exactly at ' + minToLabel(vip.startMin) + ' (the tour start time) -- schedule the "guide meets your group" item AT ' + minToLabel(vip.startMin) + ', never earlier. Do NOT put any VIP/guide item before the start time. BEFORE ' + minToLabel(vip.startMin) + ' and AFTER ' + minToLabel(vip.endMin) + ', plan a completely normal self-guided day (rope drop, standby/Lightning Lane rides, meals) as if there were no tour -- the morning before the tour should include a normal starting-park rope-drop ride. DURING the window the guide leads and handles skip-the-line; mark those items type "tip"/"ride" with a note that the guide leads, and do NOT schedule normal standby rides against the guide -- the guide picks rides live.\n' : '')
 + 'STRATEGY (you decide, using this verified cache data -- vary by crowd/wait, do not be robotic):\n'
-+ '- Open the day with a rope-drop ride IN THE STARTING PARK (the first block\'s park): pick the highest-value ropeDrop=high attraction from THAT block\'s list. This rope-drop choice OVERRIDES cross-day variety -- a strong rope-drop in the park you are actually standing in matters more than avoiding a repeat, so repeat it if it is the best opener. Never open with a meal, and never rope-drop a ride from the other park.\n'
++ '- The day OPENS with a pre-selected rope-drop ride in the starting park (it is added for you at park open). Do NOT add your own "Rope Drop" card, do NOT open with a meal, and do NOT schedule a rope-drop ride from the other park. Plan the rest of the morning around that opener.\n'
 + '- Fill the first block primarily with attractions from the STARTING park before the hop -- do not lean on the second park\'s list to fill the morning.\n'
 + '- WRONG-PARK TIPS ARE FORBIDDEN: every card (ride AND tip) must belong to the park of the block its time falls in. Do NOT, in an early block, emit a rope-drop tip, a "Book Lightning Lane" tip, a "head to" tip, or any actionable instruction that names a ride in the OTHER park (the park you have not hopped to yet). There is no "Block 2 rope drop" for the second park -- you rope-drop ONCE, in the starting park, at open. Lightning Lane bookings for the second park only make sense AFTER the hop time; do not schedule them while still in the first park.\n'
 + '- FILL THE EVENING TO CLOSE: the nighttime spectacular (fireworks, World of Color, Fantasmic!) is a MIDPOINT of the night, NOT the end. After it, schedule 2-4 more rides until ~30 min before close -- standby waits drop to their lowest of the day during and right after the show, so this is prime ride time. These late rides are normal ride cards (same format, same warm one-sentence note) -- never label them differently or treat them as filler. Pick the night show ONCE for the trip across all days; do not repeat the same spectacular on multiple days.\n'
@@ -442,58 +445,52 @@ export default async function handler(req, res) {
     // prepend the best available one at park open. Picks the single-ILL headliner first (Rise for DL,
     // Radiator Springs for DCA), else the first high-value rope-drop ride in the starting park that the
     // model didn't already schedule. Deterministic -- no model dependency. ----
+    // ---- DETERMINISTIC ROPE-DROP (single source of truth = the cache ranking) ----
+    // The opening ride is NOT a model decision. Compute it from the cache's ROPE_DROP_STRATEGY
+    // ranked list: the highest-ranked ride for THIS day's starting park that the group hasn't
+    // excluded, isn't closed on the date, and wasn't rope-dropped on a PRIOR same-park day. The
+    // full cross-day assignment is recomputed from tripConfig.days on every per-day call and indexed
+    // by dayIndex, so the separate calls agree (Day1 Peter Pan, Day2 Rise no-repeat, Day3 Radiator
+    // Springs). The day is then forced to OPEN with it and every other rope-drop-prefixed card is
+    // removed, which also kills the historical double-rope-drop. Tested in tests/test-skeleton.mjs.
     _enforce.ropeDrop = null;
-    if (Array.isArray(parsed) && parsed.length && blocks.length) {
-      const _norm2 = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-      const startPark = blocks[0].park;
-      const startOpen = blocks[0].startMin;
-      // high-value rope-drop rides in the starting park, headliner (single ILL) first
-      // date-aware availability (same rule as buildCatalogFilter): never rope-drop a ride that's
-      // closed THROUGH the trip date; a ride reopening before our visit is eligible.
-      const rdPool = catalog.attractions
-        .filter(a => a.park === startPark && a.ropeDropValue === 'high' && a.exclude !== true && isAttractionAvailable(a, tripDate, closureOverrides))
-        .sort((a, b) => (a.llKind === 'single' ? -1 : 0) - (b.llKind === 'single' ? -1 : 0));
-      // names already scheduled as rides today (cleaned)
-      const usedNames = new Set(parsed.filter(it => it && it.type === 'ride')
-        .map(it => _norm2(cleanRideName(it.h))));
-      // find the first actual RIDE of the day (by time) and whether it's a starting-park rope-drop ride
-      const ridesByTime = parsed.filter(it => it && it.type === 'ride' && it.t)
-        .sort((a, b) => parseHourMin(a.t) - parseHourMin(b.t));
-      const firstRide = ridesByTime[0];
-      const startParkHighSet = new Set(rdPool.map(a => _norm2(a.name)));
-      // The single-ILL headliner (ropeDropValue high + llKind single, e.g. Rise for DL, Radiator Springs
-      // for DCA) is the MOST time-sensitive opener: you cannot Multi-Pass it and its standby explodes
-      // first. If the starting park has one, the day should OPEN with it specifically -- not merely with
-      // "some" high rope-drop ride. So when a single-ILL headliner exists, require the first ride to be
-      // THAT ride; otherwise fall back to the looser "any starting-park high rope-drop" test.
-      const headliner = rdPool.find(a => a.llKind === 'single');
-      const firstRideClean = firstRide ? _norm2(cleanRideName(firstRide.h)) : null;
-      // The model now draws rope-drop from the ranked ROPE_DROP_STRATEGY cache (e.g. Peter Pan #1 for
-      // DL, which is NOT the single-ILL headliner). So ANY starting-park high rope-drop ride opening the
-      // day is valid -- do NOT demand the single-ILL headliner specifically, or we force a SECOND
-      // rope-drop card on top of the model's correct ranked pick (the double-rope-drop bug). The enforcer
-      // is only a safety net for when the model fails to open with any rope-drop ride at all.
-      const firstRideIsStartRopeDrop = !!(firstRide && startParkHighSet.has(firstRideClean));
-      if (!firstRideIsStartRopeDrop && rdPool.length) {
-        // Model didn't open with a starting-park rope-drop ride at all. Add one: prefer a high rope-drop
-        // ride the model ALREADY scheduled (pull it forward, don't strand it or add a duplicate); else
-        // introduce the best unused one; else the headliner; else the first in the pool.
-        const pick = rdPool.find(a => usedNames.has(_norm2(a.name)))
-          || rdPool.find(a => !usedNames.has(_norm2(a.name)))
-          || headliner
-          || rdPool[0];
+    if (Array.isArray(parsed) && blocks.length) {
+      const ranking = getRopeDropRanking(sections);
+      const excludedNorm = new Set(
+        ((((tripConfig.ridePreferences || {}).skip) || tripConfig.neverSchedule || []) || []).map(normRideName)
+      );
+      const attrByNorm = new Map();
+      (catalog.attractions || []).forEach(a => { attrByNorm.set(normRideName(a.name), a); });
+      const dayParks = days.map(d => ({ park: (/dca|california/i.test((d && (d.startPark || d.park)) || '') ? 'DCA' : 'DL') }));
+      const dayDates = days.map(d => (d && d.date) ? String(d.date).slice(0, 10) : null);
+      const isAvailableForDay = (idx, rideName) => {
+        const a = attrByNorm.get(normRideName(rideName));
+        if (!a) return true; // unknown to catalog -> don't block
+        return isAttractionAvailable(a, dayDates[idx], closureOverrides);
+      };
+      const assignment = assignRopeDropsAcrossDays({ days: dayParks, ranking, excludedNorm, isAvailableForDay });
+      const myPick = assignment[dayIndex];
+      if (myPick && myPick.name) {
+        const startOpen = blocks[0].startMin;
+        const attr = attrByNorm.get(normRideName(myPick.name));
+        const canonical = attr ? attr.name : myPick.name;
+        // remove ANY rope-drop-prefixed card and any other copy of the chosen ride (no doubles),
+        // then prepend the authoritative opener.
+        parsed = (parsed || []).filter(it => {
+          if (!it) return false;
+          if (/^\s*rope drop\b/i.test(String(it.h || ''))) return false;
+          if (it.type === 'ride' && normRideName(cleanRideName(it.h)) === normRideName(canonical)) return false;
+          return true;
+        });
         const openItem = {
           t: minToLabel(startOpen),
-          h: 'Rope Drop: ' + pick.name,
+          h: 'Rope Drop: ' + canonical,
           type: 'ride',
-          n: 'Be at the gate before open and head straight here -- ' + pick.name + ' builds the longest lines fastest, so riding it first saves the most time of any move all day.',
-          land: pick.land
+          n: 'Be at the gate before open and head straight here -- ' + canonical + ' is the top rope-drop priority for the park you start in, so riding it first saves the most time of any move all day.',
+          land: attr ? attr.land : undefined
         };
-        // remove any existing copy of this exact ride so it isn't duplicated, then prepend
-        parsed = parsed.filter(it => !(it && it.type === 'ride' &&
-          cleanRideName(it.h) === cleanRideName(pick.name)));
         parsed.unshift(openItem);
-        _enforce.ropeDrop = { added: pick.name, park: startPark, at: openItem.t };
+        _enforce.ropeDrop = { chosen: canonical, rank: myPick.rank, reason: myPick.reason, source: ranking.source, at: openItem.t };
       }
     }
 
@@ -753,6 +750,34 @@ export default async function handler(req, res) {
           } catch (ee) { /* re-prompt failed; leave the day as-is, underfilled check still records the gap */ }
         }
       }
+    }
+
+    // ---- DETERMINISTIC POST-CORRECTIONS (single source of truth = schedule-rules.js) ----
+    // Run AFTER all other enforcers/night-fill so they see the final timeline. These are the tested
+    // pure transforms (tests/test-corrections.mjs): cap breaks at <=1 morning + <=1 afternoon and
+    // label each by its actual time; move any app-chosen meal out of the 12-1 / 5-6 peak windows
+    // (reservations exempt). v2 previously never ran the validator, so these rules had no effect on
+    // the live path; applying them here is what makes them real.
+    if (Array.isArray(parsed) && parsed.length) {
+      const _bk = enforceBreaks(parsed);
+      parsed = _bk.items;
+      _enforce.breaksCapped = _bk.removed.length ? _bk.removed : null;
+
+      const _resList = (tripConfig.dining && tripConfig.dining.reservations) || tripConfig.reservations || [];
+      const _reservedNames = new Set(_resList.map(r => normRideName((r && (r.name || r.venue)) || '')).filter(Boolean));
+      const _isReserved = (it) => !!(it && (it.isReserved === true || it.isConfirmed === true || _reservedNames.has(normRideName(it.h))));
+      const _dayBounds = { startMin: blocks[0] ? blocks[0].startMin : 0, endMin: blocks.length ? blocks[blocks.length - 1].endMin : undefined };
+      const _ml = enforceMealWindows(parsed, { isReserved: _isReserved, dayBounds: _dayBounds });
+      parsed = _ml.items;
+      _enforce.mealsMoved = _ml.moved.length ? _ml.moved : null;
+
+      // enforceMealWindows can change an item's time, so re-sort chronologically (same comparator
+      // used after night-fill) to keep the timeline ordered.
+      parsed.sort((a, b) => {
+        const ma = a && a.t ? parseHourMin(a.t) : 100000;
+        const mb = b && b.t ? parseHourMin(b.t) : 100000;
+        return ma - mb;
+      });
     }
 
     _enforce.underfilled = null;
