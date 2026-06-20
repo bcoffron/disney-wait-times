@@ -795,6 +795,45 @@ export default async function handler(req, res) {
               }
             }
           } catch (ee) { /* re-prompt failed; leave the day as-is, underfilled check still records the gap */ }
+
+          // DETERMINISTIC EVENING BACKSTOP: the night-fill above is a single best-effort model call;
+          // it can return nothing usable (timeout, empty, or all cards rejected/duplicated). When it
+          // does, the CLOSING block -- including an appended evening hop-back -- is left empty, which
+          // alongside a "Park Hop to Disneyland" card reads as broken (a hop into an empty night).
+          // So after the model attempt, if the closing block is STILL underfilled, fill it
+          // deterministically from unused rides in the closing park. Rides land only inside the
+          // closing block's window (>= its start + a few min, so a hop-back evening gets DL rides
+          // AFTER the hop card, never before it). The model still authors the main day; this only
+          // fires as a guarantee when the model comes up empty.
+          const _lastBlk = blocks[blocks.length - 1];
+          const _nfLast2 = parsed
+            .filter(it => it && _nfReal.indexOf(it.type) !== -1 && it.t)
+            .reduce((mx, it) => Math.max(mx, parseHourMin(it.t)), -1);
+          if (_nfLast2 >= 0 && _nfLast2 < _nfClose - 45) {
+            const _bStart = Math.max(_nfLast2 + 20, _lastBlk.startMin + 10);
+            const _bEnd = _nfClose - 25;
+            if (_bEnd - _bStart >= 10) {
+              const _bPool = (_nfFilter.attractions || []).filter(a => a && !_nfUsed.has(_nfNorm(a.name)));
+              const _bNotes = [
+                'Waits bottom out right after the nighttime show -- this one is nearly a walk-on now.',
+                'A relaxed evening ride before the park closes.',
+                'Late-night low wait -- great timing to hop right on.',
+                'One more while the lines are short before close.'
+              ];
+              const _bAdded = [];
+              let _bIdx = 0;
+              for (let _t = _bStart; _t <= _bEnd && _bIdx < _bPool.length; _t += 28) {
+                const _a = _bPool[_bIdx++];
+                _nfUsed.add(_nfNorm(_a.name));
+                _bAdded.push({ t: minToLabel(_t), h: String(_a.name), type: 'ride', n: _bNotes[_bAdded.length % _bNotes.length], land: String(_a.land || '') });
+              }
+              if (_bAdded.length) {
+                parsed = parsed.concat(_bAdded);
+                parsed.sort((a, b) => { const ma = a && a.t ? parseHourMin(a.t) : 100000; const mb = b && b.t ? parseHourMin(b.t) : 100000; return ma - mb; });
+                _enforce.eveningBackfill = { added: _bAdded.length, from: minToLabel(_bStart), to: minToLabel(_bEnd), park: _nfPark, reason: 'model-nightfill-left-closing-block-underfilled' };
+              }
+            }
+          }
         }
       }
     }
