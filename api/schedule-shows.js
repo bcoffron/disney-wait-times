@@ -86,15 +86,20 @@ function feasibleShowtime(show, day) {
 // MAIN: itinerary-aware no-repeat assignment.
 // days: [{ dayIndex, dateISO, blocks, vip }]  (blocks already include any hop-back)
 // returns { [dayIndex]: [ { name, park, type, t, min } ] }  (time-sorted per day)
-export function assignShowsAcrossDays({ days, showsData }) {
+export function assignShowsAcrossDays({ days, showsData, skipNames, wantNames }) {
   const data = (showsData && Array.isArray(showsData.shows) && showsData.shows.length) ? showsData : DEFAULT_SHOWS;
   const fireworksRule = data.fireworksRule || DEFAULT_SHOWS.fireworksRule;
+  // SKIP = hard exclude from the pool (no backfill: fewer shows simply means fewer show-nights).
+  // WANT = priority bump in assignment. No-repeat + spread are inherent (each pool show placed once).
+  const _skipSet = new Set((skipNames || []).map(normShowName));
+  const _wantSet = new Set((wantNames || []).map(normShowName));
+  const _pool = (data.shows || []).filter(s => s && s.name && !_skipSet.has(normShowName(s.name)));
   const out = {};
   const dateByIdx = {};
   (days || []).forEach(d => { out[d.dayIndex] = []; dateByIdx[d.dayIndex] = toISO(d.dateISO) || ''; });
 
   // feasibility per show
-  const feas = (data.shows || []).map(show => {
+  const feas = _pool.map(show => {
     const options = [];
     (days || []).forEach(d => {
       if (show.type === 'fireworks' && !isFireworksNight(d.dateISO, fireworksRule)) return;
@@ -106,7 +111,7 @@ export function assignShowsAcrossDays({ days, showsData }) {
 
   // assign most-constrained first (fewest feasible nights), to the night with the FEWEST shows
   // so far (spread), ties by earliest date then earliest showtime.
-  feas.sort((a, b) => (a.options.length - b.options.length) || a.show.name.localeCompare(b.show.name));
+  feas.sort((a, b) => ((_wantSet.has(normShowName(b.show.name)) ? 1 : 0) - (_wantSet.has(normShowName(a.show.name)) ? 1 : 0)) || (a.options.length - b.options.length) || a.show.name.localeCompare(b.show.name));
   feas.forEach(({ show, options }) => {
     const cands = options
       .filter(o => out[o.dayIndex].length < 2)
