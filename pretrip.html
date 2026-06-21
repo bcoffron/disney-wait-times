@@ -290,6 +290,13 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 
 <!-- STEP 3: DINING -->
 <div class="pt-step" id="ptStep3">
+  <div class="pt-section-label">Shows & entertainment</div>
+  <div class="pt-hint" style="margin-bottom:12px;line-height:1.5;">Pick the nighttime shows you want to be sure to catch, or skip the ones you'd rather miss. Leave a show untouched and we'll fit in the best one for each night -- and we never schedule the same show twice.</div>
+  <div id="showSelector"><div class="pt-ride-loading">Loading shows...</div></div>
+  <div class="pt-ride-counter" id="showCounter"></div>
+</div>
+
+<div class="pt-step" id="ptStep4">
   <div class="pt-section-label">Dining</div>
   <div class="pt-hint" style="margin-bottom:14px;line-height:1.5;">As you go, we'll suggest quick-service spots along your route. Planning a sit-down (table-service) meal? Add it as a reservation below -- that's how we fit table service into your day.</div>
 
@@ -322,7 +329,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 </div>
 
 <!-- STEP 4: DAY-BY-DAY -->
-<div class="pt-step" id="ptStep4">
+<div class="pt-step" id="ptStep5">
   <div class="pt-section-label" style="margin-top:0;">Day by day details</div>
   <div class="pt-hint" style="margin-bottom:14px;">Set up each day of your trip individually</div>
   <div id="ptDayCards">
@@ -331,7 +338,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 </div>
 
 <!-- STEP 5: YOU'RE ALL SET -->
-<div class="pt-step" id="ptStep5">
+<div class="pt-step" id="ptStep6">
   <div style="background:#fff;border-radius:14px;border:1px solid rgba(7,30,37,0.08);overflow:hidden;margin-bottom:12px;">
     <div style="background:#1A6860;padding:14px 16px;display:flex;align-items:center;gap:10px;">
       <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -377,11 +384,11 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 <script>
 // -- State -----------------------------------------------
 var ptCurrentStep = 1;
-var ptTotalSteps = 5;
+var ptTotalSteps = 6;
 var ptSegValues = {};
 var ptMemberCount = 0;
 
-var PT_STEP_TITLES = ['Your Group','Ride Preferences','Dining','Day by Day','Almost done!'];
+var PT_STEP_TITLES = ['Your Group','Ride Preferences','Shows & Entertainment','Dining','Day by Day','Almost done!'];
 
 // -- Init ------------------------------------------------
 (function(){console.log("[pretrip] IIFE init start");
@@ -464,6 +471,7 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
     ctaBtn.className = 'pt-cta-btn';
   }
   if (n === 2) { try { ptFetchRideCatalog(); } catch(e){} }
+  if (n === 3) { try { ptFetchShows(); } catch(e){} }
   _ptNextLock = false;
 }
 
@@ -511,6 +519,90 @@ var PT_CAT_DEFS = [
   { key:'thrill', label:'Avoid big-thrill rides', height:40 },
   { key:'littlekid', label:'No little-kid rides', names:["Mater's Junkyard Jamboree","Jessie's Critter Carousel","Golden Zephyr","Jumpin' Jellyfish","Gadget's Go Coaster"] }
 ];
+// ===== Shows & entertainment selector (Want to see / Skip) =====
+var ptShowCatalog = null;
+var ptShowManual = {};
+var ptShowNameByNorm = {};
+function ptFetchShows(){
+  if (ptShowCatalog){ ptRenderShows(); return; }
+  var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://disney-wait-times-lupt.vercel.app';
+  fetch(base + '/api/cache?key=park_intel_dl_dynamic&t=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      var sections = (res && res.data && res.data.sections) ? res.data.sections : ((res && res.sections) ? res.sections : null);
+      var sd = (sections && sections.SHOWS) ? sections.SHOWS : null;
+      var arr = (sd && sd.shows && sd.shows.length) ? sd.shows : [];
+      ptShowCatalog = []; ptShowNameByNorm = {};
+      arr.forEach(function(sh){
+        if (!sh || !sh.name) return;
+        ptShowCatalog.push({ name:sh.name, park:(String(sh.park).toUpperCase()==='DCA'?'DCA':'DL'), type:(sh.type||'show'), showtimes:(sh.showtimes||[]) });
+        ptShowNameByNorm[ptNorm(sh.name)] = sh.name;
+      });
+      ptRenderShows();
+    })
+    .catch(function(){
+      var el = document.getElementById('showSelector');
+      if (el) el.innerHTML = '<div class="pt-ride-loading">Could not load the show list. Check your connection and reopen this step.</div>';
+    });
+}
+function ptShowTypeLabel(t){
+  if (t === 'fireworks') return 'Fireworks';
+  if (t === 'parade') return 'Parade';
+  if (t === 'spectacular') return 'Nighttime spectacular';
+  return 'Show';
+}
+function ptTapShow(norm, act){
+  if (ptShowManual[norm] === act) { delete ptShowManual[norm]; } else { ptShowManual[norm] = act; }
+  ptRefreshShowUI(); ptUpdateShowCounter();
+}
+function ptRefreshShowUI(){
+  var rows = document.querySelectorAll('#showSelector .pt-ride-row');
+  for (var i=0;i<rows.length;i++){
+    var row = rows[i]; var nn = row.getAttribute('data-show'); var st = ptShowManual[nn] || '';
+    var wantBtn = row.querySelector('.pill-must'); var skipBtn = row.querySelector('.pill-skip');
+    if (wantBtn) wantBtn.classList.toggle('must-on', st === 'want');
+    if (skipBtn) skipBtn.classList.toggle('skip-on', st === 'skip');
+  }
+}
+function ptUpdateShowCounter(){
+  var want=0, skip=0;
+  for (var k in ptShowManual){ if (ptShowManual[k]==='want') want++; else if (ptShowManual[k]==='skip') skip++; }
+  var el = document.getElementById('showCounter');
+  if (el) el.innerHTML = '<b>'+want+'</b> you want &middot; <b>'+skip+'</b> skipped &middot; we fit in the best of the rest each night';
+}
+function ptRenderShows(){
+  var host = document.getElementById('showSelector');
+  if (!host) return;
+  if (!ptShowCatalog || !ptShowCatalog.length){ host.innerHTML = '<div class="pt-ride-loading">No shows found.</div>'; return; }
+  var byPark = { DL:[], DCA:[] };
+  ptShowCatalog.forEach(function(sh){ (byPark[sh.park] || byPark.DL).push(sh); });
+  var parkOrder = [ ['DL','Disneyland'], ['DCA','California Adventure'] ];
+  var html = '';
+  parkOrder.forEach(function(pp){
+    var code=pp[0], label=pp[1], list=byPark[code];
+    if (!list || !list.length) return;
+    html += '<div class="pt-land-head">'+ptEsc(label)+'</div>';
+    list.forEach(function(sh){
+      var nn = ptNorm(sh.name);
+      var sub = ptShowTypeLabel(sh.type) + (sh.showtimes && sh.showtimes.length ? ' &middot; ' + ptEsc(sh.showtimes[0]) : '');
+      html += '<div class="pt-ride-row" data-show="'+nn+'"><span class="pt-ride-name">'+ptEsc(sh.name)+'<br><span style="font-size:9px;color:#8AACAE;font-weight:400;">'+sub+'</span></span><span class="pt-ride-pills"><span class="pt-ride-pill pill-must" data-act="want">Want to see</span><span class="pt-ride-pill pill-skip" data-act="skip">Skip</span></span></div>';
+    });
+  });
+  host.innerHTML = html;
+  if (!host._ptShowBound){
+    host._ptShowBound = true;
+    host.addEventListener('click', function(e){
+      var t = e.target;
+      var pill = (t.classList && t.classList.contains('pt-ride-pill')) ? t : (t.closest ? t.closest('.pt-ride-pill') : null);
+      if (!pill) return;
+      var row = pill.closest ? pill.closest('.pt-ride-row') : null;
+      if (!row) return;
+      ptTapShow(row.getAttribute('data-show'), pill.getAttribute('data-act'));
+    });
+  }
+  ptRefreshShowUI();
+  ptUpdateShowCounter();
+}
 function ptFetchRideCatalog(){
   if (ptRideCatalog){ ptRenderRideSelector(); return; }
   var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://disney-wait-times-lupt.vercel.app';
@@ -908,6 +1000,8 @@ function ptCollectData() {
     var eff = ptEffective(n);
     if (eff === 'must') rideMust.push(nm); else if (eff === 'skip') rideSkip.push(nm);
   });
+  var showWant = [], showSkip = [];
+  for (var _sn in ptShowManual){ var _snm = ptShowNameByNorm[_sn]; if (!_snm) continue; if (ptShowManual[_sn]==='want') showWant.push(_snm); else if (ptShowManual[_sn]==='skip') showSkip.push(_snm); }
 
   return {
     tripName: document.getElementById('tripName') ? document.getElementById('tripName').value.trim() : '',
@@ -936,6 +1030,7 @@ function ptCollectData() {
       priority: (ptSegValues['charPriorityTiles'] || 'niceToHave')
     },
     dietaryNeeds: getChips('dietChips'),
+    showPreferences: { want: showWant, skip: showSkip },
     diningRecs: 'AI suggestions',
     reservations: (function(){
       var tog = document.getElementById('hasReservationsToggle');
@@ -1084,6 +1179,7 @@ function ptLoadFromStorage() {
     if (d.wantedRestaurants && document.getElementById('wantedRestaurants')) document.getElementById('wantedRestaurants').value = d.wantedRestaurants;
     if (Array.isArray(d.dietaryNeeds)) { d.dietaryNeeds.forEach(function(_lbl){ var _cs=document.querySelectorAll('#dietChips .pt-chip'); for (var _i=0;_i<_cs.length;_i++){ if(_cs[_i].textContent.trim()===_lbl) _cs[_i].classList.add('selected'); } }); }
     if (Array.isArray(d.accessibility)) { d.accessibility.forEach(function(_k){ var _b=document.getElementById('acc_'+_k); if(_b) _b.classList.add('checked'); }); }
+    if (d.showPreferences) { ptShowManual = {}; (d.showPreferences.want||[]).forEach(function(_n){ ptShowManual[ptNorm(_n)]='want'; }); (d.showPreferences.skip||[]).forEach(function(_n){ var _k=ptNorm(_n); if(!ptShowManual[_k]) ptShowManual[_k]='skip'; }); if (ptShowCatalog) ptRenderShows(); }
   } catch(e){}
 }
 
@@ -1183,6 +1279,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
     dietaryNeeds: tripConfig.dietaryNeeds || [],
     wantedRestaurants: tripConfig.wantedRestaurants || '',
     accessibility: tripConfig.accessibility || [],
+    showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
     ridePreferences: tripConfig.ridePreferences || { mustDo: tripConfig.mustDo || [], skip: tripConfig.neverSchedule || [] },
     neverSchedule: tripConfig.neverSchedule || [],
     reservations: tripConfig.reservations || [],
@@ -1301,6 +1398,7 @@ function ptFinish() {
     avoidWater: d.avoidWater,
     accessibility: d.accessibility,
     dietaryNeeds: d.dietaryNeeds,
+    showPreferences: d.showPreferences || { want: [], skip: [] },
     diningRecs: d.diningRecs,
     wantedRestaurants: d.wantedRestaurants,
     days: d.days,
