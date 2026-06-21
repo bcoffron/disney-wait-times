@@ -290,38 +290,8 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 
 <!-- STEP 3: DINING -->
 <div class="pt-step" id="ptStep3">
-  <div class="pt-section-label">Dining style</div>
-  <div class="pt-tiles" id="diningStyleTiles">
-    <div class="pt-tile selected" onclick="ptTileSelect('diningStyleTiles',this,'Mix of table service and quick')">
-      <div>
-        <div class="pt-tile-label">Mix of quick service and table service</div>
-        <div class="pt-tile-sub">Balance of convenience and experience</div>
-      </div>
-      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    </div>
-    <div class="pt-tile" onclick="ptTileSelect('diningStyleTiles',this,'Quick service mostly')">
-      <div>
-        <div class="pt-tile-label">Quick service mostly</div>
-        <div class="pt-tile-sub">Fast, flexible &mdash; more time for rides</div>
-      </div>
-      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    </div>
-    <div class="pt-tile" onclick="ptTileSelect('diningStyleTiles',this,'Special dining experiences')">
-      <div>
-        <div class="pt-tile-label">Special dining experiences</div>
-        <div class="pt-tile-sub">Character dining, signature restaurants</div>
-      </div>
-      <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    </div>
-  </div>
-
-  <div class="pt-section-label" style="margin-top:16px;">Budget per meal</div>
-  <div class="pt-seg" id="budgetSeg" style="margin-bottom:12px;">
-    <button class="pt-seg-btn" onclick="ptSegSelect('budgetSeg',this,'$')">$</button>
-    <button class="pt-seg-btn" onclick="ptSegSelect('budgetSeg',this,'$$')">$$</button>
-    <button class="pt-seg-btn" onclick="ptSegSelect('budgetSeg',this,'$$$')">$$$</button>
-    <button class="pt-seg-btn active" onclick="ptSegSelect('budgetSeg',this,'No preference')">No pref</button>
-  </div>
+  <div class="pt-section-label">Dining</div>
+  <div class="pt-hint" style="margin-bottom:14px;line-height:1.5;">As you go, we'll suggest quick-service spots along your route. Planning a sit-down (table-service) meal? Add it as a reservation below -- that's how we fit table service into your day.</div>
 
   <div class="pt-section-label">Dietary needs</div>
   <div class="pt-hint" style="margin-bottom:8px;">Select all that apply</div>
@@ -346,9 +316,9 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     <textarea class="pt-textarea" id="reservationsInput" placeholder="e.g.&#10;Cafe Orleans, 6:30 PM, Day 3&#10;Blue Bayou, 12:00 PM, Day 1" style="min-height:80px;font-size:12px;"></textarea>
   </div>
 
-  <div class="pt-section-label" style="margin-top:16px;">Restaurants you want to try</div>
-  <div class="pt-hint" style="margin-bottom:6px;">AI will work these into your schedule where it fits</div>
-  <textarea class="pt-textarea" id="wantedRestaurants" placeholder="e.g. Blue Bayou, Carnation Cafe, Lamplight Lounge..."></textarea>
+  <div class="pt-section-label" style="margin-top:16px;">Quick-service spots you'd love</div>
+  <div class="pt-hint" style="margin-bottom:6px;">We'll work these counter-service spots into your day where they fit. For sit-down spots, add a reservation above.</div>
+  <textarea class="pt-textarea" id="wantedRestaurants" placeholder="e.g. Bengal Barbecue, Jolly Holiday Bakery, Cozy Cone Motel..."></textarea>
 </div>
 
 <!-- STEP 4: DAY-BY-DAY -->
@@ -965,8 +935,6 @@ function ptCollectData() {
       })(),
       priority: (ptSegValues['charPriorityTiles'] || 'niceToHave')
     },
-    diningStyle: getTile('diningStyleTiles'),
-    diningBudget: ptSegValues['budgetSeg'] || 'No preference',
     dietaryNeeds: getChips('dietChips'),
     diningRecs: 'AI suggestions',
     reservations: (function(){
@@ -1114,6 +1082,8 @@ function ptLoadFromStorage() {
       });
     }
     if (d.wantedRestaurants && document.getElementById('wantedRestaurants')) document.getElementById('wantedRestaurants').value = d.wantedRestaurants;
+    if (Array.isArray(d.dietaryNeeds)) { d.dietaryNeeds.forEach(function(_lbl){ var _cs=document.querySelectorAll('#dietChips .pt-chip'); for (var _i=0;_i<_cs.length;_i++){ if(_cs[_i].textContent.trim()===_lbl) _cs[_i].classList.add('selected'); } }); }
+    if (Array.isArray(d.accessibility)) { d.accessibility.forEach(function(_k){ var _b=document.getElementById('acc_'+_k); if(_b) _b.classList.add('checked'); }); }
   } catch(e){}
 }
 
@@ -1210,6 +1180,9 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
     characters: tripConfig.characters,
     minHeight: tripConfig.minHeight,
     groupProfile: tripConfig.groupProfile,
+    dietaryNeeds: tripConfig.dietaryNeeds || [],
+    wantedRestaurants: tripConfig.wantedRestaurants || '',
+    accessibility: tripConfig.accessibility || [],
     ridePreferences: tripConfig.ridePreferences || { mustDo: tripConfig.mustDo || [], skip: tripConfig.neverSchedule || [] },
     neverSchedule: tripConfig.neverSchedule || [],
     reservations: tripConfig.reservations || [],
@@ -1327,8 +1300,6 @@ function ptFinish() {
     ridePreferences: { mustDo: d.mustDo, skip: d.neverSchedule, wantToDo: [] },
     avoidWater: d.avoidWater,
     accessibility: d.accessibility,
-    diningStyle: d.diningStyle,
-    diningBudget: d.diningBudget,
     dietaryNeeds: d.dietaryNeeds,
     diningRecs: d.diningRecs,
     wantedRestaurants: d.wantedRestaurants,
