@@ -176,18 +176,20 @@ function toComparableDate(d) {
 //   - closed WITH a reopenDate on/before the trip day -> available IF confidence is 'confirmed' or
 //     'rumored' (the caller has chosen to show rumored reopenings); 'unknown' stays hidden.
 //   - closed WITH a reopenDate AFTER the trip day -> NOT available (still closed when we visit).
+//   - a closeDate marks a FUTURE refurb: the ride is OPEN until closeDate, then closed until reopen.
 // tripDate is an ISO 'YYYY-MM-DD' string for the day being built; when absent, fall back to the
 // old behavior (operating status only) so callers that don't pass a date are unchanged.
 export function isAttractionAvailable(attraction, tripDate, closureOverrides) {
   const a = attraction || {};
   // resolve effective closure info: override map wins over catalog fields
-  let status = a.status, reopenDate = a.reopenDate, reopenConfidence = a.reopenConfidence;
+  let status = a.status, reopenDate = a.reopenDate, reopenConfidence = a.reopenConfidence, closeDate = a.closeDate;
   if (closureOverrides) {
     const ov = closureOverrides[normAttr(a.name)];
     if (ov) {
       status = ov.status != null ? ov.status : status;
       reopenDate = ov.reopenDate != null ? ov.reopenDate : reopenDate;
       reopenConfidence = ov.reopenConfidence != null ? ov.reopenConfidence : reopenConfidence;
+      closeDate = ov.closeDate != null ? ov.closeDate : closeDate;
     }
   }
   const st = status ? String(status).toLowerCase().trim() : '';
@@ -195,6 +197,16 @@ export function isAttractionAvailable(attraction, tripDate, closureOverrides) {
   if (operating) return true;
   // closed in some form from here on
   if (!tripDate) return false; // no date context -> conservative (old behavior): closed = hidden
+  // closeDate window: an attraction with a FUTURE closure is OPEN until that closure begins.
+  // Its 'closed' status + reopenDate describe the upcoming refurb, not the current state.
+  //   tripDate <  closeDate          -> still open, available now (return true here)
+  //   closeDate <= tripDate < reopen -> in the closure, handled by the reopen logic below
+  // No closeDate -> block skipped, behavior unchanged.
+  if (closeDate) {
+    const cd = toComparableDate(closeDate);
+    const tdC = toComparableDate(tripDate);
+    if (cd != null && tdC != null && tdC < cd) return true;
+  }
   if (!reopenDate) return false; // closed, no known reopen -> hidden
   const conf = reopenConfidence ? String(reopenConfidence).toLowerCase().trim() : 'unknown';
   if (conf === 'unknown') return false; // closed with a date we don't trust -> hidden
