@@ -1011,7 +1011,7 @@ function ptShowGenerating(dayNum, totalDays) {
   if (bar) {
     bar.innerHTML = '<div style="background:#1A8880;border-radius:13px;padding:14px 16px;text-align:center;">' +
       '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Building your schedule...</div>' +
-      '<div style="font-size:11px;color:rgba(255,255,255,0.70);">Day ' + dayNum + ' of ' + totalDays + ' -- this takes about 30 seconds per day</div>' +
+      '<div style="font-size:11px;color:rgba(255,255,255,0.70);">Generating all ' + totalDays + ' days at once -- usually about a minute</div>' +
       '<div style="margin-top:10px;height:4px;background:rgba(255,255,255,0.20);border-radius:2px;overflow:hidden;">' +
         '<div id="ptGenBar" style="height:100%;background:#fff;border-radius:2px;width:' + Math.round((dayNum-1)/totalDays*100) + '%;transition:width 0.5s ease;"></div>' +
       '</div>' +
@@ -1025,7 +1025,7 @@ function ptUpdateGenBar(dayNum, totalDays) {
   var label = document.querySelector('#ptCtaBar div div');
   if (label) {
     var sub = label.nextElementSibling;
-    if (sub) sub.textContent = 'Day ' + dayNum + ' of ' + totalDays + ' -- almost there...';
+    if (sub) sub.textContent = dayNum + ' of ' + totalDays + ' days ready -- almost there...';
   }
 }
 
@@ -1337,113 +1337,78 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   // Show progress UI
   ptShowGenerating(1, totalDays);
 
-  var generatedDays = [];
+  var generatedDays = new Array(totalDays);
+  var _pending = totalDays;
+  var _completed = 0;
 
-  function generateNext(idx) {
-    if (idx >= totalDays) {
-      // All days done -- save full schedule to Vercel Blob then redirect
-      var finalConfig = Object.assign({}, tripConfig, {
-        schedule: { days: generatedDays }
-      });
-      if (code) {
-        fetch(SYNC_BASE + '/api/trip', {
-method: 'POST',
-headers: {'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},
-body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } })
-})
-.then(function(r){ return r.json().then(function(d){ d._httpStatus = r.status; return d; }); })
-.then(function(writeResp) {
-var bodyStr = JSON.stringify(finalConfig);
-var bytesWritten = bodyStr ? bodyStr.length : 0;
-console.log('[ptFinish] trip blob write status: ' + writeResp._httpStatus + ', bytes written: ' + bytesWritten + ', ok: ' + (writeResp.ok ? 'true' : 'false') + (writeResp.error ? ', error: ' + writeResp.error : ''));
-if (!writeResp.ok) {
-console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unknown') + ', error: ' + (writeResp.error || 'unknown'));
-}
-              // Phase 2: redirect directly (Write 2 to /api/schedule retired)
-              window.location.href = 'app.html?from=setup&t=' + Date.now();
-})
-.catch(function(err){ console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = 'app.html?from=setup&t=' + Date.now(); });
-      } else {
+  function _finishAndSave() {
+    var finalConfig = Object.assign({}, tripConfig, { schedule: { days: generatedDays } });
+    if (code) {
+      fetch(SYNC_BASE + '/api/trip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': 'cwdis2026admin' },
+        body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } })
+      })
+      .then(function(r){ return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
+      .then(function(writeResp) {
+        var bodyStr = JSON.stringify(finalConfig);
+        var bytesWritten = bodyStr ? bodyStr.length : 0;
+        console.log('[ptFinish] trip blob write status: ' + writeResp._httpStatus + ', bytes written: ' + bytesWritten + ', ok: ' + (writeResp.ok ? 'true' : 'false') + (writeResp.error ? ', error: ' + writeResp.error : ''));
+        if (!writeResp.ok) { console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unknown') + ', error: ' + (writeResp.error || 'unknown')); }
         window.location.href = 'app.html?from=setup&t=' + Date.now();
-      }
-      return;
+      })
+      .catch(function(err){ console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = 'app.html?from=setup&t=' + Date.now(); });
+    } else {
+      window.location.href = 'app.html?from=setup&t=' + Date.now();
     }
-    ptShowGenerating(idx + 1, totalDays);
-    var _dayNum = idx + 1;
-    var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
-      ? tripConfig.dining.reservations.filter(function(r) { return r && r.day === _dayNum; })
-      : [];
-    var _dayResStrings = _dayReservations.map(function(r) {
-      return 'THIS DAY\'S CONFIRMED RESERVATION: ' + r.name + ' at ' + r.time;
-    });
-    var dayTripConfig = Object.assign({}, tripConfig, {
-      reservations: _dayResStrings,
-      dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations })
-    });
-    ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items) {
-      if (err) {
-        console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
-        // Show error in progress bar but continue to next day
-        var bar = document.getElementById('ptCtaBar');
-        if (bar) {
-          var errDiv = bar.querySelector('.pt-gen-error');
-          if (!errDiv) {
-            errDiv = document.createElement('div');
-            errDiv.className = 'pt-gen-error';
-            errDiv.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;text-align:center;';
-            bar.firstElementChild && bar.firstElementChild.appendChild(errDiv);
-          }
-          errDiv.textContent = 'Day ' + (idx+1) + ' had trouble -- continuing with next day...';
-        }
-        generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: [] });
-      } else {
-        generatedDays.push({ park: d.days[idx].park || 'Disneyland', items: items });
-      var _usedThisDay = [];
-      (items || []).forEach(function(item) {
-        if (item && (item.type === 'dining' || item.type === 'quickservice' || item.type === 'snack') && item.h) {
-          var vn = item.h.replace(/^((Early|Late)\s+)?(Lunch|Dinner|Breakfast|Brunch|Snack|Morning Snack|Afternoon Snack|Meal)\s*:\s*/i, '').trim();
-          if (vn) _usedThisDay.push(vn);
-        }
-      });
-      if (!tripConfig.dining) tripConfig.dining = {};
-      if (!Array.isArray(tripConfig.dining.usedVenues)) tripConfig.dining.usedVenues = [];
-      tripConfig.dining.usedVenues = tripConfig.dining.usedVenues.concat(_usedThisDay);
-      console.log('[pretrip] Day '+(idx+1)+' venues:', JSON.stringify(_usedThisDay));
-      // Cross-day ride variety: accumulate ride names so later days favor fresh attractions (v2 priorRides)
-      var _ridesThisDay = [];
-      (items || []).forEach(function(item) {
-        if (item && item.type === 'ride' && item.h) {
-          var rn = item.h.replace(/^Rope Drop:\s*/i, '').replace(/\s*\(LL[^)]*\)\s*$/i, '').trim();
-          if (rn && _ridesThisDay.indexOf(rn) === -1) _ridesThisDay.push(rn);
-        }
-      });
-      if (!Array.isArray(tripConfig._priorRides)) tripConfig._priorRides = [];
-      _ridesThisDay.forEach(function(rn){ if (tripConfig._priorRides.indexOf(rn) === -1) tripConfig._priorRides.push(rn); });
-      console.log('[pretrip] Day '+(idx+1)+' rides accumulated; priorRides now '+tripConfig._priorRides.length);
-      // Cross-day NO-REPEAT for nighttime shows + sit-down (table-service) dinners (v2 priorShows, HARD rule).
-      // quickservice/counter meals are NOT tracked here -- they may repeat. Only type 'show' and 'dining'.
-      var _showsThisDay = [];
-      (items || []).forEach(function(item) {
-        if (item && (item.type === 'show' || item.type === 'dining') && item.h) {
-          var sn = item.h
-            .replace(/\s*\((Confirmed Reservation|Reservation)\)\s*/ig, ' ')
-            .replace(/\s*[-\u2013\u2014]\s*(Dinner|Lunch|Breakfast)\s*$/i, '')
-            .replace(/\s+(at|in)\s+(Disneyland|Disney California Adventure|DCA|California Adventure|Galaxy'?s Edge)\b.*$/i, '')
-            .replace(/\s*[-\u2013\u2014:]\s*(Happiness!?|A Disney Spectacular|Nighttime Spectacular|The Musical)\s*$/i, '')
-            .replace(/\s+/g, ' ').trim();
-          if (sn && _showsThisDay.indexOf(sn) === -1) _showsThisDay.push(sn);
-        }
-      });
-      if (!Array.isArray(tripConfig._priorShows)) tripConfig._priorShows = [];
-      _showsThisDay.forEach(function(sn){ if (tripConfig._priorShows.indexOf(sn) === -1) tripConfig._priorShows.push(sn); });
-      console.log('[pretrip] Day '+(idx+1)+' shows/dinners accumulated; priorShows now '+tripConfig._priorShows.length);
-      }
-      ptUpdateGenBar(idx + 1, totalDays);
-      generateNext(idx + 1);
-    });
   }
 
-  generateNext(0);
+  // PARALLEL day generation: fire all days at once instead of sequentially. Cross-day coordination
+  // (nighttime shows, rope-drop spread, reserved/table-service venues) is computed deterministically
+  // inside the v2 endpoint from the FULL trip config, so a day does not need prior days' results.
+  // priorRides/priorShows are a soft variety hint only -- passed empty here; we accept minor cross-day
+  // repetition of filler rides in exchange for ~3x faster generation (3 days in ~1 day's wall time).
+  for (var _di = 0; _di < totalDays; _di++) {
+    (function(idx){
+      var _dayNum = idx + 1;
+      var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
+        ? tripConfig.dining.reservations.filter(function(r) { return r && r.day === _dayNum; })
+        : [];
+      var _dayResStrings = _dayReservations.map(function(r) {
+        return 'THIS DAY\'S CONFIRMED RESERVATION: ' + r.name + ' at ' + r.time;
+      });
+      var dayTripConfig = Object.assign({}, tripConfig, {
+        reservations: _dayResStrings,
+        dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations }),
+        _priorRides: [],
+        _priorShows: []
+      });
+      ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items) {
+        if (err) {
+          console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
+          var bar = document.getElementById('ptCtaBar');
+          if (bar) {
+            var errDiv = bar.querySelector('.pt-gen-error');
+            if (!errDiv) {
+              errDiv = document.createElement('div');
+              errDiv.className = 'pt-gen-error';
+              errDiv.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;text-align:center;';
+              bar.firstElementChild && bar.firstElementChild.appendChild(errDiv);
+            }
+            errDiv.textContent = 'Day ' + (idx+1) + ' had trouble -- continuing...';
+          }
+          generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
+        } else {
+          generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] };
+          console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
+        }
+        _completed++;
+        ptUpdateGenBar(_completed, totalDays);
+        _pending--;
+        if (_pending === 0) { _finishAndSave(); }
+      });
+    })(_di);
+  }
 }
 </script>
 </body>
