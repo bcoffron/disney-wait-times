@@ -446,6 +446,7 @@ export default async function handler(req, res) {
     // else. This is inherently PER-DAY: a day that already fills to close (gap <= 45) never triggers it,
     // so a perfectly-timed evening is left untouched. ----
     let _enforce = { dropped: [] };
+    _enforce.variety = _featuredLines.length ? _featuredLines : null;
     // (night-fill re-prompt MOVED below, to run AFTER VIP collapse / show-dedup so it sees the final timeline)
 
     // ---- PHYSICS ENFORCEMENT (code, not prompt): drop any RIDE scheduled into a block whose park
