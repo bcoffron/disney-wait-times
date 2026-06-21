@@ -56,7 +56,7 @@ async function loadDynamicSections() {
   return {};
 }
 
-// Build a closure-override map { normalizedName: {status, reopenDate, reopenConfidence} } from the
+// Build a closure-override map { normalizedName: {status, reopenDate, reopenConfidence, closeDate} } from the
 // structured weekly CLOSURES section. This is the FRESH source of truth for open/closed and reopen
 // dates; it overrides the monthly CATALOG's per-attraction status fields (which can be ~30 days stale).
 // If the structured section is absent (older cache), returns null and v2 falls back to CATALOG fields.
@@ -72,7 +72,8 @@ function buildClosureOverrides(dynamicSections) {
       map[norm(c.name)] = {
         status: c.status != null ? c.status : 'closed_for_refurbishment',
         reopenDate: c.reopenDate != null ? c.reopenDate : null,
-        reopenConfidence: c.reopenConfidence != null ? c.reopenConfidence : 'unknown'
+        reopenConfidence: c.reopenConfidence != null ? c.reopenConfidence : 'unknown',
+        closeDate: c.closeDate != null ? c.closeDate : null
       };
     }
   });
