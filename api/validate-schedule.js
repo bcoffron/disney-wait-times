@@ -1111,6 +1111,30 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     });
   } catch (e) {}
 
+  // Rule 9w: REASONING-LEAKAGE STRIP (quality). The model occasionally leaks its own planning
+  // monologue into a card -- e.g. a card titled "Haunted Mansion" with note "Wait -- Haunted Mansion
+  // was already ridden this morning; skip to the next." Incoherent (a card for a ride you are told to
+  // skip) and it breaks the calm friendly voice. Strip any card whose note OR title reads as think-aloud.
+  // High-precision: a leakage opener (Wait/Hmm/Actually/On second thought/Let me reconsider|think/
+  // Scratch that/Oops) with trailing punctuation; the phrase "skip to the next"; or "already (been)
+  // ridden/done/scheduled/visited/covered" paired with a skip/instead/move/next marker. Real warm notes
+  // ("Waits typically lowest before...", "Skip the line with your Lightning Lane") do NOT match.
+  // Removal only -- never adds an item, never raises a hard violation.
+  try {
+    const _leakOpener = /^\s*(wait|hmm|actually|on second thought|let me reconsider|let me think|scratch that|oops)\b\s*[\u2014\-:,]/i;
+    const _leakSkipNext = /\bskip to the next\b/i;
+    const _leakAlready = /\balready (been\s+)?(ridden|done|did|scheduled|visited|covered)\b[\s\S]{0,40}\b(skip|instead|move on|next)\b/i;
+    const _isLeak = (v) => { if (!v) return false; const t = String(v); return _leakOpener.test(t) || _leakSkipNext.test(t) || _leakAlready.test(t); };
+    days.forEach((day, idx) => {
+      const items = day.items || [];
+      const kept = items.filter(it => !(it && (_isLeak(it.n) || _isLeak(it.h))));
+      if (kept.length !== items.length) {
+        corrections.push({ rule: 'reasoning-leakage', day: idx + 1, action: 'removed ' + (items.length - kept.length) + ' think-aloud card(s) (model reasoning leaked into a card)' });
+        day.items = kept;
+      }
+    });
+  } catch (e) {}
+
   return {
     valid: hardViolations.length === 0,
     schedule,
