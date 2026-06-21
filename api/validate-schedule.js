@@ -39,9 +39,10 @@ function cleanRideName(h) {
 // Fallback hardcoded closures — used only if cache is unavailable
 // When cache CURRENT_CLOSURES is passed in at call time, it overrides this list
 const CLOSED_ATTRACTIONS_FALLBACK = [
-  'Pirates of the Caribbean',
-  'Buzz Lightyear Astro Blasters',
-  'Inside Out Emotional Whirlwind',
+  // Last-resort fallback, used ONLY when no live closures are passed to validateSchedule.
+  // The live CLOSURES cache (date-aware, with reopen dates) is the real source of truth.
+  // Keep ONLY attractions genuinely closed for the trip window. Pirates (reopened 6/26),
+  // Buzz (6/12) and Inside Out (6/17) are OPEN -- leaving them here deleted open rides on save.
   'Silly Symphony Swings'
 ];
 
