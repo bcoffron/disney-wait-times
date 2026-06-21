@@ -1092,6 +1092,25 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     day.items = items;
   });
 
+  // Rule 9v: ILL / Single Pass not enabled -> strip purchase reminders the model added anyway.
+  // If a day's config has hasILL falsy, the user never bought Individual Lightning Lane / Single Pass,
+  // so any "Purchase Lightning Lane Single Pass: X" reminder is wrong and could push a guest to pay
+  // for something they declined. The underlying ride stays (ridden standby); only the tip is removed.
+  // "Multi Pass" is never matched (only "single pass"/"individual lightning lane"), so LLMP is untouched.
+  try {
+    const _illRe = /lightning lane single|single\s*pass|individual lightning lane/i;
+    days.forEach((day, idx) => {
+      const cfgDay = (tripConfig && tripConfig.days && tripConfig.days[idx]) || {};
+      if (cfgDay.hasILL) return;
+      const items = day.items || [];
+      const kept = items.filter(it => !(it && _illRe.test(it.h || '')));
+      if (kept.length !== items.length) {
+        corrections.push({ rule: 'ill-not-enabled', day: idx + 1, action: 'removed ' + (items.length - kept.length) + ' Single Pass reminder(s); ILL not enabled for this day' });
+        day.items = kept;
+      }
+    });
+  } catch (e) {}
+
   return {
     valid: hardViolations.length === 0,
     schedule,
