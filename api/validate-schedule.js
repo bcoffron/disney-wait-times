@@ -2,6 +2,8 @@
 // Post-generation schedule validator â structural rules enforced in code
 // Called after every generation and before every save
 
+import { normRideName } from './schedule-rules.js';
+
 function timeToMinutes(t) {
   if (!t) return -1;
   const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
@@ -19,6 +21,19 @@ function minutesToTime(mins) {
   const period = h >= 12 ? 'PM' : 'AM';
   const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
   return displayH + ':' + String(m).padStart(2, '0') + ' ' + period;
+}
+
+// Normalize a ride title for dedup matching: strip "Rope Drop:" / em-dash prefixes and
+// "(LL...)" / "(Night Ride)" suffixes, then normRideName() (which also bridges the
+// "Star Wars: Rise" == "Rise" alias) collapses the rest. Mirrors the generator's cleanRideName
+// so the save-time validator and the v2 engine treat ride identity identically.
+function cleanRideName(h) {
+  return String(h || '')
+    .replace(/^rope drop\s*[\u2014-]\s*/i, '')
+    .replace(/^rope drop[^:]*:\s*/i, '')
+    .replace(/\s*\((ll|lightning)[^)]*\)\s*$/i, '')
+    .replace(/\s*\(night[^)]*\)\s*$/i, '')
+    .toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 // Fallback hardcoded closures — used only if cache is unavailable
@@ -1017,6 +1032,64 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
         });
       }
     });
+  });
+
+  // Rule 9t: GENERAL RIDE DE-DUP (alias-aware). Each attraction appears at most once per day. The
+  // model (and the legacy generator) sometimes list the same ride twice, often under alias names the
+  // earlier rope-drop dedup misses -- e.g. "Star Wars: Rise of the Resistance" and "Rise of the
+  // Resistance", or "Big Thunder Mountain Railroad (Night Ride)" and "Big Thunder Mountain Railroad".
+  // Keep the FIRST occurrence in time order; drop later duplicates of the same normalized ride name.
+  // This is the durable, save-time home for the rule the v2 engine also applies in-handler, so a clean
+  // schedule is guaranteed no matter which generator (v2, legacy, in-app rebuild, manual edit) produced it.
+  // Runs on ALL days incl. VIP -- a ride double-booked on a VIP day is still a physics error.
+  days.forEach((day, idx) => {
+    const items = day.items || [];
+    if (!items.length) return;
+    const ordered = items.slice().sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
+    const seen = new Set();
+    const dropRefs = new Set();
+    ordered.forEach(it => {
+      if (!it || it.type !== 'ride') return;
+      const n = normRideName(cleanRideName(it.h));
+      if (!n) return;
+      if (seen.has(n)) {
+        dropRefs.add(it);
+        corrections.push({ rule: 'ride-dedup', day: idx + 1, item: it.h, action: 'removed duplicate ride (kept earlier occurrence)' });
+      } else {
+        seen.add(n);
+      }
+    });
+    if (dropRefs.size) day.items = items.filter(it => !dropRefs.has(it));
+  });
+
+  // Rule 9u: GENERAL RIDE DE-COLLISION (physics). No two RIDE cards may share the same minute -- you
+  // cannot be on two attractions at once (observed: a rope-drop opener and Rise both at 8:00 AM, and
+  // Haunted Mansion + Jungle Cruise both at 11:15 PM). Walk the time-sorted cards and, for any ride at
+  // or before the previous ride's minute, nudge it +10 (capped just under midnight) so ride times
+  // strictly increase. Only rides move; meals/shows/tips/LL reminders may legitimately overlap a ride.
+  // Runs AFTER dedup so it never wastes a slot resolving a duplicate that should have been removed.
+  days.forEach((day, idx) => {
+    const items = day.items || [];
+    if (!items.length) return;
+    items.sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
+    let lastRide = -1;
+    items.forEach(it => {
+      if (!it || it.type !== 'ride' || !it.t) return;
+      const m = timeToMinutes(it.t);
+      if (m < 0) return;
+      if (m <= lastRide) {
+        const nm = Math.min(lastRide + 10, 1439);
+        if (nm > m) {
+          corrections.push({ rule: 'ride-decollision', day: idx + 1, item: it.h, action: 'moved from ' + it.t + ' to ' + minutesToTime(nm) + ' (two rides shared a minute)' });
+          it.t = minutesToTime(nm);
+        }
+        lastRide = Math.max(nm, m);
+      } else {
+        lastRide = m;
+      }
+    });
+    items.sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
+    day.items = items;
   });
 
   return {
