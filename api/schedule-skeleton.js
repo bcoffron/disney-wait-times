@@ -90,6 +90,110 @@ export function assignRopeDropsAcrossDays({ days, ranking, excludedNorm, isAvail
 }
 
 // ---------------------------------------------------------------------------
+// CROSS-DAY RIDE ALLOCATION (the deterministic answer to "which rides does each
+// day feature" -- so the model spreads attractions across the trip instead of each
+// parallel day-call independently grabbing the same headliners).
+// ---------------------------------------------------------------------------
+//
+// Mirrors assignRopeDropsAcrossDays / assignShowsAcrossDays: a PURE function of ALL
+// days. v2 recomputes the full trip-wide allocation on EVERY per-day call and reads
+// its own slice by dayIndex, so the separate parallel calls agree without sharing
+// state. The model still ROUTES and TIMES the featured rides (good notes, good
+// geography); this only decides the SET per day, seeds must-dos, and caps repeats.
+//
+// Inputs:
+//   days              : [{ dayIndex, blocks:[{ park:'DL'|'DCA', startMin, endMin }] }]
+//   ranking           : { DL:[names], DCA:[names] }  headliner priority (getRopeDropRanking)
+//   poolByPark        : { DL:[names], DCA:[names] }  ALL non-excluded ride names per park (catalog)
+//   mustDoNorm        : Set of normalized must-do names (guaranteed >=1 appearance if available)
+//   isAvailableForDay : (dayIndex, rideName) => boolean  (closure check; default all available)
+//   cap               : max appearances of any one ride across the whole trip (default 2)
+//   avgRideMin        : minutes budgeted per featured ride when sizing a block (default 30)
+//   maxPerBlock       : hard ceiling on featured rides per block (default 6)
+//
+// Returns: array aligned to days; entry = { DL:[featured names], DCA:[featured names] }
+//          containing only the parks that day visits. Names are catalog-canonical.
+export function assignRidesAcrossDays({
+  days, ranking, poolByPark, mustDoNorm, isAvailableForDay,
+  cap = 2, avgRideMin = 30, maxPerBlock = 6,
+}) {
+  const avail = typeof isAvailableForDay === 'function' ? isAvailableForDay : () => true;
+  const must = mustDoNorm || new Set();
+  const rank = ranking || {};
+  const pool = poolByPark || {};
+
+  const slots = [];
+  (days || []).forEach((d) => {
+    (d.blocks || []).forEach((b) => {
+      if (!b || (b.park !== 'DL' && b.park !== 'DCA')) return;
+      const dur = (typeof b.endMin === 'number' && typeof b.startMin === 'number')
+        ? Math.max(0, b.endMin - b.startMin) : 0;
+      let target = Math.round(dur / avgRideMin);
+      if (target < 2) target = 2;
+      if (target > maxPerBlock) target = maxPerBlock;
+      slots.push({ dayIndex: d.dayIndex, park: b.park, target, featured: [] });
+    });
+  });
+
+  const count = Object.create(null);
+  const placed = new Set();
+  const key = (di, park, name) => di + '|' + park + '|' + normRideName(name);
+
+  const orderedFor = (park) => {
+    const seen = new Set(); const out = [];
+    const add = (name) => { if (!name) return; const n = normRideName(name); if (seen.has(n)) return; seen.add(n); out.push(name); };
+    const parkPool = (pool[park] || []);
+    parkPool.forEach((nm) => { if (must.has(normRideName(nm))) add(nm); });
+    (rank[park] || []).forEach((nm) => { if (parkPool.some(p => normRideName(p) === normRideName(nm))) add(nm); });
+    parkPool.forEach(add);
+    return out;
+  };
+  const poolOrdered = { DL: orderedFor('DL'), DCA: orderedFor('DCA') };
+
+  // Seed must-dos: each available must-do placed once, in the emptiest matching-park block.
+  ['DL', 'DCA'].forEach((park) => {
+    poolOrdered[park].forEach((name) => {
+      if (!must.has(normRideName(name))) return;
+      const n = normRideName(name);
+      if ((count[n] || 0) > 0) return;
+      const cands = slots
+        .filter(s => s.park === park && s.featured.length < s.target && avail(s.dayIndex, name) && !placed.has(key(s.dayIndex, park, name)))
+        .sort((a, b) => (a.featured.length - b.featured.length) || (a.dayIndex - b.dayIndex));
+      if (cands.length) { cands[0].featured.push(name); count[n] = (count[n] || 0) + 1; placed.add(key(cands[0].dayIndex, park, name)); }
+    });
+  });
+
+  // Round-robin fill: spread top rides across days; shared cursor + cap limit reuse.
+  ['DL', 'DCA'].forEach((park) => {
+    const ordered = poolOrdered[park]; if (!ordered.length) return;
+    const pslots = slots.filter(s => s.park === park);
+    let cursor = 0, guard = 0; const guardMax = pslots.length * ordered.length + 4; let open = true;
+    while (open && guard++ < guardMax) {
+      open = false;
+      for (const s of pslots) {
+        if (s.featured.length >= s.target) continue;
+        for (let scan = 0; scan < ordered.length; scan++) {
+          const idx = (cursor + scan) % ordered.length; const name = ordered[idx]; const n = normRideName(name);
+          if ((count[n] || 0) >= cap) continue;
+          if (placed.has(key(s.dayIndex, park, name))) continue;
+          if (!avail(s.dayIndex, name)) continue;
+          s.featured.push(name); count[n] = (count[n] || 0) + 1; placed.add(key(s.dayIndex, park, name)); cursor = idx + 1; open = true; break;
+        }
+      }
+    }
+  });
+
+  const result = (days || []).map(() => ({}));
+  slots.forEach((s) => {
+    const di = s.dayIndex;
+    if (di == null || di < 0 || di >= result.length) return;
+    if (!result[di][s.park]) result[di][s.park] = [];
+    s.featured.forEach((nm) => { if (!result[di][s.park].some(x => normRideName(x) === normRideName(nm))) result[di][s.park].push(nm); });
+  });
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // ARRIVAL ANCHOR
 // ---------------------------------------------------------------------------
 
