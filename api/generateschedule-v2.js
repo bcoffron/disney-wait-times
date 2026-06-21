@@ -382,6 +382,24 @@ export default async function handler(req, res) {
           .map((pk) => pk + ' -> ' + _mine[pk].join(', '));
       }
     } catch (e) { _featuredLines = []; }
+
+    // ---- GROUP PREFERENCES -> soft prompt context (dietary, accessibility, quick-service wishlist).
+    // Quick-service-only dining is enforced structurally in candidateMenu (table service appears only
+    // via reservations); these only shape QS/snack picks and add helpful notes -- guidance, not physics. ----
+    const _dietRaw = Array.isArray(tripConfig.dietaryNeeds) ? tripConfig.dietaryNeeds : [];
+    const _diet = _dietRaw.filter((x) => x && !/^no restrictions$/i.test(String(x).trim()));
+    const _dietaryLine = _diet.length
+      ? 'Group dietary needs: ' + _diet.join(', ') + '. When choosing quick-service meals AND snacks, favor venues that can accommodate these and note the accommodation in the card.\n'
+      : '';
+    const _acc = Array.isArray(tripConfig.accessibility) ? tripConfig.accessibility : [];
+    const _accBits = [];
+    if (_acc.indexOf('mobility') !== -1) _accBits.push('someone uses a wheelchair or ECV -- keep walking between consecutive stops modest, prefer step-free routes, and note accessible ride entrances where relevant');
+    if (_acc.indexOf('service') !== -1) _accBits.push('the group travels with a service animal -- on a couple of stops add a brief note pointing out the nearest service-animal relief area');
+    const _accLine = _accBits.length ? 'Accessibility: ' + _accBits.join('; ') + '.\n' : '';
+    const _wish = (typeof tripConfig.wantedRestaurants === 'string' ? tripConfig.wantedRestaurants : '').trim();
+    const _wishLine = _wish
+      ? 'Quick-service spots the group would love if they fit the route and the park they are in: ' + _wish + '. Work in the ones that are counter-service and on the day\'s path; if any named spot is table-service, do NOT schedule it -- it belongs to their reservations only.\n'
+      : '';
     const user =
 'Build Day ' + (dayIndex + 1) + ' of ' + days.length + '. Date: ' + (day.date || '') + '.\n'
 + 'Trip: ' + (tripConfig.tripName || '') + '. Thrill level: ' + (tripConfig.thrillLevel || 'mix') + '.\n'
@@ -389,6 +407,9 @@ export default async function handler(req, res) {
 + 'Never schedule: ' + (((tripConfig.ridePreferences || {}).skip || tripConfig.neverSchedule || []).join(', ') || 'none') + '.\n'
 + 'Character interest: ' + (((tripConfig.characters || {}).categories || []).join(', ') || 'none') + ' (priority ' + ((tripConfig.characters || {}).priority || 'niceToHave') + ').\n'
 + 'Shortest person height: ' + (shortest > 0 ? shortest + ' inches (apply rider-swap on taller-requirement rides)' : 'everyone meets all height requirements') + '.\n\n'
++ _dietaryLine
++ _accLine
++ _wishLine
 + (_featuredLines.length
     ? 'VARIETY PLAN (already balanced across your whole trip so the days do not repeat -- LEAD with these rides today, in roughly this priority order; you may add a few others from the block lists if time remains, and you need NOT force every one if the day fills up): '
       + _featuredLines.join('  |  ')
