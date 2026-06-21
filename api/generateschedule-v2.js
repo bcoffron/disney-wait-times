@@ -741,7 +741,8 @@ export default async function handler(req, res) {
         bl = appendEveningHopBack(bl, ph);
         return { dayIndex: i, dateISO: (d && d.date) ? String(d.date) : null, blocks: bl, vip: di.vip || null };
       });
-      const showPlan = assignShowsAcrossDays({ days: allDays, showsData });
+      const _showPrefs = (tripConfig && tripConfig.showPreferences) ? tripConfig.showPreferences : {};
+      const showPlan = assignShowsAcrossDays({ days: allDays, showsData, skipNames: _showPrefs.skip || [], wantNames: _showPrefs.want || [] });
       const myShows = showPlan[dayIndex] || [];
       const applied = applyShowAssignment(parsed, myShows);
       parsed = applied.parsed;
