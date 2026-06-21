@@ -15,7 +15,7 @@
 import { list } from '@vercel/blob';
 import { deriveBlocks, parseParkHoursForDate, buildCatalogFilter, whichParkAt, parseHourMin, isAttractionAvailable, appendEveningHopBack } from './schedule-engine.js';
 import { getRopeDropRanking, normRideName } from './schedule-rules.js';
-import { assignRopeDropsAcrossDays } from './schedule-skeleton.js';
+import { assignRopeDropsAcrossDays, assignRidesAcrossDays } from './schedule-skeleton.js';
 import { enforceBreaks, enforceMealWindows, enforceExclusions } from './schedule-corrections.js';
 import { assignShowsAcrossDays, applyShowAssignment } from './schedule-shows.js';
 
@@ -328,6 +328,60 @@ export default async function handler(req, res) {
 + '- If the group has character interest and a character category fits, include 1-2 character meets as type "character" with a real location.\n'
 + 'OUTPUT: Return ONLY a raw JSON array (no prose, no markdown) of items with fields: t ("H:MM AM"), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (one warm sentence explaining why/when), land (land name). Order by time.';
 
+    // ---- CROSS-DAY RIDE ALLOCATION (variety + must-do seeding). Deterministic, PURE function of
+    // ALL days; recomputed identically on every per-day call and indexed by dayIndex (exactly like
+    // rope-drops/shows), so the parallel calls agree without coordination. It decides the SET of
+    // rides each day features; the model still routes/times them and writes the notes. The VIP tour
+    // window is carved out of that day's blocks so guide-led hours do not soak up the trip's ride
+    // budget, and we do NOT inject the plan on a VIP day (the guide picks live) -- the allocation
+    // still RUNS for all days so the non-VIP days' shares are computed against the right capacity. ----
+    let _featuredLines = [];
+    try {
+      const _ranking = getRopeDropRanking(sections);
+      const _mustDoNorm = new Set(((((tripConfig.ridePreferences || {}).mustDo) || [])).map(normRideName));
+      const _skipNorm = new Set(((((tripConfig.ridePreferences || {}).skip) || tripConfig.neverSchedule || []) || []).map(normRideName));
+      const _poolByPark = { DL: [], DCA: [] };
+      const _attrByNorm = new Map();
+      (catalog.attractions || []).forEach((a) => {
+        if (!a) return;
+        _attrByNorm.set(normRideName(a.name), a);
+        if (a.exclude === true) return;
+        if (_skipNorm.has(normRideName(a.name))) return;
+        const _p = String(a.park).toUpperCase() === 'DCA' ? 'DCA' : 'DL';
+        _poolByPark[_p].push(a.name);
+      });
+      const _dayDates = days.map((d) => (d && d.date) ? String(d.date).slice(0, 10) : null);
+      const _isAvail = (idx, rideName) => {
+        const a = _attrByNorm.get(normRideName(rideName));
+        if (!a) return true;
+        return isAttractionAvailable(a, _dayDates[idx], closureOverrides);
+      };
+      const _allDaysAlloc = days.map((d, i) => {
+        const _di = (d && d.intent) || { startPark: /dca|california/i.test((d && (d.startPark || d.park)) || '') ? 'DCA' : 'DL', hop: null, vip: null };
+        let _ph = Array.isArray(tripConfig.parkHours) ? parseParkHoursForDate(tripConfig.parkHours, i) : null;
+        if (!_ph) _ph = { DL: { openMin: 480, closeMin: 1380 }, DCA: { openMin: 480, closeMin: 1320 } };
+        let _bl = deriveBlocks(_di, _ph);
+        _bl = appendEveningHopBack(_bl, _ph);
+        const _vw = _di.vip;
+        if (_vw && typeof _vw.startMin === 'number' && typeof _vw.endMin === 'number') {
+          const _carved = [];
+          _bl.forEach((b) => {
+            if (b.endMin <= _vw.startMin || b.startMin >= _vw.endMin) { _carved.push(b); return; }
+            if (b.startMin < _vw.startMin) _carved.push({ park: b.park, startMin: b.startMin, endMin: _vw.startMin });
+            if (b.endMin > _vw.endMin) _carved.push({ park: b.park, startMin: _vw.endMin, endMin: b.endMin });
+          });
+          _bl = _carved;
+        }
+        return { dayIndex: i, blocks: _bl };
+      });
+      const _alloc = assignRidesAcrossDays({ days: _allDaysAlloc, ranking: _ranking, poolByPark: _poolByPark, mustDoNorm: _mustDoNorm, isAvailableForDay: _isAvail });
+      const _mine = (_alloc && _alloc[dayIndex]) || {};
+      if (!vip) {
+        _featuredLines = Object.keys(_mine)
+          .filter((pk) => Array.isArray(_mine[pk]) && _mine[pk].length)
+          .map((pk) => pk + ' -> ' + _mine[pk].join(', '));
+      }
+    } catch (e) { _featuredLines = []; }
     const user =
 'Build Day ' + (dayIndex + 1) + ' of ' + days.length + '. Date: ' + (day.date || '') + '.\n'
 + 'Trip: ' + (tripConfig.tripName || '') + '. Thrill level: ' + (tripConfig.thrillLevel || 'mix') + '.\n'
@@ -335,11 +389,10 @@ export default async function handler(req, res) {
 + 'Never schedule: ' + (((tripConfig.ridePreferences || {}).skip || tripConfig.neverSchedule || []).join(', ') || 'none') + '.\n'
 + 'Character interest: ' + (((tripConfig.characters || {}).categories || []).join(', ') || 'none') + ' (priority ' + ((tripConfig.characters || {}).priority || 'niceToHave') + ').\n'
 + 'Shortest person height: ' + (shortest > 0 ? shortest + ' inches (apply rider-swap on taller-requirement rides)' : 'everyone meets all height requirements') + '.\n\n'
-+ (Array.isArray(priorRides) && priorRides.length
-    ? 'CROSS-DAY VARIETY (soft preference, NOT a hard rule): earlier days of this trip already scheduled these rides: '
-      + [...new Set(priorRides)].slice(-18).join(', ') + '. Favor FRESH attractions the group has not done yet so the trip feels varied across days. '
-      + 'It is fine to repeat a true must-do headliner the group loves (e.g. a top coaster or a marquee ride on their must-do list), '
-      + 'but do not fill the day with repeats when good unused attractions remain in this block. EXCEPTION: the starting-park rope-drop and any must-do headliner may repeat freely -- variety applies to filler rides, never to the best opener.\n'
++ (_featuredLines.length
+    ? 'VARIETY PLAN (already balanced across your whole trip so the days do not repeat -- LEAD with these rides today, in roughly this priority order; you may add a few others from the block lists if time remains, and you need NOT force every one if the day fills up): '
+      + _featuredLines.join('  |  ')
+      + '. Must-do rides the group chose are already folded into this list wherever their park is visited -- never drop a must-do.\n'
     : '')
 + (Array.isArray(priorShows) && priorShows.length
     ? 'NO-REPEAT (HARD RULE): earlier days of this trip already used these nighttime shows and sit-down dinners: '
