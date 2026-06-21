@@ -1135,6 +1135,57 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     });
   } catch (e) {}
 
+  // Rule 9x: VIP-DAY POST-TOUR PARK PRESENCE (structural backstop). Rule 9b skips VIP days entirely
+  // because the VIP tour moves between parks WITHOUT a hop marker -- walking markers across the whole
+  // day would wrongly force everything to the start park and delete the real post-tour rides. But once
+  // the tour ENDS the day behaves like a normal evening: the group is dropped at the tour's destination
+  // park (intent.hop.toPark) and any later "Park Hop to X" card flips them. So enforce park presence
+  // ONLY after the tour end time, starting from the tour-destination park and flipping on evening hop
+  // cards -- catching e.g. a Disneyland ride scheduled in the DCA evening before the 10 PM hop back.
+  // v2's gen-time wrong-park drop already covers fresh generation; this is the SAVE-time backstop
+  // (reoptimize / manual edits) the validator owns. Conservative: only RIDE/SHOW cards are checked;
+  // dining is EXEMPT so a reserved meal can never be removed; pre-tour and in-tour items are untouched
+  // (the host owns them); a card whose land we cannot resolve is left alone. Removal-only, idempotent.
+  try {
+    days.forEach((day, idx) => {
+      const dayCfg = (tripConfig && tripConfig.days && tripConfig.days[idx]) || null;
+      if (!dayCfg || dayCfg.isVip !== true) return;
+      const vip = (dayCfg.intent && dayCfg.intent.vip) || dayCfg.vip || null;
+      const tourEnd = (vip && typeof vip.endMin === 'number') ? vip.endMin : null;
+      if (tourEnd === null) return; // no bounded tour window -> cannot safely enforce
+      // Park the tour drops you in = the hop destination if the hop occurs by tour end, else start park.
+      let curPark = normPark(day.park) || 'DL';
+      const hop = dayCfg.intent && dayCfg.intent.hop;
+      if (hop && typeof hop.atMin === 'number' && hop.toPark && hop.atMin <= tourEnd) {
+        curPark = normPark(hop.toPark) || curPark;
+      }
+      const items = day.items || [];
+      items.sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
+      let removed = 0;
+      items.forEach(item => {
+        if (!item || !item.t) return;
+        const im = timeToMinutes(item.t);
+        if (im < 0 || im < tourEnd) return; // only post-tour items
+        const h = item.h || '';
+        // an evening hop card flips the current park (and the card itself stays)
+        if (/\bpark hop to\b/i.test(h) || (/\bhop\b/i.test(h) && /\bto\b/i.test(h))) {
+          const hp = normPark(h);
+          if (hp) curPark = hp;
+          return;
+        }
+        if (item.type !== 'ride' && item.type !== 'show') return; // dining/tip/break/snack exempt
+        const p = landToPark(item.land) || landToPark(item.h);
+        if (!p) return; // unknown land -> do not touch
+        if (p !== curPark) {
+          item._vremove = true;
+          removed++;
+          corrections.push({ rule: 'vip-park-presence', day: idx + 1, item: item.h, action: 'removed - ' + p + ' item in the ' + curPark + ' post-tour block at ' + item.t, t: item.t });
+        }
+      });
+      if (removed) day.items = items.filter(i => !i._vremove);
+    });
+  } catch (e) {}
+
   return {
     valid: hardViolations.length === 0,
     schedule,
