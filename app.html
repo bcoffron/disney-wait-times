@@ -3050,6 +3050,7 @@ function loadCustom(){
       }
     }
   }
+  if (typeof renderSched === 'function') { try { renderSched(); if (typeof renderDayInfoBar === 'function') renderDayInfoBar(); } catch(e){} }
 }
 function saveCustom(d){
   if(isAdmin()) pushSchedule();
