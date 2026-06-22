@@ -507,6 +507,8 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
                         if (typeof _myClose === 'number') _dayObj.closeMin = _myClose;
                         // latestCloseMin only matters for hoppers (late second hop to later-closing park)
                         if (safeConfig.parkHopping && typeof _latest === 'number') _dayObj.latestCloseMin = _latest;
+                        if (typeof _dlClose === 'number' && _dlClose > 0) _dayObj.dlCloseMin = _dlClose;
+                        if (typeof _dcaClose === 'number' && _dcaClose > 0) _dayObj.dcaCloseMin = _dcaClose;
                         console.log('[generateschedule] close times -> DL:', _dlClose, 'DCA:', _dcaClose, 'dayPark:', _dayPark, 'closeMin:', _dayObj.closeMin, 'latestCloseMin:', _dayObj.latestCloseMin);
                         const singleDaySchedule = { days: [_dayObj] };
                         const closedFromCache = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
