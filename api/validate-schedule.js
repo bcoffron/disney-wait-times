@@ -445,6 +445,94 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
           ((day.latestCloseMin && day.closeMin && day.latestCloseMin > day.closeMin) ? ' (late hop to later-closing park available)' : '') + '.'
       });
     }
+    // Rule 7b: Fill-to-close (universal, all days including park-hop).
+    // Determines the final active park after all hops and fills the evening
+    // with ride cards until ~30 min before that park's close time.
+    // Unique rides from the pool drawn first; re-rides allowed once pool exhausted.
+    try {
+      if (!isVipDay) {
+        var _dc = (tripConfig && tripConfig.days && tripConfig.days[idx]) || null;
+        var _ih = _dc && _dc.intent && _dc.intent.hop;
+        var _sp = normPark(day.park) || 'DL';
+        var _fp = _sp;
+        if (_ih && _ih.toPark) _fp = normPark(_ih.toPark) || _sp;
+        else if (_dc && _dc.hopTo) _fp = normPark(_dc.hopTo) || _sp;
+        var _fc = (_fp === 'DCA')
+          ? ((typeof day.dcaCloseMin === 'number' && day.dcaCloseMin > 0) ? day.dcaCloseMin
+            : (_sp === 'DCA' && typeof day.closeMin === 'number' ? day.closeMin : 22 * 60))
+          : ((typeof day.dlCloseMin === 'number' && day.dlCloseMin > 0) ? day.dlCloseMin
+            : (_sp === 'DL' && typeof day.closeMin === 'number' ? day.closeMin
+              : (typeof day.latestCloseMin === 'number' && day.latestCloseMin > 0 ? day.latestCloseMin : 24 * 60)));
+        var _ha = (_ih && typeof _ih.atMin === 'number') ? _ih.atMin
+          : (_dc && typeof _dc.hopAtMin === 'number' ? _dc.hopAtMin : -1);
+        var _fpItems = items.filter(function(it) {
+          var m = timeToMinutes(it.t);
+          return m >= 0 && ['ride','show','dining','quickservice','snack','character'].indexOf(it.type) !== -1
+            && (_ha < 0 || m >= _ha);
+        });
+        var _sorted = _fpItems.slice().sort(function(a,b){return timeToMinutes(a.t)-timeToMinutes(b.t);});
+        var _lastIt = _sorted.length ? _sorted[_sorted.length-1] : null;
+        var _lm = _lastIt ? timeToMinutes(_lastIt.t) : -1;
+        var _tgt = _fc - 30;
+        if (_fc > 0 && _lm >= 0 && _lm < _tgt) {
+          var _pdl = [
+            {h:'Big Thunder Mountain Railroad (Night Ride)',n:'Overnight-low waits -- prime re-ride window.',land:'Frontierland'},
+            {h:'Haunted Mansion (Night Ride)',n:'Eerie after dark -- near-zero wait late night.',land:'New Orleans Square'},
+            {h:'Space Mountain (Night Ride)',n:'Late-night waits drop to near zero.',land:'Tomorrowland'},
+            {h:'Indiana Jones Adventure (Night Ride)',n:'Night-owl window -- minimal standby.',land:'Adventureland'},
+            {h:'Pirates of the Caribbean (Night Ride)',n:'Virtually no wait after 10 PM.',land:'New Orleans Square'},
+            {h:'Matterhorn Bobsleds (Night Ride)',n:'Glows after dark -- short late-night line.',land:'Fantasyland'},
+            {h:'Tiana\'s Bayou Adventure (Night Ride)',n:'Evening ride -- waits lowest near close.',land:'New Orleans Square'},
+            {h:'Jungle Cruise (Night Ride)',n:'Skipper jokes -- walk-on late night.',land:'Adventureland'},
+            {h:'Star Wars: Rise of the Resistance (Night Ride)',n:'Long waits drop here -- overnight-low window.',land:'Star Wars: Galaxy\'s Edge'},
+            {h:"Mickey & Minnie's Runaway Railway (Night Ride)",n:'Near-zero wait late evening.',land:'Mickey and Friends / Toontown'}
+          ];
+          var _pdca = [
+            {h:'Guardians of the Galaxy -- Mission: BREAKOUT! (Night Ride)',n:'Overnight-low waits -- great late ride.',land:'Avengers Campus'},
+            {h:'Incredicoaster (Night Ride)',n:'Short lines after dark.',land:'Pixar Pier'},
+            {h:'Radiator Springs Racers (Night Ride)',n:'Late-night waits hit overnight low.',land:'Cars Land'},
+            {h:'Web Slingers: A Spider-Man Adventure (Night Ride)',n:'Evening waits drop sharply.',land:'Avengers Campus'},
+            {h:'Toy Story Midway Mania! (Night Ride)',n:'Fun evening games -- minimal late wait.',land:'Pixar Pier'},
+            {h:'Soarin\' Around the World (Night Ride)',n:'Peaceful evening flight -- waits ease near close.',land:'Grizzly Peak'}
+          ];
+          var _pool = (_fp === 'DCA') ? _pdca : _pdl;
+          var _rset = new Set();
+          items.forEach(function(it){
+            if (it.type === 'ride') _rset.add(normRideName(cleanRideName(it.h)));
+          });
+          var _sk = ((tripConfig && tripConfig.ridePreferences && Array.isArray(tripConfig.ridePreferences.skip))
+            ? tripConfig.ridePreferences.skip : []).map(function(s){
+              return String(s||''  ).toLowerCase().replace(/^rope drop[^:]*:?\s*/i,'').replace(/[^a-z0-9]/g,'');
+          }).filter(function(x){return x.length>=4;});
+          var _cur = _lm + 30, _ui = 0, _ri = 0, _ad = 0;
+          while (_cur <= _tgt && _ad < 20) {
+            var _e = null, _isu = false;
+            while (_ui < _pool.length && !_e) {
+              var _c = _pool[_ui], _cn = normRideName(cleanRideName(_c.h));
+              var _ex = _sk.some(function(x){return _cn===x||_cn.indexOf(x)!==-1||x.indexOf(_cn)!==-1;});
+              if (!_rset.has(_cn) && !_ex){_e=_c;_isu=true;}
+              _ui++;
+            }
+            if (!_e && _pool.length > 0) {
+              var _rc = _pool[_ri % _pool.length], _rcn = normRideName(cleanRideName(_rc.h));
+              var _rex = _sk.some(function(x){return _rcn===x||_rcn.indexOf(x)!==-1||x.indexOf(_rcn)!==-1;});
+              if (!_rex) _e = _rc;
+              _ri++;
+            }
+            if (!_e){_cur+=30;continue;}
+            items.push({t:minutesToTime(_cur),h:_e.h,type:'ride',n:_e.n,land:_e.land||''});
+            if (_isu) _rset.add(normRideName(cleanRideName(_e.h)));
+            corrections.push({rule:'evening-fill',day:dayNum,item:_e.h,
+              action:'added evening fill at '+minutesToTime(_cur)+' (park:'+_fp+')'});
+            _cur+=30; _ad++;
+          }
+          if (_ad > 0){
+            items.sort(function(a,b){return timeToMinutes(a.t)-timeToMinutes(b.t);});
+            day.items = items;
+          }
+        }
+      }
+    } catch (_eveErr) {}
         // RULE 8: Peak lunch auto-correct (12:00 PM - 1:00 PM)
         items.forEach(item => {
                 if (item.type !== 'quickservice' && item.type !== 'dining') return;
