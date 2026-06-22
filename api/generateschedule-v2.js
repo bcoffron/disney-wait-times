@@ -203,7 +203,7 @@ export default async function handler(req, res) {
     // one). Additive: single-park days and days already ending in the later-closing park are
     // unchanged. Everything downstream (blockText, whichParkAt wrong-park guard, night-fill) is
     // block-driven, so it adapts to the 3rd block automatically.
-    blocks = appendEveningHopBack(blocks, parkHoursForDate);
+    blocks = appendEveningHopBack(blocks, parkHoursForDate, { dayMeta: day });
 
     // ---- CATALOG (the machine-readable physics layer) ----
     const { sections, dining } = await loadStableSections();
@@ -1190,7 +1190,7 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ok: true, text, parsed, model: data.model, _engine: 'v2', _blocks: blocks, _enforce });
+    return res.status(200).json({ ok: true, text, parsed, model: data.model, _engine: 'v2', _blocks: blocks, _enforce, _finalPark: day.finalPark || null });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
