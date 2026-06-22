@@ -727,17 +727,18 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
     });
   });
 
-  // Rule 10: Time bounds — remove items before 7:00 AM
-  const PARK_OPEN_MIN = 420; // 7:00 AM
+  // Rule 10: drop hallucinated pre-dawn cards — e.g. an LL reminder stamped 12:45 AM
+  // that sorts above the morning arrival. 5:00 AM = 300 min floor. Removal-only.
+  // Uses 300 min, not park-open (~420-480), so arrival at ~6:30-7:00 AM is never removed.
+  const PREDAWN_FLOOR_MIN = 300; // 5:00 AM
   days.forEach((day, dayNum) => {
     if (tripConfig && tripConfig.days && tripConfig.days[dayNum] && tripConfig.days[dayNum].isVip === true) return;
     day.items = day.items.filter(item => {
       const itemMin = timeToMinutes(item.t);
-      if (itemMin >= 0 && itemMin < PARK_OPEN_MIN) {
-        corrections.push({ rule: 'time-bounds', day: dayNum + 1, item: item.h, action: 'removed — time ' + item.t + ' is before 7:00 AM' });
-        return false;
-      }
-      return true;
+      if (itemMin < 0) return true; // unparseable -> leave it (don't guess)
+      if (itemMin >= PREDAWN_FLOOR_MIN) return true; // >= 5:00 AM: keep
+      corrections.push({ rule: 'predawn-card', day: dayNum + 1, item: item.h, action: 'removed — time ' + item.t + ' is before 5:00 AM' });
+      return false; // drop 00:00-04:59 cards
     });
   });
 
