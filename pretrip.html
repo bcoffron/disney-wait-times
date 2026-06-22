@@ -1368,7 +1368,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         items = JSON.parse(text.substring(start, end+1));
         console.log('[pretrip] Day ' + (dayIndex+1) + ' WARN: no d.parsed, fell back to raw text');
       }
-      callback(null, items);
+      callback(null, items, d._finalPark || null);
     } catch(e) {
       if (retries < 3) {
         setTimeout(function(){ ptGenerateDaySchedule(tripConfig, dayIndex, retries+1, callback); }, 2000);
@@ -1583,7 +1583,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
         _priorRides: [],
         _priorShows: []
       });
-      ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items) {
+      ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
         if (err) {
           console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
           var bar = document.getElementById('ptCtaBar');
@@ -1599,7 +1599,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
           }
           generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
         } else {
-          generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] };
+          var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; generatedDays[idx] = _dayObj;
           console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
         }
         _completed++;
