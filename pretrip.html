@@ -1079,6 +1079,23 @@ function ptLoadFromBlob(isRebuild) {
                                                                                   if (ed) ed.value = String(cfg.dates[cfg.dates.length - 1]).slice(0,10);
                                                                                       ptUpdateDayCards();
                                                                                         }
+                                                                                        // Restore day toggles after cards are built -- rebuild path
+                                                                                        if (cfg.days) {
+                                                                                          cfg.days.forEach(function(day, ri) {
+                                                                                            var n = ri + 1;
+                                                                                            if (day.hopTo && document.getElementById('day'+n+'Hopper')) document.getElementById('day'+n+'Hopper').classList.add('on');
+                                                                                            if (day.hopAtMin && document.getElementById('day'+n+'HopTime')) document.getElementById('day'+n+'HopTime').value = String(day.hopAtMin);
+                                                                                            if (day.hopTo) { var _hsB = document.getElementById('day'+n+'HopSub'); if (_hsB) _hsB.classList.add('visible'); }
+                                                                                            if (day.hasLL && document.getElementById('day'+n+'LL')) { document.getElementById('day'+n+'LL').classList.add('on'); ptLLToggle(n); }
+                                                                                            if (day.hasLLMP && document.getElementById('day'+n+'LLMP')) document.getElementById('day'+n+'LLMP').classList.add('checked');
+                                                                                            if (day.hasILL && document.getElementById('day'+n+'ILL')) { document.getElementById('day'+n+'ILL').classList.add('checked'); ptILLToggle(n); }
+                                                                                            if (day.illRides && document.getElementById('day'+n+'ILLRides')) document.getElementById('day'+n+'ILLRides').value = day.illRides;
+                                                                                            if (day.isVip && document.getElementById('day'+n+'Vip')) { document.getElementById('day'+n+'Vip').classList.add('on'); ptVipToggle(n); }
+                                                                                            if (day.vipStart && document.getElementById('day'+n+'VipStart')) document.getElementById('day'+n+'VipStart').value = day.vipStart;
+                                                                                            if (day.vipEnd && document.getElementById('day'+n+'VipEnd')) document.getElementById('day'+n+'VipEnd').value = day.vipEnd;
+                                                                                            if (day.park) { ptSegValues['day'+n+'ParkSeg'] = day.park; ptSegValues['day'+n+'StartPark'] = day.startPark || day.park; }
+                                                                                          });
+                                                                                        }
                                                                                           if (cfg.thrillLevel) {
                                                                                               document.querySelectorAll('.pt-seg-btn[data-seg="thrillSeg"]').forEach(function(b) {
                                                                                                     b.classList.toggle('active', b.dataset.val === cfg.thrillLevel);
