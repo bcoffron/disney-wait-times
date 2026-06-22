@@ -439,7 +439,7 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
         rule: 'ends-early',
         day: dayNum,
         action: 'flagged (non-blocking)',
- var _fp = normPark(day.finalPark) || ((_ih && _ih.toPark) ? normPark(_ih.toPark) || _sp : ((_dc && _dc.hopTo) ? normPark(_dc.hopTo) || _sp : _sp));       detail: 'Last activity ' + (realLast ? ('"' + realLast.h + '" at ' + realLast.t) : '?') +
+                      detail: 'Last activity ' + (realLast ? ('"' + realLast.h + '" at ' + realLast.t) : '?') +
           ' but park open until ' + minutesToTime(effectiveClose) +
           ' (underfilled by ~' + Math.round((effectiveClose - realLastMin) / 60) + ' hr); fill evening to ~30 min before close' +
           ((day.latestCloseMin && day.closeMin && day.latestCloseMin > day.closeMin) ? ' (late hop to later-closing park available)' : '') + '.'
