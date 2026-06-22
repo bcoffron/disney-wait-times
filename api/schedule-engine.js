@@ -1,5 +1,5 @@
 // api/schedule-engine.js
-// Pure schedule physics functions — no imports, no network, fully unit-testable.
+// Pure schedule physics functions â no imports, no network, fully unit-testable.
 // ESM module (package.json "type":"module"). Verify with: node --check api/schedule-engine.js
 
 // ---------------------------------------------------------------------------
@@ -51,7 +51,7 @@ export function parseParkHoursForDate(parkHoursArray, dayIndex) {
     const parts = raw.trim().split(/\s{2,}|\s+-\s+/).map(s => s.trim()).filter(s => s.length > 0);
     if (parts.length < 2) {
       // Try splitting on single space boundary between AM/PM and next digit
-      // e.g. "8:00 AM 10:00 PM" — fallback: match all time tokens
+      // e.g. "8:00 AM 10:00 PM" â fallback: match all time tokens
       const tokens = raw.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/gi);
       if (!tokens || tokens.length < 2) return { openMin: 0, closeMin: 0 };
       return {
@@ -81,7 +81,7 @@ export function parseParkHoursForDate(parkHoursArray, dayIndex) {
 //   vip:  { startMin: number, endMin: number }   | null
 // }
 //
-// VIP does NOT change park blocks — it is a time overlay handled later.
+// VIP does NOT change park blocks â it is a time overlay handled later.
 //
 // Returns:
 //   no hop: [ { park, startMin, endMin } ]           (1 block: open -> close)
@@ -127,7 +127,7 @@ export function whichParkAt(blocks, min) {
   for (let i = 0; i < blocks.length; i++) {
     if (min < blocks[i].endMin) return blocks[i].park;
   }
-  // Past all block ends — clamp to last block
+  // Past all block ends â clamp to last block
   return blocks[blocks.length - 1].park;
 }
 
@@ -259,5 +259,6 @@ export function appendEveningHopBack(blocks, parkHoursForDate, opts) {
   if (typeof startClose !== 'number' || typeof endParkClose !== 'number') return blocks;
   if (startClose <= endParkClose + minGap) return blocks;                // end park closes last (or close enough): keep as-is
   // hop back to the later-closing start park for the remaining evening
+  if (opts && opts.dayMeta) opts.dayMeta.finalPark = startPark;
   return blocks.concat([{ park: startPark, startMin: last.endMin, endMin: startClose, hopBack: true }]);
 }
