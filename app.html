@@ -1663,6 +1663,24 @@ function tryUnlock() {
       }
       if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
         window._schedData = d.tripData.tripConfig.schedule;
+        // FIX 1: hydrate _loadedTripData and TRIP_CONFIG for initial guest load
+        if (d.tripData) { window._loadedTripData = d.tripData; }
+        if (window._loadedTripData && window._loadedTripData.tripConfig) {
+          var _iltc = window._loadedTripData.tripConfig;
+          if (_iltc.tripName) { TRIP_CONFIG.tripName = _iltc.tripName; var _ihtEl = document.querySelector('.header-title'); if (_ihtEl) _ihtEl.textContent = _iltc.tripName; }
+          if (_iltc.party) TRIP_CONFIG.party = _iltc.party;
+          if (_iltc.members) TRIP_CONFIG.members = _iltc.members;
+          if (_iltc.days && _iltc.days.length) {
+            TRIP_CONFIG.days = _iltc.days.map(function(dy, i) {
+              return Object.assign({}, TRIP_CONFIG.days[i] || {}, {
+                num: dy.num || (i+1), label: 'Day ' + (dy.num || (i+1)), date: dy.date || '',
+                park: dy.park || 'Disneyland',
+                isVip: !!dy.isVip, vipStart: dy.vipStart || '10:00', vipEnd: dy.vipEnd || '17:00',
+                hasLL: !!dy.hasLL, hasLLMP: !!dy.hasLLMP, hasILL: !!dy.hasILL, hopTo: !!dy.hopTo
+              });
+            });
+          }
+        }
         loadCustom();
         // PART A: cache write (tryUnlock path)
         (function() { try { var _sched2 = d.tripData.tripConfig.schedule; if (_sched2 && _sched2.days && _sched2.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb3 = document.getElementById('cachedSchedBanner'); if (_cb3) _cb3.style.display = 'none'; } } catch(e5) {} })();
@@ -1848,8 +1866,8 @@ function generateStars(){
 
 var PARK_HOURS=[
   {dl:'8:00 AM   12:00 AM',dca:'8:00 AM   10:00 PM',note:'Sunday peak summer   always verify in the Disneyland app'},
-  {dl:'8:00 AM   11:00 PM',dca:'8:00 AM   10:00 PM',note:'Monday VIP Tour day   verify in Disneyland app'},
-  {dl:'8:00 AM   11:00 PM',dca:'8:00 AM   10:00 PM',note:'Tuesday   verify in Disneyland app'},
+  {dl:'8:00 AM   12:00 AM',dca:'8:00 AM   10:00 PM',note:'Monday VIP Tour day   verify in Disneyland app'},
+  {dl:'8:00 AM   12:00 AM',dca:'8:00 AM   10:00 PM',note:'Tuesday   verify in Disneyland app'},
 ];
 
 async function fetchParkHours(){
@@ -2420,6 +2438,7 @@ var _blobPollLastHash = null;
 
 function startBlobPoll() {
   if (_blobPollInterval) return;
+  window._blobPollFirst = true;
   _blobPollLastHash = null;
   _blobPollInterval = setInterval(function() {
     // Inactivity guard: stop poll after 30 minutes of no user interaction
@@ -2433,7 +2452,8 @@ function startBlobPoll() {
     fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code) + '&t=' + Date.now())
       .then(function(resp) { return resp.ok ? resp.json() : null; })
       .then(function(data) {
-        if (!data || !data.tripData) return;
+        if (!data || !data.tripData) { if (window._blobPollFirst) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); } catch(e) {} if (typeof initSplash === 'function') initSplash(); } return; }
+        window._blobPollFirst = false;
         var hash = JSON.stringify(data.tripData);
         if (hash === _blobPollLastHash) return;
         _blobPollLastHash = hash;
@@ -2443,6 +2463,24 @@ function startBlobPoll() {
         if (role === 'guest') {
           if (data.tripData.tripConfig && data.tripData.tripConfig.schedule) {
             window._schedData = data.tripData.tripConfig.schedule;
+            // FIX 1: hydrate _loadedTripData and TRIP_CONFIG for guest path
+            if (data.tripData) { window._loadedTripData = data.tripData; }
+            if (window._loadedTripData && window._loadedTripData.tripConfig) {
+              var _gltc = window._loadedTripData.tripConfig;
+              if (_gltc.tripName) { TRIP_CONFIG.tripName = _gltc.tripName; var _ghtEl = document.querySelector('.header-title'); if (_ghtEl) _ghtEl.textContent = _gltc.tripName; }
+              if (_gltc.party) TRIP_CONFIG.party = _gltc.party;
+              if (_gltc.members) TRIP_CONFIG.members = _gltc.members;
+              if (_gltc.days && _gltc.days.length) {
+                TRIP_CONFIG.days = _gltc.days.map(function(dy, i) {
+                  return Object.assign({}, TRIP_CONFIG.days[i] || {}, {
+                    num: dy.num || (i+1), label: 'Day ' + (dy.num || (i+1)), date: dy.date || '',
+                    park: dy.park || 'Disneyland',
+                    isVip: !!dy.isVip, vipStart: dy.vipStart || '10:00', vipEnd: dy.vipEnd || '17:00',
+                    hasLL: !!dy.hasLL, hasLLMP: !!dy.hasLLMP, hasILL: !!dy.hasILL, hopTo: !!dy.hopTo
+                  });
+                });
+              }
+            }
             if (typeof loadCustom === 'function') loadCustom();
           }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
@@ -7068,7 +7106,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // If returning from pretrip setup and already authenticated, skip splash entirely
   var _fromSetup = (new URLSearchParams(window.location.search)).get('from') === 'setup';
   var _hasAuth = localStorage.getItem('tpcp_code') && localStorage.getItem('tpcp_role');
-  if (_fromSetup && _hasAuth) {
+  if (_hasAuth) {
     enterSplash(true);
   } else {
     initSplash();
