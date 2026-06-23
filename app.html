@@ -1826,6 +1826,7 @@ function applyRoleUI(){
   var setup=document.getElementById('apiSetupCard');
   if(setup&&!_isAdmin&&apiKey) setup.style.display='none';
   document.querySelectorAll('.reroute-btn').forEach(function(b){b.style.display=_isAdmin?'':'none';});
+ document.querySelectorAll('.edit-bar').forEach(function(b){b.style.display=_isAdmin?'':'none';});
   // Always remove both classes first, then add the correct one
   document.body.classList.remove('tw-guest');
   document.body.classList.remove('tw-admin');
@@ -3533,7 +3534,7 @@ function scheduleHash(data){
   catch(e){return '';}
 }
 
-async function reoptimize(){
+async function reoptimize(){ if(!isAdmin()) return;
   var box=document.getElementById('reoptBox');
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
@@ -3905,7 +3906,7 @@ function walkBetween(restName, nextLand){
   return 10;
 }
 
-function saveDiningSlot(dayIdx, secIdx, entryIdx){
+function saveDiningSlot(dayIdx, secIdx, entryIdx){ if(!isAdmin()) return;
   var rest=document.getElementById('ds_rest_'+dayIdx+'_'+secIdx+'_'+entryIdx);
   var time=document.getElementById('ds_time_'+dayIdx+'_'+secIdx+'_'+entryIdx);
   var saved=document.getElementById('ds_saved_'+dayIdx+'_'+secIdx+'_'+entryIdx);
@@ -4117,7 +4118,7 @@ function renderSched(){
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
       var _llRideKey=e.ride||e.h;if(typeof loadLLState==='function')loadLLState();var returnTime=llState&&llState.bookedTimes&&llState.bookedTimes[_llRideKey];var llReturnPill=returnTime?'<span class="ll-return-pill">LL '+returnTime+'</span>':'';llb+=llReturnPill;
       var diningRec='';
-      if(e.type==='food'&&e.h){
+      if(e.type==='food'&&e.h&&isAdmin()){
         var dname=e.h.replace(/^[^\u2014]*\u2014\s*/,'').replace(/Dinner \u2014 /,'').replace(/Lunch /,'').trim();
         dname=dname.split(' or ')[0].trim();
         var safeDname=dname.split("'").join('\u2019');
@@ -4136,13 +4137,13 @@ function renderSched(){
       
       }
       // PART 2: Reservation button for confirmed dining cards (type===dining)
-      if(e.type==='dining'&&e.h){
+      if(e.type==='dining'&&e.h&&isAdmin()){
         var _safeH=e.h.split("'").join('\u2019');diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+_safeH+'\',\''+_safeH+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
         diningRec+='<div class="dining-panel" id="dp_'+curDay+'_'+si+'_'+ei+'" style="display:none"></div>';
       }
       // type===quickservice: no button needed (walk-up)
       var reroute='';
-      if(e.type==='ride'){
+      if(e.type==='ride' && isAdmin()){
         var safeRide=(e.ride||e.h||'').split("'").join('\\u2019');
         var safeLand=((e.land||'Unknown')).split("'").join('\\u2019')
         reroute='<button class="reroute-btn" onclick="getReroute(\''+safeRide+'\',\''+safeLand+'\',this)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> AI Reroute</button><div class="reroute-result"></div>'
@@ -7003,7 +7004,7 @@ function renderVipBanner(dayNum) {
   if (existing) existing.remove();
   // Show/hide AI optimize hero based on VIP status
   var aiHero = document.getElementById('aiOptHero');
-  if (aiHero) aiHero.style.display = (cfg && cfg.isVip) ? 'none' : '';
+  if (aiHero) aiHero.style.display = (cfg && cfg.isVip || !isAdmin()) ? 'none' : '';
   var vipBtn=document.getElementById('vipAiOptBtn');if(vipBtn)vipBtn.style.display=(cfg&&cfg.isVip)?'':'none';
   if (cfg && cfg.isVip) {
     // Insert gold VIP Tour Day banner at top
@@ -8091,6 +8092,7 @@ function tpcpConfirmSwap() {
   }
 
   function aiOptGated() {
+    if(!isAdmin()) return;
     var done = localStorage.getItem('tpcp_onboardingComplete');
     if (done === 'true') {
       if (typeof reoptimize === 'function') reoptimize();
