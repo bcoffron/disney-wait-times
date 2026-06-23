@@ -2452,7 +2452,7 @@ function startBlobPoll() {
     fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code) + '&t=' + Date.now())
       .then(function(resp) { return resp.ok ? resp.json().catch(()=>null) : null; })
       .then(function(data) {
-        if (!data || !data.tripData) { if (window._blobPollFirst) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; enterSplash(true); } return; }
+        if (!data || !data.tripData) { if (window._blobPollFirst) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; var _sp=document.getElementById('splashScreen'),_ma=document.getElementById('mainApp');if(_sp){_sp.style.display='flex';}if(_ma){_ma.style.display='none';}; } return; }
         window._blobPollFirst = false;
         var hash = JSON.stringify(data.tripData);
         if (hash === _blobPollLastHash) return;
