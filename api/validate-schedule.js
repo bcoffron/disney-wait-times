@@ -454,9 +454,7 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
         var _dc = (tripConfig && tripConfig.days && tripConfig.days[idx]) || null;
         var _ih = _dc && _dc.intent && _dc.intent.hop;
         var _sp = normPark(day.park) || 'DL';
-        var _fp = _sp;
-        if (_ih && _ih.toPark) _fp = normPark(_ih.toPark) || _sp;
-        else if (_dc && _dc.hopTo) _fp = normPark(_dc.hopTo) || _sp;
+        var _fp = normPark(day.finalPark) || ((_ih && _ih.toPark) ? normPark(_ih.toPark) || _sp : ((_dc && _dc.hopTo) ? normPark(_dc.hopTo) || _sp : _sp));
         var _fc = (_fp === 'DCA')
           ? ((typeof day.dcaCloseMin === 'number' && day.dcaCloseMin > 0) ? day.dcaCloseMin
             : (_sp === 'DCA' && typeof day.closeMin === 'number' ? day.closeMin : 22 * 60))
