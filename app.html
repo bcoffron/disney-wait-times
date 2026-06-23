@@ -1192,7 +1192,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
   </div>
 </div>
       <div id="tripSetupBanner" style="display:none;background:#FFFFFF;border-radius:11px;border:1.5px solid #C86030;padding:11px 13px;align-items:center;gap:11px;margin:8px 10px 0"><div style="width:36px;height:36px;background:rgba(200,96,48,0.10);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C86030" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#071E25">Complete your trip setup</div><div style="font-size:9px;color:#4A7A7C;line-height:1.35;margin-top:2px">Your schedule is a starting point &mdash; tell us about your group so the AI can personalise it.</div></div><a href="/pretrip.html" style="background:#C86030;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:6px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0">Set up &rarr;</a></div>
-      <div id="schedContent"></div>
+      <div id="cachedSchedBanner" style="display:none;background:#e8eef4;border-left:3px solid #8ba4bb;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#5a6d7e;font-family:Outfit,sans-serif;">&#x21BA; Showing your last saved plan — reconnecting…</div><div id="schedContent"></div>
 
       <!-- Add entry modal trigger -->
       
@@ -1426,6 +1426,7 @@ const DAYS=[
   {label:'Day 2', sub:''},
   {label:'Day 3', sub:''}
 ];
+var usingCachedSchedule = false;
 
 const SHOWS=[
   {name:'World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',hl:true,desc:'A 25-min water, light & projection show hosted by Joy from Inside Out. Best view is Monday VIP night with reserved lagoon-side viewing.'},
@@ -1536,6 +1537,7 @@ function checkLock(){
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
               loadCustom();
+              (function() { try { var _sched = d.tripData.tripConfig.schedule; if (_sched && _sched.days && _sched.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none'; } } catch(e) {} })();
               var _gwsEl=document.getElementById('guestWaitScreen'); if(_gwsEl) _gwsEl.style.display='none';
             } else {
               if(typeof showGuestWaitingScreen==='function') showGuestWaitingScreen(d.tripName||'');
@@ -1547,7 +1549,45 @@ function checkLock(){
           }
         })
         .catch(function(){
-          // network error — leave splash as-is
+          // PART A: retry + cache fallback
+          (function _retryLoad(attempt) {
+            var _delays = [2000, 5000, 10000];
+            if (attempt < _delays.length) {
+              setTimeout(function() {
+                fetch(SYNC_BASE+'/api/trip?code='+encodeURIComponent(tpcpCode))
+                  .then(function(r){return r.json().then(function(d2){return {status:r.status,data:d2};});})
+                  .then(function(result2) {
+                    var dr = result2.data;
+                    if (result2.status === 200 && dr && dr.data && dr.data.tripData && dr.data.tripData.tripConfig && dr.data.tripData.tripConfig.schedule) {
+                      window._schedData = dr.data.tripData.tripConfig.schedule;
+                      loadCustom();
+                      usingCachedSchedule = false;
+                      var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none';
+                      try { if (dr.data.tripData.tripConfig.schedule.days && dr.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e2) {}
+                      document.getElementById('lockScreen').style.display = 'none';
+                      document.getElementById('mainApp').style.display = '';
+                      applyRoleUI();
+                    } else { _retryLoad(attempt + 1); }
+                  }).catch(function() { _retryLoad(attempt + 1); });
+              }, _delays[attempt]);
+            } else {
+              try {
+                var _cachedStr = localStorage.getItem('tpcp_lastSched_' + tpcpCode);
+                var _c = _cachedStr ? JSON.parse(_cachedStr) : null;
+                if (_c && _c.DAYS) {
+                  DAYS = _c.DAYS;
+                  customSched = _c.customSched || customSched;
+                  usingCachedSchedule = true;
+                  var _cb2 = document.getElementById('cachedSchedBanner'); if (_cb2) _cb2.style.display = '';
+                  document.getElementById('lockScreen').style.display = 'none';
+                  document.getElementById('mainApp').style.display = '';
+                  applyRoleUI();
+                  if (typeof renderSched === 'function') { try { renderSched(); if (typeof renderDayInfoBar === 'function') renderDayInfoBar(); } catch(e3) {} }
+                }
+              } catch(e4) {}
+            }
+          })(0);
+          // original: leave splash as-is if no cache — leave splash as-is
         });
       return;
     }
@@ -1624,6 +1664,8 @@ function tryUnlock() {
       if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
         window._schedData = d.tripData.tripConfig.schedule;
         loadCustom();
+        // PART A: cache write (tryUnlock path)
+        (function() { try { var _sched2 = d.tripData.tripConfig.schedule; if (_sched2 && _sched2.days && _sched2.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb3 = document.getElementById('cachedSchedBanner'); if (_cb3) _cb3.style.display = 'none'; } } catch(e5) {} })();
         var _gwsEl2=document.getElementById('guestWaitScreen'); if(_gwsEl2) _gwsEl2.style.display='none';
       }
       if (d.role === 'guest' || d.hasTrip) {
@@ -1635,6 +1677,50 @@ function tryUnlock() {
     })
     .catch(function() {
       inp.disabled = false;
+      // PART A: tryUnlock catch retry + cache fallback
+      (function _retryUnlock(attempt) {
+        var _delays2 = [2000, 5000, 10000];
+        if (attempt < _delays2.length) {
+          setTimeout(function() {
+            fetch(SYNC_BASE+'/api/trip?code='+encodeURIComponent(code))
+              .then(function(r){return r.json().then(function(d3){return {status:r.status,data:d3};});})
+              .then(function(result3) {
+                var dr2 = result3.data;
+                if (result3.status === 200 && dr2 && dr2.data && dr2.data.tripData && dr2.data.tripData.tripConfig && dr2.data.tripData.tripConfig.schedule) {
+                  try { localStorage.setItem('tpcp_code', code); localStorage.setItem('tpcp_role', dr2.data.role); } catch(e6) {}
+                  window._schedData = dr2.data.tripData.tripConfig.schedule;
+                  userRole = dr2.data.role;
+                  applyRoleUI();
+                  loadCustom();
+                  usingCachedSchedule = false;
+                  var _cb4 = document.getElementById('cachedSchedBanner'); if (_cb4) _cb4.style.display = 'none';
+                  try { if (dr2.data.tripData.tripConfig.schedule.days && dr2.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e7) {}
+                  var _gwsEl3 = document.getElementById('guestWaitScreen'); if (_gwsEl3) _gwsEl3.style.display = 'none';
+                  enterSplash(true);
+                } else { _retryUnlock(attempt + 1); }
+              }).catch(function() { _retryUnlock(attempt + 1); });
+          }, _delays2[attempt]);
+        } else {
+          try {
+            var _cachedStr2 = localStorage.getItem('tpcp_lastSched_' + code);
+            var _c2 = _cachedStr2 ? JSON.parse(_cachedStr2) : null;
+            if (_c2 && _c2.DAYS) {
+              DAYS = _c2.DAYS;
+              customSched = _c2.customSched || customSched;
+              usingCachedSchedule = true;
+              var _cb5 = document.getElementById('cachedSchedBanner'); if (_cb5) _cb5.style.display = '';
+              try { localStorage.setItem('tpcp_code', code); } catch(e8) {}
+              userRole = 'guest';
+              applyRoleUI();
+              document.getElementById('lockScreen').style.display = 'none';
+              document.getElementById('mainApp').style.display = '';
+              if (typeof renderSched === 'function') { try { renderSched(); if (typeof renderDayInfoBar === 'function') renderDayInfoBar(); } catch(e9) {} }
+            } else {
+              if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
+            }
+          } catch(e10) { if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; } }
+        }
+      })(0);
       if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
     });
 }
@@ -3983,6 +4069,8 @@ function toggleRideNote(id) {
   if (btn) btn.innerHTML = isOpen ? 'Tips &amp; details &rsaquo;' : 'Tips &amp; details &or;';
 }
 function renderSched(){
+  // PART A: update cached banner visibility
+  (function() { var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = (typeof usingCachedSchedule !== 'undefined' && usingCachedSchedule) ? '' : 'none'; })();
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
   if(!day||!day.sections||!day.sections.length){
@@ -7311,6 +7399,8 @@ function showWaitSpikeToast(rideName, waitMins) {
 
   // Show toast with slide-up animation
   toast.style.display = 'flex';
+  var rrBtn = toast.querySelector('[onclick*="handleWaitSpikeReroute"]');
+  if (rrBtn) rrBtn.style.display = isAdmin() ? '' : 'none';
   requestAnimationFrame(() => {
     toast.style.transform = 'translateY(0)';
   });
