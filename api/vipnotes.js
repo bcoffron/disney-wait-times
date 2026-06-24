@@ -33,7 +33,8 @@ async function writeToBlob(data) {
       await put(BLOB_KEY, payload, {
               access: 'public',
               addRandomSuffix: false,
-              contentType: 'application/json'
+              contentType: 'application/json',
+              cacheControlMaxAge: 0
       });
 }
 
