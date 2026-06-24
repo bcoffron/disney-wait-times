@@ -7379,7 +7379,8 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   function u(){
     var activeTab=document.querySelector(".day-tab.active");
-    var isVipDay=activeTab&&activeTab.classList.contains("vip-tab");
+    var uIdx=-1;document.querySelectorAll(".day-tab").forEach(function(t,i){if(t===activeTab)uIdx=i;});
+    var isVipDay=!!(activeTab&&(activeTab.classList.contains("vip-tab")||(window.TRIP_CONFIG&&TRIP_CONFIG.days&&TRIP_CONFIG.days[uIdx]&&TRIP_CONFIG.days[uIdx].isVip)));
     var s=document.getElementById("vipNotesSection");
     if(!s){
       if(isVipDay&&typeof renderVipBanner==="function"){
