@@ -346,7 +346,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .vip-notes-component,.vip-notes-component *{font-family:'Outfit',sans-serif}
 
 /* ===== SECTION 7: SPLASH SCREEN ===== */
-/* — SPLASH SCREEN — */
+/* â SPLASH SCREEN â */
 #splashScreen {
   position: fixed;
   inset: 0;
@@ -359,7 +359,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 }
 
 
-/* Hero artwork zone — sky gradient + castle */
+/* Hero artwork zone â sky gradient + castle */
 .splash-hero {
   position: relative;
   flex: 0 0 340px;
@@ -398,7 +398,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   pointer-events: none;
 }
 
-/* Castle SVG — anchored to bottom of hero zone */
+/* Castle SVG â anchored to bottom of hero zone */
 .splash-castle {
   position: absolute;
   left: 50%;
@@ -411,7 +411,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   pointer-events: none;
 }
 
-/* Star twinkles — sky portion only */
+/* Star twinkles â sky portion only */
 .splash-stars {
   position: absolute;
   inset: 0 0 40% 0;
@@ -434,7 +434,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   50% { opacity: 0.85; transform: scale(1); }
 }
 
-/* Content zone — dark, all text + buttons */
+/* Content zone â dark, all text + buttons */
 .splash-content {
   flex: 1 1 0;
   min-height: 0;
@@ -864,20 +864,20 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .settings-row-title{font-size:13px;font-weight:600;color:var(--color-bg-dark)}
 .settings-row-sub{font-size:11px;color:var(--color-teal-mid);margin-top:2px}
 
-/* Fix 6 — Uniform card alignment */
+/* Fix 6 â Uniform card alignment */
 /* Remove extra padding from accent-border card outer containers */
 [class*="is-snack"],[class*="is-photo"],[class*="is-restroom"],
 [class*="is-dining"],[class*="is-tip"],[class*="is-break"],
 [class*="is-food"],[class*="is-show"] {
   padding: 0 !important;
 }
-/* Fix 3 Pass5 — Push time-col clear of the accent left border on photo/snack/restroom cards */
+/* Fix 3 Pass5 â Push time-col clear of the accent left border on photo/snack/restroom cards */
 .ride-block.is-photo .ride-time,
 .ride-block.is-snack .ride-time,
 .ride-block.is-break .ride-time {
   padding-left: 6px;
 }
-/* Fix 4 Pass5 — Consistent gap on all card types; remove old negative margin hacks */
+/* Fix 4 Pass5 â Consistent gap on all card types; remove old negative margin hacks */
 .ride-main {
   display: flex;
   align-items: flex-start;
@@ -885,7 +885,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
   padding: 0;
 }
 
-/* Fix 2 — Trip Weather Forecast */
+/* Fix 2 â Trip Weather Forecast */
 .forecast-table { background: linear-gradient(135deg,#E8F4F8 0%,#D0EBF5 100%); border-radius: 10px; padding: 4px 0; overflow: hidden; }
 .forecast-row { display: flex; align-items: center; padding: 10px 14px; gap: 10px; }
 .forecast-day-col { width: 40px; flex-shrink: 0; }
@@ -897,16 +897,16 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .forecast-lo { font-size: 12px; font-weight: 400; color: #6A9AAC; }
 .forecast-divider { height: 0.5px; background: rgba(26,74,92,0.10); margin: 0 14px; }
 .forecast-tip { font-size: 11px; color: #2A5A6C; margin-top: 10px; line-height: 1.4; font-style: italic; }
-/* Fix 1 Pass5 — Crowd Forecast vertical bars */
+/* Fix 1 Pass5 â Crowd Forecast vertical bars */
 /* (old horizontal .crowd-bars rules removed; .crowd-bars-grid handles layout above) */
-/* Fix 4 Pass5 — Uniform card alignment (sched-card type only) */
-/* ride-block cards use .ride-main > .ride-time-col + .ride-body — not affected here */
+/* Fix 4 Pass5 â Uniform card alignment (sched-card type only) */
+/* ride-block cards use .ride-main > .ride-time-col + .ride-body â not affected here */
 .sched-card { display: flex; gap: 12px; align-items: flex-start; padding: 9px 11px; }
 .time-col,.entry-time { width: 52px; min-width: 52px; flex-shrink: 0; text-align: right; }
 .card-body,.entry-body { flex: 1; min-width: 0; padding-left: 0; }
 /* Ensure ride-main has consistent flex layout on all card types */
 .ride-main { display: flex !important; align-items: flex-start; gap: 0; padding: 0; }
-/* Fix 7 — Custom checklist input */
+/* Fix 7 â Custom checklist input */
 .checklist-add-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; border-top: 1px dashed rgba(7,30,37,0.10); padding-top: 10px; }
 .checklist-custom-input { flex: 1; min-width: 0; font-family: 'Outfit',sans-serif; font-size: 13px; color: var(--color-bg-dark); border: 1px solid rgba(7,30,37,0.15); border-radius: 8px; padding: 8px 10px; background: #FAFAFA; outline: none; min-height: 38px; }
 .checklist-custom-input::placeholder { color: var(--color-teal-light); font-style: italic; }
@@ -1098,7 +1098,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
 
       <!-- ===== SECTION 8: AI OPTIMIZE RESULT SHEET ===== -->
-      <div id="reoptLoading" style="display:none"><div style="background:white;border-radius:12px;padding:20px 16px;margin:8px 10px;text-align:center"><div class="reopt-spinner"></div><div style="font-size:14px;font-weight:700;color:#071E25;margin-top:12px">Optimizing your schedule...</div><div style="font-size:11px;color:#4A7A7C;margin-top:4px">This takes 15–30 seconds</div></div></div>
+      <div id="reoptLoading" style="display:none"><div style="background:white;border-radius:12px;padding:20px 16px;margin:8px 10px;text-align:center"><div class="reopt-spinner"></div><div style="font-size:14px;font-weight:700;color:#071E25;margin-top:12px">Optimizing your schedule...</div><div style="font-size:11px;color:#4A7A7C;margin-top:4px">This takes 15â30 seconds</div></div></div>
         <div class="reopt-box" id="reoptBox">
         <div class="reopt-summary-bar">
           <div class="reopt-summary-icon">
@@ -1170,12 +1170,12 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
       <!-- Part 6: Add new entry trigger -->
       <div class="vn-add-trigger" id="vnAddTrigger" onclick="vnOpenInput()">
-        <span class="vn-add-placeholder">Tap to add your notes…</span>
+        <span class="vn-add-placeholder">Tap to add your notesâ¦</span>
       </div>
 
       <!-- Inline input (hidden until triggered) -->
       <div class="vn-input-area" id="vnInputArea" style="display:none">
-        <textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notes…" rows="3"></textarea>
+        <textarea class="vn-textarea" id="vnTextarea" placeholder="Type your notesâ¦" rows="3"></textarea>
         <div class="vn-input-actions">
           <button type="button" class="vn-btn-save" onclick="vnSaveEntry()">Save</button>
           <button type="button" class="vn-btn-cancel" onclick="vnCancelInput()">Cancel</button>
@@ -1192,7 +1192,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
   </div>
 </div>
       <div id="tripSetupBanner" style="display:none;background:#FFFFFF;border-radius:11px;border:1.5px solid #C86030;padding:11px 13px;align-items:center;gap:11px;margin:8px 10px 0"><div style="width:36px;height:36px;background:rgba(200,96,48,0.10);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C86030" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#071E25">Complete your trip setup</div><div style="font-size:9px;color:#4A7A7C;line-height:1.35;margin-top:2px">Your schedule is a starting point &mdash; tell us about your group so the AI can personalise it.</div></div><a href="/pretrip.html" style="background:#C86030;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:6px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0">Set up &rarr;</a></div>
-      <div id="cachedSchedBanner" style="display:none;background:#e8eef4;border-left:3px solid #8ba4bb;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#5a6d7e;font-family:Outfit,sans-serif;">&#x21BA; Showing your last saved plan — reconnecting…</div><div id="schedContent"></div>
+      <div id="cachedSchedBanner" style="display:none;background:#e8eef4;border-left:3px solid #8ba4bb;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#5a6d7e;font-family:Outfit,sans-serif;">&#x21BA; Showing your last saved plan â reconnectingâ¦</div><div id="schedContent"></div>
 
       <!-- Add entry modal trigger -->
       
@@ -1329,7 +1329,7 @@ body.tw-guest .ai-opt-hero{display:none!important}
 
 <script>
 // v202605241200 cache bust=100
-// App version: 813c1e1 — updated automatically on deploy
+// App version: 813c1e1 â updated automatically on deploy
 // Safety stub - real function defined later
 function fixEncoding(s) {
   if (!s) return '';
@@ -1418,7 +1418,7 @@ function showParkClosedState(){
 const ALTS={'Galaxy\u2019s Edge':['Millennium Falcon: Smugglers Run','Shadows of Memory show'],'Adventureland':['Haunted Mansion','Big Thunder Mountain'],'Fantasyland':['Space Mountain','Haunted Mansion'],'Tomorrowland':['Matterhorn','Star Tours'],'New Orleans Square':['Big Thunder Mountain','Tiana\'s Bayou Adventure'],'Frontierland':['Indiana Jones Adventure','Haunted Mansion'],'Cars Land':['Guardians of the Galaxy','Incredicoaster'],'Avengers Campus':['Incredicoaster','Soarin\''],'Pixar Pier':['Soarin\'','Guardians'],'Grizzly Peak':['Radiator Springs Racers','Incredicoaster']};
 
 const CLOSED=[
-  {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27, 2026 — no reopening date announced'},
+  {n:'Silly Symphony Swings (DCA)',d:'Closed since April 27, 2026 â no reopening date announced'},
 ];
 
 const DAYS=[
@@ -1587,7 +1587,7 @@ function checkLock(){
               } catch(e4) {}
             }
           })(0);
-          // original: leave splash as-is if no cache — leave splash as-is
+          // original: leave splash as-is if no cache â leave splash as-is
         });
       return;
     }
@@ -2094,7 +2094,7 @@ var constraintRules='HARD CONSTRAINTS never violate: '
     +'7) PHOTO OPS: Include EXACTLY 2 photo op entries per day maximum. Space them out -- one in the morning, one in the evening. Each must be a different location. No more than 2 total per day.';
 var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
 
-// Secure AI fetch — always injects trip code for server-side authentication
+// Secure AI fetch â always injects trip code for server-side authentication
 function _aiFetch(endpoint, body) {
   var code = localStorage.getItem('tpcp_code') || '';
   var role = localStorage.getItem('tpcp_role') || 'guest';
@@ -2109,13 +2109,13 @@ function buildWaitContext() {
   // Pull from the waits object used by the Waits tab
   var w = (typeof waits !== 'undefined') ? waits : {};
   if (!w || !Object.keys(w).length) return '';
-  // Space Mountain / Hyperspace Mountain alias — treat as the same ride
+  // Space Mountain / Hyperspace Mountain alias â treat as the same ride
   var smKey = 'space mountain';
   var hmKey = 'hyperspace mountain';
   if (!w[smKey] && w[hmKey]) w[smKey] = Object.assign({}, w[hmKey], {name: 'Space Mountain / Hyperspace Mountain'});
   if (!w[hmKey] && w[smKey]) w[hmKey] = w[smKey];
-  // Sort longest wait first — high-wait rides are what people ask about
-  // No slice limit — let the char cap handle cutoff so no ride is arbitrarily excluded
+  // Sort longest wait first â high-wait rides are what people ask about
+  // No slice limit â let the char cap handle cutoff so no ride is arbitrarily excluded
   var lines = Object.entries(w)
     .filter(function(kv) { return kv[1] && kv[1].w !== null && kv[1].w !== undefined && kv[0] !== hmKey; })
     .sort(function(a, b) { return (b[1].w || 0) - (a[1].w || 0); })
@@ -2210,7 +2210,7 @@ function startScheduleSync(){
     // Guest: pull API key first, then poll schedule
     pullApiKey();
     pullSchedule();
-    // NOTE: schedule polling interval removed — _blobPollInterval handles sync via /api/trip
+    // NOTE: schedule polling interval removed â _blobPollInterval handles sync via /api/trip
     // schedSyncInterval=setInterval(pullSchedule,2*60*1000); // DISABLED
     // setInterval(pullApiKey,5*60*1000); // DISABLED
   }
@@ -2338,24 +2338,46 @@ async function tpcpEnableWaitAlerts(){
   }
 }
 
+
+function vnNewId(){ return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8); }
+
+function vnNorm(arr){
+  return JSON.stringify((arr||[]).slice().sort(function(a,b){
+    return String(a && a.id).localeCompare(String(b && b.id));
+  }));
+}
+
+function vnVisible(arr){
+  return (arr||[]).filter(function(e){ return e && !e.deleted; })
+    .sort(function(x,y){ return (x.ts||0) - (y.ts||0); });
+}
+
+function vnMerge(a, b){
+  var byId = {};
+  function consume(arr){
+    (arr||[]).forEach(function(e){
+      if(!e || typeof e !== 'object') return;
+      if(!e.id) e.id = 'ts-' + (e.ts || 0);
+      if(typeof e.updatedAt !== 'number') e.updatedAt = e.ts || 0;
+      var prev = byId[e.id];
+      if(!prev || (e.updatedAt||0) >= (prev.updatedAt||0)) byId[e.id] = e;
+    });
+  }
+  consume(a); consume(b);
+  return Object.keys(byId).map(function(k){ return byId[k]; });
+}
+
 async function pullVipNotes(){
   try{
-    var r=await fetch(SYNC_BASE+'/api/vipnotes?t='+Date.now());
+    var r=await fetch(SYNC_BASE+'/api/vipnotes?t='+Date.now(),{cache:'no-store'});
     if(!r.ok) return;
     var data=await r.json();
-    if(!data.notes) return;
-    if(data.updated===notesLastSync) return;
-    notesLastSync=data.updated;
-    // Update textarea if visible and not currently focused
-    var ta=document.querySelector('.vip-ta');
-    if(ta&&document.activeElement!==ta){
-      ta.value=data.notes[curDay]||'';
+    if(!data||!Array.isArray(data.notes)) return;
+    var merged=vnApplySync(data.notes);
+    if(vnNorm(merged)!==vnNorm(data.notes)){
+      try{ await pushVipNotes(2,merged); }catch(e){}
     }
-    // Also save to localStorage
-    Object.keys(data.notes).forEach(function(d){
-      try{localStorage.setItem('vip_notes_'+d,data.notes[d]);}catch(e){}
-    });
-    if(typeof vnApplySync==='function' && data.notes)vnApplySync(data.notes);
+    notesLastSync=data.updated;
   }catch(e){}
 }
 
@@ -2398,7 +2420,7 @@ function showScheduleToast(){
 const PUSHER_ENABLED = false; // Set to true to re-enable Pusher real-time sync
 
 async function initPusher(){
-  if (!PUSHER_ENABLED) return; // Pusher disabled — using Vercel Blob poll instead
+  if (!PUSHER_ENABLED) return; // Pusher disabled â using Vercel Blob poll instead
   if(typeof Pusher === 'undefined') return;
   if(!window.PUSHER_KEY || !window.PUSHER_CLUSTER) {
     try {
@@ -2430,7 +2452,7 @@ async function initPusher(){
   }catch(e){console.error('Pusher init error',e);}
 }
 
-// ===== VERCEL BLOB POLL — replaces Pusher real-time sync =====
+// ===== VERCEL BLOB POLL â replaces Pusher real-time sync =====
 // Polls /api/trip every 10s for schedule + VIP notes updates
 // To re-enable Pusher: set PUSHER_ENABLED = true above and remove this poll
 
@@ -2627,7 +2649,7 @@ function wbHTML(rideName){
     return '<span class="wb wb-closed">Closed</span>';
   }
   var cls=d.w===0?'wb-low':d.w<30?'wb-low':d.w<45?'wb-med':'wb-high';
-  return '<span class="wb '+cls+'">'+(d.w===0?'Walk on':(d.w===null||d.w===undefined)?'—':d.w+' min')+'</span>';
+  return '<span class="wb '+cls+'">'+(d.w===0?'Walk on':(d.w===null||d.w===undefined)?'â':d.w+' min')+'</span>';
 }
 
 function updateWaitStatus(){
@@ -3257,8 +3279,7 @@ function vnLoadEntries(){
   try{return JSON.parse(localStorage.getItem('vn_entries_2')||'[]');}catch(e){return [];}
 }
 function vnPersist(entries){
-  try{localStorage.setItem('vn_entries_2',JSON.stringify(entries));}catch(e){}
-  if(typeof pushVipNotes==='function') pushVipNotes(entries);
+  // deprecated - use vnSyncChange instead
 }
 
 // Escape HTML for entry text
@@ -3268,16 +3289,16 @@ function vnEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function vnRenderEntries(){
   var list=document.getElementById('vnEntryList');
   if(!list) return;
-  var entries=vnLoadEntries();
+  var entries=vnVisible(vnLoadEntries());
   if(!entries.length){list.innerHTML='<div style="font-size:11px;color:#8A6820;padding:8px 4px;text-align:center;font-family:Outfit,sans-serif!important">No notes yet<br>tap + to add one</div>';return;}
   list.innerHTML=entries.map(function(e,i){
-    return '<div class="vn-entry-block" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+    return '<div class="vn-entry-block" data-id="'+e.id+'" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
       +'<div class="vn-text" style="font-size:13px;color:#3A2800;flex:1;line-height:1.45">'+e.text+'</div>'
       +'<div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">'
-      +'<span onclick="vnEditEntry('+i+')" style="cursor:pointer;" title="Edit">'
+      +'<span onclick="vnEditEntry('"+ e.id +"')" style="cursor:pointer;" title="Edit">'
         +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
       +'</span>'
-      +'<span onclick="vnDeleteEntry('+i+')" style="cursor:pointer;" title="Delete">'
+      +'<span onclick="vnDeleteEntry('"+ e.id +"')" style="cursor:pointer;" title="Delete">'
         +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A02020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>'
       +'</span>'
       +'</div>'
@@ -3320,12 +3341,12 @@ async function vnSaveEntry(){
   if(!ta) return;
   var text=ta.value.trim();
   if(!text){vnCancelInput();return;}
-  var entries=vnLoadEntries();
-  entries.push({text:text,ts:Date.now()});
-  vnSaveEntries(entries);
-  vnRenderEntries();
   vnCancelInput();
-  await pushVipNotes(2, entries);
+  await vnSyncChange(function(base){
+    base.push({id:vnNewId(),text:text,ts:Date.now(),updatedAt:Date.now(),
+      author:(typeof vnGetMember==='function'?vnGetMember():undefined)});
+    return base;
+  });
 }
 
 function vnShowFooter(){
@@ -3351,9 +3372,9 @@ function vnUpdateCollapsed(){
     var seen={};
     entries.forEach(function(e){seen[e.authorName]=1;});
     var n=Object.keys(seen).length;
-    collapsed.textContent='Group wishlist · '+n+' member'+(n===1?'':'s')+' added notes · tap to expand';collapsed.textContent=sanitizeText(collapsed.textContent);
+    collapsed.textContent='Group wishlist Â· '+n+' member'+(n===1?'':'s')+' added notes Â· tap to expand';collapsed.textContent=sanitizeText(collapsed.textContent);
   } else {
-    collapsed.textContent='Group wishlist · tap to add your notes';collapsed.textContent=sanitizeText(collapsed.textContent);
+    collapsed.textContent='Group wishlist Â· tap to add your notes';collapsed.textContent=sanitizeText(collapsed.textContent);
   }
 }
 
@@ -3361,50 +3382,44 @@ function vnUpdateCollapsed(){
 function vnSaveEntries(entries){
   try{localStorage.setItem('vn_entries_2',JSON.stringify(entries));}catch(e){}
 }
-function vnEditEntry(i){
+function vnEditEntry(id){
   var entries=vnLoadEntries();
-  var e=entries[i];
+  var e=entries.filter(function(x){return x&&x.id===id;})[0];
   if(!e) return;
   var list=document.getElementById('vnEntryList');
-  var items=list.querySelectorAll('.vn-entry-block');
-  var row=items[i];
+  var row=list.querySelector('.vn-entry-block[data-id="'+id+'"]');
   if(!row) return;
   row.innerHTML='<div style="flex:1;">'
     +'<textarea id="vnEditTA" style="width:100%;font-size:13px;font-family:Outfit,sans-serif;padding:6px;border:1px solid #D4A830;border-radius:6px;color:#3A2800;resize:vertical;">'+e.text+'</textarea>'
     +'<div style="display:flex;gap:6px;margin-top:6px;">'
-      +'<span onclick="vnSaveEdit('+i+')" style="cursor:pointer;font-size:11px;font-weight:600;color:#1A6860;padding:3px 8px;background:#E8F5F3;border-radius:6px;">Save</span>'
+      +'<span onclick="vnSaveEdit('"+ id +"')" style="cursor:pointer;font-size:11px;font-weight:600;color:#1A6860;padding:3px 8px;background:#E8F5F3;border-radius:6px;">Save</span>'
       +'<span onclick="vnRenderEntries()" style="cursor:pointer;font-size:11px;font-weight:600;color:#666;padding:3px 8px;background:#F0F0F0;border-radius:6px;">Cancel</span>'
     +'</div>'
   +'</div>';
 }
-async function vnSaveEdit(i){
+async async function vnSaveEdit(id){
   var ta=document.getElementById('vnEditTA');
-  if(!ta) return;
-  var newText=ta.value.trim();
-  if(!newText) return;
-  var entries=vnLoadEntries();
-  entries[i].text=newText;
-  vnSaveEntries(entries);
-  vnRenderEntries();
-  await pushVipNotes(2, entries);
+  var newText=ta?String(ta.value).trim():'';
+  if(!newText){vnRenderEntries();return;}
+  await vnSyncChange(function(base){
+    for(var j=0;j<base.length;j++){if(base[j].id===id){base[j].text=newText;base[j].updatedAt=Date.now();break;}}
+    return base;
+  });
 }
-function vnDeleteEntry(i){
-  var entries=vnLoadEntries();
+function vnDeleteEntry(id){
   var list=document.getElementById('vnEntryList');
-  var items=list.querySelectorAll('.vn-entry-block');
-  var row=items[i];
+  var row=list.querySelector('.vn-entry-block[data-id="'+id+'"]');
   if(!row) return;
   row.innerHTML='<div style="flex:1;font-size:11px;color:#A02020;">Delete this note?'
-    +'<span onclick="vnConfirmDelete('+i+')" style="cursor:pointer;font-size:10px;font-weight:600;color:#A02020;margin-left:8px;padding:2px 6px;background:#FFF0F0;border-radius:4px;">Yes, delete</span>'
+    +'<span onclick="vnConfirmDelete('"+ id +"')" style="cursor:pointer;font-size:10px;font-weight:600;color:#A02020;margin-left:8px;padding:2px 6px;background:#FFF0F0;border-radius:4px;">Yes, delete</span>'
     +'<span onclick="vnRenderEntries()" style="cursor:pointer;font-size:10px;font-weight:600;color:#1A6860;margin-left:6px;padding:2px 6px;background:#E8F5F3;border-radius:4px;">Cancel</span>'
   +'</div>';
 }
-async function vnConfirmDelete(i){
-  var entries=vnLoadEntries();
-  entries.splice(i,1);
-  vnSaveEntries(entries);
-  vnRenderEntries();
-  await pushVipNotes(2, entries);
+async async function vnConfirmDelete(id){
+  await vnSyncChange(function(base){
+    for(var j=0;j<base.length;j++){if(base[j].id===id){base[j].deleted=true;base[j].updatedAt=Date.now();break;}}
+    return base;
+  });
 }
 
 function vnExpand(){
@@ -3432,16 +3447,31 @@ function vnCheckScroll(){
 }
 
 // Apply synced entries from server
-function vnApplySync(rawNotes){
-  if(!rawNotes) return;
-  var parsed = Array.isArray(rawNotes) ? rawNotes : (typeof rawNotes === 'string' ? (function(){try{return JSON.parse(rawNotes);}catch(e){return [];}}()) : []);
-  if(!Array.isArray(parsed)) return;
-  // Merge with local - server is source of truth
-  try{localStorage.setItem('vn_entries_2', JSON.stringify(parsed));}catch(e){}
-  // Skip re-render if a notes input is currently focused (user is actively typing)
-  var vnSec = document.getElementById('vipNotesSection');
-  if(vnSec && vnSec.contains(document.activeElement) && document.activeElement !== document.body) return;
+async function vnSyncChange(applyFn){
+  var server=[];
+  try{
+    var r=await fetch(SYNC_BASE+'/api/vipnotes?t='+Date.now(),{cache:'no-store'});
+    if(r.ok){ var d=await r.json(); if(d&&Array.isArray(d.notes)) server=d.notes; }
+  }catch(e){}
+  var base=vnMerge(server,vnLoadEntries());
+  var next=applyFn(base)||base;
+  vnSaveEntries(next);
   vnRenderEntries();
+  try{ await pushVipNotes(2,next); }catch(e){}
+}
+
+function vnApplySync(rawNotes){
+  var incoming=Array.isArray(rawNotes)?rawNotes:(typeof rawNotes==='string'?(function(){try{return JSON.parse(rawNotes);}catch(e){return [];}}()):[]);
+  if(!Array.isArray(incoming)) incoming=[];
+  var local=vnLoadEntries();
+  var merged=vnMerge(incoming,local);
+  if(vnNorm(merged)!==vnNorm(local)){
+    vnSaveEntries(merged);
+    var vnSec=document.getElementById('vipNotesSection');
+    var typing=vnSec&&vnSec.contains(document.activeElement)&&document.activeElement!==document.body;
+    if(!typing) vnRenderEntries();
+  }
+  return merged;
 }
 function vnInit(){
   vnRenderAvatars();
@@ -3538,16 +3568,16 @@ async function getReroute(ride,land,btn){
   dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
   // Short wait - suggest riding now
   if(wait<30){
-    res.innerHTML='<div class="rr-hdr">&#x26A1; WAIT CHECK — '+statusMsg.toUpperCase()+'</div>'
-      +'Only '+wait+' min right now — that\'s a short wait! Go ahead and ride. No reroute needed.';
+    res.innerHTML='<div class="rr-hdr">&#x26A1; WAIT CHECK â '+statusMsg.toUpperCase()+'</div>'
+      +'Only '+wait+' min right now â that\'s a short wait! Go ahead and ride. No reroute needed.';
     btn.disabled=false; return;
   }
-  res.innerHTML='<div class="rr-hdr">&#x26A1; AI REROUTE — '+statusMsg.toUpperCase()+'</div><span>Getting suggestion</span> <span class="blink"><span>&#xb7;</span><span>&#xb7;</span><span>&#xb7;</span></span>';
+  res.innerHTML='<div class="rr-hdr">&#x26A1; AI REROUTE â '+statusMsg.toUpperCase()+'</div><span>Getting suggestion</span> <span class="blink"><span>&#xb7;</span><span>&#xb7;</span><span>&#xb7;</span></span>';
   if(!apiKey){
     var fallback=wait<45
       ?'Moderate wait of '+wait+' min. Try '+altsFb+' first and return.'+returnHint
-      :'Long wait of '+wait+' min — skip for now. Try '+altsFb+'.'+returnHint;
-    res.innerHTML='<div class="rr-hdr">&#x26A1; SUGGESTION — '+statusMsg.toUpperCase()+'</div>'+fallback;
+      :'Long wait of '+wait+' min â skip for now. Try '+altsFb+'.'+returnHint;
+    res.innerHTML='<div class="rr-hdr">&#x26A1; SUGGESTION â '+statusMsg.toUpperCase()+'</div>'+fallback;
     btn.disabled=false; return;
   }
   try{
@@ -3555,11 +3585,11 @@ async function getReroute(ride,land,btn){
     if(altWaitsStr) prompt_txt+='Nearby rides right now: '+altWaitsStr+'. ';
     if(returnHint) prompt_txt+='WAIT_PATTERNS suggest: '+returnHint+' ';
     if(wait<45) prompt_txt+='Moderate wait. In 2-3 friendly sentences, advise whether to ride now or skip, naming specific alternatives by name and their actual wait times. Include a specific return time from wait patterns if available.';
-    else prompt_txt+='Long wait. In 2-3 friendly sentences, name 1-2 specific nearby rides with their actual wait times to do instead, and give a specific time to return to '+ride+' based on wait patterns. Never say \'nearby ride\' generically — always use the actual ride name and actual wait number.';
+    else prompt_txt+='Long wait. In 2-3 friendly sentences, name 1-2 specific nearby rides with their actual wait times to do instead, and give a specific time to return to '+ride+' based on wait patterns. Never say \'nearby ride\' generically â always use the actual ride name and actual wait number.';
     var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt_txt,system:'CRITICAL: Wrap your ENTIRE first sentence in **double asterisks** to make it bold. This is the main recommendation. The remaining sentences are normal text. Example: **Head to Indiana Jones Adventure (12 min) now and return to this ride after 6 PM.** Wait patterns show this ride drops below 30 min by evening.',maxTokens:200,context:parkIntelCache||''})});
     var data=await r.json();
     var txt=data.ok?data.text:(data.content&&data.content[0]?data.content[0].text:'Could not get suggestion.');
-    res.innerHTML='<div class="rr-hdr">&#x26A1; AI REROUTE — '+statusMsg.toUpperCase()+'</div>'+stripMd(txt);
+    res.innerHTML='<div class="rr-hdr">&#x26A1; AI REROUTE â '+statusMsg.toUpperCase()+'</div>'+stripMd(txt);
   }catch(e){
     res.innerHTML='<div class="rr-hdr">&#x26A1; SUGGESTION</div>Try '+altsFb+'.'+returnHint;
   }
@@ -3695,7 +3725,7 @@ async function reoptimize(){ if(!isAdmin()) return;
     }
     // Save original items for merge on Accept
     console.log('[reoptimize] snapshot allDayItems:',allDayItems.length,'curDay:',curDay,'schedItems:',schedItems.length);
-    window._aiOptAllDayItems=allDayItems.slice(); // full day — used for tail merge on Accept
+    window._aiOptAllDayItems=allDayItems.slice(); // full day â used for tail merge on Accept
     window._aiOptIsInTrip=isInTrip;
     window._aiOptNowMin=isInTrip?(new Date().getHours()*60+new Date().getMinutes()):0;
     window._aiOptSentCount=schedItems.length;
@@ -3748,7 +3778,7 @@ async function runReoptimize(){
       if(_planHd)_planHd.textContent=changedCount===0?'No changes needed':"Here's your optimized plan";
       var _rl3=document.getElementById('reoptLoading');if(_rl3)_rl3.style.display='none';box.style.display='block';
       btns.classList.add('show');
-      var _reoptApply=btns.querySelector('.reopt-apply');var _reoptDismiss=btns.querySelector('.reopt-dismiss');var _reoptNote=document.getElementById('reoptReviewNote');if(changedCount===0){if(_reoptApply)_reoptApply.style.display='none';if(_reoptNote)_reoptNote.style.display='none';if(_reoptDismiss){_reoptDismiss.textContent='Got it ✓';_reoptDismiss.onclick=function(){dismissReopt();};}}else{if(_reoptApply){_reoptApply.style.display='';_reoptApply.onclick=function(){applyReopt();};}if(_reoptNote)_reoptNote.style.display='';if(_reoptDismiss){_reoptDismiss.textContent='Keep Original';_reoptDismiss.onclick=function(){dismissReopt();};}}
+      var _reoptApply=btns.querySelector('.reopt-apply');var _reoptDismiss=btns.querySelector('.reopt-dismiss');var _reoptNote=document.getElementById('reoptReviewNote');if(changedCount===0){if(_reoptApply)_reoptApply.style.display='none';if(_reoptNote)_reoptNote.style.display='none';if(_reoptDismiss){_reoptDismiss.textContent='Got it â';_reoptDismiss.onclick=function(){dismissReopt();};}}else{if(_reoptApply){_reoptApply.style.display='';_reoptApply.onclick=function(){applyReopt();};}if(_reoptNote)_reoptNote.style.display='';if(_reoptDismiss){_reoptDismiss.textContent='Keep Original';_reoptDismiss.onclick=function(){dismissReopt();};}}
         var _rah=document.getElementById('reoptAcceptHint'); if(_rah)_rah.style.display=changedCount===0?'none':'block';
     }else{
       var _rle2=document.getElementById('reoptLoading');if(_rle2)_rle2.style.display='none';box.style.display='block';
@@ -3757,7 +3787,7 @@ async function runReoptimize(){
         txt.innerHTML+='<br><br><span style="color:var(--text-dim);font-size:11px">Could not parse updated schedule automatically. Use the explanation above to manually reorder using Edit mode.</span>';
       }
     }
-  }catch(e){clearTimeout(_reoptTimeoutId);if(e.name==='AbortError'&&_reoptRetryCount===0){_reoptRetryCount=1;console.log('[reoptimize] timeout — auto retrying once');var _spinTxt=document.querySelector('#reoptLoading div+div');if(_spinTxt)_spinTxt.textContent='Still working — retrying...';runReoptimize();return;}if(e.name==='AbortError'){_reoptRetryCount=0;var _rleA=document.getElementById('reoptLoading');if(_rleA)_rleA.style.display='none';box.style.display='block';txt.innerHTML='<span style="cursor:pointer;color:var(--text);font-size:13px;" onclick="reoptimize()">Taking longer than expected — tap to try again.</span>';return;}console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
+  }catch(e){clearTimeout(_reoptTimeoutId);if(e.name==='AbortError'&&_reoptRetryCount===0){_reoptRetryCount=1;console.log('[reoptimize] timeout â auto retrying once');var _spinTxt=document.querySelector('#reoptLoading div+div');if(_spinTxt)_spinTxt.textContent='Still working â retrying...';runReoptimize();return;}if(e.name==='AbortError'){_reoptRetryCount=0;var _rleA=document.getElementById('reoptLoading');if(_rleA)_rleA.style.display='none';box.style.display='block';txt.innerHTML='<span style="cursor:pointer;color:var(--text);font-size:13px;" onclick="reoptimize()">Taking longer than expected â tap to try again.</span>';return;}console.error('[aiOptimize] error:',e.message,e.stack?e.stack.substring(0,500):'');txt.textContent='Error: '+e.message;}
 }
 function applyReopt(){console.log('[applyReopt] originalItems:',window._aiOptOriginalItems?window._aiOptOriginalItems.length:'NULL','sentCount:',window._aiOptSentCount,'isInTrip:',window._aiOptIsInTrip);if(!pendingReopt)return;
   // Extract AI-optimized entries from pendingReopt sections
@@ -3765,7 +3795,7 @@ function applyReopt(){console.log('[applyReopt] originalItems:',window._aiOptOri
   if(pendingReopt.sections)pendingReopt.sections.forEach(function(s){if(s.entries)aiEntries=aiEntries.concat(s.entries);});
   // Merge with original tail/past items
   function _ittm(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]),mn=parseInt(m[2]),pm=m[3].toUpperCase()==='PM';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h*60+mn;}
-  // Use full day items for merge — not just the sent subset
+  // Use full day items for merge â not just the sent subset
   var origItems=window._aiOptAllDayItems||window._aiOptOriginalItems||[];
   var mergedEntries;
   if(window._aiOptIsInTrip){
@@ -4129,7 +4159,7 @@ function renderSched(){
       h+='<div class="sec-hdr"><div class="sec-lbl">'+sec.title.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\u20E3\u200D]+/gu,'').trim()+'</div><div class="sec-line"></div></div>';
     }
     sec.entries.forEach(function(e,ei){
-      // VIP Notes: static component in DOM handles display — skip entry
+      // VIP Notes: static component in DOM handles display â skip entry
       if(e.isVipNotes){ return; }
       // Regular card
       var bc='ride-block';
@@ -4199,7 +4229,7 @@ function renderSched(){
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
-        +(function(){var _cid=curDay+'-'+si+'-'+ei;var _useCollapse=e.n&&e.n.length>0&&e.type!=='dining'&&e.type!=='quickservice';var _btnLabel=e.type==='tip'?'Strategy &amp; details':e.type==='show'?'Show details':e.type==='snack'?'Snack details':e.type==='photo'?'Photo tips':e.type==='character'?'Meet details':e.type==='break'?'Break details':'Tips &amp; details';if(_useCollapse){return '<button class="ride-tips-btn" onclick="toggleRideNote(\''+_cid+'\')">'+_btnLabel+' &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+_cid+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>';}else{return e.n?'<div class="ride-note">'+fixEncoding(e.n)+'</div>':'';}})()+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change — check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
+        +(function(){var _cid=curDay+'-'+si+'-'+ei;var _useCollapse=e.n&&e.n.length>0&&e.type!=='dining'&&e.type!=='quickservice';var _btnLabel=e.type==='tip'?'Strategy &amp; details':e.type==='show'?'Show details':e.type==='snack'?'Snack details':e.type==='photo'?'Photo tips':e.type==='character'?'Meet details':e.type==='break'?'Break details':'Tips &amp; details';if(_useCollapse){return '<button class="ride-tips-btn" onclick="toggleRideNote(\''+_cid+'\')">'+_btnLabel+' &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+_cid+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>';}else{return e.n?'<div class="ride-note">'+fixEncoding(e.n)+'</div>':'';}})()+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change â check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -4305,19 +4335,19 @@ var CHECKLIST_ITEMS=[
   'Comfortable walking shoes for all-day wear',
   'Pre-book dining reservations (Blue Bayou recommended)',
   'Review Lightning Lane options for your dates',
-  'Pack ponchos — Tiana\'s Bayou Adventure and Grizzly River Run get you wet',
+  'Pack ponchos â Tiana\'s Bayou Adventure and Grizzly River Run get you wet',
   'Confirm hotel check-in time and parking plan'
 ];
 var RESTROOM_LOCATIONS=[
   {land:'Main Street USA',note:'Left of City Hall, and right side near Penny Arcade'},
   {land:'Adventureland',note:'Near Indiana Jones entrance, and near Jungle Cruise exit'},
-  {land:'Fantasyland',note:'Behind It’s a Small World, and near Matterhorn Bobsleds'},
+  {land:'Fantasyland',note:'Behind Itâs a Small World, and near Matterhorn Bobsleds'},
   {land:'Tomorrowland',note:'Near Space Mountain entrance, and near Star Wars Launch Bay'},
   {land:'New Orleans Square',note:'Between Pirates of the Caribbean and Haunted Mansion'},
   {land:'Frontierland',note:'Near Big Thunder Mountain, and near the Mark Twain dock'},
-  {land:'DCA — Buena Vista St',note:'Near the Carthay Circle Theatre'},
-  {land:'DCA — Cars Land',note:"Near Ramone’s House of Body Art"},
-  {land:'DCA — Avengers Campus',note:'Near the Avengers Campus entrance'}
+  {land:'DCA â Buena Vista St',note:'Near the Carthay Circle Theatre'},
+  {land:'DCA â Cars Land',note:"Near Ramoneâs House of Body Art"},
+  {land:'DCA â Avengers Campus',note:'Near the Avengers Campus entrance'}
 ];
 function loadChecklistState(){try{return JSON.parse(localStorage.getItem('tpcp_checklist_state'))||{};}catch(e){return {};}}
 function saveChecklistState(state){localStorage.setItem('tpcp_checklist_state',JSON.stringify(state));}
@@ -4473,7 +4503,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     }).join('');
     return '<div style="padding: 0 14px 14px;">'
       + '<div class="forecast-table">'+rows+'</div>'
-      + '<div class="forecast-tip">Sunscreen every day — June in Anaheim peaks fast.</div>'
+      + '<div class="forecast-tip">Sunscreen every day â June in Anaheim peaks fast.</div>'
       + '</div>';
   }
   // Section 3: Crowd Forecast
@@ -4502,7 +4532,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     }).join('');
     return '<div style="padding: 0 14px 14px;">'
       + '<div class="crowd-bars-grid">'+bars+'</div>'
-      + '<div class="crowd-insight">Monday is your busiest day — good thing that\'s your VIP tour day, so you\'re covered. Tuesday looks light.</div>'
+      + '<div class="crowd-insight">Monday is your busiest day â good thing that\'s your VIP tour day, so you\'re covered. Tuesday looks light.</div>'
       + '</div>';
   }
     // Section 4: Park Hours
@@ -4525,23 +4555,23 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var starSvg='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>';
   var mapSvg='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
   var tipsList=[
-    {icon:mapSvg,title:'Wondrous Journeys Fireworks — Best Spots',body:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near It’s a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland — you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
-    {icon:starSvg,title:'Paint the Night Parade — Best Spots',body:'Main Street USA is the best overall location — the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot — floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
-    {icon:mapSvg,title:'Fantasmic! — Best Viewing',body:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded — often by 50%.'},
-    {icon:mapSvg,title:'World of Color — Best Viewing',body:'Paradise Gardens lagoon — center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday you’re already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
-    {icon:starSvg,title:'Tapestry of Happiness — It’s a Small World',body:'Runs automatically at dusk every night. No reserved viewing needed — just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
-    {icon:clockSvg,title:'Rope Drop Strategy',body:'Arrive at the turnstiles 5-10 min before official opening. Cast Members let people through in waves. Be in the first wave to get a 10-15 min head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly — don’t run — to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
-    {icon:clockSvg,title:'Lightning Lane Strategy',body:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line — this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, Tiana’s early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
-    {icon:clockSvg,title:'Crowd Flow by Time of Day',body:'6-9 AM: Empty — best time for headliners. 9-11 AM: Building — finish Tomorrowland and Fantasyland. 11 AM-2 PM: Peak — use for dining, shows, or Galaxy’s Edge (it handles crowds better). 2-4 PM: Slightly easier, good for Adventureland. 4-6 PM: Busy but manageable. 7 PM onwards: Crowds thin noticeably as families leave — great for second rides on favorites.'},
-    {icon:starSvg,title:'What to Bring',body:'Phone charger/power bank (essential — Disneyland app drains battery fast). Comfortable walking shoes — expect 8-12 miles per day. Light layers for evening (Anaheim cools down after 8 PM). Sunscreen. Reusable water bottle — free water at any counter service. Snacks for the group to avoid long food lines at peak times.'},
-    {icon:clockSvg,title:'Disneyland App Must-Knows',body:'Download before you go and log in. Mobile Order is a game changer — order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes — use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
-    {icon:clockSvg,title:'Best Times to Eat — Avoid the Rush',body:'Peak meal times are 12:00-1:30 PM (lunch) and 6:00-7:30 PM (dinner) — restaurants are packed and waits are long. Best lunch: 11:00-11:30 AM (before the rush) or 2:00-3:00 PM (after it). Best dinner: 5:00-5:30 PM (early bird) or 8:00-8:30 PM (late, after shows). Counter service is least busy 2:00-4:00 PM and right before park close.'},
-    {icon:clockSvg,title:'Mobile Order — Use It Every Time',body:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30-45 min before you want to eat, then tap “I’m here” when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20-30 min just to order.'},
-    {icon:clockSvg,title:'Walk-up List — Your Secret Weapon',body:'Can’t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day — people regularly snag same-day spots at Lamplight Lounge, Cafe Orleans, and Carthay Circle this way. Keep checking the app — spots open up frequently.'},
-    {icon:starSvg,title:'Must-Order Dishes — Don’t Miss These',body:'Cafe Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers — fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand — much shorter line. Galaxy’s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
-    {icon:starSvg,title:'Share Portions — Save Money & Try More',body:'Portions at Disneyland are large. Lamplight’s Lobster Nachos, Plaza Inn’s fried chicken, and Cafe Orleans’ Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5-6 items instead of 9 and share around the table.'},
-    {icon:clockSvg,title:'Dining Package Tip — Fantasmic!',body:'Cafe Orleans offers a Fantasmic! Dining Package — includes a reserved Fantasmic! viewing area with your meal. If you’re eating at Cafe Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy’s Edge fireworks also have dining packages. Book 60 days ahead — same window as regular reservations.'},
-    {icon:mapSvg,title:'Hidden Gems & Local Tips',body:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square — look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle — short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Walt’s personal apartment windows — a light is always kept on in his honor.'}
+    {icon:mapSvg,title:'Wondrous Journeys Fireworks â Best Spots',body:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near Itâs a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland â you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
+    {icon:starSvg,title:'Paint the Night Parade â Best Spots',body:'Main Street USA is the best overall location â the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot â floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
+    {icon:mapSvg,title:'Fantasmic! â Best Viewing',body:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded â often by 50%.'},
+    {icon:mapSvg,title:'World of Color â Best Viewing',body:'Paradise Gardens lagoon â center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday youâre already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
+    {icon:starSvg,title:'Tapestry of Happiness â Itâs a Small World',body:'Runs automatically at dusk every night. No reserved viewing needed â just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
+    {icon:clockSvg,title:'Rope Drop Strategy',body:'Arrive at the turnstiles 5-10 min before official opening. Cast Members let people through in waves. Be in the first wave to get a 10-15 min head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly â donât run â to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
+    {icon:clockSvg,title:'Lightning Lane Strategy',body:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line â this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, Tianaâs early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
+    {icon:clockSvg,title:'Crowd Flow by Time of Day',body:'6-9 AM: Empty â best time for headliners. 9-11 AM: Building â finish Tomorrowland and Fantasyland. 11 AM-2 PM: Peak â use for dining, shows, or Galaxyâs Edge (it handles crowds better). 2-4 PM: Slightly easier, good for Adventureland. 4-6 PM: Busy but manageable. 7 PM onwards: Crowds thin noticeably as families leave â great for second rides on favorites.'},
+    {icon:starSvg,title:'What to Bring',body:'Phone charger/power bank (essential â Disneyland app drains battery fast). Comfortable walking shoes â expect 8-12 miles per day. Light layers for evening (Anaheim cools down after 8 PM). Sunscreen. Reusable water bottle â free water at any counter service. Snacks for the group to avoid long food lines at peak times.'},
+    {icon:clockSvg,title:'Disneyland App Must-Knows',body:'Download before you go and log in. Mobile Order is a game changer â order food from the app and skip the line. Virtual Queue is used for select new attractions. Lightning Lane purchases are in the app. Wait times update every few minutes â use them to decide your next move. Entertainment schedule posts by 7 AM each day.'},
+    {icon:clockSvg,title:'Best Times to Eat â Avoid the Rush',body:'Peak meal times are 12:00-1:30 PM (lunch) and 6:00-7:30 PM (dinner) â restaurants are packed and waits are long. Best lunch: 11:00-11:30 AM (before the rush) or 2:00-3:00 PM (after it). Best dinner: 5:00-5:30 PM (early bird) or 8:00-8:30 PM (late, after shows). Counter service is least busy 2:00-4:00 PM and right before park close.'},
+    {icon:clockSvg,title:'Mobile Order â Use It Every Time',body:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30-45 min before you want to eat, then tap âIâm hereâ when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20-30 min just to order.'},
+    {icon:clockSvg,title:'Walk-up List â Your Secret Weapon',body:'Canât get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day â people regularly snag same-day spots at Lamplight Lounge, Cafe Orleans, and Carthay Circle this way. Keep checking the app â spots open up frequently.'},
+    {icon:starSvg,title:'Must-Order Dishes â Donât Miss These',body:'Cafe Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers â fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand â much shorter line. Galaxyâs Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
+    {icon:starSvg,title:'Share Portions â Save Money & Try More',body:'Portions at Disneyland are large. Lamplightâs Lobster Nachos, Plaza Innâs fried chicken, and Cafe Orleansâ Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5-6 items instead of 9 and share around the table.'},
+    {icon:clockSvg,title:'Dining Package Tip â Fantasmic!',body:'Cafe Orleans offers a Fantasmic! Dining Package â includes a reserved Fantasmic! viewing area with your meal. If youâre eating at Cafe Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxyâs Edge fireworks also have dining packages. Book 60 days ahead â same window as regular reservations.'},
+    {icon:mapSvg,title:'Hidden Gems & Local Tips',body:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square â look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle â short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Waltâs personal apartment windows â a light is always kept on in his honor.'}
   ];
   var tipsHtml='<div class="tip-cards-list">';
   tipsList.forEach(function(t){
@@ -4585,7 +4615,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var warnIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
   var liveRefurbNames=(getStoredRefurbs()||[]);
   var closureEntries=CLOSED.slice();
-  liveRefurbNames.forEach(function(nm){if(!closureEntries.some(function(e){return e.n===nm;})){closureEntries.push({n:nm,d:'Closed for refurbishment — no reopening date announced'});}});
+  liveRefurbNames.forEach(function(nm){if(!closureEntries.some(function(e){return e.n===nm;})){closureEntries.push({n:nm,d:'Closed for refurbishment â no reopening date announced'});}});
   var closuresHtml=closureEntries.length?closureEntries.map(function(c){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider)"><div><div style="font-weight:600;color:var(--text)">'+c.n+'</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">'+c.d+'</div></div></div>';}).join('')+'<div style="font-size:12px;color:var(--text-muted);margin-top:12px">Always check the Disneyland app the morning of your visit for any additional same-day closures.</div>':'<div style="color:var(--text-muted);padding:12px 0">No current closures on record.</div>';
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
@@ -4813,7 +4843,7 @@ async function _doChat(msg){
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
   var _rpc=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});
-  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' RIDE NAME ALIAS: Space Mountain and Hyperspace Mountain are the same ride — always check both names in wait data when asked about either. WAIT TIME RULE: When asked about a specific ride wait time, always look it up in the live wait data above before answering. If the ride appears in the live data (under either name), state the exact current wait. If it is genuinely missing from the live data, say so and give a historical estimate from cache. Never say you cannot answer a wait time question. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' RIDE NAME ALIAS: Space Mountain and Hyperspace Mountain are the same ride â always check both names in wait data when asked about either. WAIT TIME RULE: When asked about a specific ride wait time, always look it up in the live wait data above before answering. If the ride appears in the live data (under either name), state the exact current wait. If it is genuinely missing from the live data, say so and give a historical estimate from cache. Never say you cannot answer a wait time question. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(!window.chatHistory)window.chatHistory=[];
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
@@ -5097,7 +5127,7 @@ function ptToggle(id){
   if(!body)return;
   var isOpen=body.style.display!=='none';
   body.style.display=isOpen?'none':'block';
-  if(arr)arr.textContent=isOpen?'▲' : '▼';
+  if(arr)arr.textContent=isOpen?'â²' : 'â¼';
   if(!isOpen){
     if(id==='kbyg')loadKnowBeforeYouGo();
     else if(id==='crowds')loadCrowdPrediction();
@@ -5588,7 +5618,7 @@ function submitTripCode() {
     .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
     .then(function(result) {
       inp.disabled = false;
-      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure →'; }
+      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure â'; }
       if (result.status !== 200 || !result.data.valid) {
         var msg = result.status === 403 ? 'That code has expired or is inactive.' : "That code wasn't found. Check it and try again.";
         if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
@@ -5615,7 +5645,7 @@ function submitTripCode() {
     })
     .catch(function() {
       inp.disabled = false;
-      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure →'; }
+      if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure â'; }
       if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
     });
 }
@@ -5667,7 +5697,7 @@ function initSplash() {
         if (datesEl && TRIP_CONFIG.days && TRIP_CONFIG.days.length) {
           var first = TRIP_CONFIG.days[0].date || '';
           var last = TRIP_CONFIG.days[TRIP_CONFIG.days.length - 1].date || '';
-          datesEl.textContent = first + (last && last !== first ? ' – ' + last : '');
+          datesEl.textContent = first + (last && last !== first ? ' â ' + last : '');
         }
         if (locEl) locEl.textContent = 'Anaheim, CA';
         if (parksEl) {
@@ -5727,10 +5757,10 @@ function obGoTo(step) {
   var nextBtn = document.getElementById('obNextBtn');
   if (nextBtn) {
     if (step === 8) {
-      nextBtn.textContent = 'Build my schedule →';
+      nextBtn.textContent = 'Build my schedule â';
       nextBtn.style.background = '#C86030';
     } else {
-      nextBtn.textContent = 'Next →';
+      nextBtn.textContent = 'Next â';
       nextBtn.style.background = '#1A6860';
     }
   }
@@ -5823,7 +5853,7 @@ function ob8RenderSummary() {
     var dN = new Date(cfg.dates[cfg.dates.length - 1] + "T12:00:00");
     var opts = { month: "short", day: "numeric" };
     var dateRangeStr = d0.toLocaleDateString("en-US", opts) + (cfg.dates.length > 1 ? " \u2013 " + dN.toLocaleDateString("en-US", opts) : "");
-    parts.push(cfg.dates.length + " day" + (cfg.dates.length !== 1 ? "s" : "") + " at " + parkStr + " · " + dateRangeStr);
+    parts.push(cfg.dates.length + " day" + (cfg.dates.length !== 1 ? "s" : "") + " at " + parkStr + " Â· " + dateRangeStr);
   }
   // Group size
   if (cfg.group && cfg.group.total > 0) {
@@ -5837,7 +5867,7 @@ function ob8RenderSummary() {
     if (u40 > 0) gParts.push(u40 + " little one" + (u40 !== 1 ? "s" : ""));
     if (h4048 > 0) gParts.push(h4048 + " kid" + (h4048 !== 1 ? "s" : ""));
     if (o48 > 0) gParts.push(o48 + " adult" + (o48 !== 1 ? "s" : ""));
-    parts.push(gParts.join(" · "));
+    parts.push(gParts.join(" Â· "));
     if (g.afternoonBreak) parts.push("Afternoon break planned");
   }
   // Ride style
@@ -5846,7 +5876,7 @@ function ob8RenderSummary() {
     var styleStr = [];
     if (r.intensity) styleStr.push(r.intensity.charAt(0).toUpperCase() + r.intensity.slice(1) + " intensity");
     if (r.pace) styleStr.push(r.pace.charAt(0).toUpperCase() + r.pace.slice(1) + " pace");
-    if (styleStr.length > 0) parts.push(styleStr.join(" · "));
+    if (styleStr.length > 0) parts.push(styleStr.join(" Â· "));
     if (r.mustDo) parts.push("Must-dos: " + r.mustDo);
     if (r.avoid) parts.push("Avoiding: " + r.avoid);
   }
@@ -5855,7 +5885,7 @@ function ob8RenderSummary() {
     var ll = cfg.lightningLane;
     if (ll.multiPass) {
       var llStr = "Lightning Lane Multi Pass";
-      if (ll.singlePass && ll.singlePass.length > 0) llStr += " · " + ll.singlePass.length + " LLSP";
+      if (ll.singlePass && ll.singlePass.length > 0) llStr += " Â· " + ll.singlePass.length + " LLSP";
       parts.push(llStr);
     }
   }
@@ -5918,7 +5948,7 @@ function ob8Complete() {
   var pill = document.getElementById('obSetupPill');
   if (pill) pill.style.display = 'none';
   if (typeof showSchedule === 'function') showSchedule(0);
-  // Scroll to top of schedule after generation — double rAF ensures layout is complete
+  // Scroll to top of schedule after generation â double rAF ensures layout is complete
   requestAnimationFrame(function() {
     requestAnimationFrame(function() {
       window.scrollTo(0, 0);
@@ -5976,7 +6006,7 @@ function obRenderDayRows() {
       var d = new Date(startDate + 'T00:00:00');
       d.setDate(d.getDate() + i);
       var shortDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      dayLabel += ' · ' + shortDate;
+      dayLabel += ' Â· ' + shortDate;
       dayDateStr = shortDate;
     }
     var vipOn = _obVipState[i] && _obVipState[i].on;
@@ -6271,9 +6301,9 @@ function obRenderToggle(btnId, enabled) {
 }
 
 // ---- SCREEN 3: Ride Preferences ----
-// — Ride selector data —
+// â Ride selector data â
 var _OB_RIDES = [
-  // Disneyland — Galaxy's Edge
+  // Disneyland â Galaxy's Edge
   { name: "Rise of the Resistance", land: "Galaxy's Edge", park: "Disneyland", busy: true },
   { name: "Millennium Falcon: Smugglers Run", land: "Galaxy's Edge", park: "Disneyland" },
   // Fantasyland
@@ -6290,19 +6320,19 @@ var _OB_RIDES = [
   { name: "Tiana's Bayou Adventure", land: "New Orleans Square", park: "Disneyland", busy: true },
   // Tomorrowland
   { name: "Space Mountain", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
-  { name: "Star Tours — The Adventures Continue", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
+  { name: "Star Tours â The Adventures Continue", land: "Tomorrowland", park: "Disneyland", height: "40\"" },
   { name: "Finding Nemo Submarine Voyage", land: "Tomorrowland", park: "Disneyland" },
   // Frontierland / Toontown
   { name: "Big Thunder Mountain Railroad", land: "Frontierland", park: "Disneyland", height: "40\"" },
   { name: "Roger Rabbit's Car Toon Spin", land: "Mickey's Toontown", park: "Disneyland" },
   { name: "Mickey & Minnie's Runaway Railway", land: "Mickey's Toontown", park: "Disneyland" },
-  // DCA — Cars Land / Pixar Pier
+  // DCA â Cars Land / Pixar Pier
   { name: "Radiator Springs Racers", land: "Cars Land", park: "DCA", height: "40\"", busy: true },
   { name: "Incredicoaster", land: "Pixar Pier", park: "DCA", height: "48\"" },
   { name: "Toy Story Midway Mania!", land: "Pixar Pier", park: "DCA" },
   // Avengers Campus
   { name: "WEB-SLINGERS: A Spider-Man Adventure", land: "Avengers Campus", park: "DCA" },
-  { name: "Guardians of the Galaxy — Mission: BREAKOUT!", land: "Avengers Campus", park: "DCA", height: "40\"" },
+  { name: "Guardians of the Galaxy â Mission: BREAKOUT!", land: "Avengers Campus", park: "DCA", height: "40\"" },
   // Hollywood Land
   { name: "Soarin' Around the World", land: "Hollywood Land", park: "DCA" }
 ];
@@ -6333,7 +6363,7 @@ function obRenderRideList() {
   var lastLand = '';
   _OB_RIDES.forEach(function(ride) {
     if (ride.land !== lastLand) {
-      html += '<div style="font-size:10px;font-weight:700;color:#4A7A7C;letter-spacing:0.05em;text-transform:uppercase;margin:' + (lastLand ? '10px' : '2px') + ' 0 4px;">' + ride.land + ' · ' + ride.park + '</div>';
+      html += '<div style="font-size:10px;font-weight:700;color:#4A7A7C;letter-spacing:0.05em;text-transform:uppercase;margin:' + (lastLand ? '10px' : '2px') + ' 0 4px;">' + ride.land + ' Â· ' + ride.park + '</div>';
       lastLand = ride.land;
     }
     var isClosed = _OB_CLOSED_RIDES.indexOf(ride.name) > -1;
@@ -6359,9 +6389,9 @@ function obRenderRideList() {
 
 function obInitStep3() {
   obRenderTiles('obPaceTiles', [
-    { value: 'relaxed', label: 'Relaxed — we stop and soak it in' },
-    { value: 'balanced', label: 'Balanced — steady but not rushed' },
-    { value: 'powerDay', label: 'Power day — maximise every minute' }
+    { value: 'relaxed', label: 'Relaxed â we stop and soak it in' },
+    { value: 'balanced', label: 'Balanced â steady but not rushed' },
+    { value: 'powerDay', label: 'Power day â maximise every minute' }
   ], _obPace, function(v) { _obPace = v; });
   // Restore height toggle
   obRenderToggle('obHeightToggle', _obHeightEnabled);
@@ -6395,7 +6425,7 @@ function obSaveStep3() {
   _obTripConfig.ridePreferences = { mustDo: mustDo, wantToDo: wantToDo, skip: skip };
 }
 
-// — ridePrefsContext builder (injected into all AI calls) —
+// â ridePrefsContext builder (injected into all AI calls) â
 function buildRidePrefsContext(tripConfig) {
   var rp = (tripConfig || {}).ridePreferences;
   if (!rp) return '';
@@ -6435,7 +6465,7 @@ function obDefaultLLSPRides() {
     "Matterhorn Bobsleds", "Space Mountain", "Big Thunder Mountain",
     "Incredicoaster", "Mickey & Minnie's Runaway Railway",
     "Millennium Falcon: Smugglers Run", "Soarin' Over California",
-    "Star Tours – The Adventures Continue"
+    "Star Tours â The Adventures Continue"
   ];
 }
 
@@ -6448,10 +6478,10 @@ function obParseLLSPRides(text) {
     "Matterhorn Bobsleds", "Space Mountain", "Big Thunder Mountain",
     "Incredicoaster", "Mickey & Minnie's Runaway Railway",
     "Millennium Falcon: Smugglers Run", "Soarin' Over California",
-    "Star Tours – The Adventures Continue"
+    "Star Tours â The Adventures Continue"
   ];
   // Return all known rides found in text, plus any not found
-  var found = known.filter(function(r) { return text.includes(r.split(':')[0].split('–')[0].trim()); });
+  var found = known.filter(function(r) { return text.includes(r.split(':')[0].split('â')[0].trim()); });
   return found.length > 3 ? found : known;
 }
 
@@ -6513,7 +6543,7 @@ function obSaveStep4() {
 
 // ---- SCREEN 5: Character Meets ----
 function obInitStep5() {
-  // FYI card — no initialisation needed
+  // FYI card â no initialisation needed
 }
 
 function obDefaultCharCategories() {
@@ -6570,7 +6600,7 @@ function obRenderCharCategories(categories) {
 }
 
 function obSaveStep5() {
-  // FYI card — nothing to save
+  // FYI card â nothing to save
 }
 
 // ---- SCREEN 6: Reservations & Experiences ----
@@ -6578,15 +6608,15 @@ function obInitStep6() {
   obRenderReservationEntries();
   // Render dining style tiles
   obRenderTiles('obDiningStyleTiles', [
-    { value: 'quickService', label: 'Quick service — keep it fast' },
-    { value: 'mix', label: 'Mix — one sit-down, rest quick service' },
-    { value: 'tableService', label: 'Table service — we love a good meal' }
+    { value: 'quickService', label: 'Quick service â keep it fast' },
+    { value: 'mix', label: 'Mix â one sit-down, rest quick service' },
+    { value: 'tableService', label: 'Table service â we love a good meal' }
   ], _obDiningStyle, function(v) { _obDiningStyle = v; });
   // Render dining priority tiles
   obRenderTiles('obDiningPriorityTiles', [
-    { value: 'fuel', label: 'Fuel — food is secondary to rides' },
-    { value: 'balanced', label: 'Balanced — we enjoy a good meal' },
-    { value: 'foodie', label: 'Foodie — dining is part of the experience' }
+    { value: 'fuel', label: 'Fuel â food is secondary to rides' },
+    { value: 'balanced', label: 'Balanced â we enjoy a good meal' },
+    { value: 'foodie', label: 'Foodie â dining is part of the experience' }
   ], _obDiningPriority, function(v) { _obDiningPriority = v; });
   obRenderToggle('obKidsMealsToggle', _obKidsMeals);
   // Fetch dining intel for chip options and reservation names
@@ -7021,7 +7051,7 @@ function openAltSheet(rideName, options) {
     html += '<div class="alt-rank ' + rankClass + '">' + (i+1) + '</div>';
     html += '<div class="alt-info">';
     html += '<div class="alt-name">' + opt.name + '</div>';
-    html += '<div class="alt-meta">Est. wait: <span class="wait-pill ' + waitClass + '">' + (opt.wait || '--') + ' min</span>' + (opt.note ? ' · ' + opt.note : '') + '</div>';
+    html += '<div class="alt-meta">Est. wait: <span class="wait-pill ' + waitClass + '">' + (opt.wait || '--') + ' min</span>' + (opt.note ? ' Â· ' + opt.note : '') + '</div>';
     html += '</div></div>';
   });
   if (container) container.innerHTML = html;
@@ -7074,7 +7104,7 @@ function renderVipBanner(dayNum) {
     }
     if (typeof vnInit === 'function') setTimeout(function(){vnInit();},0);
     // Repopulate from cache immediately to avoid empty-flash
-    try{var _c=localStorage.getItem('vn_entries_2');if(_c&&typeof vnApplySync==='function')vnApplySync(JSON.parse(_c));}catch(_e){}
+    try{if(typeof vnRenderEntries==='function')vnRenderEntries();}catch(_e){}
   } else {
     var vnSec2 = document.getElementById('vipNotesSection');
     if (vnSec2) vnSec2.style.display = 'none';
@@ -7872,7 +7902,7 @@ function tpcpConfirmSwap() {
             <div class="ob-field">
         <label class="ob-label">How many people in your group?</label>
         <div style="display:flex;align-items:center;gap:16px;margin-top:8px;">
-          <button onclick="obAdjGroupSize(-1)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid #1A6860;background:white;font-size:20px;color:#1A6860;cursor:pointer;">−</button>
+          <button onclick="obAdjGroupSize(-1)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid #1A6860;background:white;font-size:20px;color:#1A6860;cursor:pointer;">â</button>
           <span id="obGroupSizeDisplay" style="font-size:24px;font-weight:700;color:#071E25;min-width:32px;text-align:center;">2</span>
           <button onclick="obAdjGroupSize(1)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid #1A6860;background:white;font-size:20px;color:#1A6860;cursor:pointer;">+</button>
         </div>
@@ -7985,7 +8015,7 @@ function tpcpConfirmSwap() {
 
         <div id="obStep6New" class="ob-step" style="display:none;">
       <h2 style="font-size:22px;font-weight:700;color:#071E25;margin:0 0 4px;">Reservations.</h2>
-      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">These are fixed anchors — AI builds your day around them.</p>
+      <p style="font-size:14px;color:#4A6670;margin:0 0 24px;">These are fixed anchors â AI builds your day around them.</p>
 
       <!-- Add buttons -->
       <div class="ob-field">
@@ -8119,7 +8149,7 @@ function tpcpConfirmSwap() {
         done = 'true';
         try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {}
       } else {
-        // _loadedTripData not yet set — retry in 1 second
+        // _loadedTripData not yet set â retry in 1 second
         setTimeout(nudgeCheckAndShow, 1000);
         return;
       }
@@ -8166,10 +8196,10 @@ function tpcpConfirmSwap() {
     var charPriority = (cfg.characters && cfg.characters.priority) || cfg.charPriority || '';
     var paradesPref = (cfg.entertainment && cfg.entertainment.parades) || cfg.parades || '';
     var sections = [
-      { name: 'Trip Basics', summary: (cfg.tripName || 'Trip') + ' · ' + daysCount + ' day' + (daysCount !== 1 ? 's' : ''), step: 1 },
+      { name: 'Trip Basics', summary: (cfg.tripName || 'Trip') + ' Â· ' + daysCount + ' day' + (daysCount !== 1 ? 's' : ''), step: 1 },
       { name: 'Your Group', summary: totalGuests + ' guest' + (totalGuests !== 1 ? 's' : ''), step: 2 },
-      { name: 'Ride Preferences', summary: [intensity, pace].filter(Boolean).join(' · ') || 'Not set', step: 3 },
-      { name: 'Lightning Lane', summary: (multiPass ? 'Multi Pass on' : 'Multi Pass off') + (singleCount > 0 ? ' · ' + singleCount + ' LLSP' : ''), step: 4 },
+      { name: 'Ride Preferences', summary: [intensity, pace].filter(Boolean).join(' Â· ') || 'Not set', step: 3 },
+      { name: 'Lightning Lane', summary: (multiPass ? 'Multi Pass on' : 'Multi Pass off') + (singleCount > 0 ? ' Â· ' + singleCount + ' LLSP' : ''), step: 4 },
       { name: 'Character Meets', summary: charPriority || 'Not set', step: 5 },
       { name: 'Reservations', summary: reservCount > 0 ? reservCount + ' reservation' + (reservCount !== 1 ? 's' : '') : 'None added', step: 6 },
       { name: 'Shows & Entertainment', summary: paradesPref ? paradesPref + ' parades' : 'Not set', step: 7 }
@@ -8212,11 +8242,11 @@ function tpcpConfirmSwap() {
     rebuildArea.style.cssText = 'padding:16px;display:none;';
     var rebuildBtn = document.createElement('button');
     rebuildBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;';
-    rebuildBtn.textContent = 'Rebuild my schedule with these changes →';
+    rebuildBtn.textContent = 'Rebuild my schedule with these changes â';
     rebuildBtn.onclick = rebuildSchedule;
     var rebuildNote = document.createElement('p');
     rebuildNote.style.cssText = 'font-size:11px;color:#4A6670;line-height:1.4;text-align:center;margin:8px 0 0;';
-    rebuildNote.textContent = 'I’ll keep your reservations and Lightning Lane times locked in and rebuild everything else around your changes.';
+    rebuildNote.textContent = 'Iâll keep your reservations and Lightning Lane times locked in and rebuild everything else around your changes.';
     rebuildArea.appendChild(rebuildBtn);
     rebuildArea.appendChild(rebuildNote);
     overlay.appendChild(rebuildArea);
@@ -8345,7 +8375,7 @@ function tpcpConfirmSwap() {
     copyEl.textContent = copy;
     var subBtn = document.createElement('button');
     subBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:14px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:10px;';
-    subBtn.textContent = 'Subscribe now →';
+    subBtn.textContent = 'Subscribe now â';
     subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
     var dimBtn = document.createElement('button');
     dimBtn.style.cssText = 'width:100%;background:transparent;border:1px solid rgba(7,30,37,0.15);border-radius:12px;padding:12px;font-family:Outfit,sans-serif;font-size:14px;font-weight:600;color:#4A6670;cursor:pointer;';
@@ -8372,7 +8402,7 @@ function tpcpConfirmSwap() {
     bannerText.textContent = 'Your trial has ended. Subscribe to unlock your full trip.';
     var subBtn = document.createElement('button');
     subBtn.style.cssText = 'background:#C86030;border:none;border-radius:20px;padding:5px 12px;font-family:Outfit,sans-serif;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;margin-left:10px;';
-    subBtn.textContent = 'Subscribe →';
+    subBtn.textContent = 'Subscribe â';
     subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
     banner.appendChild(bannerText);
     banner.appendChild(subBtn);
@@ -8385,7 +8415,7 @@ function tpcpConfirmSwap() {
           var msg = document.createElement('div');
           msg.id = 'softWallAiMsg';
           msg.style.cssText = 'font-size:10px;color:#4A6670;text-align:center;padding:4px 0;';
-          msg.textContent = 'Your trial has ended — subscribe to continue using AI features';
+          msg.textContent = 'Your trial has ended â subscribe to continue using AI features';
           aiOpt.parentNode.insertBefore(msg, aiOpt.nextSibling);
         }
       };
@@ -8408,10 +8438,10 @@ function tpcpConfirmSwap() {
     titleEl.textContent = 'Your trial has ended.';
     var copyEl = document.createElement('div');
     copyEl.style.cssText = 'font-size:14px;color:rgba(255,255,255,0.60);line-height:1.5;margin-bottom:28px;';
-    copyEl.textContent = 'Subscribe to pick up right where you left off — your trip details are saved.';
+    copyEl.textContent = 'Subscribe to pick up right where you left off â your trip details are saved.';
     var subBtn = document.createElement('button');
     subBtn.style.cssText = 'width:100%;background:#C86030;border:none;border-radius:12px;padding:16px;font-family:Outfit,sans-serif;font-size:16px;font-weight:700;color:#fff;cursor:pointer;';
-    subBtn.textContent = 'Subscribe to unlock →';
+    subBtn.textContent = 'Subscribe to unlock â';
     subBtn.onclick = function() { window.open('https://themeparkcopilot.com', '_blank'); };
     inner.appendChild(brandEl);
     inner.appendChild(titleEl);
