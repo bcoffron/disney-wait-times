@@ -2508,6 +2508,7 @@ function startBlobPoll() {
           }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
           if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
+          if (typeof renderVipBanner === 'function') renderVipBanner(curDay);
         }
         // Update VIP notes on Day 2
         var onDay2 = (window.curDay === 2) || (window.currentDay === 2);
