@@ -2219,12 +2219,14 @@ function startScheduleSync(){
 //    VIP notes sync                                                         
 async function pushVipNotes(dayIdx,val){
   try{
-    await fetch(SYNC_BASE+'/api/vipnotes',{
+    var code = localStorage.getItem('tpcp_code') || '';
+    var r = await fetch(SYNC_BASE+'/api/vipnotes',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({day:dayIdx,notes:val})
+      body:JSON.stringify({day:dayIdx, notes:val, tripCode: code})
     });
-  }catch(e){}
+    if(!r.ok) console.warn('[vipnotes] save failed', r.status);
+  }catch(e){ console.warn('[vipnotes] save error', e); }
 }
 
 //    Web push: enable wait-spike alerts for this trip
@@ -2361,8 +2363,7 @@ function startNotesSync(){
   if(window._notesSyncStarted) return;
   window._notesSyncStarted = true;
   pullVipNotes();
-  // NOTE: vipnotes polling interval removed — _blobPollInterval handles sync via /api/trip
-  // notesSyncInterval=setInterval(pullVipNotes,30*1000); // DISABLED
+  window._notesSyncInterval = setInterval(pullVipNotes, 20*1000);
 }
 
 function applyScheduleUpdate(day, schedule){
@@ -3437,6 +3438,9 @@ function vnApplySync(rawNotes){
   if(!Array.isArray(parsed)) return;
   // Merge with local - server is source of truth
   try{localStorage.setItem('vn_entries_2', JSON.stringify(parsed));}catch(e){}
+  // Skip re-render if a notes input is currently focused (user is actively typing)
+  var vnSec = document.getElementById('vipNotesSection');
+  if(vnSec && vnSec.contains(document.activeElement) && document.activeElement !== document.body) return;
   vnRenderEntries();
 }
 function vnInit(){
@@ -7069,6 +7073,8 @@ function renderVipBanner(dayNum) {
       container.appendChild(vnSec);
     }
     if (typeof vnInit === 'function') setTimeout(function(){vnInit();},0);
+    // Repopulate from cache immediately to avoid empty-flash
+    try{var _c=localStorage.getItem('vn_entries_2');if(_c&&typeof vnApplySync==='function')vnApplySync(JSON.parse(_c));}catch(_e){}
   } else {
     var vnSec2 = document.getElementById('vipNotesSection');
     if (vnSec2) vnSec2.style.display = 'none';
