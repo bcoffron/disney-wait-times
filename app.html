@@ -1479,9 +1479,10 @@ function checkLock(){
     if(tpcpCode&&tpcpRole){
       // Silent re-validation while validating
       fetch(SYNC_BASE+'/api/trip?code='+encodeURIComponent(tpcpCode))
-        .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};});})
+        .then(function(r){return r.json().then(function(d){return{status:r.status,data:d};}).catch(function(){return{status:r.status,data:null};});}, function(){return{status:0,data:null};})
         .then(function(result){
-          if(result.status!==200||!result.data.valid){
+          // Definitive invalid/expired/inactive code (trip.js 403/404) -> end the session.
+          if(result.status===403||result.status===404){
             localStorage.removeItem('tpcp_code');
             localStorage.removeItem('tpcp_role');
             localStorage.removeItem('tpcp_tripId');
@@ -1491,6 +1492,12 @@ function checkLock(){
             if(area){var err=document.createElement('div');err.style.cssText='color:#C86030;font-size:13px;text-align:center;margin-top:8px;';err.textContent='Session expired. Please re-enter your code.';area.appendChild(err);}
             return;
           }
+          // Transient (5xx cold start, 429, offline on wake, non-JSON edge, dropped connection): keep the session, retry once via reload.
+          if(result.status!==200||!result.data||!result.data.valid){
+            try{ if(!sessionStorage.getItem('tpcp_revalRetry')){ sessionStorage.setItem('tpcp_revalRetry','1'); setTimeout(function(){location.reload();},2500); } }catch(e){}
+            return;
+          }
+          try{ sessionStorage.removeItem('tpcp_revalRetry'); }catch(e){}
           var d=result.data;
           userRole=d.role;
           try{localStorage.setItem('disney_unlocked',d.role);}catch(e){}
@@ -2475,9 +2482,13 @@ function startBlobPoll() {
     var role = localStorage.getItem('tpcp_role') || '';
     if (!code) return;
     fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code) + '&t=' + Date.now())
-      .then(function(resp) { return resp.ok ? resp.json().catch(()=>null) : null; })
-      .then(function(data) {
-        if (!data || !data.tripData) { if (window._blobPollFirst) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; var _sp=document.getElementById('splashScreen'),_ma=document.getElementById('mainApp');if(_sp){_sp.style.display='flex';}if(_ma){_ma.style.display='none';}; } return; }
+      .then(function(resp) { var st=resp.status; return resp.json().then(function(j){return {status:st,data:j};}).catch(function(){return {status:st,data:null};}); }, function(){ return {status:0,data:null}; })
+      .then(function(r) {
+        var data = r.data;
+        // Only a DEFINITIVE invalid/expired/inactive code (trip.js 403/404) ends the session.
+        // Transient failures (5xx cold start, 429, offline on wake, non-JSON edge) must NOT sign the guest out.
+        if (r.status === 403 || r.status === 404) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; var _sp=document.getElementById('splashScreen'),_ma=document.getElementById('mainApp');if(_sp){_sp.style.display='flex';}if(_ma){_ma.style.display='none';}; } return; }
+        if (!data || !data.tripData) { return; }
         window._blobPollFirst = false;
         var hash = JSON.stringify(data.tripData);
         if (hash === _blobPollLastHash) return;
