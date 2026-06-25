@@ -20,7 +20,7 @@
 <meta name="viewport" content="width=devicewidth, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="TP Co-Pilot">
+<meta name="apple-mobile-web-app-title" content="Theme Park CP">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#071E25">
@@ -871,12 +871,12 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 [class*="is-food"],[class*="is-show"] {
   padding: 0 !important;
 }
-/* Fix 3 Pass5 &mdash; Push time-col clear of the accent left border on photo/snack/restroom cards */
-.ride-block.is-photo .ride-time,
-.ride-block.is-snack .ride-time,
-.ride-block.is-break .ride-time {
-  padding-left: 6px;
-}
+/* Align schedule card times to one consistent left offset across all card types
+      (cancels out the different accent-border widths so the time column lines up) */
+   .ride-block .ride-time{padding-left:8px}
+   .ride-block.is-snack .ride-time,.ride-block.is-dining .ride-time,.ride-block.is-food .ride-time,.ride-block.is-quickservice .ride-time,.ride-block.is-tip .ride-time,.ride-block.is-show .ride-time,.ride-block.is-lls .ride-time,.ride-block.is-character .ride-time{padding-left:6.5px}
+   .ride-block.is-photo .ride-time,.ride-block.is-break .ride-time,.ride-block.is-rest .ride-time{padding-left:5.5px}
+   .ride-block.is-vip .ride-time{padding-left:8.5px}
 /* Fix 4 Pass5 &mdash; Consistent gap on all card types; remove old negative margin hacks */
 .ride-main {
   display: flex;
