@@ -2487,7 +2487,7 @@ function startBlobPoll() {
         var data = r.data;
         // Only a DEFINITIVE invalid/expired/inactive code (trip.js 403/404) ends the session.
         // Transient failures (5xx cold start, 429, offline on wake, non-JSON edge) must NOT sign the guest out.
-        if (r.status === 403 || r.status === 404) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; var _sp=document.getElementById('splashScreen'),_ma=document.getElementById('mainApp');if(_sp){_sp.style.display='flex';}if(_ma){_ma.style.display='none';}; } return; }
+        if (r.status === 403 || r.status === 404) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; var _sp=document.getElementById('splashScreen'),_ma=document.getElementById('mainApp');if(_sp){_sp.style.display='flex';}if(_ma){_ma.style.display='none';}; return; }
         if (!data || !data.tripData) { return; }
         window._blobPollFirst = false;
         var hash = JSON.stringify(data.tripData);
