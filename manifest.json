@@ -1,6 +1,6 @@
 {
   "name": "Theme Park Co-Pilot",
-  "short_name": "TP Co-Pilot",
+  "short_name": "Theme Park CP",
   "description": "Smarter days. More magic. AI-powered Disney park planning and real-time guidance.",
   "start_url": "/app.html",
   "scope": "/",
