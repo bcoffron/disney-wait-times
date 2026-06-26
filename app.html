@@ -2514,10 +2514,11 @@ function startBlobPoll() {
                     isVip: !!dy.isVip, vipStart: dy.vipStart || '10:00', vipEnd: dy.vipEnd || '17:00',
                     hasLL: !!dy.hasLL, hasLLMP: !!dy.hasLLMP, hasILL: !!dy.hasILL, hopTo: !!dy.hopTo
                   });
-                });
-              }
-            }
-            if (typeof loadCustom === 'function') loadCustom();
+              });
+                   TRIP_CONFIG.days.forEach(function(dy, i){ var tab=document.getElementById('day-tab-'+(i+1)); if(!tab)return; if(dy.isVip){tab.classList.add('vip-tab');}else{tab.classList.remove('vip-tab');} var de=tab.querySelector('.day-tab-date'); if(de)de.textContent=dy.date||''; });
+                 }
+               }
+               if (typeof loadCustom === 'function') loadCustom();
           }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
           if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
