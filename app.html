@@ -2518,7 +2518,7 @@ function startBlobPoll() {
                    TRIP_CONFIG.days.forEach(function(dy, i){ var tab=document.getElementById('day-tab-'+(i+1)); if(!tab)return; if(dy.isVip){tab.classList.add('vip-tab');}else{tab.classList.remove('vip-tab');} var de=tab.querySelector('.day-tab-date'); if(de)de.textContent=dy.date||''; });
                  }
                }
-               if (typeof loadCustom === 'function') loadCustom();
+               if (typeof loadCustom === 'function') loadCustom();try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
           }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
           if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
@@ -6984,7 +6984,19 @@ function enterSplash(skipAnim) {
   function _initApp() {
     if (typeof loadKey === 'function') loadKey();
     if (typeof checkLock === 'function') checkLock();
-    if (typeof applyRoleUI === 'function') applyRoleUI();
+    if (typeof applyRoleUI === 'function') applyRoleUI();try {
+      if ((localStorage.getItem('tpcp_role')||'') === 'guest' && !(window._schedData && window._schedData.days)) {
+        var _gcStr = localStorage.getItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''));
+        var _gcObj = _gcStr ? JSON.parse(_gcStr) : null;
+        if (_gcObj && _gcObj.schedData && _gcObj.schedData.days && _gcObj.schedData.days.length) {
+          window._schedData = _gcObj.schedData;
+          if (typeof loadCustom==='function') { loadCustom(); }
+        } else if (_gcObj && _gcObj.customSched) {
+          customSched = _gcObj.customSched;
+          if (typeof renderSched==='function') { renderSched(window.curDay || 1); }
+        }
+      }
+    } catch(_e){}
     if (typeof startScheduleSync === 'function') startScheduleSync();
     else if (typeof pullSchedule === 'function') pullSchedule(1);
     if (typeof scheduleLLPrompts === 'function') scheduleLLPrompts();
