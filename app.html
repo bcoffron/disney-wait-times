@@ -5050,7 +5050,7 @@ function getStoredRefurbs(){
     rides = rides.filter(function(r){
       return !CLOSED.some(function(c){ return c.n.toLowerCase().indexOf(r.toLowerCase()) !== -1 || r.toLowerCase().indexOf(c.n.toLowerCase().split(' (')[0].toLowerCase()) !== -1; });
     });
-    return rides.length ? rides : null;
+    if(typeof waits!=='undefined'&&waits&&Object.keys(waits).length){rides=rides.filter(function(r){var rl=r.toLowerCase();var op=Object.keys(waits).some(function(k){var v=waits[k]||{};var nm=((v.name||v.raw||k)+'').toLowerCase();return v.s==='OPERATING'&&(nm===rl||nm.indexOf(rl)!==-1||rl.indexOf(nm)!==-1);});return !op;});} return rides.length ? rides : null;
   }catch(e){return null;}
 }
 
