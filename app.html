@@ -4866,7 +4866,7 @@ async function _doChat(msg){
   var msgs=document.getElementById('chatMessages');
   if(msgs){msgs.appendChild(te);msgs.scrollTop=msgs.scrollHeight;}
   try{
-    var resp=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,system:sys,messages:chatHistory});
+    var resp=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:chatHistory});
     var data=resp;
     if(data.error){if(te.parentNode)te.remove();appendChatMsg('ai','Error: '+data.error.message);return;}
     var reply=data.content&&data.content[0]?data.content[0].text:'Sorry, try again.';
