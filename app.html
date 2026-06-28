@@ -1450,7 +1450,7 @@ function checkLock(){
   // After June 27, skip lock screen entirely
   var now=new Date();
   var tripStart=new Date('2026-06-28T00:00:00');
-  if(now>=tripStart){
+  if(false&&now>=tripStart){
     try{
       var saved=localStorage.getItem('disney_unlocked');
       if(saved==='admin') userRole='admin';
