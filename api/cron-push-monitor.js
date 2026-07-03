@@ -34,9 +34,25 @@ const DROP_DAY_CUTOFF_MIN = 21 * 60; // do not send drop alerts after 9 PM (litt
 const HIGH_MIN = 60;           // current wait must be >= this to nudge
 const HIGH_COOLDOWN_MIN = 75;  // per-trip: at most one high-wait nudge this often
 
+// Ride-down nudge: a planned rope-drop ride is not operating this morning.
+const ROPE_DROP_END_MIN = 10 * 60 + 30;   // 10:30 AM PT -- only alert about a down ride during the morning rope-drop window
+const DOWN_STATUSES = { DOWN: 1, REFURBISHMENT: 1 }; // ThemeParks.wiki statuses that mean a planned ride is unavailable
+
 // Park hours guard (Pacific). Outside this window, skip entirely.
 const PARK_OPEN_HOUR_PT = 7;   // 7 AM PT
 const PARK_CLOSE_HOUR_PT = 24; // midnight PT (rides can run to ~midnight)
+
+// Parse a schedule item time like "8:00 AM" into minutes since midnight; -1 if unparseable.
+function hmToMin(t) {
+	if (!t) return -1;
+	const m = String(t).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+	if (!m) return -1;
+	let h = parseInt(m[1], 10); const mn = parseInt(m[2], 10);
+	const pm = m[3].toUpperCase() === 'PM';
+	if (pm && h !== 12) h += 12;
+	if (!pm && h === 12) h = 0;
+	return h * 60 + mn;
+}
 
 function safeTripId(raw) {
 	if (typeof raw !== 'string') return '';
@@ -238,7 +254,7 @@ export default async function handler(req, res) {
 				if (r.entityType !== 'ATTRACTION') continue;
 				const w = (r.queue && r.queue.STANDBY && typeof r.queue.STANDBY.waitTime === 'number')
 					? r.queue.STANDBY.waitTime : null;
-				if (w === null) continue;
+				if (w === null && !DOWN_STATUSES[r.status]) continue;
 				liveByName[normName(r.name)] = { wait: w, status: r.status, name: r.name };
 			}
 		};
@@ -287,10 +303,21 @@ export default async function handler(req, res) {
 			const spikes = [];
 			const drops = [];
 			const highs = [];
+			const downs = [];
 			const lastHigh = (typeof state.lastHighAlertMin === 'number') ? state.lastHighAlertMin : -99999;
 
 			for (const it of rideItems) {
 				const live = resolveLive(it.h, liveByName, liveKeys);
+				// DOWN detector: a ride you planned to ride this morning is not operating (rope-drop window only,
+				// once per ride per day -- state.rides resets daily). Runs before the OPERATING bail below.
+				if (nowMin <= ROPE_DROP_END_MIN && live && DOWN_STATUSES[live.status]) {
+					const dkey = normName(live.name);
+					const schedMin = hmToMin(it.t);
+					const alreadyDown = (state.rides[dkey] || {}).downAlerted === true;
+					if (schedMin >= 0 && schedMin <= ROPE_DROP_END_MIN && !alreadyDown && !downs.some(d => d.key === dkey)) {
+						downs.push({ name: live.name, key: dkey, status: live.status });
+					}
+				}
 				if (!live || live.status !== 'OPERATING') continue;
 				const key = normName(live.name); // key state by the stable live name
 				const cur = live.wait;
@@ -311,7 +338,7 @@ export default async function handler(req, res) {
 
 				// drop: was high, now genuinely short, dropped a lot, day not over, not in drop cooldown.
 				// Spikes take priority -- a ride can't be both (cur can't be >=45 and <=15), but guard anyway.
-				const isDrop = !isSpike && !isHigh && prev !== null && prev >= DROP_PREV_MIN && cur <= DROP_NOW_MAX
+				const isDrop = !isSpike && !isHigh && prev !== null && cur !== null && prev >= DROP_PREV_MIN && cur <= DROP_NOW_MAX
 					&& (prev - cur) >= DROP_DELTA_MIN
 					&& nowMin < DROP_DAY_CUTOFF_MIN
 					&& (nowMin - lastDrop) >= ALERT_COOLDOWN_MIN;
@@ -328,8 +355,29 @@ export default async function handler(req, res) {
 				}
 			}
 
-			// fire one notification per trip. Spikes are urgent and take priority over drops.
-			if (spikes.length) {
+			// fire one notification per trip. A planned ride down at rope drop wins; then spikes, busy nudges, drops.
+			if (downs.length) {
+				const d = downs[0];
+				const more = downs.length > 1 ? (' (+' + (downs.length - 1) + ' more)') : '';
+				const body = (d.status === 'REFURBISHMENT')
+					? (d.name + ' is closed for refurbishment' + more + '. Tap to rework your morning.')
+					: (d.name + ' is temporarily down right now' + more + '. Tap to rework your morning.');
+				const payload = {
+					title: 'Planned ride is down',
+					body: body,
+					url: '/app.html',
+					tag: 'tpcp-ride-down'
+				};
+				const r = await sendToTrip(code, payload);
+				firedThisTrip = r.sent;
+				if (r.sent > 0) {
+					for (const dn of downs) {
+						const rec = state.rides[dn.key] || {};
+						rec.downAlerted = true;
+						state.rides[dn.key] = rec;
+					}
+				}
+			} else if (spikes.length) {
 				spikes.sort((a, b) => b.to - a.to);
 				const worst = spikes[0];
 				const more = spikes.length > 1 ? (' (+' + (spikes.length - 1) + ' more)') : '';
@@ -371,7 +419,7 @@ export default async function handler(req, res) {
 			}
 
 			await writeJsonBlob(stateKey, state);
-			summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip });
+			summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip });
 		}
 
 		console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));
