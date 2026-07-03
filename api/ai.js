@@ -216,10 +216,11 @@ export default async function handler(req, res) {
           'CURRENT CLOSURES:\n' + (cacheCtx.CURRENT_CLOSURES || '').substring(0, 1000),
           'LIGHTNING LANE:\n' + (cacheCtx.LIGHTNING_LANE_STRATEGY || '').substring(0, 400),
           'DINING TIMING:\n' + (cacheCtx.DINING_TIMING || '').substring(0, 300),
-          'LAND MAP (brief):\n' + (cacheCtx.LAND_MAP || '').substring(0, 300),
+         'LAND MAP (brief):\n' + (cacheCtx.LAND_MAP || '').substring(0, 300),
+          'PARK SERVICES:\n' + (cacheCtx.PARK_SERVICES || '').substring(0, 900),
           'CLIENT TRIP DATA:\n' + (context || '').substring(0, 800),
           parkHours
-        ].join('\n\n').substring(0, 8000);
+      ].join('\n\n').substring(0, 9000);
 
   // -- Inject ride preferences context (sent from client via context field) ------
   const ridePrefsHeader = (context || '').startsWith('GUEST RIDE PREFERENCES:')
@@ -229,6 +230,7 @@ export default async function handler(req, res) {
   let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend --- specific, warm, and actionable.';
       systemPrompt += '\n\nCRITICAL RULE \u2014 NEVER hedge or say information is unavailable:\nYou have complete park intelligence including park hours, live wait data, current closures, and trip-specific context.\nNEVER say: "I cannot retrieve", "wasn\'t available", "check the website", "I don\'t have that information", or any similar hedge.\nLIVE WAITS: The LIVE STANDBY WAITS section holds real-time standby times fetched just now. When asked "what\'s the wait right now" for a ride, READ ITS NUMBER FROM THAT SECTION and give it directly. If the ride is listed under CURRENTLY DOWN / NOT OPERATING, say it is currently down right now (do NOT invent a wait number for it), then add what the typical wait is when it is running. ONLY if a ride is not in the LIVE STANDBY WAITS section at all should you estimate from the historical WAIT PATTERNS, and when you do, say the number is a typical-pattern estimate, not a live reading. If the LIVE STANDBY WAITS section says it is unavailable, estimate from WAIT PATTERNS and say so.\nPARK HOURS: Always read from the PARK HOURS section in your context. That is the authoritative source.\nROPE DROP STRATEGY: Use the ROPE DROP STRATEGY section in your context \u2014 it is the authoritative, verified source and is updated regularly. Do NOT recite a fixed ride order from memory; the best rope-drop pick varies by park and conditions, so read it from the context.\nCLOSURES: Use the CURRENT CLOSURES section in your context as the authoritative, weekly-updated source for what is closed. Do NOT state any specific ride is closed from memory \u2014 a ride is only closed if the CURRENT CLOSURES context says so, and a ride with a reopening date on or before the trip is OPEN. If a ride is not mentioned as closed in your context, treat it as operating.\nYou are a brilliant knowledgeable friend. Answer every question directly and confidently using the data in your context.';
       systemPrompt += '\n\nCHARACTER ENCODING RULE (ABSOLUTE): Respond in plain ASCII text ONLY. NEVER use emoji, emoticons, pictographs, decorative symbols, checkmarks, stars, arrows, or any non-ASCII characters anywhere in your response. No exceptions. Use plain words and standard punctuation only.';
+      systemPrompt += '\n\nSERVICES AND TIMING: Answer questions about park services, first aid, buying over-the-counter medicine, baby care, guest relations, lockers, and locations directly from the context and your knowledge. If a trip-day status is given above, honor it: when the guest is in the park right now, answer for this moment. NEVER tell the guest to call ahead, check before their visit, ask a cast member when they arrive, or phone Guest Services to confirm --- give the answer plainly.';
       systemPrompt += '\n\n=== CURRENT DISNEYLAND PARK INTELLIGENCE (2025-2026 verified data) ===\n' + fullContext;
       if (ridePrefsHeader) systemPrompt += '\n\n' + ridePrefsHeader;
 
