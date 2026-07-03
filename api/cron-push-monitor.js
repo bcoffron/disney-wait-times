@@ -30,6 +30,9 @@ const DROP_PREV_MIN = 45;   // previous wait must have been >= this
 const DROP_NOW_MAX = 15;    // current wait must be <= this (genuinely short, not just lower)
 const DROP_DELTA_MIN = 35;  // must have dropped at least this much (avoid 50->40 noise)
 const DROP_DAY_CUTOFF_MIN = 21 * 60; // do not send drop alerts after 9 PM (little day left to use it)
+// High-wait nudge: planned ride already busy (not just a sudden spike). Once per ride per day, gated per-trip.
+const HIGH_MIN = 60;           // current wait must be >= this to nudge
+const HIGH_COOLDOWN_MIN = 75;  // per-trip: at most one high-wait nudge this often
 
 // Park hours guard (Pacific). Outside this window, skip entirely.
 const PARK_OPEN_HOUR_PT = 7;   // 7 AM PT
@@ -277,12 +280,14 @@ export default async function handler(req, res) {
 			// load per-trip wait state (last-known waits + cooldowns)
 			const stateKey = 'twize/wait-state/' + tripId + '.json';
 			const state = (await readJsonBlob(stateKey)) || { ymd: pt.ymd, rides: {} };
-			if (state.ymd !== pt.ymd) { state.ymd = pt.ymd; state.rides = {}; } // new day -> reset
+			if (state.ymd !== pt.ymd) { state.ymd = pt.ymd; state.rides = {}; state.lastHighAlertMin = -99999; } // new day -> reset
 
 			const nowMin = pt.hour * 60 + pt.minute;
 			let firedThisTrip = 0;
 			const spikes = [];
 			const drops = [];
+			const highs = [];
+			const lastHigh = (typeof state.lastHighAlertMin === 'number') ? state.lastHighAlertMin : -99999;
 
 			for (const it of rideItems) {
 				const live = resolveLive(it.h, liveByName, liveKeys);
@@ -298,21 +303,28 @@ export default async function handler(req, res) {
 				const isSpike = prev !== null && prev <= LOW_MAX && cur >= SPIKE_MIN
 					&& (nowMin - lastAlert) >= ALERT_COOLDOWN_MIN;
 
+				// high: planned ride already busy, no low->high jump needed. Once per ride per day,
+				// gated by a per-trip cooldown in the send block so busy rides don't stack alerts.
+				const highDone = prevRec.highAlerted === true;
+				const isHigh = !isSpike && !highDone && cur >= HIGH_MIN
+					&& (nowMin - lastHigh) >= HIGH_COOLDOWN_MIN;
+
 				// drop: was high, now genuinely short, dropped a lot, day not over, not in drop cooldown.
 				// Spikes take priority -- a ride can't be both (cur can't be >=45 and <=15), but guard anyway.
-				const isDrop = !isSpike && prev !== null && prev >= DROP_PREV_MIN && cur <= DROP_NOW_MAX
+				const isDrop = !isSpike && !isHigh && prev !== null && prev >= DROP_PREV_MIN && cur <= DROP_NOW_MAX
 					&& (prev - cur) >= DROP_DELTA_MIN
 					&& nowMin < DROP_DAY_CUTOFF_MIN
 					&& (nowMin - lastDrop) >= ALERT_COOLDOWN_MIN;
 
+				if (isHigh) highs.push({ name: live.name, key: key, to: cur });
 				if (isSpike) {
 					spikes.push({ name: live.name, from: prev, to: cur });
-					state.rides[key] = { wait: cur, lastAlertMin: nowMin, lastDropMin: lastDrop };
+					state.rides[key] = { wait: cur, lastAlertMin: nowMin, lastDropMin: lastDrop, highAlerted: highDone };
 				} else if (isDrop) {
 					drops.push({ name: live.name, from: prev, to: cur });
-					state.rides[key] = { wait: cur, lastAlertMin: lastAlert, lastDropMin: nowMin };
+					state.rides[key] = { wait: cur, lastAlertMin: lastAlert, lastDropMin: nowMin, highAlerted: highDone };
 				} else {
-					state.rides[key] = { wait: cur, lastAlertMin: lastAlert, lastDropMin: lastDrop };
+					state.rides[key] = { wait: cur, lastAlertMin: lastAlert, lastDropMin: lastDrop, highAlerted: highDone };
 				}
 			}
 
@@ -329,6 +341,21 @@ export default async function handler(req, res) {
 				};
 				const r = await sendToTrip(code, payload);
 				firedThisTrip = r.sent;
+			} else if (highs.length) {
+				highs.sort((a, b) => b.to - a.to);
+				const worst = highs[0];
+				const payload = {
+					title: 'Heads up on your plan',
+					body: worst.name + ' is running ~' + worst.to + ' min right now \u2014 want to rework your next move?',
+					url: '/app.html',
+					tag: 'tpcp-wait-high'
+				};
+				const r = await sendToTrip(code, payload);
+				firedThisTrip = r.sent;
+				if (r.sent > 0) {
+					state.lastHighAlertMin = nowMin;
+					if (state.rides[worst.key]) state.rides[worst.key].highAlerted = true;
+				}
 			} else if (drops.length) {
 				// opportunistic, gentle: pick the biggest drop (lowest current wait)
 				drops.sort((a, b) => a.to - b.to);
@@ -344,7 +371,7 @@ export default async function handler(req, res) {
 			}
 
 			await writeJsonBlob(stateKey, state);
-			summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, spikes: spikes.length, drops: drops.length, sent: firedThisTrip });
+			summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip });
 		}
 
 		console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));
