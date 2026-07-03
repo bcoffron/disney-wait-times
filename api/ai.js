@@ -181,7 +181,7 @@ export default async function handler(req, res) {
           ['LAND_MAP', 'WAIT_PATTERNS', 'CROWD_FLOW', 'ROPE_DROP_STRATEGY',
                  'LIGHTNING_LANE_STRATEGY', 'WALKING_ROUTES', 'DINING_TIMING',
                  'SHOW_AND_ENTERTAINMENT', 'FAMILY_AND_ACCESSIBILITY',
-                 'PHOTO_AND_EXPERIENCE', 'PARK_HOP_STRATEGY', 'WEATHER_AND_COMFORT'],
+                 'PHOTO_AND_EXPERIENCE', 'PARK_HOP_STRATEGY', 'WEATHER_AND_COMFORT', 'PARK_SERVICES'],
           true // include all dynamic sections
         );
       console.log('[ai] cacheCtx sections:', Object.keys(cacheCtx));
