@@ -1,7 +1,8 @@
 // api/generateschedule.js
 // Routes generateFromSetup and aiChooseRides through Vercel with new two-cache section injection
 import { list } from '@vercel/blob';
-import { validateSchedule, parseClosedFromCache } from './validate-schedule.js';
+import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
+import { buildSkeleton, buildFillPrompt, applyFills } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -451,6 +452,91 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           system += '\nLL PRIORITY (DATA-DRIVEN): Spend Lightning Lane on the HIGHEST-WAIT, highest-demand rides the WAIT PATTERNS cache shows -- the headliners where LL saves the most time (e.g. the big coasters, Rise of the Resistance, Radiator Springs Racers, Indiana Jones, Web Slingers). Do NOT spend an LL on a low-wait ride the cache shows is usually a short standby (e.g. Jungle Cruise, small Fantasyland dark rides) -- those are better as walk-ons or short standby waits. Choose each LL by the actual wait the cache reports, never at random. Do not book an LL for a ride you already rope-dropped.';
           system += '\nRise of the Resistance and Radiator Springs Racers are Single Pass (ll.t="single"); every other LL ride is Multi Pass (ll.t="multi").';
           system += '\nIf tripConfig shows hasLL: false or no Lightning Lane for this day, do NOT generate LL cards and do NOT include ll fields on any item.';
+
+      // ============================================================
+      // SCAFFOLD PATH (parallel, opt-in via ?scaffold=1 or body.scaffold=true).
+      // The legacy generator below is untouched: on success this returns early;
+      // on ANY error it logs and falls through to the legacy path.
+      // ============================================================
+      const _body = req.body || {};
+      const _useScaffold = (req.query && (req.query.scaffold === '1' || req.query.scaffold === 'true')) || _body.scaffold === true;
+      if (_useScaffold) {
+        try {
+          const _cfg = tripConfig || {};
+          const _di = (typeof _body.dayIndex === 'number') ? _body.dayIndex : 0;
+          const _day = (_cfg.days && (_cfg.days[_di] || _cfg.days[0])) || {};
+          const _park = _day.park || 'Disneyland';
+          const _isDcaDay = /california|dca|adventure/i.test(_park);
+
+          // Park hours from the PARK_HOURS cache (first time on the park's line = open, last = close).
+          const _hoursTxtS = (cacheCtx.PARK_HOURS || '');
+          const _sMin = (h, mm, mer) => { let hh = parseInt(h, 10); const pm = /pm/i.test(mer); if (pm && hh !== 12) hh += 12; if (!pm && hh === 12) hh = 0; return hh * 60 + (mm ? parseInt(mm, 10) : 0); };
+          const _sHours = (parkRe) => {
+            for (const ln of _hoursTxtS.split(/\n/)) {
+              if (!parkRe.test(ln)) continue;
+              const ts = [...ln.matchAll(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM|noon|midnight)/gi)];
+              if (!ts.length) continue;
+              const f = ts[0], l = ts[ts.length - 1];
+              let o = /noon/i.test(f[3]) ? 720 : (/midnight/i.test(f[3]) ? 0 : _sMin(f[1], f[2], f[3]));
+              let c = /midnight/i.test(l[3]) ? 1440 : (/noon/i.test(l[3]) ? 720 : _sMin(l[1], l[2], l[3]));
+              if (c === 0) c = 1440;
+              return { openMin: o, closeMin: c };
+            }
+            return null;
+          };
+          const _hrs = _sHours(_isDcaDay ? /california adventure|\bDCA\b/i : /disneyland|\bDL\b/i);
+          const _openMin = (_hrs && _hrs.openMin) || 480;                       // fallback 8:00 AM
+          const _closeMin = (_hrs && _hrs.closeMin) || (_isDcaDay ? 1320 : 1380); // fallback 10 / 11 PM
+
+          // VIP tour window: time strings like "10:30 AM" on the day object.
+          const _sVip = (s) => { if (typeof s !== 'string') return null; const m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); if (!m) return null; let h = parseInt(m[1], 10); if (/pm/i.test(m[3]) && h !== 12) h += 12; if (/am/i.test(m[3]) && h === 12) h = 0; return h * 60 + parseInt(m[2], 10); };
+          const _vipStart = _day.isVip ? _sVip(_day.vipStart) : null;
+          const _vipEnd = _day.isVip ? _sVip(_day.vipEnd) : null;
+          const _hasLL = !(_day.hasLL === false || _cfg.hasLL === false);
+
+          const _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1) });
+          console.log('[scaffold] dayIndex', _di, 'park', _park, 'open', _openMin, 'close', _closeMin, 'vip', _vipStart, _vipEnd, 'hasLL', _hasLL, 'slots', _sk.slots.length, 'rides', _sk.slots.filter(s => s.type === 'ride').length);
+
+          const _fillCtx = parkIntelContext
+            + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
+            + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '');
+          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining })
+            + ((typeof ridePrefsContext === 'string' && ridePrefsContext) ? '\n\n' + ridePrefsContext : '')
+            + '\n\n=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n' + _fillCtx;
+
+          const _fill = async (sys) => {
+            const r = await fetch('https://api.anthropic.com/v1/messages', {
+              signal: controller.signal, method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens, system: sys, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
+            });
+            const d = await r.json();
+            if (d.error) throw new Error(d.error.message);
+            let t = ''; for (const b of (d.content || [])) if (b.type === 'text') t += b.text;
+            return { arr: extractJSON(t), model: d.model, text: t };
+          };
+          const _fallbackFor = (slot) => ({ t: '', h: (slot.block === 'lunch' || slot.block === 'dinner') ? 'Open dining choice' : 'Flex time', type: 'tip', n: 'AI could not confirm a cache pick here; choose on the day', land: '' });
+
+          let _r = await _fill(_fillSys);
+          let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], { landToPark: landToPark, fallbackFor: _fallbackFor });
+          if (_ap.needsRetry.length) {
+            console.log('[scaffold] retry slots:', _ap.needsRetry.join(','));
+            try {
+              const _r2 = await _fill(_fillSys + '\n\nRETRY: your previous answer was missing or in the wrong park for these slot ids: ' + _ap.needsRetry.join(', ') + '. Return the FULL array again; for those slots choose a DIFFERENT valid option in the correct park and inside the window.');
+              const _ap2 = applyFills(_sk, Array.isArray(_r2.arr) ? _r2.arr : [], { landToPark: landToPark, fallbackFor: _fallbackFor });
+              if (_ap2.needsRetry.length <= _ap.needsRetry.length) { _ap = _ap2; _r = _r2; }
+            } catch (e) { console.warn('[scaffold] retry failed:', e.message); }
+          }
+
+          const _closedS = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
+          const _val = validateSchedule({ days: [{ items: _ap.cards, park: _park, closeMin: _closeMin }] }, _cfg, _closedS, allUsedDining);
+          const _items = _val.schedule.days[0].items;
+          console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'validator corrections:', (_val.corrections || []).length);
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report });
+        } catch (_se) {
+          console.error('[scaffold] error, falling back to legacy generator:', _se.message);
+        }
+      }
 
       // -- B: Model is hardcoded --- never use req.body.model or any client value
       const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {

@@ -1282,4 +1282,4 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
   };
 }
 
-export { validateSchedule, parseClosedFromCache };
+export { validateSchedule, parseClosedFromCache, landToPark, normPark };
