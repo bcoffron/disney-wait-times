@@ -4858,7 +4858,19 @@ async function _doChat(msg){
   var sc='';
   if(/(churro|dole whip|snack|food|eat|hungry|treat|popcorn|turkey|corn dog|ice cream|coffee)/i.test(ml)){sc=' SNACKS: Churros-Main Street,Frontierland,Tomorrowland,DCA Pixar Pier. Dole Whip-Tiki Juice Bar Adventureland. Turkey legs-Frontierland. Corn dogs-Little Red Wagon Main Street. Mickey Beignets-Mint Julep Bar.';}
   var _rpc=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});
-  var sys='IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' RIDE NAME ALIAS: Space Mountain and Hyperspace Mountain are the same ride \u2014 always check both names in wait data when asked about either. WAIT TIME RULE: When asked about a specific ride wait time, always look it up in the live wait data above before answering. If the ride appears in the live data (under either name), state the exact current wait. If it is genuinely missing from the live data, say so and give a historical estimate from cache. Never say you cannot answer a wait time question. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
+  var _sysTrip='';
+  try{
+    var _tdays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||[];
+    var _first=_tdays.length?_tdays[0].date:null, _last=_tdays.length?_tdays[_tdays.length-1].date:null;
+    var _dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric',year:'numeric',timeZone:'America/Los_Angeles'});
+    if(_first&&_last&&today>=_first&&today<=_last){
+      var _dayNum=0; for(var _i=0;_i<_tdays.length;_i++){if(_tdays[_i].date===today){_dayNum=_i+1;break;}}
+      _sysTrip='TODAY IS '+_dateStr+' (Pacific). The guest is on their trip and physically in the park right now'+(_dayNum?(' - day '+_dayNum+' of '+_tdays.length):'')+'. Answer for RIGHT NOW, this moment. ';
+    }else if(_first&&today<_first){_sysTrip='TODAY IS '+_dateStr+' (Pacific). The guest trip has not started yet (it begins '+_first+'). ';}
+    else if(_last&&today>_last){_sysTrip='TODAY IS '+_dateStr+' (Pacific). The guest trip is over. ';}
+    else{_sysTrip='TODAY IS '+_dateStr+' (Pacific). ';}
+  }catch(e){}
+  var sys=_sysTrip+'IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot. Today: '+dn+'.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' RIDE NAME ALIAS: Space Mountain and Hyperspace Mountain are the same ride \u2014 always check both names in wait data when asked about either. WAIT TIME RULE: When asked about a specific ride wait time, always look it up in the live wait data above before answering. If the ride appears in the live data (under either name), state the exact current wait. If it is genuinely missing from the live data, say so and give a historical estimate from cache. Never say you cannot answer a wait time question. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(!window.chatHistory)window.chatHistory=[];
   if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
   chatHistory.push({role:'user',content:msg});
