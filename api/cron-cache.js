@@ -137,6 +137,17 @@ const STABLE_SECTION_PROMPTS = {
     maxTokens:1500
   },
   // -----------------------------------------------------------------------
+  PARK_SERVICES:{
+    system:`You reproduce reference text exactly. Output ONLY the text provided, verbatim -- no additions, edits, summarizing, markdown, or commentary.`,
+    user:`Output the following Disneyland Resort guest-services reference text EXACTLY as written, verbatim, with nothing added or changed:
+
+DISNEYLAND RESORT GUEST SERVICES (where to get help and buy essentials inside the parks):
+FIRST AID: Staffed by nurses who give free single doses of common over-the-counter medicine (pain reliever, upset stomach, allergy), plus bandages and a cool place to rest; they can also store medicine that needs refrigeration. Disneyland Park: at the end of Main Street U.S.A., next to the Baby Care Center. Disney California Adventure: next to the Chamber of Commerce on Buena Vista Street.
+BUYING OVER-THE-COUNTER MEDICINE (Pepto-Bismol, Tylenol, Advil, Tums, allergy, etc.): Sold in many of the larger merchandise shops but kept behind the register out of sight, so just ask a cast member. Disneyland Park: Castle Brothers and the Emporium on Main Street, and Pioneer Mercantile in Frontierland. Disney California Adventure: the larger shops on Buena Vista Street. Prices run higher than a drugstore, but you do not need to leave the park.
+BABY CARE CENTERS: Nursing area, changing tables, high chairs, microwave and bottle warmer, plus vending that sells diapers, wipes, formula, baby food, sunscreen, and over-the-counter medicine (credit card). Disneyland Park: next to First Aid at the end of Main Street. Disney California Adventure: on Buena Vista Street.
+GUEST RELATIONS: For tickets, questions, complaints, lost and found, and Disability Access Service (DAS). Disneyland Park: City Hall on Main Street U.S.A. Disney California Adventure: Chamber of Commerce on Buena Vista Street.`,
+    maxTokens:900
+  },
   // CATALOG: machine-readable attraction + venue catalog (Step 1 foundation)
   // Hard fields -- park is a stored fact, never inferred from land name.
   // After build: self-parse-check is run in buildSingleSection; build fails if
