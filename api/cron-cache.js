@@ -83,12 +83,12 @@ const LEGACY_PROMPTS = {
 const STABLE_SECTION_PROMPTS = {
   LAND_MAP:{
     system:'You are a Disneyland mapping expert with current 2025-2026 knowledge. Return precise structured JSON only.',
-    user:`Search for the current Disneyland park map (2025-2026) and return a complete JSON land map covering all 8 lands: Main Street USA, Fantasyland, Tomorrowland, Adventureland, New Orleans Square, Frontierland, Star Wars Galaxy's Edge, Mickey's Toontown. For each land include: adjacent lands array, attractions array (every ride/show/walkthrough). Include walking_minutes between land pairs and current_refurbs with expected return dates. Confirm Pirates of the Caribbean status. Format: {"lands":{"LandName":{"adjacent":[...],"attractions":[...],"notes":"..."}},"walking_minutes":{"Land A to Land B":minutes},"current_refurbs":{"attraction":"expected_return"}}`,
+    user:`Search for the current Disneyland park map (2025-2026) and return a complete JSON land map covering all 8 lands: Main Street USA, Fantasyland, Tomorrowland, Adventureland, New Orleans Square, Frontierland, Star Wars Galaxy's Edge, Mickey's Toontown. For each land include: adjacent lands array, attractions array (every ride/show/walkthrough). Include walking_minutes between land pairs and current_refurbs with expected return dates. Confirm Pirates of the Caribbean status. Format: {"lands":{"LandName":{"adjacent":[...],"attractions":[...],"notes":"..."}},"walking_minutes":{"Land A to Land B":minutes},"current_refurbs":{"attraction":"expected_return"}} Output ONLY this JSON object -- no list of sources, no notes, no text before or after it.`,
     maxTokens:2500
   },
   WAIT_PATTERNS:{
     system:'You are a Disneyland wait time expert using TouringPlans and Thrill-Data 2024-2026 data. Provide specific numbers confidently.',
-    user:`Search TouringPlans.com and Thrill-Data.com for Disneyland wait time patterns 2024-2026. Return typical wait times for top attractions across time blocks and crowd levels. Time blocks: rope_drop(open-9AM), early(9-11AM), midday(11AM-1PM), afternoon(1-4PM), lull(4-6PM), evening(6-9PM), late(9PM+). Crowd levels: light(Mon-Thu off-peak), moderate(Mon-Thu summer), heavy(Fri-Sun summer), extreme(holidays). Cover 30 attractions across DL and DCA: Rise of the Resistance, Millennium Falcon Smugglers Run, Indiana Jones Adventure, Haunted Mansion, Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Star Tours, Buzz Lightyear Astro Blasters, Roger Rabbit Car Toon Spin, Mickey Minnie Runaway Railway, Peter Pan Flight, Its a Small World, Alice in Wonderland, Mr Toads Wild Ride, Snow Whites Enchanted Wish, Jungle Cruise, Finding Nemo Submarine, Autopia, Chip Dale Gadget Coaster, WEB-SLINGERS Spider-Man, Radiator Springs Racers, Guardians of the Galaxy, Incredicoaster, Toy Story Midway Mania, Soarin Around the World, Luigis Rollickin Roadsters, Maters Junkyard Jamboree, Pixar Pal-A-Round, Monsters Inc Mike and Sulley. Format as JSON: {"attraction_name":{"crowd_level":{"time_block":wait_minutes}}}`,
+    user:`Search TouringPlans.com and Thrill-Data.com for Disneyland wait time patterns 2024-2026. Return typical wait times for top attractions across time blocks and crowd levels. Time blocks: rope_drop(open-9AM), early(9-11AM), midday(11AM-1PM), afternoon(1-4PM), lull(4-6PM), evening(6-9PM), late(9PM+). Crowd levels: light(Mon-Thu off-peak), moderate(Mon-Thu summer), heavy(Fri-Sun summer), extreme(holidays). Cover 30 attractions across DL and DCA: Rise of the Resistance, Millennium Falcon Smugglers Run, Indiana Jones Adventure, Haunted Mansion, Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Star Tours, Buzz Lightyear Astro Blasters, Roger Rabbit Car Toon Spin, Mickey Minnie Runaway Railway, Peter Pan Flight, Its a Small World, Alice in Wonderland, Mr Toads Wild Ride, Snow Whites Enchanted Wish, Jungle Cruise, Finding Nemo Submarine, Autopia, Chip Dale Gadget Coaster, WEB-SLINGERS Spider-Man, Radiator Springs Racers, Guardians of the Galaxy, Incredicoaster, Toy Story Midway Mania, Soarin Around the World, Luigis Rollickin Roadsters, Maters Junkyard Jamboree, Pixar Pal-A-Round, Monsters Inc Mike and Sulley. Format as JSON: {"attraction_name":{"crowd_level":{"time_block":wait_minutes}}}. Output ONLY this JSON object -- no list of sources, no notes, no text before or after it.`,
     maxTokens:4000
   },
   CROWD_FLOW:{
@@ -345,6 +345,41 @@ function extractJson(text) {
   return null;
 }
 
+// LAND_MAP / WAIT_PATTERNS: the model often emits a sources array or a {source,note}
+// header BEFORE the real data body. extractJson returns the FIRST balanced structure,
+// which is that preamble -- so the actual ride data was being discarded. This scans every
+// top-level object and returns the LARGEST one that parses (preferring one that has
+// `preferKey`, e.g. "lands"), which is the real data body rather than the preamble.
+function extractLargestObject(text, preferKey) {
+  if(!text) return null;
+  let best = null, bestLen = 0, bestPreferred = false;
+  let start = text.indexOf('{');
+  while(start !== -1) {
+    let depth = 0, inStr = false, esc = false, end = -1;
+    for(let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if(esc) { esc = false; continue; }
+      if(ch === '\\') { esc = true; continue; }
+      if(ch === '"') { inStr = !inStr; continue; }
+      if(inStr) continue;
+      if(ch === '{') depth++;
+      else if(ch === '}') { depth--; if(depth === 0) { end = i; break; } }
+    }
+    if(end === -1) break;
+    const candidate = text.substring(start, end + 1);
+    let obj = null;
+    try { obj = JSON.parse(candidate); } catch(e) { obj = null; }
+    if(obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      const hasKey = !!(preferKey && Object.prototype.hasOwnProperty.call(obj, preferKey));
+      if((hasKey && !bestPreferred) || (hasKey === bestPreferred && candidate.length > bestLen)) {
+        best = obj; bestLen = candidate.length; bestPreferred = hasKey;
+      }
+    }
+    start = text.indexOf('{', end + 1);
+  }
+  return best;
+}
+
 async function callClaude(prompt, apiKey) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -536,7 +571,9 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
 
   let sectionData;
   if(sectionName==='LAND_MAP'||sectionName==='WAIT_PATTERNS') {
-    const parsed = extractJson(text);
+    // Take the largest valid JSON object (LAND_MAP: the one carrying "lands"), not the
+    // leading sources array / header fragment that extractJson would otherwise grab.
+    const parsed = extractLargestObject(text, sectionName === 'LAND_MAP' ? 'lands' : null) || extractJson(text);
     sectionData = parsed || text;
   } else if(sectionName==='CLOSURES') {
     // Structured closure list consumed by v2 (date-aware availability). Must be a JSON array;

@@ -225,7 +225,7 @@ export default async function handler(req, res) {
                   return res.status(503).json({ error: 'Park intelligence cache unavailable. Please try again.', cache_sections: Object.keys(cacheCtx), sections_found: sectionCount });
           }
 
-      const landMap = (cacheCtx.LAND_MAP || '').substring(0, 800);
+      const landMap = (cacheCtx.LAND_MAP || '').substring(0, 8000);
           const waitPatterns = (cacheCtx.WAIT_PATTERNS || '').substring(0, 1200);
           const ropeDrop = (cacheCtx.ROPE_DROP_STRATEGY || '').substring(0, 800);
           const llStrategy = (cacheCtx.LIGHTNING_LANE_STRATEGY || '').substring(0, 600);
