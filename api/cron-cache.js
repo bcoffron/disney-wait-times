@@ -84,12 +84,12 @@ const STABLE_SECTION_PROMPTS = {
   LAND_MAP:{
     system:'You are a Disneyland mapping expert with current 2025-2026 knowledge. Return precise structured JSON only.',
     user:`Search for the current Disneyland park map (2025-2026) and return a complete JSON land map covering all 8 lands: Main Street USA, Fantasyland, Tomorrowland, Adventureland, New Orleans Square, Frontierland, Star Wars Galaxy's Edge, Mickey's Toontown. For each land include: adjacent lands array, attractions array (every ride/show/walkthrough). Include walking_minutes between land pairs and current_refurbs with expected return dates. Confirm Pirates of the Caribbean status. Format: {"lands":{"LandName":{"adjacent":[...],"attractions":[...],"notes":"..."}},"walking_minutes":{"Land A to Land B":minutes},"current_refurbs":{"attraction":"expected_return"}} Output ONLY this JSON object -- no list of sources, no notes, no text before or after it.`,
-    maxTokens:2500
+    maxTokens:8000
   },
   WAIT_PATTERNS:{
     system:'You are a Disneyland wait time expert using TouringPlans and Thrill-Data 2024-2026 data. Provide specific numbers confidently.',
     user:`Search TouringPlans.com and Thrill-Data.com for Disneyland wait time patterns 2024-2026. Return typical wait times for top attractions across time blocks and crowd levels. Time blocks: rope_drop(open-9AM), early(9-11AM), midday(11AM-1PM), afternoon(1-4PM), lull(4-6PM), evening(6-9PM), late(9PM+). Crowd levels: light(Mon-Thu off-peak), moderate(Mon-Thu summer), heavy(Fri-Sun summer), extreme(holidays). Cover 30 attractions across DL and DCA: Rise of the Resistance, Millennium Falcon Smugglers Run, Indiana Jones Adventure, Haunted Mansion, Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Star Tours, Buzz Lightyear Astro Blasters, Roger Rabbit Car Toon Spin, Mickey Minnie Runaway Railway, Peter Pan Flight, Its a Small World, Alice in Wonderland, Mr Toads Wild Ride, Snow Whites Enchanted Wish, Jungle Cruise, Finding Nemo Submarine, Autopia, Chip Dale Gadget Coaster, WEB-SLINGERS Spider-Man, Radiator Springs Racers, Guardians of the Galaxy, Incredicoaster, Toy Story Midway Mania, Soarin Around the World, Luigis Rollickin Roadsters, Maters Junkyard Jamboree, Pixar Pal-A-Round, Monsters Inc Mike and Sulley. Format as JSON: {"attraction_name":{"crowd_level":{"time_block":wait_minutes}}}. Output ONLY this JSON object -- no list of sources, no notes, no text before or after it.`,
-    maxTokens:4000
+    maxTokens:8000
   },
   CROWD_FLOW:{
     system:'You are a Disneyland crowd behavior expert. 2024-2026 specific knowledge. Be specific and actionable.',
@@ -151,7 +151,7 @@ FIRST AID: Staffed by nurses who give free single doses of common over-the-count
 BUYING OVER-THE-COUNTER MEDICINE (Pepto-Bismol, Tylenol, Advil, Tums, allergy, etc.): Sold in many of the larger merchandise shops but kept behind the register out of sight, so just ask a cast member. Disneyland Park: Castle Brothers and the Emporium on Main Street, and Pioneer Mercantile in Frontierland. Disney California Adventure: the larger shops on Buena Vista Street. Prices run higher than a drugstore, but you do not need to leave the park.
 BABY CARE CENTERS: Nursing area, changing tables, high chairs, microwave and bottle warmer, plus vending that sells diapers, wipes, formula, baby food, sunscreen, and over-the-counter medicine (credit card). Disneyland Park: next to First Aid at the end of Main Street. Disney California Adventure: on Buena Vista Street.
 GUEST RELATIONS: For tickets, questions, complaints, lost and found, and Disability Access Service (DAS). Disneyland Park: City Hall on Main Street U.S.A. Disney California Adventure: Chamber of Commerce on Buena Vista Street.`,
-    maxTokens:900
+    maxTokens:8000
   },
   // CATALOG: machine-readable attraction + venue catalog (Step 1 foundation)
   // Hard fields -- park is a stored fact, never inferred from land name.
@@ -353,8 +353,7 @@ function extractJson(text) {
 function extractLargestObject(text, preferKey) {
   if(!text) return null;
   let best = null, bestLen = 0, bestPreferred = false;
-  let start = text.indexOf('{');
-  while(start !== -1) {
+  for(let start = text.indexOf('{'); start !== -1; start = text.indexOf('{', start + 1)) {
     let depth = 0, inStr = false, esc = false, end = -1;
     for(let i = start; i < text.length; i++) {
       const ch = text[i];
@@ -365,7 +364,7 @@ function extractLargestObject(text, preferKey) {
       if(ch === '{') depth++;
       else if(ch === '}') { depth--; if(depth === 0) { end = i; break; } }
     }
-    if(end === -1) break;
+    if(end === -1) continue; // this object never closes (truncated) -- try the next '{'
     const candidate = text.substring(start, end + 1);
     let obj = null;
     try { obj = JSON.parse(candidate); } catch(e) { obj = null; }
@@ -375,7 +374,7 @@ function extractLargestObject(text, preferKey) {
         best = obj; bestLen = candidate.length; bestPreferred = hasKey;
       }
     }
-    start = text.indexOf('{', end + 1);
+    // do not skip nested objects: keep scanning so a complete inner object survives truncation
   }
   return best;
 }
