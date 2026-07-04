@@ -489,7 +489,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _closeMin = (_hrs && _hrs.closeMin) || (_isDcaDay ? 1320 : 1380); // fallback 10 / 11 PM
 
           // VIP tour window: time strings like "10:30 AM" on the day object.
-          const _sVip = (s) => { if (typeof s !== 'string') return null; const m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); if (!m) return null; let h = parseInt(m[1], 10); if (/pm/i.test(m[3]) && h !== 12) h += 12; if (/am/i.test(m[3]) && h === 12) h = 0; return h * 60 + parseInt(m[2], 10); };
+          const _sVip = (s) => { if (typeof s !== 'string') return null; let m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); if (m) { let h = parseInt(m[1], 10); if (/pm/i.test(m[3]) && h !== 12) h += 12; if (/am/i.test(m[3]) && h === 12) h = 0; return h * 60 + parseInt(m[2], 10); } m = s.match(/^\s*(\d{1,2}):(\d{2})\s*$/); if (m) { const h = parseInt(m[1], 10), mn = parseInt(m[2], 10); if (h <= 23 && mn <= 59) return h * 60 + mn; } return null; };
           const _vipStart = _day.isVip ? _sVip(_day.vipStart) : null;
           const _vipEnd = _day.isVip ? _sVip(_day.vipEnd) : null;
           const _hasLL = !(_day.hasLL === false || _cfg.hasLL === false);
