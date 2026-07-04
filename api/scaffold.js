@@ -165,6 +165,7 @@ export function buildFillPrompt(skeleton, opts) {
   sys += '\n- Never repeat a ride or venue anywhere in the day, or any venue in the ALREADY-USED list. Give exactly ONE name per slot -- never "X (or Y)" or a list of alternatives.';
   sys += '\n- Object schema: { "id":"s03", "t":"8:10 AM", "h":"Name", "type":"<the slot\'s type>", "land":"Land", "n":"tip under 80 chars", "ride":"Exact ride name (rides/LL only)", "ll":{ "t":"multi|single", "a":"..." } }';
   sys += '\n- ll only on ride/tip slots and only if the day has Lightning Lane. ASCII only. Notes under 80 characters.';
+  if (opts.closedNames && opts.closedNames.length) sys += '\n- DOWN / CLOSED right now -- do NOT place any of these in a ride slot; if your best pick is on this list, choose a different open attraction from the cache for that slot instead: ' + opts.closedNames.join('; ') + '.';
   sys += '\n\nSKELETON (fill EVERY slot):\n' + lines.join('\n');
   if (opts.usedDining && opts.usedDining.length) sys += '\n\nALREADY-USED venues (never repeat): ' + opts.usedDining.join('; ');
   return sys;
@@ -187,7 +188,7 @@ export function applyFills(skeleton, fills, opts) {
   const fallbackFor = opts.fallbackFor || null;
   const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   const byId = {}; (fills || []).forEach(f => { if (f && f.id) byId[f.id] = f; });
-  const cards = [], needsRetry = [], report = { clamped: 0, wrongPark: 0, missing: 0, fallback: 0 };
+  const cards = [], needsRetry = [], report = { clamped: 0, wrongPark: 0, missing: 0, fallback: 0, dropped: [] };
   const used = new Set();
   const usedRideNames = new Set();
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
@@ -219,6 +220,7 @@ export function applyFills(skeleton, fills, opts) {
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed) report.closed = (report.closed || 0) + 1;
+        report.dropped.push({ h: cleanH, reason: closed ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {

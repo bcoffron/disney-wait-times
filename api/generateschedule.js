@@ -497,10 +497,11 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1) });
           console.log('[scaffold] dayIndex', _di, 'park', _park, 'open', _openMin, 'close', _closeMin, 'vip', _vipStart, _vipEnd, 'hasLL', _hasLL, 'slots', _sk.slots.length, 'rides', _sk.slots.filter(s => s.type === 'ride').length);
 
+          const _closedS = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '');
-          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining })
+          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, closedNames: _closedS })
             + ((typeof ridePrefsContext === 'string' && ridePrefsContext) ? '\n\n' + ridePrefsContext : '')
             + '\n\n=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n' + _fillCtx;
 
@@ -517,7 +518,6 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           };
           const _fallbackFor = (slot) => ({ t: '', h: (slot.block === 'lunch' || slot.block === 'dinner') ? 'Open dining choice' : 'Flex time', type: 'tip', n: 'AI could not confirm a cache pick here; choose on the day', land: '' });
 
-          const _closedS = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
           const _fillOpts = { landToPark: landToPark, closedNames: _closedS, fallbackFor: _fallbackFor };
 
           let _r = await _fill(_fillSys);
