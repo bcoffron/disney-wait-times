@@ -160,12 +160,6 @@
     "api/generateschedule.js": {
       "maxDuration": 120
     },
-    "api/generateschedule-v2.js": {
-      "maxDuration": 120
-    },
-    "api/generateschedule-scaffold.js": {
-      "maxDuration": 120
-    },
     "api/ai.js": {
       "maxDuration": 60
     },

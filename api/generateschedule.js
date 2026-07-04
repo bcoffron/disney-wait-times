@@ -2,7 +2,7 @@
 // Routes generateFromSetup and aiChooseRides through Vercel with new two-cache section injection
 import { list } from '@vercel/blob';
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -517,22 +517,26 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           };
           const _fallbackFor = (slot) => ({ t: '', h: (slot.block === 'lunch' || slot.block === 'dinner') ? 'Open dining choice' : 'Flex time', type: 'tip', n: 'AI could not confirm a cache pick here; choose on the day', land: '' });
 
+          const _closedS = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, fallbackFor: _fallbackFor };
+
           let _r = await _fill(_fillSys);
-          let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], { landToPark: landToPark, fallbackFor: _fallbackFor });
+          let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
           if (_ap.needsRetry.length) {
             console.log('[scaffold] retry slots:', _ap.needsRetry.join(','));
             try {
-              const _r2 = await _fill(_fillSys + '\n\nRETRY: your previous answer was missing or in the wrong park for these slot ids: ' + _ap.needsRetry.join(', ') + '. Return the FULL array again; for those slots choose a DIFFERENT valid option in the correct park and inside the window.');
-              const _ap2 = applyFills(_sk, Array.isArray(_r2.arr) ? _r2.arr : [], { landToPark: landToPark, fallbackFor: _fallbackFor });
+              const _r2 = await _fill(_fillSys + '\n\nRETRY: your previous answer was missing, in the wrong park, a duplicate, a closed ride, or a generic activity for these slot ids: ' + _ap.needsRetry.join(', ') + '. Return the FULL array again; for those slots choose a DIFFERENT real attraction in the correct park, inside the window, not used anywhere else in the day.');
+              const _ap2 = applyFills(_sk, Array.isArray(_r2.arr) ? _r2.arr : [], _fillOpts);
               if (_ap2.needsRetry.length <= _ap.needsRetry.length) { _ap = _ap2; _r = _r2; }
             } catch (e) { console.warn('[scaffold] retry failed:', e.message); }
           }
 
-          const _closedS = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
-          const _val = validateSchedule({ days: [{ items: _ap.cards, park: _park, closeMin: _closeMin }] }, _cfg, _closedS, allUsedDining);
-          const _items = _val.schedule.days[0].items;
-          console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'validator corrections:', (_val.corrections || []).length);
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report });
+          // Verify layer -- REMOVE-ONLY safety net (replaces the heavy validateSchedule on this path;
+          // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
+          const _vf = verifyScaffold(_ap.cards, { park: _park, landToPark: landToPark, closedNames: _closedS });
+          const _items = _vf.cards;
+          console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed });
         } catch (_se) {
           console.error('[scaffold] error, falling back to legacy generator:', _se.message);
         }

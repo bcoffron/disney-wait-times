@@ -185,6 +185,7 @@ export function applyFills(skeleton, fills, opts) {
   opts = opts || {};
   const landToPark = opts.landToPark || (() => null);
   const fallbackFor = opts.fallbackFor || null;
+  const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   const byId = {}; (fills || []).forEach(f => { if (f && f.id) byId[f.id] = f; });
   const cards = [], needsRetry = [], report = { clamped: 0, wrongPark: 0, missing: 0, fallback: 0 };
   const used = new Set();
@@ -209,12 +210,15 @@ export function applyFills(skeleton, fills, opts) {
       const parkBad = placed.has(slot.type) && f.land && landPark && !sameParkName(landPark, slot.park);
       const isRideSlot = slot.type === 'ride';
       const generic = isRideSlot && GENERIC_RIDE_RE.test(cleanH);
-      const nkey = normName(cleanH);
+      const nkey = normName(f.ride || cleanH);
       const dup = isRideSlot && nkey && usedRideNames.has(nkey);
-      if (parkBad || generic || dup) {
+      const hL = cleanH.toLowerCase();
+      const closed = isRideSlot && closedNames.some(cn => cn && hL.indexOf(cn) !== -1);
+      if (parkBad || generic || dup || closed) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
+        if (closed) report.closed = (report.closed || 0) + 1;
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -228,4 +232,34 @@ export function applyFills(skeleton, fills, opts) {
     if (card) { if (card.h) used.add(card.h.toLowerCase()); cards.push(card); }
   }
   return { cards, needsRetry, report };
+}
+
+// Final safety net for the SCAFFOLD path -- REMOVE-ONLY. This replaces the heavy validateSchedule
+// on this path: it never fills gaps, shifts times, or injects rides. It only drops cards that are
+// genuinely unsafe -- a closed attraction, or one whose land/name resolves to the wrong park.
+// applyFills already handles these per-slot with retry+fallback; verifyScaffold is the last-resort
+// backstop for anything that survived (e.g. a wrong-park ride whose land field was blank). Leaving a
+// gap is deliberate: an honest hole beats a wrong-park or closed ride, and no code invents content.
+export function verifyScaffold(cards, opts) {
+  opts = opts || {};
+  const park = opts.park || null;
+  const landToPark = opts.landToPark || (() => null);
+  const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
+  const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']);
+  const removed = [], kept = [], usedRide = new Set();
+  for (const c of (cards || [])) {
+    const hL = String(c.h || '').toLowerCase();
+    if (c.type === 'ride' && closedNames.some(cn => cn && hL.indexOf(cn) !== -1)) { removed.push({ h: c.h, reason: 'closed' }); continue; }
+    if (park && placed.has(c.type)) {
+      const p = landToPark(c.land) || landToPark(c.h);
+      if (p && !sameParkName(p, park)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
+    }
+    if (c.type === 'ride') {
+      const k = normName(c.ride || c.h);
+      if (k && usedRide.has(k)) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
+      if (k) usedRide.add(k);
+    }
+    kept.push(c);
+  }
+  return { cards: kept, removed };
 }
