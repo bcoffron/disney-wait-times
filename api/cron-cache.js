@@ -20,6 +20,11 @@ UNIVERSAL RULES:
 5. No hedging -- state consensus confidently
 6. Complete sentences only -- no truncation
 7. When sources conflict -- use primary source for that section
+RETIRED / RENAMED ATTRACTIONS (Disneyland Resort -- always use the current name, never the old one; never list a permanently-closed attraction as operating):
+- Splash Mountain -> renamed Tiana's Bayou Adventure (Disneyland, Bayou Country / formerly Critter Country). Never use "Splash Mountain."
+- California Screamin' -> renamed Incredicoaster (DCA, Pixar Pier). Never use "California Screamin'."
+- Twilight Zone Tower of Terror -> re-themed to Guardians of the Galaxy - Mission: BREAKOUT! (DCA, Avengers Campus). Never use "Tower of Terror" for a DCA schedule.
+- It's Tough to be a Bug! -> PERMANENTLY CLOSED at DCA (2018; the former Bug's Land is now Avengers Campus). Never list it as an operating DCA attraction.
 `;
 
 // ---- Dining governance (DL/DCA only) + permanent retired-venue exclusions ----
