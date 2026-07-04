@@ -268,10 +268,12 @@ export function verifyScaffold(cards, opts) {
 
 // Given the structured CLOSURES cache (a JSON string or array of {name, closeDate?, reopenDate?})
 // and the trip date, return the names of attractions whose closure window covers that date.
-// Window = [closeDate, reopenDate): closed on D if (closeDate is null OR D >= closeDate) AND
-// (reopenDate is null OR D < reopenDate). closeDate null = already in effect; reopenDate null =
-// no known reopen (treat as closed indefinitely, e.g. permanent closures). Never throws; returns
-// [] when the cache is missing/unparseable or nothing matches. Dates compared as ISO YYYY-MM-DD.
+// Window = [closeDate, reopenDate): flag as closed on D only when a real closeDate is present and
+// closeDate <= D AND (reopenDate is null OR D < reopenDate). FAIL OPEN: a missing/absent closeDate
+// is NOT flagged -- a cache gap must never delete a live ride (soft-fail: might schedule a closed
+// ride, which live wait-times surface; vs hard-fail: deleting a headliner). reopenDate null = no
+// known reopen (closed indefinitely once started). Never throws; returns [] when the cache is
+// missing/unparseable, the trip date is absent, or nothing matches. Dates compared as ISO YYYY-MM-DD.
 export function closedNamesForDate(closures, tripDate) {
   const toISO = (s) => {
     if (!s) return '';
@@ -285,14 +287,16 @@ export function closedNamesForDate(closures, tripDate) {
   if (arr && !Array.isArray(arr) && Array.isArray(arr.closures)) arr = arr.closures;
   if (!Array.isArray(arr)) return [];
   const d = toISO(tripDate);
+  if (!d) return [];
   const names = [];
   for (const e of arr) {
     if (!e || !e.name) continue;
     const start = toISO(e.closeDate);
     const end = toISO(e.reopenDate);
-    const afterStart = !d || !start || d >= start;
-    const beforeEnd = !end || d < end;
-    if (afterStart && beforeEnd) names.push(String(e.name));
+    if (!start) continue;            // fail OPEN: no known closure start -> never flag a live ride
+    if (d < start) continue;         // trip is before the closure begins -> open
+    if (end && d >= end) continue;   // trip is on/after the reopen date -> open
+    names.push(String(e.name));      // closeDate <= tripDate < reopenDate (or no reopen) -> closed
   }
   return names;
 }
