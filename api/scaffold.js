@@ -265,3 +265,34 @@ export function verifyScaffold(cards, opts) {
   }
   return { cards: kept, removed };
 }
+
+// Given the structured CLOSURES cache (a JSON string or array of {name, closeDate?, reopenDate?})
+// and the trip date, return the names of attractions whose closure window covers that date.
+// Window = [closeDate, reopenDate): closed on D if (closeDate is null OR D >= closeDate) AND
+// (reopenDate is null OR D < reopenDate). closeDate null = already in effect; reopenDate null =
+// no known reopen (treat as closed indefinitely, e.g. permanent closures). Never throws; returns
+// [] when the cache is missing/unparseable or nothing matches. Dates compared as ISO YYYY-MM-DD.
+export function closedNamesForDate(closures, tripDate) {
+  const toISO = (s) => {
+    if (!s) return '';
+    s = String(s);
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const dt = new Date(s);
+    return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0, 10);
+  };
+  let arr = closures;
+  if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (e) { return []; } }
+  if (arr && !Array.isArray(arr) && Array.isArray(arr.closures)) arr = arr.closures;
+  if (!Array.isArray(arr)) return [];
+  const d = toISO(tripDate);
+  const names = [];
+  for (const e of arr) {
+    if (!e || !e.name) continue;
+    const start = toISO(e.closeDate);
+    const end = toISO(e.reopenDate);
+    const afterStart = !d || !start || d >= start;
+    const beforeEnd = !end || d < end;
+    if (afterStart && beforeEnd) names.push(String(e.name));
+  }
+  return names;
+}

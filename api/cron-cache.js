@@ -222,6 +222,7 @@ Return ONLY this JSON array (raw, no fences):
     "name": "Exact attraction name as it appears in the catalog",
     "park": "DL",
     "status": "closed_for_refurbishment",
+    "closeDate": "2026-05-04",
     "reopenDate": "2026-06-26",
     "reopenConfidence": "rumored",
     "note": "Short human-readable detail (source + why)."
@@ -231,6 +232,7 @@ Return ONLY this JSON array (raw, no fences):
 FIELD RULES:
 - name: the attraction's exact common name. park: "DL" or "DCA" only.
 - status: always "closed_for_refurbishment" for any closure/refurb/seasonal-down attraction in this list.
+- closeDate: the date the closure BEGINS as strict ISO "YYYY-MM-DD" if a start date is known or reported (e.g. an upcoming refurb that starts July 20, 2026); otherwise null. Use null ONLY when the attraction is ALREADY closed right now and no start date is given. An attraction counts as closed on a date D only if closeDate is null or D is on/after closeDate -- so an UPCOMING closure MUST carry its real future start date, never null, or it will be wrongly treated as closed today.
 - reopenDate: the expected reopening date as strict ISO "YYYY-MM-DD" if a date is known or reported; otherwise null. Convert any phrasing ("late June", "July 1st") to a concrete date when a specific one is reported; if only a vague window with no date, use null.
 - reopenConfidence: "confirmed" if Disney has officially posted/published the reopening date (e.g. on the official calendar); "rumored" if the date comes from cast-member reports, fan sites, or unofficial leaks but is not officially posted; "unknown" if no reliable date exists. Be honest -- do NOT mark a date "confirmed" unless an official Disney source published it.
 - note: one short sentence (source + reason). ASCII only.

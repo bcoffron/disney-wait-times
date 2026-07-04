@@ -2,7 +2,7 @@
 // Routes generateFromSetup and aiChooseRides through Vercel with new two-cache section injection
 import { list } from '@vercel/blob';
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -54,7 +54,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
                           const fetchUrl = db[0].downloadUrl || db[0].url;
                           const dynamicData = await fetch(fetchUrl).then(r => r.json());
                           const sections = dynamicData.data.sections || {};
-                          ['CURRENT_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
+                          ['CURRENT_CLOSURES', 'CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
                                       if (sections[name]) {
                                                     results[name] = typeof sections[name] === 'string'
                                                       ? sections[name]
@@ -497,7 +497,8 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1) });
           console.log('[scaffold] dayIndex', _di, 'park', _park, 'open', _openMin, 'close', _closeMin, 'vip', _vipStart, _vipEnd, 'hasLL', _hasLL, 'slots', _sk.slots.length, 'rides', _sk.slots.filter(s => s.type === 'ride').length);
 
-          const _closedS = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
+          const _closedS = closedNamesForDate(cacheCtx.CLOSURES, _day.date);
+          console.log('[scaffold] closures on', _day.date, ':', JSON.stringify(_closedS));
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '');
