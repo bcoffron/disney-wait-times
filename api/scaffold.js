@@ -157,17 +157,26 @@ export function buildFillPrompt(skeleton, opts) {
   let sys = 'You are the genius best friend who knows Disneyland and Disney California Adventure inside out. A structural plan (the SKELETON) has already been built for this day: the time blocks, which park each block is in, the single lunch and single dinner, the show, and the Lightning Lane checkpoints are all FIXED. Your only job is to fill each slot with the smartest real choice from the CACHE DATA.';
   sys += '\n\nRULES:';
   sys += '\n- Return a JSON array with EXACTLY one object per slot, using the same slot ids in the same order. Never add, remove, reorder, merge, or split slots.';
-  sys += '\n- Choose each ride/venue/character/tip from the CACHE ONLY (wait patterns, rope-drop and LL strategy, verified dining and character lists). Never invent a ride, venue, wait time, or window.';
-  sys += "\n- Every choice MUST be physically in the slot's park. Never put a Disneyland attraction in a DCA slot or vice versa.";
+  sys += '\n- Choose each ride/venue/character/tip from the CACHE ONLY (wait patterns, rope-drop and LL strategy, verified dining and character lists). NEVER invent an attraction, venue, wait time, or window -- if a name is not in the cache, do not use it.';
+  sys += "\n- Every choice MUST be physically in the slot's park (never a Disneyland attraction in a DCA slot or vice versa), and label each with its correct land from the cache LAND_MAP.";
   sys += "\n- Pick a time INSIDE the slot's window. When a meal slot lists two windows, choose the off-peak one that flows best.";
-  sys += '\n- Never repeat a ride or venue used earlier the same day, or any venue in the ALREADY-USED list.';
-  sys += '\n- Spend the rope-drop and Lightning Lane slots on the highest-wait headliners the cache shows; do not waste them on short-standby rides.';
+  sys += "\n- A RIDE slot must be ONE specific, real attraction from the cache. NEVER fill a ride slot with a generic activity ('Explore', 'Recharge', 'Free time', 'Recheck Lightning Lane', 'Wander') -- those belong only in tip slots.";
+  sys += '\n- The rope-drop slot MUST be the single highest-demand headliner (top E-ticket) the cache shows for this park, at park open. Spend Lightning Lane on high-wait headliners too.';
+  sys += '\n- Never repeat a ride or venue anywhere in the day, or any venue in the ALREADY-USED list. Give exactly ONE name per slot -- never "X (or Y)" or a list of alternatives.';
   sys += '\n- Object schema: { "id":"s03", "t":"8:10 AM", "h":"Name", "type":"<the slot\'s type>", "land":"Land", "n":"tip under 80 chars", "ride":"Exact ride name (rides/LL only)", "ll":{ "t":"multi|single", "a":"..." } }';
   sys += '\n- ll only on ride/tip slots and only if the day has Lightning Lane. ASCII only. Notes under 80 characters.';
   sys += '\n\nSKELETON (fill EVERY slot):\n' + lines.join('\n');
   if (opts.usedDining && opts.usedDining.length) sys += '\n\nALREADY-USED venues (never repeat): ' + opts.usedDining.join('; ');
   return sys;
 }
+
+// M2 fill-quality helpers.
+// Generic activity phrases that must never fill a RIDE slot (they belong in tips).
+const GENERIC_RIDE_RE = /^\s*(explore|recharge|free\s*time|flex\s*time|flex\b|recheck|re-check|wander|relax|downtime|buffer|take a break|open (dining )?choice|open choice)/i;
+// Display cleanup: drop "(or X)" / "(aka X)" alternatives the model sometimes appends.
+function stripAlt(h) { return String(h || '').replace(/\s*\((?:or|aka|a\.?k\.?a\.?)\b[^)]*\)/gi, '').replace(/\s{2,}/g, ' ').trim(); }
+// Dedup key: lowercase, drop ALL parentheticals + filler words so "Space Mountain (Night Ride)" collides with "Space Mountain".
+function normName(h) { return String(h || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').replace(/\b(the|a|an|ride|standby|at|to|and)\b/g, ' ').replace(/\s+/g, ' ').trim(); }
 
 // Deterministic enforcement of the model's fills. Code owns physics; it never picks
 // a ride/venue except via the caller-supplied cache fallback. Returns enforced cards +
@@ -179,6 +188,7 @@ export function applyFills(skeleton, fills, opts) {
   const byId = {}; (fills || []).forEach(f => { if (f && f.id) byId[f.id] = f; });
   const cards = [], needsRetry = [], report = { clamped: 0, wrongPark: 0, missing: 0, fallback: 0 };
   const used = new Set();
+  const usedRideNames = new Set();
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
     const c = fallbackFor ? fallbackFor(slot, used) : placeholderCard(slot);
@@ -192,15 +202,24 @@ export function applyFills(skeleton, fills, opts) {
     const f = byId[slot.id];
     let card = null;
     if (f && f.h) {
+      const cleanH = stripAlt(f.h);
       const clamp = clampToWindow(parseClock(f.t), slot.window, slot.fixed);
       if (clamp.changed) report.clamped++;
       const landPark = f.land ? landToPark(f.land) : null;
       const parkBad = placed.has(slot.type) && f.land && landPark && !sameParkName(landPark, slot.park);
-      if (parkBad) {
-        report.wrongPark++; needsRetry.push(slot.id);
+      const isRideSlot = slot.type === 'ride';
+      const generic = isRideSlot && GENERIC_RIDE_RE.test(cleanH);
+      const nkey = normName(cleanH);
+      const dup = isRideSlot && nkey && usedRideNames.has(nkey);
+      if (parkBad || generic || dup) {
+        if (parkBad) report.wrongPark++;
+        if (generic) report.generic = (report.generic || 0) + 1;
+        if (dup) report.dupe = (report.dupe || 0) + 1;
+        needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
-        card = buildCard(slot, f, clamp.t);
+        card = buildCard(slot, Object.assign({}, f, { h: cleanH }), clamp.t);
+        if (isRideSlot && nkey) usedRideNames.add(nkey);
       }
     } else {
       report.missing++; needsRetry.push(slot.id);
