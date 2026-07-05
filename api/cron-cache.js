@@ -387,8 +387,15 @@ async function callClaude(prompt, apiKey) {
   });
   const d = await resp.json();
   if(d.error) throw new Error(d.error.message);
+  const blocks = d.content || [];
+  // With web_search, the response interleaves the model's narration with tool-use and
+  // tool-result blocks; the real answer is the text AFTER the last tool block. Concatenating
+  // every text block pollutes the output with search commentary and buries/breaks the JSON.
+  let lastToolIdx = -1;
+  for(let i=0;i<blocks.length;i++){ const bt=blocks[i].type||''; if(bt.indexOf('tool')!==-1) lastToolIdx=i; }
   let text='';
-  for(const b of (d.content||[])) if(b.type==='text') text+=b.text;
+  for(let i=lastToolIdx+1;i<blocks.length;i++){ if(blocks[i].type==='text') text+=blocks[i].text; }
+  if(!text){ for(const b of blocks) if(b.type==='text') text+=b.text; } // fallback: no post-tool text
   if(text.length<100) throw new Error('Response too short: '+text.length+' chars');
   return text;
 }
@@ -715,7 +722,9 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
     section:sectionName,
     length:text.length,
     sections_built:cacheData.sections_built,
-    sample: (typeof sectionData === 'string' ? sectionData : JSON.stringify(sectionData)).substring(0,400)
+    sample: (typeof sectionData === 'string' ? sectionData : JSON.stringify(sectionData)).substring(0,400),
+    rawHead: (text||'').substring(0,220),
+    rawTail: (text||'').slice(-220)
   };
 }
 
