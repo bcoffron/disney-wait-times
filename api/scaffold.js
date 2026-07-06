@@ -244,6 +244,19 @@ export function applyFills(skeleton, fills, opts) {
 // applyFills already handles these per-slot with retry+fallback; verifyScaffold is the last-resort
 // backstop for anything that survived (e.g. a wrong-park ride whose land field was blank). Leaving a
 // gap is deliberate: an honest hole beats a wrong-park or closed ride, and no code invents content.
+// Permanently retired at the Disneyland Resort. The fill model invents these from memory even
+// when they are absent from the cache, and prompt instructions don't reliably stop it -- so the
+// remove-only verify layer enforces them deterministically (a static counterpart to the dynamic
+// closures cache). Matched via normName(contains). String `to` = current name (rename in place);
+// null = permanently closed (drop the card).
+const RETIRED = [
+  { m: 'splash mountain', to: "Tiana's Bayou Adventure" },
+  { m: 'california screamin', to: 'Incredicoaster' },
+  { m: 'tower of terror', to: 'Guardians of the Galaxy - Mission: BREAKOUT!' },
+  { m: 'critter bbq', to: "Jessie's Critter Carousel" },
+  { m: 'tough be bug', to: null }
+];
+
 export function verifyScaffold(cards, opts) {
   opts = opts || {};
   const park = opts.park || null;
@@ -253,6 +266,14 @@ export function verifyScaffold(cards, opts) {
   const removed = [], kept = [], usedRide = new Set();
   for (const c of (cards || [])) {
     const hL = String(c.h || '').toLowerCase();
+    if (c.type === 'ride') {
+      const nn = normName(c.h);
+      const hit = RETIRED.find(r => nn.indexOf(r.m) !== -1);
+      if (hit) {
+        if (hit.to === null) { removed.push({ h: c.h, reason: 'retired' }); continue; }
+        c.h = hit.to; if (c.ride) c.ride = hit.to;
+      }
+    }
     if (c.type === 'ride' && closedNames.some(cn => cn && hL.indexOf(cn) !== -1)) { removed.push({ h: c.h, reason: 'closed' }); continue; }
     if (park && placed.has(c.type)) {
       const p = landToPark(c.land) || landToPark(c.h);
