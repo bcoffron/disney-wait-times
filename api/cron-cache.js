@@ -88,7 +88,7 @@ const STABLE_SECTION_PROMPTS = {
   },
   WAIT_PATTERNS:{
     system:'You are a Disneyland wait time expert using TouringPlans and Thrill-Data 2024-2026 data. Provide specific numbers confidently.',
-    user:`Search TouringPlans.com and Thrill-Data.com for Disneyland wait time patterns 2024-2026. Return typical wait times for top attractions across time blocks and crowd levels. Time blocks: rope_drop(open-9AM), early(9-11AM), midday(11AM-1PM), afternoon(1-4PM), lull(4-6PM), evening(6-9PM), late(9PM+). Crowd levels: light(Mon-Thu off-peak), moderate(Mon-Thu summer), heavy(Fri-Sun summer), extreme(holidays). Cover 30 attractions across DL and DCA: Rise of the Resistance, Millennium Falcon Smugglers Run, Indiana Jones Adventure, Haunted Mansion, Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Star Tours, Buzz Lightyear Astro Blasters, Roger Rabbit Car Toon Spin, Mickey Minnie Runaway Railway, Peter Pan Flight, Its a Small World, Alice in Wonderland, Mr Toads Wild Ride, Snow Whites Enchanted Wish, Jungle Cruise, Finding Nemo Submarine, Autopia, Chip Dale Gadget Coaster, WEB-SLINGERS Spider-Man, Radiator Springs Racers, Guardians of the Galaxy, Incredicoaster, Toy Story Midway Mania, Soarin Around the World, Luigis Rollickin Roadsters, Maters Junkyard Jamboree, Pixar Pal-A-Round, Monsters Inc Mike and Sulley. Format as JSON: {"attraction_name":{"crowd_level":{"time_block":wait_minutes}}}. Output ONLY this JSON object -- no list of sources, no notes, no text before or after it. Respond with ONLY the raw MINIFIED JSON on a single line -- no spaces, no newlines, no indentation, no markdown code fence. Cover ALL major Disneyland and Disney California Adventure attractions, using ONLY current attraction names (e.g. "Incredicoaster" not "California Screamin'", "Guardians of the Galaxy - Mission: BREAKOUT!" not "Tower of Terror"); never include a permanently-closed attraction.`,
+    user:`Search TouringPlans.com and Thrill-Data.com for Disneyland wait time patterns 2024-2026. Return typical wait times for top attractions across time blocks and crowd levels. Time blocks (5 only): rope_drop(open-10AM), midday(10AM-1PM), afternoon(1-4PM), evening(4-7PM), late(7PM+). Crowd levels (3 only): light(Mon-Thu off-peak), moderate(weekends and summer), heavy(holidays and peak days). Cover 30 attractions across DL and DCA: Rise of the Resistance, Millennium Falcon Smugglers Run, Indiana Jones Adventure, Haunted Mansion, Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Star Tours, Buzz Lightyear Astro Blasters, Roger Rabbit Car Toon Spin, Mickey Minnie Runaway Railway, Peter Pan Flight, Its a Small World, Alice in Wonderland, Mr Toads Wild Ride, Snow Whites Enchanted Wish, Jungle Cruise, Finding Nemo Submarine, Autopia, Chip Dale Gadget Coaster, WEB-SLINGERS Spider-Man, Radiator Springs Racers, Guardians of the Galaxy, Incredicoaster, Toy Story Midway Mania, Soarin Around the World, Luigis Rollickin Roadsters, Maters Junkyard Jamboree, Pixar Pal-A-Round, Monsters Inc Mike and Sulley. Format as JSON: {"attraction_name":{"crowd_level":{"time_block":wait_minutes}}}. Output ONLY this JSON object -- no list of sources, no notes, no text before or after it. Respond with ONLY the raw MINIFIED JSON on a single line -- no spaces, no newlines, no indentation, no markdown code fence. Cover ALL major Disneyland and Disney California Adventure attractions, using ONLY current attraction names (e.g. "Incredicoaster" not "California Screamin'", "Guardians of the Galaxy - Mission: BREAKOUT!" not "Tower of Terror"); never include a permanently-closed attraction.`,
     maxTokens:8000
   },
   CROWD_FLOW:{
@@ -722,9 +722,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
     section:sectionName,
     length:text.length,
     sections_built:cacheData.sections_built,
-    sample: (typeof sectionData === 'string' ? sectionData : JSON.stringify(sectionData)).substring(0,400),
-    rawHead: (text||'').substring(0,220),
-    rawTail: (text||'').slice(-220)
+    sample: (typeof sectionData === 'string' ? sectionData : JSON.stringify(sectionData)).substring(0,400)
   };
 }
 
@@ -738,7 +736,11 @@ async function buildDiningDL(key, apiKey) {
   });
   const d = await resp.json();
   if(d.error) throw new Error(d.error.message);
-  let textParts=[]; for(const b of (d.content||[])) if(b.type==='text' && b.text) textParts.push(b.text);
+  const blocks = d.content || [];
+  let lastToolIdx = -1;
+  for(let i=0;i<blocks.length;i++){ const bt=blocks[i].type||''; if(bt.indexOf('tool')!==-1) lastToolIdx=i; }
+  let textParts=[]; for(let i=lastToolIdx+1;i<blocks.length;i++){ if(blocks[i].type==='text' && blocks[i].text) textParts.push(blocks[i].text); }
+  if(!textParts.length){ for(const b of blocks) if(b.type==='text' && b.text) textParts.push(b.text); }
   const allText = textParts.join('\n');
   if(allText.length<20) throw new Error('Response too short');
   let parsed = extractJson(allText);
@@ -780,8 +782,12 @@ async function buildLegacy(key, apiKey) {
   });
   const d = await resp.json();
   if(d.error) throw new Error(d.error.message);
+  const blocks = d.content || [];
+  let lastToolIdx = -1;
+  for(let i=0;i<blocks.length;i++){ const bt=blocks[i].type||''; if(bt.indexOf('tool')!==-1) lastToolIdx=i; }
   let text='';
-  for(const b of (d.content||[])) if(b.type==='text') text+=b.text;
+  for(let i=lastToolIdx+1;i<blocks.length;i++){ if(blocks[i].type==='text') text+=blocks[i].text; }
+  if(!text){ for(const b of blocks) if(b.type==='text') text+=b.text; }
   if(text.length<50) throw new Error('Response too short');
   let value = text;
   if(key==='park_hours_intel'||key==='character_intel') {
