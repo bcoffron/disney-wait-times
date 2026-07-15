@@ -45,7 +45,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    const ADMIN_KEY = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
+    const ADMIN_KEY = (process.env.ADMIN_KEY).toLowerCase();
 
     if (req.method === 'POST') {
                 const key = req.headers['x-admin-key'];

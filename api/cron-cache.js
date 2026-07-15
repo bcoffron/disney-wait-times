@@ -828,7 +828,7 @@ export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   const isAuthed = secret && req.headers.authorization === ('Bearer '+secret);
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
-  const ADMIN_KEY_CC = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
+  const ADMIN_KEY_CC = (process.env.ADMIN_KEY).toLowerCase();
   const isAdminCC = (req.headers['x-admin-key'] || '').toLowerCase() === ADMIN_KEY_CC;
   if (!isAuthed && !isVercelCron && !isAdminCC) {
     console.warn('[cron-cache] Unauthorized request blocked -- ip:', req.headers['x-forwarded-for'] || 'unknown');

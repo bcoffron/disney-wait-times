@@ -49,7 +49,7 @@ export default async function handler(req, res) {
               try {
                         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
                         // Auth check - require trip code or admin key
-                        const ADMIN_KEY = (process.env.ADMIN_KEY || 'CWdis2026admin').toLowerCase();
+                        const ADMIN_KEY = (process.env.ADMIN_KEY).toLowerCase();
                         const sentAdmin = (req.headers['x-admin-key'] || body.adminKey || '').toLowerCase();
                         const tripCode = body.tripCode || req.headers['x-trip-code'] || '';
                         const isAdmin = sentAdmin === ADMIN_KEY;
