@@ -32,6 +32,7 @@ async function writeToBlob(data) {
       const payload = JSON.stringify(data);
       await put(BLOB_KEY, payload, {
               access: 'public',
+              allowOverwrite: true,
               addRandomSuffix: false,
               contentType: 'application/json',
               cacheControlMaxAge: 0
