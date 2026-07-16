@@ -138,6 +138,10 @@ var post = null;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(404).send(not404Html());
   }
+  if (post.published !== true) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(404).send(not404Html());
+  }
 
 // Read settings for byline
 var settings = await readSettings();
