@@ -20,6 +20,7 @@ async function readRegistry() {
 async function writeRegistry(data) {
   await put(REGISTRY_KEY, JSON.stringify(data), {
     access: 'public',
+    allowOverwrite: true,
     addRandomSuffix: false,
     contentType: 'application/json'
   });
@@ -47,6 +48,7 @@ async function writeTripBlob(tripId, tripData) {
   const key = 'twize/trip_' + tripId + '.json';
   await put(key, JSON.stringify(tripData), {
     access: 'public',
+    allowOverwrite: true,
     addRandomSuffix: false,
     contentType: 'application/json'
   });

@@ -9,11 +9,11 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
-    const contentLength = parseInt(req.headers['content-length'] || '0');
-    if (contentLength > MAX_REQUEST_SIZE) {
-          return res.status(413).json({ error: 'Request too large' });
-    }
-  
+  const contentLength = parseInt(req.headers['content-length'] || '0');
+  if (contentLength > MAX_REQUEST_SIZE) {
+    return res.status(413).json({ error: 'Request too large' });
+  }
+
   try {
     let allBlobs = [], cursor;
     do {
@@ -64,8 +64,9 @@ export default async function handler(req, res) {
       }
     }
 
-    index.sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));    await put('blog/posts/index', JSON.stringify(index), {
+    index.sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0)); await put('blog/posts/index', JSON.stringify(index), {
       access: 'public',
+      allowOverwrite: true,
       token: process.env.BLOB_READ_WRITE_TOKEN
     });
 
