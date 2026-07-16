@@ -155,8 +155,11 @@ pinnedSlugs = pinsData.pins || [];
 var featuredSlug = null;
 try {
 var _fblobs = (await list({ prefix: 'blog:featured', limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN })).blobs || [];
-var _fmatch = _fblobs.filter(function(b){ return b.pathname === 'blog:featured'; }).sort(function(a,b){ return new Date(b.uploadedAt)-new Date(a.uploadedAt); });
-if (_fmatch.length) {
+var _fmatch = _fblobs.filter(function(b){ return matchesKey(b.pathname, 'blog:featured'); }).sort(function(a,b){ return new Date(b.uploadedAt)-new Date(a.uploadedAt); });
+if (!_fmatch.length && _fblobs.length > 0) {
+        console.error('[SECURITY] featured selection matched 0 of ' + _fblobs.length + ' listed blobs for key "blog:featured" - possible suffix-format drift.');
+      }
+      if (_fmatch.length) {
 var _fr = await fetch(_fmatch[0].downloadUrl, { cache: 'no-store' });
 if (_fr.ok) { var _ft = (await _fr.text()).trim(); featuredSlug = _ft || null; }
 }
