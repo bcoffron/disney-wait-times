@@ -1522,7 +1522,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
     try {
       fetch(SYNC_BASE + '/api/trip', {
         method: 'POST',
-        headers: {'Content-Type':'application/json','x-admin-key':'cwdis2026admin'},
+        headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ code: code, tripData: { tripConfig: tripConfig } })
       })
       .then(function(r){ return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
@@ -1546,7 +1546,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
     if (code) {
       fetch(SYNC_BASE + '/api/trip', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': 'cwdis2026admin' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } })
       })
       .then(function(r){ return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
