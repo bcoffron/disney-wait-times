@@ -60,7 +60,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const ADMIN_KEY = (process.env.ADMIN_KEY).toLowerCase();
+  const ADMIN_KEY = (process.env.ADMIN_KEY || '').toLowerCase();
 
   // GET: look up a code
   if (req.method === 'GET') {
@@ -98,10 +98,10 @@ export default async function handler(req, res) {
     });
   }
 
-  // POST: save trip data for a code (requires admin key)
+  // POST: save trip data for a code (requires admin key OR an active owner code)
   if (req.method === 'POST') {
     const sentKey = (req.headers['x-admin-key'] || '').toLowerCase();
-    if (sentKey !== ADMIN_KEY) return res.status(403).json({ error: 'Unauthorized' });
+    const isAdmin = sentKey === ADMIN_KEY && ADMIN_KEY !== '';
 
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -111,6 +111,20 @@ export default async function handler(req, res) {
       const registry = await readRegistry();
       const entry = registry[code];
       if (!entry) return res.status(404).json({ error: 'Code not found' });
+      if (!isAdmin) {
+        if (entry.status !== 'active') {
+          return res.status(403).json({ error: 'Code inactive' });
+        }
+        if (entry.expires) {
+          const expDate = new Date(entry.expires + 'T23:59:59Z');
+          if (expDate < new Date()) {
+            return res.status(403).json({ error: 'Code expired' });
+          }
+        }
+        if (entry.role !== 'admin') {
+          return res.status(403).json({ error: 'Not authorized to write this trip' });
+        }
+      }
 
       // Auto-stamp scheduleVersion so client caches are invalidated on every save
       if (tripData && tripData.tripConfig) {
