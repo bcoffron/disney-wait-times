@@ -1262,64 +1262,37 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       'CONFIRMED DINING RESERVATIONS (must appear in schedule at exact times): ' + tripConfig.reservations.join(' | ') + '. ' : '') +
     'Return ONLY a raw JSON array of schedule items with fields: t (time), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (note), land (land name).';
 
-    // NOTE: the ?scaffold=1 parallel path and the ?engine=legacy toggle are retired. The standalone
-    // scaffold/-v2 endpoints were removed Jul 3 (d62368b); generation now always uses /api/generateschedule.
-  var _useScaffold = false; // standalone /api/generateschedule-scaffold removed Jul 3 (d62368b)
-    // Engine is hardcoded to the live /api/generateschedule generator; the -v2 and -scaffold standalone endpoints were removed Jul 3 (d62368b).
-  var _useV2 = false; // /api/generateschedule-v2 removed Jul 3 (d62368b); default to live /api/generateschedule
-  // The scaffold endpoint reads tripConfig.schedule.days[].park/date/hopTo. Build that view
-  // from tripConfig.days (which carries per-day park/date/hop at generate time).
-  var _scaffoldTripConfig = {
-    characters: tripConfig.characters,
-    minHeight: tripConfig.minHeight,
-    ridePreferences: tripConfig.ridePreferences || {},
-    groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
-    reservations: tripConfig.reservations || [],
-    parkHopping: tripConfig.parkHopping,
-    dining: {
-      reservations: (tripConfig.dining && tripConfig.dining.reservations) || [],
-      usedVenues: (tripConfig.dining && tripConfig.dining.usedVenues) || []
-    },
-    schedule: { days: (tripConfig.days || []).map(function(dd){
-      return { park: dd.park, date: dd.date, hopTo: dd.hopTo || (dd.startPark && dd.park && dd.startPark!==dd.park ? dd.park : null), isVip: dd.isVip };
-    }) }
-  };
-  // V2 ENGINE PARALLEL PATH (?engine=v2): server-side physics via deriveBlocks + CATALOG candidate
-  // filtering on Sonnet. Reads tripConfig.days[].intent (Step 3). Response shape identical ({ok,text,parsed}).
-  var _v2TripConfig = {
-    tripName: tripConfig.tripName,
-    thrillLevel: tripConfig.thrillLevel,
-    characters: tripConfig.characters,
-    minHeight: tripConfig.minHeight,
-    groupProfile: tripConfig.groupProfile,
-    dietaryNeeds: tripConfig.dietaryNeeds || [],
-    wantedRestaurants: tripConfig.wantedRestaurants || '',
-    accessibility: tripConfig.accessibility || [],
-    showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
-    ridePreferences: tripConfig.ridePreferences || { mustDo: tripConfig.mustDo || [], skip: tripConfig.neverSchedule || [] },
-    neverSchedule: tripConfig.neverSchedule || [],
-    reservations: tripConfig.reservations || [],
-    parkHopping: tripConfig.parkHopping,
-    parkHours: tripConfig.parkHours,
-    dining: { reservations: (tripConfig.dining && tripConfig.dining.reservations) || [], usedVenues: (tripConfig.dining && tripConfig.dining.usedVenues) || [] },
-    days: (tripConfig.days || []).map(function(dd){
-      return { num: dd.num, date: dd.date, park: dd.park, startPark: dd.startPark, hopTo: dd.hopTo, hopAtMin: dd.hopAtMin, isVip: dd.isVip, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP, hasILL: dd.hasILL, illRides: dd.illRides, intent: dd.intent };
-    })
-  };
-  var _endpoint = _useV2 ? '/api/generateschedule-v2' : (_useScaffold ? '/api/generateschedule-scaffold' : '/api/generateschedule');
-  var _body = _useV2
-    ? { dayIndex: dayIndex, maxTokens: 8000, tripCode: localStorage.getItem('tpcp_code') || '',
-        adminKey: (localStorage.getItem('tpcp_role')==='admin') ? 'cwdis2026admin' : undefined,
-        priorRides: (tripConfig._priorRides || []),
-        priorShows: (tripConfig._priorShows || []),
-        tripConfig: _v2TripConfig }
-    : _useScaffold
-    ? { dayIndex: dayIndex, maxTokens: 8000, tripCode: localStorage.getItem('tpcp_code') || '',
-        adminKey: (localStorage.getItem('tpcp_role')==='admin') ? 'cwdis2026admin' : undefined,
-        tripConfig: _scaffoldTripConfig }
+  var _useScaffold = /[?&]scaffold=1\b/.test(window.location.search); // opt-in physics-by-code path (?scaffold=1); server reads body.scaffold===true on /api/generateschedule. Default path uses the standard generator.
+  var _endpoint = '/api/generateschedule';
+  var _body = _useScaffold
+    ? { prompt: prompt,
+        scaffold: true,
+        dayIndex: dayIndex,
+        mode: 'setup',
+        maxTokens: 8000,
+        tripCode: localStorage.getItem('tpcp_code') || '',
+        tripConfig: {
+          characters: tripConfig.characters,
+          minHeight: tripConfig.minHeight,
+          ridePreferences: tripConfig.ridePreferences || {},
+          groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
+          reservations: tripConfig.reservations || [],
+          parkHopping: tripConfig.parkHopping,
+          dining: {
+            reservations: (tripConfig.dining && tripConfig.dining.reservations) || [],
+            usedVenues: (tripConfig.dining && tripConfig.dining.usedVenues) || []
+          },
+          days: (tripConfig.days || []).map(function(dd, di){
+            var _dt = dd.date;
+            if (!_dt) {
+              var _start = (tripConfig.days && tripConfig.days[0] && tripConfig.days[0].date) || tripConfig.startDate || null;
+              if (_start) { var _o = new Date(_start); _o.setDate(_o.getDate() + di); _dt = _o.toISOString().slice(0,10); }
+            }
+            return { park: dd.park, date: _dt, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL };
+          })
+        } }
     : { prompt: prompt, mode: 'setup', maxTokens: 8000,
         tripCode: localStorage.getItem('tpcp_code') || '',
-        adminKey: (localStorage.getItem('tpcp_role')==='admin') ? 'cwdis2026admin' : undefined,
         tripConfig: {
           characters: tripConfig.characters,
           minHeight: tripConfig.minHeight,
@@ -1333,11 +1306,10 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
           }
         }
       };
-  if (_useV2) console.log('[pretrip] Day ' + (dayIndex+1) + ' using V2 ENGINE path');
-  else if (_useScaffold) console.log('[pretrip] Day ' + (dayIndex+1) + ' using SCAFFOLD path');
+  if (_useScaffold) console.log('[pretrip] Day ' + (dayIndex+1) + ' using SCAFFOLD path');
   fetch(SYNC_BASE + _endpoint, {
     method: 'POST',
-    headers: (function(){ var h={'Content-Type':'application/json'}; var c=localStorage.getItem('tpcp_code')||''; var r=localStorage.getItem('tpcp_role')||'guest'; if(r==='admin') h['x-admin-key']='cwdis2026admin'; return h; })(),
+    headers: {'Content-Type':'application/json'},
     body: JSON.stringify(_body)
   })
   .then(function(r){ return r.json().then(function(d){ d._httpStatus=r.status; return d; }); })
