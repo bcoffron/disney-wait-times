@@ -2,7 +2,7 @@
 // Routes generateFromSetup and aiChooseRides through Vercel with new two-cache section injection
 import { list } from '@vercel/blob';
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, buildCatalogIndex } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
       const cacheCtx = await buildCacheContext(
               ['LAND_MAP', 'WAIT_PATTERNS', 'ROPE_DROP_STRATEGY',
                        'LIGHTNING_LANE_STRATEGY', 'DINING_TIMING', 'CROWD_FLOW',
-      'PARK_HOURS', 'PARK_HOP_STRATEGY'],
+      'PARK_HOURS', 'PARK_HOP_STRATEGY', 'CATALOG'],
               true
             );
           console.log('[generateschedule] cacheCtx sections:', Object.keys(cacheCtx));
@@ -534,7 +534,9 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
 
           // Verify layer -- REMOVE-ONLY safety net (replaces the heavy validateSchedule on this path;
           // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
-          const _vf = verifyScaffold(_ap.cards, { park: _park, landToPark: landToPark, closedNames: _closedS });
+          const _catIdx = buildCatalogIndex(cacheCtx.CATALOG);
+          console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
+          const _vf = verifyScaffold(_ap.cards, { park: _park, landToPark: landToPark, closedNames: _closedS, catalog: _catIdx });
           const _items = _vf.cards;
           console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
           return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed });
