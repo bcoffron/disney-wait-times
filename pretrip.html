@@ -1274,6 +1274,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         tripConfig: {
           characters: tripConfig.characters,
           minHeight: tripConfig.minHeight,
+          ridePreferences: tripConfig.ridePreferences || {},
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
