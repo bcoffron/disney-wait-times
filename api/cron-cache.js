@@ -566,6 +566,96 @@ async function buildCatalogVenues(cacheKey) {
   return venues;
 }
 
+function buildCatalogAttractions() {
+  return [
+    // ===================== DISNEYLAND PARK (DL) =====================
+    // --- Star Wars: Galaxy's Edge ---
+    { id: 'rise_of_the_resistance', name: 'Star Wars: Rise of the Resistance', park: 'DL', land: "Star Wars: Galaxy's Edge", heightInches: 40, llKind: 'single', ropeDropValue: 'high', typicalPeakWait: 90, status: 'operating' },
+    { id: 'millennium_falcon_smugglers_run', name: 'Millennium Falcon: Smugglers Run', park: 'DL', land: "Star Wars: Galaxy's Edge", heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 45, status: 'operating' },
+    // --- Adventureland ---
+    { id: 'indiana_jones_adventure', name: 'Indiana Jones Adventure', park: 'DL', land: 'Adventureland', heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 60, status: 'operating' },
+    { id: 'jungle_cruise', name: 'Jungle Cruise', park: 'DL', land: 'Adventureland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 40, status: 'operating' },
+    { id: 'enchanted_tiki_room', name: "Walt Disney's Enchanted Tiki Room", park: 'DL', land: 'Adventureland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 0, status: 'operating' },
+    { id: 'adventureland_treehouse', name: 'Adventureland Treehouse', park: 'DL', land: 'Adventureland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 10, status: 'operating' },
+    // --- New Orleans Square ---
+    { id: 'pirates_of_the_caribbean', name: 'Pirates of the Caribbean', park: 'DL', land: 'New Orleans Square', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 35, status: 'operating' },
+    { id: 'haunted_mansion', name: 'Haunted Mansion', park: 'DL', land: 'New Orleans Square', heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    // --- Frontierland ---
+    { id: 'big_thunder_mountain_railroad', name: 'Big Thunder Mountain Railroad', park: 'DL', land: 'Frontierland', heightInches: 40, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    { id: 'mark_twain_riverboat', name: 'Mark Twain Riverboat', park: 'DL', land: 'Frontierland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
+    { id: 'sailing_ship_columbia', name: 'Sailing Ship Columbia', park: 'DL', land: 'Frontierland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
+    { id: 'tom_sawyer_island', name: "Pirate's Lair on Tom Sawyer Island", park: 'DL', land: 'Frontierland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 0, status: 'operating' },
+    { id: 'frontierland_shootin_exposition', name: "Frontierland Shootin' Exposition", park: 'DL', land: 'Frontierland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 0, status: 'operating' },
+    // --- Bayou Country / Critter Country ---
+    { id: 'tianas_bayou_adventure', name: "Tiana's Bayou Adventure", park: 'DL', land: 'Bayou Country', heightInches: 40, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 60, status: 'operating' },
+    { id: 'winnie_the_pooh', name: 'The Many Adventures of Winnie the Pooh', park: 'DL', land: 'Critter Country', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'davy_crockett_canoes', name: "Davy Crockett's Explorer Canoes", park: 'DL', land: 'Critter Country', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
+    // --- Fantasyland ---
+    { id: 'small_world', name: '"it\'s a small world"', park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 25, status: 'operating' },
+    { id: 'matterhorn_bobsleds', name: 'Matterhorn Bobsleds', park: 'DL', land: 'Fantasyland', heightInches: 42, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    { id: 'peter_pans_flight', name: "Peter Pan's Flight", park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    { id: 'alice_in_wonderland', name: 'Alice in Wonderland', park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 30, status: 'operating' },
+    { id: 'mr_toads_wild_ride', name: "Mr. Toad's Wild Ride", park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 30, status: 'operating' },
+    { id: 'snow_whites_enchanted_wish', name: "Snow White's Enchanted Wish", park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 30, status: 'operating' },
+    { id: 'pinocchios_daring_journey', name: "Pinocchio's Daring Journey", park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'king_arthur_carrousel', name: 'King Arthur Carrousel', park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 10, status: 'operating' },
+    { id: 'mad_tea_party', name: 'Mad Tea Party', park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
+    { id: 'dumbo', name: 'Dumbo the Flying Elephant', park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'casey_jr_circus_train', name: 'Casey Jr. Circus Train', park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
+    { id: 'storybook_land_canal_boats', name: 'Storybook Land Canal Boats', park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'sleeping_beauty_castle_walkthrough', name: 'Sleeping Beauty Castle Walkthrough', park: 'DL', land: 'Fantasyland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 0, status: 'operating' },
+    // --- Mickey's Toontown ---
+    { id: 'runaway_railway', name: "Mickey & Minnie's Runaway Railway", park: 'DL', land: "Mickey's Toontown", heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    { id: 'roger_rabbit_car_toon_spin', name: "Roger Rabbit's Car Toon Spin", park: 'DL', land: "Mickey's Toontown", heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 30, status: 'operating' },
+    { id: 'gadgetcoaster', name: "Chip 'n' Dale's GADGETcoaster", park: 'DL', land: "Mickey's Toontown", heightInches: 35, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 25, status: 'operating' },
+    { id: 'mickeys_house', name: "Mickey's House and Meet Mickey Mouse", park: 'DL', land: "Mickey's Toontown", heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'minnies_house', name: "Minnie's House", park: 'DL', land: "Mickey's Toontown", heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 10, status: 'operating' },
+    { id: 'goofys_how_to_play_yard', name: "Goofy's How-to-Play Yard", park: 'DL', land: "Mickey's Toontown", heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 0, status: 'operating' },
+    { id: 'donalds_duck_pond', name: "Donald's Duck Pond", park: 'DL', land: "Mickey's Toontown", heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 0, status: 'operating' },
+    // --- Tomorrowland ---
+    { id: 'space_mountain', name: 'Space Mountain', park: 'DL', land: 'Tomorrowland', heightInches: 40, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 60, status: 'operating' },
+    { id: 'star_tours', name: 'Star Tours - The Adventures Continue', park: 'DL', land: 'Tomorrowland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 35, status: 'operating' },
+    { id: 'buzz_lightyear_astro_blasters', name: 'Buzz Lightyear Astro Blasters', park: 'DL', land: 'Tomorrowland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 25, status: 'operating' },
+    { id: 'astro_orbitor', name: 'Astro Orbitor', park: 'DL', land: 'Tomorrowland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'autopia', name: 'Autopia', park: 'DL', land: 'Tomorrowland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 30, status: 'operating' },
+    { id: 'finding_nemo_submarine_voyage', name: 'Finding Nemo Submarine Voyage', park: 'DL', land: 'Tomorrowland', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 40, status: 'operating' },
+    { id: 'disneyland_monorail', name: 'Disneyland Monorail', park: 'DL', land: 'Tomorrowland', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 10, status: 'operating' },
+    // --- Main Street, U.S.A. ---
+    { id: 'disneyland_railroad', name: 'Disneyland Railroad', park: 'DL', land: 'Main Street, U.S.A.', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 10, status: 'operating' },
+    { id: 'main_street_vehicles', name: 'Main Street Vehicles', park: 'DL', land: 'Main Street, U.S.A.', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 5, status: 'operating' },
+    // ================= DISNEY CALIFORNIA ADVENTURE (DCA) =================
+    // --- Cars Land ---
+    { id: 'radiator_springs_racers', name: 'Radiator Springs Racers', park: 'DCA', land: 'Cars Land', heightInches: 40, llKind: 'single', ropeDropValue: 'high', typicalPeakWait: 75, status: 'operating' },
+    { id: 'luigis_rollickin_roadsters', name: "Luigi's Rollickin' Roadsters", park: 'DCA', land: 'Cars Land', heightInches: 32, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 30, status: 'operating' },
+    { id: 'maters_junkyard_jamboree', name: "Mater's Junkyard Jamboree", park: 'DCA', land: 'Cars Land', heightInches: 32, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 25, status: 'operating' },
+    // --- Avengers Campus ---
+    { id: 'guardians_mission_breakout', name: 'Guardians of the Galaxy - Mission: BREAKOUT!', park: 'DCA', land: 'Avengers Campus', heightInches: 40, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 60, status: 'operating' },
+    { id: 'web_slingers', name: 'WEB SLINGERS: A Spider-Man Adventure', park: 'DCA', land: 'Avengers Campus', heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    // --- Pixar Pier ---
+    { id: 'incredicoaster', name: 'Incredicoaster', park: 'DCA', land: 'Pixar Pier', heightInches: 48, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    { id: 'toy_story_midway_mania', name: 'Toy Story Midway Mania!', park: 'DCA', land: 'Pixar Pier', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 40, status: 'operating' },
+    { id: 'pixar_pal_a_round_swinging', name: 'Pixar Pal-A-Round \u2013 Swinging', park: 'DCA', land: 'Pixar Pier', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 25, status: 'operating' },
+    { id: 'pixar_pal_a_round_non_swinging', name: 'Pixar Pal-A-Round \u2013 Non-Swinging', park: 'DCA', land: 'Pixar Pier', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'jessies_critter_carousel', name: "Jessie's Critter Carousel", park: 'DCA', land: 'Pixar Pier', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
+    { id: 'inside_out_emotional_whirlwind', name: 'Inside Out Emotional Whirlwind', park: 'DCA', land: 'Pixar Pier', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 25, status: 'operating' },
+    // --- Grizzly Peak ---
+    { id: 'soarin_around_the_world', name: "Soarin' Around the World", park: 'DCA', land: 'Grizzly Peak', heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    { id: 'soarin_across_america', name: "Soarin' Across America", park: 'DCA', land: 'Grizzly Peak', heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
+    { id: 'grizzly_river_run', name: 'Grizzly River Run', park: 'DCA', land: 'Grizzly Peak', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 40, status: 'operating' },
+    { id: 'redwood_creek_challenge_trail', name: 'Redwood Creek Challenge Trail', park: 'DCA', land: 'Grizzly Peak', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 0, status: 'operating' },
+    // --- Paradise Gardens Park ---
+    { id: 'goofys_sky_school', name: "Goofy's Sky School", park: 'DCA', land: 'Paradise Gardens Park', heightInches: 42, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 30, status: 'operating' },
+    { id: 'jumpin_jellyfish', name: "Jumpin' Jellyfish", park: 'DCA', land: 'Paradise Gardens Park', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
+    { id: 'golden_zephyr', name: 'Golden Zephyr', park: 'DCA', land: 'Paradise Gardens Park', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 10, status: 'operating' },
+    { id: 'silly_symphony_swings', name: 'Silly Symphony Swings', park: 'DCA', land: 'Paradise Gardens Park', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'little_mermaid', name: "The Little Mermaid - Ariel's Undersea Adventure", park: 'DCA', land: 'Paradise Gardens Park', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    // --- Hollywood Land ---
+    { id: 'monsters_inc', name: 'Monsters, Inc. Mike & Sulley to the Rescue!', park: 'DCA', land: 'Hollywood Land', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 20, status: 'operating' },
+    { id: 'mickeys_philharmagic', name: "Mickey's PhilharMagic", park: 'DCA', land: 'Hollywood Land', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
+    { id: 'turtle_talk_with_crush', name: 'Turtle Talk with Crush', park: 'DCA', land: 'Hollywood Land', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' }
+  ];
+}
+
 async function buildSingleSection(cacheKey, sectionName, apiKey) {
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
@@ -573,7 +663,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
 
   const prompt = promptMap[sectionName];
   const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '\n\nNow build the ' + sectionName + ' section:\n\n' + prompt.user});
-  const text = await callClaude(augmentedPrompt, apiKey);
+  const text = (sectionName === 'CATALOG') ? '' : await callClaude(augmentedPrompt, apiKey);
 
   let sectionData;
   if(sectionName==='LAND_MAP'||sectionName==='WAIT_PATTERNS') {
@@ -592,27 +682,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
     // CATALOG requires a fully parseable JSON object -- no prose, no truncation.
     // Attractions come from the model; venues are built deterministically from
     // dining_intel_dl using hardcoded classification rules (FINAL spec).
-    let parsed = null;
-    parsed = extractJson(text);
-    if(!parsed) {
-      throw new Error('[CATALOG] self-parse-check FAIL: model returned non-parseable content. First 300 chars: ' + text.substring(0, 300));
-    }
-    // Normalize: if model returned an array directly
-    if(Array.isArray(parsed)) {
-      const first = parsed[0] || {};
-      if(first.heightInches !== undefined || first.llKind !== undefined || first.ropeDropValue !== undefined) {
-        parsed = { attractions: parsed, venues: [] };
-        console.log('[CATALOG] model returned array -- wrapped as {attractions, venues:[]}');
-      } else if(first.service !== undefined || first.reservationPolicy !== undefined) {
-        parsed = { attractions: [], venues: parsed };
-        console.log('[CATALOG] model returned venues array -- wrapped as {attractions:[], venues}');
-      } else {
-        throw new Error('[CATALOG] self-parse-check FAIL: model returned unrecognized array. First item keys: ' + Object.keys(first).join(','));
-      }
-    }
-    if(!Array.isArray(parsed.attractions) || parsed.attractions.length === 0) {
-      throw new Error('[CATALOG] self-parse-check FAIL: attractions array missing or empty. Keys: ' + Object.keys(parsed).join(','));
-    }
+    let parsed = { attractions: buildCatalogAttractions(), venues: [] };
     // Build venues from dining_intel_dl using curated hardcoded classification
     let builtVenues = [];
     try {
