@@ -180,7 +180,7 @@ export default async function handler(req, res) {
   });
 
   // -- AUTH CHECK -----------------------------------------------------------
-  const _adminKey = (process.env.ADMIN_KEY).toLowerCase();
+  const _adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
     const _sentAdmin = (req.headers['x-admin-key'] || req.body && req.body.adminKey || '').toLowerCase();
     const _tripCode = (req.body && req.body.tripCode) || req.headers['x-trip-code'] || '';
     const _isAdmin = _sentAdmin === _adminKey;
