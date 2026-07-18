@@ -1262,12 +1262,11 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       'CONFIRMED DINING RESERVATIONS (must appear in schedule at exact times): ' + tripConfig.reservations.join(' | ') + '. ' : '') +
     'Return ONLY a raw JSON array of schedule items with fields: t (time), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (note), land (land name).';
 
-  // SCAFFOLD PARALLEL PATH: when ?scaffold=1 is present, route this day through the
-  // physics-vs-strategy scaffold endpoint instead of the free-form generator. Response
-  // shape is identical ({ok, text, parsed, ...}) so all downstream handling is unchanged.
-  var _useScaffold = /[?&]scaffold=1\b/.test(window.location.search);
-  // v2 is now the DEFAULT engine. Opt OUT to the legacy generator with ?engine=legacy (instant fallback).
-  var _useV2 = !/[?&]engine=legacy\b/.test(window.location.search);
+    // NOTE: the ?scaffold=1 parallel path and the ?engine=legacy toggle are retired. The standalone
+    // scaffold/-v2 endpoints were removed Jul 3 (d62368b); generation now always uses /api/generateschedule.
+  var _useScaffold = false; // standalone /api/generateschedule-scaffold removed Jul 3 (d62368b)
+    // Engine is hardcoded to the live /api/generateschedule generator; the -v2 and -scaffold standalone endpoints were removed Jul 3 (d62368b).
+  var _useV2 = false; // /api/generateschedule-v2 removed Jul 3 (d62368b); default to live /api/generateschedule
   // The scaffold endpoint reads tripConfig.schedule.days[].park/date/hopTo. Build that view
   // from tripConfig.days (which carries per-day park/date/hop at generate time).
   var _scaffoldTripConfig = {
