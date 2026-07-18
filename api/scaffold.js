@@ -5,10 +5,10 @@
 // venue/note and the exact time inside a slot's window, but it may NOT add, remove,
 // reorder, or change the park of any slot. See SCAFFOLD_DESIGN.md.
 
-const LUNCH_WINDOWS   = [[660, 705], [810, 870]];    // 11:00-11:45 or 1:30-2:30
-const DINNER_WINDOWS  = [[990, 1050], [1170, 1260]]; // 4:30-5:30 or 7:30-9:00
-const SNACK_PM_WINDOW = [780, 900];                  // 1:00-3:00
-export const DEFAULT_PACE_MIN_PER_RIDE = 44;         // ~16 rides on a full day; tunable, becomes a tripConfig field later
+const LUNCH_WINDOWS = [[660, 705], [810, 870]]; // 11:00-11:45 or 1:30-2:30
+const DINNER_WINDOWS = [[990, 1050], [1170, 1260]]; // 4:30-5:30 or 7:30-9:00
+const SNACK_PM_WINDOW = [780, 900]; // 1:00-3:00
+export const DEFAULT_PACE_MIN_PER_RIDE = 44; // ~16 rides on a full day; tunable, becomes a tripConfig field later
 
 function numOrNull(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -257,36 +257,85 @@ const RETIRED = [
   { m: 'tough be bug', to: null }
 ];
 
+// Parse the CATALOG cache section (JSON string or object) into a lookup:
+//   normName(attraction name) -> { park, land, status }
+// Rides only (venues ignored here). Fail-open: returns {} on any parse failure, which makes
+// verifyScaffold behave exactly as before (no CATALOG enforcement) rather than throwing.
+export function buildCatalogIndex(catalogRaw) {
+  const idx = {};
+  if (!catalogRaw) return idx;
+  let cat = catalogRaw;
+  if (typeof cat === 'string') { try { cat = JSON.parse(cat); } catch (e) { return idx; } }
+  const list = (cat && Array.isArray(cat.attractions)) ? cat.attractions : [];
+  for (const a of list) {
+    if (!a || !a.name) continue;
+    const k = normName(a.name);
+    if (!k) continue;
+    idx[k] = { park: a.park || '', land: a.land || '', status: String(a.status || 'operating') };
+  }
+  return idx;
+}
+
+// Order final cards chronologically and de-collide identical timestamps. The model may pick
+// any time inside a slot window, so slot order (window-start) can invert against chosen times.
+// Equal times get bumped +1 min so each is distinct (display-only). Unparseable times sort last.
+function sortAndSpace(cards) {
+  const rows = (cards || []).map((c, i) => ({ c, i, m: parseClock(c.t) }));
+  rows.sort((a, b) => ((a.m == null) - (b.m == null)) || ((a.m || 0) - (b.m || 0)) || (a.i - b.i));
+  let prev = -1;
+  for (const r of rows) {
+    if (r.m == null) continue;
+    let m = r.m;
+    if (m <= prev) m = prev + 1;
+    r.c.t = toClock(m);
+    prev = m;
+  }
+  return rows.map(r => r.c);
+}
+
 export function verifyScaffold(cards, opts) {
   opts = opts || {};
   const park = opts.park || null;
   const landToPark = opts.landToPark || (() => null);
+  const catalog = opts.catalog || {};
+  const catalogLoaded = Object.keys(catalog).length > 0;
   const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']);
   const removed = [], kept = [], usedRide = new Set();
   for (const c of (cards || [])) {
     const hL = String(c.h || '').toLowerCase();
     if (c.type === 'ride') {
+      // 1. RETIRED: rename outdated / drop permanently-closed
       const nn = normName(c.h);
-      const hit = RETIRED.find(r => nn.indexOf(r.m) !== -1);
-      if (hit) {
-        if (hit.to === null) { removed.push({ h: c.h, reason: 'retired' }); continue; }
-        c.h = hit.to; if (c.ride) c.ride = hit.to;
+      const rhit = RETIRED.find(r => nn.indexOf(r.m) !== -1);
+      if (rhit) {
+        if (rhit.to === null) { removed.push({ h: c.h, reason: 'retired' }); continue; }
+        c.h = rhit.to; if (c.ride) c.ride = rhit.to;
       }
-    }
-    if (c.type === 'ride' && closedNames.some(cn => cn && hL.indexOf(cn) !== -1)) { removed.push({ h: c.h, reason: 'closed' }); continue; }
-    if (park && placed.has(c.type)) {
-      const p = landToPark(c.land) || landToPark(c.h);
-      if (p && !sameParkName(p, park)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
-    }
-    if (c.type === 'ride') {
+      // 2. CLOSURES cache (trip-date-windowed -- the closure authority)
+      if (closedNames.some(cn => cn && hL.indexOf(cn) !== -1)) { removed.push({ h: c.h, reason: 'closed' }); continue; }
+      // 3. CATALOG authoritative: relabel land + wrong-park + conservative hallucination drop
+      const ce = catalog[normName(c.ride || c.h)];
+      if (ce) {
+        if (park && ce.park && !sameParkName(ce.park, park)) { removed.push({ h: c.h, reason: 'wrong-park-catalog' }); continue; }
+        if (ce.land) c.land = ce.land; // relabel to canonical land
+      } else {
+        const p = landToPark(c.land) || landToPark(c.h);
+        if (catalogLoaded && !p) { removed.push({ h: c.h, reason: 'not-at-resort' }); continue; }
+        if (park && p && !sameParkName(p, park)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
+      }
+      // 4. dupe
       const k = normName(c.ride || c.h);
       if (k && usedRide.has(k)) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
       if (k) usedRide.add(k);
+    } else if (park && placed.has(c.type)) {
+      // non-ride placed types (dining/snack/show/character): unchanged landToPark wrong-park check
+      const p = landToPark(c.land) || landToPark(c.h);
+      if (p && !sameParkName(p, park)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
     }
     kept.push(c);
   }
-  return { cards: kept, removed };
+  return { cards: sortAndSpace(kept), removed };
 }
 
 // Given the structured CLOSURES cache (a JSON string or array of {name, closeDate?, reopenDate?})
@@ -316,10 +365,10 @@ export function closedNamesForDate(closures, tripDate) {
     if (!e || !e.name) continue;
     const start = toISO(e.closeDate);
     const end = toISO(e.reopenDate);
-    if (!start) continue;            // fail OPEN: no known closure start -> never flag a live ride
-    if (d < start) continue;         // trip is before the closure begins -> open
-    if (end && d >= end) continue;   // trip is on/after the reopen date -> open
-    names.push(String(e.name));      // closeDate <= tripDate < reopenDate (or no reopen) -> closed
+    if (!start) continue; // fail OPEN: no known closure start -> never flag a live ride
+    if (d < start) continue; // trip is before the closure begins -> open
+    if (end && d >= end) continue; // trip is on/after the reopen date -> open
+    names.push(String(e.name)); // closeDate <= tripDate < reopenDate (or no reopen) -> closed
   }
   return names;
 }
