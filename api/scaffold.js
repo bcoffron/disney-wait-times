@@ -381,10 +381,11 @@ function sortAndSpace(cards) {
 
 export function verifyScaffold(cards, opts) {
   opts = opts || {};
-  const park = opts.park || null;
+  const allowedParks = (Array.isArray(opts.parks) && opts.parks.length) ? opts.parks : (opts.park ? [opts.park] : []);
   const landToPark = opts.landToPark || (() => null);
   const catalog = opts.catalog || {};
   const catalogLoaded = Object.keys(catalog).length > 0;
+  const inAllowed = (p) => allowedParks.length === 0 || allowedParks.some(ap => sameParkName(p, ap));
   const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']);
   const removed = [], kept = [], usedRide = new Set();
@@ -403,21 +404,21 @@ export function verifyScaffold(cards, opts) {
       // 3. CATALOG authoritative: relabel land + wrong-park + conservative hallucination drop
       const ce = catalog[normName(c.ride || c.h)];
       if (ce) {
-        if (park && ce.park && !sameParkName(ce.park, park)) { removed.push({ h: c.h, reason: 'wrong-park-catalog' }); continue; }
+        if (allowedParks.length && ce.park && !inAllowed(ce.park)) { removed.push({ h: c.h, reason: 'wrong-park-catalog' }); continue; }
         if (ce.land) c.land = ce.land; // relabel to canonical land
       } else {
         const p = landToPark(c.land) || landToPark(c.h);
         if (catalogLoaded && !p) { removed.push({ h: c.h, reason: 'not-at-resort' }); continue; }
-        if (park && p && !sameParkName(p, park)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
+        if (allowedParks.length && p && !inAllowed(p)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
       }
       // 4. dupe
       const k = normName(c.ride || c.h);
       if (k && usedRide.has(k)) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
       if (k) usedRide.add(k);
-    } else if (park && placed.has(c.type)) {
+    } else if (allowedParks.length && placed.has(c.type)) {
       // non-ride placed types (dining/snack/show/character): unchanged landToPark wrong-park check
       const p = landToPark(c.land) || landToPark(c.h);
-      if (p && !sameParkName(p, park)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
+      if (p && !inAllowed(p)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
     }
     kept.push(c);
   }
