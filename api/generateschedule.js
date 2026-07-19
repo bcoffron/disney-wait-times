@@ -549,7 +549,8 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
           const _catIdx = buildCatalogIndex(cacheCtx.CATALOG);
           console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
-          const _vf = verifyScaffold(_ap.cards, { park: _park, landToPark: landToPark, closedNames: _closedS, catalog: _catIdx });
+          const _dayParks = (_hop && _vipStart === null) ? [_park, _hop.toPark] : [_park];
+          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, catalog: _catIdx });
           const _items = _vf.cards;
           console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
           return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed });
