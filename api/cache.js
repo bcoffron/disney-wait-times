@@ -58,9 +58,13 @@ export default async function handler(req, res) {
   // GET - read from blob store (supports both legacy and new format)
   if (req.method === 'GET') {
     try {
-      const { blobs } = await list({ prefix: 'twize/' + key + '.json' });
-      if (!blobs || blobs.length === 0) return res.json({ hit: false });
-      const blob = blobs[0];
+      const prefix = 'twize/' + key + '.json';
+      const { blobs } = await list({ prefix });
+      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const matchRe = new RegExp('^twize/' + escaped + '-[a-zA-Z0-9]+\\.json$');
+      const matches = (blobs || []).filter(b => b.pathname === prefix || matchRe.test(b.pathname));
+      if (matches.length === 0) return res.json({ hit: false });
+      const blob = matches.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
       const fetchUrl = blob.downloadUrl || blob.url;
       const dataResp = await fetch(fetchUrl);
       if (!dataResp.ok) return res.json({ hit: false });
@@ -85,9 +89,9 @@ export default async function handler(req, res) {
   // POST - write to blob store
   if (req.method === 'POST') {
     const adminKey = (req.headers['x-admin-key'] || req.headers['authorization'] || '').replace('Bearer ','');
-    const validAdmin = adminKey.toLowerCase() === (process.env.ADMIN_KEY||'').toLowerCase();
-    const validCron = adminKey === process.env.CRON_SECRET;
-    if (!validAdmin && !validCron && adminKey.toLowerCase()!=='cwdis2026admin') {
+    const validAdmin = !!process.env.ADMIN_KEY && adminKey.toLowerCase() === process.env.ADMIN_KEY.toLowerCase();
+    const validCron = !!process.env.CRON_SECRET && adminKey === process.env.CRON_SECRET;
+    if (!validAdmin && !validCron) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
