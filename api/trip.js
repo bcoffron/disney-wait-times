@@ -2,11 +2,27 @@
 import { put, list, del } from '@vercel/blob';
 import { validateSchedule } from './validate-schedule.js';
 
+// Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
+// per-trip blobs live behind an unguessable path segment so their fixed public
+// URLs are no longer guessable. When unset, keys fall back to the bare paths
+// (current behavior -- no lockout). Never log the salted key or full pathname.
+const SALT = (process.env.BLOB_PATH_SALT || '').trim();
+
+// Bare keys (also used as the transition-fallback for reads).
 const REGISTRY_KEY = 'twize/trip_registry.json';
+const tripBareKey = (tripId) => 'twize/trip_' + tripId + '.json';
+
+// Salted keys -- salted when SALT is set, bare otherwise.
+const registrySaltedKey = () => SALT ? ('twize/' + SALT + '/trip_registry.json') : 'twize/trip_registry.json';
+const tripSaltedKey = (tripId) => SALT ? ('twize/' + SALT + '/trip_' + tripId + '.json') : ('twize/trip_' + tripId + '.json');
 
 async function readRegistry() {
   try {
-    const { blobs } = await list({ prefix: REGISTRY_KEY });
+    // salted-first, bare-fallback (transition-safe)
+    let { blobs } = await list({ prefix: registrySaltedKey() });
+    if (!blobs || blobs.length === 0) {
+      ({ blobs } = await list({ prefix: REGISTRY_KEY }));
+    }
     if (!blobs || blobs.length === 0) return {};
     const resp = await fetch(blobs[0].url);
     if (!resp.ok) return {};
@@ -18,7 +34,7 @@ async function readRegistry() {
 }
 
 async function writeRegistry(data) {
-  await put(REGISTRY_KEY, JSON.stringify(data), {
+  await put(registrySaltedKey(), JSON.stringify(data), {
     access: 'public',
     allowOverwrite: true,
     addRandomSuffix: false,
@@ -34,8 +50,11 @@ function sanitizeJson(text) {
 
 async function readTripBlob(tripId) {
   try {
-    const key = 'twize/trip_' + tripId + '.json';
-    const { blobs } = await list({ prefix: key });
+    // salted-first, bare-fallback (transition-safe)
+    let { blobs } = await list({ prefix: tripSaltedKey(tripId) });
+    if (!blobs || blobs.length === 0) {
+      ({ blobs } = await list({ prefix: tripBareKey(tripId) }));
+    }
     if (!blobs || blobs.length === 0) return null;
     const resp = await fetch(blobs[0].url + '?t=' + Date.now());
     if (!resp.ok) return null;
@@ -45,8 +64,7 @@ async function readTripBlob(tripId) {
 }
 
 async function writeTripBlob(tripId, tripData) {
-  const key = 'twize/trip_' + tripId + '.json';
-  await put(key, JSON.stringify(tripData), {
+  await put(tripSaltedKey(tripId), JSON.stringify(tripData), {
     access: 'public',
     allowOverwrite: true,
     addRandomSuffix: false,
