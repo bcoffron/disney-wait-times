@@ -6,8 +6,6 @@
 
 import webpush from 'web-push';
 
-const ADMIN_KEY_DEFAULT = 'CWdis2026admin';
-
 function blobKeyFor(tripCode) {
 	return 'twize/push-subs/' + tripCode + '.json';
 }
@@ -49,8 +47,8 @@ export default async function handler(req, res) {
 	const secret = process.env.CRON_SECRET;
 	const isAuthed = secret && req.headers.authorization === ('Bearer ' + secret);
 	const isVercelCron = req.headers['x-vercel-cron'] === '1';
-	const ADMIN_KEY = (process.env.ADMIN_KEY || ADMIN_KEY_DEFAULT).toLowerCase();
-	const isAdmin = (req.headers['x-admin-key'] || '').toLowerCase() === ADMIN_KEY;
+	const _adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
+	const isAdmin = _adminKey.length > 0 && (req.headers['x-admin-key'] || '').toLowerCase() === _adminKey;
 	if (!isAuthed && !isVercelCron && !isAdmin) {
 		console.warn('[push-send] unauthorized blocked');
 		return res.status(401).json({ error: 'Unauthorized' });
