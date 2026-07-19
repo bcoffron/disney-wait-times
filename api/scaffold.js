@@ -177,8 +177,15 @@ export function buildSkeleton(cfg) {
       push({ block: 'ropedrop', type: 'ride', park, window: [openMin + 5, Math.min(openMin + 20, vipStart - 5)], role: 'headliner rope drop before your tour' });
       rideBuckets(openMin + 25, vipStart - 5, park, pace, 'pre-tour ride').forEach(push);
     }
-    // VOID vipStart..vipEnd (no slots); morning snack intentionally skipped on VIP mornings
+    // Single VIP Tour card at vipStart (applyFills emits it verbatim from role); covers the whole tour
+    push({ block: 'vip', type: 'vip', park, window: [vipStart, vipStart], role: 'Your private guide handles all skip-the-line access from ' + toClock(vipStart) + ' to ' + toClock(vipEnd) + '.' });
+    // VOID vipStart..vipEnd; resume full evening at vipEnd
     layEvening(vipEnd);
+    // Nothing but the VIP card may fall inside the tour window (removes e.g. layEvening's fixed 1:30 PM LL tip)
+    for (let i = slots.length - 1; i >= 0; i--) {
+      const ws = winStart(slots[i].window);
+      if (slots[i].block !== 'vip' && ws >= vipStart && ws < vipEnd) slots.splice(i, 1);
+    }
   } else {
     push({ block: 'ropedrop', type: 'ride', park, window: [openMin + 5, openMin + 20], role: 'headliner rope drop -- best low-wait window of the day' });
     const lunchWins = fitWindows(LUNCH_WINDOWS, openMin, closeMin);
@@ -289,6 +296,10 @@ export function applyFills(skeleton, fills, opts) {
   };
 
   for (const slot of skeleton.slots) {
+    if (slot.type === 'vip') {
+      cards.push({ t: toClock(winStart(slot.window)), h: 'VIP Tour', type: 'vip', n: slot.role || '', land: '' });
+      continue;
+    }
     const f = byId[slot.id];
     let card = null;
     if (f && f.h) {
