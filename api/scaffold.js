@@ -36,6 +36,91 @@ function fitWindows(windows, lo, hi) {
   return windows.map(w => [Math.max(w[0], lo), Math.min(w[1], hi)]).filter(w => w[1] - w[0] >= 20);
 }
 
+// Hop-day skeleton. buildSkeleton delegates here when cfg.hop is set and the day is not VIP.
+// Morning = start park (open -> hopAt), evening = to-park (hopAt -> close). Single-park path untouched.
+function buildHopSkeleton(cfg) {
+  const startPark = cfg.park || 'Disneyland';
+  const toPark = cfg.hop.toPark;
+  const open = cfg.openMin, close = cfg.closeMin, hopAt = cfg.hop.atMin;
+  const pace = cfg.paceMinPerRide || DEFAULT_PACE_MIN_PER_RIDE;
+  const hasLL = cfg.hasLL !== false;
+
+  const slots = [];
+  const push = s => slots.push(s);
+
+  const showWin = [Math.max(1200, close - 120), Math.min(close - 5, 1290)];
+  const canShow = showWin[1] - showWin[0] >= 15;
+
+  // ---- MORNING SEGMENT: start park, open -> hopAt ----
+  push({ block: 'arrival', type: 'tip', park: startPark, window: [Math.max(0, open - 60), open - 5], role: 'arrival, security, walk to rope-drop land' });
+  if (hasLL) push({ block: 'llTip', type: 'tip', park: startPark, window: [Math.max(0, open - 60), Math.max(1, open - 25)], role: 'book the opening Lightning Lane (top headliner)' });
+  push({ block: 'ropedrop', type: 'ride', park: startPark, window: [open + 5, open + 20], role: 'headliner rope drop -- best low-wait window of the day' });
+
+  const lunchMorning = fitWindows(LUNCH_WINDOWS, open, hopAt);
+  const lunchEvening = fitWindows(LUNCH_WINDOWS, hopAt, close);
+  const lunchInMorning = lunchMorning.length > 0;
+  const lunchWins = lunchInMorning ? lunchMorning : lunchEvening;
+
+  if (lunchInMorning) {
+    const lunchNom = lunchWins[0][0];
+    rideBuckets(open + 25, lunchNom - 10, startPark, pace, 'morning ride').forEach(push);
+    push({ block: 'lunch', type: 'dining', park: startPark, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
+    if (hasLL) push({ block: 'llTip', type: 'tip', park: startPark, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
+    rideBuckets(lunchWins[0][1] + 10, hopAt - 10, startPark, pace, 'late-morning ride').forEach(push);
+  } else {
+    if (hasLL) push({ block: 'llTip', type: 'tip', park: startPark, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
+    rideBuckets(open + 25, hopAt - 10, startPark, pace, 'morning ride').forEach(push);
+  }
+
+  // ---- HOP TRANSITION (tip; park stamp not enforced) ----
+  push({ block: 'hop', type: 'tip', park: toPark, window: [hopAt - 10, hopAt + 20], role: 'park hop: walk to ' + toPark + ', security screening (~15 min)' });
+
+  // ---- EVENING SEGMENT: to park, hopAt -> close ----
+  const eveStart = hopAt + 25;
+  let dinnerSource = canShow ? [DINNER_WINDOWS[0]] : DINNER_WINDOWS;
+  if (fitWindows(dinnerSource, eveStart, close).length === 0 && fitWindows(DINNER_WINDOWS, eveStart, close).length > 0) dinnerSource = DINNER_WINDOWS;
+  const dinnerWins = fitWindows(dinnerSource, eveStart, close);
+  const dinnerNom = dinnerWins.length ? dinnerWins[0][0] : null;
+  const preDinnerEnd = dinnerNom !== null ? dinnerNom - 10 : close - 30;
+
+  let afternoonFrom = eveStart;
+  if (!lunchInMorning && lunchWins.length) {
+    const lNom = lunchWins[0][0];
+    rideBuckets(eveStart, lNom - 10, toPark, pace, 'afternoon ride').forEach(push);
+    push({ block: 'lunch', type: 'dining', park: toPark, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
+    afternoonFrom = lunchWins[0][1] + 10;
+  }
+
+  const sWin = [Math.max(SNACK_PM_WINDOW[0], afternoonFrom), Math.min(SNACK_PM_WINDOW[1], preDinnerEnd)];
+  const snackFits = (sWin[1] - sWin[0] >= 20) && afternoonFrom <= SNACK_PM_WINDOW[1];
+  if (snackFits) {
+    const sNom = Math.round((sWin[0] + sWin[1]) / 2);
+    rideBuckets(afternoonFrom, sNom - 10, toPark, pace, 'afternoon ride').forEach(push);
+    push({ block: 'snackPM', type: 'snack', park: toPark, window: sWin, role: 'one afternoon snack / shopping break' });
+    if (hasLL) push({ block: 'llTip', type: 'tip', park: toPark, window: [810, 840], role: 'afternoon Lightning Lane check' });
+    rideBuckets(sNom + 10, preDinnerEnd, toPark, pace, 'afternoon ride').forEach(push);
+  } else {
+    if (hasLL) push({ block: 'llTip', type: 'tip', park: toPark, window: [810, 840], role: 'afternoon Lightning Lane check' });
+    rideBuckets(afternoonFrom, preDinnerEnd, toPark, pace, 'afternoon ride').forEach(push);
+  }
+
+  if (dinnerWins.length) push({ block: 'dinner', type: 'dining', park: toPark, window: dinnerWins, role: 'one dinner, off-peak, name the venue' });
+  const afterDinner = dinnerWins.length ? dinnerWins[0][1] + 10 : preDinnerEnd;
+
+  if (canShow) {
+    rideBuckets(afterDinner, showWin[0] - 10, toPark, pace, 'evening ride').forEach(push);
+    push({ block: 'show', type: 'show', park: toPark, window: showWin, role: 'nighttime spectacular -- arrive early for a spot' });
+    rideBuckets(showWin[1] + 10, close - 10, toPark, pace, 'late-night ride').forEach(push);
+  } else {
+    rideBuckets(afterDinner, close - 10, toPark, pace, 'evening ride').forEach(push);
+  }
+
+  slots.sort((a, b) => winStart(a.window) - winStart(b.window));
+  slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
+  const ordered = slots.map(s => ({ id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }));
+  return { day: cfg.dayNum || 1, park: startPark, toPark, hop: true, openMin: open, closeMin: close, hopAtMin: hopAt, paceMinPerRide: pace, vip: false, slots: ordered };
+}
+
 export function buildSkeleton(cfg) {
   const park = cfg.park || 'Disneyland';
   const openMin = cfg.openMin, closeMin = cfg.closeMin;
@@ -43,6 +128,7 @@ export function buildSkeleton(cfg) {
   const hasLL = cfg.hasLL !== false;
   const vipStart = numOrNull(cfg.vipStartMin), vipEnd = numOrNull(cfg.vipEndMin);
   const isVip = vipStart !== null && vipEnd !== null;
+  if (cfg.hop && cfg.hop.toPark && !isVip) return buildHopSkeleton(cfg);
 
   let showWin = [Math.max(1200, closeMin - 120), Math.min(closeMin - 5, 1290)];
   const canShow = showWin[1] - showWin[0] >= 15;
