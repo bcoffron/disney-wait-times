@@ -306,7 +306,7 @@
     },
     {
       "path": "/api/cron-push-monitor",
-      "schedule": "*/5 14-23 * * *"
+      "schedule": "*/5 13-23 * * *"
     },
     {
       "path": "/api/cron-push-monitor",

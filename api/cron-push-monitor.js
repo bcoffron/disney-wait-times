@@ -37,7 +37,7 @@ const ROPE_DROP_END_MIN = 10 * 60 + 30;   // 10:30 AM PT -- only alert about a d
 const DOWN_STATUSES = { DOWN: 1, REFURBISHMENT: 1 }; // ThemeParks.wiki statuses that mean a planned ride is unavailable
 
 // Park hours guard (Pacific). Outside this window, skip entirely.
-const PARK_OPEN_HOUR_PT = 7;   // 7 AM PT
+const PARK_OPEN_HOUR_PT = 6; // 6 AM PT (allow early-entry pre-open ride-down / refurb alerts)
 const PARK_CLOSE_HOUR_PT = 24; // midnight PT (rides can run to ~midnight)
 
 // Parse a schedule item time like "8:00 AM" into minutes since midnight; -1 if unparseable.
