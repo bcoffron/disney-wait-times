@@ -1454,30 +1454,6 @@ var userRole='guest'; // 'admin' or 'guest'
 
 function checkLock(){
 
-  // After June 27, skip lock screen entirely
-  var now=new Date();
-  var tripStart=new Date('2026-06-28T00:00:00');
-  if(false&&now>=tripStart){
-    try{
-      var saved=localStorage.getItem('disney_unlocked');
-      if(saved==='admin') userRole='admin';
-      else userRole='guest';
-    }catch(e){}
-    var isJun28=now<new Date('2026-06-29T00:00:00');
-    var shownMagicDay=false;
-    try{shownMagicDay=localStorage.getItem('magic_day_shown')==='yes';}catch(e){}
-    if(isJun28&&!shownMagicDay){
-      try{localStorage.setItem('magic_day_shown','yes');}catch(e){}
-      document.getElementById('lockScreen').style.display='none';
-      document.getElementById('mainApp').style.display='';
-      applyRoleUI();
-      return;
-    }
-    document.getElementById('lockScreen').style.display='none';
-    document.getElementById('mainApp').style.display='';
-    applyRoleUI();
-    return;
-  }
 
   // Before trip - check tpcp_ localStorage keys first
   try{
