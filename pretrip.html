@@ -1262,7 +1262,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       'CONFIRMED DINING RESERVATIONS (must appear in schedule at exact times): ' + tripConfig.reservations.join(' | ') + '. ' : '') +
     'Return ONLY a raw JSON array of schedule items with fields: t (time), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (note), land (land name).';
 
-  var _useScaffold = /[?&]scaffold=1\b/.test(window.location.search); // opt-in physics-by-code path (?scaffold=1); server reads body.scaffold===true on /api/generateschedule. Default path uses the standard generator.
+  var _useScaffold = !/[?&]scaffold=0\b/.test(window.location.search); // scaffold is the DEFAULT; opt OUT with ?scaffold=0 to force the legacy generator. Server reads body.scaffold===true on /api/generateschedule.
   var _endpoint = '/api/generateschedule';
   var _body = _useScaffold
     ? { prompt: prompt,
@@ -1288,7 +1288,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
               var _start = (tripConfig.days && tripConfig.days[0] && tripConfig.days[0].date) || tripConfig.startDate || null;
               if (_start) { var _o = new Date(_start); _o.setDate(_o.getDate() + di); _dt = _o.toISOString().slice(0,10); }
             }
-            return { park: dd.park, date: _dt, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL };
+            return { park: dd.park, date: _dt, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, intent: dd.intent };
           })
         } }
     : { prompt: prompt, mode: 'setup', maxTokens: 8000,
