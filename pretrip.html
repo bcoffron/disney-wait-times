@@ -1509,7 +1509,6 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   ptShowGenerating(1, totalDays);
 
   var generatedDays = new Array(totalDays);
-  var _pending = totalDays;
   var _completed = 0;
 
   function _finishAndSave() {
@@ -1534,52 +1533,54 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
     }
   }
 
-  // PARALLEL day generation: fire all days at once instead of sequentially. Cross-day coordination
-  // (nighttime shows, rope-drop spread, reserved/table-service venues) is computed deterministically
-  // inside the v2 endpoint from the FULL trip config, so a day does not need prior days' results.
-  // priorRides/priorShows are a soft variety hint only -- passed empty here; we accept minor cross-day
-  // repetition of filler rides in exchange for ~3x faster generation (3 days in ~1 day's wall time).
-  for (var _di = 0; _di < totalDays; _di++) {
-    (function(idx){
-      var _dayNum = idx + 1;
-      var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
-        ? tripConfig.dining.reservations.filter(function(r) { return r && r.day === _dayNum; })
-        : [];
-      var _dayResStrings = _dayReservations.map(function(r) {
-        return 'THIS DAY\'S CONFIRMED RESERVATION: ' + r.name + ' at ' + r.time;
-      });
-      var dayTripConfig = Object.assign({}, tripConfig, {
-        reservations: _dayResStrings,
-        dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations }),
-        _priorRides: [],
-        _priorShows: []
-      });
-      ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
-        if (err) {
-          console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
-          var bar = document.getElementById('ptCtaBar');
-          if (bar) {
-            var errDiv = bar.querySelector('.pt-gen-error');
-            if (!errDiv) {
-              errDiv = document.createElement('div');
-              errDiv.className = 'pt-gen-error';
-              errDiv.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;text-align:center;';
-              bar.firstElementChild && bar.firstElementChild.appendChild(errDiv);
-            }
-            errDiv.textContent = 'Day ' + (idx+1) + ' had trouble -- continuing...';
+  // SEQUENTIAL day generation with cross-day dining accumulation. Days run back-to-back
+  // (not in parallel) so each day is told the venues chosen on earlier days via
+  // tripConfig.dining.usedVenues; the scaffold fill prompt already refuses to repeat any
+  // venue on that list, so no restaurant is picked twice across the trip. This trades
+  // ~3x generation wall-time for non-repeating dining (the per-day progress bar covers it).
+  var _seedUsed = (tripConfig.dining && Array.isArray(tripConfig.dining.usedVenues))
+    ? tripConfig.dining.usedVenues.slice() : [];
+  function _genDaySeq(idx, usedSoFar) {
+    if (idx >= totalDays) { _finishAndSave(); return; }
+    var _dayNum = idx + 1;
+    var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
+      ? tripConfig.dining.reservations.filter(function(r) { return r && r.day === _dayNum; })
+      : [];
+    var _dayResStrings = _dayReservations.map(function(r) {
+      return 'THIS DAY\'S CONFIRMED RESERVATION: ' + r.name + ' at ' + r.time;
+    });
+    var dayTripConfig = Object.assign({}, tripConfig, {
+      reservations: _dayResStrings,
+      dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations, usedVenues: usedSoFar.slice() }),
+      _priorRides: [],
+      _priorShows: []
+    });
+    ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
+      if (err) {
+        console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
+        var bar = document.getElementById('ptCtaBar');
+        if (bar) {
+          var errDiv = bar.querySelector('.pt-gen-error');
+          if (!errDiv) {
+            errDiv = document.createElement('div');
+            errDiv.className = 'pt-gen-error';
+            errDiv.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;text-align:center;';
+            bar.firstElementChild && bar.firstElementChild.appendChild(errDiv);
           }
-          generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
-        } else {
-          var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; generatedDays[idx] = _dayObj;
-          console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
+          errDiv.textContent = 'Day ' + (idx+1) + ' had trouble -- continuing...';
         }
-        _completed++;
-        ptUpdateGenBar(_completed, totalDays);
-        _pending--;
-        if (_pending === 0) { _finishAndSave(); }
-      });
-    })(_di);
+        generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
+      } else {
+        var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; generatedDays[idx] = _dayObj;
+        console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
+      }
+      var _dayVenues = (items || []).filter(function(x){ return x && x.type === 'dining' && x.h; }).map(function(x){ return x.h; });
+      _completed++;
+      ptUpdateGenBar(_completed, totalDays);
+      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues));
+    });
   }
+  _genDaySeq(0, _seedUsed);
 }
 </script>
 </body>
