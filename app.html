@@ -1441,7 +1441,14 @@ const SHOWS=[
 var apiKey='', curDay=0, curTab='schedule';
 var waits={}, waitLastFetch=0;
 var weatherData=null;
-var ADMIN_API_KEY='cwdis2026admin';
+var ADMIN_API_KEY = sessionStorage.getItem('tpcp_ak') || '';
+function ensureAdminKey() {
+      if (!ADMIN_API_KEY) {
+        var k = (prompt('Enter admin key') || '').trim();
+        if (k) { ADMIN_API_KEY = k; sessionStorage.setItem('tpcp_ak', k); }
+      }
+      return ADMIN_API_KEY;
+    }
 var userRole='guest'; // 'admin' or 'guest'
 
 
@@ -2108,7 +2115,7 @@ function _aiFetch(endpoint, body) {
   var code = localStorage.getItem('tpcp_code') || '';
   var role = localStorage.getItem('tpcp_role') || 'guest';
   var headers = {'Content-Type': 'application/json'};
-  if (role === 'admin') { headers['x-admin-key'] = ADMIN_API_KEY; }
+  if (role === 'admin') { headers['x-admin-key'] = (ensureAdminKey() || (function(){ throw new Error('admin key required'); })()); }
   var secureBody = Object.assign({}, body, { tripCode: code });
   return fetch(SYNC_BASE + endpoint, { method: 'POST', headers: headers, body: JSON.stringify(secureBody) });
 }
@@ -2152,8 +2159,8 @@ async function _aiProxy(body, cacheCtx){
   }
   const MAX_CACHE_CONTEXT=4000;const trimmedCache=(parkIntelCache||'').substring(0,MAX_CACHE_CONTEXT);var _rideCtx=buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{});var ctx=cacheCtx||(trimmedCache?(trimmedCache+(diningIntelCache?'\n'+diningIntelCache:'')+(eventsIntelCache?'\n'+eventsIntelCache:'')):null)||'';if(_rideCtx)ctx=(_rideCtx+'\n'+ctx).substring(0,MAX_CACHE_CONTEXT+_rideCtx.length);
   try{
-    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:(function(){var h={'Content-Type':'application/json'};if(localStorage.getItem('tpcp_role')==='admin')h['x-admin-key']=ADMIN_API_KEY;return h;})(),
-      body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6',tripCode:_tc,adminKey:(_role==='admin'?ADMIN_API_KEY:undefined)})});
+    var r=await fetch(SYNC_BASE+'/api/ai',{method:'POST',headers:(function(){var h={'Content-Type':'application/json'};if(localStorage.getItem('tpcp_role')==='admin')h['x-admin-key']=(ensureAdminKey() || (function(){ throw new Error('admin key required'); })());return h;})(),
+      body:JSON.stringify({prompt:prompt,system:sys,context:ctx||undefined,maxTokens:body.max_tokens||body.maxTokens||500,model:body.model||'claude-sonnet-4-6',tripCode:_tc,adminKey:(_role==='admin'?(ensureAdminKey() || (function(){ throw new Error('admin key required'); })()):undefined)})});
     var d;
     try{d=await r.json();}catch(jsonErr){return{error:{message:'AI response parse error: '+r.status}};}
     if(d.ok)return{content:[{type:'text',text:d.text}]};
@@ -2183,7 +2190,7 @@ async function pushSchedule(){
     }
     var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
     var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});
-    await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ADMIN_API_KEY},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});
+    await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':(ensureAdminKey() || (function(){ throw new Error('admin key required'); })())},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});
     console.log('Schedule saved to tripConfig.schedule');
   }catch(e){console.warn('Push schedule:',e);}
 }
@@ -2206,7 +2213,7 @@ async function pullSchedule(){
 
 async function pushApiKey(key){if(!isAdmin())return;}
 async function pullApiKey(){ return; } // disabled: key is server-side only
-async function pushSchedule(){if(!isAdmin())return;try{var code=localStorage.getItem('tpcp_code')||'';if(!code)return;var days=[];for(var di=0;di<customSched.length;di++){var dayObj=customSched[di];if(dayObj&&dayObj.sections&&dayObj.sections[0]){days.push({park:dayObj.sections[0].title||'',items:dayObj.sections[0].entries||[]});}else{days.push({park:'',items:[]});}}var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ADMIN_API_KEY},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});console.log('Schedule saved to tripConfig.schedule');}catch(e){console.warn('Push schedule:',e);}}
+async function pushSchedule(){if(!isAdmin())return;try{var code=localStorage.getItem('tpcp_code')||'';if(!code)return;var days=[];for(var di=0;di<customSched.length;di++){var dayObj=customSched[di];if(dayObj&&dayObj.sections&&dayObj.sections[0]){days.push({park:dayObj.sections[0].title||'',items:dayObj.sections[0].entries||[]});}else{days.push({park:'',items:[]});}}var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':(ensureAdminKey() || (function(){ throw new Error('admin key required'); })())},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});console.log('Schedule saved to tripConfig.schedule');}catch(e){console.warn('Push schedule:',e);}}
 async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;renderSched();renderDayInfoBar();renderPreTripBanner();setTimeout(renderPreTripWeather,500);}catch(e){console.warn('Pull schedule:',e);}}
 function startScheduleSync(){
   if(window._schedSyncStarted) return;
@@ -4997,7 +5004,7 @@ function generateFromSetup(params, callback) {
           var newDays=existingDays.map(function(d,i){return i===dayIdx?{park:d.park||'',items:sections}:d;});
           if(!newDays.length){newDays=[{park:'Disneyland Park',items:sections}];}
           var updatedTc=Object.assign({},existingTc,{schedule:{days:newDays},scheduleVersion:Date.now().toString()});
-          fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ADMIN_API_KEY},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})})
+          fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':(ensureAdminKey() || (function(){ throw new Error('admin key required'); })())},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})})
             .then(function(r){if(r.ok){console.log('[generateFromSetup] schedule saved day '+dayIdx);if(typeof renderSched==='function')renderSched();}else{console.error('[generateFromSetup] save failed',r.status);}});
         }
         if(typeof callback==='function')callback(null, sections);
@@ -5950,7 +5957,7 @@ function ob8SaveAndEnter() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-admin-key': ADMIN_API_KEY
+      'x-admin-key': (ensureAdminKey() || (function(){ throw new Error('admin key required'); })())
     },
     body: JSON.stringify({
       code: code,
@@ -8343,7 +8350,7 @@ function tpcpConfirmSwap() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': ADMIN_API_KEY
+          'x-admin-key': (ensureAdminKey() || (function(){ throw new Error('admin key required'); })())
         },
         body: JSON.stringify({
           code: localStorage.getItem('tpcp_code'),
