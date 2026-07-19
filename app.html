@@ -4139,6 +4139,43 @@ function toggleRideNote(id) {
   wrap.style.display = isOpen ? 'none' : 'block';
   if (btn) btn.innerHTML = isOpen ? 'Tips &amp; details &rsaquo;' : 'Tips &amp; details &or;';
 }
+function _isDateToday(dateStr){
+  if(!dateStr) return false;
+  var dt=new Date(dateStr);
+  if(isNaN(dt.getTime())) return false;
+  var now=new Date();
+  return dt.getFullYear()===now.getFullYear() && dt.getMonth()===now.getMonth() && dt.getDate()===now.getDate();
+}
+function _isTodayDayIndex(i){
+  var days=(window.TRIP_CONFIG&&TRIP_CONFIG.days)||[];
+  return !!(days[i] && _isDateToday(days[i].date));
+}
+function _schedStickyTop(){
+  var off=0;
+  document.querySelectorAll('body *').forEach(function(el){
+    var p=getComputedStyle(el).position;
+    if(p==='fixed'||p==='sticky'){ var r=el.getBoundingClientRect(); if(r.top<=1 && r.height>0 && r.width>window.innerWidth*0.5) off=Math.max(off,r.height); }
+  });
+  return off;
+}
+function scrollScheduleToNow(){
+  try{
+    if(!_isTodayDayIndex(window.curDay)){ window.scrollTo(0,0); return; }
+    var cards=document.querySelectorAll('#schedContent .ride-block[data-min]');
+    if(!cards.length){ window.scrollTo(0,0); return; }
+    var now=new Date(); var nowMin=now.getHours()*60+now.getMinutes();
+    var target=null, isFirst=false;
+    for(var i=0;i<cards.length;i++){
+      var m=parseInt(cards[i].getAttribute('data-min'),10);
+      if(isNaN(m)||m<0) continue;
+      if(m>=nowMin){ target=cards[i]; isFirst=(i===0); break; }
+    }
+    if(!target || isFirst){ window.scrollTo(0,0); return; }
+    var PEEK=56;
+    var y=(target.getBoundingClientRect().top + (window.pageYOffset||document.documentElement.scrollTop||0)) - _schedStickyTop() - PEEK;
+    window.scrollTo(0, Math.max(0,y));
+  }catch(e){}
+}
 function renderSched(){
   // PART A: update cached banner visibility
   (function() { var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = (typeof usingCachedSchedule !== 'undefined' && usingCachedSchedule) ? '' : 'none'; })();
@@ -4168,7 +4205,7 @@ function renderSched(){
       else if(e.type==='hop')bc+=' is-hop';
       else if(e.type==='vip')bc+=' is-vip';
       else if(e.type==='character')bc+=' is-character';
-      var cardHour=(function(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]);if(m[3].toUpperCase()==="PM"&&h!==12)h+=12;if(m[3].toUpperCase()==="AM"&&h===12)h=0;return h;})(e.t);
+      var cardHour=(function(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]);if(m[3].toUpperCase()==="PM"&&h!==12)h+=12;if(m[3].toUpperCase()==="AM"&&h===12)h=0;return h;})(e.t);var cardMin=(function(t){if(!t)return -1;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return -1;var h=parseInt(m[1]),mn=parseInt(m[2])||0;if(m[3].toUpperCase()==="PM"&&h!==12)h+=12;if(m[3].toUpperCase()==="AM"&&h===12)h=0;return h*60+mn;})(e.t);
       // Use actual VIP tour window from TRIP_CONFIG, not hardcoded 10-17
       var _vipStart=10,_vipEnd=17;
       try{
@@ -4221,7 +4258,7 @@ function renderSched(){
       var liveW=(e.type==='ride')?lookupWait(e.h):null;
       var isVipCard=bc.indexOf('is-vip')>-1;
       var wPill=(e.type==='character')?(function(){var isVipDay=TRIP_CONFIG.days&&TRIP_CONFIG.days[curDay]&&TRIP_CONFIG.days[curDay].isVip;if(isVipDay&&e.vipAccessible)return '<span class="skip-line-badge">skip line</span>';if(e.typicalWait&&e.typicalWait>0)return '<span class="char-wait-pill">~'+e.typicalWait+' min typical</span>';return '';})():isVipCard?'<span class="skip-line-badge">skip line</span>':(liveW&&liveW.w!==null?'<span class="wait-pill '+(liveW.w<20?'wait-low':liveW.w<45?'wait-med':'wait-high')+'">'+(liveW.w)+' min</span>':'');
-      h+='<div class="'+bc+'"'+drag+'>'
+      h+='<div class="'+bc+'"'+drag+' data-min="'+cardMin+'">'
         +(editMode?'<button class="del-btn" onclick="deleteEntry('+curDay+','+si+','+ei+')">&times;</button>':'')
         +'<div class="ride-main">'
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
@@ -4753,14 +4790,13 @@ function renderShows(){
 
 //    Nav                                                                    
 function setDay(d){
-  switchNav('schedule');
-  requestAnimationFrame(function(){requestAnimationFrame(function(){window.scrollTo(0,0);});});
+  window._nowScrollPending = _isTodayDayIndex(d); switchNav('schedule');
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
   editMode=false;
   var et=document.getElementById('editToggle');et.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
-  renderClosed();renderSched();renderDayInfoBar();
+  renderClosed();renderSched();renderDayInfoBar(); requestAnimationFrame(function(){requestAnimationFrame(function(){ if(window._nowScrollPending){ scrollScheduleToNow(); } else { window.scrollTo(0,0); } });});
         var _hTitleEl=document.querySelector('.header-title');if(_hTitleEl&&window.TRIP_CONFIG&&window.TRIP_CONFIG.tripName)_hTitleEl.textContent=window.TRIP_CONFIG.tripName;
   var _rlDay=document.getElementById('reoptLoading');if(_rlDay&&_rlDay.getAttribute('data-reopt-day')!==String(d)){_rlDay.style.display='none';}
   if(typeof renderVipBanner==='function')renderVipBanner(d);
@@ -4801,10 +4837,7 @@ function setTab(t){
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
   if(t==='waits'||t==='info'){ if(typeof tpcpRefreshAlertButtons==='function') tpcpRefreshAlertButtons(); }
-  setTimeout(function() {
-  document.documentElement.scrollTop = 0;
-  window.scrollTo(0, 0);
-}, 200)
+  setTimeout(function() { if (window._nowScrollPending) return; document.documentElement.scrollTop = 0; window.scrollTo(0, 0); }, 200)
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
@@ -7031,6 +7064,7 @@ function enterSplash(skipAnim) {
 }
 
 function switchNav(tabKey) {
+  if (tabKey !== 'schedule') window._nowScrollPending = false;
   // Update bottom nav items
   var items = document.querySelectorAll('.nav-item');
   items.forEach(function(el) { el.classList.remove('active'); });
@@ -7053,7 +7087,7 @@ function switchNav(tabKey) {
   });
   setTab(tab);
   // Scroll to top of content
-  window.scrollTo({top: 0, behavior: 'smooth'});
+  if (!window._nowScrollPending) window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 /* --- Alt sheet --- */
