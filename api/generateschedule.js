@@ -494,7 +494,20 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _vipEnd = _day.isVip ? _sVip(_day.vipEnd) : null;
           const _hasLL = !(_day.hasLL === false || _cfg.hasLL === false);
 
-          const _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1) });
+          // Hop day: derive start-park open + to-park close, pass hop params. Non-hop/VIP days use the original call (else).
+          const _hop = (_day.intent && _day.intent.hop && _day.intent.hop.toPark) ? _day.intent.hop : null;
+          let _sk;
+          if (_hop && _vipStart === null) {
+            const _toPark = _hop.toPark;
+            const _toIsDca = /california|dca|adventure/i.test(_toPark);
+            const _startHrs = _sHours(_isDcaDay ? /california adventure|\bDCA\b/i : /disneyland|\bDL\b/i);
+            const _toHrs = _sHours(_toIsDca ? /california adventure|\bDCA\b/i : /disneyland|\bDL\b/i);
+            const _startOpen = (_startHrs && _startHrs.openMin) || 480;
+            const _toClose = (_toHrs && _toHrs.closeMin) || (_toIsDca ? 1320 : 1380);
+            _sk = buildSkeleton({ park: _park, openMin: _startOpen, closeMin: _toClose, hasLL: _hasLL, hop: { toPark: _toPark, atMin: _hop.atMin }, dayNum: (_di + 1) });
+          } else {
+            _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1) });
+          }
           console.log('[scaffold] dayIndex', _di, 'park', _park, 'open', _openMin, 'close', _closeMin, 'vip', _vipStart, _vipEnd, 'hasLL', _hasLL, 'slots', _sk.slots.length, 'rides', _sk.slots.filter(s => s.type === 'ride').length);
 
           const _closedS = closedNamesForDate(cacheCtx.CLOSURES, _day.date);
