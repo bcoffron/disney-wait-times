@@ -5,7 +5,6 @@
 // of subscriptions, de-duped by endpoint. The wait-monitor loads this to notify
 // all devices subscribed for a trip.
 
-const ADMIN_KEY_DEFAULT = 'CWdis2026admin';
 const MAX_BODY = 50 * 1024; // 50KB - a push subscription is tiny
 const MAX_SUBS_PER_TRIP = 50;
 
@@ -70,10 +69,10 @@ export default async function handler(req, res) {
 		var body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
 
 		// ---- AUTH FIRST ----
-		const ADMIN_KEY = (process.env.ADMIN_KEY || ADMIN_KEY_DEFAULT).toLowerCase();
+		const _adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
 		const sentAdmin = (req.headers['x-admin-key'] || body.adminKey || '').toLowerCase();
 		const tripCode = safeTripCode(body.tripCode || req.headers['x-trip-code'] || '');
-		const isAdmin = sentAdmin === ADMIN_KEY;
+		const isAdmin = _adminKey.length > 0 && sentAdmin === _adminKey;
 		if (!tripCode) return res.status(400).json({ error: 'Missing or invalid trip code' });
 		if (!isAdmin && !(tripCode.length >= 8)) return res.status(401).json({ error: 'Unauthorized' });
 
