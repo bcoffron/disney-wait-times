@@ -3764,13 +3764,13 @@ async function runReoptimize(){
   var box=document.getElementById('reoptBox');
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
-  var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},115000);
+  var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},65000);
     try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{}),tripCode:localStorage.getItem('tpcp_code')||''
       }),signal:_reoptController.signal
     });
 
     clearTimeout(_reoptTimeoutId);
-    var resp=await r.json();
+    if(!r.ok||(r.headers.get('content-type')||'').indexOf('application/json')===-1){ var _rleN=document.getElementById('reoptLoading');if(_rleN)_rleN.style.display='none'; box.style.display='block'; txt.innerHTML='<span style="cursor:pointer;color:var(--text);font-size:13px;" onclick="reoptimize()">I could not finish optimizing just now. The server was busy - your plan is unchanged. Tap to try again.</span>'; return; } var resp; try{resp=await r.json();}catch(_je){ var _rleJ=document.getElementById('reoptLoading');if(_rleJ)_rleJ.style.display='none'; box.style.display='block'; txt.innerHTML='<span style="cursor:pointer;color:var(--text);font-size:13px;" onclick="reoptimize()">I could not read the optimized schedule just now. Your plan is unchanged. Tap to try again.</span>'; return; }
     if(resp.error){if(resp.error.type==='rate_limit_error'){txt.innerHTML='<span style="color:var(--text-muted);font-size:13px;">Rate limit -- retrying in 15s...</span>';setTimeout(function(){reoptimize();},15000);}else{var _rle=document.getElementById('reoptLoading');if(_rle)_rle.style.display='none';box.style.display='block';txt.textContent='Error: '+(resp.error.message||resp.error);}return;}
     var newSecs=resp.sections||null;
     var explanation=resp.explanation||'Schedule optimized.';
