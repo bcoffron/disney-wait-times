@@ -25,6 +25,18 @@ function checkAILimit(ip) {
 // --------- Hardcoded model allowlist --- never trust client-supplied model ---
 const MODEL = 'claude-haiku-4-5-20251001';
 
+// Bounded blob JSON fetch - stops a slow Vercel Blob read from hanging past maxDuration (which yields a platform HTML error page)
+async function fetchJsonTimeout(url, ms) {
+  const _c = new AbortController();
+  const _t = setTimeout(() => _c.abort(), ms || 8000);
+  try {
+    const r = await fetch(url, { signal: _c.signal });
+    return await r.json();
+  } finally {
+    clearTimeout(_t);
+  }
+}
+
 // --------- buildCacheContext ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Reads from new two-cache architecture and extracts only requested sections.
 async function buildCacheContext(sectionNames, includeDynamic = false) {
@@ -35,7 +47,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
         const { blobs: sb } = await list({ prefix: 'twize/park_intel_dl_stable.json' });
         if (sb && sb.length) {
                 const fetchUrl = sb[0].downloadUrl || sb[0].url;
-                const stableData = await fetch(fetchUrl).then(r => r.json());
+                const stableData = await fetchJsonTimeout(fetchUrl);
                 const sections = stableData.data.sections || {};
                 sectionNames.forEach(name => {
                           if (sections[name]) {
@@ -55,7 +67,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
                 const { blobs: db } = await list({ prefix: 'twize/park_intel_dl_dynamic.json' });
                 if (db && db.length) {
                           const fetchUrl = db[0].downloadUrl || db[0].url;
-                          const dynamicData = await fetch(fetchUrl).then(r => r.json());
+                          const dynamicData = await fetchJsonTimeout(fetchUrl);
                           const sections = dynamicData.data.sections || {};
                           ['CURRENT_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
                                       if (sections[name]) {
@@ -79,7 +91,7 @@ async function getCharacterIntel() {
           const { blobs } = await list({ prefix: 'twize/character_intel.json' });
           if (!blobs || blobs.length === 0) return null;
           const fetchUrl = blobs[0].downloadUrl || blobs[0].url;
-          const parsed = await fetch(fetchUrl).then(r => r.json());
+          const parsed = await fetchJsonTimeout(fetchUrl);
           if (!parsed || !parsed.data) return null;
           const dataObj = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
           const disclaimer = dataObj.disclaimer || 'Character schedules are planned in advance but can change without notice. Check with a cast member on the day.';
@@ -170,10 +182,10 @@ async function handler(req, res) {
   });
 
   // -- AUTH CHECK -----------------------------------------------------------
-  const _adminKey = (process.env.ADMIN_KEY).toLowerCase();
+  const _adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
     const _sentAdmin = (req.headers['x-admin-key'] || req.body && req.body.adminKey || '').toLowerCase();
     const _tripCode = (req.body && req.body.tripCode) || req.headers['x-trip-code'] || '';
-    const _isAdmin = _sentAdmin === _adminKey;
+    const _isAdmin = _adminKey.length > 0 && _sentAdmin === _adminKey;
     const _isValidTrip = _tripCode && typeof _tripCode === 'string' && _tripCode.length >= 8;
     if (!_isAdmin && !_isValidTrip) {
                 console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
