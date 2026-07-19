@@ -303,12 +303,13 @@ export function applyFills(skeleton, fills, opts) {
       const dup = isRideSlot && nkey && usedRideNames.has(nkey);
       const hL = cleanH.toLowerCase();
       const closed = isRideSlot && closedNames.some(cn => cn && hL.indexOf(cn) !== -1);
-      if (parkBad || generic || dup || closed) {
+      const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
+      if (parkBad || generic || dup || closed || retiredClosed) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
-        if (closed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: closed ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : 'generic' });
+        if (closed || retiredClosed) report.closed = (report.closed || 0) + 1;
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
