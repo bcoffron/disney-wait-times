@@ -8186,13 +8186,10 @@ function tpcpConfirmSwap() {
   window._tripRegistryStatus = '';
 
   function obOpenFromNudge() {
-    var ov = document.getElementById('onboardingOverlay');
-    if (ov) {
-      ov.style.display = 'block';
-      if (typeof obGoTo === 'function') {
-        obGoTo(window._obCurrentStep || 1);
-      }
-    }
+    // Retired 2026-09-30: the in-app overlay onboarding is fully retired.
+    // The "Setup incomplete" nudge now resumes in pretrip.html; edit=true
+    // restores partial tripConfig from the blob (falls back to local storage).
+    window.location.href = '/pretrip.html?edit=true&t=' + Date.now();
   }
 
   function nudgeCheckAndShow() {
@@ -8317,17 +8314,13 @@ function tpcpConfirmSwap() {
   window._editTripDirty = false;
 
   function editTripGoToStep(step) {
+    // Retired 2026-09-30: the overlay per-step edit UI is retired; "Edit Trip
+    // Details" now opens pretrip.html in edit mode (existing config restored
+    // from blob). Per-section deep-linking is not preserved -- the overlay had
+    // 7 steps vs pretrip's 6, and the two had already drifted. Follow-up: add
+    // ?step= deep-link support to pretrip.html if section jumping is wanted.
     closeEditTripDetails();
-    var ov = document.getElementById('onboardingOverlay');
-    if (ov) {
-      ov.style.display = 'block';
-      if (typeof obGoTo === 'function') {
-        window._editTripReturnMode = true;
-        obGoTo(step);
-        var backBtn = document.getElementById('obBackBtn');
-        if (backBtn) { backBtn.style.display = 'block'; backBtn._editMode = true; }
-      }
-    }
+    window.location.href = '/pretrip.html?edit=true&t=' + Date.now();
   }
 
   function rebuildSchedule() {
