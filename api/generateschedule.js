@@ -28,6 +28,7 @@ function checkAILimit(ip) {
 // --------- buildCacheContext ----------------------------
 async function buildCacheContext(sectionNames, includeDynamic = false) {
     const results = {};
+    const dynamicSections = ['CURRENT_CLOSURES', 'CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'];
 
   try {
         const { blobs: sb } = await list({ prefix: 'twize/park_intel_dl_stable.json' });
@@ -54,7 +55,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
                           const fetchUrl = db[0].downloadUrl || db[0].url;
                           const dynamicData = await fetch(fetchUrl).then(r => r.json());
                           const sections = dynamicData.data.sections || {};
-                          ['CURRENT_CLOSURES', 'CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
+                          dynamicSections.forEach(name => {
                                       if (sections[name]) {
                                                     results[name] = typeof sections[name] === 'string'
                                                       ? sections[name]
@@ -88,6 +89,11 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
     console.error('[cache] dining_intel_dl/dining_intel read error:', e.message);
   }
 
+  const expectedSections = sectionNames.concat(includeDynamic ? dynamicSections : []);
+  const missingSections = expectedSections.filter(name => !results[name]);
+  if (missingSections.length) {
+    console.error('[cache] MISSING SECTIONS:', missingSections.join(','), '| present:', Object.keys(results).join(','));
+  }
   return results;
 }
 
