@@ -1,0 +1,98 @@
+# CLAUDE.md
+
+Standing rules for any AI agent working in this repository. Read before making changes.
+
+## What this repo is
+
+Theme Park Co-Pilot — an AI theme-park trip-planning PWA.
+
+- `app.html` — the entire client app, one large single file, served at `app.themeparkcopilot.com`
+- `api/*.js` — Vercel serverless functions (project `disney-wait-times-lupt`)
+- Blog and marketing site at `themeparkcopilot.com`, same Vercel project
+- State lives in Vercel Blob. There is no database.
+
+**This repository is public.** Anything committed here is world-readable.
+
+## Hard rules
+
+1. **Never commit secrets.** No API keys, passwords, tokens, trip codes, or admin keys
+   in code, comments, docs, commit messages, or test fixtures. Read credentials from
+   `process.env` only, and fail closed when unset. Never write
+   `process.env.X || 'some-literal-fallback'` — a burned key survived two months in
+   four files that way.
+2. **ESM only.** `import` / `export default`. Never `require` / `module.exports`.
+3. **ASCII-only strings** in API code.
+4. **Never merge to `main`.** Work on a branch, push, and stop. The repo owner reviews
+   and merges. Do not open-and-merge your own pull request.
+5. **Never commit personal or trip-specific data** — no family names, travel dates, or
+   trip codes in source.
+
+## Before you commit
+
+- Run `node --check` on every changed `.js` file. `package.json` sets `"type": "module"`,
+  so these are ES modules.
+- Read the full `git diff`. Confirm only the intended files and hunks changed.
+- Do not commit `package.json` or lockfile changes unless that is explicitly the task.
+
+## Vercel Blob (`@vercel/blob` 2.x)
+
+Two 2.x behaviors have each taken production down. Both are easy to reintroduce.
+
+**Reads must be suffix-tolerant.** `list({ prefix })` returns *every* historical suffixed
+blob under a prefix, because legacy `addRandomSuffix` writes accumulated one blob per
+edit. Never select with `b.pathname === key` — an exact match can latch onto a stale
+blob. Use a `matchesKey(pathname, key)` predicate (matches bare `key`, or
+`key + '-' + alphanumeric-only-suffix`, rejecting longer sibling slugs), select the
+newest by `uploadedAt`, and guard for `blobs.length > 0`.
+
+**Writes to fixed keys need `allowOverwrite: true`.** Under 2.x, `put()` throws when the
+pathname already exists.
+
+Trip-data blob paths carry a secret path segment from the `BLOB_PATH_SALT` env var.
+Never log or return a resolved blob pathname.
+
+## The intelligence cache
+
+Two blobs: `park_intel_dl_stable` (monthly) and `park_intel_dl_dynamic` (weekly). Each
+AI endpoint injects only the sections it needs.
+
+- The correct read path is `.data.sections` — not `.sections`.
+- **A requested section that does not exist coerces to an empty string, silently.**
+  Before adding a name to a selector array, confirm the cache actually contains that
+  section. Before removing a section from the cache, confirm nothing selects it.
+- After changing `ai.js`, `reoptimize.js`, or `generateschedule.js`, check the Vercel log
+  for `cache_sections:` and confirm real section names appear. An empty array means the
+  cache is broken no matter what the code looks like.
+
+## API endpoint conventions
+
+- JWT verification is the **first** operation in every protected endpoint.
+- Every new endpoint needs rate limiting, JWT verification, and security headers.
+- Never expose the Anthropic API key client-side. The model choice is hardcoded
+  server-side.
+
+## Client (`app.html`)
+
+- One enormous single file. Make surgical, targeted edits. Never regenerate it wholesale.
+- **No emoji anywhere in the UI.** SVG icons only.
+- Coral `#C86030` is reserved exclusively for the AI Optimize call-to-action. Using it
+  elsewhere destroys the signal.
+- Brand fonts are Outfit and Fraunces. Never recreate, redraw, or approximate the logo —
+  reference the hosted asset.
+- **All visual QA happens at 390px viewport width.** A desktop-only check is not a check.
+
+## Failure modes this codebase has actually hit
+
+Design against these specifically.
+
+- **Silent success.** A cron returned HTTP 200 with `ok:true` while rebuilding nothing
+  for fourteen weeks; the dashboard showed a green run every time. Return a non-2xx on
+  failure and log what failed by name.
+- **Count guards are not presence checks.** A `sectionCount < 6` threshold passes
+  comfortably while three specifically-named sections are missing.
+- **Work computed, then discarded.** Data has been collected and never written through,
+  and server-side corrections have been computed and then ignored by a client that
+  re-parsed the raw text. Trace the full path from collection to actual use.
+- **Prompt instructions are probabilistic.** Enforce physical constraints in code
+  (correct park, one dinner per day, activities inside park hours). Leave strategy to the
+  model and the cache (hop timing, ride order, what to rope-drop).
