@@ -974,5 +974,7 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(200).json({ok:true,results,errors,ts:new Date().toISOString()});
+  const anyFailed = errors.length > 0;
+  if (anyFailed) console.error('[cron-cache] FAILED KEYS:', JSON.stringify(errors));
+  return res.status(anyFailed ? 500 : 200).json({ok:!anyFailed,results,errors,ts:new Date().toISOString()});
 };
