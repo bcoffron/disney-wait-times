@@ -41,6 +41,7 @@ async function fetchJsonTimeout(url, ms) {
 // Reads from new two-cache architecture and extracts only requested sections.
 async function buildCacheContext(sectionNames, includeDynamic = false) {
     const results = {};
+    const dynamicSections = ['CURRENT_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'];
 
   // Stable cache
   try {
@@ -69,7 +70,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
                           const fetchUrl = db[0].downloadUrl || db[0].url;
                           const dynamicData = await fetchJsonTimeout(fetchUrl);
                           const sections = dynamicData.data.sections || {};
-                          ['CURRENT_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
+                          dynamicSections.forEach(name => {
                                       if (sections[name]) {
                                                     results[name] = typeof sections[name] === 'string'
                                                       ? sections[name]
@@ -82,6 +83,11 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
         }
   }
 
+  const expectedSections = sectionNames.concat(includeDynamic ? dynamicSections : []);
+  const missingSections = expectedSections.filter(name => !results[name]);
+  if (missingSections.length) {
+    console.error('[cache] MISSING SECTIONS:', missingSections.join(','), '| present:', Object.keys(results).join(','));
+  }
   return results;
 }
 
