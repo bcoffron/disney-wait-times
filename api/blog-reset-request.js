@@ -3,7 +3,7 @@ import { put } from '@vercel/blob';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'beau.coffron@life.church';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const RESET_TOKEN_KEY = 'blog:admin:reset-token';
 
 export default async function handler(req, res) {
@@ -26,6 +26,10 @@ export default async function handler(req, res) {
   }
 
   const { email } = body || {};
+
+  if (!ADMIN_EMAIL) {
+    return res.status(500).json({ error: 'Password reset is not configured.' });
+  }
 
   // Always return success to prevent email enumeration
   if (!email || email !== ADMIN_EMAIL) {
