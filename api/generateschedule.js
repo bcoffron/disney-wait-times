@@ -28,7 +28,7 @@ function checkAILimit(ip) {
 // --------- buildCacheContext ----------------------------
 async function buildCacheContext(sectionNames, includeDynamic = false) {
     const results = {};
-    const dynamicSections = ['CURRENT_CLOSURES', 'CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'];
+    const dynamicSections = ['CURRENT_CLOSURES', 'CLOSURES', 'DINING_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'];
 
   try {
         const { blobs: sb } = await list({ prefix: 'twize/park_intel_dl_stable.json' });
@@ -518,10 +518,12 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
 
           const _closedS = closedNamesForDate(cacheCtx.CLOSURES, _day.date);
           console.log('[scaffold] closures on', _day.date, ':', JSON.stringify(_closedS));
+          const _closedV = closedNamesForDate(cacheCtx.DINING_CLOSURES, _day.date);
+          if (_closedV.length) console.log('[scaffold] venue closures on', _day.date, ':', JSON.stringify(_closedV));
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '');
-          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, closedNames: _closedS })
+          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, closedNames: _closedS, closedVenueNames: _closedV })
             + ((typeof ridePrefsContext === 'string' && ridePrefsContext) ? '\n\n' + ridePrefsContext : '')
             + '\n\n=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n' + _fillCtx;
 
@@ -543,11 +545,11 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _catList = Object.values(_catIdx);
           const _venues = parseCatalogVenues(cacheCtx.CATALOG);
           const _fallbackFor = (slot, fb) => deterministicBackfill(slot, {
-            catalog: _catList, venues: _venues, closedNames: _closedS,
+            catalog: _catList, venues: _venues, closedNames: _closedS, closedVenueNames: _closedV,
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames
           });
 
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, fallbackFor: _fallbackFor };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor };
 
           let _r = await _fill(_fillSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
@@ -563,7 +565,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // Verify layer -- REMOVE-ONLY safety net (replaces the heavy validateSchedule on this path;
           // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
           const _dayParks = (_hop && _vipStart === null) ? [_park, _hop.toPark] : [_park];
-          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, catalog: _catIdx });
+          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx });
 
           // Parameter-fidelity verifier (recommendation #2): guest parameters are absolute.
           // Cite the specific failures back to the model once; deterministically enforce the rest.
@@ -580,7 +582,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               }).join('; ');
               const _r3 = await _fill(_fillSys + '\n\nPARAMETER CORRECTION -- guest parameters are absolute, not suggestions: ' + _cite + '. Return the FULL array again, same slot ids in the same order, with every one of these fixed and nothing else broken.');
               const _ap3 = applyFills(_sk, Array.isArray(_r3.arr) ? _r3.arr : [], _fillOpts);
-              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, catalog: _catIdx });
+              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx });
               const _v3 = verifyTripParams(_vf3.cards, _pvParams);
               if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; }
             } catch (e) { console.warn('[scaffold] param retry failed:', e.message); }
