@@ -1192,7 +1192,30 @@ body.tw-guest .ai-opt-hero{display:none!important}
   </div>
 </div>
       <div id="tripSetupBanner" style="display:none;background:#FFFFFF;border-radius:11px;border:1.5px solid #C86030;padding:11px 13px;align-items:center;gap:11px;margin:8px 10px 0"><div style="width:36px;height:36px;background:rgba(200,96,48,0.10);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C86030" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#071E25">Complete your trip setup</div><div style="font-size:9px;color:#4A7A7C;line-height:1.35;margin-top:2px">Your schedule is a starting point &mdash; tell us about your group so the AI can personalise it.</div></div><a href="/pretrip.html" style="background:#C86030;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:6px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0">Set up &rarr;</a></div>
-      <div id="cachedSchedBanner" style="display:none;background:#e8eef4;border-left:3px solid #8ba4bb;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#5a6d7e;font-family:Outfit,sans-serif;">&#x21BA; Showing your last saved plan &mdash; reconnecting&hellip;</div><div id="schedContent"></div>
+      <div id="cachedSchedBanner" style="display:none;background:#e8eef4;border-left:3px solid #8ba4bb;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#5a6d7e;font-family:Outfit,sans-serif;">&#x21BA; Showing your last saved plan &mdash; reconnecting&hellip;</div><div id="closureAlertsBanner" style="display:none;background:#fdf3e7;border-left:3px solid #e8a33d;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#7a5a22;font-family:Outfit,sans-serif;"></div><script>
+// Closure alerts banner: renders scan-annotated closure impacts (api/trip-closure-scan.js).
+window.renderClosureAlerts = function() {
+  try {
+    var el = document.getElementById('closureAlertsBanner');
+    if (!el) return;
+    var alerts = ((window._loadedTripData || {}).closureAlerts) || [];
+    if (!alerts.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    var esc = function(x){ return String(x==null?'':x).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    var html = '<div style="font-weight:700;margin-bottom:4px;">&#x26A0;&#xFE0F; Closure updates affecting your plan</div>';
+    alerts.slice(-5).forEach(function(a){
+      var c = a.closure || {};
+      var when = c.closeDate ? esc(c.closeDate) : 'as of the last check';
+      var until = c.reopenDate ? ', expected to reopen ' + esc(c.reopenDate) : ' (no reopening date yet)';
+      html += '<div style="margin:6px 0;"><b>' + esc(a.item) + '</b> (Day ' + ((a.dayIndex||0)+1) + ', ' + esc(a.date||'') + ') is closed ' + when + until + '.';
+      if (a.suggestion && a.suggestion.name) html += ' Suggested swap: <b>' + esc(a.suggestion.name) + '</b>' + (a.suggestion.land ? ' (' + esc(a.suggestion.land) + ')' : '') + '.';
+      html += '</div>';
+    });
+    if (alerts.length > 5) html += '<div style="opacity:.7;">+' + (alerts.length - 5) + ' more updates</div>';
+    el.innerHTML = html;
+    el.style.display = 'block';
+  } catch(e) {}
+};
+</script><div id="schedContent"></div>
 
       <!-- Add entry modal trigger -->
       
@@ -1495,7 +1518,7 @@ function checkLock(){
             // Show edit trip details button for admin
             if(typeof isAdmin==='function'&&isAdmin()){var etr=document.getElementById('editTripDetailsRow');if(etr)etr.style.display='block';}
             // FIX 3: Set _loadedTripData so nudgeCheckAndShow can check tripConfig.onboardingComplete
-            if (d.tripData) { window._loadedTripData = d.tripData; }
+            if (d.tripData) { window._loadedTripData = d.tripData; window.renderClosureAlerts(); }
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
             // Phase 2: populate TRIP_CONFIG from canonical blob at runtime
@@ -1656,7 +1679,7 @@ function tryUnlock() {
       if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
         window._schedData = d.tripData.tripConfig.schedule;
         // FIX 1: hydrate _loadedTripData and TRIP_CONFIG for initial guest load
-        if (d.tripData) { window._loadedTripData = d.tripData; }
+        if (d.tripData) { window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
         if (window._loadedTripData && window._loadedTripData.tripConfig) {
           var _iltc = window._loadedTripData.tripConfig;
           if (_iltc.tripName) { TRIP_CONFIG.tripName = _iltc.tripName; var _ihtEl = document.querySelector('.header-title'); if (_ihtEl) _ihtEl.textContent = _iltc.tripName;if (_iltc.guestCode) TRIP_CONFIG.guestCode = _iltc.guestCode; }
@@ -2483,7 +2506,7 @@ function startBlobPoll() {
           if (data.tripData.tripConfig && data.tripData.tripConfig.schedule) {
             window._schedData = data.tripData.tripConfig.schedule;
             // FIX 1: hydrate _loadedTripData and TRIP_CONFIG for guest path
-            if (data.tripData) { window._loadedTripData = data.tripData; }
+            if (data.tripData) { window._loadedTripData = data.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
             if (window._loadedTripData && window._loadedTripData.tripConfig) {
               var _gltc = window._loadedTripData.tripConfig;
               if (_gltc.tripName) { TRIP_CONFIG.tripName = _gltc.tripName; var _ghtEl = document.querySelector('.header-title'); if (_ghtEl) _ghtEl.textContent = _gltc.tripName;if (_gltc.guestCode) TRIP_CONFIG.guestCode = _gltc.guestCode; }
@@ -5682,7 +5705,7 @@ function submitTripCode() {
       } else {
         if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
         if (d.tripData && d.tripData.tripConfig) { window._schedData = d.tripData.tripConfig.schedule;
-        window._loadedTripData = d.tripData; }
+        window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
         enterSplash(true);
       }
     })
