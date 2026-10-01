@@ -4,12 +4,23 @@
   "type": "module",
   "description": "CORS proxy and cache server for ThemeParkWize",
   "dependencies": {
+    "@capacitor/cli": "latest",
+    "@capacitor/core": "latest",
+    "@capacitor/ios": "latest",
     "@vercel/blob": "2.6.1",
     "bcryptjs": "^2.4.3",
     "busboy": "^1.6.0",
+    "jsonwebtoken": "^9.0.0",
     "pusher": "^5.2.0",
     "resend": "^4.0.0",
-    "jsonwebtoken": "^9.0.0",
     "web-push": "^3.6.7"
+  },
+  "scripts": {
+    "cap:www": "node scripts/build-capacitor-www.mjs",
+    "cap:sync": "npm run cap:www && npx cap sync ios",
+    "cap:open:ios": "npx cap open ios"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
   }
 }
