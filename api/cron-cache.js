@@ -27,6 +27,34 @@ RETIRED / RENAMED ATTRACTIONS (Disneyland Resort -- always use the current name,
 - It's Tough to be a Bug! -> PERMANENTLY CLOSED at DCA (2018; the former Bug's Land is now Avengers Campus). Never list it as an operating DCA attraction.
 `;
 
+// WDW variant of the source-authority preamble, used for _wdw_ cache keys.
+// Same universal rules; resort-specific sources and retired/renamed list swapped.
+const SOURCE_AUTHORITY_WDW = `
+VERIFIED SOURCES -- use in priority order. Last 2 years only.
+BY SECTION:
+- Wait time data: TouringPlans.com, Thrill-Data.com
+- Crowd calendars: TouringPlans.com, UndercoverTourist.com
+- Touring/rope drop strategy: TouringPlans.com, UndercoverTourist.com, Unofficial Guide (Len Testa)
+- Lightning Lane: AllEars.net, TouringPlans.com
+- Dining: DisneyFoodBlog.com, AllEars.net
+- Closures/hours: disneyworld.disney.go.com (official), WDW News Today (wdwnt.com), AllEars.net
+- General strategy: DisneyTouristBlog.com, UndercoverTourist.com
+- Guest experiences: Reddit r/WaltDisneyWorld (last 2 years only)
+- Park news: WDW News Today (wdwnt.com), BlogMickey, AllEars.net
+UNIVERSAL RULES:
+1. NEVER: Genie+, MaxPass, FastPass terminology
+2. ALWAYS: Lightning Lane Multi Pass (LLMP), Individual Lightning Lane (ILL)
+3. Specific numbers required -- "60-90 min by 10 AM on summer Sundays"
+4. No AI preamble -- start with actual content immediately
+5. No hedging -- state consensus confidently
+6. Complete sentences only -- no truncation
+7. When sources conflict -- use primary source for that section
+RETIRED / RENAMED ATTRACTIONS (Walt Disney World -- always use the current name, never the old one; never list a permanently-closed attraction as operating):
+- Splash Mountain -> re-themed to Tiana's Bayou Adventure (Magic Kingdom, Frontierland). Never use "Splash Mountain."
+- Maelstrom -> replaced by Frozen Ever After (EPCOT, Norway pavilion). Never use "Maelstrom."
+- Universe of Energy -> replaced by Guardians of the Galaxy: Cosmic Rewind (EPCOT). Never use "Universe of Energy."
+`;
+
 // ---- Dining governance (DL/DCA only) + permanent retired-venue exclusions ----
 const DINING_RETIRED = [
 "Redd Rockett's Pizza Port -> renamed Alien Pizza Planet (2018, Tomorrowland, Disneyland). Never use the old name.",
@@ -217,6 +245,11 @@ const DYNAMIC_SECTION_PROMPTS = {
     user:`Search disneylandresort.com, AllEars.net, and TouringPlans.com for ALL current ride closures and refurbishments at Disneyland and DCA as of today 2026. For each closed or refurbished attraction provide: attraction name and park DL or DCA, closure type scheduled refurbishment unplanned seasonal or permanent, expected reopening date if known or best estimate, what caused the closure if known, alternative recommendation for guests who planned to ride it. Pay special attention to Pirates of the Caribbean current status and expected return date. List any major E-ticket closures. Note any new closures announced for summer 2026. Format as clear readable text that could be read to a guest planning their visit.`,
     maxTokens:1500
   },
+  CURRENT_CLOSURES_WDW:{
+    system:'You are a Walt Disney World current operations expert. Only use confirmed 2025-2026 information. Be specific about status and expected return dates.',
+    user:`Search disneyworld.disney.go.com, WDW News Today (wdwnt.com), BlogMickey, AllEars.net, and TouringPlans.com for ALL current ride closures and refurbishments at Magic Kingdom (MK), EPCOT (EP), Disney's Hollywood Studios (HS), and Disney's Animal Kingdom (AK) as of today 2026. For each closed or refurbished attraction provide: attraction name and park MK EP HS or AK, closure type scheduled refurbishment unplanned seasonal or permanent, expected reopening date if known or best estimate, what caused the closure if known, alternative recommendation for guests who planned to ride it. List any major E-ticket closures. Note any new closures announced for summer 2026. Format as clear readable text that could be read to a guest planning their visit.`,
+    maxTokens:2000
+  },
   CLOSURES:{
     system:'You are a Disneyland Resort current-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
     user:`Search disneylandresort.com, AllEars.net, TouringPlans.com, Disney Tourist Blog, and MousePlanet for EVERY attraction at Disneyland Park (DL) and Disney California Adventure (DCA) that is currently CLOSED or down for refurbishment, or has a known upcoming closure overlapping summer 2026.
@@ -244,6 +277,34 @@ FIELD RULES:
 
 Pay special attention to Pirates of the Caribbean and Inside Out Emotional Whirlwind -- report their exact current status, reopenDate, and reopenConfidence. Only include attractions that are actually closed/affected; do NOT list operating rides. Output the complete JSON array only.`,
     maxTokens:1500
+  },
+  CLOSURES_WDW:{
+    system:'You are a Walt Disney World current-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
+    user:`Search disneyworld.disney.go.com, WDW News Today (wdwnt.com), BlogMickey, AllEars.net, TouringPlans.com, and UndercoverTourist for EVERY attraction at Magic Kingdom (MK), EPCOT (EP), Disney's Hollywood Studios (HS), and Disney's Animal Kingdom (AK) that is currently CLOSED or down for refurbishment, or has a known upcoming closure overlapping summer 2026.
+
+Return ONLY this JSON array (raw, no fences):
+[
+  {
+    "name": "Exact attraction name as guests know it",
+    "park": "MK",
+    "status": "closed_for_refurbishment",
+    "closeDate": "2026-05-04",
+    "reopenDate": "2026-06-26",
+    "reopenConfidence": "rumored",
+    "note": "Short human-readable detail (source + why)."
+  }
+]
+
+FIELD RULES:
+- name: the attraction's exact common name. park: "MK", "EP", "HS", or "AK" only -- never use DL or DCA codes here.
+- status: always "closed_for_refurbishment" for any closure/refurb/seasonal-down attraction in this list.
+- closeDate: the date the closure BEGINS as strict ISO "YYYY-MM-DD" if a start date is known or reported (e.g. an upcoming refurb that starts July 20, 2026); otherwise null. Use null ONLY when the attraction is ALREADY closed right now and no start date is given. An attraction counts as closed on a date D only if closeDate is null or D is on/after closeDate -- so an UPCOMING closure MUST carry its real future start date, never null, or it will be wrongly treated as closed today.
+- reopenDate: the expected reopening date as strict ISO "YYYY-MM-DD" if a date is known or reported; otherwise null. Convert any phrasing ("late June", "July 1st") to a concrete date when a specific one is reported; if only a vague window with no date, use null.
+- reopenConfidence: "confirmed" if Disney has officially posted/published the reopening date (e.g. on the official calendar); "rumored" if the date comes from cast-member reports, fan sites, or unofficial leaks but is not officially posted; "unknown" if no reliable date exists. Be honest -- do NOT mark a date "confirmed" unless an official Disney source published it.
+- note: one short sentence (source + reason). ASCII only.
+
+List any major E-ticket closures. Only include attractions that are actually closed/affected; do NOT list operating rides. Output the complete JSON array only.`,
+    maxTokens:2000
   },
   DINING_CLOSURES:{
     system:'You are a Disneyland Resort dining-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
@@ -273,6 +334,35 @@ FIELD RULES (same contract as the attractions CLOSURES section):
 
 Only include venues that are actually closed/affected; do NOT list operating restaurants. Output the complete JSON array only.`,
     maxTokens:1500
+  },
+  DINING_CLOSURES_WDW:{
+    system:'You are a Walt Disney World dining-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
+    user:`Search DisneyFoodBlog, WDW News Today (wdwnt.com), BlogMickey, AllEars.net, TouringPlans.com, and UndercoverTourist for EVERY restaurant, quick-service venue, lounge, or snack stand at Magic Kingdom (MK), EPCOT (EP), Disney's Hollywood Studios (HS), and Disney's Animal Kingdom (AK) that is currently CLOSED or down for refurbishment, or has a known upcoming closure.
+
+Return ONLY this JSON array (raw, no fences):
+[
+  {
+    "name": "Exact venue name as guests know it",
+    "park": "MK",
+    "land": "Fantasyland",
+    "status": "closed_for_refurbishment",
+    "closeDate": "2026-10-05",
+    "reopenDate": "2026-10-19",
+    "reopenConfidence": "rumored",
+    "note": "Short human-readable detail (source + why)."
+  }
+]
+
+FIELD RULES (same contract as the attractions CLOSURES section):
+- name: the venue's exact common name, matching the resort dining list. park: "MK", "EP", "HS", or "AK" only -- never use DL or DCA codes here. land: the land it sits in, or "" if unsure.
+- status: always "closed_for_refurbishment" for any closure/refurb/seasonal-down venue in this list.
+- closeDate: the date the closure BEGINS as strict ISO "YYYY-MM-DD" if a start date is known or reported; otherwise null. Use null ONLY when the venue is ALREADY closed right now and no start date is given. A venue counts as closed on a date D only if closeDate is null or D is on/after closeDate -- so an UPCOMING closure MUST carry its real future start date, never null, or it will be wrongly treated as closed today.
+- reopenDate: the expected reopening date as strict ISO "YYYY-MM-DD" if a date is known or reported; otherwise null. If only a vague window with no date, use null.
+- reopenConfidence: "confirmed" if Disney has officially posted/published the reopening date; "rumored" if the date comes from fan sites or unofficial reports; "unknown" if no reliable date exists. Be honest -- do NOT mark a date "confirmed" unless an official Disney source published it.
+- note: one short sentence (source + reason). ASCII only.
+
+Only include venues that are actually closed/affected; do NOT list operating restaurants. Output the complete JSON array only.`,
+    maxTokens:2000
   },
   SPECIAL_EVENTS:{
     system:'You are a Disneyland special events expert. Focus specifically on June 28-30 2026.',
@@ -685,14 +775,35 @@ function buildCatalogAttractions() {
   ];
 }
 
+// ---------------------------------------------------------------------------
+// Resort-aware section resolution (the permanent WDW design -- not a patch).
+// Section NAMES are canonical across resorts: every key's blob carries CLOSURES,
+// DINING_CLOSURES, etc. under the same name, so consumers (scaffold, digest,
+// trip scan) never branch on resort. Only the PROMPT used to build a section
+// varies: `_WDW`-suffixed entries in the prompt maps are WDW prompt variants.
+//  - `_wdw_` keys: use the `_WDW` variant when one exists; otherwise SKIP the
+//    section (a missing section is honest -- a DL-content section in the WDW
+//    blob would poison future WDW trip planning, e.g. same-named rides like
+//    Space Mountain exist at both resorts and closedNamesForDate is name-based).
+//  - `_dl_` (and legacy) keys: `_WDW` entries are variants, never built as sections.
+// Adding future WDW coverage = adding a `_WDW` prompt variant. Nothing else changes.
+// ---------------------------------------------------------------------------
+function resolveSectionPrompt(promptMap, cacheKey, sectionName) {
+  if (sectionName.endsWith('_WDW')) return null; // variant, not a buildable section
+  if (cacheKey.includes('_wdw_')) return promptMap[sectionName + '_WDW'] || null;
+  return promptMap[sectionName] || null;
+}
+function authorityForKey(cacheKey) {
+  return cacheKey.includes('_wdw_') ? SOURCE_AUTHORITY_WDW : SOURCE_AUTHORITY;
+}
+
 async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
   opts = opts || {};
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
-  if(!promptMap[sectionName]) throw new Error('Unknown section: '+sectionName);
-
-  const prompt = promptMap[sectionName];
-  const augmentedPrompt = Object.assign({}, prompt, {user: SOURCE_AUTHORITY + '\n\nNow build the ' + sectionName + ' section:\n\n' + prompt.user});
+  const prompt = resolveSectionPrompt(promptMap, cacheKey, sectionName);
+  if (!prompt) throw new Error('No prompt for section ' + sectionName + ' on key ' + cacheKey + ' (no WDW variant)');
+  const augmentedPrompt = Object.assign({}, prompt, {user: authorityForKey(cacheKey) + '\n\nNow build the ' + sectionName + ' section:\n\n' + prompt.user});
   const text = (sectionName === 'CATALOG') ? '' : await callClaude(augmentedPrompt, apiKey);
 
   let sectionData;
@@ -817,7 +928,8 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
   // SHOWS: verified summer-2026 literal -- injected on every dynamic-blob write.
   // Update this literal (not the code) when the seasonal lineup changes.
   // Do NOT model-generate this section; the fixed literal is intentional.
-  if (!cacheKey.includes('stable')) {
+  // DL-only: never inject Disneyland entertainment into the WDW blob.
+  if (!cacheKey.includes('stable') && !cacheKey.includes('_wdw_')) {
     cacheData.sections.SHOWS = {
       "shows": [
         { "name": "World of Color - Happiness!", "park": "DCA", "type": "spectacular", "showtimes": ["9:00 PM"] },
@@ -955,7 +1067,9 @@ async function buildAllSections(cacheKey, apiKey, opts) {
   const TIME_BUDGET_MS = 240000;
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
-  const sectionNames = Object.keys(promptMap);
+  // Resort-aware: _WDW prompt variants are never iterated as sections, and _wdw_
+  // keys skip sections with no WDW variant (honest gap, never DL content).
+  const sectionNames = Object.keys(promptMap).filter((n) => resolveSectionPrompt(promptMap, cacheKey, n));
   const expiryMs = (EXPIRY_DAYS[cacheKey] || 30) * 86400000;
 
   // Single read at invocation start. All merges happen against this in-memory
@@ -1007,7 +1121,8 @@ async function buildAllSections(cacheKey, apiKey, opts) {
 
   const flush = async () => {
     // SHOWS: verified summer-2026 literal -- injected on every dynamic-blob write.
-    if (!cacheKey.includes('stable')) {
+    // DL-only: never inject Disneyland entertainment into the WDW blob.
+    if (!cacheKey.includes('stable') && !cacheKey.includes('_wdw_')) {
       cacheData.sections.SHOWS = {
         "shows": [
           { "name": "World of Color - Happiness!", "park": "DCA", "type": "spectacular", "showtimes": ["9:00 PM"] },
