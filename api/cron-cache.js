@@ -889,6 +889,72 @@ async function setRateLimit() {
   } catch(e){}
 }
 
+// Sectioned-key fan-out: ?key=park_intel_dl_stable (no &section=) builds every
+// stale/missing section in the key's prompt map, merging into the existing blob.
+// Why this exists: the sectioned keys (park_intel_dl_stable/dynamic, wdw_*) have no
+// LEGACY_PROMPTS entry, so the legacy path below 500s with 'No prompt for key' --
+// every scheduled cron for these keys was a guaranteed failure (silent before the
+// fail-loud patch, loud after). This is the dispatch that was never built.
+// Convergence design:
+// - Per-section freshness: sections whose section_meta.built_at is within
+//   EXPIRY_DAYS are skipped, so recurring crons are cheap no-ops once converged.
+// - Time budget: ~240s of the 300s maxDuration. buildSingleSection merges each
+//   finished section into the blob, so a budget-capped run returns partial
+//   progress and the next run resumes with the remaining stale sections.
+// - Fail-loud: per-section errors are collected and returned; any failure -> 500.
+async function buildAllSections(cacheKey, apiKey, opts) {
+  opts = opts || {};
+  const t0 = Date.now();
+  const TIME_BUDGET_MS = 240000;
+  const isStable = cacheKey.includes('stable');
+  const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
+  const sectionNames = Object.keys(promptMap);
+  const expiryMs = (EXPIRY_DAYS[cacheKey] || 30) * 86400000;
+
+  // Read existing section_meta for per-section freshness.
+  let meta = {};
+  try {
+    const { blobs } = await list({ prefix: 'twize/' + cacheKey + '.json' });
+    if (blobs && blobs.length) {
+      const raw = await (await fetch(blobs[0].downloadUrl || blobs[0].url)).json();
+      const data = (raw && raw.data && raw.data.sections) ? raw.data : raw;
+      meta = (data && data.section_meta) || {};
+    }
+  } catch (e) { console.log('[cron-cache] buildAllSections: no existing blob for ' + cacheKey + ', building all sections'); }
+
+  const now = Date.now();
+  const isStale = (name) => {
+    if (opts.force) return true;
+    const m = meta[name];
+    if (!m || !m.built || !m.built_at) return true;
+    const age = now - new Date(m.built_at).getTime();
+    return !(age >= 0) || age > expiryMs;
+  };
+
+  const results = [], errors = [], skipped = [];
+  for (const name of sectionNames) {
+    if (!isStale(name)) { skipped.push(name); continue; }
+    if (Date.now() - t0 > TIME_BUDGET_MS) {
+      console.log('[cron-cache] buildAllSections: time budget reached at ' + name + ', deferring the rest to the next run');
+      break;
+    }
+    try {
+      const r = await buildSingleSection(cacheKey, name, apiKey);
+      results.push({ section: name, sections_built: r.sections_built });
+      console.log('[cron-cache] buildAllSections: built ' + cacheKey + ' / ' + name);
+    } catch (e) {
+      console.error('[cron-cache] buildAllSections: section FAILED ' + cacheKey + ' / ' + name + ': ' + e.message);
+      errors.push({ section: name, error: e.message });
+    }
+  }
+  const doneSet = {};
+  results.forEach(r => { doneSet[r.section] = true; });
+  skipped.forEach(n => { doneSet[n] = true; });
+  errors.forEach(e => { doneSet[e.section] = true; });
+  const remaining = sectionNames.filter(n => !doneSet[n]);
+  return { key: cacheKey, built: results.length, skipped: skipped.length, failed: errors.length, errors, remaining, partial: remaining.length > 0 };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','GET, OPTIONS');
@@ -946,6 +1012,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ok:true, ...result, ts:new Date().toISOString()});
     } catch(e) {
       return res.status(500).json({ok:false, section:requestedSection, error:e.message});
+    }
+  }
+
+  // Sectioned key WITHOUT &section= (what the vercel.json crons actually call):
+  // fan out over every stale/missing section instead of falling into the legacy
+  // path, which has no prompt for these keys and 500s with 'No prompt for key'.
+  if(requestedKey && (requestedKey.includes('_dl_') || requestedKey.includes('_wdw_')) && VALID_KEYS.includes(requestedKey)) {
+    try {
+      const fanout = await buildAllSections(requestedKey, apiKey, { force });
+      if (fanout.failed > 0) console.error('[cron-cache] FAILED SECTIONS:', JSON.stringify(fanout.errors));
+      return res.status(fanout.failed > 0 ? 500 : 200).json({ ok: fanout.failed === 0, fanout, ts: new Date().toISOString() });
+    } catch(e) {
+      return res.status(500).json({ ok:false, key:requestedKey, error:e.message });
     }
   }
 
