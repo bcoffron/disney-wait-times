@@ -26,6 +26,8 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const src = (f) => readFileSync(join(here, f), 'utf8');
+// cron-cache.js canonical mirror lives in tpcp-cache-debug (tpcp-plan/ copy is synced)
+const srcCache = (f) => readFileSync(join(here, '..', 'tpcp-cache-debug', f), 'utf8');
 
 const FAKE_CATALOG = [
   { name: 'Space Mountain', park: 'DL', land: 'Tomorrowland', status: 'operating', typicalPeakWait: 45 },
@@ -276,7 +278,7 @@ test('temperature pinned: reoptimize.js (1 call)', () => {
 });
 
 test('temperature pinned: cron-cache.js (3 builder calls)', () => {
-  const pins = (src('cron-cache.js').match(/temperature\s*:\s*0/g) || []).length;
+  const pins = (srcCache('cron-cache.js').match(/temperature\s*:\s*0/g) || []).length;
   assert.ok(pins >= 3, 'cron-cache.js has ' + pins + ' temperature pins, need >= 3');
 });
 
@@ -372,4 +374,52 @@ test('alertIdFor: stable per closure, distinct across start dates and kinds', ()
   assert.equal(alertIdFor('dining', e), alertIdFor('dining', Object.assign({}, e)));
   assert.notEqual(alertIdFor('dining', e), alertIdFor('dining', Object.assign({}, e, { closeDate: '2026-10-06' })));
   assert.notEqual(alertIdFor('dining', e), alertIdFor('ride', e));
+});
+
+// ---------------------------------------------------------------------------
+// WDW resort-aware closures (permanent design, not a patch).
+// Section NAMES stay canonical across resorts (CLOSURES in every key's blob);
+// only the prompt varies via _WDW variants + resolveSectionPrompt.
+// ---------------------------------------------------------------------------
+test('wdw prompts: CLOSURES_WDW / DINING_CLOSURES_WDW / CURRENT_CLOSURES_WDW exist', () => {
+  const cc = srcCache('cron-cache.js');
+  for (const s of ['CLOSURES_WDW', 'DINING_CLOSURES_WDW', 'CURRENT_CLOSURES_WDW']) {
+    assert.ok(cc.includes('  ' + s + ':{') || cc.includes('  ' + s + ': {'), s + ' prompt entry missing');
+  }
+});
+
+test('wdw prompts: MK/EP/HS/AK park codes, WDW sources, same JSON contract', () => {
+  const cc = srcCache('cron-cache.js');
+  assert.ok(cc.includes('wdwnt.com'), 'WDW prompts should source WDW News Today');
+  assert.ok(/CLOSURES_WDW[\s\S]{0,3000}?"MK", "EP", "HS", or "AK"/.test(cc), 'CLOSURES_WDW must restrict park to MK/EP/HS/AK');
+  assert.ok(/DINING_CLOSURES_WDW[\s\S]{0,3000}?"MK", "EP", "HS", or "AK"/.test(cc), 'DINING_CLOSURES_WDW must restrict park to MK/EP/HS/AK');
+  assert.ok(/DINING_CLOSURES_WDW[\s\S]{0,3000}?same contract as the attractions CLOSURES/.test(cc), 'dining WDW prompt keeps the shared contract');
+  assert.ok(/CLOSURES_WDW[\s\S]{0,3000}?null ONLY when the attraction is ALREADY closed/.test(cc), 'WDW prompt keeps the null-date contract');
+});
+
+test('wdw resolution: resolveSectionPrompt + authorityForKey wired into both build paths', () => {
+  const cc = srcCache('cron-cache.js');
+  assert.ok(/function resolveSectionPrompt\(promptMap, cacheKey, sectionName\)/.test(cc), 'resolveSectionPrompt defined');
+  assert.ok(/function authorityForKey\(cacheKey\)/.test(cc), 'authorityForKey defined');
+  assert.ok(cc.includes('SOURCE_AUTHORITY_WDW'), 'WDW authority preamble present');
+  assert.ok(/const prompt = resolveSectionPrompt\(promptMap, cacheKey, sectionName\)/.test(cc), 'buildSingleSection resolves via resolveSectionPrompt');
+  assert.ok(cc.includes('authorityForKey(cacheKey)'), 'buildSingleSection uses authorityForKey');
+  assert.ok(/Object\.keys\(promptMap\)\.filter\(\(n\) => resolveSectionPrompt\(promptMap, cacheKey, n\)\)/.test(cc), 'buildAllSections filters sections through resolveSectionPrompt');
+});
+
+test('wdw honesty: no DL content leaks into the WDW blob', () => {
+  const cc = srcCache('cron-cache.js');
+  const gates = cc.match(/if \(!cacheKey\.includes\('stable'\) && !cacheKey\.includes\('_wdw_'\)\)/g) || [];
+  assert.equal(gates.length, 2, 'both SHOWS literal injections must be DL-gated, found ' + gates.length);
+  assert.ok(/sectionName\.endsWith\('_WDW'\)\) return null/.test(cc), '_WDW variants are never built as sections');
+});
+
+test('wdw sweeps: vercel.json has the three Thursday WDW section sweeps', () => {
+  const v = JSON.parse(src('vercel.json'));
+  const paths = v.crons.map((c) => c.schedule + ' ' + c.path);
+  assert.ok(paths.some((p) => p.includes('park_intel_wdw_dynamic&section=CLOSURES')), 'WDW CLOSURES sweep missing');
+  assert.ok(paths.some((p) => p.includes('park_intel_wdw_dynamic&section=CURRENT_CLOSURES')), 'WDW CURRENT_CLOSURES sweep missing');
+  assert.ok(paths.some((p) => p.includes('park_intel_wdw_dynamic&section=DINING_CLOSURES')), 'WDW DINING_CLOSURES sweep missing');
+  const thuCacheRuns = v.crons.filter((c) => c.path.includes('/api/cron-cache') && /\* \* 4$/.test(c.schedule)).length;
+  assert.ok(thuCacheRuns <= 7, 'Thursday cron-cache runs must stay within DAILY_RUN_CAP=7, got ' + thuCacheRuns);
 });
