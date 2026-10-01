@@ -10,9 +10,13 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
   buildSkeleton,
+  buildFillPrompt,
   applyFills,
   verifyScaffold,
   closedNamesForDate,
+  closureKey,
+  diffClosureLists,
+  alertIdFor,
   buildCatalogIndex,
   parseCatalogVenues,
   deterministicBackfill,
@@ -274,4 +278,98 @@ test('temperature pinned: reoptimize.js (1 call)', () => {
 test('temperature pinned: cron-cache.js (3 builder calls)', () => {
   const pins = (src('cron-cache.js').match(/temperature\s*:\s*0/g) || []).length;
   assert.ok(pins >= 3, 'cron-cache.js has ' + pins + ' temperature pins, need >= 3');
+});
+
+// Dining closures (twice-weekly sweep) -- venues honor the same contract as rides
+// ---------------------------------------------------------------------------
+const DL_VENUES = [
+  { name: 'Blue Bayou Restaurant', park: 'DL', land: 'New Orleans Square', service: 'table', reservationPolicy: 'recommended', exclude: false },
+  { name: 'Jolly Holiday Bakery', park: 'DL', land: 'Main Street U.S.A.', service: 'quickservice', reservationPolicy: 'walkup', exclude: false },
+];
+
+test('closedNamesForDate: venue closure window covers the trip date', () => {
+  const dining = [
+    { name: 'Blue Bayou Restaurant', park: 'DL', closeDate: '2026-10-05', reopenDate: '2026-10-19' },
+    { name: 'Cafe Orleans', park: 'DL', closeDate: null, reopenDate: null }, // already closed, unknown reopen
+  ];
+  assert.deepEqual(closedNamesForDate(dining, '2026-10-10'), ['Blue Bayou Restaurant', 'Cafe Orleans']);
+  assert.deepEqual(closedNamesForDate(dining, '2026-10-01'), ['Cafe Orleans']); // before Blue Bayou's window
+  assert.deepEqual(closedNamesForDate(dining, '2026-10-20'), ['Cafe Orleans']); // after reopen
+});
+
+test('verifyScaffold: dining card at a closed venue is removed with reason venue-closed', () => {
+  const cards = [
+    { t: '12:30 PM', h: 'Blue Bayou Restaurant', type: 'dining', land: 'New Orleans Square', n: 'lunch' },
+    { t: '6:00 PM', h: "Flo's V8 Cafe", type: 'quickservice', land: 'Cars Land', n: 'dinner' },
+  ];
+  const r = verifyScaffold(cards, { parks: ['Disneyland', 'DCA'], landToPark, closedNames: [], closedVenueNames: ['blue bayou restaurant'], catalog: {} });
+  assert.equal(r.cards.length, 1);
+  assert.match(r.cards[0].h, /Flo's/);
+  assert.equal(r.removed.length, 1);
+  assert.equal(r.removed[0].reason, 'venue-closed');
+});
+
+test('applyFills: AI fill placing a closed venue is dropped and retried', () => {
+  const sk = buildSkeleton({ park: 'Disneyland', openMin: 480, closeMin: 1320, hasLL: false, dayNum: 1 });
+  const diningSlot = sk.slots.find(s => s.type === 'dining');
+  const fills = [{ id: diningSlot.id, t: '12:30 PM', h: 'Blue Bayou Restaurant', type: 'dining', land: 'New Orleans Square', n: 'lunch' }];
+  const fb = (slot, f) => deterministicBackfill(slot, {
+    catalog: [], venues: DL_VENUES, closedNames: [], closedVenueNames: ['blue bayou restaurant'],
+    usedRideKeys: f.usedRideKeys, usedNames: f.usedNames
+  });
+  const { needsRetry, report } = applyFills(sk, fills, { landToPark, closedNames: [], closedVenueNames: ['Blue Bayou Restaurant'], fallbackFor: fb });
+  assert.ok(needsRetry.includes(diningSlot.id), 'closed-venue fill should need retry');
+  assert.ok((report.closed || 0) >= 1, 'expected a closed drop in the report');
+});
+
+test('deterministicBackfill: closed venue is skipped, next verified venue picked', () => {
+  const slot = { type: 'dining', park: 'Disneyland', window: [660, 705], block: 'lunch' };
+  const card = deterministicBackfill(slot, {
+    catalog: [], venues: DL_VENUES, closedNames: [], closedVenueNames: ['blue bayou restaurant'],
+    usedRideKeys: new Set(), usedNames: new Set()
+  });
+  assert.equal(card.h, 'Jolly Holiday Bakery');
+});
+
+test('buildFillPrompt: closed venues listed as dining exclusions', () => {
+  const sk = buildSkeleton({ park: 'Disneyland', openMin: 480, closeMin: 1320, hasLL: false, dayNum: 1 });
+  const sys = buildFillPrompt(sk, { closedVenueNames: ['Blue Bayou Restaurant'] });
+  assert.ok(sys.includes('Blue Bayou Restaurant'), 'venue exclusion missing from fill prompt');
+  assert.ok(/dining, quickservice, or snack slot/i.test(sys));
+});
+
+// Closure diff (material-change detection for the watcher)
+// ---------------------------------------------------------------------------
+test('diffClosureLists: detects added, removed, and date-shifted entries', () => {
+  const prev = [
+    { name: 'Indiana Jones Adventure', park: 'DL', status: 'closed_for_refurbishment', closeDate: '2026-09-08', reopenDate: null },
+    { name: 'Mark Twain Riverboat', park: 'DL', status: 'closed_for_refurbishment', closeDate: '2026-09-08', reopenDate: '2026-09-11' },
+    { name: 'Pirates of the Caribbean', park: 'DL', status: 'closed_for_refurbishment', closeDate: '2026-06-01', reopenDate: '2026-07-01' },
+  ];
+  const next = [
+    { name: 'Indiana Jones Adventure', park: 'DL', status: 'closed_for_refurbishment', closeDate: '2026-09-08', reopenDate: '2026-11-12' },
+    { name: 'Mark Twain Riverboat', park: 'DL', status: 'closed_for_refurbishment', closeDate: '2026-09-08', reopenDate: '2026-09-11' },
+    { name: "it's a small world", park: 'DL', status: 'closed_for_refurbishment', closeDate: '2026-10-30', reopenDate: null },
+  ];
+  const d = diffClosureLists(prev, next);
+  assert.equal(d.added.length, 1);
+  assert.equal(d.added[0].name, "it's a small world");
+  assert.equal(d.removed.length, 1);
+  assert.equal(d.removed[0].name, 'Pirates of the Caribbean');
+  assert.equal(d.changed.length, 1);
+  assert.equal(d.changed[0].after.reopenDate, '2026-11-12');
+});
+
+test('diffClosureLists: note-only edits are not material', () => {
+  const prev = [{ name: 'Blue Bayou Restaurant', park: 'DL', status: 'closed_for_refurbishment', closeDate: '2026-10-05', reopenDate: '2026-10-19', note: 'old note' }];
+  const next = [{ name: 'Blue Bayou Restaurant', park: 'DL', status: 'closed_for_refurbishment', closeDate: '2026-10-05', reopenDate: '2026-10-19', note: 'new note' }];
+  const d = diffClosureLists(prev, next);
+  assert.deepEqual([d.added.length, d.removed.length, d.changed.length], [0, 0, 0]);
+});
+
+test('alertIdFor: stable per closure, distinct across start dates and kinds', () => {
+  const e = { name: 'Blue Bayou Restaurant', park: 'DL', closeDate: '2026-10-05' };
+  assert.equal(alertIdFor('dining', e), alertIdFor('dining', Object.assign({}, e)));
+  assert.notEqual(alertIdFor('dining', e), alertIdFor('dining', Object.assign({}, e, { closeDate: '2026-10-06' })));
+  assert.notEqual(alertIdFor('dining', e), alertIdFor('ride', e));
 });
