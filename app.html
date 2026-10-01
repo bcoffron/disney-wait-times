@@ -7,7 +7,7 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/outfit/v15/QGYvz_MVcBeNP4NJtEtqUYLknw.woff2">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy content="default-src 'self' https://disney-wait-times-lupt.vercel.app; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://js.pusher.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://disney-wait-times-lupt.vercel.app https://api.themeparks.wiki https://sockjs-mt1.pusher.com wss://ws-mt1.pusher.com; frame-ancestors 'none';">
+<meta http-equiv="Content-Security-Policy content="default-src 'self' https://app.themeparkcopilot.com; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://js.pusher.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://app.themeparkcopilot.com https://api.themeparks.wiki https://sockjs-mt1.pusher.com wss://ws-mt1.pusher.com; frame-ancestors 'none';">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0
@@ -2110,7 +2110,7 @@ var constraintRules='HARD CONSTRAINTS never violate: '
     +'6) MANDATORY SNACKS: You MUST add a schedule entry with type=\'tip\' at approximately 10:30am labeled \'Morning Snack Stop\' with a specific Disneyland snack recommendation as the note. You MUST add another at approximately 3:00pm labeled \'Afternoon Snack Stop\'. These are REQUIRED.'
     +'BATHROOM BREAKS: Add one restroom break (type=\'break\') mid-morning around 11am and one mid-afternoon around 2pm.'
     +'7) PHOTO OPS: Include EXACTLY 2 photo op entries per day maximum. Space them out -- one in the morning, one in the evening. Each must be a different location. No more than 2 total per day.';
-var SYNC_BASE='https://disney-wait-times-lupt.vercel.app';
+var SYNC_BASE='https://app.themeparkcopilot.com';
 
 // Secure AI fetch \u2014 always injects trip code for server-side authentication
 function _aiFetch(endpoint, body) {
@@ -3932,7 +3932,7 @@ async function fetchDiningRecs(e){
   resultEl.innerHTML='<span style="color:var(--text-muted);font-size:13px"> Loading&hellip;</span>';
   resultEl.classList.add('show');
   await ensureApiKey();
-  var resp=await fetch('https://disney-wait-times-lupt.vercel.app/api/dining', {
+  var resp=await fetch('https://app.themeparkcopilot.com/api/dining', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ prompt: 'Give a dining recommendation for '+name+(land?' in '+land:'')+' at Disneyland Resort.', park: 'DL' , tripCode: localStorage.getItem('tpcp_code') || '' })
@@ -5009,7 +5009,7 @@ function generateFromSetup(params, callback) {
     parkHoursCache ? '=== PARK HOURS ===\n' + JSON.stringify(parkHoursCache) : ''
   ].filter(Boolean).join('\n\n');
   var prompt = 'Build a complete Disneyland day schedule. Return ONLY a raw JSON array (no markdown, no explanation) of objects with fields: t (time like "8:00 AM"), h (activity name), type (ride|show|dining|break|tip), n (brief note), land (land name). Group info: ' + JSON.stringify(params);
-  fetch('https://disney-wait-times-lupt.vercel.app/api/generateschedule', {
+  fetch('https://app.themeparkcopilot.com/api/generateschedule', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
@@ -5051,7 +5051,7 @@ function generateFromSetup(params, callback) {
 function aiChooseRides(params, callback) {
   var context = parkIntelCache ? '=== PARK STRATEGY & RIDE INTEL ===\n' + parkIntelCache : '';
   var prompt = 'Choose the best rides for this group and return ONLY a JSON array of ride name strings. Group: ' + JSON.stringify(params);
-  fetch('https://disney-wait-times-lupt.vercel.app/api/generateschedule', {
+  fetch('https://app.themeparkcopilot.com/api/generateschedule', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
@@ -5478,7 +5478,7 @@ function refreshLLPlan(){try{localStorage.removeItem('ll_plan');}catch(e){}loadL
 var PARK_INTEL_DAYS=10,parkIntelCache=null,stableCacheCtx=null;
 function getParkIntel(){if(parkIntelCache)return parkIntelCache;try{var s=localStorage.getItem('park_intel'),ts=parseInt(localStorage.getItem('park_intel_ts')||'0');if(s&&(Date.now()-ts)/864e5<PARK_INTEL_DAYS){parkIntelCache=s;return s;}}catch(e){}return null;}
 
-var SYNC_BASE="https://disney-wait-times-lupt.vercel.app";
+var SYNC_BASE="https://app.themeparkcopilot.com";
 function serverCacheGet(key,cb){fetch(SYNC_BASE+"/api/cache?key="+key+"&t="+Date.now()).then(function(r){return r.json();}).then(function(d){if(d.hit&&d.data){try{localStorage.setItem(key,typeof d.data==="string"?d.data:JSON.stringify(d.data));localStorage.setItem(key+"_ts",String(d.ts));}catch(e){}cb(null,d.data,d.ts);}else{cb(null,null,0);}}).catch(function(e){cb(e,null,0);});}
 function serverCacheSet(key,value,ts){fetch(SYNC_BASE+"/api/cache?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:value,ts:ts||Date.now()})}).then(function(r){return r.json();}).then(function(d){console.log("Server cache set "+key+":",(d.ok?"OK":"FAILED"));}).catch(function(e){console.warn("Server cache write failed:",e);});try{localStorage.setItem(key,typeof value==="string"?value:JSON.stringify(value));localStorage.setItem(key+"_ts",String(ts||Date.now()));}catch(e){}}
 function warmCachesFromServer(){if(window._cachesWarmed)return;window._cachesWarmed=true;var keys=["park_intel","dining_intel","events_intel","park_hours_intel","park_intel_dl_stable"];keys.forEach(function(key){serverCacheGet(key,function(err,value,ts){if(err||!value)return;console.log("Server cache HIT:",key);if(key==="park_intel")parkIntelCache=value;else if(key==="dining_intel")diningIntelCache=value;else if(key==="events_intel")eventsIntelCache=value;else if(key==="park_hours_intel"){try{parkHoursCache=typeof value==="string"?JSON.parse(value):value;}catch(e){}}else if(key==="park_intel_dl_stable"){try{stableCacheCtx=typeof value==="string"?JSON.parse(value):value;}catch(e){console.warn("stableCacheCtx parse error",e);}}});});}
@@ -5813,7 +5813,7 @@ function buildRidePrefsContext(tripConfig) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  fetch('https://disney-wait-times-lupt.vercel.app/api/version').then(function(r){return r.json();}).then(function(d){
+  fetch('https://app.themeparkcopilot.com/api/version').then(function(r){return r.json();}).then(function(d){
     var el = document.getElementById('splashVersion');
     if(el) el.textContent = 'v' + (d.sha||'').substring(0,7);
   });
