@@ -288,6 +288,9 @@
     },
     "api/cron-push-monitor.js": {
       "maxDuration": 60
+    },
+    "api/trip-closure-scan.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -334,6 +337,26 @@
     {
       "path": "/api/cron-push-monitor",
       "schedule": "*/5 0-6 * * *"
+    },
+    {
+      "path": "/api/cron-cache?key=park_intel_dl_dynamic&section=CLOSURES",
+      "schedule": "0 4 * * 4"
+    },
+    {
+      "path": "/api/cron-cache?key=park_intel_dl_dynamic&section=CURRENT_CLOSURES",
+      "schedule": "15 4 * * 4"
+    },
+    {
+      "path": "/api/cron-cache?key=park_intel_dl_dynamic&section=DINING_CLOSURES",
+      "schedule": "30 4 * * 4"
+    },
+    {
+      "path": "/api/trip-closure-scan",
+      "schedule": "45 4 * * 4"
+    },
+    {
+      "path": "/api/trip-closure-scan",
+      "schedule": "45 4 * * 1"
     }
   ],
   "redirects": [
