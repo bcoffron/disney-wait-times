@@ -923,11 +923,20 @@ async function buildAllSections(cacheKey, apiKey, opts) {
   } catch (e) { console.log('[cron-cache] buildAllSections: no existing blob for ' + cacheKey + ', building all sections'); }
 
   const now = Date.now();
+  const sectionAgeMs = (name) => {
+    const m = meta[name];
+    if (!m || !m.built || !m.built_at) return Infinity;
+    const t = new Date(m.built_at).getTime();
+    return isNaN(t) ? Infinity : now - t;
+  };
+  // Build order: never-built sections first, then stalest first. Without this,
+  // force=1 re-rebuilds the first N sections of the map on every invocation and
+  // never advances past the time budget (infinite loop); with it, both force
+  // runs and normal crons converge on the gaps that matter most.
+  sectionNames.sort((a, b) => sectionAgeMs(b) - sectionAgeMs(a));
   const isStale = (name) => {
     if (opts.force) return true;
-    const m = meta[name];
-    if (!m || !m.built || !m.built_at) return true;
-    const age = now - new Date(m.built_at).getTime();
+    const age = sectionAgeMs(name);
     return !(age >= 0) || age > expiryMs;
   };
 
