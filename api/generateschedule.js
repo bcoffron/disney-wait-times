@@ -2,7 +2,7 @@
 // Routes generateFromSetup and aiChooseRides through Vercel with new two-cache section injection
 import { list } from '@vercel/blob';
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, buildCatalogIndex } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -529,14 +529,23 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             const r = await fetch('https://api.anthropic.com/v1/messages', {
               signal: controller.signal, method: 'POST',
               headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens, system: sys, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
+              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system: sys, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
             });
             const d = await r.json();
             if (d.error) throw new Error(d.error.message);
             let t = ''; for (const b of (d.content || [])) if (b.type === 'text') t += b.text;
             return { arr: extractJSON(t), model: d.model, text: t };
           };
-          const _fallbackFor = (slot) => ({ t: '', h: (slot.block === 'lunch' || slot.block === 'dinner') ? 'Open dining choice' : 'Flex time', type: 'tip', n: 'AI could not confirm a cache pick here; choose on the day', land: '' });
+          // Deterministic backfill (recommendation #3): catalog + venues are read BEFORE the
+          // fill so dropped slots get real cache-verified picks -- never placeholder cards.
+          const _catIdx = buildCatalogIndex(cacheCtx.CATALOG);
+          console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
+          const _catList = Object.values(_catIdx);
+          const _venues = parseCatalogVenues(cacheCtx.CATALOG);
+          const _fallbackFor = (slot, fb) => deterministicBackfill(slot, {
+            catalog: _catList, venues: _venues, closedNames: _closedS,
+            usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames
+          });
 
           const _fillOpts = { landToPark: landToPark, closedNames: _closedS, fallbackFor: _fallbackFor };
 
@@ -553,13 +562,35 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
 
           // Verify layer -- REMOVE-ONLY safety net (replaces the heavy validateSchedule on this path;
           // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
-          const _catIdx = buildCatalogIndex(cacheCtx.CATALOG);
-          console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
           const _dayParks = (_hop && _vipStart === null) ? [_park, _hop.toPark] : [_park];
           const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, catalog: _catIdx });
-          const _items = _vf.cards;
+
+          // Parameter-fidelity verifier (recommendation #2): guest parameters are absolute.
+          // Cite the specific failures back to the model once; deterministically enforce the rest.
+          const _pvParams = { mustDo: mustDo, skip: skipRides, hasLL: _hasLL };
+          let _violations = verifyTripParams(_vf.cards, _pvParams);
+          let _items = _vf.cards;
+          if (_violations.length) {
+            console.log('[scaffold] param violations:', JSON.stringify(_violations));
+            try {
+              const _cite = _violations.map(function(v) {
+                if (v.kind === 'mustdo-missing') return 'missing must-do ride "' + v.name + '" (guest marked it non-negotiable -- it MUST appear exactly once)';
+                if (v.kind === 'skip-present') return 'includes "' + v.name + '" which the guest explicitly listed under Skip -- remove it entirely';
+                return 'day has no Lightning Lane but "' + v.name + '" carries LL content -- remove all ll fields';
+              }).join('; ');
+              const _r3 = await _fill(_fillSys + '\n\nPARAMETER CORRECTION -- guest parameters are absolute, not suggestions: ' + _cite + '. Return the FULL array again, same slot ids in the same order, with every one of these fixed and nothing else broken.');
+              const _ap3 = applyFills(_sk, Array.isArray(_r3.arr) ? _r3.arr : [], _fillOpts);
+              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, catalog: _catIdx });
+              const _v3 = verifyTripParams(_vf3.cards, _pvParams);
+              if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; }
+            } catch (e) { console.warn('[scaffold] param retry failed:', e.message); }
+          }
+          const _enf = enforceTripParams(_items, _violations, { catalog: _catIdx, landToPark: landToPark });
+          _items = _enf.cards;
+          if (_enf.fixed.length) console.log('[scaffold] param enforced:', JSON.stringify(_enf.fixed));
+          if (_enf.unfixable.length) console.warn('[scaffold] param UNFIXABLE:', JSON.stringify(_enf.unfixable));
           console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed });
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable });
         } catch (_se) {
           console.error('[scaffold] error, falling back to legacy generator:', _se.message);
         }
@@ -570,7 +601,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               signal: controller.signal,
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 8000) }] })
+              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 8000) }] })
       });
 
       const data = await anthropicRes.json();
