@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+
+# Capacitor: generated web dir + synced native copies (rebuild with `npm run cap:sync`)
+www/
+ios/App/App/public/
+
+# Xcode
+*.xcuserdata/
+DerivedData/
+
+.DS_Store
