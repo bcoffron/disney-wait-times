@@ -383,7 +383,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                   signal: controller.signal,
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-                  body: JSON.stringify({ model: MODEL, max_tokens: 8000, system: systemPrompt, messages: [{ role: 'user', content: cappedMessage }] })
+                  body: JSON.stringify({ model: MODEL, temperature: 0, max_tokens: 8000, system: systemPrompt, messages: [{ role: 'user', content: cappedMessage }] })
           });
           const data = await anthropicRes.json();
 
