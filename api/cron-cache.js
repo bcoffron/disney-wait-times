@@ -245,6 +245,35 @@ FIELD RULES:
 Pay special attention to Pirates of the Caribbean and Inside Out Emotional Whirlwind -- report their exact current status, reopenDate, and reopenConfidence. Only include attractions that are actually closed/affected; do NOT list operating rides. Output the complete JSON array only.`,
     maxTokens:1500
   },
+  DINING_CLOSURES:{
+    system:'You are a Disneyland Resort dining-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
+    user:`Search DisneyFoodBlog, AllEars.net, TouringPlans.com, and UndercoverTourist for EVERY restaurant, quick-service venue, lounge, or snack stand at Disneyland Park (DL) and Disney California Adventure (DCA) that is currently CLOSED or down for refurbishment, or has a known upcoming closure.
+
+Return ONLY this JSON array (raw, no fences):
+[
+  {
+    "name": "Exact venue name as guests know it",
+    "park": "DL",
+    "land": "New Orleans Square",
+    "status": "closed_for_refurbishment",
+    "closeDate": "2026-10-05",
+    "reopenDate": "2026-10-19",
+    "reopenConfidence": "rumored",
+    "note": "Short human-readable detail (source + why)."
+  }
+]
+
+FIELD RULES (same contract as the attractions CLOSURES section):
+- name: the venue's exact common name, matching the resort dining list (e.g. "Blue Bayou Restaurant", not "Blue Bayou"). park: "DL" or "DCA" only. land: the land it sits in, or "" if unsure.
+- status: always "closed_for_refurbishment" for any closure/refurb/seasonal-down venue in this list.
+- closeDate: the date the closure BEGINS as strict ISO "YYYY-MM-DD" if a start date is known or reported; otherwise null. Use null ONLY when the venue is ALREADY closed right now and no start date is given. A venue counts as closed on a date D only if closeDate is null or D is on/after closeDate -- so an UPCOMING closure MUST carry its real future start date, never null, or it will be wrongly treated as closed today.
+- reopenDate: the expected reopening date as strict ISO "YYYY-MM-DD" if a date is known or reported; otherwise null. If only a vague window with no date, use null.
+- reopenConfidence: "confirmed" if Disney has officially posted/published the reopening date; "rumored" if the date comes from fan sites or unofficial reports; "unknown" if no reliable date exists. Be honest -- do NOT mark a date "confirmed" unless an official Disney source published it.
+- note: one short sentence (source + reason). ASCII only.
+
+Only include venues that are actually closed/affected; do NOT list operating restaurants. Output the complete JSON array only.`,
+    maxTokens:1500
+  },
   SPECIAL_EVENTS:{
     system:'You are a Disneyland special events expert. Focus specifically on June 28-30 2026.',
     user:`Search Disneyland official site, AllEars, and MiceChat for special events hard ticket events seasonal overlays or entertainment changes at Disneyland Resort during or surrounding June 28-30 2026. Investigate: Disneyland 70th Anniversary the park opens July 17 2026 (opened July 17 1955) are there summer 2026 anniversary celebrations starting before July 17 what special entertainment decorations or experiences happening in late June; Summer 2026 events any summer-specific entertainment special dining events or unique experiences; 4th of July proximity June 28-30 is just before July 4th week are there any early celebrations starting that weekend any extra fireworks or patriotic overlays; Hard ticket events any separately ticketed evening events that would affect park access on June 28-30; Entertainment changes any shows or parades recently added changed or removed for summer 2026. Be specific with dates. Note if something was announced but not yet confirmed.`,
@@ -679,6 +708,14 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
     sectionData = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.closures) ? parsed.closures : []);
     if(!Array.isArray(sectionData)) sectionData = [];
     console.log('[CLOSURES] parsed ' + sectionData.length + ' closure entries');
+  } else if(sectionName==='DINING_CLOSURES') {
+    // Structured dining-closure list consumed by the scaffold venue picker (date-aware).
+    // Must be a JSON array; if the model returns prose, store [] rather than poisoning
+    // the consumer with a string. Same contract as CLOSURES.
+    const parsed = extractJson(text);
+    sectionData = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.closures) ? parsed.closures : []);
+    if(!Array.isArray(sectionData)) sectionData = [];
+    console.log('[DINING_CLOSURES] parsed ' + sectionData.length + ' venue closure entries');
   } else if(sectionName==='CATALOG') {
     // CATALOG requires a fully parseable JSON object -- no prose, no truncation.
     // Attractions come from the model; venues are built deterministically from
