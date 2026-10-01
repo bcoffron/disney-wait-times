@@ -1,10 +1,21 @@
 // api/blog-auth.js - POST /api/blog-auth - 5 attempts/IP/hour rate limit
 import { list } from '@vercel/blob';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
 const rateLimit = new Map();
 const BLOB_KEY = 'blog:admin:password';
+
+// Constant-time string comparison for the env-var password fallback.
+// Returns false (not throws) on length mismatch so a wrong password
+// can never crash the handler.
+function timingSafeEqualStr(a, b) {
+  const ba = Buffer.from(a, 'utf8');
+  const bb = Buffer.from(b, 'utf8');
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
+}
 
 function checkRateLimit(ip, max, windowMs) {
   const now = Date.now();
@@ -65,7 +76,7 @@ export default async function handler(req, res) {
   if (hash) {
     valid = await bcrypt.compare(password, hash);
   } else if (envPassword) {
-    valid = password === envPassword;
+    valid = typeof password === 'string' && timingSafeEqualStr(password, envPassword);
   }
 
   if (!valid) {
