@@ -288,7 +288,7 @@ export function applyFills(skeleton, fills, opts) {
   const usedRideNames = new Set();
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
-    const c = fallbackFor ? fallbackFor(slot, used) : placeholderCard(slot);
+    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames }) : placeholderCard(slot);
     if (fallbackFor) report.fallback++;
     c.t = toClock(clampToWindow(parseClock(c.t), slot.window, slot.fixed).t); // stamp a valid in-window time
     if (!c.type) c.type = slot.type;
@@ -356,9 +356,10 @@ const RETIRED = [
 ];
 
 // Parse the CATALOG cache section (JSON string or object) into a lookup:
-//   normName(attraction name) -> { park, land, status }
-// Rides only (venues ignored here). Fail-open: returns {} on any parse failure, which makes
-// verifyScaffold behave exactly as before (no CATALOG enforcement) rather than throwing.
+//   normName(attraction name) -> { name, park, land, status, typicalPeakWait, ropeDropValue }
+// Rides only (venues ignored here -- see parseCatalogVenues). Fail-open: returns {} on any
+// parse failure, which makes verifyScaffold behave exactly as before (no CATALOG enforcement)
+// rather than throwing. The extra fields power deterministicBackfill's smart picks.
 export function buildCatalogIndex(catalogRaw) {
   const idx = {};
   if (!catalogRaw) return idx;
@@ -369,9 +370,30 @@ export function buildCatalogIndex(catalogRaw) {
     if (!a || !a.name) continue;
     const k = normName(a.name);
     if (!k) continue;
-    idx[k] = { park: a.park || '', land: a.land || '', status: String(a.status || 'operating') };
+    idx[k] = { name: String(a.name), park: a.park || '', land: a.land || '',
+      status: String(a.status || 'operating'),
+      typicalPeakWait: (typeof a.typicalPeakWait === 'number') ? a.typicalPeakWait : 0,
+      ropeDropValue: a.ropeDropValue || '' };
   }
   return idx;
+}
+
+// Parse the CATALOG cache section's venues into an ordered array:
+//   [{ name, park, land, service, reservationPolicy, exclude }]
+// Used by deterministicBackfill for dining/snack slots. Fail-open: [] on any parse failure.
+export function parseCatalogVenues(catalogRaw) {
+  if (!catalogRaw) return [];
+  let cat = catalogRaw;
+  if (typeof cat === 'string') { try { cat = JSON.parse(cat); } catch (e) { return []; } }
+  const list = (cat && Array.isArray(cat.venues)) ? cat.venues : [];
+  const out = [];
+  for (const v of list) {
+    if (!v || !v.name) continue;
+    out.push({ name: String(v.name), park: v.park || '', land: v.land || '',
+      service: v.service || '', reservationPolicy: v.reservationPolicy || '',
+      exclude: v.exclude === true });
+  }
+  return out;
 }
 
 // Order final cards chronologically and de-collide identical timestamps. The model may pick
@@ -439,11 +461,12 @@ export function verifyScaffold(cards, opts) {
 
 // Given the structured CLOSURES cache (a JSON string or array of {name, closeDate?, reopenDate?})
 // and the trip date, return the names of attractions whose closure window covers that date.
-// Window = [closeDate, reopenDate): flag as closed on D only when a real closeDate is present and
-// closeDate <= D AND (reopenDate is null OR D < reopenDate). FAIL OPEN: a missing/absent closeDate
-// is NOT flagged -- a cache gap must never delete a live ride (soft-fail: might schedule a closed
-// ride, which live wait-times surface; vs hard-fail: deleting a headliner). reopenDate null = no
-// known reopen (closed indefinitely once started). Never throws; returns [] when the cache is
+// NULL-DATE CONTRACT (matches the CLOSURES builder prompt FIELD RULES in api/cron-cache.js):
+// a null closeDate means the attraction is ALREADY closed as of the cache build, with no known
+// start date -- it counts as closed on the trip date unless a reopenDate is known and the trip
+// is on/after it. Window = [closeDate, reopenDate) for dated entries: flag as closed on D only
+// when closeDate <= D AND (reopenDate is null OR D < reopenDate). reopenDate null = no known
+// reopen (closed indefinitely once started). Never throws; returns [] when the cache is
 // missing/unparseable, the trip date is absent, or nothing matches. Dates compared as ISO YYYY-MM-DD.
 export function closedNamesForDate(closures, tripDate) {
   const toISO = (s) => {
@@ -464,10 +487,162 @@ export function closedNamesForDate(closures, tripDate) {
     if (!e || !e.name) continue;
     const start = toISO(e.closeDate);
     const end = toISO(e.reopenDate);
-    if (!start) continue; // fail OPEN: no known closure start -> never flag a live ride
+    if (!start) {
+      // NULL-DATE FIX: null closeDate = already closed as of the cache build (per the
+      // builder contract). Failing open here scheduled rides the cache knew were closed.
+      if (end && d >= end) continue; // reopened on/before the trip -> open
+      names.push(String(e.name));    // closed now, no known reopen -> closed on trip date
+      continue;
+    }
     if (d < start) continue; // trip is before the closure begins -> open
     if (end && d >= end) continue; // trip is on/after the reopen date -> open
     names.push(String(e.name)); // closeDate <= tripDate < reopenDate (or no reopen) -> closed
   }
   return names;
+}
+
+// ---------------------------------------------------------------------------
+// DETERMINISTIC BACKFILL (recommendation #3) -- no placeholder cards, ever.
+// When the model fails a slot (missing/invalid fill), pick a real, cache-verified
+// choice deterministically instead of shipping "Flex time" / "Open dining choice".
+// Pure function of (slot, ctx): same inputs -> same card, every run.
+// ctx: { catalog: [ordered attraction entries], venues: [ordered venue entries],
+//        closedNames: [raw closed names], usedRideKeys: Set (mutated),
+//        usedNames: Set of lowercased placed names (mutated) }
+export function deterministicBackfill(slot, ctx) {
+  ctx = ctx || {};
+  const catalog = Array.isArray(ctx.catalog) ? ctx.catalog : [];
+  const venues = Array.isArray(ctx.venues) ? ctx.venues : [];
+  const usedRideKeys = (ctx.usedRideKeys instanceof Set) ? ctx.usedRideKeys : new Set();
+  const usedNames = (ctx.usedNames instanceof Set) ? ctx.usedNames : new Set();
+  const closedKeys = new Set((ctx.closedNames || []).map(s => normName(s)).filter(Boolean));
+  const inSlotPark = (p) => sameParkName(p, slot.park);
+  const t0 = toClock(rangesOf(slot.window)[0][0]);
+
+  if (slot.type === 'ride') {
+    const cands = catalog.filter(e =>
+      e && e.name && !usedRideKeys.has(normName(e.name)) &&
+      inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
+      !closedKeys.has(normName(e.name)));
+    // Deterministic: highest typical peak wait first (headliners earn the slot), ties by name.
+    cands.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
+    if (cands.length) {
+      const pick = cands[0];
+      usedRideKeys.add(normName(pick.name));
+      usedNames.add(String(pick.name).toLowerCase());
+      return { t: t0, h: pick.name, type: 'ride', n: 'Top standby-saver from the verified attraction list.', land: pick.land || '', ride: pick.name };
+    }
+  }
+
+  if (slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack') {
+    const rankResv = (r) => r === 'walkup' ? 0 : r === 'recommended' ? 1 : 2;
+    const rankSvc = (s) => (s === 'quickservice' || s === 'snack') ? 0 : 1;
+    const cands = venues
+      .filter(v => v && v.name && !v.exclude && inSlotPark(v.park) &&
+        !usedNames.has(String(v.name).toLowerCase()) &&
+        (v.reservationPolicy === 'walkup' || v.reservationPolicy === 'recommended'))
+      .sort((a, b) => (rankResv(a.reservationPolicy) - rankResv(b.reservationPolicy)) || (rankSvc(a.service) - rankSvc(b.service)));
+    if (cands.length) {
+      const pick = cands[0];
+      usedNames.add(String(pick.name).toLowerCase());
+      const note = pick.reservationPolicy === 'walkup'
+        ? 'Verified walkup pick from the dining list.'
+        : 'From the verified dining list -- booking ahead recommended.';
+      return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '' };
+    }
+  }
+
+  // Structural tip slots and anything unfillable: an honest, deterministic tip built from
+  // the slot's own role -- never a "Flex time" placeholder.
+  const tipTitle = slot.block === 'llTip' ? 'Lightning Lane check'
+    : slot.block === 'arrival' ? 'Arrival and rope-drop positioning'
+    : slot.block === 'hop' ? 'Park hop'
+    : slot.block === 'show' ? 'Nighttime spectacular'
+    : (slot.role || 'Break').split('--')[0].trim().slice(0, 60) || 'Break';
+  const tipNote = slot.block === 'show'
+    ? "Arrive early for a spot -- check today's showtimes."
+    : String(slot.role || '').slice(0, 80);
+  return { t: t0, h: tipTitle, type: slot.block === 'show' ? 'show' : 'tip', n: tipNote, land: '' };
+}
+
+// ---------------------------------------------------------------------------
+// PARAMETER-FIDELITY VERIFIER (recommendation #2): guest parameters are absolute.
+// Checks the final cards against explicit trip parameters and reports violations.
+// params: { mustDo: [names], skip: [names], hasLL: bool }. Never throws.
+export function verifyTripParams(cards, params) {
+  params = params || {};
+  const violations = [];
+  const keyOf = (c) => normName((c && (c.ride || c.h)) || '');
+  const cardKeys = new Set((cards || []).map(keyOf).filter(Boolean));
+  for (const name of (params.mustDo || [])) {
+    const k = normName(name);
+    if (k && !cardKeys.has(k)) violations.push({ kind: 'mustdo-missing', name: String(name) });
+  }
+  for (const name of (params.skip || [])) {
+    const k = normName(name);
+    if (k && cardKeys.has(k)) violations.push({ kind: 'skip-present', name: String(name) });
+  }
+  if (params.hasLL === false) {
+    for (const c of (cards || [])) {
+      if (c && c.ll) violations.push({ kind: 'll-when-none', name: String(c.h || '') });
+    }
+  }
+  return violations;
+}
+
+// Deterministic enforcement for violations the cited retry didn't fix.
+// skip-present -> card removed; ll-when-none -> ll field stripped;
+// mustdo-missing -> swapped into the earliest non-rope-drop ride card in the matching
+// park (mustDo is guest-non-negotiable; rope-drop headliner is preserved when possible).
+// ctx: { catalog: {normKey: entry}, landToPark: fn }. Never throws.
+export function enforceTripParams(cards, violations, ctx) {
+  ctx = ctx || {};
+  const catalog = ctx.catalog || {};
+  const landToPark = ctx.landToPark || (() => null);
+  const fixed = [], unfixable = [];
+  let out = (cards || []).slice();
+  const parkOfCard = (c) => normParkName(landToPark(c.land) || landToPark(c.h) || '');
+  const parkOfName = (name) => {
+    const ce = catalog[normName(name)];
+    if (ce && ce.park) return normParkName(ce.park);
+    return normParkName(landToPark(name) || '');
+  };
+
+  for (const v of (violations || [])) {
+    if (v.kind === 'skip-present') {
+      const k = normName(v.name);
+      const before = out.length;
+      out = out.filter(c => normName((c.ride || c.h) || '') !== k);
+      if (out.length < before) fixed.push({ kind: v.kind, name: v.name, action: 'removed' });
+      else unfixable.push(v);
+    } else if (v.kind === 'll-when-none') {
+      const k = normName(v.name);
+      let n = 0;
+      for (const c of out) {
+        if (c.ll && (String(c.h || '') === v.name || normName((c.ride || c.h) || '') === k)) { delete c.ll; n++; }
+      }
+      if (n) fixed.push({ kind: v.kind, name: v.name, action: 'll-stripped' });
+      else unfixable.push(v);
+    } else if (v.kind === 'mustdo-missing') {
+      const wantPark = parkOfName(v.name);
+      // Recompute per violation so two missing mustDos never target the same card.
+      const findTarget = () => {
+        const rc = out.map((c, i) => ({ c, i })).filter(({ c }) => c.type === 'ride');
+        const fr = rc[0];
+        return rc.find(({ c }) => c !== (fr && fr.c) && (!wantPark || parkOfCard(c) === wantPark))
+          || rc.find(({ c }) => !wantPark || parkOfCard(c) === wantPark);
+      };
+      const target = findTarget();
+      if (target) {
+        const ce = catalog[normName(v.name)];
+        target.c.h = v.name;
+        target.c.ride = v.name;
+        if (ce && ce.land) target.c.land = ce.land;
+        fixed.push({ kind: v.kind, name: v.name, action: 'swapped-in', at: target.c.t });
+      } else {
+        unfixable.push(v);
+      }
+    }
+  }
+  return { cards: out, fixed, unfixable };
 }
