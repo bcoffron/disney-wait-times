@@ -1,12 +1,30 @@
 // api/subscribe.js
+// Per-IP rate limit: 10 signups per IP per hour (list-abuse protection)
+const signupHits = new Map();
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const WINDOW_MS = 60 * 60 * 1000;
+  const MAX_HITS = 10;
+  const hits = (signupHits.get(ip) || []).filter(t => now - t < WINDOW_MS);
+  if (hits.length >= MAX_HITS) return false;
+  hits.push(now);
+  signupHits.set(ip, hits);
+  return true;
+}
+
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method === 'GET') return res.status(200).json({ ok: true, hasKey: !!process.env.RESEND_API_KEY });
+  if (req.method === 'GET') return res.status(200).json({ ok: true });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return res.status(429).json({ error: 'Too many signups from this address. Please try again later.' });
+  }
 
   const { email } = req.body || {};
   if (!email || !email.includes('@')) {
