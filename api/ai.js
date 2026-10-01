@@ -262,6 +262,7 @@ export default async function handler(req, res) {
                   },
                   body: JSON.stringify({
                               model: MODEL,
+                              temperature: 0,
                               max_tokens: maxTokens,
                               system: systemPrompt,
                               messages: [{ role: 'user', content: prompt }]
