@@ -1,11 +1,10 @@
 // api/blog-reindex.js - rebuild index from post blobs
-// Fix 3: Accept CRON_SECRET via header (primary) and legacy token via query param (temporary)
 import { list, put } from '@vercel/blob';
 
 export default async function handler(req, res) {
-  // Fix 3: Accept new header (primary) or legacy URL param (temporary backward-compat)
-  const secret = req.headers['x-reindex-secret'] || req.query.token;
-  if (secret !== process.env.CRON_SECRET && secret !== 'tpcp-reindex-2026') {
+  // Cron/admin secret via header only — no query-param fallback.
+  const secret = req.headers['x-reindex-secret'];
+  if (secret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
