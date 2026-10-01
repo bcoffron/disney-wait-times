@@ -351,6 +351,18 @@
       "schedule": "30 4 * * 4"
     },
     {
+      "schedule": "5 4 * * 4",
+      "path": "/api/cron-cache?key=park_intel_wdw_dynamic&section=CLOSURES"
+    },
+    {
+      "schedule": "20 4 * * 4",
+      "path": "/api/cron-cache?key=park_intel_wdw_dynamic&section=CURRENT_CLOSURES"
+    },
+    {
+      "schedule": "35 4 * * 4",
+      "path": "/api/cron-cache?key=park_intel_wdw_dynamic&section=DINING_CLOSURES"
+    },
+    {
       "path": "/api/trip-closure-scan",
       "schedule": "45 4 * * 4"
     },
