@@ -656,7 +656,8 @@ function buildCatalogAttractions() {
   ];
 }
 
-async function buildSingleSection(cacheKey, sectionName, apiKey) {
+async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
+  opts = opts || {};
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
   if(!promptMap[sectionName]) throw new Error('Unknown section: '+sectionName);
@@ -737,6 +738,15 @@ async function buildSingleSection(cacheKey, sectionName, apiKey) {
     sectionData = parsed;
   } else {
     sectionData = text;
+  }
+
+  const _sample = (typeof sectionData === 'string' ? sectionData : JSON.stringify(sectionData)).substring(0,400);
+  if (opts.writeThrough === false) {
+    // Fan-out mode: the caller (buildAllSections) owns the read-merge-write.
+    // Do NOT touch the blob here -- per-section read-modify-write against the
+    // CDN-cached blob URL is racy and a stale read silently drops
+    // previously-written sections and their section_meta.
+    return { section: sectionName, length: text.length, sectionData, sample: _sample };
   }
 
   // Read existing blob to merge
@@ -911,16 +921,28 @@ async function buildAllSections(cacheKey, apiKey, opts) {
   const sectionNames = Object.keys(promptMap);
   const expiryMs = (EXPIRY_DAYS[cacheKey] || 30) * 86400000;
 
-  // Read existing section_meta for per-section freshness.
-  let meta = {};
+  // Single read at invocation start. All merges happen against this in-memory
+  // object and are flushed with checkpoint puts -- the blob is NEVER re-read
+  // mid-loop, so a stale CDN read cannot drop previously-written sections.
+  let cacheData = null;
   try {
     const { blobs } = await list({ prefix: 'twize/' + cacheKey + '.json' });
     if (blobs && blobs.length) {
       const raw = await (await fetch(blobs[0].downloadUrl || blobs[0].url)).json();
-      const data = (raw && raw.data && raw.data.sections) ? raw.data : raw;
-      meta = (data && data.section_meta) || {};
+      cacheData = (raw && raw.data && raw.data.sections) ? raw.data : raw;
     }
   } catch (e) { console.log('[cron-cache] buildAllSections: no existing blob for ' + cacheKey + ', building all sections'); }
+  cacheData = cacheData || {
+    built_at: new Date().toISOString(),
+    park: 'Disneyland',
+    cache_type: isStable ? 'stable' : 'dynamic',
+    trip_code: isStable ? null : 'BCDIS2026',
+    sections: {},
+    section_meta: {},
+  };
+  if (!cacheData.sections) cacheData.sections = {};
+  if (!cacheData.section_meta) cacheData.section_meta = {};
+  const meta = cacheData.section_meta;
 
   const now = Date.now();
   const sectionAgeMs = (name) => {
@@ -933,14 +955,39 @@ async function buildAllSections(cacheKey, apiKey, opts) {
   // force=1 re-rebuilds the first N sections of the map on every invocation and
   // never advances past the time budget (infinite loop); with it, both force
   // runs and normal crons converge on the gaps that matter most.
-  sectionNames.sort((a, b) => sectionAgeMs(b) - sectionAgeMs(a));
+  // The da===db guard keeps Infinity-vs-Infinity ties deterministic (stable
+  // sort preserves prompt-map order) instead of returning NaN.
+  sectionNames.sort((a, b) => {
+    const da = sectionAgeMs(a), db = sectionAgeMs(b);
+    if (da === db) return 0;
+    return db - da;
+  });
   const isStale = (name) => {
     if (opts.force) return true;
     const age = sectionAgeMs(name);
     return !(age >= 0) || age > expiryMs;
   };
 
+  const flush = async () => {
+    // SHOWS: verified summer-2026 literal -- injected on every dynamic-blob write.
+    if (!cacheKey.includes('stable')) {
+      cacheData.sections.SHOWS = {
+        "shows": [
+          { "name": "World of Color - Happiness!", "park": "DCA", "type": "spectacular", "showtimes": ["9:00 PM"] },
+          { "name": "Fantasmic!",                  "park": "DL",  "type": "spectacular", "showtimes": ["9:00 PM", "10:30 PM"] },
+          { "name": "Wondrous Journeys",           "park": "DL",  "type": "fireworks",   "showtimes": ["9:35 PM"] },
+          { "name": "Paint the Night Parade",      "park": "DL",  "type": "parade",      "showtimes": ["8:45 PM"] }
+        ],
+        "fireworksRule": { "summerNightlyStart": "2026-05-22", "summerNightlyEnd": "2026-08-09" }
+      };
+    }
+    cacheData.last_updated = new Date().toISOString();
+    cacheData.sections_built = Object.values(cacheData.section_meta).filter(m => m && m.built).length;
+    await blobStore(cacheKey, cacheData);
+  };
+
   const results = [], errors = [], skipped = [];
+  let sinceFlush = 0;
   for (const name of sectionNames) {
     if (!isStale(name)) { skipped.push(name); continue; }
     if (Date.now() - t0 > TIME_BUDGET_MS) {
@@ -948,14 +995,20 @@ async function buildAllSections(cacheKey, apiKey, opts) {
       break;
     }
     try {
-      const r = await buildSingleSection(cacheKey, name, apiKey);
-      results.push({ section: name, sections_built: r.sections_built });
+      const r = await buildSingleSection(cacheKey, name, apiKey, { writeThrough: false });
+      cacheData.sections[name] = r.sectionData;
+      meta[name] = { built: true, length: r.length, built_at: new Date().toISOString() };
+      cacheData.last_section_built = name;
+      results.push({ section: name });
       console.log('[cron-cache] buildAllSections: built ' + cacheKey + ' / ' + name);
+      if (++sinceFlush >= 2) { sinceFlush = 0; await flush(); }
     } catch (e) {
       console.error('[cron-cache] buildAllSections: section FAILED ' + cacheKey + ' / ' + name + ': ' + e.message);
       errors.push({ section: name, error: e.message });
     }
   }
+  await flush();
+
   const doneSet = {};
   results.forEach(r => { doneSet[r.section] = true; });
   skipped.forEach(n => { doneSet[n] = true; });
@@ -963,6 +1016,7 @@ async function buildAllSections(cacheKey, apiKey, opts) {
   const remaining = sectionNames.filter(n => !doneSet[n]);
   return { key: cacheKey, built: results.length, skipped: skipped.length, failed: errors.length, errors, remaining, partial: remaining.length > 0 };
 }
+
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin','*');
