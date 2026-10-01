@@ -261,6 +261,7 @@ export function buildFillPrompt(skeleton, opts) {
   sys += '\n- Object schema: { "id":"s03", "t":"8:10 AM", "h":"Name", "type":"<the slot\'s type>", "land":"Land", "n":"tip under 80 chars", "ride":"Exact ride name (rides/LL only)", "ll":{ "t":"multi|single", "a":"..." } }';
   sys += '\n- ll only on ride/tip slots and only if the day has Lightning Lane. ASCII only. Notes under 80 characters.';
   if (opts.closedNames && opts.closedNames.length) sys += '\n- DOWN / CLOSED right now -- do NOT place any of these in a ride slot; if your best pick is on this list, choose a different open attraction from the cache for that slot instead: ' + opts.closedNames.join('; ') + '.';
+  if (opts.closedVenueNames && opts.closedVenueNames.length) sys += '\n- DOWN FOR REFURBISHMENT right now -- do NOT place any of these in a dining, quickservice, or snack slot; choose a different open venue from the verified dining list instead: ' + opts.closedVenueNames.join('; ') + '.';
   sys += '\n\nSKELETON (fill EVERY slot):\n' + lines.join('\n');
   if (opts.usedDining && opts.usedDining.length) sys += '\n\nALREADY-USED venues (never repeat): ' + opts.usedDining.join('; ');
   return sys;
@@ -282,6 +283,8 @@ export function applyFills(skeleton, fills, opts) {
   const landToPark = opts.landToPark || (() => null);
   const fallbackFor = opts.fallbackFor || null;
   const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
+  // DINING_CLOSURES cache (trip-date-windowed): closed restaurant / quick-service / snack names.
+  const closedVenueNames = (opts.closedVenueNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   const byId = {}; (fills || []).forEach(f => { if (f && f.id) byId[f.id] = f; });
   const cards = [], needsRetry = [], report = { clamped: 0, wrongPark: 0, missing: 0, fallback: 0, dropped: [] };
   const used = new Set();
@@ -314,13 +317,15 @@ export function applyFills(skeleton, fills, opts) {
       const dup = isRideSlot && nkey && usedRideNames.has(nkey);
       const hL = cleanH.toLowerCase();
       const closed = isRideSlot && closedNames.some(cn => cn && hL.indexOf(cn) !== -1);
+      const isDiningSlot = slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack';
+      const venueClosed = isDiningSlot && closedVenueNames.some(cn => cn && hL.indexOf(cn) !== -1);
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
-      if (parkBad || generic || dup || closed || retiredClosed) {
+      if (parkBad || generic || dup || closed || retiredClosed || venueClosed) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
-        if (closed || retiredClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : 'generic' });
+        if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -421,6 +426,8 @@ export function verifyScaffold(cards, opts) {
   const catalogLoaded = Object.keys(catalog).length > 0;
   const inAllowed = (p) => allowedParks.length === 0 || allowedParks.some(ap => sameParkName(p, ap));
   const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
+  // DINING_CLOSURES cache (trip-date-windowed): closed restaurant / quick-service / snack names.
+  const closedVenueNames = (opts.closedVenueNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']);
   const removed = [], kept = [], usedRide = new Set();
   for (const c of (cards || [])) {
@@ -450,6 +457,11 @@ export function verifyScaffold(cards, opts) {
       if (k && usedRide.has(k)) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
       if (k) usedRide.add(k);
     } else if (allowedParks.length && placed.has(c.type)) {
+      // DINING CLOSURES cache (trip-date-windowed): never seat a guest at a closed venue.
+      if ((c.type === 'dining' || c.type === 'quickservice' || c.type === 'snack') &&
+          closedVenueNames.some(cn => cn && hL.indexOf(cn) !== -1)) {
+        removed.push({ h: c.h, reason: 'venue-closed' }); continue;
+      }
       // non-ride placed types (dining/snack/show/character): unchanged landToPark wrong-park check
       const p = landToPark(c.land) || landToPark(c.h);
       if (p && !inAllowed(p)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
@@ -457,6 +469,45 @@ export function verifyScaffold(cards, opts) {
     kept.push(c);
   }
   return { cards: sortAndSpace(kept), removed };
+}
+
+// ---------------------------------------------------------------------------
+// CLOSURE DIFF (twice-weekly sweep) -- pure helpers for detecting material changes
+// between two snapshots of a closure list (CLOSURES or DINING_CLOSURES).
+// A material change = an entry added, removed, or date/status-shifted. Prose-only
+// differences never reach this layer (sections are structured JSON by contract).
+// ---------------------------------------------------------------------------
+
+// Stable identity for a closure entry: normalized name + park.
+export function closureKey(e) {
+  return String((e && e.name) || '').toLowerCase().replace(/[^a-z0-9]/g, '') +
+    '|' + String((e && e.park) || '').toLowerCase();
+}
+
+// Diff two closure arrays -> {added, removed, changed}. changed entries carry
+// {before, after}; a closeDate/reopenDate/status shift is material (it moves a trip day
+// in or out of a closure window). Never throws.
+export function diffClosureLists(prev, next) {
+  const pm = new Map(), nm = new Map();
+  (prev || []).forEach(e => { if (e && e.name) pm.set(closureKey(e), e); });
+  (next || []).forEach(e => { if (e && e.name) nm.set(closureKey(e), e); });
+  const added = [], removed = [], changed = [];
+  for (const [k, e] of nm) {
+    if (!pm.has(k)) { added.push(e); continue; }
+    const p = pm.get(k);
+    if (String(p.closeDate || '') !== String(e.closeDate || '') ||
+        String(p.reopenDate || '') !== String(e.reopenDate || '') ||
+        String(p.status || '') !== String(e.status || '')) {
+      changed.push({ before: p, after: e });
+    }
+  }
+  for (const [k, e] of pm) if (!nm.has(k)) removed.push(e);
+  return { added, removed, changed };
+}
+
+// Stable alert id: the same closure on the same trip never alerts twice.
+export function alertIdFor(kind, entry) {
+  return 'closure:' + kind + ':' + closureKey(entry) + ':' + String(entry.closeDate || 'null');
 }
 
 // Given the structured CLOSURES cache (a JSON string or array of {name, closeDate?, reopenDate?})
@@ -516,6 +567,7 @@ export function deterministicBackfill(slot, ctx) {
   const usedRideKeys = (ctx.usedRideKeys instanceof Set) ? ctx.usedRideKeys : new Set();
   const usedNames = (ctx.usedNames instanceof Set) ? ctx.usedNames : new Set();
   const closedKeys = new Set((ctx.closedNames || []).map(s => normName(s)).filter(Boolean));
+  const closedVenueKeys = new Set((ctx.closedVenueNames || []).map(s => normName(s)).filter(Boolean));
   const inSlotPark = (p) => sameParkName(p, slot.park);
   const t0 = toClock(rangesOf(slot.window)[0][0]);
 
@@ -540,6 +592,7 @@ export function deterministicBackfill(slot, ctx) {
     const cands = venues
       .filter(v => v && v.name && !v.exclude && inSlotPark(v.park) &&
         !usedNames.has(String(v.name).toLowerCase()) &&
+        !closedVenueKeys.has(normName(v.name)) &&
         (v.reservationPolicy === 'walkup' || v.reservationPolicy === 'recommended'))
       .sort((a, b) => (rankResv(a.reservationPolicy) - rankResv(b.reservationPolicy)) || (rankSvc(a.service) - rankSvc(b.service)));
     if (cands.length) {
