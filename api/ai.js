@@ -101,7 +101,7 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
                                 const fetchUrl = db[0].downloadUrl || db[0].url;
                                 const dynamicData = await fetch(fetchUrl).then(r => r.json());
                                 const sections = dynamicData.data.sections || {};
-                                ['CURRENT_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
+                                ['CURRENT_CLOSURES', 'DINING_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'].forEach(name => {
                                               if (sections[name]) {
                                                               results[name] = typeof sections[name] === 'string'
                                                                 ? sections[name]
