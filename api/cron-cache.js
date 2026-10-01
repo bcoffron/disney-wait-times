@@ -383,7 +383,7 @@ async function callClaude(prompt, apiKey) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:prompt.maxTokens,system:prompt.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt.user}]})
+    body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:prompt.maxTokens,system:prompt.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt.user}]})
   });
   const d = await resp.json();
   if(d.error) throw new Error(d.error.message);
@@ -812,7 +812,7 @@ async function buildDiningDL(key, apiKey) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:augUser}]})
+    body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:augUser}]})
   });
   const d = await resp.json();
   if(d.error) throw new Error(d.error.message);
@@ -858,7 +858,7 @@ async function buildLegacy(key, apiKey) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:p.user}]})
+    body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:p.user}]})
   });
   const d = await resp.json();
   if(d.error) throw new Error(d.error.message);
