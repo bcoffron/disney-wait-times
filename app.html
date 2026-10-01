@@ -1630,8 +1630,9 @@ function tryUnlock() {
   if (!code) { inp.focus(); return; }
   if (errEl) errEl.style.display = 'none';
   inp.disabled = true;
-  fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code))
-    .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+  var _codeFetchController=new AbortController();var _codeFetchTimeoutId=setTimeout(function(){_codeFetchController.abort();},15000);
+  fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code), { signal: _codeFetchController.signal })
+    .then(function(r) { clearTimeout(_codeFetchTimeoutId); return r.json().then(function(d) { return { status: r.status, data: d }; }); })
     .then(function(result) {
       inp.disabled = false;
       if (result.status !== 200 || !result.data.valid) {
@@ -1709,14 +1710,16 @@ function tryUnlock() {
       }
     })
     .catch(function() {
+      clearTimeout(_codeFetchTimeoutId);
       inp.disabled = false;
       // PART A: tryUnlock catch retry + cache fallback
       (function _retryUnlock(attempt) {
         var _delays2 = [2000, 5000, 10000];
         if (attempt < _delays2.length) {
           setTimeout(function() {
-            fetch(SYNC_BASE+'/api/trip?code='+encodeURIComponent(code))
-              .then(function(r){return r.json().then(function(d3){return {status:r.status,data:d3};});})
+            var _retryFetchController=new AbortController();var _retryFetchTimeoutId=setTimeout(function(){_retryFetchController.abort();},15000);
+            fetch(SYNC_BASE+'/api/trip?code='+encodeURIComponent(code), { signal: _retryFetchController.signal })
+              .then(function(r){clearTimeout(_retryFetchTimeoutId);return r.json().then(function(d3){return {status:r.status,data:d3};});})
               .then(function(result3) {
                 var dr2 = result3.data;
                 if (result3.status === 200 && dr2 && dr2.data && dr2.data.tripData && dr2.data.tripData.tripConfig && dr2.data.tripData.tripConfig.schedule) {
@@ -1731,7 +1734,7 @@ function tryUnlock() {
                   var _gwsEl3 = document.getElementById('guestWaitScreen'); if (_gwsEl3) _gwsEl3.style.display = 'none';
                   enterSplash(true);
                 } else { _retryUnlock(attempt + 1); }
-              }).catch(function() { _retryUnlock(attempt + 1); });
+              }).catch(function() { clearTimeout(_retryFetchTimeoutId); _retryUnlock(attempt + 1); });
           }, _delays2[attempt]);
         } else {
           try {
@@ -5680,8 +5683,9 @@ function submitTripCode() {
   inp.disabled = true;
   var btn = document.querySelector('#splashCtaArea button') || inp.nextElementSibling;
   if (btn && btn.tagName === 'BUTTON') { btn.disabled = true; btn.textContent = 'Checking...'; }
-  fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code))
-    .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+  var _submitCodeController=new AbortController();var _submitCodeTimeoutId=setTimeout(function(){_submitCodeController.abort();},15000);
+  fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code), { signal: _submitCodeController.signal })
+    .then(function(r) { clearTimeout(_submitCodeTimeoutId); return r.json().then(function(d) { return { status: r.status, data: d }; }); })
     .then(function(result) {
       inp.disabled = false;
       if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure \u2192'; }
@@ -5710,6 +5714,7 @@ function submitTripCode() {
       }
     })
     .catch(function() {
+      clearTimeout(_submitCodeTimeoutId);
       inp.disabled = false;
       if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.textContent = 'Enter your adventure \u2192'; }
       if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
