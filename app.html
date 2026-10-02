@@ -2084,7 +2084,7 @@ function renderDayInfoBar(){
   var el=document.getElementById('dayInfoBar');
   if(!el) return;
   var ph=PARK_HOURS[curDay]||PARK_HOURS[0];
-  var days=['Sun Jun 28','Mon Jun 29','Tue Jun 30'];
+  var days=(function(){try{var td=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||[];if(!td.length)return null;var WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return td.map(function(dy){try{var dt=new Date(dy.date);return WD[dt.getDay()]+' '+MO[dt.getMonth()]+' '+dt.getDate();}catch(e){return dy.date||'';}});}catch(e){return null;}})()||['Sun Jun 28','Mon Jun 29','Tue Jun 30'];
   var waitStatusTxt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live   just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+'m ago'):'Loading wait times...';
   var waitColor=waitLastFetch?'#15803D':'var(--text-dim)';
   var hoursHTML='<div class="park-hours-card">'
