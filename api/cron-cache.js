@@ -95,7 +95,7 @@ const VALID_KEYS = [
 
 const EXPIRY_DAYS = {
   park_intel:10, dining_intel:30, dining_intel_dl:30, dining_intel_wdw:30, events_intel:7, park_hours_intel:7, character_intel:7,
-  park_intel_dl_stable:30, park_intel_dl_dynamic:7,
+  park_intel_dl_stable:30, park_intel_dl_dynamic:30,
   park_intel_wdw_stable:30, park_intel_wdw_dynamic:7
 };
 
