@@ -547,6 +547,11 @@ function ptFetchShows(){
       if (el) el.innerHTML = '<div class="pt-ride-loading">Could not load the show list. Check your connection and reopen this step.</div>';
     });
 }
+function ptHomeUrl(){
+  var q = '?from=setup&t=' + Date.now();
+  if (window.location.protocol === 'capacitor:') return 'index.html' + q;
+  return 'app.html' + q;
+}
 function ptShowTypeLabel(t){
   if (t === 'fireworks') return 'Fireworks';
   if (t === 'parade') return 'Parade';
@@ -1382,7 +1387,7 @@ function ptFinish() {
   localStorage.setItem('tripSetupComplete', 'true');
 
   var totalDays = d.days.length;
-  if (!totalDays) { window.location.href = 'app.html?from=setup&t=' + Date.now(); return; }
+  if (!totalDays) { window.location.href = ptHomeUrl(); return; }
 
   // Build tripConfig to save and send to AI
   var tripConfig = {
@@ -1524,22 +1529,24 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   function _finishAndSave() {
     var finalConfig = Object.assign({}, tripConfig, { schedule: { days: generatedDays } });
     if (code) {
+      var _saveAbort=new AbortController();var _saveAbortT=setTimeout(function(){_saveAbort.abort();},15000);
       fetch(SYNC_BASE + '/api/trip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } })
+        body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } }),
+        signal: _saveAbort.signal
       })
-      .then(function(r){ return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
+      .then(function(r){ clearTimeout(_saveAbortT); return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
       .then(function(writeResp) {
         var bodyStr = JSON.stringify(finalConfig);
         var bytesWritten = bodyStr ? bodyStr.length : 0;
         console.log('[ptFinish] trip blob write status: ' + writeResp._httpStatus + ', bytes written: ' + bytesWritten + ', ok: ' + (writeResp.ok ? 'true' : 'false') + (writeResp.error ? ', error: ' + writeResp.error : ''));
         if (!writeResp.ok) { console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unknown') + ', error: ' + (writeResp.error || 'unknown')); }
-        window.location.href = 'app.html?from=setup&t=' + Date.now();
+        window.location.href = ptHomeUrl();
       })
-      .catch(function(err){ console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = 'app.html?from=setup&t=' + Date.now(); });
+      .catch(function(err){ clearTimeout(_saveAbortT); console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = ptHomeUrl(); });
     } else {
-      window.location.href = 'app.html?from=setup&t=' + Date.now();
+      window.location.href = ptHomeUrl();
     }
   }
 
