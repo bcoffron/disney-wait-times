@@ -96,3 +96,28 @@ Design against these specifically.
 - **Prompt instructions are probabilistic.** Enforce physical constraints in code
   (correct park, one dinner per day, activities inside park hours). Leave strategy to the
   model and the cache (hop timing, ride order, what to rope-drop).
+
+## Capacitor native shell (Oct 2026)
+
+- The iOS app is a Capacitor shell loading `index.html` (built from `app.html` via
+  `scripts/build-capacitor-www.mjs`). Any client-side navigation to `app.html`
+  404s in the shell — use protocol-aware URLs: `capacitor:` protocol → `index.html`,
+  otherwise `app.html`.
+- The iOS simulator cannot reach `disney-wait-times-lupt.vercel.app` (hangs
+  indefinitely; Mac Safari/Terminal reach it fine). All API calls use
+  `https://app.themeparkcopilot.com`. Do not reintroduce the old host.
+- Add `AbortController` timeouts to every fetch: 15s for reads/writes, 65s for
+  schedule generation POSTs. A hung request freezes the WebView with no error.
+
+## Trip code auth (Oct 2026)
+
+- `/api/generateschedule` and `/api/ai` accept trip codes ≥ 6 chars (lowered from 8
+  Oct 1, 2026 — BEAU01 at 6 chars was blocked). `/api/trip` has no length minimum.
+  Keep these in sync; a code that saves but can't generate is a blank schedule.
+
+## GitHub Contents API stale reads (Oct 2026)
+
+- GET after PUT can return the pre-PUT file version. Download-edit-push in quick
+  succession silently reverts the previous commit. Mitigations: sleep 10s+ before
+  GET, verify the download contains the prior commit's changes, batch edits into
+  one push, and GET-verify with `?ref=<sha>` after pushing.
