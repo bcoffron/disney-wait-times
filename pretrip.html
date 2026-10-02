@@ -1072,6 +1072,7 @@ function ptLoadFromBlob(isRebuild) {
                   .then(function(data) {
                         if (data && data.tripData && data.tripData.tripConfig) {
                                 ptRestoreFromConfig(data.tripData.tripConfig, isRebuild);
+                                if (isRebuild && typeof ptGoToStep === 'function') { setTimeout(function(){ ptGoToStep(ptTotalSteps); }, 350); }
                                       } else {
                                               ptLoadFromStorage();
                                                     }
