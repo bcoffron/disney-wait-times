@@ -525,9 +525,10 @@ var ptShowManual = {};
 var ptShowNameByNorm = {};
 function ptFetchShows(){
   if (ptShowCatalog){ ptRenderShows(); return; }
-  var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://disney-wait-times-lupt.vercel.app';
-  fetch(base + '/api/cache?key=park_intel_dl_dynamic&t=' + Date.now())
-    .then(function(r){ return r.json(); })
+  var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://app.themeparkcopilot.com';
+  var _showsAbort=new AbortController();var _showsAbortT=setTimeout(function(){_showsAbort.abort();},15000);
+  fetch(base + '/api/cache?key=park_intel_dl_dynamic&t=' + Date.now(), { signal: _showsAbort.signal })
+    .then(function(r){ clearTimeout(_showsAbortT); return r.json(); })
     .then(function(res){
       var sections = (res && res.data && res.data.sections) ? res.data.sections : ((res && res.sections) ? res.sections : null);
       var sd = (sections && sections.SHOWS) ? sections.SHOWS : null;
@@ -541,6 +542,7 @@ function ptFetchShows(){
       ptRenderShows();
     })
     .catch(function(){
+      clearTimeout(_showsAbortT);
       var el = document.getElementById('showSelector');
       if (el) el.innerHTML = '<div class="pt-ride-loading">Could not load the show list. Check your connection and reopen this step.</div>';
     });
@@ -605,9 +607,10 @@ function ptRenderShows(){
 }
 function ptFetchRideCatalog(){
   if (ptRideCatalog){ ptRenderRideSelector(); return; }
-  var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://disney-wait-times-lupt.vercel.app';
-  fetch(base + '/api/cache?key=park_intel_dl_stable&t=' + Date.now())
-    .then(function(r){ return r.json(); })
+  var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://app.themeparkcopilot.com';
+  var _ridesAbort=new AbortController();var _ridesAbortT=setTimeout(function(){_ridesAbort.abort();},15000);
+  fetch(base + '/api/cache?key=park_intel_dl_stable&t=' + Date.now(), { signal: _ridesAbort.signal })
+    .then(function(r){ clearTimeout(_ridesAbortT); return r.json(); })
     .then(function(res){
       var sections = (res && res.data && res.data.sections) ? res.data.sections : ((res && res.sections) ? res.sections : null);
       var cat = (sections && sections.CATALOG) ? sections.CATALOG : ((res && res.data && res.data.CATALOG) ? res.data.CATALOG : null);
@@ -623,6 +626,7 @@ function ptFetchRideCatalog(){
       ptRenderRideSelector();
     })
     .catch(function(){
+      clearTimeout(_ridesAbortT);
       var el = document.getElementById('rideSelector');
       if (el) el.innerHTML = '<div class="pt-ride-loading">Could not load the ride list. Check your connection and reopen this step.</div>';
     });
@@ -1056,9 +1060,10 @@ function ptSaveCurrentStep() {
 function ptLoadFromBlob(isRebuild) {
     var code = localStorage.getItem('tpcp_code') || '';
       if (!code) { ptLoadFromStorage(); return; }
-        var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://disney-wait-times-lupt.vercel.app';
-          fetch(base + '/api/trip?code=' + encodeURIComponent(code))
-              .then(function(r) { return r.json(); })
+        var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://app.themeparkcopilot.com';
+          var _blobAbort=new AbortController();var _blobAbortT=setTimeout(function(){_blobAbort.abort();},15000);
+          fetch(base + '/api/trip?code=' + encodeURIComponent(code), { signal: _blobAbort.signal })
+              .then(function(r) { clearTimeout(_blobAbortT); return r.json(); })
                   .then(function(data) {
                         if (data && data.tripData && data.tripData.tripConfig) {
                                 ptRestoreFromConfig(data.tripData.tripConfig, isRebuild);
@@ -1066,7 +1071,7 @@ function ptLoadFromBlob(isRebuild) {
                                               ptLoadFromStorage();
                                                     }
                                                         })
-                                                            .catch(function() { ptLoadFromStorage(); });
+                                                            .catch(function() { clearTimeout(_blobAbortT); ptLoadFromStorage(); });
                                                             }
 
                                                             function ptRestoreFromConfig(cfg, isRebuild) {
@@ -1201,7 +1206,7 @@ function ptLoadFromStorage() {
 }
 
 // -- Schedule generation ---------------------------------
-var SYNC_BASE = 'https://disney-wait-times-lupt.vercel.app';
+var SYNC_BASE = 'https://app.themeparkcopilot.com';
 
 function ptShowGenerating(dayNum, totalDays) {
   var bar = document.getElementById('ptCtaBar');
@@ -1307,12 +1312,14 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         }
       };
   if (_useScaffold) console.log('[pretrip] Day ' + (dayIndex+1) + ' using SCAFFOLD path');
+  var _genAbort=new AbortController();var _genAbortT=setTimeout(function(){_genAbort.abort();},65000);
   fetch(SYNC_BASE + _endpoint, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(_body)
+    body: JSON.stringify(_body),
+    signal: _genAbort.signal
   })
-  .then(function(r){ return r.json().then(function(d){ d._httpStatus=r.status; return d; }); })
+  .then(function(r){ clearTimeout(_genAbortT); return r.json().then(function(d){ d._httpStatus=r.status; return d; }); })
   .then(function(d) {
     if (!d.ok || !d.text) {
           console.error('[pretrip] Day ' + (dayIndex+1) + ' API error - HTTP ' + (d._httpStatus||'?') + ', ok:' + d.ok + ', error:' + JSON.stringify(d.error||null));
@@ -1349,6 +1356,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
     }
   })
   .catch(function(e) {
+    clearTimeout(_genAbortT);
     if (retries < 3) {
       setTimeout(function(){ ptGenerateDaySchedule(tripConfig, dayIndex, retries+1, callback); }, 3000);
     } else {
@@ -1461,17 +1469,19 @@ function ptFinish() {
   }
   (function _ptFetchHours() {
     try {
+      var _phAbort=new AbortController();var _phAbortT=setTimeout(function(){_phAbort.abort();},15000);
       fetch(SYNC_BASE + '/api/cache?key=park_hours_intel&t=' + Date.now(), {
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: _phAbort.signal
       })
-      .then(function(r){ return r.json(); })
+      .then(function(r){ clearTimeout(_phAbortT); return r.json(); })
       .then(function(j){
         var cacheObj = (j && j.data) ? j.data : j;
         var ph = _ptBuildParkHours(cacheObj);
         if (ph) { tripConfig.parkHours = ph; console.log('[ptFinish] parkHours populated from cache for ' + ph.length + ' days'); }
         else { console.warn('[ptFinish] park_hours_intel cache had no usable hours for trip dates; using generator defaults'); }
       })
-      .catch(function(err){ console.error('[ptFinish] park hours fetch failed:', err && err.message); })
+      .catch(function(err){ clearTimeout(_phAbortT); console.error('[ptFinish] park hours fetch failed:', err && err.message); })
       .then(_ptContinueFinish);
     } catch (e) {
       console.error('[ptFinish] park hours fetch threw:', e && e.message);
