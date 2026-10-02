@@ -1072,6 +1072,7 @@ function ptLoadFromBlob(isRebuild) {
                   .then(function(data) {
                         if (data && data.tripData && data.tripData.tripConfig) {
                                 ptRestoreFromConfig(data.tripData.tripConfig, isRebuild);
+                                if (isRebuild && typeof ptGoToStep === 'function') { setTimeout(function(){ ptGoToStep(ptTotalSteps); }, 350); }
                                       } else {
                                               ptLoadFromStorage();
                                                     }
@@ -1171,7 +1172,12 @@ function ptLoadFromBlob(isRebuild) {
                                                                                                                                                                                                                                                                                         if (day.isVip && document.getElementById('day' + n + 'Vip')) { document.getElementById('day' + n + 'Vip').classList.add('on'); if (typeof ptVipToggle === 'function') ptVipToggle(n); }
                                                                                                                                                                                                                                                                                             });
                                                                                                                                                                                                                                                                                               }
-                                                                                                                                                                                                                                                                                                // Rebuild and edit both only pre-fill the form. Generation fires ONLY on the final-page button (ptFinish via ptNext). No auto-fire.
+                                                                                                                                                                                                                                                                                                if (cfg.wantedRestaurants && document.getElementById('wantedRestaurants')) document.getElementById('wantedRestaurants').value = cfg.wantedRestaurants;
+if (Array.isArray(cfg.dietaryNeeds)) { cfg.dietaryNeeds.forEach(function(_lbl){ var _cs=document.querySelectorAll('#dietChips .pt-chip'); for (var _i=0;_i<_cs.length;_i++){ if(_cs[_i].textContent.trim()===_lbl) _cs[_i].classList.add('selected'); } }); }
+if (Array.isArray(cfg.accessibility)) { cfg.accessibility.forEach(function(_k){ var _b=document.getElementById('acc_'+_k); if(_b) _b.classList.add('checked'); }); }
+if (cfg.showPreferences) { ptShowManual = {}; (cfg.showPreferences.want||[]).forEach(function(_n){ ptShowManual[ptNorm(_n)]='want'; }); (cfg.showPreferences.skip||[]).forEach(function(_n){ var _k=ptNorm(_n); if(!ptShowManual[_k]) ptShowManual[_k]='skip'; }); if (ptShowCatalog) ptRenderShows(); }
+if (Array.isArray(cfg.reservations) && cfg.reservations.length) { var _rt=document.getElementById('hasReservationsToggle'); if(_rt && !_rt.classList.contains('on')){ _rt.classList.add('on'); if(typeof ptReservationsToggle==='function') ptReservationsToggle(); } var _ri=document.getElementById('reservationsInput'); if(_ri) _ri.value = cfg.reservations.join('\n'); }
+// Rebuild and edit both only pre-fill the form. Generation fires ONLY on the final-page button (ptFinish via ptNext). No auto-fire.
                                                                                                                                                                                                                                                                                                 }
 
 
