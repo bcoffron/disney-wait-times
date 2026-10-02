@@ -190,7 +190,7 @@ export default async function handler(req, res) {
     const _sentAdmin = (req.headers['x-admin-key'] || req.body && req.body.adminKey || '').toLowerCase();
     const _tripCode = (req.body && req.body.tripCode) || req.headers['x-trip-code'] || '';
     const _isAdmin = _sentAdmin === _adminKey;
-    const _isValidTrip = _tripCode && typeof _tripCode === 'string' && _tripCode.length >= 8;
+    const _isValidTrip = _tripCode && typeof _tripCode === 'string' && _tripCode.length >= 6;
     if (!_isAdmin && !_isValidTrip) {
                 console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
         return res.status(401).json({ error: 'Authentication required.' });
