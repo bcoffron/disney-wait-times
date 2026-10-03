@@ -1,6 +1,30 @@
 // redeploy-touch 2026-06-14: force Vercel to rebuild this function with current CORS headers (was serving stale deploy without Access-Control-Allow-Origin)
 import { list } from '@vercel/blob';
 
+// --- Registry-backed trip-code validation (Oct 2026 lockdown) ---
+// A trip code is valid only if it was actually issued (present in the trip
+// registry) — the old shape-only check accepted any string of N+ chars.
+// Same salted-first/bare-fallback registry read as api/trip.js, 60s cache.
+const _AUTH_SALT = (process.env.BLOB_PATH_SALT || '').trim();
+let _authRegCache = null, _authRegCacheAt = 0;
+async function _isRegisteredTripCode(code) {
+  if (!code || typeof code !== 'string') return false;
+  try {
+    if (!_authRegCache || Date.now() - _authRegCacheAt > 60000) {
+      const _keys = _AUTH_SALT ? ['twize/' + _AUTH_SALT + '/trip_registry.json', 'twize/trip_registry.json'] : ['twize/trip_registry.json'];
+      for (const _k of _keys) {
+        const { blobs } = await list({ prefix: _k });
+        if (blobs && blobs.length) {
+          const _r = await fetch(blobs[0].url);
+          if (_r.ok) { _authRegCache = await _r.json(); _authRegCacheAt = Date.now(); break; }
+        }
+      }
+    }
+  } catch (e) { /* fall through to whatever cache we have (fail closed if none) */ }
+  return !!(_authRegCache && _authRegCache[code]);
+}
+
+
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
 
@@ -192,7 +216,7 @@ async function handler(req, res) {
     const _sentAdmin = (req.headers['x-admin-key'] || req.body && req.body.adminKey || '').toLowerCase();
     const _tripCode = (req.body && req.body.tripCode) || req.headers['x-trip-code'] || '';
     const _isAdmin = _adminKey.length > 0 && _sentAdmin === _adminKey;
-    const _isValidTrip = _tripCode && typeof _tripCode === 'string' && _tripCode.length >= 8;
+    const _isValidTrip = await _isRegisteredTripCode(_tripCode);
     if (!_isAdmin && !_isValidTrip) {
                 console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
         return res.status(401).json({ error: 'Authentication required.' });
