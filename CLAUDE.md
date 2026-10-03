@@ -127,14 +127,22 @@ Design against these specifically.
   host catch-all 404s everything else. `/api/*` is unaffected (functions, not files).
   `disney-trip-planner.html` was deleted. Blog, teaser, and `/admin` on the apex are
   untouched. If universal links are ever added, carve out `/.well-known/*` BEFORE the
-  host catch-alls. The Vercel Firewall rate-limit rules ("Rate limit AI and scheduling endpoints":
-  5 AI paths, 20/60s per IP, 403 for 5 min; "Rate limit trip writes": POST/PUT
-  /api/trip, 30/60s) were built July 15, 2026 and in use through Sept 29, 2026, but
-  were found ABSENT Oct 3, 2026 (Seawall config empty; live probe shows no 403
-  flip) — cause under investigation. Until restored, rate limiting is in-code
-  per-IP caps plus the Anthropic spend cap. Keep firewall rules narrowly scoped:
-  the app polls /api/waittimes and /api/vipnotes constantly and households share
-  NAT IPs — never blanket-limit /api/*.
+  host catch-alls. The Vercel Firewall rate-limit rules are ACTIVE on this project: "Rate limit AI
+  and scheduling endpoints" (5 AI paths, 20/60s per IP, deny 403 for 5 min; built
+  July 15, 2026) and "Rate limit trip writes" (POST/PUT /api/trip; added Sept 29,
+  2026). The AI rule was verified enforcing Oct 3, 2026 (single-connection probe:
+  20x 401 then 403 from #21). Two traps for future investigators: (1) the Vercel
+  API/connector read (get_firewall_config) returns a SPURIOUS "Seawall Config not
+  found" 404 for this project even though the rules exist — the dashboard is
+  ground truth, never conclude absence from that API; (2) rate-limit probes must
+  run over ONE connection (a single curl invocation with the URL repeated) —
+  separate requests from a rotating-IP egress never accumulate a per-IP count.
+  An hourly watchdog cron (tpcp-firewall-watchdog) runs that probe and alerts
+  only on failure. Rule 2's effective threshold is unverified: it did not trip
+  at 35 rapid writes in Oct 3 testing despite the recorded 30/60s spec — check
+  its parameters in the dashboard before relying on the number. Keep firewall
+  rules narrowly scoped: the app polls /api/waittimes and /api/vipnotes
+  constantly and households share NAT IPs — never blanket-limit /api/*.
 
 ## GitHub Contents API stale reads (Oct 2026)
 
