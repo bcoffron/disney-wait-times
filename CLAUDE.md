@@ -111,9 +111,24 @@ Design against these specifically.
 
 ## Trip code auth (Oct 2026)
 
-- `/api/generateschedule` and `/api/ai` accept trip codes ≥ 6 chars (lowered from 8
-  Oct 1, 2026 — BEAU01 at 6 chars was blocked). `/api/trip` has no length minimum.
-  Keep these in sync; a code that saves but can't generate is a blank schedule.
+- Trip codes are validated against the registry, not by shape. `_isRegisteredTripCode`
+  in `/api/generateschedule`, `/api/ai`, `/api/dining`, and `/api/reoptimize` reads
+  the trip registry (same salted-first/bare-fallback as `api/trip.js`, 60s in-memory
+  cache) and accepts only codes that were actually issued. Admin key still bypasses.
+  (History: shape-only checks — ≥8 chars, then ≥6 from Oct 1 for BEAU01 — let anyone
+  invent a code; retired Oct 3, 2026.)
+
+## Web app retired (Oct 3, 2026)
+
+- Native app only. The web app pages are NOT publicly served: vercel.json redirects
+  `/app.html`, `/pretrip.html`, `/manifest.json`, `/sw.js` (all hosts) to
+  `/api/not-found` (404); on `app.themeparkcopilot.com` and the legacy
+  `disney-wait-times-lupt.vercel.app` host, `/` redirects to the marketing site and a
+  host catch-all 404s everything else. `/api/*` is unaffected (functions, not files).
+  `disney-trip-planner.html` was deleted. Blog, teaser, and `/admin` on the apex are
+  untouched. If universal links are ever added, carve out `/.well-known/*` BEFORE the
+  host catch-alls. There is NO Vercel Firewall config on this project (verified
+  Oct 3, 2026) — rate limiting is in-code per-IP caps plus the Anthropic spend cap.
 
 ## GitHub Contents API stale reads (Oct 2026)
 
