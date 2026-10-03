@@ -69,16 +69,6 @@
   "rewrites": [
     {
       "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.themeparkcopilot.com"
-        }
-      ],
-      "destination": "/app.html"
-    },
-    {
-      "source": "/",
       "destination": "/api/home"
     },
     {
@@ -174,12 +164,24 @@
       "destination": "/api/not-found"
     },
     {
-      "source": "/manifest.json",
-      "destination": "/manifest.json"
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.themeparkcopilot.com"
+        }
+      ],
+      "destination": "/api/not-found"
     },
     {
-      "source": "/sw.js",
-      "destination": "/sw.js"
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "disney-wait-times-lupt.vercel.app"
+        }
+      ],
+      "destination": "/api/not-found"
     },
     {
       "source": "/:path*",
@@ -372,6 +374,53 @@
     {
       "source": "/index.html",
       "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/app.html",
+      "destination": "/api/not-found",
+      "permanent": false
+    },
+    {
+      "source": "/pretrip.html",
+      "destination": "/api/not-found",
+      "permanent": false
+    },
+    {
+      "source": "/disney-trip-planner.html",
+      "destination": "/api/not-found",
+      "permanent": false
+    },
+    {
+      "source": "/manifest.json",
+      "destination": "/api/not-found",
+      "permanent": false
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/api/not-found",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.themeparkcopilot.com"
+        }
+      ],
+      "destination": "https://themeparkcopilot.com/",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "disney-wait-times-lupt.vercel.app"
+        }
+      ],
+      "destination": "https://themeparkcopilot.com/",
       "permanent": false
     }
   ]
