@@ -127,8 +127,14 @@ Design against these specifically.
   host catch-all 404s everything else. `/api/*` is unaffected (functions, not files).
   `disney-trip-planner.html` was deleted. Blog, teaser, and `/admin` on the apex are
   untouched. If universal links are ever added, carve out `/.well-known/*` BEFORE the
-  host catch-alls. There is NO Vercel Firewall config on this project (verified
-  Oct 3, 2026) — rate limiting is in-code per-IP caps plus the Anthropic spend cap.
+  host catch-alls. The Vercel Firewall rate-limit rules ("Rate limit AI and scheduling endpoints":
+  5 AI paths, 20/60s per IP, 403 for 5 min; "Rate limit trip writes": POST/PUT
+  /api/trip, 30/60s) were built July 15, 2026 and in use through Sept 29, 2026, but
+  were found ABSENT Oct 3, 2026 (Seawall config empty; live probe shows no 403
+  flip) — cause under investigation. Until restored, rate limiting is in-code
+  per-IP caps plus the Anthropic spend cap. Keep firewall rules narrowly scoped:
+  the app polls /api/waittimes and /api/vipnotes constantly and households share
+  NAT IPs — never blanket-limit /api/*.
 
 ## GitHub Contents API stale reads (Oct 2026)
 
