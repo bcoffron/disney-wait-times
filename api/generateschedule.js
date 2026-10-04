@@ -52,7 +52,7 @@ function checkAILimit(ip) {
 // --------- buildCacheContext ----------------------------
 async function buildCacheContext(sectionNames, includeDynamic = false) {
     const results = {};
-    const dynamicSections = ['CURRENT_CLOSURES', 'CLOSURES', 'DINING_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS'];
+    const dynamicSections = ['CURRENT_CLOSURES', 'CLOSURES', 'DINING_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS', 'SHOWS'];
 
   try {
         const { blobs: sb } = await list({ prefix: 'twize/park_intel_dl_stable.json' });
@@ -279,7 +279,7 @@ export default async function handler(req, res) {
       const cacheCtx = await buildCacheContext(
               ['LAND_MAP', 'WAIT_PATTERNS', 'ROPE_DROP_STRATEGY',
                        'LIGHTNING_LANE_STRATEGY', 'DINING_TIMING', 'CROWD_FLOW',
-      'PARK_HOURS', 'PARK_HOP_STRATEGY', 'CATALOG'],
+      'PARK_HOURS', 'PARK_HOP_STRATEGY', 'CATALOG', 'SHOW_AND_ENTERTAINMENT'],
               true
             );
           // TRIP_CONTEXT in the dynamic blob is one specific trip's context (the
@@ -312,6 +312,7 @@ export default async function handler(req, res) {
           const specialEvts = (cacheCtx.SPECIAL_EVENTS || '').substring(0, 300);
           const tripCtx = (cacheCtx.TRIP_CONTEXT || '').substring(0, 600);
 const parkHours = (cacheCtx.PARK_HOURS || '').substring(0, 800);
+const showEnt = (cacheCtx.SHOW_AND_ENTERTAINMENT || '').substring(0, 1200);
 const parkHopStrategy = (cacheCtx.PARK_HOP_STRATEGY || '').substring(0, 600);
 // DINING_INTEL: verified current restaurant list from cache (Issue 1)
 const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
@@ -327,6 +328,7 @@ const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
               'SPECIAL EVENTS:\n' + specialEvts,
               'TRIP CONTEXT:\n' + tripCtx,
   'PARK HOURS:\n' + parkHours,
+  'SHOWS AND ENTERTAINMENT (real show names for show slots):\n' + showEnt,
   'PARK HOP STRATEGY:\n' + parkHopStrategy
             ].join('\n\n');
 
@@ -615,9 +617,19 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
           const _catList = Object.values(_catIdx);
           const _venues = parseCatalogVenues(cacheCtx.CATALOG);
+          // Real show names for show-slot backfill (dynamic SHOWS section), with the
+          // guest's wanted shows preferred. Without this the backfill can only emit
+          // a generic 'Nighttime spectacular' card.
+          let _showPicks = [];
+          try {
+            const _sd = typeof cacheCtx.SHOWS === 'string' ? JSON.parse(cacheCtx.SHOWS) : cacheCtx.SHOWS;
+            const _arr = (_sd && Array.isArray(_sd.shows)) ? _sd.shows : [];
+            _showPicks = _arr.filter(s => s && s.name).map(s => ({ name: String(s.name), park: (String(s.park).toUpperCase() === 'DCA' ? 'DCA' : 'DL') }));
+          } catch (e) {}
           const _fallbackFor = (slot, fb) => deterministicBackfill(slot, {
             catalog: _catList, venues: _venues, closedNames: _closedS, closedVenueNames: _closedV,
-            usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames
+            usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
+            shows: _showPicks, wantedShows: showWant
           });
 
           const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo };
