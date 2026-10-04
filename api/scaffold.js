@@ -38,11 +38,15 @@ function rideBuckets(start, end, park, pace, role) {
 // or a late ride picked early in a wide window).
 function tailRides(from, close, park, pace, role, push) {
   const end = close - 5;
-  if (end - from < 20) return;
+  if (end - from < 12) return;
   const buckets = rideBuckets(from, Math.max(from, end - 30), park, pace, role);
   buckets.forEach(push);
-  const lastEnd = buckets.length ? buckets[buckets.length - 1].window[1] : from;
-  const finStart = Math.max(lastEnd + 5, end - 30);
+  // Short tail (e.g. 30 min after the nighttime show): one last-ride slot using
+  // the whole remaining window. Long tail with no room for pace buckets: anchor
+  // the final slot in the last 30 min before close.
+  const finStart = buckets.length
+    ? Math.max(buckets[buckets.length - 1].window[1] + 5, end - 30)
+    : (end - from > 30 ? end - 30 : from);
   if (end - finStart >= 12) {
     push({ block: 'ride', type: 'ride', park, window: [finStart, end], role: role + ' -- last ride of the night, ride until close' });
   }
