@@ -32,6 +32,26 @@ function rideBuckets(start, end, park, pace, role) {
   return out;
 }
 
+// Tail rides: fill from `from` to park close, guaranteeing a FINAL ride slot
+// whose window ends at close. A schedule must run to closing -- without this the
+// evening faded out 45-120 min early (last card = the show at its window start,
+// or a late ride picked early in a wide window).
+function tailRides(from, close, park, pace, role, push) {
+  const end = close - 5;
+  if (end - from < 12) return;
+  const buckets = rideBuckets(from, Math.max(from, end - 30), park, pace, role);
+  buckets.forEach(push);
+  // Short tail (e.g. 30 min after the nighttime show): one last-ride slot using
+  // the whole remaining window. Long tail with no room for pace buckets: anchor
+  // the final slot in the last 30 min before close.
+  const finStart = buckets.length
+    ? Math.max(buckets[buckets.length - 1].window[1] + 5, end - 30)
+    : (end - from > 30 ? end - 30 : from);
+  if (end - finStart >= 12) {
+    push({ block: 'ride', type: 'ride', park, window: [finStart, end], role: role + ' -- last ride of the night, ride until close' });
+  }
+}
+
 function fitWindows(windows, lo, hi) {
   return windows.map(w => [Math.max(w[0], lo), Math.min(w[1], hi)]).filter(w => w[1] - w[0] >= 20);
 }
@@ -45,10 +65,18 @@ function buildHopSkeleton(cfg) {
   const pace = cfg.paceMinPerRide || DEFAULT_PACE_MIN_PER_RIDE;
   const hasLL = cfg.hasLL !== false;
 
+  // Return hop (hopper tickets only; the generator sets returnAtMin only when
+  // the start park closes meaningfully later than the evening park): the
+  // evening segment wraps up by returnAtMin, then the day hops BACK to the
+  // start park and rides to its later close.
+  const returning = !!(cfg.hop.returnAtMin && cfg.hop.returnCloseMin && cfg.hop.returnCloseMin > close);
+  const returnAt = returning ? cfg.hop.returnAtMin : null;
+  const eveClose = returning ? returnAt + 5 : close;
+
   const slots = [];
   const push = s => slots.push(s);
 
-  const showWin = [Math.max(1200, close - 120), Math.min(close - 5, 1290)];
+  const showWin = [Math.max(1200, eveClose - 120), Math.min(eveClose - 5, Math.max(1290, eveClose - 60))];
   const canShow = showWin[1] - showWin[0] >= 15;
 
   // ---- MORNING SEGMENT: start park, open -> hopAt ----
@@ -78,10 +106,10 @@ function buildHopSkeleton(cfg) {
   // ---- EVENING SEGMENT: to park, hopAt -> close ----
   const eveStart = hopAt + 25;
   let dinnerSource = canShow ? [DINNER_WINDOWS[0]] : DINNER_WINDOWS;
-  if (fitWindows(dinnerSource, eveStart, close).length === 0 && fitWindows(DINNER_WINDOWS, eveStart, close).length > 0) dinnerSource = DINNER_WINDOWS;
-  const dinnerWins = fitWindows(dinnerSource, eveStart, close);
+  if (fitWindows(dinnerSource, eveStart, eveClose).length === 0 && fitWindows(DINNER_WINDOWS, eveStart, eveClose).length > 0) dinnerSource = DINNER_WINDOWS;
+  const dinnerWins = fitWindows(dinnerSource, eveStart, eveClose);
   const dinnerNom = dinnerWins.length ? dinnerWins[0][0] : null;
-  const preDinnerEnd = dinnerNom !== null ? dinnerNom - 10 : close - 30;
+  const preDinnerEnd = dinnerNom !== null ? dinnerNom - 10 : eveClose - 30;
 
   let afternoonFrom = eveStart;
   if (!lunchInMorning && lunchWins.length) {
@@ -110,15 +138,21 @@ function buildHopSkeleton(cfg) {
   if (canShow) {
     rideBuckets(afterDinner, showWin[0] - 10, toPark, pace, 'evening ride').forEach(push);
     push({ block: 'show', type: 'show', park: toPark, window: showWin, role: 'nighttime spectacular -- arrive early for a spot' });
-    rideBuckets(showWin[1] + 10, close - 10, toPark, pace, 'late-night ride').forEach(push);
+    tailRides(showWin[1] + 10, eveClose, toPark, pace, 'late-night ride', push);
   } else {
-    rideBuckets(afterDinner, close - 10, toPark, pace, 'evening ride').forEach(push);
+    tailRides(afterDinner, eveClose, toPark, pace, 'evening ride', push);
+  }
+
+  // ---- RETURN SEGMENT: start park again, returnAt -> its later close ----
+  if (returning) {
+    push({ block: 'hop', type: 'tip', park: startPark, window: [returnAt - 10, returnAt + 20], role: 'park hop back to ' + startPark + ': it stays open later -- more rides (~15 min walk + security)' });
+    tailRides(returnAt + 25, cfg.hop.returnCloseMin, startPark, pace, 'late-night ride', push);
   }
 
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
   slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
   const ordered = slots.map(s => ({ id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }));
-  return { day: cfg.dayNum || 1, park: startPark, toPark, hop: true, openMin: open, closeMin: close, hopAtMin: hopAt, paceMinPerRide: pace, vip: false, slots: ordered };
+  return { day: cfg.dayNum || 1, park: startPark, toPark, hop: true, openMin: open, closeMin: returning ? cfg.hop.returnCloseMin : close, hopAtMin: hopAt, paceMinPerRide: pace, vip: false, slots: ordered };
 }
 
 export function buildSkeleton(cfg) {
@@ -130,7 +164,7 @@ export function buildSkeleton(cfg) {
   const isVip = vipStart !== null && vipEnd !== null;
   if (cfg.hop && cfg.hop.toPark && !isVip) return buildHopSkeleton(cfg);
 
-  let showWin = [Math.max(1200, closeMin - 120), Math.min(closeMin - 5, 1290)];
+  let showWin = [Math.max(1200, closeMin - 120), Math.min(closeMin - 5, Math.max(1290, closeMin - 60))];
   const canShow = showWin[1] - showWin[0] >= 15;
 
   const slots = [];
@@ -162,9 +196,9 @@ export function buildSkeleton(cfg) {
     if (canShow) {
       rideBuckets(afterDinner, showWin[0] - 10, park, pace, 'evening ride').forEach(push);
       push({ block: 'show', type: 'show', park, window: showWin, role: 'nighttime spectacular -- arrive early for a spot' });
-      rideBuckets(showWin[1] + 10, closeMin - 10, park, pace, 'late-night ride').forEach(push);
+      tailRides(showWin[1] + 10, closeMin, park, pace, 'late-night ride', push);
     } else {
-      rideBuckets(afterDinner, closeMin - 10, park, pace, 'evening ride').forEach(push);
+      tailRides(afterDinner, closeMin, park, pace, 'evening ride', push);
     }
   }
 
@@ -235,6 +269,20 @@ function clampToWindow(min, win, fixed) {
 }
 function normParkName(p) { const s = String(p || '').toLowerCase(); if (/cali|dca|adventure/.test(s)) return 'dca'; if (/disneyland|\bdl\b/.test(s)) return 'dl'; return s; }
 function sameParkName(a, b) { const x = normParkName(a); return x !== '' && x === normParkName(b); }
+
+// Match a card heading against the known-shows list (dynamic SHOWS section:
+// [{name, park}]). The model shortens official names ("World of Color" for
+// "World of Color - Happiness!"), so equality OR prefix containment counts.
+function matchKnownShow(name, shows) {
+  const k = normName(name);
+  if (!k || !Array.isArray(shows)) return null;
+  for (const s of shows) {
+    if (!s || !s.name) continue;
+    const sk = normName(s.name);
+    if (sk && (sk === k || sk.startsWith(k) || k.startsWith(sk))) return s;
+  }
+  return null;
+}
 function buildCard(slot, f, t) {
   let _h = String(f.h || '').trim();
   // The fill sometimes returns the park or land name as the heading with the real
@@ -276,6 +324,10 @@ export function buildFillPrompt(skeleton, opts) {
 // M2 fill-quality helpers.
 // Generic activity phrases that must never fill a RIDE slot (they belong in tips).
 const GENERIC_RIDE_RE = /^\s*(explore|recharge|free\s*time|flex\s*time|flex\b|recheck|re-check|wander|relax|downtime|buffer|take a break|open (dining )?choice|open choice)/i;
+// Pure meal labels are not dining fills ("Lunch", "Dinner" as a card heading
+// names no restaurant). Exact normalized match only -- "Lunch at Flo's V-8 Cafe"
+// contains a real venue name and passes.
+const GENERIC_MEAL_KEYS = new Set(['lunch', 'dinner', 'breakfast', 'brunch', 'meal', 'dining', 'food', 'restaurant', 'eat']);
 // Display cleanup: drop "(or X)" / "(aka X)" alternatives the model sometimes appends.
 function stripAlt(h) { return String(h || '').replace(/\s*\((?:or|aka|a\.?k\.?a\.?)\b[^)]*\)/gi, '').replace(/\s{2,}/g, ' ').trim(); }
 // Dedup key: lowercase, drop ALL parentheticals + filler words so "Space Mountain (Night Ride)" collides with "Space Mountain".
@@ -302,6 +354,12 @@ export function applyFills(skeleton, fills, opts) {
   const priorRideKeySet = new Set();
   const todayRideNames = new Set();
   (opts.priorRides || []).forEach(function(n) { const k = normName(n); if (k && !_mustKeys.has(k)) { usedRideNames.add(k); priorRideKeySet.add(k); } });
+  const usedRideSquash = new Set([...usedRideNames].map(k => k.replace(/ /g, '')));
+  // Cross-day dining dedupe: venues already served on earlier days of this trip
+  // count as used. Seeding `used` also steers the deterministic backfill, whose
+  // venue filter reads the same set.
+  const priorVenueKeys = new Set((opts.priorVenues || []).map(normName).filter(Boolean));
+  (opts.priorVenues || []).forEach(n => { if (n) used.add(String(n).toLowerCase()); });
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
     const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames }) : placeholderCard(slot);
@@ -327,23 +385,41 @@ export function applyFills(skeleton, fills, opts) {
       const isRideSlot = slot.type === 'ride';
       const generic = isRideSlot && GENERIC_RIDE_RE.test(cleanH);
       const nkey = normName(f.ride || cleanH);
-      const dup = isRideSlot && nkey && usedRideNames.has(nkey);
+      const dup = isRideSlot && nkey && (usedRideNames.has(nkey) || usedRideSquash.has(nkey.replace(/ /g, '')));
       const hL = cleanH.toLowerCase();
       const closed = isRideSlot && closedNames.some(cn => cn && hL.indexOf(cn) !== -1);
       const isDiningSlot = slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack';
       const venueClosed = isDiningSlot && closedVenueNames.some(cn => cn && hL.indexOf(cn) !== -1);
+      // A restaurant repeated from an earlier day (or twice in one day) is a
+      // failed fill -- the backfill has the full venue catalog to pick from.
+      const venueDup = isDiningSlot && (priorVenueKeys.has(normName(cleanH)) || used.has(hL));
+      const mealGeneric = (slot.type === 'dining' || slot.type === 'quickservice') && GENERIC_MEAL_KEYS.has(normName(cleanH));
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
-      if (parkBad || generic || dup || closed || retiredClosed || venueClosed) {
+      // A park or land name is not a fill: the model sometimes answers a dining,
+      // snack, or show slot with the place it sits in ("Disneyland", "DCA",
+      // "Pixar Pier") instead of the venue or show. Treat it as a failed fill so
+      // the deterministic backfill supplies a real name. Tips only fail on exact
+      // park names (a tip may legitimately headline a land).
+      const PARK_KEYS = new Set(['disneyland', 'disney california adventure', 'dca', 'disneyland park']);
+      const placeNamed = (placed.has(slot.type) && slot.type !== 'tip' && (PARK_KEYS.has(normName(cleanH)) || !!landToPark(cleanH)))
+        || (slot.type === 'tip' && PARK_KEYS.has(normName(cleanH)))
+        || (isRideSlot && PARK_KEYS.has(nkey));
+      // A real show in the WRONG park is still a wrong fill: a DCA spectacular
+      // cannot headline a Disneyland evening. Known-show match also canonicalizes
+      // the heading (model shortens official show names).
+      const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
+      const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
+      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
-        card = buildCard(slot, Object.assign({}, f, { h: cleanH }), clamp.t);
-        if (isRideSlot && nkey) { usedRideNames.add(nkey); todayRideNames.add(nkey); }
+        card = buildCard(slot, Object.assign({}, f, { h: showMatch ? showMatch.name : cleanH }), clamp.t);
+        if (isRideSlot && nkey) { usedRideNames.add(nkey); usedRideSquash.add(nkey.replace(/ /g, '')); todayRideNames.add(nkey); }
       }
     } else {
       report.missing++; needsRetry.push(slot.id);
@@ -454,6 +530,13 @@ export function verifyScaffold(cards, opts) {
   // DINING_CLOSURES cache (trip-date-windowed): closed restaurant / quick-service / snack names.
   const closedVenueNames = (opts.closedVenueNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']);
+  // Squash key: normName with spaces removed. The model respells rides across
+  // cards ("WEB SLINGERS: ..." vs "Webslingers: ..."), which defeats the spaced
+  // dedupe key and the catalog lookup. Squash-matching catches both.
+  const squash = (s) => normName(s).replace(/ /g, '');
+  const catalogBySquash = {};
+  if (catalogLoaded) for (const k of Object.keys(catalog)) { const sk = squash(k); if (sk && !catalogBySquash[sk]) catalogBySquash[sk] = catalog[k]; }
+  const usedRideSquash = new Set();
   const removed = [], kept = [], usedRide = new Set();
   for (const c of (cards || [])) {
     const hL = String(c.h || '').toLowerCase();
@@ -481,7 +564,11 @@ export function verifyScaffold(cards, opts) {
       // 2. CLOSURES cache (trip-date-windowed -- the closure authority)
       if (closedNames.some(cn => cn && hL.indexOf(cn) !== -1)) { removed.push({ h: c.h, reason: 'closed' }); continue; }
       // 3. CATALOG authoritative: relabel land + wrong-park + conservative hallucination drop
-      const ce = catalog[normName(c.ride || c.h)];
+      let ce = catalog[normName(c.ride || c.h)];
+      if (!ce && catalogLoaded) {
+        const sq = catalogBySquash[squash(c.ride || c.h)];
+        if (sq) { ce = sq; c.h = sq.name; if (c.ride) c.ride = sq.name; } // canonical spelling from the catalog
+      }
       if (ce) {
         if (allowedParks.length && ce.park && !inAllowed(ce.park)) { removed.push({ h: c.h, reason: 'wrong-park-catalog' }); continue; }
         if (ce.land) c.land = ce.land; // relabel to canonical land
@@ -491,10 +578,12 @@ export function verifyScaffold(cards, opts) {
         if (catalogLoaded && !p) { removed.push({ h: c.h, reason: 'not-at-resort' }); continue; }
         if (allowedParks.length && p && !inAllowed(p)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
       }
-      // 4. dupe
+      // 4. dupe (spaced key OR squash key -- respelled duplicates collide on squash)
       const k = normName(c.ride || c.h);
-      if (k && usedRide.has(k)) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
+      const sk2 = squash(c.ride || c.h);
+      if ((k && usedRide.has(k)) || (sk2 && usedRideSquash.has(sk2))) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
       if (k) usedRide.add(k);
+      if (sk2) usedRideSquash.add(sk2);
     } else if (allowedParks.length && placed.has(c.type)) {
       // DINING CLOSURES cache (trip-date-windowed): never seat a guest at a closed venue.
       if ((c.type === 'dining' || c.type === 'quickservice' || c.type === 'snack') &&
@@ -508,6 +597,13 @@ export function verifyScaffold(cards, opts) {
         const _landKeys = new Set(Object.values(catalog).map(e => normName(e.land || '')).filter(Boolean));
         if (_landKeys.has(_hk) || _hk === 'disneyland' || _hk === 'disneyland park' || _hk === 'disney california adventure' || _hk === 'dca') {
           removed.push({ h: c.h, reason: 'land-as-show' }); continue;
+        }
+        // A known show that plays in a park this day never visits cannot be on
+        // the card (day-level backstop; applyFills enforces per-slot).
+        const _sm = matchKnownShow(c.h, opts.shows);
+        if (_sm) {
+          if (!inAllowed(_sm.park)) { removed.push({ h: c.h, reason: 'wrong-park-show' }); continue; }
+          c.h = _sm.name; // canonical full show name
         }
       }
       // non-ride placed types (dining/snack/show/character): unchanged landToPark wrong-park check
@@ -669,6 +765,17 @@ export function deterministicBackfill(slot, ctx) {
         ? 'Verified walkup pick from the dining list.'
         : 'From the verified dining list -- booking ahead recommended.';
       return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '' };
+    }
+  }
+
+  if (slot.type === 'show') {
+    const shows = Array.isArray(ctx.shows) ? ctx.shows : [];
+    const wantedK = (ctx.wantedShows || []).map(s => normName(s)).filter(Boolean);
+    const inPark = shows.filter(s => s && s.name && inSlotPark(s.park) && !usedNames.has(String(s.name).toLowerCase()));
+    const pick = inPark.find(s => wantedK.some(w => { const sn = normName(s.name); return sn === w || sn.startsWith(w) || w.startsWith(sn); })) || inPark[0];
+    if (pick) {
+      usedNames.add(String(pick.name).toLowerCase());
+      return { t: t0, h: pick.name, type: 'show', n: 'Nighttime spectacular -- arrive early for a good spot.', land: '' };
     }
   }
 
