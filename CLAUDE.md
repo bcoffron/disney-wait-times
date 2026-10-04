@@ -237,3 +237,10 @@ days, and days ending ~8:30 PM with no evening show. Root causes and fixes:
   paint a tab black. app.html's `generateFromSetup` now sends scaffold:true +
   dayIndex and consumes `d.parsed` (it previously used the free-form path,
   bypassing every scaffold guarantee). Commit: 14a5145b.
+
+
+## Save-time validator removed + encore backfill (Oct 4, 2026, afternoon)
+
+- ROOT CAUSE of "hop-back card but no rides after it" (Beau's device report): api/trip.js ran the LEGACY validateSchedule over EVERY trip save and stored its output. The validator's park model has no hop-back segment, so it deleted the return segment's Disneyland rides, inserted 'Explore + Recharge' (its >90-min gap rule) and 'Restroom Break' fillers, and degraded late-trip ride cards into generic tips. Generation was fine; the SAVE was mangling it. Fix (api/trip.js bfa90cab): the save-time validation block and import are gone -- saves store exactly what the client generated. Generation validates its own output (scaffold verify layer; legacy branch validates inside /api/generateschedule). Do NOT re-add save-time rewriting.
+- Encore backfill (api/scaffold.js 47eab72d, api/generateschedule.js 9af295a6): when cross-day dedupe exhausts a park's catalog (Day 5+), deterministicBackfill now repeats a ride from an EARLIER day (never one already placed today; note reads 'Back for an encore') instead of degrading the slot into an 'afternoon ride' tip card. applyFills tracks priorRideKeySet/todayRideNames and the handler's fallbackFor forwards them.
+- REGRESSION LESSON (self-inflicted, same day): the first encore push (f35a2401) was built from a STALE LOCAL COPY of scaffold.js that predated run-to-closing/return-hop, silently reverting both on the server for ~15 minutes. Caught by live acceptance tests, rebuilt from the true bf6bc4cc base (47eab72d), all feature markers probed at the commit. RULE: before deriving a push from a local file, diff it against live HEAD; after every push, probe for ALL feature markers (tailRides, returnAtMin, usedRideSquash, matchKnownShow), not just the new change.
