@@ -618,7 +618,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           try {
             const _ropeSlot = _sk.slots.find(x => x.block === 'ropedrop');
             if (_ropeSlot) {
-              const _ropePick = pickRopeDropRide(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot.park, priorRides, skipRides);
+              const _ropePick = pickRopeDropRide(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot.park, priorRides, skipRides, Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : []);
               if (_ropePick) { _ropeSlot.preferRide = _ropePick.name; console.log('[scaffold] rope drop assigned:', _ropePick.name); }
             }
           } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
