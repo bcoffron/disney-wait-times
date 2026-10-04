@@ -331,12 +331,21 @@ export function applyFills(skeleton, fills, opts) {
       const isDiningSlot = slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack';
       const venueClosed = isDiningSlot && closedVenueNames.some(cn => cn && hL.indexOf(cn) !== -1);
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
-      if (parkBad || generic || dup || closed || retiredClosed || venueClosed) {
+      // A park or land name is not a fill: the model sometimes answers a dining,
+      // snack, or show slot with the place it sits in ("Disneyland", "DCA",
+      // "Pixar Pier") instead of the venue or show. Treat it as a failed fill so
+      // the deterministic backfill supplies a real name. Tips only fail on exact
+      // park names (a tip may legitimately headline a land).
+      const PARK_KEYS = new Set(['disneyland', 'disney california adventure', 'dca', 'disneyland park']);
+      const placeNamed = (placed.has(slot.type) && slot.type !== 'tip' && (PARK_KEYS.has(normName(cleanH)) || !!landToPark(cleanH)))
+        || (slot.type === 'tip' && PARK_KEYS.has(normName(cleanH)))
+        || (isRideSlot && PARK_KEYS.has(nkey));
+      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : placeNamed ? 'place-name' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -648,6 +657,17 @@ export function deterministicBackfill(slot, ctx) {
         ? 'Verified walkup pick from the dining list.'
         : 'From the verified dining list -- booking ahead recommended.';
       return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '' };
+    }
+  }
+
+  if (slot.type === 'show') {
+    const shows = Array.isArray(ctx.shows) ? ctx.shows : [];
+    const wantedK = (ctx.wantedShows || []).map(s => normName(s)).filter(Boolean);
+    const inPark = shows.filter(s => s && s.name && inSlotPark(s.park) && !usedNames.has(String(s.name).toLowerCase()));
+    const pick = inPark.find(s => wantedK.indexOf(normName(s.name)) !== -1) || inPark[0];
+    if (pick) {
+      usedNames.add(String(pick.name).toLowerCase());
+      return { t: t0, h: pick.name, type: 'show', n: 'Nighttime spectacular -- arrive early for a good spot.', land: '' };
     }
   }
 
