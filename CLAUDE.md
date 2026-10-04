@@ -214,3 +214,13 @@ days, and days ending ~8:30 PM with no evening show. Root causes and fixes:
   close). Also from the same retest round: pure meal labels ("Lunch"/"Dinner")
   are failed dining fills -- the backfill supplies a real restaurant
   (GENERIC_MEAL_KEYS in applyFills). Commits: 47badf0e, 6eb412fc, a54e5c73.
+
+- **Return hop (Beau, Oct 4, 2026)**: when a hop day's START park closes 60+
+  min after the evening park and the trip has park hoppers
+  (`tripConfig.parkHopping !== false`), the generator passes
+  `returnAtMin`/`returnCloseMin` and `buildHopSkeleton` adds a return segment:
+  the evening wraps by returnAtMin (dinner + show stay in the evening park),
+  a "park hop back" tip, then tail rides in the start park to ITS close.
+  Verified both directions: hopper DL->DCA day returns at 9:35 PM and rides to
+  11:30 PM (midnight close); the same payload with parkHopping=false ends at
+  DCA's 10 PM close with no return. Commits: 19028c99, bf6bc4cc.
