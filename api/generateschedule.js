@@ -263,6 +263,7 @@ export default async function handler(req, res) {
           const showWant = Array.isArray(_sp.want) ? _sp.want : [];
           const showSkip = Array.isArray(_sp.skip) ? _sp.skip : [];
           const priorRides = Array.isArray((tripConfig || {})._priorRides) ? tripConfig._priorRides : [];
+          const _priorVenues = (tripConfig && tripConfig.dining && Array.isArray(tripConfig.dining.usedVenues)) ? tripConfig.dining.usedVenues : [];
           const ridePrefsContext = (mustDo.length || skipRides.length || showWant.length || showSkip.length || priorRides.length) ? [
                   'GUEST RIDE PREFERENCES:',
                   'Must Do (non-negotiable): ' + (mustDo.length ? mustDo.join(', ') : 'none'),
@@ -632,7 +633,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             shows: _showPicks, wantedShows: showWant
           });
 
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues };
 
           let _r = await _fill(_fillSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
