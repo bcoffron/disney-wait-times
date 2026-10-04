@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickCharacterMeet, normName } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -574,6 +574,21 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _vipEnd = _day.isVip ? _sVip(_day.vipEnd) : null;
           const _hasLL = !(_day.hasLL === false || _cfg.hasLL === false);
 
+          // Character meet (must-do categories): plan the day's meet BEFORE the
+          // skeleton is built so the skeleton can carry a dedicated character
+          // slot. Categories rotate across days via _priorCharacters.
+          let _charMeet = null;
+          try {
+            const _cp = _cfg.characters || {};
+            if (_cp.priority !== 'skip' && ((_cp.categories || []).length || _cp.priority === 'mustDo')) {
+              const _ci = await getCharacterIntel();
+              if (_ci && Array.isArray(_ci.characters) && _ci.characters.length) {
+                const _meetParks = [_park].concat((_day.intent && _day.intent.hop && _day.intent.hop.toPark) ? [_day.intent.hop.toPark] : []);
+                _charMeet = pickCharacterMeet(_ci.characters, _cp.categories || [], _meetParks, Array.isArray(_cfg._priorCharacters) ? _cfg._priorCharacters : [], landToPark);
+              }
+            }
+          } catch (e) { console.warn('[scaffold] character meet planning failed:', e.message); }
+
           // Hop day: derive start-park open + to-park close, pass hop params. Non-hop/VIP days use the original call (else).
           const _hop = (_day.intent && _day.intent.hop && _day.intent.hop.toPark) ? _day.intent.hop : null;
           let _sk;
@@ -593,11 +608,20 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               _hopCfg.returnAtMin = _toClose - 15;
               _hopCfg.returnCloseMin = _startClose;
             }
-            _sk = buildSkeleton({ park: _park, openMin: _startOpen, closeMin: _toClose, hasLL: _hasLL, hop: _hopCfg, dayNum: (_di + 1) });
+            _sk = buildSkeleton({ park: _park, openMin: _startOpen, closeMin: _toClose, hasLL: _hasLL, hop: _hopCfg, dayNum: (_di + 1), charMeet: _charMeet || undefined });
           } else {
-            _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1) });
+            _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1), charMeet: _charMeet || undefined });
           }
           console.log('[scaffold] dayIndex', _di, 'park', _park, 'open', _openMin, 'close', _closeMin, 'vip', _vipStart, _vipEnd, 'hasLL', _hasLL, 'slots', _sk.slots.length, 'rides', _sk.slots.filter(s => s.type === 'ride').length);
+          // Rope-drop assignment: the first ride of the day is chosen by
+          // strategy priority (see pickRopeDropRide), never left to chance.
+          try {
+            const _ropeSlot = _sk.slots.find(x => x.block === 'ropedrop');
+            if (_ropeSlot) {
+              const _ropePick = pickRopeDropRide(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot.park, priorRides, skipRides);
+              if (_ropePick) { _ropeSlot.preferRide = _ropePick.name; console.log('[scaffold] rope drop assigned:', _ropePick.name); }
+            }
+          } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
 
           const _closedS = closedNamesForDate(cacheCtx.CLOSURES, _day.date);
           console.log('[scaffold] closures on', _day.date, ':', JSON.stringify(_closedS));
@@ -639,11 +663,11 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _fallbackFor = (slot, fb) => deterministicBackfill(slot, {
             catalog: _catList, venues: _venues, closedNames: _closedS, closedVenueNames: _closedV,
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
-            priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys,
+            priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys, bannedKeys: fb.bannedKeys,
             shows: _showPicks, wantedShows: showWant
           });
 
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)) };
 
           let _r = await _fill(_fillSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
