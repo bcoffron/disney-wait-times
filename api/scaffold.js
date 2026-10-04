@@ -310,6 +310,10 @@ export function buildFillPrompt(skeleton, opts) {
 // M2 fill-quality helpers.
 // Generic activity phrases that must never fill a RIDE slot (they belong in tips).
 const GENERIC_RIDE_RE = /^\s*(explore|recharge|free\s*time|flex\s*time|flex\b|recheck|re-check|wander|relax|downtime|buffer|take a break|open (dining )?choice|open choice)/i;
+// Pure meal labels are not dining fills ("Lunch", "Dinner" as a card heading
+// names no restaurant). Exact normalized match only -- "Lunch at Flo's V-8 Cafe"
+// contains a real venue name and passes.
+const GENERIC_MEAL_KEYS = new Set(['lunch', 'dinner', 'breakfast', 'brunch', 'meal', 'dining', 'food', 'restaurant', 'eat']);
 // Display cleanup: drop "(or X)" / "(aka X)" alternatives the model sometimes appends.
 function stripAlt(h) { return String(h || '').replace(/\s*\((?:or|aka|a\.?k\.?a\.?)\b[^)]*\)/gi, '').replace(/\s{2,}/g, ' ').trim(); }
 // Dedup key: lowercase, drop ALL parentheticals + filler words so "Space Mountain (Night Ride)" collides with "Space Mountain".
@@ -373,6 +377,7 @@ export function applyFills(skeleton, fills, opts) {
       // A restaurant repeated from an earlier day (or twice in one day) is a
       // failed fill -- the backfill has the full venue catalog to pick from.
       const venueDup = isDiningSlot && (priorVenueKeys.has(normName(cleanH)) || used.has(hL));
+      const mealGeneric = (slot.type === 'dining' || slot.type === 'quickservice') && GENERIC_MEAL_KEYS.has(normName(cleanH));
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
       // A park or land name is not a fill: the model sometimes answers a dining,
       // snack, or show slot with the place it sits in ("Disneyland", "DCA",
@@ -388,12 +393,12 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup) {
+      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : placeNamed ? 'place-name' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
