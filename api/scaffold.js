@@ -424,12 +424,19 @@ function sortAndSpace(cards) {
   const rows = (cards || []).map((c, i) => ({ c, i, m: parseClock(c.t) }));
   rows.sort((a, b) => ((a.m == null) - (b.m == null)) || ((a.m || 0) - (b.m || 0)) || (a.i - b.i));
   let prev = -1;
+  let prevComfort = -1;
   for (const r of rows) {
     if (r.m == null) continue;
     let m = r.m;
     if (m <= prev) m = prev + 1;
+    // Comfort spacing: a restroom break hard on the heels of a snack, break, or
+    // meal reads as dead time (guests saw snack 9:30 + break 9:34). Nudge the
+    // break later -- these are display times; slot structure is untouched.
+    if (r.c.type === 'break' && prevComfort >= 0 && m - prevComfort < 25) m = prevComfort + 25;
+    if (m <= prev) m = prev + 1;
     r.c.t = toClock(m);
     prev = m;
+    if (r.c.type === 'break' || r.c.type === 'snack' || r.c.type === 'dining') prevComfort = m;
   }
   return rows.map(r => r.c);
 }
