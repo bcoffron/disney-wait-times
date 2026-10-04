@@ -1,6 +1,6 @@
 // api/trip.js - Trip code registry handler
 import { put, list, del } from '@vercel/blob';
-import { validateSchedule } from './validate-schedule.js';
+// validateSchedule is intentionally NOT imported here: saves must not rewrite schedules (see note in the POST handler).
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment so their fixed public
@@ -148,28 +148,14 @@ export default async function handler(req, res) {
       if (tripData && tripData.tripConfig) {
         tripData.tripConfig.scheduleVersion = Date.now().toString();
       }
-      // Validate schedule before saving
-      if (tripData && tripData.tripConfig && tripData.tripConfig.schedule) {
-        try {
-          const valResult = validateSchedule(
-            tripData.tripConfig.schedule,
-            tripData.tripConfig
-          );
-          if (valResult.hardViolations && valResult.hardViolations.length > 0) {
-            return res.status(400).json({
-              error: 'Schedule validation failed',
-              violations: valResult.hardViolations
-            });
-          }
-          tripData.tripConfig.schedule = valResult.schedule;
-          if (valResult.corrections && valResult.corrections.length > 0) {
-            console.log('[validator] Auto-corrections applied:', JSON.stringify(valResult.corrections));
-          }
-        } catch (err) {
-          console.error('[validator] Error:', err.message);
-          // Do not block save on validator error - log and continue
-        }
-      }
+      // NO save-time schedule rewriting. Generation validates its own output
+      // (the scaffold path has its verify layer; the legacy path validates inside
+      // /api/generateschedule). The legacy validateSchedule pass that used to run
+      // here silently mangled scaffold schedules on every save -- it deleted the
+      // return-hop rides (its park model has no hop-back segment), inserted
+      // 'Explore + Recharge'/'Restroom Break' filler cards, and degraded
+      // late-trip ride cards into generic tips. A save must store exactly what
+      // the client generated. (Removed Oct 4, 2026.)
       // Save to shared trip blob
       await writeTripBlob(entry.tripId, tripData);
       const _blobBodyLen = JSON.stringify(tripData).length;
