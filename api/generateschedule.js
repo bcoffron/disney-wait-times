@@ -584,7 +584,16 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             const _toHrs = _sHours(_toIsDca ? /california adventure|\bDCA\b/i : /disneyland|\bDL\b/i);
             const _startOpen = (_startHrs && _startHrs.openMin) || 480;
             const _toClose = (_toHrs && _toHrs.closeMin) || (_toIsDca ? 1320 : 1380);
-            _sk = buildSkeleton({ park: _park, openMin: _startOpen, closeMin: _toClose, hasLL: _hasLL, hop: { toPark: _toPark, atMin: _hop.atMin }, dayNum: (_di + 1) });
+            const _startClose = (_startHrs && _startHrs.closeMin) || (_isDcaDay ? 1320 : 1380);
+            // Return hop (hopper tickets only): when the START park stays open
+            // at least an hour past the evening park's close, hop back near
+            // that close and ride to the later one.
+            const _hopCfg = { toPark: _toPark, atMin: _hop.atMin };
+            if (_cfg.parkHopping !== false && _startClose >= _toClose + 60) {
+              _hopCfg.returnAtMin = _toClose - 15;
+              _hopCfg.returnCloseMin = _startClose;
+            }
+            _sk = buildSkeleton({ park: _park, openMin: _startOpen, closeMin: _toClose, hasLL: _hasLL, hop: _hopCfg, dayNum: (_di + 1) });
           } else {
             _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1) });
           }
