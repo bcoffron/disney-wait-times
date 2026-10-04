@@ -32,6 +32,22 @@ function rideBuckets(start, end, park, pace, role) {
   return out;
 }
 
+// Tail rides: fill from `from` to park close, guaranteeing a FINAL ride slot
+// whose window ends at close. A schedule must run to closing -- without this the
+// evening faded out 45-120 min early (last card = the show at its window start,
+// or a late ride picked early in a wide window).
+function tailRides(from, close, park, pace, role, push) {
+  const end = close - 5;
+  if (end - from < 20) return;
+  const buckets = rideBuckets(from, Math.max(from, end - 30), park, pace, role);
+  buckets.forEach(push);
+  const lastEnd = buckets.length ? buckets[buckets.length - 1].window[1] : from;
+  const finStart = Math.max(lastEnd + 5, end - 30);
+  if (end - finStart >= 12) {
+    push({ block: 'ride', type: 'ride', park, window: [finStart, end], role: role + ' -- last ride of the night, ride until close' });
+  }
+}
+
 function fitWindows(windows, lo, hi) {
   return windows.map(w => [Math.max(w[0], lo), Math.min(w[1], hi)]).filter(w => w[1] - w[0] >= 20);
 }
@@ -110,9 +126,9 @@ function buildHopSkeleton(cfg) {
   if (canShow) {
     rideBuckets(afterDinner, showWin[0] - 10, toPark, pace, 'evening ride').forEach(push);
     push({ block: 'show', type: 'show', park: toPark, window: showWin, role: 'nighttime spectacular -- arrive early for a spot' });
-    rideBuckets(showWin[1] + 10, close - 10, toPark, pace, 'late-night ride').forEach(push);
+    tailRides(showWin[1] + 10, close, toPark, pace, 'late-night ride', push);
   } else {
-    rideBuckets(afterDinner, close - 10, toPark, pace, 'evening ride').forEach(push);
+    tailRides(afterDinner, close, toPark, pace, 'evening ride', push);
   }
 
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
@@ -162,9 +178,9 @@ export function buildSkeleton(cfg) {
     if (canShow) {
       rideBuckets(afterDinner, showWin[0] - 10, park, pace, 'evening ride').forEach(push);
       push({ block: 'show', type: 'show', park, window: showWin, role: 'nighttime spectacular -- arrive early for a spot' });
-      rideBuckets(showWin[1] + 10, closeMin - 10, park, pace, 'late-night ride').forEach(push);
+      tailRides(showWin[1] + 10, closeMin, park, pace, 'late-night ride', push);
     } else {
-      rideBuckets(afterDinner, closeMin - 10, park, pace, 'evening ride').forEach(push);
+      tailRides(afterDinner, closeMin, park, pace, 'evening ride', push);
     }
   }
 
