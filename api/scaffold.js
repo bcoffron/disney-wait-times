@@ -738,7 +738,7 @@ const ROPE_DROP_PRIORITY = {
   dl: ['Indiana Jones Adventure', 'Space Mountain', 'Star Wars: Rise of the Resistance', "Mickey & Minnie's Runaway Railway"],
   dca: ['Radiator Springs Racers', 'Guardians of the Galaxy - Mission: BREAKOUT!', 'Incredicoaster', "Soarin' Around the World", 'WEB SLINGERS: A Spider-Man Adventure']
 };
-export function pickRopeDropRide(catalogIdx, parkName, priorNames, bannedNames) {
+export function pickRopeDropRide(catalogIdx, parkName, priorNames, bannedNames, priorRopeDropNames) {
   const idx = catalogIdx || {};
   const pk = normParkName(parkName);
   const priorKeys = new Set((priorNames || []).map(normName).filter(Boolean));
@@ -746,6 +746,15 @@ export function pickRopeDropRide(catalogIdx, parkName, priorNames, bannedNames) 
   const entries = Object.values(idx).filter(e => e && e.name && normParkName(e.park) === pk && (!e.status || e.status === 'operating') && !bannedKeys.has(normName(e.name)));
   if (!entries.length) return null;
   const prio = ROPE_DROP_PRIORITY[pk] || [];
+  // GUARANTEED ONCE: the park's #1 ride must be ROPE-DROPPED at least once in
+  // the trip. Riding it casually on an earlier day (e.g. as a hop-afternoon
+  // ride) does NOT satisfy this -- until it has headlined a rope drop, it
+  // outranks the un-done priorities. Bans still override.
+  const ropedKeys = new Set((priorRopeDropNames || []).map(normName).filter(Boolean));
+  if (prio.length) {
+    const top = idx[normName(prio[0])];
+    if (top && entries.indexOf(top) !== -1 && !ropedKeys.has(normName(top.name))) return top;
+  }
   for (const name of prio) { const e = idx[normName(name)]; if (e && entries.indexOf(e) !== -1 && !priorKeys.has(normName(e.name))) return e; }
   for (const name of prio) { const e = idx[normName(name)]; if (e && entries.indexOf(e) !== -1) return e; }
   const score = (e) => ((e.ropeDropValue === 'high' ? 3 : e.ropeDropValue === 'med' ? 2 : 1) * 1000) + (e.typicalPeakWait || 0);
