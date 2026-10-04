@@ -235,6 +235,20 @@ function clampToWindow(min, win, fixed) {
 }
 function normParkName(p) { const s = String(p || '').toLowerCase(); if (/cali|dca|adventure/.test(s)) return 'dca'; if (/disneyland|\bdl\b/.test(s)) return 'dl'; return s; }
 function sameParkName(a, b) { const x = normParkName(a); return x !== '' && x === normParkName(b); }
+
+// Match a card heading against the known-shows list (dynamic SHOWS section:
+// [{name, park}]). The model shortens official names ("World of Color" for
+// "World of Color - Happiness!"), so equality OR prefix containment counts.
+function matchKnownShow(name, shows) {
+  const k = normName(name);
+  if (!k || !Array.isArray(shows)) return null;
+  for (const s of shows) {
+    if (!s || !s.name) continue;
+    const sk = normName(s.name);
+    if (sk && (sk === k || sk.startsWith(k) || k.startsWith(sk))) return s;
+  }
+  return null;
+}
 function buildCard(slot, f, t) {
   let _h = String(f.h || '').trim();
   // The fill sometimes returns the park or land name as the heading with the real
@@ -341,16 +355,21 @@ export function applyFills(skeleton, fills, opts) {
       const placeNamed = (placed.has(slot.type) && slot.type !== 'tip' && (PARK_KEYS.has(normName(cleanH)) || !!landToPark(cleanH)))
         || (slot.type === 'tip' && PARK_KEYS.has(normName(cleanH)))
         || (isRideSlot && PARK_KEYS.has(nkey));
-      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed) {
+      // A real show in the WRONG park is still a wrong fill: a DCA spectacular
+      // cannot headline a Disneyland evening. Known-show match also canonicalizes
+      // the heading (model shortens official show names).
+      const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
+      const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
+      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : placeNamed ? 'place-name' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : placeNamed ? 'place-name' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
-        card = buildCard(slot, Object.assign({}, f, { h: cleanH }), clamp.t);
+        card = buildCard(slot, Object.assign({}, f, { h: showMatch ? showMatch.name : cleanH }), clamp.t);
         if (isRideSlot && nkey) { usedRideNames.add(nkey); usedRideSquash.add(nkey.replace(/ /g, '')); }
       }
     } else {
@@ -530,6 +549,13 @@ export function verifyScaffold(cards, opts) {
         if (_landKeys.has(_hk) || _hk === 'disneyland' || _hk === 'disneyland park' || _hk === 'disney california adventure' || _hk === 'dca') {
           removed.push({ h: c.h, reason: 'land-as-show' }); continue;
         }
+        // A known show that plays in a park this day never visits cannot be on
+        // the card (day-level backstop; applyFills enforces per-slot).
+        const _sm = matchKnownShow(c.h, opts.shows);
+        if (_sm) {
+          if (!inAllowed(_sm.park)) { removed.push({ h: c.h, reason: 'wrong-park-show' }); continue; }
+          c.h = _sm.name; // canonical full show name
+        }
       }
       // non-ride placed types (dining/snack/show/character): unchanged landToPark wrong-park check
       const p = landToPark(c.land) || landToPark(c.h);
@@ -678,7 +704,7 @@ export function deterministicBackfill(slot, ctx) {
     const shows = Array.isArray(ctx.shows) ? ctx.shows : [];
     const wantedK = (ctx.wantedShows || []).map(s => normName(s)).filter(Boolean);
     const inPark = shows.filter(s => s && s.name && inSlotPark(s.park) && !usedNames.has(String(s.name).toLowerCase()));
-    const pick = inPark.find(s => wantedK.indexOf(normName(s.name)) !== -1) || inPark[0];
+    const pick = inPark.find(s => wantedK.some(w => { const sn = normName(s.name); return sn === w || sn.startsWith(w) || w.startsWith(sn); })) || inPark[0];
     if (pick) {
       usedNames.add(String(pick.name).toLowerCase());
       return { t: t0, h: pick.name, type: 'show', n: 'Nighttime spectacular -- arrive early for a good spot.', land: '' };
