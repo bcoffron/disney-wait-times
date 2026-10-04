@@ -203,3 +203,14 @@ days, and days ending ~8:30 PM with no evening show. Root causes and fixes:
   ride 11:15 PM. Commits: fceea4b8, 27da7e25, fc291aab, f336f99b (server),
   e496af16 (pretrip), 1cca9e00 (app), d9c11eba (validate-schedule), 228cf82a,
   baac3450, ed7f52ce, 9f567567, 9f003524, a614df27, f8d89304.
+
+- **Run-to-closing rule (Beau, Oct 4, 2026)**: a schedule must NEVER end before
+  park closing. Both skeleton builders now end the evening with `tailRides()`,
+  which fills to close and guarantees a final ride slot whose window ends at
+  close-5 (last-30-minutes anchored). Two failure modes it fixes: DCA days ended
+  at the 8 PM show (30-min post-show tail was below the old span guard) and DL
+  days ended ~45 min early (last ride picked early in a wide window). Verified:
+  Day 1 last ride 9:40 PM (10 PM close), Day 2 last ride 11:25 PM (midnight
+  close). Also from the same retest round: pure meal labels ("Lunch"/"Dinner")
+  are failed dining fills -- the backfill supplies a real restaurant
+  (GENERIC_MEAL_KEYS in applyFills). Commits: 47badf0e, 6eb412fc, a54e5c73.
