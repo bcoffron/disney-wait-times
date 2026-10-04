@@ -620,7 +620,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames
           });
 
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo };
 
           let _r = await _fill(_fillSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
