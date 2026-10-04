@@ -639,6 +639,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _fallbackFor = (slot, fb) => deterministicBackfill(slot, {
             catalog: _catList, venues: _venues, closedNames: _closedS, closedVenueNames: _closedV,
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
+            priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys,
             shows: _showPicks, wantedShows: showWant
           });
 
