@@ -315,6 +315,11 @@ export function applyFills(skeleton, fills, opts) {
   const _mustKeys = new Set((opts.mustDoNames || []).map(normName));
   (opts.priorRides || []).forEach(function(n) { const k = normName(n); if (k && !_mustKeys.has(k)) usedRideNames.add(k); });
   const usedRideSquash = new Set([...usedRideNames].map(k => k.replace(/ /g, '')));
+  // Cross-day dining dedupe: venues already served on earlier days of this trip
+  // count as used. Seeding `used` also steers the deterministic backfill, whose
+  // venue filter reads the same set.
+  const priorVenueKeys = new Set((opts.priorVenues || []).map(normName).filter(Boolean));
+  (opts.priorVenues || []).forEach(n => { if (n) used.add(String(n).toLowerCase()); });
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
     const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames }) : placeholderCard(slot);
@@ -345,6 +350,9 @@ export function applyFills(skeleton, fills, opts) {
       const closed = isRideSlot && closedNames.some(cn => cn && hL.indexOf(cn) !== -1);
       const isDiningSlot = slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack';
       const venueClosed = isDiningSlot && closedVenueNames.some(cn => cn && hL.indexOf(cn) !== -1);
+      // A restaurant repeated from an earlier day (or twice in one day) is a
+      // failed fill -- the backfill has the full venue catalog to pick from.
+      const venueDup = isDiningSlot && (priorVenueKeys.has(normName(cleanH)) || used.has(hL));
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
       // A park or land name is not a fill: the model sometimes answers a dining,
       // snack, or show slot with the place it sits in ("Disneyland", "DCA",
@@ -360,12 +368,12 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark) {
+      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : placeNamed ? 'place-name' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : placeNamed ? 'place-name' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
