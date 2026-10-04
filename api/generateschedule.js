@@ -113,6 +113,27 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
     console.error('[cache] dining_intel_dl/dining_intel read error:', e.message);
   }
 
+  // --------- PARK_HOURS: no cache section carries it. The live hours live in the
+  // legacy park_hours_intel blob ({dl:{open,close}, dca:{open,close}}, 24h "HH:MM").
+  // Format one line per park for the consumers' line parser (first time on the
+  // park's line = open, last = close). Without this, cacheCtx.PARK_HOURS is always
+  // empty and generators fall back to generic close times (days ending early).
+  try {
+    const { blobs: phb } = await list({ prefix: 'twize/park_hours_intel.json' });
+    if (phb && phb.length) {
+      const phData = await fetch(phb[0].downloadUrl || phb[0].url).then(r => r.json());
+      let ph = (phData && phData.data) ? phData.data : phData;
+      if (ph && !ph.dl && !ph.dca) { const _fk = Object.keys(ph).find(k => ph[k] && (ph[k].dl || ph[k].dca)); if (_fk) ph = ph[_fk]; }
+      const _fmtH = (hhmm) => { const p = String(hhmm || '').split(':'); if (p.length < 2) return ''; let h = parseInt(p[0], 10); if (isNaN(h)) return ''; const ap = h < 12 ? 'AM' : 'PM'; let h12 = h % 12; if (h12 === 0) h12 = 12; return h12 + ':' + p[1] + ' ' + ap; };
+      const _phLines = [];
+      if (ph && ph.dl && ph.dl.open && ph.dl.close) _phLines.push('Disneyland: ' + _fmtH(ph.dl.open) + ' - ' + _fmtH(ph.dl.close));
+      if (ph && ph.dca && ph.dca.open && ph.dca.close) _phLines.push('Disney California Adventure: ' + _fmtH(ph.dca.open) + ' - ' + _fmtH(ph.dca.close));
+      if (_phLines.length) results['PARK_HOURS'] = _phLines.join('\n');
+    }
+  } catch (e) {
+    console.error('[cache] park_hours_intel read error:', e.message);
+  }
+
   const expectedSections = sectionNames.concat(includeDynamic ? dynamicSections : []);
   const missingSections = expectedSections.filter(name => !results[name]);
   if (missingSections.length) {
@@ -230,12 +251,26 @@ export default async function handler(req, res) {
       const rp = (tripConfig || {}).ridePreferences || {};
           const mustDo = rp.mustDo || [];
           const wantToDo = rp.wantToDo || [];
-          const skipRides = rp.skip || [];
-          const ridePrefsContext = mustDo.length || skipRides.length ? [
+          let skipRides = rp.skip || [];
+          // avoidWater is a config-level switch with no reader of its own; the skip
+          // machinery (prompt context + verifyTripParams + validator) is the
+          // enforcement path, so fold the water rides into the skip list here.
+          if ((tripConfig || {}).avoidWater === true) {
+            const _waterRides = ["Tiana's Bayou Adventure", 'Grizzly River Run'];
+            skipRides = Array.from(new Set([...skipRides, ..._waterRides]));
+          }
+          const _sp = (tripConfig || {}).showPreferences || {};
+          const showWant = Array.isArray(_sp.want) ? _sp.want : [];
+          const showSkip = Array.isArray(_sp.skip) ? _sp.skip : [];
+          const priorRides = Array.isArray((tripConfig || {})._priorRides) ? tripConfig._priorRides : [];
+          const ridePrefsContext = (mustDo.length || skipRides.length || showWant.length || showSkip.length || priorRides.length) ? [
                   'GUEST RIDE PREFERENCES:',
                   'Must Do (non-negotiable): ' + (mustDo.length ? mustDo.join(', ') : 'none'),
                   'Want To Do (if time allows): ' + (wantToDo.length ? wantToDo.join(', ') : 'all others'),
-                  'Skip (never include): ' + (skipRides.length ? skipRides.join(', ') : 'none')
+                  'Skip (never include): ' + (skipRides.length ? skipRides.join(', ') : 'none'),
+                  ...(showWant.length ? ['Wanted shows (the wanted nighttime show should be the evening show pick): ' + showWant.join(', ')] : []),
+                  ...(showSkip.length ? ['Skipped shows (never schedule): ' + showSkip.join(', ')] : []),
+                  ...(priorRides.length ? ['Already scheduled on earlier days of this trip (do not repeat these rides): ' + priorRides.join(', ')] : [])
                 ].join('\n') : '';
           const apiKey = process.env.ANTHROPIC_API_KEY;
           if (!apiKey) return res.status(500).json({ error: 'No API key' });
@@ -247,6 +282,18 @@ export default async function handler(req, res) {
       'PARK_HOURS', 'PARK_HOP_STRATEGY', 'CATALOG'],
               true
             );
+          // TRIP_CONTEXT in the dynamic blob is one specific trip's context (the
+          // June 28-30, 2026 family trip). Feeding it to other trips poisons their
+          // prompts with wrong dates and party assumptions. Pass it only when THIS
+          // trip overlaps those dates; otherwise drop it.
+          if (cacheCtx.TRIP_CONTEXT) {
+            const _tcNorm = (s) => { if (!s) return ''; const t = String(s).trim(); if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10); const d = new Date(t); return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10); };
+            const _tcCands = [];
+            if (tripConfig && tripConfig.dates) { _tcCands.push(_tcNorm(tripConfig.dates.start)); _tcCands.push(_tcNorm(tripConfig.dates.end)); }
+            if (tripConfig && Array.isArray(tripConfig.days)) tripConfig.days.forEach(function(dy) { if (dy && dy.date) _tcCands.push(_tcNorm(dy.date)); });
+            const _tcHit = _tcCands.some(function(x) { return x >= '2026-06-28' && x <= '2026-06-30'; });
+            if (!_tcHit) { delete cacheCtx.TRIP_CONTEXT; console.log('[generateschedule] TRIP_CONTEXT dropped (belongs to a different trip)'); }
+          }
           console.log('[generateschedule] cacheCtx sections:', Object.keys(cacheCtx));
           const sectionCount = Object.keys(cacheCtx).length;
           console.log('cache_sections:', Object.keys(cacheCtx).join(','));
@@ -547,7 +594,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '');
-          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, closedNames: _closedS, closedVenueNames: _closedV })
+          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, usedRides: priorRides, closedNames: _closedS, closedVenueNames: _closedV })
             + ((typeof ridePrefsContext === 'string' && ridePrefsContext) ? '\n\n' + ridePrefsContext : '')
             + '\n\n=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n' + _fillCtx;
 
