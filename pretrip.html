@@ -610,6 +610,19 @@ function ptRenderShows(){
   ptRefreshShowUI();
   ptUpdateShowCounter();
 }
+var PT_FALLBACK_CATALOG = [{"name": "Star Wars: Rise of the Resistance", "park": "DL", "land": "Star Wars: Galaxy's Edge", "heightInches": 40}, {"name": "Millennium Falcon: Smugglers Run", "park": "DL", "land": "Star Wars: Galaxy's Edge", "heightInches": 0}, {"name": "Indiana Jones Adventure", "park": "DL", "land": "Adventureland", "heightInches": 0}, {"name": "Jungle Cruise", "park": "DL", "land": "Adventureland", "heightInches": 0}, {"name": "Walt Disney's Enchanted Tiki Room", "park": "DL", "land": "Adventureland", "heightInches": 0}, {"name": "Adventureland Treehouse", "park": "DL", "land": "Adventureland", "heightInches": 0}, {"name": "Pirates of the Caribbean", "park": "DL", "land": "New Orleans Square", "heightInches": 0}, {"name": "Haunted Mansion", "park": "DL", "land": "New Orleans Square", "heightInches": 0}, {"name": "Big Thunder Mountain Railroad", "park": "DL", "land": "Frontierland", "heightInches": 40}, {"name": "Mark Twain Riverboat", "park": "DL", "land": "Frontierland", "heightInches": 0}, {"name": "Sailing Ship Columbia", "park": "DL", "land": "Frontierland", "heightInches": 0}, {"name": "Pirate's Lair on Tom Sawyer Island", "park": "DL", "land": "Frontierland", "heightInches": 0}, {"name": "Frontierland Shootin' Exposition", "park": "DL", "land": "Frontierland", "heightInches": 0}, {"name": "Tiana's Bayou Adventure", "park": "DL", "land": "Bayou Country", "heightInches": 40}, {"name": "The Many Adventures of Winnie the Pooh", "park": "DL", "land": "Critter Country", "heightInches": 0}, {"name": "Davy Crockett's Explorer Canoes", "park": "DL", "land": "Critter Country", "heightInches": 0}, {"name": "\"it's a small world\"", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Matterhorn Bobsleds", "park": "DL", "land": "Fantasyland", "heightInches": 42}, {"name": "Peter Pan's Flight", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Alice in Wonderland", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Mr. Toad's Wild Ride", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Snow White's Enchanted Wish", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Pinocchio's Daring Journey", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "King Arthur Carrousel", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Mad Tea Party", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Dumbo the Flying Elephant", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Casey Jr. Circus Train", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Storybook Land Canal Boats", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Sleeping Beauty Castle Walkthrough", "park": "DL", "land": "Fantasyland", "heightInches": 0}, {"name": "Mickey & Minnie's Runaway Railway", "park": "DL", "land": "Mickey's Toontown", "heightInches": 0}, {"name": "Roger Rabbit's Car Toon Spin", "park": "DL", "land": "Mickey's Toontown", "heightInches": 0}, {"name": "Chip 'n' Dale's GADGETcoaster", "park": "DL", "land": "Mickey's Toontown", "heightInches": 35}, {"name": "Mickey's House and Meet Mickey Mouse", "park": "DL", "land": "Mickey's Toontown", "heightInches": 0}, {"name": "Minnie's House", "park": "DL", "land": "Mickey's Toontown", "heightInches": 0}, {"name": "Goofy's How-to-Play Yard", "park": "DL", "land": "Mickey's Toontown", "heightInches": 0}, {"name": "Donald's Duck Pond", "park": "DL", "land": "Mickey's Toontown", "heightInches": 0}, {"name": "Space Mountain", "park": "DL", "land": "Tomorrowland", "heightInches": 40}, {"name": "Star Tours - The Adventures Continue", "park": "DL", "land": "Tomorrowland", "heightInches": 0}, {"name": "Buzz Lightyear Astro Blasters", "park": "DL", "land": "Tomorrowland", "heightInches": 0}, {"name": "Astro Orbitor", "park": "DL", "land": "Tomorrowland", "heightInches": 0}, {"name": "Autopia", "park": "DL", "land": "Tomorrowland", "heightInches": 0}, {"name": "Finding Nemo Submarine Voyage", "park": "DL", "land": "Tomorrowland", "heightInches": 0}, {"name": "Disneyland Monorail", "park": "DL", "land": "Tomorrowland", "heightInches": 0}, {"name": "Disneyland Railroad", "park": "DL", "land": "Main Street, U.S.A.", "heightInches": 0}, {"name": "Main Street Vehicles", "park": "DL", "land": "Main Street, U.S.A.", "heightInches": 0}, {"name": "Radiator Springs Racers", "park": "DCA", "land": "Cars Land", "heightInches": 40}, {"name": "Luigi's Rollickin' Roadsters", "park": "DCA", "land": "Cars Land", "heightInches": 32}, {"name": "Mater's Junkyard Jamboree", "park": "DCA", "land": "Cars Land", "heightInches": 32}, {"name": "Guardians of the Galaxy - Mission: BREAKOUT!", "park": "DCA", "land": "Avengers Campus", "heightInches": 40}, {"name": "WEB SLINGERS: A Spider-Man Adventure", "park": "DCA", "land": "Avengers Campus", "heightInches": 0}, {"name": "Incredicoaster", "park": "DCA", "land": "Pixar Pier", "heightInches": 48}, {"name": "Toy Story Midway Mania!", "park": "DCA", "land": "Pixar Pier", "heightInches": 0}, {"name": "Pixar Pal-A-Round \u2013 Swinging", "park": "DCA", "land": "Pixar Pier", "heightInches": 0}, {"name": "Pixar Pal-A-Round \u2013 Non-Swinging", "park": "DCA", "land": "Pixar Pier", "heightInches": 0}, {"name": "Jessie's Critter Carousel", "park": "DCA", "land": "Pixar Pier", "heightInches": 0}, {"name": "Inside Out Emotional Whirlwind", "park": "DCA", "land": "Pixar Pier", "heightInches": 0}, {"name": "Soarin' Around the World", "park": "DCA", "land": "Grizzly Peak", "heightInches": 0}, {"name": "Soarin' Across America", "park": "DCA", "land": "Grizzly Peak", "heightInches": 0}, {"name": "Grizzly River Run", "park": "DCA", "land": "Grizzly Peak", "heightInches": 0}, {"name": "Redwood Creek Challenge Trail", "park": "DCA", "land": "Grizzly Peak", "heightInches": 0}, {"name": "Goofy's Sky School", "park": "DCA", "land": "Paradise Gardens Park", "heightInches": 42}, {"name": "Jumpin' Jellyfish", "park": "DCA", "land": "Paradise Gardens Park", "heightInches": 0}, {"name": "Golden Zephyr", "park": "DCA", "land": "Paradise Gardens Park", "heightInches": 0}, {"name": "Silly Symphony Swings", "park": "DCA", "land": "Paradise Gardens Park", "heightInches": 0}, {"name": "The Little Mermaid - Ariel's Undersea Adventure", "park": "DCA", "land": "Paradise Gardens Park", "heightInches": 0}, {"name": "Monsters, Inc. Mike & Sulley to the Rescue!", "park": "DCA", "land": "Hollywood Land", "heightInches": 0}, {"name": "Mickey's PhilharMagic", "park": "DCA", "land": "Hollywood Land", "heightInches": 0}, {"name": "Turtle Talk with Crush", "park": "DCA", "land": "Hollywood Land", "heightInches": 0}];
+function ptInstallFallbackCatalog(){
+  if (!PT_FALLBACK_CATALOG || !PT_FALLBACK_CATALOG.length) return;
+  ptRideCatalog = []; ptNameByNorm = {};
+  PT_FALLBACK_CATALOG.forEach(function(a){
+    ptRideCatalog.push({ name:a.name, park:a.park, land:a.land, heightInches:a.heightInches });
+    ptNameByNorm[ptNorm(a.name)] = a.name;
+  });
+  ptBuildCatSets();
+  var el = document.getElementById('rideSelector');
+  if (el) ptRenderRideSelector();
+}
+try { ptInstallFallbackCatalog(); } catch(e) {}
 function ptFetchRideCatalog(){
   if (ptRideCatalog){ ptRenderRideSelector(); return; }
   var base = (typeof SYNC_BASE !== 'undefined') ? SYNC_BASE : 'https://app.themeparkcopilot.com';
@@ -620,6 +633,7 @@ function ptFetchRideCatalog(){
       var sections = (res && res.data && res.data.sections) ? res.data.sections : ((res && res.sections) ? res.sections : null);
       var cat = (sections && sections.CATALOG) ? sections.CATALOG : ((res && res.data && res.data.CATALOG) ? res.data.CATALOG : null);
       var attrs = (cat && cat.attractions && cat.attractions.length) ? cat.attractions : [];
+      if (!attrs.length) { ptInstallFallbackCatalog(); return; }
       ptRideCatalog = []; ptNameByNorm = {};
       attrs.forEach(function(a){
         if (!a || !a.name || a.exclude === true) return;
@@ -632,8 +646,9 @@ function ptFetchRideCatalog(){
     })
     .catch(function(){
       clearTimeout(_ridesAbortT);
-      var el = document.getElementById('rideSelector');
-      if (el) el.innerHTML = '<div class="pt-ride-loading">Could not load the ride list. Check your connection and reopen this step.</div>';
+      // Never leave the picker dead: the bundled fallback catalog keeps ride
+      // and category selections working (and collectable) offline.
+      ptInstallFallbackCatalog();
     });
 }
 function ptBuildCatSets(){
@@ -1299,6 +1314,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
           avoidWater: tripConfig.avoidWater === true,
           showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
           _priorRides: tripConfig._priorRides || [],
+          _priorCharacters: tripConfig._priorCharacters || [],
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
@@ -1324,6 +1340,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
           avoidWater: tripConfig.avoidWater === true,
           showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
           _priorRides: tripConfig._priorRides || [],
+          _priorCharacters: tripConfig._priorCharacters || [],
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
@@ -1577,7 +1594,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   // ~3x generation wall-time for non-repeating dining (the per-day progress bar covers it).
   var _seedUsed = (tripConfig.dining && Array.isArray(tripConfig.dining.usedVenues))
     ? tripConfig.dining.usedVenues.slice() : [];
-  function _genDaySeq(idx, usedSoFar, priorRidesSoFar) {
+  function _genDaySeq(idx, usedSoFar, priorRidesSoFar, priorCharsSoFar) {
     if (idx >= totalDays) { _finishAndSave(); return; }
     var _dayNum = idx + 1;
     var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
@@ -1590,6 +1607,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       reservations: _dayResStrings,
       dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations, usedVenues: usedSoFar.slice() }),
       _priorRides: (priorRidesSoFar || []).slice(),
+      _priorCharacters: (priorCharsSoFar || []).slice(),
       _priorShows: []
     });
     ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
@@ -1613,12 +1631,13 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       }
       var _dayVenues = (items || []).filter(function(x){ return x && x.type === 'dining' && x.h; }).map(function(x){ return x.h; });
       var _dayRides = (items || []).filter(function(x){ return x && x.type === 'ride'; }).map(function(x){ return x.ride || x.h; }).filter(Boolean);
+      var _dayChars = (items || []).filter(function(x){ return x && x.type === 'character'; }).map(function(x){ return x.h; }).filter(Boolean);
       _completed++;
       ptUpdateGenBar(_completed, totalDays);
-      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues), (priorRidesSoFar || []).concat(_dayRides));
+      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues), (priorRidesSoFar || []).concat(_dayRides), (priorCharsSoFar || []).concat(_dayChars));
     });
   }
-  _genDaySeq(0, _seedUsed, []);
+  _genDaySeq(0, _seedUsed, [], []);
 }
 </script>
 </body>
