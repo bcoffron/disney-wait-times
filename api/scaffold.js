@@ -48,7 +48,7 @@ function buildHopSkeleton(cfg) {
   const slots = [];
   const push = s => slots.push(s);
 
-  const showWin = [Math.max(1200, close - 120), Math.min(close - 5, 1290)];
+  const showWin = [Math.max(1200, close - 120), Math.min(close - 5, Math.max(1290, close - 60))];
   const canShow = showWin[1] - showWin[0] >= 15;
 
   // ---- MORNING SEGMENT: start park, open -> hopAt ----
@@ -130,7 +130,7 @@ export function buildSkeleton(cfg) {
   const isVip = vipStart !== null && vipEnd !== null;
   if (cfg.hop && cfg.hop.toPark && !isVip) return buildHopSkeleton(cfg);
 
-  let showWin = [Math.max(1200, closeMin - 120), Math.min(closeMin - 5, 1290)];
+  let showWin = [Math.max(1200, closeMin - 120), Math.min(closeMin - 5, Math.max(1290, closeMin - 60))];
   const canShow = showWin[1] - showWin[0] >= 15;
 
   const slots = [];
@@ -300,6 +300,7 @@ export function applyFills(skeleton, fills, opts) {
   // are exempt -- the guest asked for those by name, repeats included.
   const _mustKeys = new Set((opts.mustDoNames || []).map(normName));
   (opts.priorRides || []).forEach(function(n) { const k = normName(n); if (k && !_mustKeys.has(k)) usedRideNames.add(k); });
+  const usedRideSquash = new Set([...usedRideNames].map(k => k.replace(/ /g, '')));
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
     const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames }) : placeholderCard(slot);
@@ -325,7 +326,7 @@ export function applyFills(skeleton, fills, opts) {
       const isRideSlot = slot.type === 'ride';
       const generic = isRideSlot && GENERIC_RIDE_RE.test(cleanH);
       const nkey = normName(f.ride || cleanH);
-      const dup = isRideSlot && nkey && usedRideNames.has(nkey);
+      const dup = isRideSlot && nkey && (usedRideNames.has(nkey) || usedRideSquash.has(nkey.replace(/ /g, '')));
       const hL = cleanH.toLowerCase();
       const closed = isRideSlot && closedNames.some(cn => cn && hL.indexOf(cn) !== -1);
       const isDiningSlot = slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack';
@@ -350,7 +351,7 @@ export function applyFills(skeleton, fills, opts) {
         card = mkFallback(slot);
       } else {
         card = buildCard(slot, Object.assign({}, f, { h: cleanH }), clamp.t);
-        if (isRideSlot && nkey) usedRideNames.add(nkey);
+        if (isRideSlot && nkey) { usedRideNames.add(nkey); usedRideSquash.add(nkey.replace(/ /g, '')); }
       }
     } else {
       report.missing++; needsRetry.push(slot.id);
@@ -461,6 +462,13 @@ export function verifyScaffold(cards, opts) {
   // DINING_CLOSURES cache (trip-date-windowed): closed restaurant / quick-service / snack names.
   const closedVenueNames = (opts.closedVenueNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']);
+  // Squash key: normName with spaces removed. The model respells rides across
+  // cards ("WEB SLINGERS: ..." vs "Webslingers: ..."), which defeats the spaced
+  // dedupe key and the catalog lookup. Squash-matching catches both.
+  const squash = (s) => normName(s).replace(/ /g, '');
+  const catalogBySquash = {};
+  if (catalogLoaded) for (const k of Object.keys(catalog)) { const sk = squash(k); if (sk && !catalogBySquash[sk]) catalogBySquash[sk] = catalog[k]; }
+  const usedRideSquash = new Set();
   const removed = [], kept = [], usedRide = new Set();
   for (const c of (cards || [])) {
     const hL = String(c.h || '').toLowerCase();
@@ -488,7 +496,11 @@ export function verifyScaffold(cards, opts) {
       // 2. CLOSURES cache (trip-date-windowed -- the closure authority)
       if (closedNames.some(cn => cn && hL.indexOf(cn) !== -1)) { removed.push({ h: c.h, reason: 'closed' }); continue; }
       // 3. CATALOG authoritative: relabel land + wrong-park + conservative hallucination drop
-      const ce = catalog[normName(c.ride || c.h)];
+      let ce = catalog[normName(c.ride || c.h)];
+      if (!ce && catalogLoaded) {
+        const sq = catalogBySquash[squash(c.ride || c.h)];
+        if (sq) { ce = sq; c.h = sq.name; if (c.ride) c.ride = sq.name; } // canonical spelling from the catalog
+      }
       if (ce) {
         if (allowedParks.length && ce.park && !inAllowed(ce.park)) { removed.push({ h: c.h, reason: 'wrong-park-catalog' }); continue; }
         if (ce.land) c.land = ce.land; // relabel to canonical land
@@ -498,10 +510,12 @@ export function verifyScaffold(cards, opts) {
         if (catalogLoaded && !p) { removed.push({ h: c.h, reason: 'not-at-resort' }); continue; }
         if (allowedParks.length && p && !inAllowed(p)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
       }
-      // 4. dupe
+      // 4. dupe (spaced key OR squash key -- respelled duplicates collide on squash)
       const k = normName(c.ride || c.h);
-      if (k && usedRide.has(k)) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
+      const sk2 = squash(c.ride || c.h);
+      if ((k && usedRide.has(k)) || (sk2 && usedRideSquash.has(sk2))) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
       if (k) usedRide.add(k);
+      if (sk2) usedRideSquash.add(sk2);
     } else if (allowedParks.length && placed.has(c.type)) {
       // DINING CLOSURES cache (trip-date-windowed): never seat a guest at a closed venue.
       if ((c.type === 'dining' || c.type === 'quickservice' || c.type === 'snack') &&
