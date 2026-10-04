@@ -65,10 +65,18 @@ function buildHopSkeleton(cfg) {
   const pace = cfg.paceMinPerRide || DEFAULT_PACE_MIN_PER_RIDE;
   const hasLL = cfg.hasLL !== false;
 
+  // Return hop (hopper tickets only; the generator sets returnAtMin only when
+  // the start park closes meaningfully later than the evening park): the
+  // evening segment wraps up by returnAtMin, then the day hops BACK to the
+  // start park and rides to its later close.
+  const returning = !!(cfg.hop.returnAtMin && cfg.hop.returnCloseMin && cfg.hop.returnCloseMin > close);
+  const returnAt = returning ? cfg.hop.returnAtMin : null;
+  const eveClose = returning ? returnAt + 5 : close;
+
   const slots = [];
   const push = s => slots.push(s);
 
-  const showWin = [Math.max(1200, close - 120), Math.min(close - 5, Math.max(1290, close - 60))];
+  const showWin = [Math.max(1200, eveClose - 120), Math.min(eveClose - 5, Math.max(1290, eveClose - 60))];
   const canShow = showWin[1] - showWin[0] >= 15;
 
   // ---- MORNING SEGMENT: start park, open -> hopAt ----
@@ -98,10 +106,10 @@ function buildHopSkeleton(cfg) {
   // ---- EVENING SEGMENT: to park, hopAt -> close ----
   const eveStart = hopAt + 25;
   let dinnerSource = canShow ? [DINNER_WINDOWS[0]] : DINNER_WINDOWS;
-  if (fitWindows(dinnerSource, eveStart, close).length === 0 && fitWindows(DINNER_WINDOWS, eveStart, close).length > 0) dinnerSource = DINNER_WINDOWS;
-  const dinnerWins = fitWindows(dinnerSource, eveStart, close);
+  if (fitWindows(dinnerSource, eveStart, eveClose).length === 0 && fitWindows(DINNER_WINDOWS, eveStart, eveClose).length > 0) dinnerSource = DINNER_WINDOWS;
+  const dinnerWins = fitWindows(dinnerSource, eveStart, eveClose);
   const dinnerNom = dinnerWins.length ? dinnerWins[0][0] : null;
-  const preDinnerEnd = dinnerNom !== null ? dinnerNom - 10 : close - 30;
+  const preDinnerEnd = dinnerNom !== null ? dinnerNom - 10 : eveClose - 30;
 
   let afternoonFrom = eveStart;
   if (!lunchInMorning && lunchWins.length) {
@@ -130,15 +138,21 @@ function buildHopSkeleton(cfg) {
   if (canShow) {
     rideBuckets(afterDinner, showWin[0] - 10, toPark, pace, 'evening ride').forEach(push);
     push({ block: 'show', type: 'show', park: toPark, window: showWin, role: 'nighttime spectacular -- arrive early for a spot' });
-    tailRides(showWin[1] + 10, close, toPark, pace, 'late-night ride', push);
+    tailRides(showWin[1] + 10, eveClose, toPark, pace, 'late-night ride', push);
   } else {
-    tailRides(afterDinner, close, toPark, pace, 'evening ride', push);
+    tailRides(afterDinner, eveClose, toPark, pace, 'evening ride', push);
+  }
+
+  // ---- RETURN SEGMENT: start park again, returnAt -> its later close ----
+  if (returning) {
+    push({ block: 'hop', type: 'tip', park: startPark, window: [returnAt - 10, returnAt + 20], role: 'park hop back to ' + startPark + ': it stays open later -- more rides (~15 min walk + security)' });
+    tailRides(returnAt + 25, cfg.hop.returnCloseMin, startPark, pace, 'late-night ride', push);
   }
 
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
   slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
   const ordered = slots.map(s => ({ id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }));
-  return { day: cfg.dayNum || 1, park: startPark, toPark, hop: true, openMin: open, closeMin: close, hopAtMin: hopAt, paceMinPerRide: pace, vip: false, slots: ordered };
+  return { day: cfg.dayNum || 1, park: startPark, toPark, hop: true, openMin: open, closeMin: returning ? cfg.hop.returnCloseMin : close, hopAtMin: hopAt, paceMinPerRide: pace, vip: false, slots: ordered };
 }
 
 export function buildSkeleton(cfg) {
