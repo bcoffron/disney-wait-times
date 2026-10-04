@@ -401,6 +401,35 @@ function validateSchedule(schedule, tripConfig, closedAttractionsFromCache, prio
           action: 'inserted afternoon break at ' + minutesToTime(insertMin) });
       }
 
+      // Comfort spacing: a restroom break minutes after a snack (or right before
+      // a meal) is dead time, not a break. Drop any break landing <45 min after
+      // another break/snack or <30 min from a meal. Only breaks are dropped --
+      // snacks and dining carry real content and stay.
+      {
+        const comfort = items.filter(i => (i.type === 'break' || i.type === 'snack' || i.type === 'dining'))
+          .sort((a, b) => timeToMinutes(a.t) - timeToMinutes(b.t));
+        const dropBreaks = new Set();
+        let lastComfort = null;
+        for (const c of comfort) {
+          if (c.type === 'break' && lastComfort) {
+            const gap = timeToMinutes(c.t) - timeToMinutes(lastComfort.t);
+            const need = lastComfort.type === 'dining' ? 30 : 45;
+            if (gap >= 0 && gap < need) dropBreaks.add(c);
+          }
+          if (!dropBreaks.has(c)) lastComfort = c;
+        }
+        for (const c of comfort) {
+          if (c.type !== 'break' || dropBreaks.has(c)) continue;
+          const nextMeal = comfort.find(x => x.type === 'dining' && timeToMinutes(x.t) > timeToMinutes(c.t));
+          if (nextMeal && timeToMinutes(nextMeal.t) - timeToMinutes(c.t) < 30) dropBreaks.add(c);
+        }
+        if (dropBreaks.size) {
+          items = items.filter(i => !dropBreaks.has(i));
+          day.items = items;
+          dropBreaks.forEach(b => corrections.push({ rule: 'comfort-spacing', day: dayNum, item: b.h, action: 'removed break at ' + b.t + ' (too close to another break/snack/meal)' }));
+        }
+      }
+
       // Normalize break NOTE wording to match the break's actual time. The model sometimes writes an
       // "Afternoon restroom stop..." note on a 10 AM break (mislabeled). This runs on every break (model-
       // authored or validator-inserted) so the wording always matches the clock. Only rewrites the note;
