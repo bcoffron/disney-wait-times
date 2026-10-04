@@ -775,10 +775,13 @@ export function pickCharacterMeet(characters, categories, dayParks, priorNames, 
   };
   const inParks = usable.filter(c => { const p = parkOf(c); return p && dayParks.some(dp => sameParkName(dp, p)); });
   if (!inParks.length) return null;
-  const priorKeys = new Set((priorNames || []).map(n => normName(String(n || '').replace(/^meet\s+/i, ''))).filter(Boolean));
+  // Prior meets arrive as card headings ('Meet Rey', 'Rey Character Meet'):
+  // match by containment, not equality, or rotation silently never engages.
+  const priorNorms = (priorNames || []).map(n => normName(String(n || '').replace(/^meet\s+/i, ''))).filter(Boolean);
+  const wasMet = (c) => { const k = normName(c.name); return priorNorms.some(p => p === k || p.indexOf(k) !== -1 || k.indexOf(p) !== -1); };
   const coveredCats = new Set();
-  for (const c of pool) { if (priorKeys.has(normName(c.name))) coveredCats.add(c.category); }
-  const score = (c) => (coveredCats.has(c.category) ? 2 : 0) + (priorKeys.has(normName(c.name)) ? 1 : 0);
+  for (const c of pool) { if (wasMet(c)) coveredCats.add(c.category); }
+  const score = (c) => (coveredCats.has(c.category) ? 2 : 0) + (wasMet(c) ? 1 : 0);
   const pick = inParks.slice().sort((a, b) => score(a) - score(b))[0];
   const parkMatch = dayParks.find(dp => sameParkName(dp, parkOf(pick)));
   return { name: pick.name, park: parkMatch || dayParks[0], land: pick.location || '', category: pick.category || '', wait: pick.typicalWait || 0, windows: Array.isArray(pick.typicalWindows) ? pick.typicalWindows : [] };
