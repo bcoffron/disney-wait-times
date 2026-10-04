@@ -93,7 +93,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .day-tab:not(.active):not(.vip-tab) .day-tab-name{color:rgba(255,255,255,0.38)}
 .day-tab:not(.active):not(.vip-tab) .day-tab-date{color:rgba(255,255,255,0.20)}
 /* VIP day tab (gold treatment) */
-.day-tab.vip-tab.active{background:linear-gradient(180deg,#2A1E00,#1E1600)!important;border-color:#D4A830!important;border-bottom:2px solid #FDF6E3!important;box-shadow:0 2px 12px rgba(212,168,48,0.35)!important;position:relative}.day-tab.vip-tab.active .day-tab-name{color:#F5D070!important}.day-tab.vip-tab.active .day-tab-date{color:rgba(245,208,112,0.55)!important}.day-tab.vip-tab.active::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#D4A830;border-radius:99px 99px 0 0;pointer-events:none}
+.day-tab.vip-tab.active{background:#EEF5F4!important;border-color:#D4A830!important;position:relative}.day-tab.vip-tab.active .day-tab-name{color:#071E25!important}.day-tab.vip-tab.active .day-tab-date{color:#4A7A7C!important}.day-tab.vip-tab.active::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#D4A830;border-radius:99px 99px 0 0;pointer-events:none}
 .day-tab.vip-tab{border-color:rgba(201,134,10,0.25)!important}
 .day-tab.vip-tab .day-tab-name::after{content:'VIP';font-size:8px;background:linear-gradient(135deg,#C9860A,#E8A020);color:#fff;border-radius:99px;padding:1px 4px;margin-left:4px;font-weight:700;vertical-align:middle}
 
@@ -5039,21 +5039,27 @@ function generateFromSetup(params, callback) {
     body: JSON.stringify({
       prompt: prompt,
       mode: 'setup',
+      scaffold: true,
+      dayIndex: (typeof params === 'number') ? params : 0,
+      tripCode: localStorage.getItem('tpcp_code') || '',
       maxTokens: 8000,
       tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}, { tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
     })
   })
   .then(function(r){return r.json();})
   .then(function(d){
-    if(!d.ok||!d.text){if(typeof callback==='function')callback('AI error: '+(d.error||'no response'));return;}
+    if(!d.ok||!(d.parsed&&d.parsed.length)&&!d.text){if(typeof callback==='function')callback('AI error: '+(d.error||'no response'));return;}
     try{
-      var text = d.text.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      var start = text.indexOf('[');
-      var end = text.lastIndexOf('}');
-      if(start === -1){if(typeof callback==='function')callback('No JSON array found');return;}
-      var attempt = text.substring(start);
-      if(!attempt.endsWith(']')) attempt = attempt.substring(0, end+1) + '\n]';
-      var sections = JSON.parse(attempt);
+      var sections = (d.parsed && d.parsed.length) ? d.parsed : null;
+      if (!sections) {
+        var text = (d.text || '').trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        var start = text.indexOf('[');
+        var end = text.lastIndexOf('}');
+        if(start === -1){if(typeof callback==='function')callback('No JSON array found');return;}
+        var attempt = text.substring(start);
+        if(!attempt.endsWith(']')) attempt = attempt.substring(0, end+1) + '\n]';
+        sections = JSON.parse(attempt);
+      }
       if(sections && sections.length > 0){
         var code = localStorage.getItem('tpcp_code')||'';
         if(code){
@@ -6073,7 +6079,7 @@ document.addEventListener('DOMContentLoaded', function() {
   ensureDayTabs((TRIP_CONFIG.day || []).length);
   (TRIP_CONFIG.days || []).forEach(function(d) {
     var tab = document.getElementById('day-tab-' + d.num);
-    if (tab && d.isVip) tab.classList.add('vip-tab');
+    if (tab) tab.classList.toggle('vip-tab', !!d.isVip);
     if (tab) {
       var nameEl = tab.querySelector('.day-tab-name');
       if (nameEl) nameEl.textContent = d.label;
