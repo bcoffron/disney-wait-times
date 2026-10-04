@@ -150,3 +150,56 @@ Design against these specifically.
   succession silently reverts the previous commit. Mitigations: sleep 10s+ before
   GET, verify the download contains the prior commit's changes, batch edits into
   one push, and GET-verify with `?ref=<sha>` after pushing.
+
+## Schedule-quality overhaul (Oct 4, 2026)
+
+First device run of the native app exposed a broken Day 1 (Beau's report): content
+rendered under the Dynamic Island, only 3 day tabs with Day 2 black, Space Mountain
+mislabeled as a Single Pass, skipped/water rides present despite the onboarding
+picks, snack/restroom/lunch clustered within ~an hour, cloned ride times across
+days, and days ending ~8:30 PM with no evening show. Root causes and fixes:
+
+- **Preference fields must be wired at FOUR points or they silently vanish**:
+  `ptCollectData` (pretrip.html), `ptRestoreFromConfig` + `ptLoadFromStorage`,
+  the generation payload in `ptGenerateDaySchedule`, and the generator's consume
+  side. `avoidWater` failed at all four (hardcoded false in collect, stripped
+  from the payload, read nowhere server-side). `ridePreferences`/`showPreferences`
+  in Beau's stored BEAU01 config were empty — the Oct 4 trip was generated with
+  NO preferences. After this fix a fresh setup pass persists them.
+- **Generator (api/generateschedule.js)**: `buildCacheContext` now populates
+  PARK_HOURS from the `park_hours_intel` blob (flat {dl,dca} shape; the stable/
+  dynamic blobs have NO PARK_HOURS section — the old fallback closed DL at
+  11 PM). The dynamic blob's TRIP_CONTEXT belongs to ONE trip (Jun 28–30, 2026,
+  BCDIS2026) and is dropped unless the trip overlaps those dates.
+  `avoidWater=true` folds Tiana's Bayou Adventure + Grizzly River Run into the
+  skip set. `_priorRides`, prior venues (`tripConfig.dining.usedVenues`), wanted/
+  skipped shows, and the SHOWS / SHOW_AND_ENTERTAINMENT sections are all passed
+  into the scaffold fill/verify/backfill layers.
+- **Scaffold (api/scaffold.js)**: park/land names are failed fills for dining/
+  snack/show/ride/tip slots (deterministic backfill supplies a real venue/show/
+  ride). ILL ground truth: only Rise of the Resistance + Radiator Springs Racers
+  are Single Pass at this resort; bogus `ll:'single'` is downgraded and tip text
+  scrubbed. Squash-key dedupe (normName minus spaces) + catalog canonicalization
+  catches respelled duplicates ("WEB SLINGERS" vs "Webslingers"). Show slots:
+  the show window no longer inverts on midnight closes (DL evenings get a show
+  slot), a show card may only name a show that plays in the slot's park
+  (`wrong-park-show`; wanted shows preferred only in-park), and headings are
+  canonicalized to the official name ("World of Color - Happiness!"). Dining
+  fills may not repeat a venue from an earlier day. Comfort spacing: break cards
+  are nudged >=25 min after a previous break/snack/meal.
+- **Client**: app.html viewport meta fixed (`device-width`, `viewport-fit=cover`)
+  + safe-area-inset-top on the header; day tabs are created dynamically
+  (`ensureDayTabs`) — the old file had exactly 3 hardcoded tabs, and a CSS rule
+  hardcoded the VIP gold gradient to `#day-tab-2.active` (the black Day 2 tab).
+  pretrip.html `_ptBuildParkHours` accepts the flat hours shape; `_genDaySeq`
+  threads real prior-day ride names (was `[]` placeholders — the actual cause of
+  cloned cross-day ride times). app.html's in-app regenerate path still does NOT
+  set `scaffold:true` (known inconsistency, parked).
+- **Acceptance (Oct 4, live API, BEAU01-shaped payloads)**: Day 1 — Space
+  Mountain rope-drop 8:05 AM with ll=multi, no skipped/water rides, real venues,
+  World of Color 8:00 PM finale. Day 2 (Day 1 rides threaded as _priorRides) —
+  zero ride repeats, zero venue repeats, Web Slingers once, Grizzly proposed by
+  the model and auto-removed by param enforcement, Fantasmic! 10:00 PM, last
+  ride 11:15 PM. Commits: fceea4b8, 27da7e25, fc291aab, f336f99b (server),
+  e496af16 (pretrip), 1cca9e00 (app), d9c11eba (validate-schedule), 228cf82a,
+  baac3450, ed7f52ce, 9f567567, 9f003524, a614df27, f8d89304.
