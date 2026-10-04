@@ -236,7 +236,12 @@ function clampToWindow(min, win, fixed) {
 function normParkName(p) { const s = String(p || '').toLowerCase(); if (/cali|dca|adventure/.test(s)) return 'dca'; if (/disneyland|\bdl\b/.test(s)) return 'dl'; return s; }
 function sameParkName(a, b) { const x = normParkName(a); return x !== '' && x === normParkName(b); }
 function buildCard(slot, f, t) {
-  const card = { t: toClock(t), h: String(f.h || '').trim(), type: slot.type, n: String(f.n || '').slice(0, 80), land: String(f.land || '').trim() };
+  let _h = String(f.h || '').trim();
+  // The fill sometimes returns the park or land name as the heading with the real
+  // attraction in `ride` (guests saw ride cards titled "Disneyland" / "DCA"). On
+  // ride slots the ride name is the heading whenever the two disagree.
+  if (slot.type === 'ride' && f.ride && normName(_h) !== normName(f.ride)) _h = String(f.ride).trim();
+  const card = { t: toClock(t), h: _h, type: slot.type, n: String(f.n || '').slice(0, 80), land: String(f.land || '').trim() };
   if (f.ride) card.ride = f.ride;
   if (f.ll && (slot.type === 'ride' || slot.type === 'tip')) card.ll = f.ll;
   return card;
@@ -264,6 +269,7 @@ export function buildFillPrompt(skeleton, opts) {
   if (opts.closedVenueNames && opts.closedVenueNames.length) sys += '\n- DOWN FOR REFURBISHMENT right now -- do NOT place any of these in a dining, quickservice, or snack slot; choose a different open venue from the verified dining list instead: ' + opts.closedVenueNames.join('; ') + '.';
   sys += '\n\nSKELETON (fill EVERY slot):\n' + lines.join('\n');
   if (opts.usedDining && opts.usedDining.length) sys += '\n\nALREADY-USED venues (never repeat): ' + opts.usedDining.join('; ');
+  if (opts.usedRides && opts.usedRides.length) sys += '\n\nALREADY-USED rides on earlier days of this trip (never repeat): ' + opts.usedRides.join('; ');
   return sys;
 }
 
@@ -289,6 +295,11 @@ export function applyFills(skeleton, fills, opts) {
   const cards = [], needsRetry = [], report = { clamped: 0, wrongPark: 0, missing: 0, fallback: 0, dropped: [] };
   const used = new Set();
   const usedRideNames = new Set();
+  // Cross-day dedupe: rides already placed on earlier days of this trip count as
+  // used, so fills and the deterministic backfill will not repeat them. Must-dos
+  // are exempt -- the guest asked for those by name, repeats included.
+  const _mustKeys = new Set((opts.mustDoNames || []).map(normName));
+  (opts.priorRides || []).forEach(function(n) { const k = normName(n); if (k && !_mustKeys.has(k)) usedRideNames.add(k); });
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
     const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames }) : placeholderCard(slot);
@@ -359,6 +370,11 @@ const RETIRED = [
   { m: 'critter bbq', to: "Jessie's Critter Carousel" },
   { m: 'tough be bug', to: null }
 ];
+
+// ILL-only attractions at the Disneyland Resort (per the CURRENT_LL_PRICING cache:
+// exactly two). Every other Lightning Lane attraction is Multi Pass. Static
+// counterpart to the pricing cache, same pattern as RETIRED above.
+const ILL_ONLY_KEYS = new Set(['star wars rise of the resistance', 'radiator springs racers'].map(normName));
 
 // Parse the CATALOG cache section (JSON string or object) into a lookup:
 //   normName(attraction name) -> { name, park, land, status, typicalPeakWait, ropeDropValue }
@@ -432,6 +448,19 @@ export function verifyScaffold(cards, opts) {
   const removed = [], kept = [], usedRide = new Set();
   for (const c of (cards || [])) {
     const hL = String(c.h || '').toLowerCase();
+    // ILL correction: only Rise and Radiator Springs Racers are Individual
+    // Lightning Lane. A 'single' tag on anything else (e.g. Space Mountain) is a
+    // model error -- downgrade it to Multi Pass and scrub the wording, so the app
+    // stops presenting it as a Single Pass purchase.
+    if (c.ll && c.ll.t === 'single' && (c.type === 'ride' || c.type === 'tip')) {
+      const _lk = normName(c.ride || c.h);
+      if (_lk && !ILL_ONLY_KEYS.has(_lk)) {
+        c.ll = Object.assign({}, c.ll, { t: 'multi' });
+        const _scrub = (s) => typeof s === 'string' ? s.replace(/single pass/gi, 'Multi Pass').replace(/\bILL\b/g, 'LLMP') : s;
+        if (c.ll.a) c.ll.a = _scrub(c.ll.a);
+        c.h = _scrub(c.h); if (c.n) c.n = _scrub(c.n);
+      }
+    }
     if (c.type === 'ride') {
       // 1. RETIRED: rename outdated / drop permanently-closed
       const nn = normName(c.h);
@@ -447,6 +476,7 @@ export function verifyScaffold(cards, opts) {
       if (ce) {
         if (allowedParks.length && ce.park && !inAllowed(ce.park)) { removed.push({ h: c.h, reason: 'wrong-park-catalog' }); continue; }
         if (ce.land) c.land = ce.land; // relabel to canonical land
+        if (c.ride && normName(c.h) !== normName(ce.name)) c.h = ce.name; // heading is the ride's name, never the park/land name
       } else {
         const p = landToPark(c.land) || landToPark(c.h);
         if (catalogLoaded && !p) { removed.push({ h: c.h, reason: 'not-at-resort' }); continue; }
@@ -461,6 +491,15 @@ export function verifyScaffold(cards, opts) {
       if ((c.type === 'dining' || c.type === 'quickservice' || c.type === 'snack') &&
           closedVenueNames.some(cn => cn && hL.indexOf(cn) !== -1)) {
         removed.push({ h: c.h, reason: 'venue-closed' }); continue;
+      }
+      // A land or park name is not a show: fills sometimes name the land the show
+      // lives in ("Pixar Pier") instead of the show itself. Drop those cards.
+      if (c.type === 'show') {
+        const _hk = normName(c.h);
+        const _landKeys = new Set(Object.values(catalog).map(e => normName(e.land || '')).filter(Boolean));
+        if (_landKeys.has(_hk) || _hk === 'disneyland' || _hk === 'disneyland park' || _hk === 'disney california adventure' || _hk === 'dca') {
+          removed.push({ h: c.h, reason: 'land-as-show' }); continue;
+        }
       }
       // non-ride placed types (dining/snack/show/character): unchanged landToPark wrong-park check
       const p = landToPark(c.land) || landToPark(c.h);
