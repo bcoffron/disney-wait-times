@@ -224,3 +224,16 @@ days, and days ending ~8:30 PM with no evening show. Root causes and fixes:
   Verified both directions: hopper DL->DCA day returns at 9:35 PM and rides to
   11:30 PM (midnight close); the same payload with parkHopping=false ends at
   DCA's 10 PM close with no return. Commits: 19028c99, bf6bc4cc.
+
+- **Stale-schedule / stale-shell lesson (Oct 4, 2026)**: server + shell fixes do
+  NOT change what the app shows until (a) the shell is re-synced
+  (`npm run cap:sync` copies app.html -> www/index.html; a bare `git pull` +
+  rebuild ships the OLD shell -- the tell is only 3 day tabs on a 5-day trip)
+  and (b) the days are REGENERATED (saved schedules in tripConfig.schedule.days
+  are immutable snapshots of the generator that produced them; Beau's stored
+  Day 1 still held the pre-fix output verbatim). Also: the VIP day-tab style
+  (`.day-tab.vip-tab.active` near-black gold gradient) is neutralized to the
+  normal light active style with gold accents only -- a VIP flag can no longer
+  paint a tab black. app.html's `generateFromSetup` now sends scaffold:true +
+  dayIndex and consumes `d.parsed` (it previously used the free-form path,
+  bypassing every scaffold guarantee). Commit: 14a5145b.
