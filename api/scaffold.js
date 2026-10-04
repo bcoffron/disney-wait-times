@@ -100,6 +100,11 @@ function buildHopSkeleton(cfg) {
     rideBuckets(open + 25, hopAt - 10, startPark, pace, 'morning ride').forEach(push);
   }
 
+  // Character meet (must-do categories): one guaranteed meet in the start park.
+  if (cfg.charMeet && sameParkName(cfg.charMeet.park, startPark)) {
+    push({ block: 'character', type: 'character', park: startPark, window: [open + 150, open + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
+  }
+
   // ---- HOP TRANSITION (tip; park stamp not enforced) ----
   push({ block: 'hop', type: 'tip', park: toPark, window: [hopAt - 10, hopAt + 20], role: 'park hop: walk to ' + toPark + ', security screening (~15 min)' });
 
@@ -119,6 +124,9 @@ function buildHopSkeleton(cfg) {
     afternoonFrom = lunchWins[0][1] + 10;
   }
 
+  if (cfg.charMeet && sameParkName(cfg.charMeet.park, toPark)) {
+    push({ block: 'character', type: 'character', park: toPark, window: [hopAt + 55, hopAt + 145], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
+  }
   const sWin = [Math.max(SNACK_PM_WINDOW[0], afternoonFrom), Math.min(SNACK_PM_WINDOW[1], preDinnerEnd)];
   const snackFits = (sWin[1] - sWin[0] >= 20) && afternoonFrom <= SNACK_PM_WINDOW[1];
   if (snackFits) {
@@ -151,7 +159,7 @@ function buildHopSkeleton(cfg) {
 
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
   slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
-  const ordered = slots.map(s => ({ id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }));
+  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; } return o; });
   return { day: cfg.dayNum || 1, park: startPark, toPark, hop: true, openMin: open, closeMin: returning ? cfg.hop.returnCloseMin : close, hopAtMin: hopAt, paceMinPerRide: pace, vip: false, slots: ordered };
 }
 
@@ -228,13 +236,16 @@ export function buildSkeleton(cfg) {
     rideBuckets(openMin + 25, morningEnd, park, pace, 'morning ride').forEach(push);
     if (lunchWins.length) push({ block: 'lunch', type: 'dining', park, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
     if (hasLL) push({ block: 'llTip', type: 'tip', park, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
+    if (cfg.charMeet && sameParkName(cfg.charMeet.park, park)) {
+      push({ block: 'character', type: 'character', park, window: [openMin + 150, openMin + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
+    }
     layEvening(lunchWins.length ? lunchWins[0][1] + 10 : morningEnd);
   }
 
   // sort by time, then assign stable ids in time order
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
   slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
-  const ordered = slots.map(s => ({ id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }));
+  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; } return o; });
 
   return { day: cfg.dayNum || 1, park, openMin, closeMin, paceMinPerRide: pace, vip: isVip, slots: ordered };
 }
@@ -299,7 +310,7 @@ function placeholderCard(slot) { return { t: toClock(rangesOf(slot.window)[0][0]
 // Short fill prompt -- the skeleton replaces ~30 of the old structural prose rules.
 export function buildFillPrompt(skeleton, opts) {
   opts = opts || {};
-  const lines = skeleton.slots.map(s => s.id + ' | ' + s.type + ' | ' + s.park + ' | ' + renderWin(s.window) + ' | ' + (s.role || ''));
+  const lines = skeleton.slots.map(s => s.id + ' | ' + s.type + ' | ' + s.park + ' | ' + renderWin(s.window) + ' | ' + (s.role || '') + (s.preferRide ? ' | ASSIGNED RIDE: ' + s.preferRide + ' (rope-drop priority -- use exactly this ride)' : '') + (s.meetName ? ' | CHARACTER MEET: ' + s.meetName : ''));
   let sys = 'You are the genius best friend who knows Disneyland and Disney California Adventure inside out. A structural plan (the SKELETON) has already been built for this day: the time blocks, which park each block is in, the single lunch and single dinner, the show, and the Lightning Lane checkpoints are all FIXED. Your only job is to fill each slot with the smartest real choice from the CACHE DATA.';
   sys += '\n\nRULES:';
   sys += '\n- Return a JSON array with EXACTLY one object per slot, using the same slot ids in the same order. Never add, remove, reorder, merge, or split slots.';
@@ -331,7 +342,7 @@ const GENERIC_MEAL_KEYS = new Set(['lunch', 'dinner', 'breakfast', 'brunch', 'me
 // Display cleanup: drop "(or X)" / "(aka X)" alternatives the model sometimes appends.
 function stripAlt(h) { return String(h || '').replace(/\s*\((?:or|aka|a\.?k\.?a\.?)\b[^)]*\)/gi, '').replace(/\s{2,}/g, ' ').trim(); }
 // Dedup key: lowercase, drop ALL parentheticals + filler words so "Space Mountain (Night Ride)" collides with "Space Mountain".
-function normName(h) { return String(h || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').replace(/\b(the|a|an|ride|standby|at|to|and)\b/g, ' ').replace(/\s+/g, ' ').trim(); }
+export function normName(h) { return String(h || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').replace(/\b(the|a|an|ride|standby|at|to|and)\b/g, ' ').replace(/\s+/g, ' ').trim(); }
 
 // Deterministic enforcement of the model's fills. Code owns physics; it never picks
 // a ride/venue except via the caller-supplied cache fallback. Returns enforced cards +
@@ -362,7 +373,7 @@ export function applyFills(skeleton, fills, opts) {
   (opts.priorVenues || []).forEach(n => { if (n) used.add(String(n).toLowerCase()); });
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
-    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames }) : placeholderCard(slot);
+    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null }) : placeholderCard(slot);
     if (fallbackFor) report.fallback++;
     c.t = toClock(clampToWindow(parseClock(c.t), slot.window, slot.fixed).t); // stamp a valid in-window time
     if (!c.type) c.type = slot.type;
@@ -394,6 +405,15 @@ export function applyFills(skeleton, fills, opts) {
       // failed fill -- the backfill has the full venue catalog to pick from.
       const venueDup = isDiningSlot && (priorVenueKeys.has(normName(cleanH)) || used.has(hL));
       const mealGeneric = (slot.type === 'dining' || slot.type === 'quickservice') && GENERIC_MEAL_KEYS.has(normName(cleanH));
+      // Guest bans are absolute at fill time (skip list + avoidWater folds):
+      // a banned ride is a failed fill, never a card -- the backfill replaces it.
+      const banned = isRideSlot && nkey && (opts.bannedKeys instanceof Set) && opts.bannedKeys.has(nkey);
+      // The rope-drop slot has an ASSIGNED ride (strategy priority): any other
+      // ride in that slot is a failed fill.
+      const ropeBad = isRideSlot && slot.block === 'ropedrop' && !!slot.preferRide && nkey && nkey !== normName(slot.preferRide);
+      // The character slot names the day's planned meet: a different character
+      // is a failed fill (the deterministic backfill emits the planned meet).
+      const charBad = slot.type === 'character' && !!slot.meetName && (function(){ const fk = normName(cleanH.replace(/^meet\s+/i, '')); const mk = normName(slot.meetName); return !(fk && mk && (fk === mk || fk.indexOf(mk) !== -1 || mk.indexOf(fk) !== -1)); })();
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
       // A park or land name is not a fill: the model sometimes answers a dining,
       // snack, or show slot with the place it sits in ("Disneyland", "DCA",
@@ -409,12 +429,12 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric) {
+      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad) {
         if (parkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -704,6 +724,66 @@ export function closedNamesForDate(closures, tripDate) {
 // ctx: { catalog: [ordered attraction entries], venues: [ordered venue entries],
 //        closedNames: [raw closed names], usedRideKeys: Set (mutated),
 //        usedNames: Set of lowercased placed names (mutated) }
+
+// ---------------------------------------------------------------------------
+// ROPE-DROP PRIORITY + CHARACTER MEET PICKERS (deterministic strategy).
+// Rope drop is the highest-leverage decision of the day: the first ride is
+// ASSIGNED by priority, not left to the fill model. Disneyland: Indiana Jones,
+// Space Mountain, Rise of the Resistance, then Runaway Railway. DCA: Radiator
+// Springs Racers, Guardians, then the remaining headliners. A priority ride
+// already done on an earlier day yields to the next un-done priority; if all
+// are done, the top priority repeats (rope-dropping a headliner twice beats
+// rope-dropping a filler ride). Bans (skip/water) are absolute.
+const ROPE_DROP_PRIORITY = {
+  dl: ['Indiana Jones Adventure', 'Space Mountain', 'Star Wars: Rise of the Resistance', "Mickey & Minnie's Runaway Railway"],
+  dca: ['Radiator Springs Racers', 'Guardians of the Galaxy - Mission: BREAKOUT!', 'Incredicoaster', "Soarin' Around the World", 'WEB SLINGERS: A Spider-Man Adventure']
+};
+export function pickRopeDropRide(catalogIdx, parkName, priorNames, bannedNames) {
+  const idx = catalogIdx || {};
+  const pk = normParkName(parkName);
+  const priorKeys = new Set((priorNames || []).map(normName).filter(Boolean));
+  const bannedKeys = new Set((bannedNames || []).map(normName).filter(Boolean));
+  const entries = Object.values(idx).filter(e => e && e.name && normParkName(e.park) === pk && (!e.status || e.status === 'operating') && !bannedKeys.has(normName(e.name)));
+  if (!entries.length) return null;
+  const prio = ROPE_DROP_PRIORITY[pk] || [];
+  for (const name of prio) { const e = idx[normName(name)]; if (e && entries.indexOf(e) !== -1 && !priorKeys.has(normName(e.name))) return e; }
+  for (const name of prio) { const e = idx[normName(name)]; if (e && entries.indexOf(e) !== -1) return e; }
+  const score = (e) => ((e.ropeDropValue === 'high' ? 3 : e.ropeDropValue === 'med' ? 2 : 1) * 1000) + (e.typicalPeakWait || 0);
+  const fresh = entries.filter(e => !priorKeys.has(normName(e.name))).sort((a, b) => score(b) - score(a));
+  if (fresh.length) return fresh[0];
+  return entries.slice().sort((a, b) => score(b) - score(a))[0];
+}
+
+// Pick the day's character meet from the character-intel list: wanted
+// categories first, in one of the day's parks, preferring a category not yet
+// covered earlier in the trip, then a character not yet met. Location text is
+// mapped to a park via landToPark plus a keyword fallback for meet locations.
+export function pickCharacterMeet(characters, categories, dayParks, priorNames, landToParkFn) {
+  const pool = (Array.isArray(characters) ? characters : []).filter(c => c && c.name);
+  if (!pool.length || !Array.isArray(dayParks) || !dayParks.length) return null;
+  const cats = Array.isArray(categories) ? categories : [];
+  const inCat = cats.length ? pool.filter(c => cats.indexOf(c.category) !== -1) : pool;
+  const usable = inCat.length ? inCat : pool;
+  const LAND_KEYS = [['galaxy', 'DL'], ['avengers', 'DCA'], ['cars land', 'DCA'], ['pixar pier', 'DCA'], ['toontown', 'DL'], ['main street', 'DL'], ['town square', 'DL'], ['fantasyland', 'DL'], ['grizzly', 'DCA'], ['paradise', 'DCA'], ['buena vista', 'DCA'], ['hollywood', 'DCA'], ['frontierland', 'DL'], ['adventureland', 'DL'], ['new orleans', 'DL'], ['critter', 'DL'], ['tomorrowland', 'DL'], ['star wars', 'DL'], ['marvel', 'DCA'], ['pixar', 'DCA'], ['animation', 'DCA']];
+  const parkOf = (c) => {
+    let p = null;
+    try { p = landToParkFn ? landToParkFn(c.location || '') : null; } catch (e) { p = null; }
+    if (p) return p;
+    const s = String(c.location || '').toLowerCase();
+    for (const pair of LAND_KEYS) { if (s.indexOf(pair[0]) !== -1) return pair[1]; }
+    return null;
+  };
+  const inParks = usable.filter(c => { const p = parkOf(c); return p && dayParks.some(dp => sameParkName(dp, p)); });
+  if (!inParks.length) return null;
+  const priorKeys = new Set((priorNames || []).map(n => normName(String(n || '').replace(/^meet\s+/i, ''))).filter(Boolean));
+  const coveredCats = new Set();
+  for (const c of pool) { if (priorKeys.has(normName(c.name))) coveredCats.add(c.category); }
+  const score = (c) => (coveredCats.has(c.category) ? 2 : 0) + (priorKeys.has(normName(c.name)) ? 1 : 0);
+  const pick = inParks.slice().sort((a, b) => score(a) - score(b))[0];
+  const parkMatch = dayParks.find(dp => sameParkName(dp, parkOf(pick)));
+  return { name: pick.name, park: parkMatch || dayParks[0], land: pick.location || '', category: pick.category || '', wait: pick.typicalWait || 0, windows: Array.isArray(pick.typicalWindows) ? pick.typicalWindows : [] };
+}
+
 export function deterministicBackfill(slot, ctx) {
   ctx = ctx || {};
   const catalog = Array.isArray(ctx.catalog) ? ctx.catalog : [];
@@ -716,10 +796,20 @@ export function deterministicBackfill(slot, ctx) {
   const t0 = toClock(rangesOf(slot.window)[0][0]);
 
   if (slot.type === 'ride') {
+    // Rope-drop slots carry an ASSIGNED ride: the backfill honors it exactly.
+    if (slot.preferRide) {
+      const pe = catalog.find(e => e && e.name && normName(e.name) === normName(slot.preferRide) && inSlotPark(e.park) && !(ctx.bannedKeys && ctx.bannedKeys.has(normName(e.name))));
+      if (pe) {
+        usedRideKeys.add(normName(pe.name));
+        usedNames.add(String(pe.name).toLowerCase());
+        if (ctx.todayRideKeys instanceof Set) ctx.todayRideKeys.add(normName(pe.name));
+        return { t: t0, h: pe.name, type: 'ride', n: 'Rope-drop priority: ride this first while the line is shortest.', land: pe.land || '', ride: pe.name };
+      }
+    }
     const cands = catalog.filter(e =>
       e && e.name && !usedRideKeys.has(normName(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)));
+      !closedKeys.has(normName(e.name)) && !(ctx.bannedKeys && ctx.bannedKeys.has(normName(e.name))));
     // Deterministic: highest typical peak wait first (headliners earn the slot), ties by name.
     cands.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (cands.length) {
@@ -738,7 +828,7 @@ export function deterministicBackfill(slot, ctx) {
     const reuse = catalog.filter(e =>
       e && e.name && _priorKeys.has(normName(e.name)) && !_todayKeys.has(normName(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)));
+      !closedKeys.has(normName(e.name)) && !(ctx.bannedKeys && ctx.bannedKeys.has(normName(e.name))));
     reuse.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (reuse.length) {
       const pick = reuse[0];
@@ -777,6 +867,11 @@ export function deterministicBackfill(slot, ctx) {
       usedNames.add(String(pick.name).toLowerCase());
       return { t: t0, h: pick.name, type: 'show', n: 'Nighttime spectacular -- arrive early for a good spot.', land: '' };
     }
+  }
+
+  // Character slot: emit the day's planned meet verbatim.
+  if (slot.type === 'character' && slot.meetName) {
+    return { t: t0, h: 'Meet ' + slot.meetName, type: 'character', n: (slot.meetLand ? 'Find them at ' + slot.meetLand + '. ' : '') + 'A must-do meet for this group.', land: slot.meetLand || '' };
   }
 
   // Structural tip slots and anything unfillable: an honest, deterministic tip built from
