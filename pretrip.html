@@ -1019,7 +1019,8 @@ function ptCollectData() {
     thrillLevel: getTile('thrillTiles'),
     mustDo: rideMust,
     neverSchedule: rideSkip,
-    avoidWater: false,
+    avoidWater: !!ptActiveCats['water'],
+    activeCats: Object.keys(ptActiveCats).filter(function(k){ return ptActiveCats[k]; }),
     accessibility: getChecks('acc_', ['mobility','service']),
 
     minHeight: (ptSegValues['heightTiles'] || 'over48'),
@@ -1118,6 +1119,8 @@ function ptLoadFromBlob(isRebuild) {
           (cfg.ridePreferences.mustDo || []).forEach(function(ride){ ptManual[ptNorm(ride)] = 'must'; });
           (cfg.ridePreferences.skip || cfg.neverSchedule || []).forEach(function(ride){ var nn = ptNorm(ride); if (!ptManual[nn]) ptManual[nn] = 'skip'; });
           ptActiveCats = {};
+          (cfg.activeCats || []).forEach(function(k){ ptActiveCats[k] = true; });
+          document.querySelectorAll('.pt-catchip').forEach(function(c){ c.classList.toggle('active', !!ptActiveCats[c.getAttribute('data-cat')]); });
           if (ptRideCatalog) { ptRenderRideSelector(); }
         }
 
@@ -1213,6 +1216,8 @@ function ptLoadFromStorage() {
     if (Array.isArray(d.dietaryNeeds)) { d.dietaryNeeds.forEach(function(_lbl){ var _cs=document.querySelectorAll('#dietChips .pt-chip'); for (var _i=0;_i<_cs.length;_i++){ if(_cs[_i].textContent.trim()===_lbl) _cs[_i].classList.add('selected'); } }); }
     if (Array.isArray(d.accessibility)) { d.accessibility.forEach(function(_k){ var _b=document.getElementById('acc_'+_k); if(_b) _b.classList.add('checked'); }); }
     if (d.showPreferences) { ptShowManual = {}; (d.showPreferences.want||[]).forEach(function(_n){ ptShowManual[ptNorm(_n)]='want'; }); (d.showPreferences.skip||[]).forEach(function(_n){ var _k=ptNorm(_n); if(!ptShowManual[_k]) ptShowManual[_k]='skip'; }); if (ptShowCatalog) ptRenderShows(); }
+    if (d.mustDo || d.neverSchedule) { ptManual = {}; (d.mustDo||[]).forEach(function(ride){ ptManual[ptNorm(ride)] = 'must'; }); (d.neverSchedule||[]).forEach(function(ride){ var nn = ptNorm(ride); if (!ptManual[nn]) ptManual[nn] = 'skip'; }); if (ptRideCatalog) { ptRenderRideSelector(); } }
+    if (Array.isArray(d.activeCats)) { ptActiveCats = {}; d.activeCats.forEach(function(k){ ptActiveCats[k] = true; }); document.querySelectorAll('.pt-catchip').forEach(function(c){ c.classList.toggle('active', !!ptActiveCats[c.getAttribute('data-cat')]); }); if (ptRideCatalog) { ptRenderRideSelector(); } }
   } catch(e){}
 }
 
@@ -1291,6 +1296,9 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
           characters: tripConfig.characters,
           minHeight: tripConfig.minHeight,
           ridePreferences: tripConfig.ridePreferences || {},
+          avoidWater: tripConfig.avoidWater === true,
+          showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
+          _priorRides: tripConfig._priorRides || [],
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
@@ -1312,6 +1320,10 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         tripConfig: {
           characters: tripConfig.characters,
           minHeight: tripConfig.minHeight,
+          ridePreferences: tripConfig.ridePreferences || {},
+          avoidWater: tripConfig.avoidWater === true,
+          showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
+          _priorRides: tripConfig._priorRides || [],
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
@@ -1403,6 +1415,7 @@ function ptFinish() {
     thrillLevel: d.thrillLevel,
     ridePreferences: { mustDo: d.mustDo, skip: d.neverSchedule, wantToDo: [] },
     avoidWater: d.avoidWater,
+    activeCats: d.activeCats || [],
     accessibility: d.accessibility,
     dietaryNeeds: d.dietaryNeeds,
     showPreferences: d.showPreferences || { want: [], skip: [] },
@@ -1465,6 +1478,7 @@ function ptFinish() {
     var arr = (tripConfig.days || []).map(function(dy) {
       var iso = _ptToISO(dy.date);
       var rec = (iso && cacheObj[iso]) || (dy.date ? cacheObj[dy.date] : null);
+      if (!rec && (cacheObj.dl || cacheObj.dca)) rec = cacheObj; // flat shape: one hours record applied to every day
       if (!rec) return null;
       var dl = rec.dl || rec.DL || {}; var dca = rec.dca || rec.DCA || {};
       var out = {};
@@ -1563,7 +1577,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   // ~3x generation wall-time for non-repeating dining (the per-day progress bar covers it).
   var _seedUsed = (tripConfig.dining && Array.isArray(tripConfig.dining.usedVenues))
     ? tripConfig.dining.usedVenues.slice() : [];
-  function _genDaySeq(idx, usedSoFar) {
+  function _genDaySeq(idx, usedSoFar, priorRidesSoFar) {
     if (idx >= totalDays) { _finishAndSave(); return; }
     var _dayNum = idx + 1;
     var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
@@ -1575,7 +1589,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
     var dayTripConfig = Object.assign({}, tripConfig, {
       reservations: _dayResStrings,
       dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations, usedVenues: usedSoFar.slice() }),
-      _priorRides: [],
+      _priorRides: (priorRidesSoFar || []).slice(),
       _priorShows: []
     });
     ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
@@ -1598,12 +1612,13 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
         console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
       }
       var _dayVenues = (items || []).filter(function(x){ return x && x.type === 'dining' && x.h; }).map(function(x){ return x.h; });
+      var _dayRides = (items || []).filter(function(x){ return x && x.type === 'ride'; }).map(function(x){ return x.ride || x.h; }).filter(Boolean);
       _completed++;
       ptUpdateGenBar(_completed, totalDays);
-      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues));
+      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues), (priorRidesSoFar || []).concat(_dayRides));
     });
   }
-  _genDaySeq(0, _seedUsed);
+  _genDaySeq(0, _seedUsed, []);
 }
 </script>
 </body>
