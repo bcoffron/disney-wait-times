@@ -632,7 +632,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             shows: _showPicks, wantedShows: showWant
           });
 
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks };
 
           let _r = await _fill(_fillSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
@@ -648,7 +648,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // Verify layer -- REMOVE-ONLY safety net (replaces the heavy validateSchedule on this path;
           // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
           const _dayParks = (_hop && _vipStart === null) ? [_park, _hop.toPark] : [_park];
-          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx });
+          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks });
 
           // Parameter-fidelity verifier (recommendation #2): guest parameters are absolute.
           // Cite the specific failures back to the model once; deterministically enforce the rest.
@@ -665,7 +665,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               }).join('; ');
               const _r3 = await _fill(_fillSys + '\n\nPARAMETER CORRECTION -- guest parameters are absolute, not suggestions: ' + _cite + '. Return the FULL array again, same slot ids in the same order, with every one of these fixed and nothing else broken.');
               const _ap3 = applyFills(_sk, Array.isArray(_r3.arr) ? _r3.arr : [], _fillOpts);
-              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx });
+              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks });
               const _v3 = verifyTripParams(_vf3.cards, _pvParams);
               if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; }
             } catch (e) { console.warn('[scaffold] param retry failed:', e.message); }
