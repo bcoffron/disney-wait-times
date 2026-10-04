@@ -1315,6 +1315,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
           showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
           _priorRides: tripConfig._priorRides || [],
           _priorCharacters: tripConfig._priorCharacters || [],
+          _priorRopeDrops: tripConfig._priorRopeDrops || [],
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
@@ -1341,6 +1342,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
           showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
           _priorRides: tripConfig._priorRides || [],
           _priorCharacters: tripConfig._priorCharacters || [],
+          _priorRopeDrops: tripConfig._priorRopeDrops || [],
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
@@ -1594,7 +1596,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   // ~3x generation wall-time for non-repeating dining (the per-day progress bar covers it).
   var _seedUsed = (tripConfig.dining && Array.isArray(tripConfig.dining.usedVenues))
     ? tripConfig.dining.usedVenues.slice() : [];
-  function _genDaySeq(idx, usedSoFar, priorRidesSoFar, priorCharsSoFar) {
+  function _genDaySeq(idx, usedSoFar, priorRidesSoFar, priorCharsSoFar, priorRopeSoFar) {
     if (idx >= totalDays) { _finishAndSave(); return; }
     var _dayNum = idx + 1;
     var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
@@ -1608,6 +1610,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       dining: Object.assign({}, tripConfig.dining, { reservations: _dayReservations, usedVenues: usedSoFar.slice() }),
       _priorRides: (priorRidesSoFar || []).slice(),
       _priorCharacters: (priorCharsSoFar || []).slice(),
+      _priorRopeDrops: (priorRopeSoFar || []).slice(),
       _priorShows: []
     });
     ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
@@ -1632,12 +1635,14 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       var _dayVenues = (items || []).filter(function(x){ return x && x.type === 'dining' && x.h; }).map(function(x){ return x.h; });
       var _dayRides = (items || []).filter(function(x){ return x && x.type === 'ride'; }).map(function(x){ return x.ride || x.h; }).filter(Boolean);
       var _dayChars = (items || []).filter(function(x){ return x && x.type === 'character'; }).map(function(x){ return x.h; }).filter(Boolean);
+      var _firstRide = (items || []).filter(function(x){ return x && x.type === 'ride'; })[0];
+      var _dayRope = _firstRide ? [(_firstRide.ride || _firstRide.h)] : [];
       _completed++;
       ptUpdateGenBar(_completed, totalDays);
-      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues), (priorRidesSoFar || []).concat(_dayRides), (priorCharsSoFar || []).concat(_dayChars));
+      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues), (priorRidesSoFar || []).concat(_dayRides), (priorCharsSoFar || []).concat(_dayChars), (priorRopeSoFar || []).concat(_dayRope));
     });
   }
-  _genDaySeq(0, _seedUsed, [], []);
+  _genDaySeq(0, _seedUsed, [], [], []);
 }
 </script>
 </body>
