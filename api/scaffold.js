@@ -17,6 +17,22 @@ function winStart(w) { return Array.isArray(w[0]) ? w[0][0] : w[0]; }
 // Evenly-spaced RIDE buckets across [start,end] at the cadence: each gets a nominal
 // time and a +/- half-step window (clamped), so rides stay spread out but the model
 // still picks which ride fills each bucket.
+// Honest daypart pacing: a ride slot must price in the wait at that hour plus
+// the ride itself plus walking. The old flat ~44 min/ride made midday plans
+// physically impossible (a 55-min standby wait alone exceeds the bucket).
+// Table = minutes per ride by segment start; scaled by the caller's base pace
+// (44 = 1.0). VIP pace passes through untouched (a guide skips the lines).
+function paceForSegment(startMin, base, isVip) {
+  if (isVip) return base;
+  const scale = (base || DEFAULT_PACE_MIN_PER_RIDE) / DEFAULT_PACE_MIN_PER_RIDE;
+  let t;
+  if (startMin < 660) t = 38;        // rope-drop window: lines still short
+  else if (startMin < 780) t = 52;   // late morning
+  else if (startMin < 1020) t = 62;  // midday / afternoon peak waits
+  else if (startMin < 1200) t = 52;  // evening
+  else t = 42;                       // late night: waits collapse
+  return Math.max(30, Math.round(t * scale));
+}
 function rideBuckets(start, end, park, pace, role) {
   const out = [];
   const span = end - start;
@@ -63,6 +79,7 @@ function buildHopSkeleton(cfg) {
   const toPark = cfg.hop.toPark;
   const open = cfg.openMin, close = cfg.closeMin, hopAt = cfg.hop.atMin;
   const pace = cfg.paceMinPerRide || DEFAULT_PACE_MIN_PER_RIDE;
+  const P = (fromMin) => paceForSegment(fromMin, pace, false);
   const hasLL = cfg.hasLL !== false;
 
   // Return hop (hopper tickets only; the generator sets returnAtMin only when
@@ -85,19 +102,19 @@ function buildHopSkeleton(cfg) {
   push({ block: 'ropedrop', type: 'ride', park: startPark, window: [open + 5, open + 20], role: 'headliner rope drop -- best low-wait window of the day' });
 
   const lunchMorning = fitWindows(LUNCH_WINDOWS, open, hopAt);
-  const lunchEvening = fitWindows(LUNCH_WINDOWS, hopAt, close);
+  const lunchEvening = fitWindows(LUNCH_WINDOWS, hopAt + 25, close); // evening segment starts at hopAt+25; fitting lunch from hopAt let its window open before the first evening ride bucket and the two collided 1 minute apart
   const lunchInMorning = lunchMorning.length > 0;
   const lunchWins = lunchInMorning ? lunchMorning : lunchEvening;
 
   if (lunchInMorning) {
     const lunchNom = lunchWins[0][0];
-    rideBuckets(open + 25, lunchNom - 10, startPark, pace, 'morning ride').forEach(push);
+    rideBuckets(open + 25, lunchNom - 10, startPark, P(open + 25), 'morning ride').forEach(push);
     push({ block: 'lunch', type: 'dining', park: startPark, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
     if (hasLL) push({ block: 'llTip', type: 'tip', park: startPark, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
-    rideBuckets(lunchWins[0][1] + 10, hopAt - 10, startPark, pace, 'late-morning ride').forEach(push);
+    rideBuckets(lunchWins[0][1] + 10, hopAt - 10, startPark, P(lunchWins[0][1] + 10), 'late-morning ride').forEach(push);
   } else {
     if (hasLL) push({ block: 'llTip', type: 'tip', park: startPark, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
-    rideBuckets(open + 25, hopAt - 10, startPark, pace, 'morning ride').forEach(push);
+    rideBuckets(open + 25, hopAt - 10, startPark, P(open + 25), 'morning ride').forEach(push);
   }
 
   // Character meet (must-do categories): one guaranteed meet in the start park.
@@ -119,7 +136,7 @@ function buildHopSkeleton(cfg) {
   let afternoonFrom = eveStart;
   if (!lunchInMorning && lunchWins.length) {
     const lNom = lunchWins[0][0];
-    rideBuckets(eveStart, lNom - 10, toPark, pace, 'afternoon ride').forEach(push);
+    rideBuckets(eveStart, lNom - 10, toPark, P(eveStart), 'afternoon ride').forEach(push);
     push({ block: 'lunch', type: 'dining', park: toPark, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
     afternoonFrom = lunchWins[0][1] + 10;
   }
@@ -131,30 +148,30 @@ function buildHopSkeleton(cfg) {
   const snackFits = (sWin[1] - sWin[0] >= 20) && afternoonFrom <= SNACK_PM_WINDOW[1];
   if (snackFits) {
     const sNom = Math.round((sWin[0] + sWin[1]) / 2);
-    rideBuckets(afternoonFrom, sNom - 10, toPark, pace, 'afternoon ride').forEach(push);
+    rideBuckets(afternoonFrom, sNom - 10, toPark, P(afternoonFrom), 'afternoon ride').forEach(push);
     push({ block: 'snackPM', type: 'snack', park: toPark, window: sWin, role: 'one afternoon snack / shopping break' });
     if (hasLL) push({ block: 'llTip', type: 'tip', park: toPark, window: [810, 840], role: 'afternoon Lightning Lane check' });
-    rideBuckets(sNom + 10, preDinnerEnd, toPark, pace, 'afternoon ride').forEach(push);
+    rideBuckets(sNom + 10, preDinnerEnd, toPark, P(sNom + 10), 'afternoon ride').forEach(push);
   } else {
     if (hasLL) push({ block: 'llTip', type: 'tip', park: toPark, window: [810, 840], role: 'afternoon Lightning Lane check' });
-    rideBuckets(afternoonFrom, preDinnerEnd, toPark, pace, 'afternoon ride').forEach(push);
+    rideBuckets(afternoonFrom, preDinnerEnd, toPark, P(afternoonFrom), 'afternoon ride').forEach(push);
   }
 
   if (dinnerWins.length) push({ block: 'dinner', type: 'dining', park: toPark, window: dinnerWins, role: 'one dinner, off-peak, name the venue' });
   const afterDinner = dinnerWins.length ? dinnerWins[0][1] + 10 : preDinnerEnd;
 
   if (canShow) {
-    rideBuckets(afterDinner, showWin[0] - 10, toPark, pace, 'evening ride').forEach(push);
+    rideBuckets(afterDinner, showWin[0] - 10, toPark, P(afterDinner), 'evening ride').forEach(push);
     push({ block: 'show', type: 'show', park: toPark, window: showWin, role: 'nighttime spectacular -- arrive early for a spot' });
-    tailRides(showWin[1] + 10, eveClose, toPark, pace, 'late-night ride', push);
+    tailRides(showWin[1] + 10, eveClose, toPark, P(showWin[1] + 10), 'late-night ride', push);
   } else {
-    tailRides(afterDinner, eveClose, toPark, pace, 'evening ride', push);
+    tailRides(afterDinner, eveClose, toPark, P(afterDinner), 'evening ride', push);
   }
 
   // ---- RETURN SEGMENT: start park again, returnAt -> its later close ----
   if (returning) {
     push({ block: 'hop', type: 'tip', park: startPark, window: [returnAt - 10, returnAt + 20], role: 'park hop back to ' + startPark + ': it stays open later -- more rides (~15 min walk + security)' });
-    tailRides(returnAt + 25, cfg.hop.returnCloseMin, startPark, pace, 'late-night ride', push);
+    tailRides(returnAt + 25, cfg.hop.returnCloseMin, startPark, P(returnAt + 25), 'late-night ride', push);
   }
 
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
@@ -170,6 +187,7 @@ export function buildSkeleton(cfg) {
   const hasLL = cfg.hasLL !== false;
   const vipStart = numOrNull(cfg.vipStartMin), vipEnd = numOrNull(cfg.vipEndMin);
   const isVip = vipStart !== null && vipEnd !== null;
+  const P = (fromMin) => paceForSegment(fromMin, pace, isVip);
   if (cfg.hop && cfg.hop.toPark && !isVip) return buildHopSkeleton(cfg);
 
   let showWin = [Math.max(1200, closeMin - 120), Math.min(closeMin - 5, Math.max(1290, closeMin - 60))];
@@ -189,24 +207,24 @@ export function buildSkeleton(cfg) {
     const snackFits = (sWin[1] - sWin[0] >= 20) && from <= SNACK_PM_WINDOW[1];
     if (snackFits) {
       const sNom = Math.round((sWin[0] + sWin[1]) / 2);
-      rideBuckets(from, sNom - 10, park, pace, 'afternoon ride').forEach(push);
+      rideBuckets(from, sNom - 10, park, P(from), 'afternoon ride').forEach(push);
       push({ block: 'snackPM', type: 'snack', park, window: sWin, role: 'one afternoon snack / shopping break' });
       if (hasLL) push({ block: 'llTip', type: 'tip', park, window: [810, 840], role: 'afternoon Lightning Lane check' });
-      rideBuckets(sNom + 10, preDinnerEnd, park, pace, 'afternoon ride').forEach(push);
+      rideBuckets(sNom + 10, preDinnerEnd, park, P(sNom + 10), 'afternoon ride').forEach(push);
     } else {
       if (hasLL) push({ block: 'llTip', type: 'tip', park, window: [810, 840], role: 'afternoon Lightning Lane check' });
-      rideBuckets(from, preDinnerEnd, park, pace, 'afternoon ride').forEach(push);
+      rideBuckets(from, preDinnerEnd, park, P(from), 'afternoon ride').forEach(push);
     }
 
     if (dinnerWins.length) push({ block: 'dinner', type: 'dining', park, window: dinnerWins, role: 'one dinner, off-peak, name the venue' });
     const afterDinner = dinnerWins.length ? dinnerWins[0][1] + 10 : preDinnerEnd;
 
     if (canShow) {
-      rideBuckets(afterDinner, showWin[0] - 10, park, pace, 'evening ride').forEach(push);
+      rideBuckets(afterDinner, showWin[0] - 10, park, P(afterDinner), 'evening ride').forEach(push);
       push({ block: 'show', type: 'show', park, window: showWin, role: 'nighttime spectacular -- arrive early for a spot' });
-      tailRides(showWin[1] + 10, closeMin, park, pace, 'late-night ride', push);
+      tailRides(showWin[1] + 10, closeMin, park, P(showWin[1] + 10), 'late-night ride', push);
     } else {
-      tailRides(afterDinner, closeMin, park, pace, 'evening ride', push);
+      tailRides(afterDinner, closeMin, park, P(afterDinner), 'evening ride', push);
     }
   }
 
@@ -217,7 +235,7 @@ export function buildSkeleton(cfg) {
   if (isVip) {
     if (openMin + 20 <= vipStart) {
       push({ block: 'ropedrop', type: 'ride', park, window: [openMin + 5, Math.min(openMin + 20, vipStart - 5)], role: 'headliner rope drop before your tour' });
-      rideBuckets(openMin + 25, vipStart - 5, park, pace, 'pre-tour ride').forEach(push);
+      rideBuckets(openMin + 25, vipStart - 5, park, P(openMin + 25), 'pre-tour ride').forEach(push);
     }
     // Single VIP Tour card at vipStart (applyFills emits it verbatim from role); covers the whole tour
     push({ block: 'vip', type: 'vip', park, window: [vipStart, vipStart], role: 'Your private guide handles all skip-the-line access from ' + toClock(vipStart) + ' to ' + toClock(vipEnd) + '.' });
@@ -233,7 +251,7 @@ export function buildSkeleton(cfg) {
     const lunchWins = fitWindows(LUNCH_WINDOWS, openMin, closeMin);
     const lunchNom = lunchWins.length ? lunchWins[0][0] : null;
     const morningEnd = lunchNom !== null ? lunchNom - 10 : Math.min(closeMin - 30, 720);
-    rideBuckets(openMin + 25, morningEnd, park, pace, 'morning ride').forEach(push);
+    rideBuckets(openMin + 25, morningEnd, park, P(openMin + 25), 'morning ride').forEach(push);
     if (lunchWins.length) push({ block: 'lunch', type: 'dining', park, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
     if (hasLL) push({ block: 'llTip', type: 'tip', park, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
     if (cfg.charMeet && sameParkName(cfg.charMeet.park, park)) {
@@ -326,6 +344,9 @@ export function buildFillPrompt(skeleton, opts) {
   sys += '\n- Never repeat a ride or venue anywhere in the day, or any venue in the ALREADY-USED list. Give exactly ONE name per slot -- never "X (or Y)" or a list of alternatives.';
   sys += '\n- Object schema: { "id":"s03", "t":"8:10 AM", "h":"Name", "type":"<the slot\'s type>", "land":"Land", "n":"tip under 80 chars", "ride":"Exact ride name (rides/LL only)", "ll":{ "t":"multi|single", "a":"..." } }';
   sys += '\n- ll only on ride/tip slots and only if the day has Lightning Lane. ASCII only. Notes under 80 characters.';
+  if (opts.ill === false) sys += '\n- This group does NOT have Individual Lightning Lane (ILL): NEVER mention ILL, Single Pass, individual ride purchases, or per-ride prices anywhere -- not in headings, notes, or ll fields. Rise of the Resistance and Radiator Springs Racers are ridden standby or not at all.';
+  if (opts.llmp === false && opts.ill === false) sys += '\n- This group has NO Lightning Lane products at all: do not include ll fields and do not write Lightning Lane booking advice; tip slots give standby strategy instead.';
+  else if (opts.llmp === true && opts.ill === false) sys += '\n- Lightning Lane for this group means Multi Pass ONLY.';
   if (opts.closedNames && opts.closedNames.length) sys += '\n- DOWN / CLOSED right now -- do NOT place any of these in a ride slot; if your best pick is on this list, choose a different open attraction from the cache for that slot instead: ' + opts.closedNames.join('; ') + '.';
   if (opts.closedVenueNames && opts.closedVenueNames.length) sys += '\n- DOWN FOR REFURBISHMENT right now -- do NOT place any of these in a dining, quickservice, or snack slot; choose a different open venue from the verified dining list instead: ' + opts.closedVenueNames.join('; ') + '.';
   sys += '\n\nSKELETON (fill EVERY slot):\n' + lines.join('\n');
@@ -622,6 +643,117 @@ function dezigzagRides(kept, catalog) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// LL NORMALIZATION + FEASIBILITY TRIM (deterministic; the model does not get
+// a vote on either). LL tags used to be model-emitted, so they appeared on
+// some days and not others, and ILL advice showed up for groups who never
+// bought it. Code now assigns tags from the day's actual products, and the
+// final schedule is checked against physics (wait + duration + walk) with
+// impossible transitions trimmed.
+// ---------------------------------------------------------------------------
+const RIDE_DURATIONS_MIN = { 'star wars rise of the resistance': 20, 'indiana jones adventure': 12, 'radiator springs racers': 10, 'guardians of the galaxy mission breakout': 10, 'mickey minnie runaway railway': 10, 'millennium falcon smugglers run': 10, 'pirates of the caribbean': 15, 'tiana bayou adventure': 12, 'haunted mansion': 10, 'jungle cruise': 10, 'toy story midway mania': 10, 'web slingers spider man adventure': 10, 'space mountain': 8, 'incredicoaster': 8, 'big thunder mountain railroad': 8, 'grizzly river run': 8, 'soarin around the world': 8, 'soarin across america': 8, 'matterhorn bobsleds': 7, 'disneyland railroad': 20, 'disneyland monorail': 15 };
+function activityDurationMin(c) {
+  if (c.type === 'ride') return RIDE_DURATIONS_MIN[normName(c.ride || c.h)] || 6;
+  if (c.type === 'show') return 25;
+  if (c.type === 'dining') return 55;
+  if (c.type === 'quickservice') return 40;
+  if (c.type === 'character') return 15;
+  if (c.type === 'snack') return 10;
+  return 0;
+}
+function waitEstimateMin(c, startMin, waitPatterns, catalog) {
+  if (c.type !== 'ride') return 0;
+  const name = c.ride || c.h;
+  let base = null;
+  const wp = waitPatterns && name ? waitPatterns[name] : null;
+  if (wp && wp.moderate) {
+    const dp = startMin < 660 ? 'rope_drop' : startMin < 840 ? 'midday' : startMin < 1020 ? 'afternoon' : startMin < 1200 ? 'evening' : 'late';
+    if (typeof wp.moderate[dp] === 'number') base = wp.moderate[dp];
+  }
+  if (base === null) {
+    const e = catalog ? catalog[normName(name)] : null;
+    base = e && e.typicalPeakWait ? Math.round(e.typicalPeakWait * 0.7) : 20;
+  }
+  if (c.ll && c.ll.t === 'multi') return Math.min(base, 12);
+  if (c.ll && c.ll.t === 'single') return Math.min(base, 10);
+  return base;
+}
+const EDGE_LANDS = new Set(["mickey's toontown", 'toontown', "star wars: galaxy's edge", 'bayou country', 'critter country']);
+function walkMin(a, b, landToPark) {
+  if (!a.land || !b.land || a.land === b.land) return 3;
+  const pa = landToPark ? landToPark(a.land) : null;
+  const pb = landToPark ? landToPark(b.land) : null;
+  if (pa && pb && !sameParkName(pa, pb)) return 15;
+  if (EDGE_LANDS.has(String(a.land).toLowerCase()) || EDGE_LANDS.has(String(b.land).toLowerCase())) return 11;
+  return 8;
+}
+export function normalizeLLAssignments(cards, opts) {
+  const llmp = !!(opts && opts.llmp), ill = !!(opts && opts.ill);
+  const catalog = (opts && opts.catalog) || {};
+  const list = cards || [];
+  if (!llmp && !ill) { for (const c of list) if (c.ll) delete c.ll; return list; }
+  for (const c of list) {
+    if (c.type !== 'ride') continue;
+    const k = normName(c.ride || c.h);
+    if (ILL_ONLY_KEYS.has(k)) {
+      if (ill) c.ll = { t: 'single', a: (c.ll && c.ll.a) || 'Individual Lightning Lane -- book in the app at park open.' };
+      else if (c.ll && c.ll.t === 'single') delete c.ll;
+    }
+  }
+  if (llmp) {
+    const eligible = list.filter(c => c.type === 'ride' && !ILL_ONLY_KEYS.has(normName(c.ride || c.h)));
+    const scored = eligible.map(c => { const e = catalog[normName(c.ride || c.h)] || {}; return { c, tagged: c.ll && c.ll.t === 'multi' ? 1 : 0, peak: e.typicalPeakWait || 0, m: parseClock(c.t) || 0 }; });
+    scored.sort((a, b) => (b.tagged - a.tagged) || (b.peak - a.peak) || (a.m - b.m));
+    const chosen = new Set(scored.slice(0, 8).map(x => x.c));
+    for (const c of eligible) {
+      if (chosen.has(c)) { if (!c.ll || c.ll.t !== 'multi') c.ll = { t: 'multi', a: 'Lightning Lane Multi Pass pick -- book a return time in the app.' }; }
+      else if (c.ll && c.ll.t === 'multi') delete c.ll;
+    }
+  } else {
+    for (const c of list) if (c.ll && c.ll.t === 'multi') delete c.ll;
+  }
+  return list;
+}
+const ACTIVITY_TYPES = new Set(['ride', 'show', 'dining', 'quickservice', 'character', 'snack']);
+export function trimInfeasible(cards, opts) {
+  const wp = opts && opts.waitPatterns;
+  const trimmed = [];
+  if (!wp) return { cards, trimmed };
+  const catalog = (opts && opts.catalog) || {};
+  const landToPark = (opts && opts.landToPark) || (() => null);
+  let list = (cards || []).slice();
+  const isProtected = (c, arr) => {
+    if (c.type === 'dining' || c.type === 'show' || c.type === 'character') return true;
+    if (c.type === 'ride') {
+      const rides = arr.filter(x => x.type === 'ride');
+      if (rides[rides.length - 1] === c) return true; // run-to-closing anchor
+      const e = catalog[normName(c.ride || c.h)] || {};
+      if ((e.typicalPeakWait || 0) >= 75) return true; // headliner: the plan bends around it
+    }
+    return false;
+  };
+  for (let iter = 0; iter < 14; iter++) {
+    const acts = list.filter(c => ACTIVITY_TYPES.has(c.type) && parseClock(c.t) !== null);
+    let dropped = false;
+    for (let i = 0; i + 1 < acts.length; i++) {
+      const cur = acts[i], nxt = acts[i + 1];
+      const ct = parseClock(cur.t), nt = parseClock(nxt.t);
+      const need = waitEstimateMin(cur, ct, wp, catalog) + activityDurationMin(cur) + walkMin(cur, nxt, landToPark);
+      if (nt - ct - need >= -8) continue;
+      const dropCur = !isProtected(cur, acts) && i > 0;
+      const dropNxt = !isProtected(nxt, acts);
+      const victim = dropNxt ? nxt : (dropCur ? cur : null);
+      if (!victim) continue;
+      list = list.filter(x => x !== victim);
+      trimmed.push({ h: victim.h, reason: 'infeasible-pace' });
+      dropped = true;
+      break;
+    }
+    if (!dropped) break;
+  }
+  return { cards: list, trimmed };
+}
+
 export function verifyScaffold(cards, opts) {
   opts = opts || {};
   const allowedParks = (Array.isArray(opts.parks) && opts.parks.length) ? opts.parks : (opts.park ? [opts.park] : []);
@@ -642,7 +774,22 @@ export function verifyScaffold(cards, opts) {
   const usedRideSquash = new Set();
   const usedGroups = new Set();
   const removed = [], kept = [], usedRide = new Set();
-  for (const c of (cards || [])) {
+  // ILL gating: the group did not buy Individual Lightning Lane, so no card may
+  // carry ILL instructions. Tip cards built around ILL are removed outright;
+  // ride cards keep the ride but lose any ILL sentence in the note.
+  let _inputCards = cards || [];
+  if (opts.hasILL === false) {
+    const illRe = /\bILL\b|individual lightning|single pass/i;
+    const nextIn = [];
+    for (const c of _inputCards) {
+      const text = String(c.h || '') + ' ' + String(c.n || '');
+      if (c.type === 'tip' && illRe.test(text)) { removed.push({ h: c.h, reason: 'ill-not-purchased' }); continue; }
+      if (c.n && illRe.test(c.n)) c.n = c.n.split(/(?<=[.!])\s+/).filter(p => !illRe.test(p)).join(' ').trim();
+      nextIn.push(c);
+    }
+    _inputCards = nextIn;
+  }
+  for (const c of _inputCards) {
     const hL = String(c.h || '').toLowerCase();
     // ILL correction: only Rise and Radiator Springs Racers are Individual
     // Lightning Lane. A 'single' tag on anything else (e.g. Space Mountain) is a
@@ -723,7 +870,13 @@ export function verifyScaffold(cards, opts) {
     kept.push(c);
   }
   dezigzagRides(kept, catalog);
-  return { cards: sortAndSpace(kept), removed };
+  const _finalCards = sortAndSpace(kept);
+  if (opts.hasLLMP !== undefined || opts.hasILL !== undefined) {
+    normalizeLLAssignments(_finalCards, { llmp: opts.hasLLMP === true, ill: opts.hasILL === true, catalog });
+  }
+  const _trim = trimInfeasible(_finalCards, { waitPatterns: opts.waitPatterns || null, catalog, landToPark });
+  for (const r of _trim.trimmed) removed.push(r);
+  return { cards: _trim.cards, removed };
 }
 
 // ---------------------------------------------------------------------------
