@@ -677,8 +677,51 @@ function ptToggleCat(key){
   if (c) c.classList.toggle('active', !!ptActiveCats[key]);
   ptRefreshRideUI(); ptUpdateRideCounter();
 }
+// Ride variant groups: two catalog entries that are ONE physical attraction
+// (the two Soarin' films share a theater; the two Pal-A-Round gondola types
+// are one wheel). The picker shows a single row per group and a tap sets every
+// member's state together; collection emits all member names with that state
+// and the generator dedupes variants itself. (Beau flagged the duplicate
+// Soarin' rows on the picker, Oct 4, 2026.)
+var PT_VARIANT_GROUPS = [
+  { label: "Soarin'", members: ["Soarin' Around the World", "Soarin' Across America"] },
+  { label: 'Pixar Pal-A-Round', members: ['Pixar Pal-A-Round – Swinging', 'Pixar Pal-A-Round – Non-Swinging'] }
+];
+function ptVariantPeers(norm){
+  var out = [];
+  PT_VARIANT_GROUPS.forEach(function(g){
+    var norms = g.members.map(function(m){ return ptNorm(m); });
+    if (norms.indexOf(norm) !== -1) norms.forEach(function(n){ if (n !== norm && out.indexOf(n) === -1) out.push(n); });
+  });
+  return out;
+}
+function ptVariantInfo(){
+  var label = {}, hidden = {};
+  PT_VARIANT_GROUPS.forEach(function(g){
+    var present = g.members.map(function(m){ return ptNorm(m); }).filter(function(n){ return !!ptNameByNorm[n]; });
+    if (present.length < 2) return;
+    label[present[0]] = g.label;
+    for (var i = 1; i < present.length; i++) hidden[present[i]] = true;
+  });
+  return { label: label, hidden: hidden };
+}
+function ptVariantReconcile(){
+  // Saved prefs can disagree inside a group (e.g. one film must-do, the other
+  // skipped). The first member with a manual state wins for the whole group.
+  PT_VARIANT_GROUPS.forEach(function(g){
+    var norms = g.members.map(function(m){ return ptNorm(m); });
+    var state = '';
+    for (var i = 0; i < norms.length; i++){ if (ptManual[norms[i]]) { state = ptManual[norms[i]]; break; } }
+    if (!state) return;
+    norms.forEach(function(n){ ptManual[n] = state; });
+  });
+}
 function ptTapRide(norm, act){
   if (ptManual[norm] === act) { delete ptManual[norm]; } else { ptManual[norm] = act; }
+  var peers = ptVariantPeers(norm);
+  for (var i = 0; i < peers.length; i++){
+    if (ptManual[norm]) ptManual[peers[i]] = ptManual[norm]; else delete ptManual[peers[i]];
+  }
   ptRefreshRideUI(); ptUpdateRideCounter();
 }
 function ptRefreshRideUI(){
@@ -691,8 +734,9 @@ function ptRefreshRideUI(){
   }
 }
 function ptUpdateRideCounter(){
-  var must=0, skip=0, total=(ptRideCatalog||[]).length;
-  (ptRideCatalog||[]).forEach(function(r){ var e=ptEffective(ptNorm(r.name)); if(e==='must')must++; else if(e==='skip')skip++; });
+  var must=0, skip=0, total=0;
+  var vInfo = ptVariantInfo();
+  (ptRideCatalog||[]).forEach(function(r){ var nn = ptNorm(r.name); if (vInfo.hidden[nn]) return; total++; var e=ptEffective(nn); if(e==='must')must++; else if(e==='skip')skip++; });
   var auto = total - must - skip;
   var el = document.getElementById('rideCounter');
   if (el) el.innerHTML = '<b>'+must+'</b> must-do &middot; <b>'+skip+'</b> skipped &middot; <b>'+auto+'</b> rides we can choose from';
@@ -713,15 +757,17 @@ function ptRenderRideSelector(){
   var host = document.getElementById('rideSelector');
   if (!host) return;
   if (!ptRideCatalog || !ptRideCatalog.length){ host.innerHTML = '<div class="pt-ride-loading">No rides found.</div>'; return; }
+  ptVariantReconcile();
   var byPark = { DL:{}, DCA:{} };
   ptRideCatalog.forEach(function(r){ if (!byPark[r.park][r.land]) byPark[r.park][r.land] = []; byPark[r.park][r.land].push(r); });
+  var vInfo = ptVariantInfo();
   var parkOrder = [ ['DL','Disneyland'], ['DCA','California Adventure'] ];
   var html = '';
   parkOrder.forEach(function(pp){
     var code=pp[0], label=pp[1], lands=byPark[code], landNames=[];
     for (var ln in lands){ if (lands.hasOwnProperty(ln)) landNames.push(ln); }
     if (!landNames.length) return;
-    var total=0; landNames.forEach(function(l){ total += lands[l].length; });
+    var total=0; landNames.forEach(function(l){ lands[l].forEach(function(r){ if (!vInfo.hidden[ptNorm(r.name)]) total++; }); });
     html += '<div class="pt-park-acc" id="acc_park_'+code+'">';
     html += '<div class="pt-park-head" onclick="ptToggleParkAcc(\''+code+'\')"><span class="pt-park-name">'+ptEsc(label)+'</span><span style="display:flex;align-items:center;gap:8px;"><span class="pt-park-count">'+total+' rides</span><span class="pt-park-caret"></span></span></div>';
     html += '<div class="pt-park-body">';
@@ -729,7 +775,8 @@ function ptRenderRideSelector(){
       html += '<div class="pt-land-head">'+ptEsc(l)+'</div>';
       lands[l].forEach(function(r){
         var nn = ptNorm(r.name);
-        html += '<div class="pt-ride-row" data-norm="'+nn+'"><span class="pt-ride-name">'+ptEsc(r.name)+'</span><span class="pt-ride-pills"><span class="pt-ride-pill pill-must" data-act="must">Must-do</span><span class="pt-ride-pill pill-skip" data-act="skip">Skip</span></span></div>';
+        if (vInfo.hidden[nn]) return;
+        html += '<div class="pt-ride-row" data-norm="'+nn+'"><span class="pt-ride-name">'+ptEsc(vInfo.label[nn] || r.name)+'</span><span class="pt-ride-pills"><span class="pt-ride-pill pill-must" data-act="must">Must-do</span><span class="pt-ride-pill pill-skip" data-act="skip">Skip</span></span></div>';
       });
     });
     html += '</div></div>';
@@ -971,6 +1018,7 @@ function ptUpdateDayLabels() {
 
 // -- Collect data ----------------------------------------
 function ptCollectData() {
+  ptVariantReconcile();
   var count = ptGetDayCount() || _ptDayCount || 1;
   var startVal = document.getElementById('tripStart') ? document.getElementById('tripStart').value : '';
   function getChips(id){ var a=[]; document.querySelectorAll('#'+id+' .pt-chip.selected').forEach(function(c){a.push(c.textContent.trim());}); return a; }
@@ -1329,7 +1377,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
               var _start = (tripConfig.days && tripConfig.days[0] && tripConfig.days[0].date) || tripConfig.startDate || null;
               if (_start) { var _o = new Date(_start); _o.setDate(_o.getDate() + di); _dt = _o.toISOString().slice(0,10); }
             }
-            return { park: dd.park, date: _dt, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, intent: dd.intent };
+            return { park: dd.park, date: _dt, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP === true, hasILL: dd.hasILL === true, intent: dd.intent };
           })
         } }
     : { prompt: prompt, mode: 'setup', maxTokens: 8000,
