@@ -4578,7 +4578,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
         + '</div>';
     }).join('');
     var _wMonth = '';
-    try { var _fd0 = DAYS[0] && (DAYS[0].date || DAYS[0].shortDate); var _fdt0 = _fd0 ? new Date(_fd0) : null; if (_fdt0 && !isNaN(_fdt0.getTime())) _wMonth = _fdt0.toLocaleString('en-US', { month: 'long' }); } catch (e) {}
+    try { var _wCfgDay = ((window.TRIP_CONFIG || {}).days || [])[0]; var _fd0 = (_wCfgDay && _wCfgDay.date) || (DAYS[0] && (DAYS[0].date || DAYS[0].shortDate)); var _fdt0 = _fd0 ? new Date(_fd0) : null; if (_fdt0 && !isNaN(_fdt0.getTime())) _wMonth = _fdt0.toLocaleString('en-US', { month: 'long' }); } catch (e) {}
     var _wCap = _wMonth ? ('Sunscreen every day \u2014 ' + _wMonth + ' in Anaheim peaks fast.') : 'Sunscreen every day \u2014 Anaheim sun peaks fast.';
     return '<div style="padding: 0 14px 14px;">'
       + '<div class="forecast-table">'+rows+'</div>'
@@ -4600,8 +4600,8 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
       var levelColor = fallbackCrowds[i] ? fallbackCrowds[i].levelColor : '#9A5800';
       var dayName    = day.shortDay || (day.label ? day.label.split(' ')[0].slice(0,3) : ('Day '+(i+1)));
       var dayDate    = day.shortDate || day.date || (day.label ? day.label.split(' ').slice(1).join(' ') : '');
-      var weekday = dayName;
-      try { var _cdt = day.date ? new Date(day.date) : null; if (_cdt && !isNaN(_cdt.getTime())) weekday = _cdt.toLocaleDateString('en-US', { weekday: 'long' }); } catch (e) {}
+      var weekday = null;
+      try { var _cfgDay = ((window.TRIP_CONFIG || {}).days || [])[i]; var _cdt = _cfgDay && _cfgDay.date ? new Date(_cfgDay.date) : null; if (_cdt && !isNaN(_cdt.getTime())) weekday = _cdt.toLocaleDateString('en-US', { weekday: 'long' }); } catch (e) {}
       var isVip = !!(((window.TRIP_CONFIG || {}).days || [])[i] && TRIP_CONFIG.days[i].isVip);
       return { pct: pct, lbl: lbl, color: color, levelColor: levelColor, dayName: dayName, dayDate: dayDate, weekday: weekday, isVip: isVip, idx: i };
     });
@@ -4622,8 +4622,10 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     if (infos.length) {
       var _busy = infos[0], _light = infos[0];
       infos.forEach(function(inf) { if (inf.pct > _busy.pct) _busy = inf; if (inf.pct < _light.pct) _light = inf; });
-      _insight = _busy.weekday + ' (Day ' + (_busy.idx + 1) + ') looks busiest' + (_busy.isVip ? ' \u2014 good thing that\'s your VIP tour day, so you\'re covered.' : '.');
-      if (_light.idx !== _busy.idx) _insight += ' ' + _light.weekday + ' looks lightest.';
+      var _bName = _busy.weekday ? (_busy.weekday + ' (Day ' + (_busy.idx + 1) + ')') : ('Day ' + (_busy.idx + 1));
+      var _lName = _light.weekday ? _light.weekday : ('Day ' + (_light.idx + 1));
+      _insight = _bName + ' looks busiest' + (_busy.isVip ? ' \u2014 good thing that\'s your VIP tour day, so you\'re covered.' : '.');
+      if (_light.idx !== _busy.idx) _insight += ' ' + _lName + ' looks lightest.';
     }
     return '<div style="padding: 0 14px 14px;">'
       + '<div class="crowd-bars-grid">'+bars+'</div>'
