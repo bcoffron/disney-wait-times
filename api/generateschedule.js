@@ -663,7 +663,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // Test mode: stubFill + the BEAU01 sample code skips the model
           // entirely -- applyFills backfills every slot deterministically, so
           // structural regression runs (the repeatability matrix) cost $0.
-          const _stubFill = body.stubFill === true && String(body.tripCode || '').toUpperCase() === 'BEAU01';
+          const _stubFill = _body.stubFill === true && String(_tripCode || '').toUpperCase() === 'BEAU01';
           const _fill = async (sys) => {
             if (_stubFill) { console.log('[scaffold] STUB FILL -- test mode, no model call'); return { arr: [], model: 'stub', text: '' }; }
             const _system = _staticSys ? [
