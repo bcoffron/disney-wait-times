@@ -1238,7 +1238,7 @@ window.renderClosureAlerts = function() {
     <!-- CHAT TAB -->
     <div id="tabChat" class="chat-tab-container" style="display:none">
       <div id="chatSugBubbles" class="ask-ai-suggestions-grid">
-        <button class="chat-sug-bubble" onclick="sendSugChat('What\'s the wait like at Space Mountain right now?')">What's the wait like at Hyperspace Mountain right now?</button>
+        <button class="chat-sug-bubble" onclick="sendSugChat('What\'s the wait like at Space Mountain right now?')">What's the wait like at Space Mountain right now?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Best order to hit Fantasyland this morning?')">Best order to hit Fantasyland this morning?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('What should we do in the next 2 hours?')">What should we do in the next 2 hours?</button>
         <button class="chat-sug-bubble" onclick="sendSugChat('Any tips for riding with young kids today?')">Any tips for riding with young kids today?</button>
@@ -2322,6 +2322,8 @@ async function tpcpAlertTestTap(){
     if(res&&res.ok){
       if(el){el.textContent='You are all set - we will alert you when waits spike.';el.style.color='#0F6830';}
       tpcpRefreshAlertButtons();
+    }else if(res&&res.reason==='in-app'){
+      if(el){el.textContent='In the app, wait alerts will arrive as iPhone notifications. That native hookup is on the launch checklist -- there is nothing to enable here yet.';el.style.color='#4A7A7C';}
     }else{
       if(el){el.textContent='Could not enable: '+((res&&res.reason)||'unknown')+(res&&res.status?(' ('+res.status+')'):'');el.style.color='#C86030';}
     }
@@ -2329,6 +2331,12 @@ async function tpcpAlertTestTap(){
 }
 async function tpcpEnableWaitAlerts(){
   try{
+    // In the native app, Web Push (PushManager) does not exist -- wait alerts
+    // there need iOS notifications via APNs, which is a separate native hookup.
+    // Report it honestly instead of a cryptic "unsupported" failure.
+    if (window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform()) {
+      return {ok:false,reason:'in-app'};
+    }
     if(!('serviceWorker' in navigator)||!('PushManager' in window)){
       return {ok:false,reason:'unsupported'};
     }
@@ -2799,7 +2807,7 @@ function showLLConfirmedPrompt(){
   sub.textContent='You\u2019re at the park! Did you buy Lightning Lane Multi Pass after scanning in?';
   var html='<div class="ll-option selected" id="ll-conf-yes" onclick="confirmAtPark(true)">'
     +'<div class="ll-option-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>'
-    +'<div class="ll-option-text"><div class="ll-option-title">Yes &#8212; bought Multi Pass!</div><div class="ll-option-desc">Great! Book Indiana Jones or Space Mountain first.</div></div>'
+    +'<div class="ll-option-text"><div class="ll-option-title">Yes &#8212; bought Multi Pass!</div><div class="ll-option-desc">Great! Book Space Mountain or another headliner first.</div></div>'
     +'<div class="ll-checkbox checked" id="ll-conf-check">&#10003;</div></div>';
   html+='<div class="ll-option" id="ll-conf-no" onclick="confirmAtPark(false)">'
     +'<div class="ll-option-icon">&#10060;</div>'
@@ -2818,8 +2826,14 @@ async function confirmAtPark(yes){
 
 function scheduleLLPrompts(){
   var now=new Date();
-  var days={0:'2026-06-28',1:'2026-06-29',2:'2026-06-30'};
-  [0,2].forEach(function(dayIdx){
+  // Day dates come from the loaded trip config -- this once hardcoded the June
+  // 2026 trip dates, so the prompts could never fire for any other trip.
+  var days={};
+  ((window.TRIP_CONFIG && TRIP_CONFIG.days) || []).forEach(function(d,i){
+    var dt = d && d.date ? new Date(d.date) : null;
+    if (dt && !isNaN(dt.getTime())) days[i] = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+  });
+  Object.keys(days).map(function(k){ return parseInt(k, 10); }).filter(function(i){ return !(TRIP_CONFIG.days[i] && TRIP_CONFIG.days[i].isVip); }).forEach(function(dayIdx){
     // 7 AM planning prompt
     var t7=new Date(days[dayIdx]+'T07:00:00');
     var ms7=t7-now;
@@ -2834,10 +2848,10 @@ function scheduleLLPrompts(){
     }
   });
   // If opening app during the window, show appropriate prompt
-  var today=now.toISOString().split('T')[0];
-  var dayMap={'2026-06-28':0,'2026-06-29':1,'2026-06-30':2};
+  var today=now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  var dayMap={}; Object.keys(days).forEach(function(k){ dayMap[days[k]] = parseInt(k, 10); });
   var todayIdx=dayMap[today];
-  if(todayIdx!==undefined&&todayIdx!==1){
+  if(todayIdx!==undefined && !(TRIP_CONFIG.days[todayIdx] && TRIP_CONFIG.days[todayIdx].isVip)){
     var h=now.getHours();
     loadLLState();
     if(h>=7&&h<8&&llState.multiPass===null) setTimeout(showLLPlanningPrompt,2000);
@@ -4513,15 +4527,14 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
       +'</div>';
   }
 
-  // Section 1: Share
-  var pw=TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'';
+  // Section 1: Share -- app era (Oct 5, 2026): the group follows along in the
+  // app with the TRIP CODE. The old web link pointed at the retired web app
+  // and the guest-code field was never populated for app trips.
+  var pw=(localStorage.getItem('tpcp_code')||'').toUpperCase();
   var shareContent='<div class="share-body" style="padding:0 14px 14px;">'
-    +'<p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4;">Send this to everyone in the group.</p>'
+    +'<p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4;">Everyone in your group can follow the plan in the app. Send them the trip code:</p>'
     +'<div class="share-info-box">'
-    +'<div class="share-info-row"><span class="share-info-label">LINK</span>'
-    +'<span class="share-info-value" style="color:var(--color-teal-active);">app.themeparkcopilot.com/app.html</span></div>'
-    +'<div class="share-info-divider"></div>'
-    +'<div class="share-info-row"><span class="share-info-label">GUEST CODE</span>'
+    +'<div class="share-info-row"><span class="share-info-label">TRIP CODE</span>'
     +'<span class="share-info-value" style="font-weight:800;color:var(--color-bg-dark);">'+pw+'</span></div>'
     +'</div>'
     +'<div style="display:flex;gap:8px;margin-top:10px;">'
@@ -4534,7 +4547,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     +'</div>'
     +'<div class="share-safari-tip">'
     +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
-    +' Open in Safari &rarr; Share &rarr; Add to Home Screen for best experience.'
+    +' Group members: install Theme Park CP, choose "I have a trip code", and enter the code above to follow along.'
     +'</div>'
     +'</div>';
 
@@ -4564,9 +4577,12 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
         + '<div class="forecast-temp-col"><span class="forecast-hi">'+high+'&deg;</span><span class="forecast-lo">/'+low+'&deg;</span></div>'
         + '</div>';
     }).join('');
+    var _wMonth = '';
+    try { var _fd0 = DAYS[0] && (DAYS[0].date || DAYS[0].shortDate); var _fdt0 = _fd0 ? new Date(_fd0) : null; if (_fdt0 && !isNaN(_fdt0.getTime())) _wMonth = _fdt0.toLocaleString('en-US', { month: 'long' }); } catch (e) {}
+    var _wCap = _wMonth ? ('Sunscreen every day \u2014 ' + _wMonth + ' in Anaheim peaks fast.') : 'Sunscreen every day \u2014 Anaheim sun peaks fast.';
     return '<div style="padding: 0 14px 14px;">'
       + '<div class="forecast-table">'+rows+'</div>'
-      + '<div class="forecast-tip">Sunscreen every day \u2014 June in Anaheim peaks fast.</div>'
+      + '<div class="forecast-tip">'+_wCap+'</div>'
       + '</div>';
   }
   // Section 3: Crowd Forecast
@@ -4576,7 +4592,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
       {pct: 75, label: 'High',     color: '#C86030', levelColor: '#A02020'},
       {pct: 30, label: 'Low',      color: '#1A6860', levelColor: '#1A6860'}
     ];
-    var bars = DAYS.map(function(day, i) {
+    var infos = DAYS.map(function(day, i) {
       var intel = (window.parkIntel && window.parkIntel[i]) || null;
       var pct        = intel ? intel.crowdPct   : (fallbackCrowds[i] ? fallbackCrowds[i].pct   : 50);
       var lbl        = intel ? intel.crowdLabel : (fallbackCrowds[i] ? fallbackCrowds[i].label : 'Moderate');
@@ -4584,18 +4600,34 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
       var levelColor = fallbackCrowds[i] ? fallbackCrowds[i].levelColor : '#9A5800';
       var dayName    = day.shortDay || (day.label ? day.label.split(' ')[0].slice(0,3) : ('Day '+(i+1)));
       var dayDate    = day.shortDate || day.date || (day.label ? day.label.split(' ').slice(1).join(' ') : '');
+      var weekday = dayName;
+      try { var _cdt = day.date ? new Date(day.date) : null; if (_cdt && !isNaN(_cdt.getTime())) weekday = _cdt.toLocaleDateString('en-US', { weekday: 'long' }); } catch (e) {}
+      var isVip = !!(((window.TRIP_CONFIG || {}).days || [])[i] && TRIP_CONFIG.days[i].isVip);
+      return { pct: pct, lbl: lbl, color: color, levelColor: levelColor, dayName: dayName, dayDate: dayDate, weekday: weekday, isVip: isVip, idx: i };
+    });
+    var bars = infos.map(function(inf) {
       return '<div class="crowd-bar-item">'
         + '<div class="crowd-bar-track">'
-        + '<div class="crowd-bar-fill" style="height:'+pct+'%;background:'+color+';"></div>'
+        + '<div class="crowd-bar-fill" style="height:'+inf.pct+'%;background:'+inf.color+';"></div>'
         + '</div>'
-        + '<div class="crowd-bar-label">'+dayName+'</div>'
-        + '<div class="crowd-bar-date">'+dayDate+'</div>'
-        + '<div class="crowd-bar-level" style="color:'+levelColor+';">'+lbl+'</div>'
+        + '<div class="crowd-bar-label">'+inf.dayName+'</div>'
+        + '<div class="crowd-bar-date">'+inf.dayDate+'</div>'
+        + '<div class="crowd-bar-level" style="color:'+inf.levelColor+';">'+inf.lbl+'</div>'
         + '</div>';
     }).join('');
+    // The insight is COMPUTED from the same numbers as the bars -- this once
+    // hardcoded the June trip's "Monday... VIP tour day... Tuesday" text and
+    // showed it on every trip. Found Oct 5, 2026.
+    var _insight = '';
+    if (infos.length) {
+      var _busy = infos[0], _light = infos[0];
+      infos.forEach(function(inf) { if (inf.pct > _busy.pct) _busy = inf; if (inf.pct < _light.pct) _light = inf; });
+      _insight = _busy.weekday + ' (Day ' + (_busy.idx + 1) + ') looks busiest' + (_busy.isVip ? ' \u2014 good thing that\'s your VIP tour day, so you\'re covered.' : '.');
+      if (_light.idx !== _busy.idx) _insight += ' ' + _light.weekday + ' looks lightest.';
+    }
     return '<div style="padding: 0 14px 14px;">'
       + '<div class="crowd-bars-grid">'+bars+'</div>'
-      + '<div class="crowd-insight">Monday is your busiest day \u2014 good thing that\'s your VIP tour day, so you\'re covered. Tuesday looks light.</div>'
+      + (_insight ? '<div class="crowd-insight">'+_insight+'</div>' : '')
       + '</div>';
   }
     // Section 4: Park Hours
@@ -4929,12 +4961,20 @@ async function _doChat(msg){
     var _tdays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||[];
     var _first=_tdays.length?_tdays[0].date:null, _last=_tdays.length?_tdays[_tdays.length-1].date:null;
     var _dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric',year:'numeric',timeZone:'America/Los_Angeles'});
+    // Park-local clock + daypart, so the AI never guesses the time of day
+    // (it called 8:49 PM "Sunday afternoon" on Oct 4, 2026 -- date was
+    // injected, time was not).
+    var _timeStr=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'});
+    var _ptHour=parseInt(new Date().toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:'America/Los_Angeles'}),10);
+    var _daypart=(_ptHour<5)?'night':(_ptHour<11)?'morning':(_ptHour<14)?'midday':(_ptHour<17)?'afternoon':(_ptHour<21)?'evening':'night';
+    var _clockStr=' The current time at the park is '+_timeStr+' ('+_daypart+'). Describe the time of day ONLY with this -- never guess it.';
     if(_first&&_last&&today>=_first&&today<=_last){
       var _dayNum=0; for(var _i=0;_i<_tdays.length;_i++){if(_tdays[_i].date===today){_dayNum=_i+1;break;}}
       _sysTrip='TODAY IS '+_dateStr+' (Pacific). The guest is on their trip and physically in the park right now'+(_dayNum?(' - day '+_dayNum+' of '+_tdays.length):'')+'. Answer for RIGHT NOW, this moment. ';
     }else if(_first&&today<_first){_sysTrip='TODAY IS '+_dateStr+' (Pacific). The guest trip has not started yet (it begins '+_first+'). ';}
     else if(_last&&today>_last){_sysTrip='TODAY IS '+_dateStr+' (Pacific). The guest trip is over. ';}
     else{_sysTrip='TODAY IS '+_dateStr+' (Pacific). ';}
+    _sysTrip+=_clockStr;
   }catch(e){}
   var sys=_sysTrip+'IMPORTANT: wrap every key ride name and location in **double asterisks**. Disneyland expert co-pilot.'+wc+bc+sc+(_rpc?' '+_rpc:'')+' RIDE NAME ALIAS: Space Mountain and Hyperspace Mountain are the same ride \u2014 always check both names in wait data when asked about either. WAIT TIME RULE: When asked about a specific ride wait time, always look it up in the live wait data above before answering. If the ride appears in the live data (under either name), state the exact current wait. If it is genuinely missing from the live data, say so and give a historical estimate from cache. Never say you cannot answer a wait time question. Be concise, max 2-3 sentences. Use **bold** around key ride names or locations.';
   if(!window.chatHistory)window.chatHistory=[];
@@ -4944,7 +4984,7 @@ async function _doChat(msg){
   var msgs=document.getElementById('chatMessages');
   if(msgs){msgs.appendChild(te);msgs.scrollTop=msgs.scrollHeight;}
   try{
-    var resp=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:chatHistory});
+    var resp=await _aiProxy({model:'claude-haiku-4-5-20251001',max_tokens:1000,system:sys,messages:chatHistory});
     var data=resp;
     if(data.error){if(te.parentNode)te.remove();appendChatMsg('ai','Error: '+data.error.message);return;}
     var reply=data.content&&data.content[0]?data.content[0].text:'Sorry, try again.';
@@ -4988,8 +5028,8 @@ function renderLockCountdowns(){
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function renderClosuresFromWaits(){if(!waits||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 
-function doShareText(){var msg='Hey! Here is the app for our Disneyland trip!\n\nLink: https://app.themeparkcopilot.com/app.html\nCode: '+(TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'')+'\n\nOpen in Safari > Share > Add to Home Screen!';if(navigator.share){navigator.share({title:'Theme Park Co-Pilot',text:msg,url:'https://app.themeparkcopilot.com/app.html'}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
-function doCopyLink(){var text='Theme Park Co-Pilot Disneyland App\nLink: https://app.themeparkcopilot.com/app.html\nCode: '+(TRIP_CONFIG.guestCode||TRIP_CONFIG.guestPassword||'');if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
+function doShareText(){var code=(localStorage.getItem('tpcp_code')||'').toUpperCase();var msg='Hey! Here is our Disneyland trip plan in the Theme Park CP app.\n\nTrip code: '+code+'\n\nInstall Theme Park CP, choose "I have a trip code", and enter the code to follow along.';if(navigator.share){navigator.share({title:'Theme Park Co-Pilot',text:msg}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
+function doCopyLink(){var text='Theme Park Co-Pilot trip\nTrip code: '+((localStorage.getItem('tpcp_code')||'').toUpperCase())+'\nInstall the Theme Park CP app and enter the code to follow our trip.';if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
 
 var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40};
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
@@ -5528,7 +5568,7 @@ function getParkHoursForDate(ds,park){var def=park==='dca'?{open:9,close:22}:{op
 function getDayParkWindow(ds){if(!ds){try{var n=nowPT();ds=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}catch(e){ds=new Date().toISOString().split('T')[0];}}var dl=getParkHoursForDate(ds,'dl'),dca=getParkHoursForDate(ds,'dca');return{open:Math.min(dl.open,dca.open),close:Math.max(dl.close,dca.close)};}
 function buildParkIntel(){if(!apiKey||getParkIntel())return;console.log('Building Park Intel...');_aiProxy({model:'claude-sonnet-4-6',max_tokens:1000,system:'Disneyland expert. 2024-2026 only. No Genie+/MaxPass.',messages:[{role:'user',content:'Search TouringPlans AllEars MiceChat 2024-2026 Disneyland strategies: rope drop, LLMP sequence, late June crowds, top 5 tips, mistakes, DL vs DCA. Dense summary.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setParkIntel(t);}).catch(function(e){console.warn('Park Intel:',e);});}
 function buildDiningIntel(){if(!apiKey||getDiningIntel())return;console.log('Building Dining Intel...');_aiProxy({model:'claude-sonnet-4-6',max_tokens:1200,system:'Disneyland dining expert. 2024-2026 reviews only.',members:[{role:'user',content:'Search Disney Food Blog AllEars TripAdvisor 2024-2026 Disneyland dining. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Lamplight Flo V8 Award Wieners (DCA). Earl Sandwich Salt Straw (DTD). Rating, must-orders, tip each.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>200)setDiningIntel(t);}).catch(function(e){console.warn('Dining Intel:',e);});}
-function buildEventsIntel(){if(!apiKey||getEventsIntel())return;console.log('Building Events Intel...');_aiProxy({model:'claude-sonnet-4-6',max_tokens:600,system:'Disneyland events expert.',messages:[{role:'user',content:'Special events Disneyland June 25-July 5 2026: ticketed events, early closures, July 4th weekend. Brief factual summary with dates.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>100)setEventsIntel(t);}).catch(function(e){console.warn('Events Intel:',e);});}
+function buildEventsIntel(){if(!apiKey||getEventsIntel())return;console.log('Building Events Intel...');var _evDays=((window.TRIP_CONFIG||{}).days||[]).filter(function(d){return d&&d.date;});var _evRange=_evDays.length?(_evDays[0].date+' - '+_evDays[_evDays.length-1].date):'the trip dates';_aiProxy({model:'claude-haiku-4-5-20251001',max_tokens:600,system:'Disneyland events expert.',messages:[{role:'user',content:'Special events Disneyland '+_evRange+': ticketed events, early closures, holidays in that window. Brief factual summary with dates.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});if(t.length>100)setEventsIntel(t);}).catch(function(e){console.warn('Events Intel:',e);});}
 function buildParkHoursIntel(){if(!apiKey)return;var existing=getParkHoursIntel(),needsUpdate=parkHoursNeedsUpdate();if(existing&&!needsUpdate)return;var isInc=!!existing,now=new Date(),sd,ed;if(isInc){sd=new Date(now);ed=new Date(now);ed.setDate(ed.getDate()+60);}else{sd=new Date(now);sd.setDate(1);ed=new Date(sd);ed.setFullYear(ed.getFullYear()+1);}var s=sd.toISOString().split('T')[0],e=ed.toISOString().split('T')[0];_aiProxy({model:'claude-sonnet-4-6',max_tokens:2000,system:'Return ONLY valid JSON park hours.',messages:[{role:'user',content:'Disneyland park hours '+s+' to '+e+'. ONLY JSON: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}}. Default dl 08:00-23:00 dca 09:00-22:00.'}]}).then(function(r){return r;}).then(function(d){if(d.error)return;var t='';if(d.content)d.content.forEach(function(b){if(b.type==='text')t+=b.text;});var m=t.replace(/```json|```/g,'').match(/[{][\s\S]+[}]/);if(m){try{var h=JSON.parse(m[0]);setParkHoursIntel(isInc&&existing?Object.assign({},existing,h):h);}catch(ex){}}}).catch(function(e){console.warn('Park Hours:',e);});}
 setTimeout(function(){if(apiKey&&!getParkIntel())buildParkIntel();},120000);
 setTimeout(function(){if(apiKey&&!getDiningIntel())buildDiningIntel();},300000);
@@ -5634,11 +5674,19 @@ var TRIP_CONFIG = {
 };
 
 function getInitialActiveDay() {
-  var today = new Date();
-  var tripStart = new Date('2026-06-28T00:00:00');
+  // Beau's rule: open on Day 1 before the trip, and on the current day during
+  // the trip. The start date comes from the LOADED trip config -- this once
+  // hardcoded the June 2026 trip start, which sent every later trip (whose
+  // dates are all "after" it) to its LAST day on open. Found Oct 5, 2026.
+  var days = (window.TRIP_CONFIG && TRIP_CONFIG.days) || [];
+  if (!days.length) return 0;
+  var tripStart = days[0] && days[0].date ? new Date(days[0].date) : null;
+  if (!tripStart || isNaN(tripStart.getTime())) return 0;
+  tripStart.setHours(0, 0, 0, 0);
+  var today = new Date(); today.setHours(0, 0, 0, 0);
   var diffDays = Math.floor((today - tripStart) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return 0;
-  if (diffDays >= TRIP_CONFIG.days.length) return TRIP_CONFIG.days.length - 1;
+  if (diffDays >= days.length) return days.length - 1;
   return diffDays;
 }
 
