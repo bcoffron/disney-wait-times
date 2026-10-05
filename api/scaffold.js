@@ -356,6 +356,13 @@ export function applyFills(skeleton, fills, opts) {
   const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   // DINING_CLOSURES cache (trip-date-windowed): closed restaurant / quick-service / snack names.
   const closedVenueNames = (opts.closedVenueNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
+  // Authoritative ride catalog (normName -> entry), when the caller supplies
+  // one. The model's land field is self-reported and can lie (a Disneyland
+  // ride labeled with a DCA land sails past the land-based park check), so
+  // the catalog's park is the enforcement source for ride slots.
+  const catalogIdx = (opts.catalog && typeof opts.catalog === 'object' && !Array.isArray(opts.catalog)) ? opts.catalog : {};
+  const catalogBySquash = {};
+  for (const _ck of Object.keys(catalogIdx)) { const _sk2 = _ck.replace(/ /g, ''); if (_sk2 && !catalogBySquash[_sk2]) catalogBySquash[_sk2] = catalogIdx[_ck]; }
   const byId = {}; (fills || []).forEach(f => { if (f && f.id) byId[f.id] = f; });
   const cards = [], needsRetry = [], report = { clamped: 0, wrongPark: 0, missing: 0, fallback: 0, dropped: [] };
   const used = new Set();
@@ -429,8 +436,8 @@ export function applyFills(skeleton, fills, opts) {
         const stripped = cleanH.replace(/^(lunch|dinner|breakfast|brunch)\s*[:\-]\s*/i, '').replace(/^(lunch|dinner|breakfast|brunch)\s+at\s+/i, '');
         const hk = normName(stripped);
         if (!hk) return false;
-        const hit = venues.some(v => { const vk = normName(v && v.name); return vk && (hk === vk || hk.indexOf(vk) !== -1 || (hk.length >= 4 && vk.indexOf(hk) !== -1)); });
-        if (hit) return false;
+        const hitV = venues.find(v => { const vk = normName(v && v.name); return vk && (hk === vk || hk.indexOf(vk) !== -1 || (hk.length >= 4 && vk.indexOf(hk) !== -1)); });
+        if (hitV) return !!(hitV.park && !sameParkName(hitV.park, slot.park));
         if (slot.type === 'snack' && /snack|break|shopping|hydration|rest|dole whip/i.test(cleanH)) return false;
         return true;
       })();
@@ -440,6 +447,12 @@ export function applyFills(skeleton, fills, opts) {
       // Slots with an ASSIGNED ride (rope drop + the morning block) take
       // exactly that ride: any other ride in that slot is a failed fill.
       const ropeBad = isRideSlot && !!slot.preferRide && nkey && nkey !== normName(slot.preferRide);
+      // Catalog park enforcement: the ride's real park (from CATALOG) must
+      // match the slot's park segment, regardless of the land the model
+      // claimed. Catches e.g. Jungle Cruise placed in a DCA segment under a
+      // Grizzly Peak label.
+      const catalogEntry = (isRideSlot && nkey) ? (catalogIdx[nkey] || catalogBySquash[nkey.replace(/ /g, '')] || null) : null;
+      const catalogParkBad = !!(catalogEntry && catalogEntry.park && !sameParkName(catalogEntry.park, slot.park));
       // The character slot names the day's planned meet: a different character
       // is a failed fill (the deterministic backfill emits the planned meet).
       const charBad = slot.type === 'character' && !!slot.meetName && (function(){ const fk = normName(cleanH.replace(/^meet\s+/i, '')); const mk = normName(slot.meetName); return !(fk && mk && (fk === mk || fk.indexOf(mk) !== -1 || mk.indexOf(fk) !== -1)); })();
@@ -458,12 +471,12 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad) {
-        if (parkBad) report.wrongPark++;
+      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad) {
+        if (parkBad || catalogParkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : parkBad ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
