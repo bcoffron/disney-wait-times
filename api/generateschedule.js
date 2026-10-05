@@ -650,11 +650,30 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             + ((typeof ridePrefsContext === 'string' && ridePrefsContext) ? '\n\n' + ridePrefsContext : '')
             + '\n\n=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n' + _fillCtx;
 
+          // COST (Oct 5, 2026): the park-intelligence context is identical for
+          // every day and every retry of a trip build, and it is the bulk of
+          // the prompt -- send it as a prompt-cached block so repeat calls pay
+          // ~10% for it instead of full price. _fill receives the DYNAMIC part
+          // (skeleton + prefs + retry/correction suffixes); the cached static
+          // block rides first on the wire.
+          const _intelMarker = '\n\n=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n';
+          const _mi = _fillSys.indexOf(_intelMarker);
+          const _dynSys = _mi >= 0 ? _fillSys.slice(0, _mi) : _fillSys;
+          const _staticSys = _mi >= 0 ? _fillSys.slice(_mi + _intelMarker.length) : '';
+          // Test mode: stubFill + the BEAU01 sample code skips the model
+          // entirely -- applyFills backfills every slot deterministically, so
+          // structural regression runs (the repeatability matrix) cost $0.
+          const _stubFill = body.stubFill === true && String(body.tripCode || '').toUpperCase() === 'BEAU01';
           const _fill = async (sys) => {
+            if (_stubFill) { console.log('[scaffold] STUB FILL -- test mode, no model call'); return { arr: [], model: 'stub', text: '' }; }
+            const _system = _staticSys ? [
+              { type: 'text', text: '=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n' + _staticSys, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: sys }
+            ] : sys;
             const r = await fetch('https://api.anthropic.com/v1/messages', {
               signal: controller.signal, method: 'POST',
               headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system: sys, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
+              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system: _system, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
             });
             const d = await r.json();
             if (d.error) throw new Error(d.error.message);
@@ -685,12 +704,12 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
 
           const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)) };
 
-          let _r = await _fill(_fillSys);
+          let _r = await _fill(_dynSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
           if (_ap.needsRetry.length) {
             console.log('[scaffold] retry slots:', _ap.needsRetry.join(','));
             try {
-              const _r2 = await _fill(_fillSys + '\n\nRETRY: your previous answer was missing, in the wrong park, a duplicate, a closed ride, or a generic activity for these slot ids: ' + _ap.needsRetry.join(', ') + '. Return the FULL array again; for those slots choose a DIFFERENT real attraction in the correct park, inside the window, not used anywhere else in the day.');
+              const _r2 = await _fill(_dynSys + '\n\nRETRY: your previous answer was missing, in the wrong park, a duplicate, a closed ride, or a generic activity for these slot ids: ' + _ap.needsRetry.join(', ') + '. Return the FULL array again; for those slots choose a DIFFERENT real attraction in the correct park, inside the window, not used anywhere else in the day.');
               const _ap2 = applyFills(_sk, Array.isArray(_r2.arr) ? _r2.arr : [], _fillOpts);
               if (_ap2.needsRetry.length <= _ap.needsRetry.length) { _ap = _ap2; _r = _r2; }
             } catch (e) { console.warn('[scaffold] retry failed:', e.message); }
@@ -708,13 +727,22 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           let _items = _vf.cards;
           if (_violations.length) {
             console.log('[scaffold] param violations:', JSON.stringify(_violations));
-            try {
+            const _missingCt = _violations.filter(function(v) { return v.kind === 'mustdo-missing'; }).length;
+            const _otherCt = _violations.length - _missingCt;
+            // COST: when the only problem is a long list of unplaced must-dos,
+            // that is a capacity limit, not a fixable error -- a model round
+            // cannot create slots, and deterministic enforcement below decides
+            // the outcome. Skip the round (it fired on nearly every heavy
+            // must-do day and was a top driver of test spend).
+            if (_otherCt === 0 && _missingCt > 6) {
+              console.log('[scaffold] param correction SKIPPED (cost): ' + _missingCt + ' unplaced must-dos = capacity limit');
+            } else try {
               const _cite = _violations.map(function(v) {
                 if (v.kind === 'mustdo-missing') return 'missing must-do ride "' + v.name + '" (guest marked it non-negotiable -- it MUST appear exactly once)';
                 if (v.kind === 'skip-present') return 'includes "' + v.name + '" which the guest explicitly listed under Skip -- remove it entirely';
                 return 'day has no Lightning Lane but "' + v.name + '" carries LL content -- remove all ll fields';
               }).join('; ');
-              const _r3 = await _fill(_fillSys + '\n\nPARAMETER CORRECTION -- guest parameters are absolute, not suggestions: ' + _cite + '. Return the FULL array again, same slot ids in the same order, with every one of these fixed and nothing else broken.');
+              const _r3 = await _fill(_dynSys + '\n\nPARAMETER CORRECTION -- guest parameters are absolute, not suggestions: ' + _cite + '. Return the FULL array again, same slot ids in the same order, with every one of these fixed and nothing else broken.');
               const _ap3 = applyFills(_sk, Array.isArray(_r3.arr) ? _r3.arr : [], _fillOpts);
               const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj });
               const _v3 = verifyTripParams(_vf3.cards, _pvParams);
