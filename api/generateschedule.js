@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickCharacterMeet, normName } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickCharacterMeet, normName } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -627,7 +627,16 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             }
           } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
 
-          const _closedS = closedNamesForDate(cacheCtx.CLOSURES, _day.date);
+          let _closedS = closedNamesForDate(cacheCtx.CLOSURES, _day.date);
+          // The structured CLOSURES list has shipped empty while the prose
+          // CURRENT_CLOSURES section carries the real refurbishment reporting;
+          // merge prose-derived closures so a ride the cache itself reports
+          // closed is never scheduled (Oct 4, 2026: BEAU01 rope-dropped the
+          // closed Indiana Jones Adventure).
+          try {
+            const _proseClosed = closedNamesFromProse(cacheCtx.CURRENT_CLOSURES, _day.date, Object.values(buildCatalogIndex(cacheCtx.CATALOG)).map(e => (e && e.name) || e).filter(Boolean));
+            if (_proseClosed.length) { console.log('[scaffold] prose closures on', _day.date, ':', JSON.stringify(_proseClosed)); _closedS = [...new Set([..._closedS, ..._proseClosed])]; }
+          } catch (e) { console.warn('[scaffold] prose closure parse failed:', e.message); }
           console.log('[scaffold] closures on', _day.date, ':', JSON.stringify(_closedS));
           const _closedV = closedNamesForDate(cacheCtx.DINING_CLOSURES, _day.date);
           if (_closedV.length) console.log('[scaffold] venue closures on', _day.date, ':', JSON.stringify(_closedV));
