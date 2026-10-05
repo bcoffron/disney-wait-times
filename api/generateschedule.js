@@ -152,7 +152,12 @@ async function getCharacterIntel(maxChars = 4000) {
           if (!parsed || !parsed.data) return null;
           const dataObj = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
           const disclaimer = dataObj.disclaimer || 'Character schedules are planned in advance but can change without notice. Check with a cast member on the day.';
-          const characters = Array.isArray(dataObj.characters) ? dataObj.characters : [];
+          let characters = Array.isArray(dataObj.characters) ? dataObj.characters : [];
+          // Defensive shapes (Oct 5, 2026): a bad rebuild once stored a single
+          // character object as the whole dataset. Wrap a character-like
+          // object (or a bare array) so meets degrade instead of vanishing.
+          if (!characters.length && Array.isArray(dataObj)) characters = dataObj.filter(c => c && c.name);
+          if (!characters.length && dataObj && typeof dataObj === 'object' && dataObj.name && (dataObj.location || dataObj.category)) characters = [dataObj];
           return { disclaimer, characters };
     } catch (e) {
           console.error('Character intel fetch error:', e.message);
