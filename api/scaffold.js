@@ -508,7 +508,18 @@ export function applyFills(skeleton, fills, opts) {
       report.missing++; needsRetry.push(slot.id);
       card = mkFallback(slot);
     }
-    if (card) { if (card.h) used.add(card.h.toLowerCase()); cards.push(card); }
+    if (card) {
+      if (card.h) used.add(card.h.toLowerCase());
+      // Register FALLBACK ride identities too: mkFallback cards bypass the
+      // accept-branch bookkeeping, so without this a backfilled ride's name
+      // and variant group stay invisible to later slots -- a later fill could
+      // then place the sibling variant (or the same ride) again today.
+      if (slot.type === 'ride') {
+        const ck = normName(card.ride || card.h || '');
+        if (ck) { usedRideNames.add(ck); usedRideSquash.add(ck.replace(/ /g, '')); todayRideNames.add(ck); const cg = rideGroupKey(ck); if (cg) usedGroups.add(cg); }
+      }
+      cards.push(card);
+    }
   }
   return { cards, needsRetry, report };
 }
@@ -1343,9 +1354,15 @@ export function verifyTripParams(cards, params) {
   const violations = [];
   const keyOf = (c) => normName((c && (c.ride || c.h)) || '');
   const cardKeys = new Set((cards || []).map(keyOf).filter(Boolean));
+  // Variant groups: the two Soarin' films (and the two Pal-A-Round gondolas)
+  // are ONE attraction. When both variants sit in mustDo (the picker emits
+  // every member name), one placed variant satisfies the whole group --
+  // otherwise the enforcer resurrects the sibling verify just removed as a
+  // dupe-variant (BEAU01 Days 1+3, Oct 4, 2026: both films in one day).
+  const cardGroups = new Set([...cardKeys].map(k => rideGroupKey(k)).filter(Boolean));
   for (const name of (params.mustDo || [])) {
     const k = normName(name);
-    if (k && !cardKeys.has(k)) violations.push({ kind: 'mustdo-missing', name: String(name) });
+    if (k && !cardKeys.has(k) && !cardGroups.has(rideGroupKey(k))) violations.push({ kind: 'mustdo-missing', name: String(name) });
   }
   for (const name of (params.skip || [])) {
     const k = normName(name);
@@ -1393,6 +1410,11 @@ export function enforceTripParams(cards, violations, ctx) {
       if (n) fixed.push({ kind: v.kind, name: v.name, action: 'll-stripped' });
       else unfixable.push(v);
     } else if (v.kind === 'mustdo-missing') {
+      // Variant-group guard: a sibling variant already placed today satisfies
+      // this must-do (same physical attraction) -- never swap the second
+      // film/gondola in over verify's dupe-variant removal.
+      const presentGroups = new Set(out.filter(c => c && c.type === 'ride').map(c => rideGroupKey(c.ride || c.h)).filter(Boolean));
+      if (presentGroups.has(rideGroupKey(v.name))) { fixed.push({ kind: v.kind, name: v.name, action: 'variant-present' }); continue; }
       const wantPark = parkOfName(v.name);
       // Recompute per violation so two missing mustDos never target the same card.
       const findTarget = () => {
