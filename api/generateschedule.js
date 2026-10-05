@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickCharacterMeet, normName } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -613,17 +613,30 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1), charMeet: _charMeet || undefined });
           }
           console.log('[scaffold] dayIndex', _di, 'park', _park, 'open', _openMin, 'close', _closeMin, 'vip', _vipStart, _vipEnd, 'hasLL', _hasLL, 'slots', _sk.slots.length, 'rides', _sk.slots.filter(s => s.type === 'ride').length);
-          // Rope-drop assignment: the first ride of the day is chosen by
-          // strategy priority (see pickRopeDropRide), never left to chance.
-          try {
-            const _ropeSlot = _sk.slots.find(x => x.block === 'ropedrop');
-            if (_ropeSlot) {
-              const _ropePick = pickRopeDropRide(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot.park, priorRides, skipRides, Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : []);
-              if (_ropePick) { _ropeSlot.preferRide = _ropePick.name; console.log('[scaffold] rope drop assigned:', _ropePick.name); }
-            }
-          } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
-
           const _closedS = closedNamesForDate(cacheCtx.CLOSURES, _day.date);
+          // Morning block assignment: the day's opening ride slots -- the
+          // rope drop plus every start-park ride bucket that opens within
+          // ~2 hours of park open -- are ASSIGNED deterministically (see
+          // pickMorningRides): the park's top headliners in a land-clustered
+          // order. The first two hours are the highest-leverage window of
+          // the day; leaving them to the fill model produced filler rides
+          // at 8:30 AM (railroad, carrousel) while headliners waited.
+          try {
+            const _winStart = (w) => Array.isArray(w && w[0]) ? w[0][0] : (w && w[0]);
+            const _morningSlots = _sk.slots
+              .filter(x => x.type === 'ride' && x.park === _sk.park && typeof _winStart(x.window) === 'number' && _winStart(x.window) < _sk.openMin + 135)
+              .sort((a, b) => _winStart(a.window) - _winStart(b.window));
+            if (_morningSlots.length) {
+              const _picks = pickMorningRides(buildCatalogIndex(cacheCtx.CATALOG), _sk.park, _morningSlots.length, {
+                priorNames: priorRides, bannedNames: skipRides,
+                priorRopeDropNames: Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : [],
+                closedNames: _closedS
+              });
+              _morningSlots.forEach((s, i) => { if (_picks[i]) s.preferRide = _picks[i].name; });
+              console.log('[scaffold] morning assigned:', _picks.map(p => p.name).join(' | '));
+            }
+          } catch (e) { console.warn('[scaffold] morning assignment failed:', e.message); }
+
           console.log('[scaffold] closures on', _day.date, ':', JSON.stringify(_closedS));
           const _closedV = closedNamesForDate(cacheCtx.DINING_CLOSURES, _day.date);
           if (_closedV.length) console.log('[scaffold] venue closures on', _day.date, ':', JSON.stringify(_closedV));
@@ -667,7 +680,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             shows: _showPicks, wantedShows: showWant
           });
 
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)) };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, venues: _venues, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)) };
 
           let _r = await _fill(_fillSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
