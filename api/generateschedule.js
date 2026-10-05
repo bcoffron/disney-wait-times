@@ -721,7 +721,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; }
             } catch (e) { console.warn('[scaffold] param retry failed:', e.message); }
           }
-          const _enf = enforceTripParams(_items, _violations, { catalog: _catIdx, landToPark: landToPark });
+          const _enf = enforceTripParams(_items, _violations, { catalog: _catIdx, landToPark: landToPark, closedNames: _closedS, bannedNames: skipRides, mustDoNames: mustDo });
           _items = _enf.cards;
           if (_enf.fixed.length) console.log('[scaffold] param enforced:', JSON.stringify(_enf.fixed));
           if (_enf.unfixable.length) console.warn('[scaffold] param UNFIXABLE:', JSON.stringify(_enf.unfixable));
