@@ -5739,7 +5739,8 @@ function renderSplashCtas(){
     wrap.innerHTML='<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;text-align:center">Have a trip code?</div>'
       +'<div style="display:flex;gap:0;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:Outfit,sans-serif;outline:none" autocapitalize="characters" autocorrect="off" spellcheck="false" /></div>'
       +'<div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>'
-      +'<div style="font-size:10px;color:rgba(255,255,255,0.35);text-align:center;margin-top:6px;font-style:italic">Enter your code above then tap Enter Your Adventure</div>';
+      +'<div style="font-size:10px;color:rgba(255,255,255,0.35);text-align:center;margin-top:6px;font-style:italic">Enter your code above then tap Enter Your Adventure</div>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,0.65);text-align:center;margin-top:14px;line-height:1.55">New to Theme Park Co-Pilot?<br>Trip codes are created free at <a href="https://themeparkcopilot.com" target="_blank" rel="noopener" style="color:#ECA050;font-weight:700;text-decoration:none">themeparkcopilot.com</a> &mdash; start your free trial there, then come back and enter your code.</div>';
     area.appendChild(wrap);
   }
 }
@@ -5748,7 +5749,7 @@ function showTripCodeInput(){
   if(!area)return;
   if(area.style.display==='block'){area.style.display='none';return;}
   area.style.display='block';
-  area.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:\'Outfit\',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div><div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div>';
+  area.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:\'Outfit\',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div><div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div><div style="font-size:11px;color:rgba(255,255,255,0.65);text-align:center;margin-top:12px;line-height:1.55">New to Theme Park Co-Pilot? Trip codes are created free at <a href="https://themeparkcopilot.com" target="_blank" rel="noopener" style="color:#ECA050;font-weight:700;text-decoration:none">themeparkcopilot.com</a> &mdash; start your free trial there, then come back and enter your code.</div>';
   setTimeout(function(){var inp=document.getElementById('tripCodeInput');if(inp)inp.focus();},50);
 }
 function submitTripCode() {
