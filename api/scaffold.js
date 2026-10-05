@@ -1380,7 +1380,8 @@ export function verifyTripParams(cards, params) {
 // skip-present -> card removed; ll-when-none -> ll field stripped;
 // mustdo-missing -> swapped into the earliest non-rope-drop ride card in the matching
 // park (mustDo is guest-non-negotiable; rope-drop headliner is preserved when possible).
-// ctx: { catalog: {normKey: entry}, landToPark: fn }. Never throws.
+// ctx: { catalog: {normKey: entry}, landToPark: fn, closedNames, bannedNames,
+//        mustDoNames }. Never throws.
 export function enforceTripParams(cards, violations, ctx) {
   ctx = ctx || {};
   const catalog = ctx.catalog || {};
@@ -1393,6 +1394,18 @@ export function enforceTripParams(cards, violations, ctx) {
     if (ce && ce.park) return normParkName(ce.park);
     return normParkName(landToPark(name) || '');
   };
+  // Swap-in guardrails (BEAU01, Oct 4, 2026): with 37 must-dos against ~13 ride
+  // slots, the old loop renamed the SAME one or two cards dozens of times --
+  // the surviving names were accidents of list order, and closed must-dos
+  // (Indiana Jones, Mad Tea Party) sat in the swap chain one position away
+  // from being resurrected into the final schedule. Rules now: a closed or
+  // banned must-do is unfixable, never swapped in; a target card is used at
+  // most once per pass; and a card already holding a must-do is never evicted
+  // to make room for another must-do.
+  const closedSet = new Set((ctx.closedNames || []).map(normName).filter(Boolean));
+  const bannedSet = new Set((ctx.bannedNames || []).map(normName).filter(Boolean));
+  const mustSet = new Set((ctx.mustDoNames || []).map(normName).filter(Boolean));
+  const swappedTargets = new Set();
 
   for (const v of (violations || [])) {
     if (v.kind === 'skip-present') {
@@ -1415,16 +1428,21 @@ export function enforceTripParams(cards, violations, ctx) {
       // film/gondola in over verify's dupe-variant removal.
       const presentGroups = new Set(out.filter(c => c && c.type === 'ride').map(c => rideGroupKey(c.ride || c.h)).filter(Boolean));
       if (presentGroups.has(rideGroupKey(v.name))) { fixed.push({ kind: v.kind, name: v.name, action: 'variant-present' }); continue; }
+      // Closed or banned must-dos are unfixable, never resurrected by a swap.
+      const vk = normName(v.name);
+      if (closedSet.has(vk) || bannedSet.has(vk)) { unfixable.push(v); continue; }
       const wantPark = parkOfName(v.name);
-      // Recompute per violation so two missing mustDos never target the same card.
+      // Recompute per violation; targets are ride cards not already swapped
+      // this pass and not already holding a must-do.
       const findTarget = () => {
-        const rc = out.map((c, i) => ({ c, i })).filter(({ c }) => c.type === 'ride');
+        const rc = out.map((c, i) => ({ c, i })).filter(({ c, i }) => c.type === 'ride' && !swappedTargets.has(i) && !mustSet.has(normName(c.ride || c.h || '')));
         const fr = rc[0];
         return rc.find(({ c }) => c !== (fr && fr.c) && (!wantPark || parkOfCard(c) === wantPark))
           || rc.find(({ c }) => !wantPark || parkOfCard(c) === wantPark);
       };
       const target = findTarget();
       if (target) {
+        swappedTargets.add(target.i);
         const ce = catalog[normName(v.name)];
         target.c.h = v.name;
         target.c.ride = v.name;
