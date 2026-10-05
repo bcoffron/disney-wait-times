@@ -960,6 +960,85 @@ export function closedNamesForDate(closures, tripDate) {
   return names;
 }
 
+export function closedNamesFromProse(prose, tripDate, catalogNames) {
+  // The structured CLOSURES list has shipped EMPTY while the CURRENT_CLOSURES
+  // prose carries the real refurbishment reporting -- so rides the cache itself
+  // reports as closed (Indiana Jones from Sep 8 2026, Mad Tea Party through
+  // Oct 26) were still being scheduled (found Oct 4, 2026 on BEAU01, whose Day 1
+  // rope-dropped a closed ride). Derive closed names from the prose,
+  // conservatively: a name counts only when it matches a catalog attraction AND
+  // its entry carries an explicit Status that is CLOSED (or CLOSES on/before the
+  // trip date). An explicit OPEN status wins, an explicit reopen date on/before
+  // the trip date reopens, and a closure that starts after the trip date does
+  // not close. Mirrors the structured list's null-date contract: closed now
+  // with no known reopen date = closed on the trip date.
+  if (!prose || typeof prose !== 'string' || !Array.isArray(catalogNames)) return [];
+  const MONTHS = { january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11 };
+  const parseDate = (s) => {
+    if (!s) return null;
+    const m = String(s).match(/([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/);
+    if (!m) return null;
+    const mo = MONTHS[m[1].toLowerCase()];
+    if (mo === undefined) return null;
+    return Date.UTC(parseInt(m[3], 10), mo, parseInt(m[2], 10));
+  };
+  const tripMs = (() => {
+    const s = String(tripDate || '');
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) { const p = s.slice(0, 10).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+    const dt = new Date(s);
+    return isNaN(dt.getTime()) ? null : Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  })();
+  if (tripMs === null) return [];
+  const byNorm = new Map();
+  for (const n of catalogNames) { if (n) byNorm.set(normName(n), n); }
+  const matchName = (candidate) => {
+    if (!candidate) return null;
+    let c = String(candidate).replace(/^[\s#*\d.)"“”'‘’]+/, '').replace(/["“”'‘’]+$/, '').trim();
+    const paren = c.indexOf(' (');
+    if (paren > 0) c = c.slice(0, paren);
+    const tries = [c, c.split(':')[0].trim()];
+    for (const t of tries) {
+      const hit = byNorm.get(normName(t));
+      if (hit) return hit;
+    }
+    const cn = normName(c);
+    if (cn.length >= 6) {
+      for (const [k, v] of byNorm) { if (cn.startsWith(k) || k.startsWith(cn)) return v; }
+    }
+    return null;
+  };
+  const out = [];
+  const segments = String(prose).split(/\n#{2,3}\s+/);
+  for (const seg of segments) {
+    if (!seg || seg.length < 40) continue;
+    const nl = seg.indexOf('\n');
+    const name = matchName(nl > 0 ? seg.slice(0, nl) : seg.slice(0, 80));
+    if (!name || out.includes(name)) continue;
+    const body = seg.slice(0, 1600);
+    const statusM = body.match(/\*\*Status:?\*\*\s*([^\n]+)/i) || body.match(/Status:\s*([^\n]+)/i);
+    const status = statusM ? statusM[1] : '';
+    const statusUp = status.toUpperCase();
+    // Explicit OPEN with no CLOSED in the status line -> operating.
+    if (/\bOPEN\b/.test(statusUp) && !/\bCLOSED\b/.test(statusUp)) continue;
+    const reopenM = body.match(/reopen\w*[^.\n]{0,50}?([A-Z][a-z]+ \d{1,2}, \d{4})/i);
+    const reopenMs = reopenM ? parseDate(reopenM[1]) : null;
+    if (reopenMs !== null && reopenMs <= tripMs) continue; // reopened on/before the trip
+    const closesM = status.match(/CLOSES?\s+([A-Z][a-z]+ \d{1,2}, \d{4})/);
+    if (closesM) {
+      const startMs = parseDate(closesM[1]);
+      if (startMs !== null && tripMs >= startMs) out.push(name);
+      continue;
+    }
+    if (/\bCLOSED\b/.test(statusUp)) {
+      const startM = body.match(/(?:beginning|began|closed from|closed since|closure beginning)\s+([A-Z][a-z]+ \d{1,2}, \d{4})/i);
+      const startMs = startM ? parseDate(startM[1]) : null;
+      if (startMs !== null && startMs > tripMs) continue; // closure has not begun yet
+      out.push(name);
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // DETERMINISTIC BACKFILL (recommendation #3) -- no placeholder cards, ever.
 // When the model fails a slot (missing/invalid fill), pick a real, cache-verified
