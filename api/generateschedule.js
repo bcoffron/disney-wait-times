@@ -617,16 +617,9 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             _sk = buildSkeleton({ park: _park, openMin: _openMin, closeMin: _closeMin, hasLL: _hasLL, vipStartMin: _vipStart, vipEndMin: _vipEnd, dayNum: (_di + 1), charMeet: _charMeet || undefined });
           }
           console.log('[scaffold] dayIndex', _di, 'park', _park, 'open', _openMin, 'close', _closeMin, 'vip', _vipStart, _vipEnd, 'hasLL', _hasLL, 'slots', _sk.slots.length, 'rides', _sk.slots.filter(s => s.type === 'ride').length);
-          // Rope-drop assignment: the first ride of the day is chosen by
-          // strategy priority (see pickRopeDropRide), never left to chance.
-          try {
-            const _ropeSlot = _sk.slots.find(x => x.block === 'ropedrop');
-            if (_ropeSlot) {
-              const _ropePick = pickRopeDropRide(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot.park, priorRides, skipRides, Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : []);
-              if (_ropePick) { _ropeSlot.preferRide = _ropePick.name; console.log('[scaffold] rope drop assigned:', _ropePick.name); }
-            }
-          } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
-
+          // Closures are computed BEFORE the rope-drop assignment so the rope
+          // pick itself is closure-aware: a closed ride must never headline
+          // the day (verify would strip it and backfill a weaker opener).
           let _closedS = closedNamesForDate(cacheCtx.CLOSURES, _day.date);
           // The structured CLOSURES list has shipped empty while the prose
           // CURRENT_CLOSURES section carries the real refurbishment reporting;
@@ -640,6 +633,16 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           console.log('[scaffold] closures on', _day.date, ':', JSON.stringify(_closedS));
           const _closedV = closedNamesForDate(cacheCtx.DINING_CLOSURES, _day.date);
           if (_closedV.length) console.log('[scaffold] venue closures on', _day.date, ':', JSON.stringify(_closedV));
+
+          // Rope-drop assignment: the first ride of the day is chosen by
+          // strategy priority (see pickRopeDropRide), never left to chance.
+          try {
+            const _ropeSlot = _sk.slots.find(x => x.block === 'ropedrop');
+            if (_ropeSlot) {
+              const _ropePick = pickRopeDropRide(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot.park, priorRides, [...new Set([...(skipRides || []), ..._closedS])], Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : []);
+              if (_ropePick) { _ropeSlot.preferRide = _ropePick.name; console.log('[scaffold] rope drop assigned:', _ropePick.name); }
+            }
+          } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '');
