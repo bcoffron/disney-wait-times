@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <!-- cache-bust: TPCP2026-phase5 2026-06-15 -->
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Trip Setup &mdash; Theme Park Co-Pilot</title>
 <link rel="preconnect" href="https://fontsgoogleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +12,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflow-x:hidden;}
 /* Header */
-.pt-header{background:#071E25;padding:14px 16px 0;position:sticky;top:0;z-index:100;}
+.pt-header{background:#071E25;padding:calc(14px + env(safe-area-inset-top, 0px)) 16px 0;position:sticky;top:0;z-index:100;}
 .pt-eyebrow{font-size:9px;font-weight:700;letter-spacing:0.12em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:3px;}
 .pt-title{font-size:17px;font-weight:800;color:#fff;margin-bottom:2px;}
 .pt-step-indicator{font-size:10px;font-weight:500;color:rgba(255,255,255,0.45);margin-bottom:10px;}
@@ -92,7 +92,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 .pt-cl-item-check.checked{background:#0F6830;border-color:#0F6830;}
 .pt-cl-item-text{font-size:11px;font-weight:500;color:#4A7A7C;line-height:1.4;}
 /* CTA bar */
-.pt-cta-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(to top,#EEF5F4 60%,transparent);padding:16px 16px 28px;max-width:430px;margin:0 auto;}
+.pt-cta-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(to top,#EEF5F4 60%,transparent);padding:16px 16px max(28px, env(safe-area-inset-bottom, 0px));max-width:430px;margin:0 auto;}
 .pt-cta-btn{width:100%;background:#C86030;border:none;border-radius:13px;padding:14px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 16px rgba(200,96,48,0.30);}
 .pt-cta-btn:active{transform:scale(0.98);}
 .pt-cta-btn.teal{background:#1A8880;box-shadow:0 4px 16px rgba(26,136,128,0.30);}
