@@ -361,6 +361,7 @@ export function buildFillPrompt(skeleton, opts) {
   else if (opts.llmp === true && opts.ill === false) sys += '\n- Lightning Lane for this group means Multi Pass ONLY.';
   if (opts.closedNames && opts.closedNames.length) sys += '\n- DOWN / CLOSED right now -- do NOT place any of these in a ride slot; if your best pick is on this list, choose a different open attraction from the cache for that slot instead: ' + opts.closedNames.join('; ') + '.';
   if (opts.closedVenueNames && opts.closedVenueNames.length) sys += '\n- DOWN FOR REFURBISHMENT right now -- do NOT place any of these in a dining, quickservice, or snack slot; choose a different open venue from the verified dining list instead: ' + opts.closedVenueNames.join('; ') + '.';
+  if (opts.tableVenueNames && opts.tableVenueNames.length) sys += '\n- MEALS ARE QUICK-SERVICE ONLY: these are sit-down / reservation venues -- ' + opts.tableVenueNames.join('; ') + '. NEVER place one as a meal or snack. The only exception: the guest has a confirmed reservation at that exact venue on this trip (then note it is their reservation). Otherwise pick a quick-service venue from the verified dining list.';
   sys += '\n\nSKELETON (fill EVERY slot):\n' + lines.join('\n');
   if (opts.usedDining && opts.usedDining.length) sys += '\n\nALREADY-USED venues (never repeat): ' + opts.usedDining.join('; ');
   if (opts.usedRides && opts.usedRides.length) sys += '\n\nALREADY-USED rides on earlier days of this trip (never repeat): ' + opts.usedRides.join('; ');
@@ -419,7 +420,7 @@ export function applyFills(skeleton, fills, opts) {
   (opts.priorVenues || []).forEach(n => { if (n) used.add(String(n).toLowerCase()); });
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
-    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null }) : placeholderCard(slot);
+    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, nearLand: (function () { for (let i = cards.length - 1; i >= 0; i--) { if (cards[i] && cards[i].land) return cards[i].land; } return ''; })() }) : placeholderCard(slot);
     if (fallbackFor) report.fallback++;
     c.t = toClock(clampToWindow(parseClock(c.t), slot.window, slot.fixed).t); // stamp a valid in-window time
     if (!c.type) c.type = slot.type;
@@ -474,6 +475,26 @@ export function applyFills(skeleton, fills, opts) {
         if (slot.type === 'snack' && /snack|break|shopping|hydration|rest|dole whip/i.test(cleanH)) return false;
         return true;
       })();
+      // Table-service gate (Beau, Oct 6, 2026): a meal, quickservice, or
+      // snack fill that names a TABLE or LOUNGE venue from the verified
+      // catalog is a failed fill -- schedules are quick-service only unless
+      // the guest noted that exact venue as a reservation in onboarding
+      // (opts.reservationKeys). Mirrors the onboarding promise in pretrip.
+      const venueServiceBad = (function () {
+        if (!isDiningSlot) return false;
+        const vsMap = opts.venueServices || null;
+        if (!vsMap || !Object.keys(vsMap).length) return false;
+        const stripped = cleanH.replace(/^(lunch|dinner|breakfast|brunch)\s*[:\-]\s*/i, '').replace(/^(lunch|dinner|breakfast|brunch)\s+at\s+/i, '');
+        const hk = normName(stripped);
+        if (!hk) return false;
+        let hitSvc = null, hitKey = null;
+        for (const k of Object.keys(vsMap)) {
+          if (k && (hk === k || hk.indexOf(k) !== -1 || (hk.length >= 4 && k.indexOf(hk) !== -1))) { hitSvc = vsMap[k]; hitKey = k; break; }
+        }
+        if (hitSvc !== 'table' && hitSvc !== 'lounge') return false;
+        if (opts.reservationKeys && opts.reservationKeys.has(hitKey)) return false;
+        return true;
+      })();
       // Guest bans are absolute at fill time (skip list + avoidWater folds):
       // a banned ride is a failed fill, never a card -- the backfill replaces it.
       const banned = isRideSlot && nkey && (opts.bannedKeys instanceof Set) && (opts.bannedKeys.has(nkey) || (bannedGroups && gkey && bannedGroups.has(gkey)));
@@ -510,12 +531,12 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || breakBad || transportBad) {
+      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad) {
         if (parkBad || catalogParkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -1339,7 +1360,8 @@ export function deterministicBackfill(slot, ctx) {
       .filter(v => v && v.name && !v.exclude && inSlotPark(v.park) &&
         !usedNames.has(String(v.name).toLowerCase()) &&
         !closedVenueKeys.has(normName(v.name)) &&
-        (v.reservationPolicy === 'walkup' || v.reservationPolicy === 'recommended'))
+        (v.service === 'quickservice' || v.service === 'snack' || (v.service === '' && v.reservationPolicy === 'walkup')) &&
+        v.reservationPolicy !== 'never_meal' && v.reservationPolicy !== 'required')
       .sort((a, b) => (rankResv(a.reservationPolicy) - rankResv(b.reservationPolicy)) || (rankSvc(a.service) - rankSvc(b.service)));
     if (cands.length) {
       const pick = cands[0];
@@ -1369,9 +1391,22 @@ export function deterministicBackfill(slot, ctx) {
 
   // Break slots: fixed guest-facing cards, emitted verbatim.
   if (slot.type === 'break') {
-    const note = slot.block === 'photoPM'
-      ? 'Golden-hour photos and a souvenir stop while you are in the area -- the light is best right about now.'
-      : 'Restrooms, water refill, and a breather -- back to the fun in a few minutes.';
+    let note = 'Restrooms, water refill, and a breather -- back to the fun in a few minutes.';
+    if (slot.block === 'photoPM') {
+      // Specific photo ideas from the photo-ops cache (Beau, Oct 6, 2026):
+      // the spots for the park this slot sits in, preferring the land the
+      // group is already in (ctx.nearLand) and golden-hour-friendly shots.
+      const spots = Array.isArray(ctx.photoSpots) ? ctx.photoSpots : [];
+      const inPark = spots.filter(s => s && s.shot && sameParkName(s.park, slot.park));
+      if (inPark.length) {
+        const near = normName(ctx.nearLand || '');
+        const score = (s) => ((near && normName(s.land || '') === near) ? 2 : 0) + (/golden|sunset|evening|night|dusk/i.test(String(s.bestTime || '')) ? 1 : 0);
+        const picks = inPark.slice().sort((a, b) => score(b) - score(a)).slice(0, 2);
+        note = 'Photo ideas near you: ' + picks.map(s => String(s.shot).trim()).join(' ') + ' Then a souvenir stop while you are in the area.';
+      } else {
+        note = 'Golden-hour photos and a souvenir stop while you are in the area -- the light is best right about now.';
+      }
+    }
     return { t: t0, h: slot.breakTitle || 'Rest Break', type: 'break', n: note, land: '' };
   }
 
