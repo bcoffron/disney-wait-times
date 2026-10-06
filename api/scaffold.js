@@ -122,6 +122,14 @@ function buildHopSkeleton(cfg) {
     push({ block: 'character', type: 'character', park: startPark, window: [open + 150, open + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
   }
 
+  // Morning comfort stops (Beau, Oct 5, 2026: generated days had NO bathroom,
+  // snack, shopping, or photo breaks at all). A mid-morning snack and a
+  // restroom break are structural slots, not model whims: snack fills via the
+  // venue path; the restroom break is emitted deterministically (breakBad in
+  // applyFills routes it to the backfill verbatim).
+  push({ block: 'snackAM', type: 'snack', park: startPark, window: [open + 90, open + 135], role: 'morning snack / coffee break -- a quick bite and drinks' });
+  push({ block: 'breakAM', type: 'break', park: startPark, window: [open + 140, open + 185], role: 'restroom break -- restrooms, water refill, and a breather', breakTitle: 'Restroom Break' });
+
   // ---- HOP TRANSITION (tip; park stamp not enforced) ----
   push({ block: 'hop', type: 'tip', park: toPark, window: [hopAt - 10, hopAt + 20], role: 'park hop: walk to ' + toPark + ', security screening (~15 min)' });
 
@@ -158,6 +166,7 @@ function buildHopSkeleton(cfg) {
   }
 
   if (dinnerWins.length) push({ block: 'dinner', type: 'dining', park: toPark, window: dinnerWins, role: 'one dinner, off-peak, name the venue' });
+  if (eveClose >= 1185) push({ block: 'photoPM', type: 'break', park: toPark, window: [1110, 1170], role: 'photo op and souvenir shopping -- golden-hour photos while you are in the area', breakTitle: 'Photo Op & Shopping Break' });
   const afterDinner = dinnerWins.length ? dinnerWins[0][1] + 10 : preDinnerEnd;
 
   if (canShow) {
@@ -176,7 +185,7 @@ function buildHopSkeleton(cfg) {
 
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
   slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
-  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; } return o; });
+  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; } if (s.breakTitle) o.breakTitle = s.breakTitle; return o; });
   return { day: cfg.dayNum || 1, park: startPark, toPark, hop: true, openMin: open, closeMin: returning ? cfg.hop.returnCloseMin : close, hopAtMin: hopAt, paceMinPerRide: pace, vip: false, slots: ordered };
 }
 
@@ -217,6 +226,7 @@ export function buildSkeleton(cfg) {
     }
 
     if (dinnerWins.length) push({ block: 'dinner', type: 'dining', park, window: dinnerWins, role: 'one dinner, off-peak, name the venue' });
+    if (closeMin >= 1185) push({ block: 'photoPM', type: 'break', park, window: [1110, 1170], role: 'photo op and souvenir shopping -- golden-hour photos while you are in the area', breakTitle: 'Photo Op & Shopping Break' });
     const afterDinner = dinnerWins.length ? dinnerWins[0][1] + 10 : preDinnerEnd;
 
     if (canShow) {
@@ -257,13 +267,15 @@ export function buildSkeleton(cfg) {
     if (cfg.charMeet && sameParkName(cfg.charMeet.park, park)) {
       push({ block: 'character', type: 'character', park, window: [openMin + 150, openMin + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
     }
+    push({ block: 'snackAM', type: 'snack', park, window: [openMin + 90, openMin + 135], role: 'morning snack / coffee break -- a quick bite and drinks' });
+    push({ block: 'breakAM', type: 'break', park, window: [openMin + 140, openMin + 185], role: 'restroom break -- restrooms, water refill, and a breather', breakTitle: 'Restroom Break' });
     layEvening(lunchWins.length ? lunchWins[0][1] + 10 : morningEnd);
   }
 
   // sort by time, then assign stable ids in time order
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
   slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
-  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; } return o; });
+  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; } if (s.breakTitle) o.breakTitle = s.breakTitle; return o; });
 
   return { day: cfg.dayNum || 1, park, openMin, closeMin, paceMinPerRide: pace, vip: isVip, slots: ordered };
 }
@@ -422,7 +434,7 @@ export function applyFills(skeleton, fills, opts) {
     const f = byId[slot.id];
     let card = null;
     if (f && f.h) {
-      const cleanH = stripAlt(f.h);
+      const cleanH = stripAlt(f.h).replace(/\s*\((?:lightning lane|ll|multi pass|single pass)\)\s*$/i, '').trim();
       const clamp = clampToWindow(parseClock(f.t), slot.window, slot.fixed);
       if (clamp.changed) report.clamped++;
       const landPark = f.land ? landToPark(f.land) : null;
@@ -477,6 +489,12 @@ export function applyFills(skeleton, fills, opts) {
       // The character slot names the day's planned meet: a different character
       // is a failed fill (the deterministic backfill emits the planned meet).
       const charBad = slot.type === 'character' && !!slot.meetName && (function(){ const fk = normName(cleanH.replace(/^meet\s+/i, '')); const mk = normName(slot.meetName); return !(fk && mk && (fk === mk || fk.indexOf(mk) !== -1 || mk.indexOf(fk) !== -1)); })();
+      // Break slots carry fixed guest-facing copy: any model fill is a failed
+      // fill so the deterministic backfill emits the break card verbatim.
+      const breakBad = slot.type === 'break';
+      // Transport/walkthrough attractions never occupy a morning slot
+      // (afternoon/evening only -- see NEVER_MORNING_KEYS).
+      const transportBad = isRideSlot && !!nkey && NEVER_MORNING_KEYS.has(nkey) && winStart(slot.window) < 720;
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
       // A park or land name is not a fill: the model sometimes answers a dining,
       // snack, or show slot with the place it sits in ("Disneyland", "DCA",
@@ -492,12 +510,12 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad) {
+      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || breakBad || transportBad) {
         if (parkBad || catalogParkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -547,6 +565,14 @@ const RETIRED = [
 // exactly two). Every other Lightning Lane attraction is Multi Pass. Static
 // counterpart to the pricing cache, same pattern as RETIRED above.
 const ILL_ONLY_KEYS = new Set(['star wars rise of the resistance', 'radiator springs racers'].map(normName));
+
+// Transport + walkthrough attractions: afternoon/evening ONLY (Beau, Oct 5,
+// 2026 -- the Disneyland Monorail landed at 9:38 AM in a prime morning slot
+// on a generated day). They are conveyances and strolls, not morning
+// priorities; mornings belong to headliners while lines are short. Enforced
+// in the morning picker, fill validation, deterministic backfill, and the
+// param enforcer's swap targeting.
+export const NEVER_MORNING_KEYS = new Set(['disneyland monorail', 'disneyland railroad', 'main street vehicles', 'mark twain riverboat', 'sailing ship columbia', "davy crockett's explorer canoes", 'sleeping beauty castle walkthrough'].map(normName));
 
 // Parse the CATALOG cache section (JSON string or object) into a lookup:
 //   normName(attraction name) -> { name, park, land, status, typicalPeakWait, ropeDropValue }
@@ -670,6 +696,7 @@ function activityDurationMin(c) {
   if (c.type === 'quickservice') return 40;
   if (c.type === 'character') return 15;
   if (c.type === 'snack') return 10;
+  if (c.type === 'break') return 10;
   return 0;
 }
 function waitEstimateMin(c, startMin, waitPatterns, catalog) {
@@ -735,6 +762,11 @@ export function trimInfeasible(cards, opts) {
   let list = (cards || []).slice();
   const isProtected = (c, arr) => {
     if (c.type === 'dining' || c.type === 'show' || c.type === 'character') return true;
+    // Comfort cards are the product, not filler (Beau, Oct 5, 2026): the old
+    // trim dropped the day's only snack card as an 'infeasible-pace' victim
+    // because the preceding headliner's standby wait priced against it. A
+    // break has no hard start time -- being ten minutes late to it is fine.
+    if (c.type === 'snack' || c.type === 'break') return true;
     if (c.type === 'ride') {
       const rides = arr.filter(x => x.type === 'ride');
       if (rides[rides.length - 1] === c) return true; // run-to-closing anchor
@@ -1178,7 +1210,7 @@ export function pickMorningRides(catalogIdx, parkName, count, opts) {
   const pool = Object.values(idx).filter(e => e && e.name && normParkName(e.park) === pk &&
     (!e.status || e.status === 'operating') &&
     !bannedKeys.has(normName(e.name)) && !bannedGroups.has(rideGroupKey(e.name)) &&
-    !closedKeys.has(normName(e.name)));
+    !closedKeys.has(normName(e.name)) && !NEVER_MORNING_KEYS.has(normName(e.name)));
   const value = (e) => {
     let v = 0;
     const pi = prio.findIndex(n => normName(n) === normName(e.name));
@@ -1263,10 +1295,12 @@ export function deterministicBackfill(slot, ctx) {
     const usedGroups = new Set([...usedRideKeys].map(k => rideGroupKey(k)));
     const bannedGroups = (ctx.bannedKeys instanceof Set) ? new Set([...ctx.bannedKeys].map(k => rideGroupKey(k))) : null;
     const isBannedE = (e) => !!(ctx.bannedKeys && (ctx.bannedKeys.has(normName(e.name)) || (bannedGroups && bannedGroups.has(rideGroupKey(e.name)))));
+    const morningSlot = winStart(slot.window) < 720;
     const cands = catalog.filter(e =>
       e && e.name && !usedRideKeys.has(normName(e.name)) && !usedGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e));
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) &&
+      !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     // Deterministic: highest typical peak wait first (headliners earn the slot), ties by name.
     cands.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (cands.length) {
@@ -1286,7 +1320,8 @@ export function deterministicBackfill(slot, ctx) {
     const reuse = catalog.filter(e =>
       e && e.name && _priorKeys.has(normName(e.name)) && !_todayKeys.has(normName(e.name)) && !_todayGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e));
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) &&
+      !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     reuse.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (reuse.length) {
       const pick = reuse[0];
@@ -1330,6 +1365,14 @@ export function deterministicBackfill(slot, ctx) {
   // Character slot: emit the day's planned meet verbatim.
   if (slot.type === 'character' && slot.meetName) {
     return { t: t0, h: 'Meet ' + slot.meetName, type: 'character', n: (slot.meetLand ? 'Find them at ' + slot.meetLand + '. ' : '') + 'A must-do meet for this group.', land: slot.meetLand || '' };
+  }
+
+  // Break slots: fixed guest-facing cards, emitted verbatim.
+  if (slot.type === 'break') {
+    const note = slot.block === 'photoPM'
+      ? 'Golden-hour photos and a souvenir stop while you are in the area -- the light is best right about now.'
+      : 'Restrooms, water refill, and a breather -- back to the fun in a few minutes.';
+    return { t: t0, h: slot.breakTitle || 'Rest Break', type: 'break', n: note, land: '' };
   }
 
   // Structural tip slots and anything unfillable: an honest, deterministic tip built from
@@ -1435,7 +1478,7 @@ export function enforceTripParams(cards, violations, ctx) {
       // Recompute per violation; targets are ride cards not already swapped
       // this pass and not already holding a must-do.
       const findTarget = () => {
-        const rc = out.map((c, i) => ({ c, i })).filter(({ c, i }) => c.type === 'ride' && !swappedTargets.has(i) && !mustSet.has(normName(c.ride || c.h || '')));
+        const rc = out.map((c, i) => ({ c, i })).filter(({ c, i }) => c.type === 'ride' && !swappedTargets.has(i) && !mustSet.has(normName(c.ride || c.h || '')) && !(NEVER_MORNING_KEYS.has(normName(v.name)) && (parseClock(c.t) || 9999) < 720));
         const fr = rc[0];
         return rc.find(({ c }) => c !== (fr && fr.c) && (!wantPark || parkOfCard(c) === wantPark))
           || rc.find(({ c }) => !wantPark || parkOfCard(c) === wantPark);
