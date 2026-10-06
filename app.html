@@ -2719,14 +2719,9 @@ var LL_INDIVIDUAL=[
   {id:'radiator',name:'Radiator Springs Racers',day:2,price:'$20-30'},
 ];
 
-var LL_MULTIPASS_BY_DAY=[
-  // Sunday - Disneyland
-  [{ride:'Indiana Jones Adventure',land:'Adventureland',backup:'Haunted Mansion'},{ride:'Matterhorn Bobsleds',land:'Fantasyland',backup:'Space Mountain'},{ride:'Space Mountain',land:'Tomorrowland',backup:'Star Tours'},{ride:"Tiana's Bayou Adventure",land:'Fantasyland',backup:"Peter Pan's Flight"},{ride:'Haunted Mansion',land:'New Orleans Square',backup:'Royal Hall'},{ride:'Millennium Falcon: Smugglers Run',land:"Galaxy's Edge",backup:'Star Tours'}],
-  // Monday - VIP Tour, no LL needed
-  [],
-  // Tuesday - DCA + Disneyland
-  [{ride:'Radiator Springs Racers',land:'Cars Land',backup:'Guardians of the Galaxy - Mission: BREAKOUT!'},{ride:'Guardians of the Galaxy - Mission: BREAKOUT!',land:'Avengers Campus',backup:'Web Slingers'},{ride:"Toy Story Midway Mania!",land:'Pixar Pier',backup:'Incredicoaster'},{ride:"Soarin' Over California",land:'Grizzly Peak',backup:'Grizzly River Run'}],
-];
+// (Removed Oct 5, 2026: LL_MULTIPASS_BY_DAY was hardcoded June-trip data whose
+// per-day backup picks ignored the guest's skip list and closures. Backups are
+// now derived at render time from the day's real Multi Pass cards.)
 
 function saveLLState(){try{localStorage.setItem('ll_state_'+curDay,JSON.stringify(llState));}catch(e){}}
 function loadLLState(){try{var s=localStorage.getItem('ll_state_'+curDay);if(s)llState=JSON.parse(s);}catch(e){}}
@@ -2743,7 +2738,12 @@ function showLLPlanningPrompt(){
 
   sub.textContent='Plan your Lightning Lane strategy for today. You buy Multi Pass after scanning in at the gate.';
 
-  var indivForDay=LL_INDIVIDUAL.filter(function(r){return r.day===curDay;});
+  var indivForDay=LL_INDIVIDUAL.filter(function(r){
+    if(r.day!==curDay) return false;
+    var dc=(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG&&TRIP_CONFIG.days&&TRIP_CONFIG.days[curDay])||null;
+    if(!dc||dc.hasILL!==true) return false;
+    try{var do2=getCurDay();var es=do2&&do2.sections?do2.sections.reduce(function(a,s){return a.concat(s.entries||[]);},[]):[];return es.some(function(x){var xn=(x&&(x.ride||x.h)||'').toLowerCase();return xn&&xn.includes(r.name.toLowerCase().substring(0,8));});}catch(x){return false;}
+  });
   var html='<div style="font-size:11px;font-weight:700;color:var(--magic);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">Lightning Lane Multi Pass</div>';
   html+='<div class="ll-option" id="ll-yes" onclick="selectLLOption(true)">'
     +'<div class="ll-option-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>'
@@ -3881,9 +3881,22 @@ function renderLLBanner(e,dayIdx){
   var rideKey=(e.ride||e.h||'').toLowerCase().replace(/[^a-z0-9]/g,'_').substring(0,15);
   var backup='';
   if(!isS&&e.ride){
-    var dayLLs=LL_MULTIPASS_BY_DAY[dayIdx]||[];
-    var m=dayLLs.find(function(l){return e.ride&&e.ride.toLowerCase().includes(l.ride.toLowerCase().substring(0,8));});
-    if(m&&m.backup) backup=m.backup;
+    // The backup is the NEXT Multi Pass ride in THIS trip's actual day plan --
+    // always a real, unbanned ride from the guest's own schedule. (The old
+    // static LL_MULTIPASS_BY_DAY table was June-trip data: it named Grizzly
+    // River Run -- a skipped water ride for this group -- as the Soarin'
+    // backup, and Indiana Jones while it was closed. Oct 5, 2026.)
+    try{
+      var dayObj=(typeof getCurDay==='function')?getCurDay():null;
+      var entries=dayObj&&dayObj.sections?dayObj.sections.reduce(function(acc,s){return acc.concat(s.entries||[]);},[]):[];
+      var multis=entries.filter(function(x){return x&&x.type==='ride'&&x.ll&&x.ll.t==='multi';});
+      var mi=-1;
+      for(var k=0;k<multis.length;k++){var rn=(multis[k].ride||multis[k].h||'').toLowerCase();if(rn&&e.ride.toLowerCase().includes(rn.substring(0,8))){mi=k;break;}}
+      if(mi>-1){
+        for(var j=mi+1;j<multis.length&&!backup;j++){var cn=(multis[j].ride||multis[j].h||'');if(cn.toLowerCase()!==e.ride.toLowerCase())backup=cn;}
+        for(var j2=mi-1;j2>=0&&!backup;j2--){var cn2=(multis[j2].ride||multis[j2].h||'');if(cn2.toLowerCase()!==e.ride.toLowerCase())backup=cn2;}
+      }
+    }catch(x){}
   }
   var saved='';
   try{var o=JSON.parse(localStorage.getItem('ll_state_'+dayIdx)||'{}');saved=(o.bookedTimes&&o.bookedTimes[rideKey])||'';}catch(x){}
