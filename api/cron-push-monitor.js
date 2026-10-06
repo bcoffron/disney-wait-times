@@ -4,7 +4,7 @@
 // FOR TODAY spikes from low to high. Built for scale: discovers all trips, pulls
 // live waits once, checks each trip's planned rides against per-trip last-known state.
 //
-// INTERNAL ONLY. Auth: Bearer CRON_SECRET, OR x-vercel-cron:1, OR admin key.
+// INTERNAL ONLY. Auth: Bearer CRON_SECRET (Vercel attaches it to cron invocations), OR admin key. The bare x-vercel-cron header stopped authenticating Oct 6, 2026 -- it is spoofable by anyone.
 // Storage:
 //   twize/push-subs/<tripCode>.json  -- subscriptions (read; reuse push-send logic)
 //   twize/trip_registry.json         -- code -> { tripId, status, expires }
@@ -238,10 +238,9 @@ export default async function handler(req, res) {
   // ---- AUTH FIRST (internal only) ----
   const secret = process.env.CRON_SECRET;
   const isAuthed = secret && req.headers.authorization === ('Bearer ' + secret);
-  const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const _adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
   const isAdmin = _adminKey.length > 0 && (req.headers['x-admin-key'] || '').toLowerCase() === _adminKey;
-  if (!isAuthed && !isVercelCron && !isAdmin) {
+  if (!isAuthed && !isAdmin) {
     console.warn('[push-monitor] unauthorized blocked');
     return res.status(401).json({ error: 'Unauthorized' });
   }
