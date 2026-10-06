@@ -110,6 +110,7 @@ function buildHopSkeleton(cfg) {
     const lunchNom = lunchWins[0][0];
     rideBuckets(open + 25, lunchNom - 10, startPark, P(open + 25), 'morning ride').forEach(push);
     push({ block: 'lunch', type: 'dining', park: startPark, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
+    push({ block: 'photoMidday', type: 'break', park: startPark, window: [lunchWins[0][1] + 5, lunchWins[0][1] + 35], role: 'photo op near your lunch spot -- a quick group photo while you are in the area', breakTitle: 'Photo Op' });
     if (hasLL) push({ block: 'llTip', type: 'tip', park: startPark, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
     rideBuckets(lunchWins[0][1] + 10, hopAt - 10, startPark, P(lunchWins[0][1] + 10), 'late-morning ride').forEach(push);
   } else {
@@ -146,6 +147,7 @@ function buildHopSkeleton(cfg) {
     const lNom = lunchWins[0][0];
     rideBuckets(eveStart, lNom - 10, toPark, P(eveStart), 'afternoon ride').forEach(push);
     push({ block: 'lunch', type: 'dining', park: toPark, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
+    push({ block: 'photoMidday', type: 'break', park: toPark, window: [lunchWins[0][1] + 5, lunchWins[0][1] + 35], role: 'photo op near your lunch spot -- a quick group photo while you are in the area', breakTitle: 'Photo Op' });
     afternoonFrom = lunchWins[0][1] + 10;
   }
 
@@ -262,7 +264,10 @@ export function buildSkeleton(cfg) {
     const lunchNom = lunchWins.length ? lunchWins[0][0] : null;
     const morningEnd = lunchNom !== null ? lunchNom - 10 : Math.min(closeMin - 30, 720);
     rideBuckets(openMin + 25, morningEnd, park, P(openMin + 25), 'morning ride').forEach(push);
-    if (lunchWins.length) push({ block: 'lunch', type: 'dining', park, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
+    if (lunchWins.length) {
+      push({ block: 'lunch', type: 'dining', park, window: lunchWins, role: 'one lunch, off-peak, name the venue' });
+      push({ block: 'photoMidday', type: 'break', park: park, window: [lunchWins[0][1] + 5, lunchWins[0][1] + 35], role: 'photo op near your lunch spot -- a quick group photo while you are in the area', breakTitle: 'Photo Op' });
+    }
     if (hasLL) push({ block: 'llTip', type: 'tip', park, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
     if (cfg.charMeet && sameParkName(cfg.charMeet.park, park)) {
       push({ block: 'character', type: 'character', park, window: [openMin + 150, openMin + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
@@ -1392,17 +1397,29 @@ export function deterministicBackfill(slot, ctx) {
   // Break slots: fixed guest-facing cards, emitted verbatim.
   if (slot.type === 'break') {
     let note = 'Restrooms, water refill, and a breather -- back to the fun in a few minutes.';
-    if (slot.block === 'photoPM') {
+    if (slot.block === 'photoPM' || slot.block === 'photoMidday') {
       // Specific photo ideas from the photo-ops cache (Beau, Oct 6, 2026):
       // the spots for the park this slot sits in, preferring the land the
-      // group is already in (ctx.nearLand) and golden-hour-friendly shots.
+      // group is already in (ctx.nearLand -- for the midday stop that is the
+      // lunch venue's land) and shots that suit the time of day.
+      const midday = slot.block === 'photoMidday';
       const spots = Array.isArray(ctx.photoSpots) ? ctx.photoSpots : [];
       const inPark = spots.filter(s => s && s.shot && sameParkName(s.park, slot.park));
       if (inPark.length) {
         const near = normName(ctx.nearLand || '');
-        const score = (s) => ((near && normName(s.land || '') === near) ? 2 : 0) + (/golden|sunset|evening|night|dusk/i.test(String(s.bestTime || '')) ? 1 : 0);
+        const score = (s) => {
+          const bt = String(s.bestTime || '').toLowerCase();
+          const ts = midday
+            ? (/any|morning|midday/.test(bt) ? 1 : (/night/.test(bt) ? -1 : 0))
+            : (/golden|sunset|evening|night|dusk/.test(bt) ? 1 : 0);
+          return ((near && normName(s.land || '') === near) ? 2 : 0) + ts;
+        };
         const picks = inPark.slice().sort((a, b) => score(b) - score(a)).slice(0, 2);
-        note = 'Photo ideas near you: ' + picks.map(s => String(s.shot).trim()).join(' ') + ' Then a souvenir stop while you are in the area.';
+        note = midday
+          ? 'Photo ideas near your lunch spot: ' + picks.map(s => String(s.shot).trim()).join(' ') + ' Grab them while you are in the area -- then back to the fun.'
+          : 'Photo ideas near you: ' + picks.map(s => String(s.shot).trim()).join(' ') + ' Then a souvenir stop while you are in the area.';
+      } else if (midday) {
+        note = 'A quick photo stop while you are in the area -- the backdrop where you just ate makes an easy group photo.';
       } else {
         note = 'Golden-hour photos and a souvenir stop while you are in the area -- the light is best right about now.';
       }
