@@ -422,6 +422,13 @@ async function isFresh(key) {
       const pd = raw && raw.data;
       const spots = pd && Array.isArray(pd.spots) ? pd.spots : null;
       if(!spots || spots.length < 8) return false;
+      // v2 shape (Oct 6, 2026): at least half the spots must carry the short
+      // card phrase. The first photo_ops build predates the short/sampleUrl
+      // fields; counting it as fresh made every manual re-run skip, so the
+      // slim cards and example-photo links would never land -- same failure
+      // mode as the degraded character roster above.
+      const withShort = spots.filter(function(s){ return s && typeof s.short === 'string' && s.short.trim().length > 0; }).length;
+      if(withShort < Math.ceil(spots.length / 2)) return false;
     }
     const tsMs = typeof ts === 'number' ? ts : new Date(ts).getTime();
     return (Date.now()-tsMs)/864e5 < EXPIRY_DAYS[key]*0.8;
