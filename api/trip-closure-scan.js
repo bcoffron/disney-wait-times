@@ -1,5 +1,5 @@
 // api/trip-closure-scan.js
-// Vercel-cron-only (x-vercel-cron header) + admin-key manual runs.
+// Vercel cron (Bearer CRON_SECRET, attached by Vercel to cron invocations) + admin-key manual runs. The bare x-vercel-cron header stopped authenticating Oct 6, 2026 -- it is spoofable by anyone.
 // Twice-weekly closure impact scan (Mon + Thu, scheduled after the section rebuilds):
 //   1. Read CLOSURES + DINING_CLOSURES from the dynamic cache.
 //   2. Diff against the previous snapshot -> material changes
@@ -96,10 +96,11 @@ function suggestSwap(kind, dayPark, date, items, catList, venues, closures, dini
 // ---------------------------------------------------------------------------
 export default async function handler(req, res) {
   try {
-    const isVercelCron = req.headers['x-vercel-cron'] === '1';
+    const cronSecret = process.env.CRON_SECRET;
+    const isAuthed = !!cronSecret && req.headers.authorization === ('Bearer ' + cronSecret);
     const adminKey = (process.env.ADMIN_KEY || '').toLowerCase();
     const isAdmin = adminKey && String(req.headers['x-admin-key'] || '').toLowerCase() === adminKey;
-    if (!isVercelCron && !isAdmin) return res.status(401).json({ ok: false, error: 'Unauthorized.' });
+    if (!isAuthed && !isAdmin) return res.status(401).json({ ok: false, error: 'Unauthorized.' });
 
     const dyn = await readFirstJson(DYNAMIC_PREFIX);
     const sections = ((dyn && dyn.data) || dyn || {}).sections || {};
