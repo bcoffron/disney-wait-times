@@ -1397,6 +1397,7 @@ export function deterministicBackfill(slot, ctx) {
   // Break slots: fixed guest-facing cards, emitted verbatim.
   if (slot.type === 'break') {
     let note = 'Restrooms, water refill, and a breather -- back to the fun in a few minutes.';
+    let photoLinks = null;
     if (slot.block === 'photoPM' || slot.block === 'photoMidday') {
       // Specific photo ideas from the photo-ops cache (Beau, Oct 6, 2026):
       // the spots for the park this slot sits in, preferring the land the
@@ -1415,16 +1416,37 @@ export function deterministicBackfill(slot, ctx) {
           return ((near && normName(s.land || '') === near) ? 2 : 0) + ts;
         };
         const picks = inPark.slice().sort((a, b) => score(b) - score(a)).slice(0, 2);
-        note = midday
-          ? 'Photo ideas near your lunch spot: ' + picks.map(s => String(s.shot).trim()).join(' ') + ' Grab them while you are in the area -- then back to the fun.'
-          : 'Photo ideas near you: ' + picks.map(s => String(s.shot).trim()).join(' ') + ' Then a souvenir stop while you are in the area.';
+        // Short pattern (Beau picked ~28 words, Oct 6, 2026): a lead-in plus
+        // one <=11-word phrase per spot. Falls back to compressing the long
+        // shot sentence when a spot has no short phrase yet.
+        const phrase = (s) => {
+          const sh = String(s.short || '').trim().replace(/\.$/, '');
+          if (sh) return sh;
+          // Fallback for spots written before the short field existed: the
+          // first sentence capped at 12 words, sentence-starter verbs
+          // lower-cased (proper names keep their capitals).
+          let t = String(s.shot || '').trim();
+          const first = (t.split(/(?<=[.!?])\s/)[0] || t).replace(/\.$/, '');
+          const words = first.split(/\s+/).slice(0, 12);
+          let p = words.join(' ');
+          if (/^(Stand|Face|Position|Head|Walk|Step|Gather|From|In|On|At|By)\b/.test(p)) p = p.charAt(0).toLowerCase() + p.slice(1);
+          return p;
+        };
+        const lead = midday
+          ? (picks.length > 1 ? 'Two easy shots near your lunch spot: ' : 'An easy shot near your lunch spot: ')
+          : (picks.length > 1 ? 'Two easy shots nearby: ' : 'An easy shot nearby: ');
+        note = lead + picks.map(phrase).join(', and ') + '.';
+        const links = picks.filter(s => s.sampleUrl).map(s => ({ label: String(s.name), url: String(s.sampleUrl) }));
+        if (links.length) photoLinks = links;
       } else if (midday) {
         note = 'A quick photo stop while you are in the area -- the backdrop where you just ate makes an easy group photo.';
       } else {
         note = 'Golden-hour photos and a souvenir stop while you are in the area -- the light is best right about now.';
       }
     }
-    return { t: t0, h: slot.breakTitle || 'Rest Break', type: 'break', n: note, land: '' };
+    const breakCard = { t: t0, h: slot.breakTitle || 'Rest Break', type: 'break', n: note, land: '' };
+    if (photoLinks) breakCard.photoLinks = photoLinks;
+    return breakCard;
   }
 
   // Structural tip slots and anything unfillable: an honest, deterministic tip built from
