@@ -373,7 +373,7 @@ const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
       if (charContext && charContext.trim()) {
         system += '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext;
         if (charPriority === 'mustDo') {
-          system += '\n\nCHARACTER SCHEDULING (MUST-DO): The group has marked character meets as a MUST-DO priority. You MUST schedule at least one character meet card on each day from the CHARACTER MEETS list above, matching the family\'s selected categories, in the correct park for that day. Use type: "character". Place each meet at a sensible time/land based on the cache windows (e.g. Galaxy\'s Edge for Star Wars, Town Square/Toontown for classic). NEVER invent a character or location not in the cache. Card schema: { t: "11:00 AM", h: "Meet [Character]", type: "character", n: "[where/tip from cache, under 80 chars]", land: "[Land]" }.';
+          system += '\n\nCHARACTER SCHEDULING (MUST-DO): The group has marked character meets as a MUST-DO priority. You MUST schedule at least one character meet card on each day from the CHARACTER MEETS list above, matching the family\'s selected categories, in the correct park for that day. Use type: "character". Place each meet at a sensible time/land based on the cache windows (e.g. Galaxy\'s Edge for Star Wars, Town Square/Toontown for classic). NEVER invent a character or location not in the cache. Card schema: { t: "11:00 AM", h: "Meet [Character]", type: "character", n: "[where/tip from cache, under 180 chars]", land: "[Land]" }.';
         } else {
           system += '\n\nCHARACTER SCHEDULING (nice-to-have): Character meets are optional for this group. You MAY include one if it fits naturally near where the group already is, using type: "character" and only characters/locations from the cache above. Do not force it.';
         }
@@ -522,7 +522,7 @@ system += '\n  For midnight close: last activity must be 11:30 PM or later.';
 system += '\n  For 10 PM close: last activity must be 9:30 PM or later.';
 system += '\nNEVER end a day at 8:50 PM or 9:00 PM unless that is confirmed park closing time from cache.';
           system += '\nEvery day MUST have schedule entries from arrival time through actual park closing time.';
-          system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 80 characters. One concise sentence only.';
+          system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 180 characters — one or two concise sentences, and always finish the sentence (never cut off mid-word or mid-thought).';
           system += '\nCHARACTER ENCODING RULE: NEVER use special symbols, emoji, checkmarks, bullets, stars, or any non-ASCII characters in card titles (h field) or notes (n field). Use plain ASCII only.';
 
       // === PARK PRESENCE MODEL (ABSOLUTE - overrides Lightning Lane and ride/dining selection) ===

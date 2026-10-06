@@ -82,7 +82,9 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
 .header-title{font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;line-height:1.25}
 .header-sub{font-size:8px;color:rgba(255,255,255,0.40);margin-top:3px;letter-spacing:0.02em}.header-eyebrow{font-size:7px;font-weight:700;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px}.header button{color:rgba(255,255,255,0.70)}
-.day-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-top:10px;padding:0 4px;align-items:flex-end}
+.day-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-top:10px;padding:0 4px 8px;align-items:stretch;position:relative;z-index:6;background:#071E25;transition:opacity .2s}
+.day-tabs.day-tabs-dim{opacity:.45;filter:saturate(.55)}
+.day-tabs.day-tabs-dim .day-tab{pointer-events:none}
 .day-tabs::-webkit-scrollbar{display:none}
 .day-tab{flex-shrink:0;padding:7px 12px 6px;border-radius:8px 8px 0 0;cursor:pointer;border:none;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.38);transition:all .25s;display:flex;flex-direction:column;align-items:center}
 .day-tab-icon{font-size:22px;line-height:1}
@@ -6808,7 +6810,7 @@ function switchNav(tabKey) {
   if (active) active.classList.add('active');
   _currentNav = tabKey;
   var _dtc = document.getElementById('dayTabsContainer');
-  if (_dtc) _dtc.style.display = (tabKey === 'schedule') ? '' : 'none';
+  if (_dtc) _dtc.classList.toggle('day-tabs-dim', tabKey !== 'schedule');
   // Map nav to tab
   var tabMap = {
     schedule: 'schedule',
@@ -8067,11 +8069,12 @@ function tpcpTileLayer(park) {
     createTile: function (coords) {
       var img = document.createElement('img');
       var d = tiles[coords.z + '/' + coords.x + '/' + coords.y];
-      img.src = d ? ('data:image/png;base64,' + d) : 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+      img.src = d ? ('data:image/png;base64,' + d) : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+      img.style.background = '#EFEDE7';
       img.alt = '';
       return img;
     },
-    options: { minZoom: 15, maxZoom: 19, maxNativeZoom: 19, tileSize: 256, attribution: '&copy; OpenStreetMap contributors' }
+    options: { maxNativeZoom: 18, tileSize: 512, zoomOffset: -1, attribution: '&copy; OpenStreetMap contributors' }
   });
   return new Layer();
 }
@@ -8171,7 +8174,7 @@ function switchParkMap(park, skipEnsure) {
   var build = function () {
     var graph = window['TPCP_GRAPH_' + park];
     if (_pm.map) { _pm.map.remove(); _pm.map = null; }
-    _pm.map = L.map('tpcpFullMap', { minZoom: 15, maxZoom: 19, maxBounds: [[33.8028, -117.9262], [33.8192, -117.9122]], maxBoundsViscosity: 1.0 }).setView(park === 'DL' ? [33.8125, -117.9190] : [33.8072, -117.9190], 16);
+    _pm.map = L.map('tpcpFullMap', { minZoom: 16, maxZoom: 19, maxBounds: [[33.8012, -117.9272], [33.8208, -117.9112]], maxBoundsViscosity: 1.0 }).setView(park === 'DL' ? [33.8125, -117.9190] : [33.8072, -117.9190], 16);
     tpcpTileLayer(park).addTo(_pm.map);
     _pm.placeMarkers.forEach(function (m) { m.remove(); });
     _pm.rrMarkers.forEach(function (m) { m.remove(); });
@@ -8179,18 +8182,18 @@ function switchParkMap(park, skipEnsure) {
     _pm.placeMarkers = []; _pm.rrMarkers = []; _pm.svcMarkers = [];
     (graph.places || []).forEach(function (p) {
       if (p.lat == null) return;
-      var m = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#FFFFFF', weight: 1.6, fillColor: p.k === 'food' ? '#D4893A' : '#1A6860', fillOpacity: 0.95 });
+      var m = L.circleMarker([p.lat, p.lon], { radius: 9, color: '#FFFFFF', weight: 2, fillColor: p.k === 'food' ? '#D4893A' : '#1A6860', fillOpacity: 0.95 });
       tpcpBindPopup(park, m, { n: p.n, lat: p.lat, lon: p.lon, node: p.node, land: p.land || '' });
       _pm.placeMarkers.push(m);
     });
     (graph.restrooms || []).forEach(function (p) {
-      var m = L.circleMarker([p.lat, p.lon], { radius: 5, color: '#FFFFFF', weight: 1.4, fillColor: '#4A7A7C', fillOpacity: 0.9 });
+      var m = L.circleMarker([p.lat, p.lon], { radius: 7.5, color: '#FFFFFF', weight: 1.8, fillColor: '#4A7A7C', fillOpacity: 0.9 });
       var snr = window.TPCPRouter.snap(graph, p.lat, p.lon);
       tpcpBindPopup(park, m, { n: 'Restrooms', lat: p.lat, lon: p.lon, node: snr.node, land: '' });
       _pm.rrMarkers.push(m);
     });
     (graph.services || []).forEach(function (p) {
-      var m = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#FFFFFF', weight: 1.6, fillColor: TPCP_SVC_COLORS[p.k] || '#173A5E', fillOpacity: 0.95 });
+      var m = L.circleMarker([p.lat, p.lon], { radius: 9, color: '#FFFFFF', weight: 2, fillColor: TPCP_SVC_COLORS[p.k] || '#173A5E', fillOpacity: 0.95 });
       var sn = window.TPCPRouter.snap(graph, p.lat, p.lon);
       tpcpBindPopup(park, m, { n: p.n, lat: p.lat, lon: p.lon, node: sn.node, land: TPCP_SVC_LABELS[p.k] || 'Park Services' });
       _pm.svcMarkers.push(m);
@@ -8344,7 +8347,7 @@ function tpcpComputeRoute() {
   // map
   if (_dir.map) { _dir.map.remove(); _dir.map = null; }
   _gps.dot = null;
-  _dir.map = L.map('tpcpDirMap', { minZoom: 15, maxZoom: 19, zoomControl: false, maxBounds: [[33.8028, -117.9262], [33.8192, -117.9122]], maxBoundsViscosity: 1.0 });
+  _dir.map = L.map('tpcpDirMap', { minZoom: 15, maxZoom: 19, zoomControl: false, maxBounds: [[33.8008, -117.9290], [33.8212, -117.9095]], maxBoundsViscosity: 1.0 });
   tpcpTileLayer(_dir.park).addTo(_dir.map);
   var ll = route.coords.map(function (c) { return [c[0], c[1]]; });
   L.polyline(ll, { color: '#FFFFFF', weight: 9, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }).addTo(_dir.map);

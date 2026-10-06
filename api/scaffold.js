@@ -329,13 +329,23 @@ function matchKnownShow(name, shows) {
   }
   return null;
 }
+// Notes were hard-capped at 80 chars for tidiness, which cut tips off
+// mid-word on the cards (Beau, Oct 6). Budget is now ~200 with a
+// word-boundary trim so a note always reads as a finished thought.
+function trimNoteText(v, max) {
+  const str = String(v || '').trim();
+  if (str.length <= max) return str;
+  const cut = str.slice(0, max);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > 40 ? cut.slice(0, sp) : cut).trim();
+}
 function buildCard(slot, f, t) {
   let _h = String(f.h || '').trim();
   // The fill sometimes returns the park or land name as the heading with the real
   // attraction in `ride` (guests saw ride cards titled "Disneyland" / "DCA"). On
   // ride slots the ride name is the heading whenever the two disagree.
   if (slot.type === 'ride' && f.ride && normName(_h) !== normName(f.ride)) _h = String(f.ride).trim();
-  const card = { t: toClock(t), h: _h, type: slot.type, n: String(f.n || '').slice(0, 80), land: String(f.land || '').trim() };
+  const card = { t: toClock(t), h: _h, type: slot.type, n: trimNoteText(f.n, 200), land: String(f.land || '').trim() };
   if (f.ride) card.ride = f.ride;
   if (f.ll && (slot.type === 'ride' || slot.type === 'tip')) card.ll = f.ll;
   return card;
@@ -359,8 +369,8 @@ export function buildFillPrompt(skeleton, opts) {
   sys += '\n- A slot marked ASSIGNED RIDE already has its ride chosen by the day strategy -- use exactly that ride for that slot, no substitutions.';
   sys += '\n- Flow through the park land by land: when more than one ride fits a slot, choose the one in or nearest the land of the previous slot. Never send the group back and forth across the park.';
   sys += '\n- Never repeat a ride or venue anywhere in the day, or any venue in the ALREADY-USED list. Give exactly ONE name per slot -- never "X (or Y)" or a list of alternatives.';
-  sys += '\n- Object schema: { "id":"s03", "t":"8:10 AM", "h":"Name", "type":"<the slot\'s type>", "land":"Land", "n":"tip under 80 chars", "ride":"Exact ride name (rides/LL only)", "ll":{ "t":"multi|single", "a":"..." } }';
-  sys += '\n- ll only on ride/tip slots and only if the day has Lightning Lane. ASCII only. Notes under 80 characters.';
+  sys += '\n- Object schema: { "id":"s03", "t":"8:10 AM", "h":"Name", "type":"<the slot\'s type>", "land":"Land", "n":"tip in one or two short sentences, under 180 chars, always a complete sentence", "ride":"Exact ride name (rides/LL only)", "ll":{ "t":"multi|single", "a":"..." } }';
+  sys += '\n- ll only on ride/tip slots and only if the day has Lightning Lane. ASCII only. Notes under 180 characters, complete sentences only.';
   if (opts.ill === false) sys += '\n- This group does NOT have Individual Lightning Lane (ILL): NEVER mention ILL, Single Pass, individual ride purchases, or per-ride prices anywhere -- not in headings, notes, or ll fields. Rise of the Resistance and Radiator Springs Racers are ridden standby or not at all.';
   if (opts.llmp === false && opts.ill === false) sys += '\n- This group has NO Lightning Lane products at all: do not include ll fields and do not write Lightning Lane booking advice; tip slots give standby strategy instead.';
   else if (opts.llmp === true && opts.ill === false) sys += '\n- Lightning Lane for this group means Multi Pass ONLY.';
