@@ -17,6 +17,7 @@ const VALID_KEYS = [
   'events_intel',
   'park_hours_intel',
   'character_intel',
+  'photo_ops',
   'park_intel_dl_stable',
   'park_intel_dl_dynamic',
   'park_intel_wdw_stable',
