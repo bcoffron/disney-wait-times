@@ -143,6 +143,27 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
 }
 
 // --------- Character intel (unchanged) -----------------------------------------------
+async function getPhotoOpsIntel() {
+    try {
+          const { blobs } = await list({ prefix: 'twize/photo_ops.json' });
+          if (!blobs || blobs.length === 0) return [];
+          const fetchUrl = blobs[0].downloadUrl || blobs[0].url;
+          const parsed = await fetch(fetchUrl).then(r => r.json());
+          if (!parsed || !parsed.data) return [];
+          const dataObj = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
+          let spots = Array.isArray(dataObj && dataObj.spots) ? dataObj.spots : [];
+          if (!spots.length && Array.isArray(dataObj)) spots = dataObj;
+          if (!spots.length && dataObj && typeof dataObj === 'object' && dataObj.name && dataObj.shot) spots = [dataObj];
+          return spots.filter(s => s && s.name && s.shot).map(s => ({
+            name: String(s.name), park: String(s.park || ''), land: String(s.land || ''),
+            shot: String(s.shot), bestTime: String(s.bestTime || '')
+          }));
+    } catch (e) {
+          console.warn('[photo-ops] read failed:', e.message);
+          return [];
+    }
+}
+
 async function getCharacterIntel(maxChars = 4000) {
     try {
           const { blobs } = await list({ prefix: 'twize/character_intel.json' });
@@ -672,10 +693,27 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               }
             }
           } catch (e) { console.warn('[scaffold] morning assignment failed:', e.message); }
+          // Dining service gate + guest reservations (Beau, Oct 6, 2026):
+          // schedules are quick-service only; table/lounge venues pass only
+          // when the guest noted them as reservations in onboarding.
+          const _venuesEarly = parseCatalogVenues(cacheCtx.CATALOG);
+          const _venueServices = {};
+          for (const v of _venuesEarly) { if (v && v.name && v.service) _venueServices[normName(v.name)] = v.service; }
+          const _tableVenueNames = _venuesEarly.filter(v => v && (v.service === 'table' || v.service === 'lounge')).map(v => v.name);
+          const _resvNames = [];
+          try {
+            const _rfl = [].concat(((_cfg || {}).reservations) || [], (((_cfg || {}).dining || {}).reservations) || []);
+            for (const r of _rfl) {
+              const nm = (typeof r === 'string') ? r.split(',')[0] : (r && (r.name || r.venue || r.restaurant));
+              if (nm && String(nm).trim()) _resvNames.push(String(nm).trim());
+            }
+          } catch (e) {}
+          const _reservationKeys = new Set(_resvNames.map(normName).filter(Boolean));
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
-            + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '');
-          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, usedRides: priorRides, closedNames: _closedS, closedVenueNames: _closedV, llmp: _llmp, ill: _ill })
+            + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '')
+            + (_resvNames.length ? '\n\n=== GUEST RESERVATIONS (confirmed in onboarding) ===\n' + _resvNames.join('; ') + '\nSeat a listed venue as that meal card when its day/time matches this day, and note it is their reservation. These are the ONLY sit-down venues allowed in the schedule.' : '');
+          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, usedRides: priorRides, closedNames: _closedS, closedVenueNames: _closedV, llmp: _llmp, ill: _ill, tableVenueNames: _tableVenueNames })
             + ((typeof ridePrefsContext === 'string' && ridePrefsContext) ? '\n\n' + ridePrefsContext : '')
             + '\n\n=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n' + _fillCtx;
 
@@ -724,14 +762,15 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             const _arr = (_sd && Array.isArray(_sd.shows)) ? _sd.shows : [];
             _showPicks = _arr.filter(s => s && s.name).map(s => ({ name: String(s.name), park: (String(s.park).toUpperCase() === 'DCA' ? 'DCA' : 'DL') }));
           } catch (e) {}
+          const _photoSpots = await getPhotoOpsIntel();
           const _fallbackFor = (slot, fb) => deterministicBackfill(slot, {
             catalog: _catList, venues: _venues, closedNames: _closedS, closedVenueNames: _closedV,
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
             priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys, bannedKeys: fb.bannedKeys,
-            shows: _showPicks, wantedShows: showWant
+            shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand
           });
 
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)) };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)), venueServices: _venueServices, reservationKeys: _reservationKeys };
 
           let _r = await _fill(_dynSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
