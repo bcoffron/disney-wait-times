@@ -88,13 +88,13 @@ function filterDiningVenues(venues) {
 }
 
 const VALID_KEYS = [
-  'park_intel','dining_intel','dining_intel_dl','dining_intel_wdw','events_intel','park_hours_intel','character_intel',
+  'park_intel','dining_intel','dining_intel_dl','dining_intel_wdw','events_intel','park_hours_intel','character_intel','photo_ops',
   'park_intel_dl_stable','park_intel_dl_dynamic',
   'park_intel_wdw_stable','park_intel_wdw_dynamic'
 ];
 
 const EXPIRY_DAYS = {
-  park_intel:10, dining_intel:30, dining_intel_dl:30, dining_intel_wdw:30, events_intel:7, park_hours_intel:7, character_intel:7,
+  park_intel:10, dining_intel:30, dining_intel_dl:30, dining_intel_wdw:30, events_intel:7, park_hours_intel:7, character_intel:7, photo_ops:30,
   park_intel_dl_stable:30, park_intel_dl_dynamic:30,
   park_intel_wdw_stable:30, park_intel_wdw_dynamic:7
 };
@@ -105,7 +105,8 @@ const LEGACY_PROMPTS = {
   dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe). After any searches, your FINAL message must contain ONLY the JSON object inside a fenced code block: ```json{...}``` -- no commentary before or after the fence.',maxTokens:8000},
   events_intel:{system:'Disneyland events expert.',user:'Special events Disneyland June 25 - July 5 2026: ticketed events, closures, July 4th, shows, fireworks. Specific dates.',maxTokens:800},
   park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours June 25 to July 5 2026. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 11 dates.',maxTokens:1000},
-  character_intel:{system:'Disneyland Resort character meet-and-greet expert. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search AllEars, MiceChat, DisneyTouristBlog, and the official Disneyland site (2025-2026) for current Disneyland Resort character meet-and-greet info. Return JSON: {"characters":[{"name":"...","category":"...","park":"DL or DCA","location":"land or spot","notes":"timing/tips"}]}. The category field MUST be EXACTLY one of these six lowercase values: princess, classic, star_wars, pixar, marvel, villain. You MUST include real, currently-appearing meets for ALL SIX categories: princess (e.g. princesses at Royal Hall/Fantasy Faire); classic (Mickey, Minnie, Donald, Daisy, Goofy, Pluto, Chip and Dale -- Toontown, Main Street); star_wars (characters in Star Wars Galaxy Edge -- e.g. Chewbacca, Vi Moradi, Kylo Ren, Rey, stormtroopers); pixar (Woody/Buzz/Jessie, Pixar Pier characters, Edna/Incredibles at Avengers-adjacent areas, characters at DCA Pixar Pier); marvel (Avengers Campus at DCA -- Spider-Man, Captain America, Black Panther, Black Widow, Doctor Strange, etc.); villain (seasonal/where they appear -- e.g. villains during Halloween/Oogie Boogie Bash, or year-round meets if any). Only include characters that genuinely appear at the Disneyland Resort right now. If a category has limited or seasonal availability, still include its real entries and note the seasonality. Use only current 2025-2026 information. Keep every notes field to ONE short sentence (20 words max) and include at most 6 characters per category (about 24-30 total) -- a complete roster matters more than long notes.',maxTokens:9000}
+  character_intel:{system:'Disneyland Resort character meet-and-greet expert. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search AllEars, MiceChat, DisneyTouristBlog, and the official Disneyland site (2025-2026) for current Disneyland Resort character meet-and-greet info. Return JSON: {"characters":[{"name":"...","category":"...","park":"DL or DCA","location":"land or spot","notes":"timing/tips"}]}. The category field MUST be EXACTLY one of these six lowercase values: princess, classic, star_wars, pixar, marvel, villain. You MUST include real, currently-appearing meets for ALL SIX categories: princess (e.g. princesses at Royal Hall/Fantasy Faire); classic (Mickey, Minnie, Donald, Daisy, Goofy, Pluto, Chip and Dale -- Toontown, Main Street); star_wars (characters in Star Wars Galaxy Edge -- e.g. Chewbacca, Vi Moradi, Kylo Ren, Rey, stormtroopers); pixar (Woody/Buzz/Jessie, Pixar Pier characters, Edna/Incredibles at Avengers-adjacent areas, characters at DCA Pixar Pier); marvel (Avengers Campus at DCA -- Spider-Man, Captain America, Black Panther, Black Widow, Doctor Strange, etc.); villain (seasonal/where they appear -- e.g. villains during Halloween/Oogie Boogie Bash, or year-round meets if any). Only include characters that genuinely appear at the Disneyland Resort right now. If a category has limited or seasonal availability, still include its real entries and note the seasonality. Use only current 2025-2026 information. Keep every notes field to ONE short sentence (20 words max) and include at most 6 characters per category (about 24-30 total) -- a complete roster matters more than long notes.',maxTokens:9000},
+  photo_ops:{system:'Disneyland Resort guest photography expert -- the iconic photo spots visitors plan for. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search DisneyTouristBlog, AllEars, MiceChat and Disney Parks sources (2025-2026) for the BEST guest photo spots at Disneyland Park and Disney California Adventure. Return JSON: {"spots":[{"name":"...","park":"DL or DCA","land":"...","shot":"...","bestTime":"..."}]}. The shot field is ONE guest-facing sentence describing the specific photo: where to stand and what landmark fills the background (example: "Stand in the middle of Main Street, U.S.A. facing the castle -- Sleeping Beauty Castle fills the background behind your group."). Include 16-20 spots, roughly half in each park, covering at least: the Main Street castle shot, the Partners statue, Sleeping Beauty Castle from the front, the Millennium Falcon in Star Wars: Galaxy\'s Edge, the Galaxy\'s Edge rock spires, Cars Land neon signs at dusk on Route 66, the Radiator Springs Ornament Valley mountain backdrop, Pixar Pier with the Incredicoaster and Pixar Pal-A-Round behind you at sunset, Buena Vista Street with the Carthay Circle tower, Grizzly Peak and its waterfall, the Mark Twain riverfront in Frontierland, the "it\'s a small world" facade lit up at night, Avengers Campus headquarters, Snow White\'s wishing well grotto, and the New Orleans Square riverfront. bestTime is exactly one of: any, morning, golden hour, sunset, night. Only real, current photo locations -- no invented backdrops.',maxTokens:9000}
 };
 
 const STABLE_SECTION_PROMPTS = {
@@ -416,6 +417,11 @@ async function isFresh(key) {
       const cd = raw && raw.data;
       const roster = cd && Array.isArray(cd.characters) ? cd.characters : null;
       if(!roster || roster.length < 5) return false;
+    }
+    if(key === 'photo_ops') {
+      const pd = raw && raw.data;
+      const spots = pd && Array.isArray(pd.spots) ? pd.spots : null;
+      if(!spots || spots.length < 8) return false;
     }
     const tsMs = typeof ts === 'number' ? ts : new Date(ts).getTime();
     return (Date.now()-tsMs)/864e5 < EXPIRY_DAYS[key]*0.8;
@@ -1028,7 +1034,7 @@ async function buildLegacy(key, apiKey) {
   if(!text){ for(const b of blocks) if(b.type==='text') text+=b.text; }
   if(text.length<50) throw new Error('Response too short');
   let value = text;
-  if(key==='park_hours_intel'||key==='character_intel') {
+  if(key==='park_hours_intel'||key==='character_intel'||key==='photo_ops') {
     const parsed = extractJson(text);
     if(parsed) value = parsed;
   }
@@ -1079,6 +1085,47 @@ async function buildLegacy(key, apiKey) {
         value = { characters: salvaged };
       } else {
         throw new Error('character_intel rebuild rejected: no usable characters array in parsed payload (keys: ' + (value && typeof value === 'object' ? Object.keys(value).join(',') : String(value && typeof value)) + '; salvaged ' + salvaged.length + ')');
+      }
+    }
+  }
+  if (key === 'photo_ops') {
+    // Same truncated-response guard as character_intel: a photo list that
+    // fails validation must never replace the last good blob.
+    const spotsOk = value && typeof value === 'object' && !Array.isArray(value) && Array.isArray(value.spots) && value.spots.filter(s => s && typeof s.name === 'string' && s.name && typeof s.shot === 'string' && s.shot).length >= 8;
+    if (!spotsOk) {
+      const salvaged = [];
+      try {
+        const arrStart = text.indexOf('"spots"');
+        if (arrStart !== -1) {
+          const seenNames = new Set();
+          for (let s = text.indexOf('{', arrStart); s !== -1; s = text.indexOf('{', s + 1)) {
+            let depth = 0, inStr = false, esc = false, end = -1;
+            for (let i = s; i < text.length; i++) {
+              const ch = text[i];
+              if (esc) { esc = false; continue; }
+              if (ch === '\\') { esc = true; continue; }
+              if (ch === '"') { inStr = !inStr; continue; }
+              if (inStr) continue;
+              if (ch === '{') depth++;
+              else if (ch === '}') { depth--; if (depth === 0) { end = i; break; } }
+            }
+            if (end === -1) break;
+            try {
+              const obj = JSON.parse(text.substring(s, end + 1));
+              if (obj && typeof obj.name === 'string' && obj.name && typeof obj.shot === 'string' && obj.shot && !seenNames.has(obj.name.toLowerCase())) {
+                seenNames.add(obj.name.toLowerCase());
+                salvaged.push(obj);
+              }
+            } catch (e) { /* keep scanning */ }
+            s = end;
+          }
+        }
+      } catch (e) { /* salvage is best-effort */ }
+      if (salvaged.length >= 8) {
+        console.log('[cron-cache] photo_ops: recovered ' + salvaged.length + ' complete spots from a truncated response');
+        value = { spots: salvaged };
+      } else {
+        throw new Error('photo_ops rebuild rejected: no usable spots array in parsed payload (salvaged ' + salvaged.length + ')');
       }
     }
   }
