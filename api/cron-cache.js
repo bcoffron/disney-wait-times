@@ -1237,10 +1237,15 @@ export default async function handler(req, res) {
 
   const secret = process.env.CRON_SECRET;
   const isAuthed = secret && req.headers.authorization === ('Bearer '+secret);
-  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+  // Auth hardening (Oct 6, 2026): the bare x-vercel-cron header no longer
+  // authenticates -- it is a plain request header anyone can set. Vercel
+  // attaches 'Authorization: Bearer <CRON_SECRET>' to every cron invocation
+  // (scheduled and dashboard manual runs) because CRON_SECRET is set on the
+  // project (verified in the production env list), so genuine crons are
+  // unaffected. Manual rebuilds: dashboard Run, or the admin-key path.
   const ADMIN_KEY_CC = (process.env.ADMIN_KEY).toLowerCase();
   const isAdminCC = (req.headers['x-admin-key'] || '').toLowerCase() === ADMIN_KEY_CC;
-  if (!isAuthed && !isVercelCron && !isAdminCC) {
+  if (!isAuthed && !isAdminCC) {
     console.warn('[cron-cache] Unauthorized request blocked -- ip:', req.headers['x-forwarded-for'] || 'unknown');
     return res.status(401).json({ error: 'Unauthorized.' });
   }
