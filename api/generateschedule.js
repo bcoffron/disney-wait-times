@@ -156,7 +156,8 @@ async function getPhotoOpsIntel() {
           if (!spots.length && dataObj && typeof dataObj === 'object' && dataObj.name && dataObj.shot) spots = [dataObj];
           return spots.filter(s => s && s.name && s.shot).map(s => ({
             name: String(s.name), park: String(s.park || ''), land: String(s.land || ''),
-            shot: String(s.shot), bestTime: String(s.bestTime || '')
+            shot: String(s.shot), bestTime: String(s.bestTime || ''),
+            short: String(s.short || ''), sampleUrl: String(s.sampleUrl || '')
           }));
     } catch (e) {
           console.warn('[photo-ops] read failed:', e.message);
