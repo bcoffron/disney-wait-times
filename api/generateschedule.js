@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickCharacterMeet, normName } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -648,6 +648,30 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               if (_ropePick) { _ropeSlot.preferRide = _ropePick.name; console.log('[scaffold] rope drop assigned:', _ropePick.name); }
             }
           } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
+          // Morning block assignment: the start park's early ride slots are
+          // ASSIGNED from the catalog, not left to the fill model. This wiring
+          // was missing from the handler -- pickMorningRides shipped Oct 4 but
+          // was never called, so the model filled mornings itself and put the
+          // Disneyland Monorail at 9:38 AM on BEAU01 Day 1 (Oct 5). Assigned
+          // slots carry preferRide; applyFills enforces them like the rope drop.
+          try {
+            const _ropeSlot2 = _sk.slots.find(x => x.block === 'ropedrop');
+            if (_ropeSlot2 && _ropeSlot2.preferRide) {
+              const _wsOf = (w) => Array.isArray(w[0]) ? w[0][0] : w[0];
+              const _mSlots = _sk.slots.filter(x => x.type === 'ride' && x.block !== 'ropedrop' && x.park === _ropeSlot2.park && _wsOf(x.window) < (_sk.openMin || 480) + 180)
+                .sort((a, b) => _wsOf(a.window) - _wsOf(b.window));
+              if (_mSlots.length) {
+                const _mPicks = pickMorningRides(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot2.park, _mSlots.length, {
+                  priorNames: [...(priorRides || []), _ropeSlot2.preferRide],
+                  bannedNames: [...new Set([...(skipRides || []), ..._closedS])],
+                  priorRopeDropNames: Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : [],
+                  closedNames: _closedS
+                }).filter(p => p && normName(p.name) !== normName(_ropeSlot2.preferRide));
+                _mSlots.forEach((s, i) => { if (_mPicks[i]) { s.preferRide = _mPicks[i].name; } });
+                console.log('[scaffold] morning assigned:', _mSlots.map(s => s.preferRide || '(model)').join(', '));
+              }
+            }
+          } catch (e) { console.warn('[scaffold] morning assignment failed:', e.message); }
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '');
