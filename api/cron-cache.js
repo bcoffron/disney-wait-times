@@ -105,7 +105,7 @@ const LEGACY_PROMPTS = {
   dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe). After any searches, your FINAL message must contain ONLY the JSON object inside a fenced code block: ```json{...}``` -- no commentary before or after the fence.',maxTokens:8000},
   events_intel:{system:'Disneyland events expert.',user:'Special events Disneyland June 25 - July 5 2026: ticketed events, closures, July 4th, shows, fireworks. Specific dates.',maxTokens:800},
   park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours June 25 to July 5 2026. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 11 dates.',maxTokens:1000},
-  character_intel:{system:'Disneyland Resort character meet-and-greet expert. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search AllEars, MiceChat, DisneyTouristBlog, and the official Disneyland site (2025-2026) for current Disneyland Resort character meet-and-greet info. Return JSON: {"characters":[{"name":"...","category":"...","park":"DL or DCA","location":"land or spot","notes":"timing/tips"}]}. The category field MUST be EXACTLY one of these six lowercase values: princess, classic, star_wars, pixar, marvel, villain. You MUST include real, currently-appearing meets for ALL SIX categories: princess (e.g. princesses at Royal Hall/Fantasy Faire); classic (Mickey, Minnie, Donald, Daisy, Goofy, Pluto, Chip and Dale -- Toontown, Main Street); star_wars (characters in Star Wars Galaxy Edge -- e.g. Chewbacca, Vi Moradi, Kylo Ren, Rey, stormtroopers); pixar (Woody/Buzz/Jessie, Pixar Pier characters, Edna/Incredibles at Avengers-adjacent areas, characters at DCA Pixar Pier); marvel (Avengers Campus at DCA -- Spider-Man, Captain America, Black Panther, Black Widow, Doctor Strange, etc.); villain (seasonal/where they appear -- e.g. villains during Halloween/Oogie Boogie Bash, or year-round meets if any). Only include characters that genuinely appear at the Disneyland Resort right now. If a category has limited or seasonal availability, still include its real entries and note the seasonality. Use only current 2025-2026 information.',maxTokens:9000}
+  character_intel:{system:'Disneyland Resort character meet-and-greet expert. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search AllEars, MiceChat, DisneyTouristBlog, and the official Disneyland site (2025-2026) for current Disneyland Resort character meet-and-greet info. Return JSON: {"characters":[{"name":"...","category":"...","park":"DL or DCA","location":"land or spot","notes":"timing/tips"}]}. The category field MUST be EXACTLY one of these six lowercase values: princess, classic, star_wars, pixar, marvel, villain. You MUST include real, currently-appearing meets for ALL SIX categories: princess (e.g. princesses at Royal Hall/Fantasy Faire); classic (Mickey, Minnie, Donald, Daisy, Goofy, Pluto, Chip and Dale -- Toontown, Main Street); star_wars (characters in Star Wars Galaxy Edge -- e.g. Chewbacca, Vi Moradi, Kylo Ren, Rey, stormtroopers); pixar (Woody/Buzz/Jessie, Pixar Pier characters, Edna/Incredibles at Avengers-adjacent areas, characters at DCA Pixar Pier); marvel (Avengers Campus at DCA -- Spider-Man, Captain America, Black Panther, Black Widow, Doctor Strange, etc.); villain (seasonal/where they appear -- e.g. villains during Halloween/Oogie Boogie Bash, or year-round meets if any). Only include characters that genuinely appear at the Disneyland Resort right now. If a category has limited or seasonal availability, still include its real entries and note the seasonality. Use only current 2025-2026 information. Keep every notes field to ONE short sentence (20 words max) and include at most 6 characters per category (about 24-30 total) -- a complete roster matters more than long notes.',maxTokens:9000}
 };
 
 const STABLE_SECTION_PROMPTS = {
@@ -408,6 +408,15 @@ async function isFresh(key) {
     const emptyVenues = raw && raw.data && Array.isArray(raw.data.venues) && raw.data.venues.length === 0;
     const emptyData = raw && raw.data && (typeof raw.data === 'string') && raw.data.trim().length === 0;
     if(emptyVenues || emptyData) return false;
+    // A stored character roster that fails the shape validation is degraded
+    // data, not fresh data (Oct 6, 2026: the Oct 5 rebuild stored ONE
+    // character; every manual + scheduled trigger for 5.6 days then skipped
+    // as 'fresh' and the roster never healed). Fresh must mean fresh AND valid.
+    if(key === 'character_intel') {
+      const cd = raw && raw.data;
+      const roster = cd && Array.isArray(cd.characters) ? cd.characters : null;
+      if(!roster || roster.length < 5) return false;
+    }
     const tsMs = typeof ts === 'number' ? ts : new Date(ts).getTime();
     return (Date.now()-tsMs)/864e5 < EXPIRY_DAYS[key]*0.8;
   } catch(e){return false;}
@@ -1024,15 +1033,53 @@ async function buildLegacy(key, apiKey) {
     if(parsed) value = parsed;
   }
   if (key === 'character_intel') {
-    // NEVER let a truncated/salvaged rebuild replace the roster. extractJson
-    // returns the first COMPLETE object; when the model's {"characters":[...]}
-    // response is truncated, the wrapper never closes and the salvage is a
-    // single character entry -- on Oct 5, 2026 that stored one princess as
-    // the entire dataset and silently disabled character meets everywhere.
-    // Fail loud instead: the caller records the failure and the last good
-    // blob stays live.
-    if (!value || typeof value !== 'object' || Array.isArray(value) || !Array.isArray(value.characters) || value.characters.length < 5) {
-      throw new Error('character_intel rebuild rejected: no usable characters array in parsed payload (keys: ' + (value && typeof value === 'object' ? Object.keys(value).join(',') : String(value && typeof value)) + ')');
+    // NEVER let a truncated rebuild silently replace the roster with junk.
+    // extractJson returns the first COMPLETE object; when the model's
+    // {"characters":[...]} response is truncated, the wrapper never closes
+    // and the naive salvage is a single character entry -- on Oct 5, 2026
+    // that stored one princess as the entire dataset and silently disabled
+    // character meets everywhere. Recovery, in order: (a) the parsed payload
+    // is already a valid roster -- use it; (b) harvest every COMPLETE
+    // character object out of the truncated array in the raw text (each
+    // harvested entry is itself whole, valid JSON with name + category);
+    // (c) still short of a real roster -- fail loud: the caller records the
+    // failure and the last good blob stays live.
+    const rosterOk = value && typeof value === 'object' && !Array.isArray(value) && Array.isArray(value.characters) && value.characters.length >= 5;
+    if (!rosterOk) {
+      const salvaged = [];
+      try {
+        const arrStart = text.indexOf('"characters"');
+        if (arrStart !== -1) {
+          const seenNames = new Set();
+          for (let s = text.indexOf('{', arrStart); s !== -1; s = text.indexOf('{', s + 1)) {
+            let depth = 0, inStr = false, esc = false, end = -1;
+            for (let i = s; i < text.length; i++) {
+              const ch = text[i];
+              if (esc) { esc = false; continue; }
+              if (ch === '\\') { esc = true; continue; }
+              if (ch === '"') { inStr = !inStr; continue; }
+              if (inStr) continue;
+              if (ch === '{') depth++;
+              else if (ch === '}') { depth--; if (depth === 0) { end = i; break; } }
+            }
+            if (end === -1) break; // truncated mid-object: nothing complete beyond this point
+            try {
+              const obj = JSON.parse(text.substring(s, end + 1));
+              if (obj && typeof obj.name === 'string' && obj.name && typeof obj.category === 'string' && obj.category && !seenNames.has(obj.name.toLowerCase())) {
+                seenNames.add(obj.name.toLowerCase());
+                salvaged.push(obj);
+              }
+            } catch (e) { /* not a standalone object (e.g. the wrapper) -- keep scanning */ }
+            s = end;
+          }
+        }
+      } catch (e) { /* salvage is best-effort */ }
+      if (salvaged.length >= 5) {
+        console.log('[cron-cache] character_intel: recovered ' + salvaged.length + ' complete characters from a truncated response');
+        value = { characters: salvaged };
+      } else {
+        throw new Error('character_intel rebuild rejected: no usable characters array in parsed payload (keys: ' + (value && typeof value === 'object' ? Object.keys(value).join(',') : String(value && typeof value)) + '; salvaged ' + salvaged.length + ')');
+      }
     }
   }
   // Legacy keys use the old {data, ts} shape written directly (not via blobStore wrapper)
