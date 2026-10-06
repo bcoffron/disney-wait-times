@@ -815,14 +815,18 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .dir-btn:active{background:#DDEEEC}
 .tpcp-map-view{position:fixed;inset:0;background:#F7F4EC;z-index:2400;display:none;flex-direction:column}
 .tpcp-map-view.open{display:flex}
-.tpcp-map-head{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#fff;border-bottom:1px solid #E7E1D0}
-.tpcp-map-back{border:0;background:#F0EDE4;border-radius:9px;width:34px;height:34px;font-size:17px;cursor:pointer;color:#173A5E}
+.tpcp-map-head{display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 14px 12px;background:#fff;border-bottom:1px solid #E7E1D0}
+.tpcp-map-back{border:0;background:#173A5E;border-radius:99px;height:36px;padding:0 14px;font-size:14px;font-weight:700;cursor:pointer;color:#FFFFFF}
 .tpcp-map-title{font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;color:#173A5E;flex:1}
 .tpcp-park-toggle{display:flex;background:#F0EDE4;border-radius:9px;padding:3px}
 .tpcp-park-toggle button{border:0;background:transparent;padding:6px 10px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#5A6B72;cursor:pointer}
 .tpcp-park-toggle button.on{background:#173A5E;color:#fff}
 .tpcp-map-body{flex:1;position:relative}
 .tpcp-map-el{position:absolute;inset:0;background:#EFEDE7}
+.tpcp-pop{min-width:150px;text-align:left}
+.tpcp-pop-name{font-size:14px;font-weight:700;color:#173A5E;line-height:1.25}
+.tpcp-pop-sub{font-size:11.5px;color:#5A7263;margin:2px 0 8px}
+.tpcp-pop-dir{display:block;width:100%;border:0;background:#1A6860;color:#fff;font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 10px;cursor:pointer}
 .tpcp-place-card{position:absolute;left:12px;right:12px;bottom:12px;background:#fff;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.18);padding:13px 15px;display:none;z-index:900}
 .tpcp-place-card.open{display:block}
 .tpcp-place-name{font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;color:#173A5E}
@@ -4388,7 +4392,7 @@ async function reoptimize(){ if(!isAdmin()) return;
     return;
   }
 
-  var dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
+  var dn=(function(){try{var _td2=(TRIP_CONFIG.days||[]);var _dy2=_td2[curDay]||_td2[0];if(_dy2&&_dy2.date){var _wd2=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];var _mo2=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];var _dd2=new Date(_dy2.date);return _wd2[_dd2.getDay()]+' '+_mo2[_dd2.getMonth()]+' '+_dd2.getDate();}}catch(e){}return 'Day '+(curDay+1);})();
   data=getCurDay();
   var summary='';
   data.sections.forEach(function(sec){
@@ -4398,15 +4402,16 @@ async function reoptimize(){ if(!isAdmin()) return;
 
   // Only use live wait data if we're actually at the park (Jun 28-30)
   var today=new Date();
-  var tripStart=new Date('2026-06-28T00:00:00');
-  var tripEnd=new Date('2026-07-01T00:00:00');
-  var tripStartDate=new Date('2026-06-28');var tripEndDate=new Date('2026-07-01');var todayDate=new Date();todayDate.setHours(0,0,0,0);var atPark=todayDate>=tripStartDate&&todayDate<tripEndDate;
+  var _cfgD=(TRIP_CONFIG.days||[]);var _fd=new Date(_cfgD.length?_cfgD[0].date:Date.now());var _ld=new Date(_cfgD.length?_cfgD[_cfgD.length-1].date:Date.now());
+  var tripStart=_fd;
+  var tripEnd=new Date(_ld.getTime()+24*60*60*1000);
+  var tripStartDate=new Date(_fd.getFullYear(),_fd.getMonth(),_fd.getDate());var tripEndDate=new Date(_ld.getFullYear(),_ld.getMonth(),_ld.getDate()+1);var todayDate=new Date();todayDate.setHours(0,0,0,0);var atPark=todayDate>=tripStartDate&&todayDate<tripEndDate;
   var preTrip=!atPark;
 
   // Build live wait times context
   liveWaitContext='';
   var liveAvailable=atPark&&Object.keys(waits).length>0;
-  if(!atPark)liveWaitContext='Use historical wait time data and web search for late June Disneyland crowd patterns. ';
+  if(!atPark)liveWaitContext='Use historical wait time data and web search for Disneyland crowd patterns on the trip dates. ';
   // Inject cached intel
   var parkIntelCtx='',eventsIntelCtx='';
   try{var pi=typeof getParkIntel==='function'?getParkIntel():null;if(pi&&pi.length>100)parkIntelCtx='\nPARK INTELLIGENCE:\n'+pi.substring(0,1500);}catch(e){}
@@ -4423,7 +4428,7 @@ async function reoptimize(){ if(!isAdmin()) return;
     liveWaitContext='No live wait data available \u2014 relying on historical patterns only. ';
   }
   if(!atPark){
-    liveWaitContext='Trip is not today \u2014 optimizing based on historical wait patterns for June at Disneyland. Do not reference live data. ';
+    liveWaitContext='Trip is not today \u2014 optimizing based on historical wait patterns for the trip dates. Do not reference live data. ';
   }
 
   // All rides available at each park for potential additions
@@ -5038,7 +5043,7 @@ function renderSched(){
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
-        +(function(){var _cid=curDay+'-'+si+'-'+ei;var _useCollapse=e.n&&e.n.length>0&&e.type!=='dining'&&e.type!=='quickservice';var _btnLabel=e.type==='tip'?'Strategy &amp; details':e.type==='show'?'Show details':e.type==='snack'?'Snack details':e.type==='photo'?'Photo tips':e.type==='character'?'Meet details':e.type==='break'?'Break details':'Tips &amp; details';if(_useCollapse){return '<button class="ride-tips-btn" onclick="toggleRideNote(\''+_cid+'\')">'+_btnLabel+' &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+_cid+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>';}else{return e.n?'<div class="ride-note">'+fixEncoding(e.n)+'</div>':'';}})()+(function(){var _t=e.type;if(_t==='ride'||_t==='dining'||_t==='quickservice'||_t==='show'||_t==='character'){return '<div><button class="dir-btn" onclick="openDirections('+curDay+','+si+','+ei+')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Directions</button></div>';}return '';}())()+(e.photoLinks&&e.photoLinks.length?'<div class="photo-links">'+e.photoLinks.map(function(pl){return '<a class="photo-link" href="'+pl.url+'" target="_blank" rel="noopener">\uD83D\uDCF7 See an example: '+fixEncoding(pl.label)+'</a>';}).join('')+'</div>':'')+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change \u2014 check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
+        +(function(){var _cid=curDay+'-'+si+'-'+ei;var _useCollapse=e.n&&e.n.length>0&&e.type!=='dining'&&e.type!=='quickservice';var _btnLabel=e.type==='tip'?'Strategy &amp; details':e.type==='show'?'Show details':e.type==='snack'?'Snack details':e.type==='photo'?'Photo tips':e.type==='character'?'Meet details':e.type==='break'?'Break details':'Tips &amp; details';if(_useCollapse){return '<button class="ride-tips-btn" onclick="toggleRideNote(\''+_cid+'\')">'+_btnLabel+' &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+_cid+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>';}else{return e.n?'<div class="ride-note">'+fixEncoding(e.n)+'</div>':'';}})()+(function(){var _t=e.type;if(_t==='ride'||_t==='dining'||_t==='quickservice'||_t==='show'||_t==='character'){return '<div><button class="dir-btn" onclick="openDirections('+curDay+','+si+','+ei+')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Directions</button></div>';}return '';}())+(e.photoLinks&&e.photoLinks.length?'<div class="photo-links">'+e.photoLinks.map(function(pl){return '<a class="photo-link" href="'+pl.url+'" target="_blank" rel="noopener">\uD83D\uDCF7 See an example: '+fixEncoding(pl.label)+'</a>';}).join('')+'</div>':'')+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change \u2014 check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -5502,7 +5507,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   // (Beau: by then planning is done and it's travel/final-checks mode).
   var _inPark=false;
   try{
-    var _tds=((window.TRIP_CONFIG||{}).days||[]).map(function(d){return d&&d.date?new Date(d.date+'T12:00:00'):null;}).filter(function(d){return !!d;});
+    var _tds=((window.TRIP_CONFIG||{}).days||[]).map(function(d){if(!d||!d.date)return null;var _s=String(d.date);var _x=/^\d{4}-\d{2}-\d{2}/.test(_s)?new Date(_s.substring(0,10)+'T12:00:00'):new Date(_s);return isNaN(_x)?null:_x;}).filter(function(d){return !!d;});
     if(_tds.length){var _f=new Date(_tds[0]);_f.setHours(0,0,0,0);var _flip=new Date(_f);_flip.setDate(_flip.getDate()-1);_flip.setHours(7,0,0,0);var _l=new Date(_tds[_tds.length-1]);_l.setHours(23,59,59,999);var _now=new Date();_inPark=(_now>=_flip&&_now<=_l);}
   }catch(e){}
   var _order=_inPark
@@ -5892,6 +5897,7 @@ function generateFromSetup(params, callback) {
           var existingDays=(existingTc.schedule&&existingTc.schedule.days)||[];
           var dayIdx=(typeof params==='number')?params:0;
           var newDays=existingDays.map(function(d,i){return i===dayIdx?{park:d.park||'',items:sections}:d;});
+          if(dayIdx>=newDays.length){ while(newDays.length<dayIdx)newDays.push({park:'',items:[]}); newDays.push({park:(existingTc.days&&existingTc.days[dayIdx]&&(existingTc.days[dayIdx].park||existingTc.days[dayIdx].startPark))||'',items:sections}); }
           if(!newDays.length){newDays=[{park:'Disneyland Park',items:sections}];}
           var updatedTc=Object.assign({},existingTc,{schedule:{days:newDays},scheduleVersion:Date.now().toString()});
           fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})})
@@ -5902,6 +5908,29 @@ function generateFromSetup(params, callback) {
     }catch(e){if(typeof callback==='function')callback('Parse error: '+e.message);}
   })
   .catch(function(e){if(typeof callback==='function')callback('Network error: '+e.message);});
+}
+function generateAllDays() {
+  var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || {};
+  var n = (Array.isArray(tc.days) && tc.days.length) || (Array.isArray(tc.dates) && tc.dates.length) || 3;
+  showToast('Building your schedule \u2014 one day at a time\u2026');
+  var i = 0;
+  function next() {
+    if (i >= n) { showToast('Schedule built!'); if (typeof loadCustom === 'function') loadCustom(); if (typeof renderSched === 'function') renderSched(); return; }
+    var idx = i; i++;
+    generateFromSetup(idx, function (err, sections) {
+      if (err) { showToast('Day ' + (idx + 1) + ' hit a snag \u2014 tap AI Optimize to retry'); return; }
+      try {
+        var ltc = window._loadedTripData.tripConfig;
+        if (!ltc.schedule) ltc.schedule = { days: [] };
+        var park = (ltc.days && ltc.days[idx] && (ltc.days[idx].park || ltc.days[idx].startPark)) || '';
+        ltc.schedule.days[idx] = { park: park, items: sections };
+        window._schedData = ltc.schedule;
+        if (typeof loadCustom === 'function') loadCustom();
+      } catch (e) {}
+      next();
+    });
+  }
+  next();
 }
 function aiChooseRides(params, callback) {
   var context = parkIntelCache ? '=== PARK STRATEGY & RIDE INTEL ===\n' + parkIntelCache : '';
@@ -6778,6 +6807,8 @@ function switchNav(tabKey) {
   var active = document.getElementById('nav-' + tabKey);
   if (active) active.classList.add('active');
   _currentNav = tabKey;
+  var _dtc = document.getElementById('dayTabsContainer');
+  if (_dtc) _dtc.style.display = (tabKey === 'schedule') ? '' : 'none';
   // Map nav to tab
   var tabMap = {
     schedule: 'schedule',
@@ -7604,6 +7635,9 @@ function tpcpConfirmSwap() {
     if(!isAdmin()) return;
     var done = localStorage.getItem('tpcp_onboardingComplete');
     if (done === 'true') {
+      var _hasSched = false;
+      try { var _tc0 = (window._loadedTripData && window._loadedTripData.tripConfig) || {}; _hasSched = !!(_tc0.schedule && _tc0.schedule.days && _tc0.schedule.days.some(function (d) { return d.items && d.items.length; })); } catch (e) {}
+      if (!_hasSched && typeof generateAllDays === 'function') { generateAllDays(); return; }
       if (typeof reoptimize === 'function') reoptimize();
       return;
     }
@@ -7935,7 +7969,7 @@ function tpcpConfirmSwap() {
 </script>
 <div class="tpcp-map-view" id="tpcpMapView">
   <div class="tpcp-map-head">
-    <button class="tpcp-map-back" onclick="closeParkMap()" aria-label="Back">&#8592;</button>
+    <button class="tpcp-map-back" onclick="closeParkMap()" aria-label="Back">&#8592; Back</button>
     <div class="tpcp-map-title">Park Map</div>
     <div class="tpcp-park-toggle">
       <button id="tpcpParkDL" onclick="switchParkMap('DL')">Disneyland</button>
@@ -8037,7 +8071,7 @@ function tpcpTileLayer(park) {
       img.alt = '';
       return img;
     },
-    options: { minZoom: 15, maxZoom: 19, maxNativeZoom: 18, tileSize: 256, attribution: '&copy; OpenStreetMap contributors' }
+    options: { minZoom: 15, maxZoom: 19, maxNativeZoom: 19, tileSize: 256, attribution: '&copy; OpenStreetMap contributors' }
   });
   return new Layer();
 }
@@ -8103,6 +8137,19 @@ function tpcpInitMiniMap() {
 var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], svcMarkers: [], showPlaces: true, showRR: false, showSvc: false, selected: null };
 var TPCP_SVC_COLORS = { firstaid: '#C0392B', babycare: '#8E6BC8', lockers: '#4A7A7C', guest: '#1D6FB8', atm: '#5A526E' };
 var TPCP_SVC_LABELS = { firstaid: 'First Aid', babycare: 'Baby Care', lockers: 'Lockers', guest: 'Guest Relations', atm: 'ATM' };
+var _tpcpSpots = {};
+function tpcpBindPopup(park, marker, spot) {
+  var id = 'sp' + Math.random().toString(36).slice(2, 10);
+  _tpcpSpots[id] = { park: park, spot: spot };
+  marker.bindPopup('<div class="tpcp-pop"><div class="tpcp-pop-name">' + spot.n + '</div>' + (spot.land ? '<div class="tpcp-pop-sub">' + spot.land + ' \u00b7 ' + (park === 'DL' ? 'Disneyland' : 'California Adventure') + '</div>' : '') + '<button class="tpcp-pop-dir" onclick="tpcpPopupDir(\'' + id + '\')">Directions</button></div>', { closeButton: false, offset: [0, -4] });
+}
+function tpcpPopupDir(id) {
+  var r = _tpcpSpots[id];
+  if (!r) return;
+  if (_pm.map) _pm.map.closePopup();
+  closeParkMap();
+  tpcpOpenDirectionsTo(r.park, { name: r.spot.n, lat: r.spot.lat, lon: r.spot.lon, node: r.spot.node });
+}
 function openParkMap(park, layer) {
   var view = document.getElementById('tpcpMapView');
   view.classList.add('open');
@@ -8124,7 +8171,7 @@ function switchParkMap(park, skipEnsure) {
   var build = function () {
     var graph = window['TPCP_GRAPH_' + park];
     if (_pm.map) { _pm.map.remove(); _pm.map = null; }
-    _pm.map = L.map('tpcpFullMap', { minZoom: 15, maxZoom: 19 }).setView(park === 'DL' ? [33.8125, -117.9190] : [33.8072, -117.9190], 16);
+    _pm.map = L.map('tpcpFullMap', { minZoom: 15, maxZoom: 19, maxBounds: [[33.8028, -117.9262], [33.8192, -117.9122]], maxBoundsViscosity: 1.0 }).setView(park === 'DL' ? [33.8125, -117.9190] : [33.8072, -117.9190], 16);
     tpcpTileLayer(park).addTo(_pm.map);
     _pm.placeMarkers.forEach(function (m) { m.remove(); });
     _pm.rrMarkers.forEach(function (m) { m.remove(); });
@@ -8133,22 +8180,19 @@ function switchParkMap(park, skipEnsure) {
     (graph.places || []).forEach(function (p) {
       if (p.lat == null) return;
       var m = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#FFFFFF', weight: 1.6, fillColor: p.k === 'food' ? '#D4893A' : '#1A6860', fillOpacity: 0.95 });
-      m.on('click', function () { tpcpSelectPlace(park, p); });
-      m.bindTooltip(p.n, { direction: 'top', offset: [0, -8], className: 'tpcp-pin-lbl' });
+      tpcpBindPopup(park, m, { n: p.n, lat: p.lat, lon: p.lon, node: p.node, land: p.land || '' });
       _pm.placeMarkers.push(m);
     });
     (graph.restrooms || []).forEach(function (p) {
       var m = L.circleMarker([p.lat, p.lon], { radius: 5, color: '#FFFFFF', weight: 1.4, fillColor: '#4A7A7C', fillOpacity: 0.9 });
-      m.bindTooltip('Restrooms', { direction: 'top', offset: [0, -8], className: 'tpcp-pin-lbl' });
+      var snr = window.TPCPRouter.snap(graph, p.lat, p.lon);
+      tpcpBindPopup(park, m, { n: 'Restrooms', lat: p.lat, lon: p.lon, node: snr.node, land: '' });
       _pm.rrMarkers.push(m);
     });
     (graph.services || []).forEach(function (p) {
       var m = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#FFFFFF', weight: 1.6, fillColor: TPCP_SVC_COLORS[p.k] || '#173A5E', fillOpacity: 0.95 });
-      m.on('click', function () {
-        var sn = window.TPCPRouter.snap(graph, p.lat, p.lon);
-        tpcpSelectPlace(park, { n: p.n, lat: p.lat, lon: p.lon, node: sn.node, land: TPCP_SVC_LABELS[p.k] || 'Park Services' });
-      });
-      m.bindTooltip(p.n, { direction: 'top', offset: [0, -8], className: 'tpcp-pin-lbl' });
+      var sn = window.TPCPRouter.snap(graph, p.lat, p.lon);
+      tpcpBindPopup(park, m, { n: p.n, lat: p.lat, lon: p.lon, node: sn.node, land: TPCP_SVC_LABELS[p.k] || 'Park Services' });
       _pm.svcMarkers.push(m);
     });
     tpcpApplyLayers();
@@ -8300,7 +8344,7 @@ function tpcpComputeRoute() {
   // map
   if (_dir.map) { _dir.map.remove(); _dir.map = null; }
   _gps.dot = null;
-  _dir.map = L.map('tpcpDirMap', { minZoom: 15, maxZoom: 19, zoomControl: false });
+  _dir.map = L.map('tpcpDirMap', { minZoom: 15, maxZoom: 19, zoomControl: false, maxBounds: [[33.8028, -117.9262], [33.8192, -117.9122]], maxBoundsViscosity: 1.0 });
   tpcpTileLayer(_dir.park).addTo(_dir.map);
   var ll = route.coords.map(function (c) { return [c[0], c[1]]; });
   L.polyline(ll, { color: '#FFFFFF', weight: 9, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }).addTo(_dir.map);

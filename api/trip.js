@@ -156,6 +156,22 @@ export default async function handler(req, res) {
       // 'Explore + Recharge'/'Restroom Break' filler cards, and degraded
       // late-trip ride cards into generic tips. A save must store exactly what
       // the client generated. (Removed Oct 4, 2026.)
+      // Merge guard (Oct 6, 2026): a client save that carries no schedule
+      // (settings edits, older app builds, a load race) must never erase a
+      // schedule already stored for this trip. If the incoming tripConfig
+      // has no schedule days but the stored blob does, carry the stored
+      // schedule forward. An incoming schedule always wins.
+      try {
+        const _inDays = tripData && tripData.tripConfig && tripData.tripConfig.schedule && tripData.tripConfig.schedule.days;
+        const _hasIn = Array.isArray(_inDays) && _inDays.some(d => d && d.items && d.items.length);
+        if (!_hasIn) {
+          const _stored = await readTripBlob(entry.tripId);
+          const _stDays = _stored && _stored.tripConfig && _stored.tripConfig.schedule && _stored.tripConfig.schedule.days;
+          if (Array.isArray(_stDays) && _stDays.some(d => d && d.items && d.items.length)) {
+            tripData.tripConfig.schedule = _stored.tripConfig.schedule;
+          }
+        }
+      } catch (e) { /* best-effort: never block a save */ }
       // Save to shared trip blob
       await writeTripBlob(entry.tripId, tripData);
       const _blobBodyLen = JSON.stringify(tripData).length;
