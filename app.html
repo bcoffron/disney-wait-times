@@ -5243,6 +5243,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var bulbIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17H8v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>';
   var pinIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
   var checkIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>';
+  var svcIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
   var gearIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
   var chevron='<svg class="info-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>';
 
@@ -5431,6 +5432,25 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   });
   restroomsHtml+='</div>';
 
+
+  var svcRows=[
+    ['Disneyland \u2014 First Aid','Main Street, U.S.A., beside the Baby Care Center'],
+    ['Disneyland \u2014 Baby Care Center','Main Street, U.S.A. \u2014 nursing room, changing tables, toddler potties, feeding highchairs'],
+    ['Disneyland \u2014 Guest Relations','City Hall on Main Street, plus the kiosk in the Esplanade between the gates'],
+    ['Disneyland \u2014 Lockers','Main Street, plus more outside the gates by the Esplanade and the Picnic Area'],
+    ['Disneyland \u2014 Lost & Found','Just outside the main entrance \u2014 ask a Guest Relations host'],
+    ['California Adventure \u2014 First Aid','Buena Vista Street, inside the Chamber of Commerce'],
+    ['California Adventure \u2014 Baby Care Center','Pacific Wharf, beside the Ghirardelli shop'],
+    ['California Adventure \u2014 Guest Relations','Chamber of Commerce on Buena Vista Street'],
+    ['California Adventure \u2014 Lockers','Buena Vista Street near the entrance, plus Grizzly Peak by the airfield'],
+    ['California Adventure \u2014 Lost & Found','Chamber of Commerce on Buena Vista Street']
+  ];
+  var servicesHtml='<div class="restroom-list">';
+  svcRows.forEach(function(r){ servicesHtml+='<div class="restroom-row"><div class="restroom-land">'+r[0]+'</div><div class="restroom-note">'+r[1]+'</div></div>'; });
+  servicesHtml+='</div>'
+    +'<div style="font-size:12px;color:var(--text-muted);margin-top:12px;line-height:1.5">Free cups of ice water at any quick-service counter \u2014 just ask. Dead phone? FuelRod kiosks in both parks swap a drained portable charger for a full one. Every First Aid, locker, ATM and Guest Relations spot is pinned on the park map, with walking directions.</div>'
+    +'<button class="tpcp-place-dir" style="margin-top:10px" onclick="openParkMapServices()">See park services on the map</button>';
+
   // Section 7: Checklist
   var checklistHtml='<div style="padding:0 14px 6px;"><div style="font-size:11px;color:var(--color-teal-mid);margin-bottom:8px;" id="checklist-progress">0 of 10 complete</div></div>'
     +'<div id="checklist-items" class="checklist-items"></div>'
@@ -5470,6 +5490,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     crowds: buildInfoSectionStatic('crowds','Crowd Forecast',chartIcon,crowdContent()),
     tips: buildInfoSection('tips','Park Tips',bulbIcon,tipsHtml),
     restrooms: buildInfoSection('restrooms','Restroom Locations',pinIcon,restroomsHtml+restroomMapBtn),
+    services: buildInfoSection('services','Park Services',svcIcon,servicesHtml),
     checklist: buildInfoSection('checklist','Pre-Trip Checklist',checkIcon,checklistHtml),
     share: buildInfoSection('share','Share With Your Group',shareIcon,shareContent),
     settings: (isAdmin() ? buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml) : '')
@@ -5485,8 +5506,8 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     if(_tds.length){var _f=new Date(_tds[0]);_f.setHours(0,0,0,0);var _flip=new Date(_f);_flip.setDate(_flip.getDate()-1);_flip.setHours(7,0,0,0);var _l=new Date(_tds[_tds.length-1]);_l.setHours(23,59,59,999);var _now=new Date();_inPark=(_now>=_flip&&_now<=_l);}
   }catch(e){}
   var _order=_inPark
-    ? ['parkmap','hours','closures','restrooms','weather','tips','crowds','checklist','share','settings']
-    : ['crowds','hours','closures','weather','checklist','parkmap','tips','restrooms','share','settings'];
+    ? ['parkmap','hours','closures','restrooms','services','weather','tips','crowds','checklist','share','settings']
+    : ['crowds','hours','closures','weather','checklist','parkmap','tips','restrooms','services','share','settings'];
   var html='<div class="info-tab-wrap">'
     +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div>'+tpcpAlertHelpHTML()+'</div>'
     +_order.map(function(k){return _secs[k]||'';}).join('')
@@ -7926,6 +7947,7 @@ function tpcpConfirmSwap() {
     <div class="tpcp-layer-row">
       <button class="tpcp-layer-chip on" id="tpcpChipPlaces" onclick="toggleMapLayer('places')">Rides &amp; Food</button>
       <button class="tpcp-layer-chip" id="tpcpChipRR" onclick="toggleMapLayer('restrooms')">Restrooms</button>
+      <button class="tpcp-layer-chip" id="tpcpChipSvc" onclick="toggleMapLayer('services')">Services</button>
     </div>
     <div class="tpcp-place-card" id="tpcpPlaceCard">
       <div class="tpcp-place-name" id="tpcpPlaceName"></div>
@@ -8078,16 +8100,20 @@ function tpcpInitMiniMap() {
   }).catch(function () { var h = document.getElementById('tpcpMiniMap'); if (h) h.style.display = 'none'; });
 }
 // ---------- Full park map (Info tab) ----------
-var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], showPlaces: true, showRR: false, selected: null };
+var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], svcMarkers: [], showPlaces: true, showRR: false, showSvc: false, selected: null };
+var TPCP_SVC_COLORS = { firstaid: '#C0392B', babycare: '#8E6BC8', lockers: '#4A7A7C', guest: '#1D6FB8', atm: '#5A526E' };
+var TPCP_SVC_LABELS = { firstaid: 'First Aid', babycare: 'Baby Care', lockers: 'Lockers', guest: 'Guest Relations', atm: 'ATM' };
 function openParkMap(park, layer) {
   var view = document.getElementById('tpcpMapView');
   view.classList.add('open');
   _pm.showRR = (layer === 'restrooms');
+  _pm.showSvc = (layer === 'services');
   tpcpEnsurePark(park || _pm.park).then(function () {
     switchParkMap(park || _pm.park, true);
   }).catch(function () { tpcpToast('The park map could not be loaded.'); });
 }
 function openParkMapRestrooms() { openParkMap(null, 'restrooms'); }
+function openParkMapServices() { openParkMap(null, 'services'); }
 function closeParkMap() {
   document.getElementById('tpcpMapView').classList.remove('open');
 }
@@ -8102,7 +8128,8 @@ function switchParkMap(park, skipEnsure) {
     tpcpTileLayer(park).addTo(_pm.map);
     _pm.placeMarkers.forEach(function (m) { m.remove(); });
     _pm.rrMarkers.forEach(function (m) { m.remove(); });
-    _pm.placeMarkers = []; _pm.rrMarkers = [];
+    _pm.svcMarkers.forEach(function (m) { m.remove(); });
+    _pm.placeMarkers = []; _pm.rrMarkers = []; _pm.svcMarkers = [];
     (graph.places || []).forEach(function (p) {
       if (p.lat == null) return;
       var m = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#FFFFFF', weight: 1.6, fillColor: p.k === 'food' ? '#D4893A' : '#1A6860', fillOpacity: 0.95 });
@@ -8115,6 +8142,15 @@ function switchParkMap(park, skipEnsure) {
       m.bindTooltip('Restrooms', { direction: 'top', offset: [0, -8], className: 'tpcp-pin-lbl' });
       _pm.rrMarkers.push(m);
     });
+    (graph.services || []).forEach(function (p) {
+      var m = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#FFFFFF', weight: 1.6, fillColor: TPCP_SVC_COLORS[p.k] || '#173A5E', fillOpacity: 0.95 });
+      m.on('click', function () {
+        var sn = window.TPCPRouter.snap(graph, p.lat, p.lon);
+        tpcpSelectPlace(park, { n: p.n, lat: p.lat, lon: p.lon, node: sn.node, land: TPCP_SVC_LABELS[p.k] || 'Park Services' });
+      });
+      m.bindTooltip(p.n, { direction: 'top', offset: [0, -8], className: 'tpcp-pin-lbl' });
+      _pm.svcMarkers.push(m);
+    });
     tpcpApplyLayers();
     document.getElementById('tpcpPlaceCard').classList.remove('open');
     setTimeout(function () { if (_pm.map) _pm.map.invalidateSize(); }, 60);
@@ -8126,12 +8162,15 @@ function tpcpApplyLayers() {
   if (!_pm.map) return;
   _pm.placeMarkers.forEach(function (m) { if (_pm.showPlaces) m.addTo(_pm.map); else m.remove(); });
   _pm.rrMarkers.forEach(function (m) { if (_pm.showRR) m.addTo(_pm.map); else m.remove(); });
+  _pm.svcMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(_pm.map); else m.remove(); });
   document.getElementById('tpcpChipPlaces').classList.toggle('on', _pm.showPlaces);
   document.getElementById('tpcpChipRR').classList.toggle('on', _pm.showRR);
+  document.getElementById('tpcpChipSvc').classList.toggle('on', _pm.showSvc);
 }
 function toggleMapLayer(which) {
   if (which === 'places') _pm.showPlaces = !_pm.showPlaces;
   if (which === 'restrooms') _pm.showRR = !_pm.showRR;
+  if (which === 'services') _pm.showSvc = !_pm.showSvc;
   tpcpApplyLayers();
 }
 function tpcpSelectPlace(park, p) {
