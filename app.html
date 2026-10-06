@@ -151,6 +151,720 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .ride-note{font-size:10px!important;color:#4A7A7C;line-height:1.35;margin-top:2px}
 .photo-links{margin-top:6px;display:flex;flex-direction:column;gap:4px}
 .photo-link{font-size:11px;color:#2E6DA4;font-weight:600;text-decoration:underline}
+/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+		width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+		background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+		}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+
+/* ===== TPCP Park Map + Directions (Oct 2026) ===== */
+.dir-btn{display:inline-flex;align-items:center;gap:5px;margin-top:7px;background:#EFF6F6;border:1px solid #CBE0DE;color:#17635C;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;padding:6px 11px;border-radius:999px;cursor:pointer}
+.dir-btn:active{background:#DDEEEC}
+.tpcp-map-view{position:fixed;inset:0;background:#F7F4EC;z-index:2400;display:none;flex-direction:column}
+.tpcp-map-view.open{display:flex}
+.tpcp-map-head{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#fff;border-bottom:1px solid #E7E1D0}
+.tpcp-map-back{border:0;background:#F0EDE4;border-radius:9px;width:34px;height:34px;font-size:17px;cursor:pointer;color:#173A5E}
+.tpcp-map-title{font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;color:#173A5E;flex:1}
+.tpcp-park-toggle{display:flex;background:#F0EDE4;border-radius:9px;padding:3px}
+.tpcp-park-toggle button{border:0;background:transparent;padding:6px 10px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#5A6B72;cursor:pointer}
+.tpcp-park-toggle button.on{background:#173A5E;color:#fff}
+.tpcp-map-body{flex:1;position:relative}
+.tpcp-map-el{position:absolute;inset:0;background:#EFEDE7}
+.tpcp-place-card{position:absolute;left:12px;right:12px;bottom:12px;background:#fff;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.18);padding:13px 15px;display:none;z-index:900}
+.tpcp-place-card.open{display:block}
+.tpcp-place-name{font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;color:#173A5E}
+.tpcp-place-sub{font-size:12px;color:#4A7A7C;margin:2px 0 10px}
+.tpcp-place-dir{width:100%;border:0;background:#1A6860;color:#fff;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.tpcp-layer-row{position:absolute;top:10px;right:10px;z-index:900;display:flex;gap:6px}
+.tpcp-layer-chip{border:0;background:rgba(255,255,255,.94);border-radius:999px;padding:7px 12px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#173A5E;box-shadow:0 1px 5px rgba(0,0,0,.2);cursor:pointer}
+.tpcp-layer-chip.on{background:#173A5E;color:#fff}
+.tpcp-sheet{position:fixed;inset:0;background:rgba(10,25,35,.45);z-index:2500;display:none}
+.tpcp-sheet.open{display:block}
+.tpcp-sheet-panel{position:absolute;left:0;right:0;bottom:0;max-height:92vh;overflow-y:auto;background:#F7F4EC;border-radius:20px 20px 0 0;padding:14px 16px 22px}
+.tpcp-sheet-grab{width:40px;height:4px;border-radius:2px;background:#CFC8B4;margin:0 auto 10px}
+.tpcp-sheet-title{font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;color:#173A5E}
+.tpcp-sheet-meta{font-size:12.5px;color:#4A7A7C;margin:2px 0 8px}
+.tpcp-origin-row{display:flex;gap:6px;margin:8px 0 10px}
+.tpcp-origin-chip{border:1px solid #CBE0DE;background:#fff;border-radius:999px;padding:7px 12px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#17635C;cursor:pointer}
+.tpcp-origin-chip.on{background:#1A6860;color:#fff;border-color:#1A6860}
+.tpcp-dir-map{height:220px;border-radius:14px;overflow:hidden;background:#EFEDE7}
+.tpcp-cur-step{background:#173A5E;color:#fff;border-radius:14px;padding:15px 16px;display:flex;gap:13px;align-items:center;margin-top:12px}
+.tpcp-cur-arrow{font-size:38px;line-height:1;flex-shrink:0}
+.tpcp-cur-text{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;line-height:1.3}
+.tpcp-cur-sub{font-size:12px;opacity:.85;margin-top:3px}
+.tpcp-nav-row{display:flex;gap:8px;margin-top:10px}
+.tpcp-nav-row button{flex:1;border:0;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.tpcp-next{background:#E8A33D;color:#231A06}
+.tpcp-allsteps{background:#F0EDE4;color:#333}
+.tpcp-steps-list{margin:10px 0 0;padding:0;list-style:none;display:none;background:#fff;border-radius:12px;overflow:hidden}
+.tpcp-steps-list.open{display:block}
+.tpcp-steps-list li{padding:9px 12px;border-top:1px solid #EEE9DC;font-size:13.5px}
+.tpcp-steps-list li:first-child{border-top:0}
+.tpcp-steps-list li.cur{background:#EFF6F6;font-weight:700}
+.tpcp-sheet-close{width:100%;margin-top:12px;border:0;background:transparent;color:#4A7A7C;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:8px;cursor:pointer}
+.tpcp-walk{position:fixed;inset:0;background:#173A5E;color:#fff;z-index:2600;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center}
+.tpcp-walk.open{display:flex}
+.tpcp-walk-arrow{font-size:110px;line-height:1}
+.tpcp-walk-text{font-family:'Outfit',sans-serif;font-size:31px;font-weight:800;line-height:1.25;margin-top:14px}
+.tpcp-walk-sub{font-size:15px;opacity:.85;margin-top:12px}
+.tpcp-walk-btn{margin-top:30px;border:0;background:#E8A33D;color:#231A06;border-radius:12px;padding:15px 34px;font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;cursor:pointer}
+.tpcp-walk-close{margin-top:14px;border:0;background:transparent;color:#fff;opacity:.8;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.tpcp-pin-lbl{background:rgba(255,255,255,.88);border:0;box-shadow:none;font-weight:700;font-size:11px;color:#1a1a1a;padding:1px 5px;border-radius:6px}
+.tpcp-pin-lbl:before{display:none}
+
 
 /* Type badges */
 .tb{font-size:8px;font-weight:600;padding:2px 7px;border-radius:99px;flex-shrink:0;letter-spacing:0.01em}
@@ -4323,7 +5037,7 @@ function renderSched(){
         +'<div class="ride-time"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'t\')"':'')+'>'+e.t+'</div>'
         +'<div class="ride-body">'
         +'<div class="ride-title-row"><span class="ride-name"'+(editMode?' onclick="startInlineEdit(this,'+curDay+','+si+','+ei+',\'h\')"':'')+'>'+fixEncoding(e.h).replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]*/u,'')+'</span>'+(tbmap[e.type]||'')+wPill+llb+'</div>'
-        +(function(){var _cid=curDay+'-'+si+'-'+ei;var _useCollapse=e.n&&e.n.length>0&&e.type!=='dining'&&e.type!=='quickservice';var _btnLabel=e.type==='tip'?'Strategy &amp; details':e.type==='show'?'Show details':e.type==='snack'?'Snack details':e.type==='photo'?'Photo tips':e.type==='character'?'Meet details':e.type==='break'?'Break details':'Tips &amp; details';if(_useCollapse){return '<button class="ride-tips-btn" onclick="toggleRideNote(\''+_cid+'\')">'+_btnLabel+' &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+_cid+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>';}else{return e.n?'<div class="ride-note">'+fixEncoding(e.n)+'</div>':'';}})()+(e.photoLinks&&e.photoLinks.length?'<div class="photo-links">'+e.photoLinks.map(function(pl){return '<a class="photo-link" href="'+pl.url+'" target="_blank" rel="noopener">\uD83D\uDCF7 See an example: '+fixEncoding(pl.label)+'</a>';}).join('')+'</div>':'')+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change \u2014 check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
+        +(function(){var _cid=curDay+'-'+si+'-'+ei;var _useCollapse=e.n&&e.n.length>0&&e.type!=='dining'&&e.type!=='quickservice';var _btnLabel=e.type==='tip'?'Strategy &amp; details':e.type==='show'?'Show details':e.type==='snack'?'Snack details':e.type==='photo'?'Photo tips':e.type==='character'?'Meet details':e.type==='break'?'Break details':'Tips &amp; details';if(_useCollapse){return '<button class="ride-tips-btn" onclick="toggleRideNote(\''+_cid+'\')">'+_btnLabel+' &rsaquo;'+'</button><div class="ride-note-wrap" id="note-'+_cid+'" style="display:none"><div class="ride-note">'+fixEncoding(e.n)+'</div></div>';}else{return e.n?'<div class="ride-note">'+fixEncoding(e.n)+'</div>':'';}})()+(function(){var _t=e.type;if(_t==='ride'||_t==='dining'||_t==='quickservice'||_t==='show'||_t==='character'){return '<div><button class="dir-btn" onclick="openDirections('+curDay+','+si+','+ei+')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Directions</button></div>';}return '';}())()+(e.photoLinks&&e.photoLinks.length?'<div class="photo-links">'+e.photoLinks.map(function(pl){return '<a class="photo-link" href="'+pl.url+'" target="_blank" rel="noopener">\uD83D\uDCF7 See an example: '+fixEncoding(pl.label)+'</a>';}).join('')+'</div>':'')+(e.type==='character'&&e.disclaimer?'<div class="ride-note char-disclaimer">Schedules subject to change \u2014 check with a cast member</div>':'')+(e.dining?'<div class="dining-meal-list"><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.dining.topPick)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.dining.vegOption)+'</span></div><div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.dining.kidsOption)+'</span></div></div>':'')+((e.type==='dining'||e.type==='quickservice')&&(typeof e.topPick==='string'&&e.topPick.length>0||typeof e.veg==='string'&&e.veg.length>0||typeof e.kids==='string'&&e.kids.length>0)?'<div class="dining-meal-list">'+(typeof e.topPick==='string'&&e.topPick.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4893A" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+fixEncoding(e.topPick)+'</span></div>':'')+(typeof e.veg==='string'&&e.veg.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+fixEncoding(e.veg)+'</span></div>':'')+(typeof e.kids==='string'&&e.kids.length>0?'<div class="dining-meal-row"><svg class="dining-meal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A7A7C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+fixEncoding(e.kids)+'</span></div>':'')+'</div>':'')+diningRec
         +reroute
         +'</div></div>';
       if(e.ll&&e.ll.a){ h+=renderLLBanner(e,curDay); }
@@ -4731,18 +5445,21 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var closureEntries=CLOSED.slice();
   liveRefurbNames.forEach(function(nm){if(!closureEntries.some(function(e){return e.n===nm;})){closureEntries.push({n:nm,d:'Closed for refurbishment \u2014 no reopening date announced'});}});
   var closuresHtml=closureEntries.length?closureEntries.map(function(c){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider)"><div><div style="font-weight:600;color:var(--text)">'+c.n+'</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">'+c.d+'</div></div></div>';}).join('')+'<div style="font-size:12px;color:var(--text-muted);margin-top:12px">Always check the Disneyland app the morning of your visit for any additional same-day closures.</div>':'<div style="color:var(--text-muted);padding:12px 0">No current closures on record.</div>';
+  var mapSectionHtml='<div style="padding:0 14px 14px"><p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4">Every ride, restaurant, and restroom on one zoomable map, plus walking directions between stops on your plan.</p><button class="tpcp-place-dir" onclick="openParkMap()">Open the park map</button></div>';
+  var restroomMapBtn='<button class="tpcp-place-dir" style="margin-top:10px" onclick="openParkMapRestrooms()">See restrooms on the map</button>';
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
     +'<div class="info-tab-header"><div class="info-tab-eyebrow">Trip Info</div></div>'
     +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div>'+tpcpAlertHelpHTML()+'</div>'
+    +buildInfoSection('parkmap','Park Map',pinIcon,mapSectionHtml)
     +buildInfoSection('hours','Park Hours',clockIcon,hoursContent)
-    +buildInfoSection('weather','Trip Weather Forecast',sunIcon,weatherContent())
+    +(closureEntries.length ? buildInfoSection('closures',"What's Closed",warnIcon,closuresHtml) : '')
+    +buildInfoSection('weather','Weather Forecast',sunIcon,weatherContent())
     +buildInfoSection('crowds','Crowd Forecast',chartIcon,crowdContent())
-    +buildInfoSection('share','Share With Your Group',shareIcon,shareContent)
-    +buildInfoSection('tips','General Park Tips',bulbIcon,tipsHtml)
-    +buildInfoSection('restrooms','Restroom Locations',pinIcon,restroomsHtml)
+    +buildInfoSection('tips','Park Tips',bulbIcon,tipsHtml)
+    +buildInfoSection('restrooms','Restroom Locations',pinIcon,restroomsHtml+restroomMapBtn)
     +buildInfoSection('checklist','Pre-Trip Checklist',checkIcon,checklistHtml)
-    +(CLOSED.length ? buildInfoSection('closures','Ride & Restaurant Closures',warnIcon,closuresHtml) : '')
+    +buildInfoSection('share','Share With Your Group',shareIcon,shareContent)
     +(isAdmin() ? buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml) : '')
     +'</div>';
 
@@ -7166,6 +7883,381 @@ function tpcpConfirmSwap() {
       });
     }
   })();
+</script>
+<div class="tpcp-map-view" id="tpcpMapView">
+  <div class="tpcp-map-head">
+    <button class="tpcp-map-back" onclick="closeParkMap()" aria-label="Back">&#8592;</button>
+    <div class="tpcp-map-title">Park Map</div>
+    <div class="tpcp-park-toggle">
+      <button id="tpcpParkDL" onclick="switchParkMap('DL')">Disneyland</button>
+      <button id="tpcpParkDCA" onclick="switchParkMap('DCA')">California Adventure</button>
+    </div>
+  </div>
+  <div class="tpcp-map-body">
+    <div class="tpcp-map-el" id="tpcpFullMap"></div>
+    <div class="tpcp-layer-row">
+      <button class="tpcp-layer-chip on" id="tpcpChipPlaces" onclick="toggleMapLayer('places')">Rides &amp; Food</button>
+      <button class="tpcp-layer-chip" id="tpcpChipRR" onclick="toggleMapLayer('restrooms')">Restrooms</button>
+    </div>
+    <div class="tpcp-place-card" id="tpcpPlaceCard">
+      <div class="tpcp-place-name" id="tpcpPlaceName"></div>
+      <div class="tpcp-place-sub" id="tpcpPlaceSub"></div>
+      <button class="tpcp-place-dir" id="tpcpPlaceDirBtn">Directions from my location</button>
+    </div>
+  </div>
+</div>
+<div class="tpcp-sheet" id="tpcpDirSheet">
+  <div class="tpcp-sheet-panel">
+    <div class="tpcp-sheet-grab"></div>
+    <div class="tpcp-sheet-title" id="tpcpDirTitle">Directions</div>
+    <div class="tpcp-sheet-meta" id="tpcpDirMeta"></div>
+    <div class="tpcp-origin-row" id="tpcpOriginRow">
+      <button class="tpcp-origin-chip on" id="tpcpOrgPrev" onclick="setDirOrigin('prev')">From previous stop</button>
+      <button class="tpcp-origin-chip" id="tpcpOrgMe" onclick="setDirOrigin('me')">From my location</button>
+      <button class="tpcp-origin-chip" id="tpcpOrgGate" onclick="setDirOrigin('gate')">From park entrance</button>
+    </div>
+    <div class="tpcp-dir-map" id="tpcpDirMap"></div>
+    <div class="tpcp-cur-step">
+      <div class="tpcp-cur-arrow" id="tpcpDirArrow">&#8593;</div>
+      <div><div class="tpcp-cur-text" id="tpcpDirStepText"></div><div class="tpcp-cur-sub" id="tpcpDirStepSub"></div></div>
+    </div>
+    <div class="tpcp-nav-row">
+      <button class="tpcp-next" id="tpcpDirNext" onclick="dirStepNext()">Next step</button>
+      <button class="tpcp-allsteps" onclick="toggleDirSteps()">All steps</button>
+      <button class="tpcp-allsteps" onclick="openWalkMode()">Walk mode</button>
+    </div>
+    <ol class="tpcp-steps-list" id="tpcpDirSteps"></ol>
+    <button class="tpcp-sheet-close" onclick="closeDirections()">Close directions</button>
+  </div>
+</div>
+<div class="tpcp-walk" id="tpcpWalkView">
+  <div class="tpcp-walk-arrow" id="tpcpWalkArrow">&#8593;</div>
+  <div class="tpcp-walk-text" id="tpcpWalkText"></div>
+  <div class="tpcp-walk-sub" id="tpcpWalkSub"></div>
+  <button class="tpcp-walk-btn" id="tpcpWalkNext" onclick="dirStepNext()">Next step</button>
+  <button class="tpcp-walk-close" onclick="closeWalkMode()">Back to map &amp; steps</button>
+</div>
+
+<script>
+// ===== TPCP Park Maps & Directions (v1, Oct 2026) =====
+// Lazy-loads Leaflet + router + per-park graph/tiles (bundled assets), draws
+// routes on a curated guest-path network, step cards in feet, left/right
+// only, optional live GPS origin with snap-to-path.
+var _tpcpAssets = {};
+function tpcpLoadScript(src) {
+  if (_tpcpAssets[src]) return _tpcpAssets[src];
+  _tpcpAssets[src] = new Promise(function (res, rej) {
+    var s = document.createElement('script');
+    s.src = src + '?v=20261006';
+    s.onload = res;
+    s.onerror = function () { rej(new Error('load failed: ' + src)); };
+    document.head.appendChild(s);
+  });
+  return _tpcpAssets[src];
+}
+function tpcpToast(msg) {
+  var t = document.getElementById('tpcpToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'tpcpToast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#173A5E;color:#fff;font-family:Outfit,sans-serif;font-size:13px;font-weight:600;padding:11px 16px;border-radius:999px;z-index:2900;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:86vw;text-align:center';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._h);
+  t._h = setTimeout(function () { t.style.display = 'none'; }, 3400);
+}
+var TPCP_GATES = { DL: { lat: 33.81015, lon: -117.91895, name: 'Park Entrance' }, DCA: { lat: 33.80906, lon: -117.91900, name: 'Park Entrance' } };
+function tpcpEnsurePark(park) {
+  var jobs = [];
+  if (!window.L) jobs.push(tpcpLoadScript('map-leaflet.js'));
+  if (!window.TPCPRouter) jobs.push(tpcpLoadScript('map-router.js'));
+  if (!window['TPCP_GRAPH_' + park]) jobs.push(tpcpLoadScript('park-graph-' + park.toLowerCase() + '.js'));
+  if (!window['TPCP_TILES_' + park]) jobs.push(tpcpLoadScript('park-tiles-' + park.toLowerCase() + '.js'));
+  return Promise.all(jobs).then(function () { return window['TPCP_GRAPH_' + park]; });
+}
+function tpcpTileLayer(park) {
+  var tiles = window['TPCP_TILES_' + park] || {};
+  var Layer = L.GridLayer.extend({
+    createTile: function (coords) {
+      var img = document.createElement('img');
+      var d = tiles[coords.z + '/' + coords.x + '/' + coords.y];
+      img.src = d ? ('data:image/png;base64,' + d) : 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+      img.alt = '';
+      return img;
+    },
+    options: { minZoom: 15, maxZoom: 19, maxNativeZoom: 18, tileSize: 256, attribution: '&copy; OpenStreetMap contributors' }
+  });
+  return new Layer();
+}
+function tpcpResolveIn(graph, e) {
+  if (!e) return null;
+  var R = window.TPCPRouter;
+  var name = (e.ride || e.h || '').replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F\s]+/u, '');
+  var p = R.place(graph, name);
+  if (p) return { name: p.n, lat: p.lat, lon: p.lon, node: p.node };
+  var land = e.land || '';
+  if (land && graph.lands && graph.lands[land]) {
+    var c = graph.lands[land];
+    var s = R.snap(graph, c[0], c[1]);
+    return { name: name || land, lat: c[0], lon: c[1], node: s.node };
+  }
+  return null;
+}
+function tpcpResolveAny(e) {
+  // returns {park, spot} searching DL then DCA
+  var parks = ['DL', 'DCA'];
+  for (var i = 0; i < parks.length; i++) {
+    var g = window['TPCP_GRAPH_' + parks[i]];
+    if (!g) continue;
+    var s = tpcpResolveIn(g, e);
+    if (s) return { park: parks[i], spot: s };
+  }
+  return null;
+}
+
+// ---------- Full park map (Info tab) ----------
+var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], showPlaces: true, showRR: false, selected: null };
+function openParkMap(park, layer) {
+  var view = document.getElementById('tpcpMapView');
+  view.classList.add('open');
+  _pm.showRR = (layer === 'restrooms');
+  tpcpEnsurePark(park || _pm.park).then(function () {
+    switchParkMap(park || _pm.park, true);
+  }).catch(function () { tpcpToast('The park map could not be loaded.'); });
+}
+function openParkMapRestrooms() { openParkMap(null, 'restrooms'); }
+function closeParkMap() {
+  document.getElementById('tpcpMapView').classList.remove('open');
+}
+function switchParkMap(park, skipEnsure) {
+  _pm.park = park;
+  document.getElementById('tpcpParkDL').classList.toggle('on', park === 'DL');
+  document.getElementById('tpcpParkDCA').classList.toggle('on', park === 'DCA');
+  var build = function () {
+    var graph = window['TPCP_GRAPH_' + park];
+    if (_pm.map) { _pm.map.remove(); _pm.map = null; }
+    _pm.map = L.map('tpcpFullMap', { minZoom: 15, maxZoom: 19 }).setView(park === 'DL' ? [33.8125, -117.9190] : [33.8072, -117.9190], 16);
+    tpcpTileLayer(park).addTo(_pm.map);
+    _pm.placeMarkers.forEach(function (m) { m.remove(); });
+    _pm.rrMarkers.forEach(function (m) { m.remove(); });
+    _pm.placeMarkers = []; _pm.rrMarkers = [];
+    (graph.places || []).forEach(function (p) {
+      if (p.lat == null) return;
+      var m = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#FFFFFF', weight: 1.6, fillColor: p.k === 'food' ? '#D4893A' : '#1A6860', fillOpacity: 0.95 });
+      m.on('click', function () { tpcpSelectPlace(park, p); });
+      m.bindTooltip(p.n, { direction: 'top', offset: [0, -8], className: 'tpcp-pin-lbl' });
+      _pm.placeMarkers.push(m);
+    });
+    (graph.restrooms || []).forEach(function (p) {
+      var m = L.circleMarker([p.lat, p.lon], { radius: 5, color: '#FFFFFF', weight: 1.4, fillColor: '#4A7A7C', fillOpacity: 0.9 });
+      m.bindTooltip('Restrooms', { direction: 'top', offset: [0, -8], className: 'tpcp-pin-lbl' });
+      _pm.rrMarkers.push(m);
+    });
+    tpcpApplyLayers();
+    document.getElementById('tpcpPlaceCard').classList.remove('open');
+    setTimeout(function () { if (_pm.map) _pm.map.invalidateSize(); }, 60);
+  };
+  if (skipEnsure) build();
+  else tpcpEnsurePark(park).then(build).catch(function () { tpcpToast('The park map could not be loaded.'); });
+}
+function tpcpApplyLayers() {
+  if (!_pm.map) return;
+  _pm.placeMarkers.forEach(function (m) { if (_pm.showPlaces) m.addTo(_pm.map); else m.remove(); });
+  _pm.rrMarkers.forEach(function (m) { if (_pm.showRR) m.addTo(_pm.map); else m.remove(); });
+  document.getElementById('tpcpChipPlaces').classList.toggle('on', _pm.showPlaces);
+  document.getElementById('tpcpChipRR').classList.toggle('on', _pm.showRR);
+}
+function toggleMapLayer(which) {
+  if (which === 'places') _pm.showPlaces = !_pm.showPlaces;
+  if (which === 'restrooms') _pm.showRR = !_pm.showRR;
+  tpcpApplyLayers();
+}
+function tpcpSelectPlace(park, p) {
+  _pm.selected = { park: park, place: p };
+  document.getElementById('tpcpPlaceName').textContent = p.n;
+  document.getElementById('tpcpPlaceSub').textContent = (p.land ? p.land + ' · ' : '') + (park === 'DL' ? 'Disneyland' : 'California Adventure');
+  document.getElementById('tpcpPlaceCard').classList.add('open');
+  document.getElementById('tpcpPlaceDirBtn').onclick = function () {
+    closeParkMap();
+    tpcpOpenDirectionsTo(park, { name: p.n, lat: p.lat, lon: p.lon, node: p.node });
+  };
+}
+
+// ---------- Directions sheet ----------
+var _dir = null;
+var _gps = { pos: null, watch: null, dot: null, tried: false };
+function tpcpStartGps() {
+  if (_gps.watch != null || !navigator.geolocation) return;
+  _gps.watch = navigator.geolocation.watchPosition(function (pos) {
+    _gps.pos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+    tpcpGpsTick();
+  }, function () { _gps.tried = true; }, { enableHighAccuracy: true, maximumAge: 8000, timeout: 15000 });
+}
+function tpcpStopGps() {
+  if (_gps.watch != null && navigator.geolocation) navigator.geolocation.clearWatch(_gps.watch);
+  _gps.watch = null;
+}
+function tpcpGpsTick() {
+  if (!_dir || !_dir.map || !_gps.pos) return;
+  var ll = [_gps.pos.lat, _gps.pos.lon];
+  if (!_gps.dot) {
+    _gps.dot = L.circleMarker(ll, { radius: 8, color: '#FFFFFF', weight: 2.5, fillColor: '#1D6FB8', fillOpacity: 1 }).addTo(_dir.map);
+  } else _gps.dot.setLatLng(ll);
+  // progress: nearest route vertex -> walked distance -> auto-advance
+  var coords = _dir.route.coords, bestI = 0, bd = Infinity;
+  for (var i = 0; i < coords.length; i++) {
+    var d = window.TPCPRouter.havFt(ll, coords[i]);
+    if (d < bd) { bd = d; bestI = i; }
+  }
+  if (bd > 400) return; // too far off-route to trust
+  var walked = _dir.cum[bestI];
+  _dir.walkedFt = walked;
+  var steps = _dir.steps;
+  if (_dir.idx < steps.length - 1 && walked >= steps[_dir.idx + 1].at - 50) {
+    _dir.idx++;
+    if (navigator.vibrate) navigator.vibrate(30);
+    tpcpRenderDirStep();
+  }
+}
+function openDirections(dayIdx, si, ei) {
+  var day = null;
+  try { day = getCurDay(); } catch (e) {}
+  if (!day || !day.sections) { tpcpToast('Open a trip day first.'); return; }
+  var flat = [];
+  day.sections.forEach(function (sec, s2) { (sec.entries || []).forEach(function (e, e2) { flat.push({ e: e, si: s2, ei: e2 }); }); });
+  var ti = -1;
+  flat.forEach(function (f, i) { if (f.si === si && f.ei === ei) ti = i; });
+  if (ti < 0) { tpcpToast('Could not find that stop.'); return; }
+  var target = flat[ti].e;
+  // both graphs are needed to know which park the target is in
+  tpcpEnsurePark('DL').then(function () { return tpcpEnsurePark('DCA'); }).then(function () {
+    var dest = tpcpResolveAny(target);
+    if (!dest) { tpcpToast('No map location for this stop yet.'); return; }
+    var graph = window['TPCP_GRAPH_' + dest.park];
+    var prevSpot = null;
+    for (var j = ti - 1; j >= 0; j--) {
+      var s = tpcpResolveIn(graph, flat[j].e);
+      if (s) { prevSpot = s; break; }
+    }
+    var gate = TPCP_GATES[dest.park];
+    var gs = window.TPCPRouter.snap(graph, gate.lat, gate.lon);
+    var gateSpot = { name: gate.name, lat: gate.lat, lon: gate.lon, node: gs.node };
+    _dir = { park: dest.park, graph: graph, dest: dest.spot, prev: prevSpot, gate: gateSpot, origin: prevSpot ? 'prev' : 'gate' };
+    document.getElementById('tpcpDirSheet').classList.add('open');
+    tpcpStartGps();
+    tpcpComputeRoute();
+  }).catch(function () { tpcpToast('Directions could not be loaded.'); });
+}
+function tpcpOpenDirectionsTo(park, destSpot) {
+  tpcpEnsurePark(park).then(function () {
+    var graph = window['TPCP_GRAPH_' + park];
+    var gate = TPCP_GATES[park];
+    var gs = window.TPCPRouter.snap(graph, gate.lat, gate.lon);
+    _dir = { park: park, graph: graph, dest: destSpot, prev: null, gate: { name: gate.name, lat: gate.lat, lon: gate.lon, node: gs.node }, origin: 'me' };
+    document.getElementById('tpcpDirSheet').classList.add('open');
+    tpcpStartGps();
+    tpcpComputeRoute();
+  }).catch(function () { tpcpToast('Directions could not be loaded.'); });
+}
+function setDirOrigin(mode) {
+  if (!_dir) return;
+  _dir.origin = mode;
+  tpcpComputeRoute();
+}
+function tpcpComputeRoute() {
+  if (!_dir) return;
+  var R = window.TPCPRouter, graph = _dir.graph;
+  ['prev', 'me', 'gate'].forEach(function (m) {
+    document.getElementById('tpcpOrg' + m.charAt(0).toUpperCase() + m.slice(1)).classList.toggle('on', _dir.origin === m);
+  });
+  document.getElementById('tpcpOrgPrev').style.display = _dir.prev ? '' : 'none';
+  var fromSpot = null;
+  if (_dir.origin === 'prev') fromSpot = _dir.prev || _dir.gate;
+  else if (_dir.origin === 'gate') fromSpot = _dir.gate;
+  else if (_dir.origin === 'me') {
+    if (_gps.pos) {
+      var s = R.snap(graph, _gps.pos.lat, _gps.pos.lon);
+      if (s.distFt <= 600) fromSpot = { name: 'My location', lat: _gps.pos.lat, lon: _gps.pos.lon, node: s.node };
+    }
+    if (!fromSpot) {
+      document.getElementById('tpcpDirMeta').textContent = 'Finding your location… (or pick another starting point above)';
+      setTimeout(function () { if (_dir && _dir.origin === 'me' && !_dir.route) tpcpComputeRoute(); }, 2500);
+      if (!_gps.pos) return;
+    }
+  }
+  if (!fromSpot) return;
+  var route = R.route(graph, fromSpot.node, _dir.dest.node);
+  if (!route) { document.getElementById('tpcpDirMeta').textContent = 'No walking route found between those spots.'; return; }
+  _dir.from = fromSpot;
+  _dir.route = route;
+  _dir.steps = R.stepsFor(graph, route, fromSpot.name, _dir.dest.name);
+  _dir.idx = 0;
+  _dir.cum = [0];
+  for (var i = 1; i < route.coords.length; i++) _dir.cum.push(_dir.cum[i - 1] + R.havFt(route.coords[i - 1], route.coords[i]));
+  document.getElementById('tpcpDirTitle').textContent = fromSpot.name + ' \u2192 ' + _dir.dest.name;
+  document.getElementById('tpcpDirMeta').textContent = R.fmtDist(route.distFt) + ' \u00B7 about ' + Math.max(1, Math.round(route.distFt / 264)) + ' min walk \u00B7 ' + _dir.steps.length + ' steps';
+  // map
+  if (_dir.map) { _dir.map.remove(); _dir.map = null; }
+  _gps.dot = null;
+  _dir.map = L.map('tpcpDirMap', { minZoom: 15, maxZoom: 19, zoomControl: false });
+  tpcpTileLayer(_dir.park).addTo(_dir.map);
+  var ll = route.coords.map(function (c) { return [c[0], c[1]]; });
+  L.polyline(ll, { color: '#FFFFFF', weight: 9, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }).addTo(_dir.map);
+  L.polyline(ll, { color: '#D43D2A', weight: 5, lineCap: 'round', lineJoin: 'round' }).addTo(_dir.map);
+  L.circleMarker(ll[0], { radius: 7, color: '#fff', weight: 2, fillColor: '#1A6860', fillOpacity: 1 }).addTo(_dir.map);
+  L.circleMarker(ll[ll.length - 1], { radius: 7, color: '#fff', weight: 2, fillColor: '#D43D2A', fillOpacity: 1 }).addTo(_dir.map);
+  _dir.map.fitBounds(L.latLngBounds(ll), { padding: [24, 24] });
+  setTimeout(function () { if (_dir && _dir.map) _dir.map.invalidateSize(); }, 60);
+  tpcpRenderDirStep();
+  if (_gps.pos) tpcpGpsTick();
+}
+function tpcpArrowFor(text) {
+  if (/turn right/.test(text)) return '\u21B3';
+  if (/turn left/.test(text)) return '\u21B2';
+  if (/is ahead/.test(text)) return '\u2691';
+  return '\u2191';
+}
+function tpcpRenderDirStep() {
+  if (!_dir || !_dir.steps) return;
+  var s = _dir.steps[_dir.idx], R = window.TPCPRouter;
+  var sub = 'Step ' + (_dir.idx + 1) + ' of ' + _dir.steps.length + ' \u00B7 ' + R.fmtDist(_dir.route.distFt) + ' total';
+  document.getElementById('tpcpDirArrow').textContent = tpcpArrowFor(s.t);
+  document.getElementById('tpcpDirStepText').textContent = s.t;
+  document.getElementById('tpcpDirStepSub').textContent = sub;
+  document.getElementById('tpcpDirNext').textContent = _dir.idx >= _dir.steps.length - 1 ? 'Restart steps' : 'Next step';
+  document.getElementById('tpcpDirSteps').innerHTML = _dir.steps.map(function (x, j) {
+    return '<li class="' + (j === _dir.idx ? 'cur' : '') + '">' + x.t + '</li>';
+  }).join('');
+  document.getElementById('tpcpWalkArrow').textContent = tpcpArrowFor(s.t);
+  document.getElementById('tpcpWalkText').textContent = s.t;
+  document.getElementById('tpcpWalkSub').textContent = _dir.from.name + ' \u2192 ' + _dir.dest.name + ' \u00B7 ' + sub;
+  document.getElementById('tpcpWalkNext').textContent = _dir.idx >= _dir.steps.length - 1 ? 'Restart steps' : 'Next step';
+}
+function dirStepNext() {
+  if (!_dir || !_dir.steps) return;
+  _dir.idx = _dir.idx >= _dir.steps.length - 1 ? 0 : _dir.idx + 1;
+  tpcpRenderDirStep();
+}
+function toggleDirSteps() {
+  document.getElementById('tpcpDirSteps').classList.toggle('open');
+}
+function openWalkMode() {
+  document.getElementById('tpcpWalkView').classList.add('open');
+  tpcpRenderDirStep();
+}
+function closeWalkMode() {
+  document.getElementById('tpcpWalkView').classList.remove('open');
+}
+function closeDirections() {
+  document.getElementById('tpcpDirSheet').classList.remove('open');
+  closeWalkMode();
+  tpcpStopGps();
+  if (_dir && _dir.map) { _dir.map.remove(); _dir.map = null; }
+  _gps.dot = null;
+}
+
 </script>
 </body>
 </html>
