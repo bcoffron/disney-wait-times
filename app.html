@@ -2057,12 +2057,12 @@ window.renderClosureAlerts = function() {
     <span class="nav-label">Ask AI</span>
   </button>
 
-  <button class="nav-item" id="nav-info" onclick="switchNav('info')" aria-label="Park Info">
+  <button class="nav-item" id="nav-info" onclick="switchNav('info')" aria-label="Co-Pilot">
     <span class="nav-dot"></span>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2.5"/>
     </svg>
-    <span class="nav-label">Info</span>
+    <span class="nav-label">Co-Pilot</span>
   </button>
 
 </nav>
@@ -5449,7 +5449,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var restroomMapBtn='<button class="tpcp-place-dir" style="margin-top:10px" onclick="openParkMapRestrooms()">See restrooms on the map</button>';
   // Build the full HTML
   var html='<div class="info-tab-wrap">'
-    +'<div class="info-tab-header"><div class="info-tab-eyebrow">Trip Info</div></div>'
+    +'<div class="info-tab-header"><div class="info-tab-eyebrow">Your Co-Pilot</div></div>'
     +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div>'+tpcpAlertHelpHTML()+'</div>'
     +buildInfoSection('parkmap','Park Map',pinIcon,mapSectionHtml)
     +buildInfoSection('hours','Park Hours',clockIcon,hoursContent)
