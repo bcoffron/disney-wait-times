@@ -5462,18 +5462,33 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var mapSectionHtml='<div style="padding:0 14px 14px"><div id="tpcpMiniMap" style="height:190px;border-radius:12px;overflow:hidden;margin-bottom:10px;background:#DCE9E2;position:relative;z-index:0"></div><p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4">Every ride, restaurant, and restroom on one zoomable map, plus walking directions between stops on your plan.</p><button class="tpcp-place-dir" onclick="openParkMap()">Open the park map</button></div>';
   var restroomMapBtn='<button class="tpcp-place-dir" style="margin-top:10px" onclick="openParkMapRestrooms()">See restrooms on the map</button>';
   // Build the full HTML
+  var _secs={
+    parkmap: buildInfoSectionStatic('parkmap','Park Map',pinIcon,mapSectionHtml),
+    hours: buildInfoSection('hours','Park Hours',clockIcon,hoursContent),
+    closures: (closureEntries.length ? buildInfoSection('closures',"What's Closed",warnIcon,closuresHtml) : ''),
+    weather: buildInfoSectionStatic('weather','Weather Forecast',sunIcon,weatherContent()),
+    crowds: buildInfoSectionStatic('crowds','Crowd Forecast',chartIcon,crowdContent()),
+    tips: buildInfoSection('tips','Park Tips',bulbIcon,tipsHtml),
+    restrooms: buildInfoSection('restrooms','Restroom Locations',pinIcon,restroomsHtml+restroomMapBtn),
+    checklist: buildInfoSection('checklist','Pre-Trip Checklist',checkIcon,checklistHtml),
+    share: buildInfoSection('share','Share With Your Group',shareIcon,shareContent),
+    settings: (isAdmin() ? buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml) : '')
+  };
+  // Phase-aware section order (Beau, Oct 6 2026, from guest-needs research):
+  // before the trip, planning intel leads (crowds, hours, closures, weather,
+  // checklist); once the trip starts, in-park needs lead (map, hours, closures,
+  // restrooms). Phase is derived from the configured trip dates.
+  var _inPark=false;
+  try{
+    var _tds=((window.TRIP_CONFIG||{}).days||[]).map(function(d){return d&&d.date?new Date(d.date+'T12:00:00'):null;}).filter(function(d){return !!d;});
+    if(_tds.length){var _today=new Date();_today.setHours(0,0,0,0);var _f=new Date(_tds[0]);_f.setHours(0,0,0,0);var _l=new Date(_tds[_tds.length-1]);_l.setHours(23,59,59,999);_inPark=(_today>=_f&&_today<=_l);}
+  }catch(e){}
+  var _order=_inPark
+    ? ['parkmap','hours','closures','restrooms','weather','tips','crowds','checklist','share','settings']
+    : ['crowds','hours','closures','weather','checklist','parkmap','tips','restrooms','share','settings'];
   var html='<div class="info-tab-wrap">'
     +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div>'+tpcpAlertHelpHTML()+'</div>'
-    +buildInfoSectionStatic('parkmap','Park Map',pinIcon,mapSectionHtml)
-    +buildInfoSection('hours','Park Hours',clockIcon,hoursContent)
-    +(closureEntries.length ? buildInfoSection('closures',"What's Closed",warnIcon,closuresHtml) : '')
-    +buildInfoSectionStatic('weather','Weather Forecast',sunIcon,weatherContent())
-    +buildInfoSectionStatic('crowds','Crowd Forecast',chartIcon,crowdContent())
-    +buildInfoSection('tips','Park Tips',bulbIcon,tipsHtml)
-    +buildInfoSection('restrooms','Restroom Locations',pinIcon,restroomsHtml+restroomMapBtn)
-    +buildInfoSection('checklist','Pre-Trip Checklist',checkIcon,checklistHtml)
-    +buildInfoSection('share','Share With Your Group',shareIcon,shareContent)
-    +(isAdmin() ? buildInfoSection('settings','Trip Settings',gearIcon,settingsHtml) : '')
+    +_order.map(function(k){return _secs[k]||'';}).join('')
     +'</div>';
 
   container.innerHTML=sanitizeText(html);
