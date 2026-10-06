@@ -531,6 +531,7 @@ export function applyFills(skeleton, fills, opts) {
       // Transport/walkthrough attractions never occupy a morning slot
       // (afternoon/evening only -- see NEVER_MORNING_KEYS).
       const transportBad = isRideSlot && !!nkey && NEVER_MORNING_KEYS.has(nkey) && winStart(slot.window) < 720;
+      const rsrBad = isRideSlot && !!nkey && nkey === RSR_KEY && !rsrWindowOk(winStart(slot.window), opts && opts.closeMin);
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
       // A park or land name is not a fill: the model sometimes answers a dining,
       // snack, or show slot with the place it sits in ("Disneyland", "DCA",
@@ -546,12 +547,12 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad) {
+      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad || rsrBad) {
         if (parkBad || catalogParkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : rsrBad ? 'rsr-window' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -608,6 +609,19 @@ const ILL_ONLY_KEYS = new Set(['star wars rise of the resistance', 'radiator spr
 // priorities; mornings belong to headliners while lines are short. Enforced
 // in the morning picker, fill validation, deterministic backfill, and the
 // param enforcer's swap targeting.
+// Radiator Springs Racers (Beau, Oct 6, 2026): its standby line explodes by
+// late morning and stays brutal until evening, so it may ONLY be scheduled
+// in the rope-drop block (before 10:30 AM) or in the evening after the
+// nighttime spectacular (the day's final 90 minutes; 8:30 PM fallback when
+// the close is unknown). A 1:25 PM Radiator Springs card is exactly the
+// failure this rule exists to prevent.
+export const RSR_KEY = normName('Radiator Springs Racers');
+export function rsrWindowOk(startMin, closeMin) {
+  if (startMin == null || isNaN(startMin)) return false;
+  if (startMin < 630) return true;
+  if (closeMin) return startMin >= closeMin - 90;
+  return startMin >= 1230;
+}
 export const NEVER_MORNING_KEYS = new Set(['disneyland monorail', 'disneyland railroad', 'main street vehicles', 'mark twain riverboat', 'sailing ship columbia', "davy crockett's explorer canoes", 'sleeping beauty castle walkthrough'].map(normName));
 
 // Parse the CATALOG cache section (JSON string or object) into a lookup:
@@ -1332,10 +1346,12 @@ export function deterministicBackfill(slot, ctx) {
     const bannedGroups = (ctx.bannedKeys instanceof Set) ? new Set([...ctx.bannedKeys].map(k => rideGroupKey(k))) : null;
     const isBannedE = (e) => !!(ctx.bannedKeys && (ctx.bannedKeys.has(normName(e.name)) || (bannedGroups && bannedGroups.has(rideGroupKey(e.name)))));
     const morningSlot = winStart(slot.window) < 720;
+    const slotMin = parseClock(t0);
+    const rsrBlocked = (e) => normName(e.name) === RSR_KEY && !rsrWindowOk(slotMin, null);
     const cands = catalog.filter(e =>
       e && e.name && !usedRideKeys.has(normName(e.name)) && !usedGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !rsrBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     // Deterministic: highest typical peak wait first (headliners earn the slot), ties by name.
     cands.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
@@ -1356,7 +1372,7 @@ export function deterministicBackfill(slot, ctx) {
     const reuse = catalog.filter(e =>
       e && e.name && _priorKeys.has(normName(e.name)) && !_todayKeys.has(normName(e.name)) && !_todayGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !rsrBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     reuse.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (reuse.length) {

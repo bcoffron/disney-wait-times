@@ -106,7 +106,7 @@ const LEGACY_PROMPTS = {
   events_intel:{system:'Disneyland events expert.',user:'Special events Disneyland June 25 - July 5 2026: ticketed events, closures, July 4th, shows, fireworks. Specific dates.',maxTokens:800},
   park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours June 25 to July 5 2026. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 11 dates.',maxTokens:1000},
   character_intel:{system:'Disneyland Resort character meet-and-greet expert. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search AllEars, MiceChat, DisneyTouristBlog, and the official Disneyland site (2025-2026) for current Disneyland Resort character meet-and-greet info. Return JSON: {"characters":[{"name":"...","category":"...","park":"DL or DCA","location":"land or spot","notes":"timing/tips"}]}. The category field MUST be EXACTLY one of these six lowercase values: princess, classic, star_wars, pixar, marvel, villain. You MUST include real, currently-appearing meets for ALL SIX categories: princess (e.g. princesses at Royal Hall/Fantasy Faire); classic (Mickey, Minnie, Donald, Daisy, Goofy, Pluto, Chip and Dale -- Toontown, Main Street); star_wars (characters in Star Wars Galaxy Edge -- e.g. Chewbacca, Vi Moradi, Kylo Ren, Rey, stormtroopers); pixar (Woody/Buzz/Jessie, Pixar Pier characters, Edna/Incredibles at Avengers-adjacent areas, characters at DCA Pixar Pier); marvel (Avengers Campus at DCA -- Spider-Man, Captain America, Black Panther, Black Widow, Doctor Strange, etc.); villain (seasonal/where they appear -- e.g. villains during Halloween/Oogie Boogie Bash, or year-round meets if any). Only include characters that genuinely appear at the Disneyland Resort right now. If a category has limited or seasonal availability, still include its real entries and note the seasonality. Use only current 2025-2026 information. Keep every notes field to ONE short sentence (20 words max) and include at most 6 characters per category (about 24-30 total) -- a complete roster matters more than long notes.',maxTokens:9000},
-  photo_ops:{system:'Disneyland Resort guest photography expert -- the iconic photo spots visitors plan for. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search DisneyTouristBlog, AllEars, MiceChat and Disney Parks sources (2025-2026) for the BEST guest photo spots at Disneyland Park and Disney California Adventure. Return JSON: {"spots":[{"name":"...","park":"DL or DCA","land":"...","shot":"...","bestTime":"...","short":"...","sampleUrl":"..."}]}. The shot field is ONE guest-facing sentence describing the specific photo: where to stand and what landmark fills the background (example: "Stand in the middle of Main Street, U.S.A. facing the castle -- Sleeping Beauty Castle fills the background behind your group."). Include 16-20 spots, roughly half in each park, covering at least: the Main Street castle shot, the Partners statue, Sleeping Beauty Castle from the front, the Millennium Falcon in Star Wars: Galaxy\'s Edge, the Galaxy\'s Edge rock spires, Cars Land neon signs at dusk on Route 66, the Radiator Springs Ornament Valley mountain backdrop, Pixar Pier with the Incredicoaster and Pixar Pal-A-Round behind you at sunset, Buena Vista Street with the Carthay Circle tower, Grizzly Peak and its waterfall, the Mark Twain riverfront in Frontierland, the "it\'s a small world" facade lit up at night, Avengers Campus headquarters, Snow White\'s wishing well grotto, and the New Orleans Square riverfront. bestTime is exactly one of: any, morning, golden hour, sunset, night. The short field is a phrase of at most 11 words naming the standpoint and the backdrop, with NO ending period, starting lowercase unless it opens with a place name (example: "the Haunted Mansion gates with the manor behind you"). The sampleUrl field is a public web page that SHOWS this exact photo (the spot itself, ideally someone\'s photo of it): use only a real URL taken from your search results -- the Disney Parks Blog, Wikimedia Commons, or a travel/photography blog page about the spot. NEVER invent, shorten, or guess a URL; if you cannot find a real page for a spot, omit sampleUrl for that spot. Only real, current photo locations -- no invented backdrops.',maxTokens:9000}
+  photo_ops:{system:'Disneyland Resort guest photography expert -- the iconic photo spots visitors plan for. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search DisneyTouristBlog, AllEars, MiceChat and Disney Parks sources (2025-2026) for the BEST guest photo spots at Disneyland Park and Disney California Adventure. Return JSON: {"spots":[{"name":"...","park":"DL or DCA","land":"...","shot":"...","bestTime":"...","short":"...","sampleUrl":"..."}]}. The shot field is ONE guest-facing sentence describing the specific photo: where to stand and what landmark fills the background (example: "Stand in the middle of Main Street, U.S.A. facing the castle -- Sleeping Beauty Castle fills the background behind your group."). Include 16-20 spots, roughly half in each park, covering at least: the Main Street castle shot, the Partners statue, Sleeping Beauty Castle from the front, the Millennium Falcon in Star Wars: Galaxy\'s Edge, the Galaxy\'s Edge rock spires, Cars Land neon signs at dusk on Route 66, the Radiator Springs Ornament Valley mountain backdrop, Pixar Pier with the Incredicoaster and Pixar Pal-A-Round behind you at sunset, Buena Vista Street with the Carthay Circle tower, Grizzly Peak and its waterfall, the Mark Twain riverfront in Frontierland, the "it\'s a small world" facade lit up at night, Avengers Campus headquarters, Snow White\'s wishing well grotto, and the New Orleans Square riverfront. bestTime is exactly one of: any, morning, golden hour, sunset, night. The short field is a phrase of at most 11 words naming the standpoint and the backdrop, with NO ending period, starting lowercase unless it opens with a place name (example: "the Haunted Mansion gates with the manor behind you"). The sampleUrl field must link to ONE SINGLE PHOTO of this exact spot -- never a blog post, article, or listicle page (guests tap it expecting to see just the photo). Acceptable: a direct image file URL ending .jpg, .jpeg, .png, or .webp; a single Instagram post (instagram.com/p/...); a single Flickr photo page (flickr.com/photos/...); or a Wikimedia Commons file page (commons.wikimedia.org/wiki/File:...). Use only a real URL taken from your search results --  NEVER invent, shorten, or guess a URL; if you cannot find a real page for a spot, omit sampleUrl for that spot. Only real, current photo locations -- no invented backdrops.',maxTokens:9000}
 };
 
 const STABLE_SECTION_PROMPTS = {
@@ -396,7 +396,22 @@ End with one sentence that captures the whole trip and gets them excited.`,
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-async function isFresh(key) {
+async // A sampleUrl is photo-grade only if it opens ONE photo: a direct image
+// file, a single Instagram post/reel, a single Flickr photo page, or a
+// Wikimedia Commons file page. Blog posts and articles never qualify.
+function isSinglePhotoUrl(u) {
+  try {
+    const url = new URL(u);
+    const p = url.pathname.toLowerCase();
+    if (/\.(jpe?g|png|webp)$/.test(p)) return true;
+    const h = url.hostname.replace(/^www\./, '');
+    if (h === 'instagram.com' && /^\/(p|reel)\//.test(p)) return true;
+    if (h === 'flickr.com' && p.indexOf('/photos/') === 0) return true;
+    if (h === 'commons.wikimedia.org' && p.indexOf('/wiki/file:') === 0) return true;
+    return false;
+  } catch (e) { return false; }
+}
+function isFresh(key) {
   try {
     const {blobs} = await list({prefix:'twize/'+key});
     if(!blobs||!blobs.length) return false;
@@ -419,6 +434,8 @@ async function isFresh(key) {
       if(!roster || roster.length < 5) return false;
     }
     if(key === 'photo_ops') {
+      // v3 link rule (Beau, Oct 6, 2026): sampleUrl must open ONE photo, not
+      // a blog article. A blob whose links are articles counts as stale.
       const pd = raw && raw.data;
       const spots = pd && Array.isArray(pd.spots) ? pd.spots : null;
       if(!spots || spots.length < 8) return false;
@@ -429,6 +446,8 @@ async function isFresh(key) {
       // mode as the degraded character roster above.
       const withShort = spots.filter(function(s){ return s && typeof s.short === 'string' && s.short.trim().length > 0; }).length;
       if(withShort < Math.ceil(spots.length / 2)) return false;
+      const photoGrade = spots.filter(function(s){ return s && typeof s.sampleUrl === 'string' && isSinglePhotoUrl(s.sampleUrl); }).length;
+      if(photoGrade < 5) return false;
     }
     const tsMs = typeof ts === 'number' ? ts : new Date(ts).getTime();
     return (Date.now()-tsMs)/864e5 < EXPIRY_DAYS[key]*0.8;
@@ -1153,7 +1172,8 @@ async function buildLegacy(key, apiKey) {
         if (!s || typeof s !== 'object') return;
         if (typeof s.short === 'string') s.short = s.short.trim().replace(/\.$/, '');
         if (typeof s.sampleUrl === 'string' && /^https?:\/\//i.test(s.sampleUrl)) {
-          if (!(await checkUrl(s.sampleUrl))) delete s.sampleUrl;
+          if (!isSinglePhotoUrl(s.sampleUrl)) delete s.sampleUrl;
+          else if (!(await checkUrl(s.sampleUrl))) delete s.sampleUrl;
         } else if ('sampleUrl' in s) delete s.sampleUrl;
       }));
       const linked = spots.filter(s => s && s.sampleUrl).length;
