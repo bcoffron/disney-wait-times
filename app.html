@@ -5477,11 +5477,12 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   // Phase-aware section order (Beau, Oct 6 2026, from guest-needs research):
   // before the trip, planning intel leads (crowds, hours, closures, weather,
   // checklist); once the trip starts, in-park needs lead (map, hours, closures,
-  // restrooms). Phase is derived from the configured trip dates.
+  // restrooms). The flip happens at 7:00 AM the day BEFORE the first park day
+  // (Beau: by then planning is done and it's travel/final-checks mode).
   var _inPark=false;
   try{
     var _tds=((window.TRIP_CONFIG||{}).days||[]).map(function(d){return d&&d.date?new Date(d.date+'T12:00:00'):null;}).filter(function(d){return !!d;});
-    if(_tds.length){var _today=new Date();_today.setHours(0,0,0,0);var _f=new Date(_tds[0]);_f.setHours(0,0,0,0);var _l=new Date(_tds[_tds.length-1]);_l.setHours(23,59,59,999);_inPark=(_today>=_f&&_today<=_l);}
+    if(_tds.length){var _f=new Date(_tds[0]);_f.setHours(0,0,0,0);var _flip=new Date(_f);_flip.setDate(_flip.getDate()-1);_flip.setHours(7,0,0,0);var _l=new Date(_tds[_tds.length-1]);_l.setHours(23,59,59,999);var _now=new Date();_inPark=(_now>=_flip&&_now<=_l);}
   }catch(e){}
   var _order=_inPark
     ? ['parkmap','hours','closures','restrooms','weather','tips','crowds','checklist','share','settings']
