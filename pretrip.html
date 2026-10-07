@@ -1844,7 +1844,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       'CONFIRMED DINING RESERVATIONS (must appear in schedule at exact times): ' + tripConfig.reservations.join(' | ') + '. ' : '') +
     'Return ONLY a raw JSON array of schedule items with fields: t (time), h (activity name), type (ride|show|dining|quickservice|break|tip|snack|character), n (note), land (land name).';
 
-  var _useScaffold = !/[?&]scaffold=0\b/.test(window.location.search); // scaffold is the DEFAULT; opt OUT with ?scaffold=0 to force the legacy generator. Server reads body.scaffold===true on /api/generateschedule.
+  var _useScaffold = true; // LEGACY RETIRED (Oct 7, 2026): scaffold is the only generator, client- and server-side. The old ?scaffold=0 page-URL opt-out is removed -- the legacy body shape in the else-branch below is unreachable and must never be sent (the server no longer has a legacy path to receive it).
   var _endpoint = '/api/generateschedule';
   var _body = _useScaffold
     ? { prompt: prompt,
