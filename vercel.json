@@ -288,6 +288,9 @@
     "api/cron-push-monitor.js": {
       "maxDuration": 60
     },
+    "api/cron-booking-alerts.js": {
+      "maxDuration": 60
+    },
     "api/trip-closure-scan.js": {
       "maxDuration": 60
     }
@@ -372,6 +375,10 @@
     {
       "path": "/api/cron-cache?key=photo_ops",
       "schedule": "30 5 * * 1"
+    },
+    {
+      "path": "/api/cron-booking-alerts",
+      "schedule": "30 12 * * *"
     }
   ],
   "redirects": [
