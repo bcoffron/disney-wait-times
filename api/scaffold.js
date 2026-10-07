@@ -1355,9 +1355,33 @@ function activityDurationMin(c) {
   if (c.type === 'break') return 10;
   return 0;
 }
-function waitEstimateMin(c, startMin, waitPatterns, catalog) {
+function waitEstimateMin(c, startMin, waitPatterns, catalog, products) {
   if (c.type !== 'ride') return 0;
   const name = c.ride || c.h;
+  // ITEM C -- pace-model hardening (Oct 7, 2026): cost = the time a ride
+  // actually CONSUMES given how it is ridden, not the posted standby figure
+  // on the wait board. Two placements consume no queue time; for both, the
+  // caller still adds duration + walk on top, so the corrected cost is low,
+  // never zero -- no feasibility laundering.
+  //   (a) A GENUINE LL/ILL return. Genuineness is judged by the same oracle
+  //       as the headliner-window exemption (llWindowExempt): a bare
+  //       'multi' on an ILL-only ride, or a tag for a product the group
+  //       never bought, is NOT a return and pays standby like anyone else.
+  //       (The old flat caps -- min(standby, 12/10) for ANY tag -- treated
+  //       fake tags as real; they are gone, superseded by this check.)
+  //   (b) A rope-drop-tier ride placed in the morning window. Tier =
+  //       catalog ropeDropValue === 'high', the same source of truth as
+  //       the headliner-window rule; window = that rule's MORNING edge
+  //       (before 10:30 AM). Ridden at open, the ride's posted standby
+  //       (RSR's 50-minute rope_drop figure) is a board display, not
+  //       consumed time. The window rule's evening edge is NOT applied
+  //       here: it legalizes a placement, it does not make the ride a
+  //       walk-on. C governs cost; the window rule governs placement
+  //       legality; the two compose and neither duplicates the other.
+  const _key = normName(name);
+  if (c.ll && llWindowExempt(_key, c.ll, products || {})) return 0;
+  const _entry = catalog ? catalog[_key] : null;
+  if (_entry && _entry.ropeDropValue === 'high' && typeof startMin === 'number' && startMin < 630) return 0;
   let base = null;
   const wp = waitPatterns && name ? waitPatterns[name] : null;
   if (wp && wp.moderate) {
@@ -1365,11 +1389,8 @@ function waitEstimateMin(c, startMin, waitPatterns, catalog) {
     if (typeof wp.moderate[dp] === 'number') base = wp.moderate[dp];
   }
   if (base === null) {
-    const e = catalog ? catalog[normName(name)] : null;
-    base = e && e.typicalPeakWait ? Math.round(e.typicalPeakWait * 0.7) : 20;
+    base = _entry && _entry.typicalPeakWait ? Math.round(_entry.typicalPeakWait * 0.7) : 20;
   }
-  if (c.ll && c.ll.t === 'multi') return Math.min(base, 12);
-  if (c.ll && c.ll.t === 'single') return Math.min(base, 10);
   return base;
 }
 const EDGE_LANDS = new Set(["mickey's toontown", 'toontown', "star wars: galaxy's edge", 'bayou country', 'critter country']);
@@ -1423,6 +1444,10 @@ export function trimInfeasible(cards, opts) {
   if (!wp) return { cards, trimmed, trimmedMustDos };
   const catalog = (opts && opts.catalog) || {};
   const landToPark = (opts && opts.landToPark) || (() => null);
+  // Item C: the day's purchased LL products, threaded from verifyScaffold's
+  // opts (hasLLMP/hasILL/illRideKeys) so waitEstimateMin can judge LL-tag
+  // genuineness with the same oracle as the headliner window.
+  const products = (opts && opts.products) || {};
   let list = (cards || []).slice();
   // Must-do rides (Fix 4, Oct 7, 2026): a must-do is guest-non-negotiable, so
   // it is NEVER a trim victim. The trim used to delete placed must-do
@@ -1464,7 +1489,7 @@ export function trimInfeasible(cards, opts) {
     for (let i = 0; i + 1 < acts.length; i++) {
       const cur = acts[i], nxt = acts[i + 1];
       const ct = parseClock(cur.t), nt = parseClock(nxt.t);
-      const need = waitEstimateMin(cur, ct, wp, catalog) + activityDurationMin(cur) + walkMin(cur, nxt, landToPark);
+      const need = waitEstimateMin(cur, ct, wp, catalog, products) + activityDurationMin(cur) + walkMin(cur, nxt, landToPark);
       if (nt - ct - need >= -8) continue;
       const dropCur = !isProtected(cur, acts) && i > 0;
       const dropNxt = !isProtected(nxt, acts);
@@ -1730,7 +1755,7 @@ export function verifyScaffold(cards, opts) {
       }
     }
   }
-  const _trim = trimInfeasible(_finalCards, { waitPatterns: opts.waitPatterns || null, catalog, landToPark, mustDoNames: opts.mustDoNames || [] });
+  const _trim = trimInfeasible(_finalCards, { waitPatterns: opts.waitPatterns || null, catalog, landToPark, mustDoNames: opts.mustDoNames || [], products: { llmp: opts.hasLLMP === true, ill: opts.hasILL === true, illRideKeys: (opts.illRideKeys instanceof Set) ? opts.illRideKeys : null } });
   for (const r of _trim.trimmed) removed.push(r);
   return { cards: _trim.cards, removed, trimmedMustDos: _trim.trimmedMustDos || [], mutations, dietaryConflicts };
 }
