@@ -2355,17 +2355,40 @@ export function planReservationAnchors(skeleton, reservations, opts) {
 
   let mutated = false;
   const suppressedPeriods = new Set();
+  // Finding 4a reconciliation (Claude's ruling, Oct 7, 2026): the seated
+  // anchors are the AUTHORITATIVE record of what this generation did with
+  // the guest's reservations. Every other encoding of the same reservation
+  // (the structured row, the flat 'Name, Time, Day N' mirror, the client's
+  // per-day context string) is a derived surface and must reconcile against
+  // the seated record before it may emit anything -- a second seat, or a
+  // 'was not seated' conflict -- for a reservation that is in fact seated.
+  // The invariant holds regardless of parser behavior: it is checked
+  // against what was seated, never against what was parsed.
+  const seatedKeys = new Set();
+  const pendingUnparsed = [];
   for (const raw of (Array.isArray(reservations) ? reservations : [])) {
     const r = parseReservationEntry(raw);
     if (!r) continue;
     if (r.day !== null && r.day !== dayNum) continue; // another day's reservation
     if (r.timeMin === null) {
-      out.conflicts.push({ type: 'reservation-unparsed', name: r.name, day: dayNum, detail: 'no readable time (' + (r.time || 'none given') + ') -- the reservation was not seated' });
+      // Deferred, not emitted: whether this entry is a genuinely unparsed
+      // reservation or merely an unreadable encoding of a seated one can
+      // only be decided once every entry has had its chance to seat.
+      pendingUnparsed.push({ raw, r });
       continue;
     }
     const venue = resolveVenue(r.name);
     if (!venue) {
       out.conflicts.push({ type: 'reservation-unresolved', name: r.name, day: dayNum, timeMin: r.timeMin, time: toClock(r.timeMin), detail: 'venue not found in the verified dining list -- the reservation was not seated' });
+      continue;
+    }
+    // A second encoding of a reservation already seated by this pass is
+    // the same reservation: it neither seats a duplicate anchor nor emits
+    // any conflict. (Two encodings of one booking reach this function
+    // whenever a trip carries both the structured rows and a flat mirror.)
+    const seatKey = canonicalVenueKey(venue.name) + '|' + r.timeMin;
+    if (seatedKeys.has(seatKey)) {
+      console.log('[scaffold] reservation duplicate reconciled against seated anchor: ' + venue.name + ' ' + toClock(r.timeMin) + ' (day ' + dayNum + ')');
       continue;
     }
     const vLc = venue.name.toLowerCase();
@@ -2404,6 +2427,24 @@ export function planReservationAnchors(skeleton, reservations, opts) {
     });
     mutated = true;
     out.anchors.push({ name: venue.name, timeMin: r.timeMin, time: toClock(r.timeMin), park: venue.park, land: venue.land || '', period, day: dayNum });
+    seatedKeys.add(seatKey);
+  }
+  // Reconcile the deferred unparsed entries against the seated record. An
+  // entry whose raw text names a venue that IS seated today, at the very
+  // time the text itself carries, is that seated reservation in an
+  // encoding the parser could not read -- claiming it 'was not seated'
+  // would contradict the plan it rides in, so the conflict is suppressed.
+  // Anything that cannot be matched on BOTH venue and time keeps its
+  // conflict verbatim: a genuinely unparseable reservation still surfaces.
+  for (const p of pendingUnparsed) {
+    const identityText = (typeof p.raw === 'string') ? p.raw : String((p.r && p.r.name) || '');
+    const venue = identityText ? resolveVenue(identityText) : null;
+    const clockMin = identityText ? parseClock(identityText) : null;
+    if (venue && clockMin !== null && seatedKeys.has(canonicalVenueKey(venue.name) + '|' + clockMin)) {
+      console.log('[scaffold] reservation-unparsed reconciled against seated anchor: ' + venue.name + ' ' + toClock(clockMin) + ' (day ' + dayNum + ') -- conflict suppressed');
+      continue;
+    }
+    out.conflicts.push({ type: 'reservation-unparsed', name: p.r.name, day: dayNum, detail: 'no readable time (' + (p.r.time || 'none given') + ') -- the reservation was not seated' });
   }
   if (mutated) {
     skeleton.slots.sort((a, b) => winStart(a.window) - winStart(b.window));
@@ -2994,6 +3035,12 @@ export function computeTripSurfacing(tripConfig, ctx) {
       const resvAll = [].concat(
         Array.isArray(tc.reservations) ? tc.reservations : [],
         (tc.dining && Array.isArray(tc.dining.reservations)) ? tc.dining.reservations : []);
+      // The same reservation commonly arrives in two encodings (flat
+      // mirror + structured row). Each encoding is checked against the
+      // saved schedule -- the authoritative record -- but an unseated
+      // reservation is reported ONCE per identity (venue + day + time),
+      // never once per encoding (finding 4a reconciliation, Oct 7, 2026).
+      const seenResvIds = new Set();
       for (const raw of resvAll) {
         const r = parseReservationEntry(raw);
         if (!r || r.day === null) continue;
@@ -3002,6 +3049,9 @@ export function computeTripSurfacing(tripConfig, ctx) {
         const ck = canonicalVenueKey(r.name);
         const seated = !!ck && dayItems.some(it => it && (it.type === 'dining' || it.type === 'quickservice' || it.type === 'snack') && canonicalVenueKey(it.h || '') === ck);
         if (!seated) {
+          const idk = ck + '|' + r.day + '|' + (r.timeMin === null ? 'notime' : r.timeMin);
+          if (ck && seenResvIds.has(idk)) continue; // same reservation, second encoding
+          if (ck) seenResvIds.add(idk);
           insights.push({
             type: 'reservation-not-seated',
             name: r.name,
