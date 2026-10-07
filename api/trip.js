@@ -86,6 +86,16 @@ async function writeTripBlob(tripId, tripData) {
 const DRAFT_PREFIX = 'twize/onboarding-drafts/';
 const draftKey = (code) => DRAFT_PREFIX + code + '.json';
 
+// Log-safe rendering of a trip code for [trip-draft] lines: the code
+// alphabet only, length-capped -- a hostile code string must never
+// inject extra lines into the log. Codes themselves are not secrets
+// (they are the lookup key every endpoint already logs around); draft
+// payload contents are NEVER logged.
+function safeCodeForLog(c) {
+  const s = String(c == null ? '' : c).replace(/[^A-Za-z0-9_-]/g, '?').slice(0, 64);
+  return s || '(none)';
+}
+
 async function writeDraftBlob(code, payload) {
   await put(draftKey(code), JSON.stringify(payload), {
     access: 'public',
@@ -110,7 +120,14 @@ async function readDraftBlob(code) {
     const resp = await fetch((matches[0].downloadUrl || matches[0].url) + '?t=' + Date.now());
     if (!resp.ok) return null;
     return await resp.json();
-  } catch (e) { return null; }
+  } catch (e) {
+    // Fail-soft for the reader (a draft read failure reads as "no
+    // draft" and must never break onboarding resume) -- but LOUD: a
+    // silent null here is how infra failures masquerade as "the guest
+    // never had a draft".
+    console.warn('[trip-draft] read failed code=' + safeCodeForLog(code) + ' (reporting no draft)');
+    return null;
+  }
 }
 
 // Cache sections for the trip-level surfacing computation: the SAME blobs and
@@ -191,6 +208,7 @@ export default async function handler(req, res) {
     if (req.query.draft === '1') {
       const stored = await readDraftBlob(code);
       const hasDraft = !!(stored && stored.draft != null);
+      console.log('[trip-draft] read code=' + safeCodeForLog(code) + ' hasDraft=' + hasDraft);
       return res.status(200).json({
         valid: true,
         tripId: entry.tripId,
@@ -235,27 +253,68 @@ export default async function handler(req, res) {
       // through to the trip-save path and 400'd before this adapter, so
       // the server mirror never landed. Auth, validation, storage and
       // response below are identical for either signal.
-      const _isDraftWrite = body && (body.action === 'save_draft' ||
-        (req.query && req.query.draft === '1' && body.draft !== undefined && !body.tripData));
+      // HARDENED (Oct 7, 2026, Claude follow-up on the seam fix): the
+      // !tripData precondition now guards the WHOLE branch, on BOTH
+      // signals. It started on the query arm only, which left the
+      // action arm able to consume a body carrying a full trip
+      // payload: the save was silently dropped -- and with no draft
+      // field present, the same request silently TOMBSTONED the
+      // guest's existing server draft. A body carrying tripData is a
+      // trip save, full stop; the save path below (with its merge
+      // guard) is the only code that may consume one. Structural note:
+      // this branch's ONLY write is writeDraftBlob -> draftKey(), a
+      // key confined to twize/onboarding-drafts/ by construction (the
+      // code is regex-validated to a single path segment, so it can
+      // never address twize/trip_<id>.json), meaning no draft write
+      // can land on a trip blob even before this guard is consulted.
+      // Loud logging (same follow-up): every exit from this branch
+      // logs exactly one [trip-draft] line -- a mirror failure masked
+      // by the client's local autosave must never be silent again.
+      const _isDraftWrite = body && !body.tripData && (body.action === 'save_draft' ||
+        (req.query && req.query.draft === '1' && body.draft !== undefined));
       if (_isDraftWrite) {
         const _rawCode = typeof body.code === 'string' ? body.code : (typeof body.tripCode === 'string' ? body.tripCode : '');
         const dcode = _rawCode.trim();
-        if (!dcode || !/^[A-Za-z0-9_-]{3,64}$/.test(dcode)) return res.status(400).json({ error: 'Invalid code' });
+        if (!dcode || !/^[A-Za-z0-9_-]{3,64}$/.test(dcode)) {
+          console.log('[trip-draft] rejected code=' + safeCodeForLog(_rawCode) + ' reason=invalid-code');
+          return res.status(400).json({ error: 'Invalid code' });
+        }
         const registry = await readRegistry();
         const entry = registry[dcode];
-        if (!entry) return res.status(404).json({ error: 'Code not found' });
+        if (!entry) {
+          console.log('[trip-draft] rejected code=' + dcode + ' reason=code-not-found');
+          return res.status(404).json({ error: 'Code not found' });
+        }
         if (!isAdmin) {
-          if (entry.status !== 'active') return res.status(403).json({ error: 'Code inactive' });
+          if (entry.status !== 'active') {
+            console.log('[trip-draft] rejected code=' + dcode + ' reason=code-inactive');
+            return res.status(403).json({ error: 'Code inactive' });
+          }
           if (entry.expires) {
             const expDate = new Date(entry.expires + 'T23:59:59Z');
-            if (expDate < new Date()) return res.status(403).json({ error: 'Code expired' });
+            if (expDate < new Date()) {
+              console.log('[trip-draft] rejected code=' + dcode + ' reason=code-expired');
+              return res.status(403).json({ error: 'Code expired' });
+            }
           }
-          if (entry.role !== 'admin') return res.status(403).json({ error: 'Not authorized to write drafts for this trip' });
+          if (entry.role !== 'admin') {
+            console.log('[trip-draft] rejected code=' + dcode + ' reason=role-not-admin');
+            return res.status(403).json({ error: 'Not authorized to write drafts for this trip' });
+          }
         }
         const payload = { code: dcode, draft: (body.draft === undefined ? null : body.draft), updatedAt: new Date().toISOString() };
-        if (JSON.stringify(payload).length > 262144) return res.status(413).json({ error: 'Draft too large' });
-        await writeDraftBlob(dcode, payload);
-        console.log('[trip] onboarding draft saved for code (draft namespace only)');
+        const _payloadBytes = JSON.stringify(payload).length;
+        if (_payloadBytes > 262144) {
+          console.log('[trip-draft] rejected code=' + dcode + ' reason=draft-too-large bytes=' + _payloadBytes);
+          return res.status(413).json({ error: 'Draft too large' });
+        }
+        try {
+          await writeDraftBlob(dcode, payload);
+        } catch (e) {
+          console.error('[trip-draft] failed code=' + dcode + ' reason=write-error');
+          throw e; // the outer catch responds, exactly as it did before
+        }
+        console.log('[trip-draft] saved code=' + dcode + ' bytes=' + _payloadBytes);
         return res.status(200).json({ ok: true, draft: true, updatedAt: payload.updatedAt });
       }
 
