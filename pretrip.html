@@ -1402,7 +1402,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         }
       };
   if (_useScaffold) console.log('[pretrip] Day ' + (dayIndex+1) + ' using SCAFFOLD path');
-  var _genAbort=new AbortController();var _genAbortT=setTimeout(function(){_genAbort.abort();},65000);
+  var _genAbort=new AbortController();var _genAbortT=setTimeout(function(){_genAbort.abort();},240000); // Day-1 generations legitimately run past 65s; server ceiling is 300s (Oct 6, 2026)
   fetch(SYNC_BASE + _endpoint, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
@@ -1614,7 +1614,13 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   var _completed = 0;
 
   function _finishAndSave() {
-    var finalConfig = Object.assign({}, tripConfig, { schedule: { days: generatedDays } });
+    // Carry-forward guard (Oct 6, 2026): a day whose generation failed must
+    // never overwrite a stored non-empty day with an empty one. If any
+    // generated day is empty, read the stored schedule first and substitute
+    // the stored day at the same index. Fails open if the read fails. (The
+    // per-day merge guard in api/trip.js is the server-side backstop.)
+    function _saveDays(daysArr) {
+    var finalConfig = Object.assign({}, tripConfig, { schedule: { days: daysArr } });
     if (code) {
       var _saveAbort=new AbortController();var _saveAbortT=setTimeout(function(){_saveAbort.abort();},15000);
       fetch(SYNC_BASE + '/api/trip', {
@@ -1634,6 +1640,24 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       .catch(function(err){ clearTimeout(_saveAbortT); console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = ptHomeUrl(); });
     } else {
       window.location.href = ptHomeUrl();
+    }
+    }
+    var _anyEmpty = generatedDays.some(function(gd){ return !gd || !gd.items || !gd.items.length; });
+    if (code && _anyEmpty) {
+      fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code), { cache: 'no-store' })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var storedDays = (j && j.tripData && j.tripData.tripConfig && j.tripData.tripConfig.schedule && j.tripData.tripConfig.schedule.days) || [];
+          var merged = generatedDays.map(function(gd, i){
+            var sd = storedDays[i];
+            if ((!gd || !gd.items || !gd.items.length) && sd && sd.items && sd.items.length) { console.warn('[ptFinish] Day ' + (i+1) + ' came back empty -- keeping the stored plan for that day'); return sd; }
+            return gd;
+          });
+          _saveDays(merged);
+        })
+        .catch(function(){ _saveDays(generatedDays); });
+    } else {
+      _saveDays(generatedDays);
     }
   }
 
@@ -1673,7 +1697,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
             errDiv.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;text-align:center;';
             bar.firstElementChild && bar.firstElementChild.appendChild(errDiv);
           }
-          errDiv.textContent = 'Day ' + (idx+1) + ' had trouble -- continuing...';
+          errDiv.textContent = 'Day ' + (idx+1) + ' had trouble -- keeping your saved plan for that day, continuing...';
         }
         generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
       } else {

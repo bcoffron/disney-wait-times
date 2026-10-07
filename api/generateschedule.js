@@ -916,4 +916,4 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
     }
 };
 
-handler.config = { maxDuration: 90 };
+handler.config = { maxDuration: 300 }; // Day-1 scaffold generations legitimately run past 90s (Oct 6, 2026)

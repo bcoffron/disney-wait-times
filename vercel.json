@@ -193,7 +193,7 @@
       "maxDuration": 120
     },
     "api/generateschedule.js": {
-      "maxDuration": 120
+      "maxDuration": 300
     },
     "api/ai.js": {
       "maxDuration": 60

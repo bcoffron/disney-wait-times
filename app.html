@@ -5868,18 +5868,21 @@ function generateFromSetup(params, callback) {
     parkHoursCache ? '=== PARK HOURS ===\n' + JSON.stringify(parkHoursCache) : ''
   ].filter(Boolean).join('\n\n');
   var prompt = 'Build a complete Disneyland day schedule. Return ONLY a raw JSON array (no markdown, no explanation) of objects with fields: t (time like "8:00 AM"), h (activity name), type (ride|show|dining|break|tip), n (brief note), land (land name). Group info: ' + JSON.stringify(params);
-  fetch('https://app.themeparkcopilot.com/api/generateschedule', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
+  var _genBody = {
       prompt: prompt,
       mode: 'setup',
       scaffold: true,
       dayIndex: (typeof params === 'number') ? params : 0,
       tripCode: localStorage.getItem('tpcp_code') || '',
       maxTokens: 8000,
-      tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}, { tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
-    })
+      tripConfig: (function(){ var src = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}); return { tripName: src.tripName || '', characters: src.characters, minHeight: src.minHeight, ridePreferences: src.ridePreferences || {}, avoidWater: src.avoidWater === true, showPreferences: src.showPreferences || { want: [], skip: [] }, _priorRides: src._priorRides || [], _priorCharacters: src._priorCharacters || [], _priorRopeDrops: src._priorRopeDrops || [], groupProfile: src.groupProfile ? { dietary: src.groupProfile.dietary } : undefined, reservations: src.reservations || [], parkHopping: src.parkHopping, dining: { reservations: (src.dining && src.dining.reservations) || [], usedVenues: (src.dining && src.dining.usedVenues) || [] }, days: (src.days || []).map(function(dd){ return { park: dd.park, date: dd.date, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP === true, hasILL: dd.hasILL === true, intent: dd.intent }; }) }; }())
+    };
+  var _genBodyStr = JSON.stringify(_genBody);
+  if (_genBodyStr.length > 9000) console.warn('[generateFromSetup] payload ' + _genBodyStr.length + ' chars -- over the server request limit; generation will fail');
+  fetch('https://app.themeparkcopilot.com/api/generateschedule', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: _genBodyStr
   })
   .then(function(r){return r.json();})
   .then(function(d){
