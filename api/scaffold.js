@@ -380,6 +380,17 @@ export function buildFillPrompt(skeleton, opts) {
   sys += '\n\nSKELETON (fill EVERY slot):\n' + lines.join('\n');
   if (opts.usedDining && opts.usedDining.length) sys += '\n\nALREADY-USED venues (never repeat): ' + opts.usedDining.join('; ');
   if (opts.usedRides && opts.usedRides.length) sys += '\n\nALREADY-USED rides on earlier days of this trip (never repeat): ' + opts.usedRides.join('; ');
+  // Prose consistency (Oct 7, 2026): the ALREADY-USED list used to reach
+  // the fill only as a seating ban, so note prose kept NAMING used venues
+  // on other cards (a generic snack card's note name-dropping Flo's V8
+  // Cafe or Fiddler, Fifer & Practical after they were already seated) --
+  // prose is a secondary surface and must consume the same trip-level
+  // state the dedup enforces. The rule is unconditional: it also covers
+  // venues seated in other slots of THIS day, which no pre-day list can
+  // name in advance (a Day-1 snack note previewed Pym Test Kitchen hours
+  // before its own dinner card). scanProseVenueFlags is the deterministic
+  // tripwire behind this instruction; this is the soft half.
+  sys += '\n\nNOTE PROSE RULE: a card\'s note (the "n" field) may name ONLY the venue that card itself is about. Never name a restaurant, quick-service spot, or snack stand from the ALREADY-USED list -- or one you seat in any other slot of this day -- in another card\'s note: a prose mention reads as part of the plan and quietly undoes the never-twice rule. If a note needs to point at food or drink beyond its own card, describe it generically ("a snack nearby", "your lunch stop later") without naming the place.';
   // Onboarding preference context (Oct 7, 2026): the guest's stated
   // preferences reach the MODEL too, not just the deterministic paths --
   // wanted spots and thrill level are model-gated items, so the fill
@@ -840,6 +851,113 @@ export function makeVenueKeyResolver(venues) {
     for (const k of canonKeys) { if (hk.indexOf(k) !== -1 || (hk.length >= 4 && k.indexOf(hk) !== -1)) return k; }
     return 'raw:' + hk;
   };
+}
+
+// ---------------------------------------------------------------------------
+// PROSE CONSISTENCY (Oct 7, 2026 -- Claude's item-3 close-out ruling).
+// Heading-level dedup is enforced trip-wide, but note PROSE is a secondary
+// surface: a generic-headed snack card can still NAME an already-used
+// venue in its note, and the guest reads that as part of the plan. The
+// ruling's mechanism, both halves -- NO prose scrubber anywhere:
+//  (1) buildFillPrompt threads the trip-level usedVenues into the fill
+//      context with a do-not-name instruction (the soft fix);
+//  (2) scanProseVenueFlags here is the deterministic tripwire: it FLAGS
+//      (never rewrites, never rejects) emitted notes that name a venue
+//      from the used set on a card that is not about that venue.
+// The scan set is the same set the structural dedup maintains: the prior
+// days' usedVenues (client-accumulated from returned items, dining /
+// quickservice / snack headings -- snack-inclusive) PLUS the venues
+// seated in today's emitted dining/quickservice/snack cards (the set
+// applyFills keeps as placedVenueCanon, rebuilt here from the final
+// cards so the scan judges the day exactly as it ships). Identity runs
+// through the same canonical resolver on both sides. Mentions are
+// detected against the whole venue universe with longest-match-wins, so
+// a longer name ('Carthay Circle Lounge') is never misread as its
+// prefix sibling ('Carthay Circle Restaurant').
+// ---------------------------------------------------------------------------
+const PROSE_FILLER_TOKENS = new Set(['the', 'a', 'an', 'ride', 'standby', 'at', 'to', 'and']);
+function proseTokens(str) {
+  const flat = String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/([a-z])([0-9])/g, '$1 $2').replace(/([0-9])([a-z])/g, '$1 $2')
+    .replace(/[^a-z0-9]+/g, ' ');
+  const out = [];
+  for (const part of flat.split(' ')) { if (part && !PROSE_FILLER_TOKENS.has(part)) out.push(part); }
+  return out;
+}
+const PROSE_SUFFIX_TOKENS = new Set(['restaurant', 'cafe', 'bakery', 'grill', 'bar']);
+function venueSearchTokens(name) {
+  let toks = proseTokens(name);
+  // Mirror canonicalVenueKey's venue-form suffix stripping (incl. the
+  // two-token 'dining room'), but never strip below two tokens: the
+  // stripped key of 'Carnation Cafe' is the single token 'carnation',
+  // which prose uses for flowers as readily as for the restaurant --
+  // a one-token needle is a false-positive farm, so short names keep
+  // their suffix and match only in their full form.
+  while (toks.length > 2) {
+    if (toks[toks.length - 2] === 'dining' && toks[toks.length - 1] === 'room') { toks = toks.slice(0, -2); continue; }
+    if (PROSE_SUFFIX_TOKENS.has(toks[toks.length - 1])) { toks = toks.slice(0, -1); continue; }
+    break;
+  }
+  return toks;
+}
+export function scanProseVenueFlags(cards, opts) {
+  opts = opts || {};
+  const venues = Array.isArray(opts.venues) ? opts.venues : [];
+  const resolver = makeVenueKeyResolver(venues);
+  const DINING_TYPES = new Set(['dining', 'quickservice', 'snack']);
+  const list = Array.isArray(cards) ? cards : [];
+  const entries = [];
+  const byKey = new Map();
+  const addEntry = (name, key) => {
+    const nm = String(name || '').trim();
+    if (!nm || !key || byKey.has(key)) return;
+    const tokens = venueSearchTokens(nm);
+    if (tokens.length < 2) return;
+    const e = { key: key, name: nm, tokens: tokens };
+    byKey.set(key, e); entries.push(e);
+  };
+  for (const v of venues) { if (v && v.name) addEntry(v.name, resolver(v.name)); }
+  const scanSet = new Map(); // canonical key -> 'same-day' | 'prior-day'
+  const stripMealPrefix = (h) => String(h || '').replace(/^(lunch|dinner|breakfast|brunch)\s*[:\-]\s*/i, '').replace(/^(lunch|dinner|breakfast|brunch)\s+at\s+/i, '');
+  for (const c of list) {
+    if (!c || !DINING_TYPES.has(c.type) || !c.h) continue;
+    const k = resolver(c.h);
+    if (!k) continue;
+    addEntry(stripMealPrefix(c.h), k);
+    if (!scanSet.has(k)) scanSet.set(k, 'same-day');
+  }
+  for (const n of (Array.isArray(opts.priorVenues) ? opts.priorVenues : [])) {
+    const k = resolver(n) || canonicalVenueKey(n);
+    if (!k) continue;
+    addEntry(n, k);
+    scanSet.set(k, 'prior-day');
+  }
+  const flags = [];
+  list.forEach((c, idx) => {
+    if (!c || !c.n) return;
+    const noteToks = proseTokens(c.n);
+    if (!noteToks.length) return;
+    const ownKey = (DINING_TYPES.has(c.type) && c.h) ? resolver(c.h) : '';
+    const seenHere = new Set();
+    let i = 0;
+    while (i < noteToks.length) {
+      let best = null;
+      for (const e of entries) {
+        const L = e.tokens.length;
+        if (L > noteToks.length - i) continue;
+        if (best && L <= best.tokens.length) continue;
+        let ok = true;
+        for (let j = 0; j < L; j++) { if (noteToks[i + j] !== e.tokens[j]) { ok = false; break; } }
+        if (ok) best = e;
+      }
+      if (!best) { i++; continue; }
+      i += best.tokens.length;
+      if (!scanSet.has(best.key) || best.key === ownKey || seenHere.has(best.key)) continue;
+      seenHere.add(best.key);
+      flags.push({ action: 'prose-venue-name', h: c.h || '', at: c.t || '', venue: best.name, source: scanSet.get(best.key) });
+    }
+  });
+  return flags;
 }
 
 // Guest-listed ILL rides (Onboarding wiring Tier 3, Oct 7, 2026): when the
