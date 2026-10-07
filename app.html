@@ -8190,8 +8190,8 @@ function tpcpEnsurePark(park) {
   if (!window['TPCP_TILES_' + park]) jobs.push(tpcpLoadScript('park-tiles-' + park.toLowerCase() + '.js'));
   return Promise.all(jobs).then(function () { return window['TPCP_GRAPH_' + park]; });
 }
-function tpcpTileLayer(park) {
-  var tiles = window['TPCP_TILES_' + park] || {};
+function tpcpTileLayer(park, tilesOverride) {
+  var tiles = tilesOverride || window['TPCP_TILES_' + park] || {};
   var Layer = L.GridLayer.extend({
     createTile: function (coords) {
       var img = document.createElement('img');
@@ -8205,6 +8205,39 @@ function tpcpTileLayer(park) {
     options: { maxNativeZoom: 18, tileSize: 512, zoomOffset: -1, attribution: '&copy; OpenStreetMap contributors' }
   });
   return new Layer();
+}
+// ---------- Combined resort mini-map (Co-Pilot tab) ----------
+// One frame for the whole resort: Disneyland + California Adventure + the
+// Esplanade + Downtown Disney. Bounds derived from the OSM park polygons
+// (DL 33.8026-33.8166 / -117.9243--117.9166, DCA to 33.8026 S) extended west
+// over the Downtown Disney district (to ~-117.9294) plus a small pad.
+// Tiles: the two per-park packs share the global XYZ grid; TPCP_TILES_RESORT
+// is a supplement pack carrying every tile the per-park packs lack or hold
+// only partially over this frame (DTD strip, frame edges, deep-zoom parents).
+var TPCP_RESORT_BOUNDS = [[33.8020, -117.9300], [33.8172, -117.9142]];
+var TPCP_RESORT_MAXBOUNDS = [[33.8008, -117.9312], [33.8184, -117.9130]];
+function tpcpResortTiles() {
+  if (!window.TPCP_TILES_RESORT_ALL) {
+    var merged = {};
+    ['DL', 'DCA'].forEach(function (p) {
+      var d = window['TPCP_TILES_' + p] || {};
+      for (var k in d) merged[k] = d[k];
+    });
+    var supp = window.TPCP_TILES_RESORT || {};
+    for (var k2 in supp) merged[k2] = supp[k2];
+    window.TPCP_TILES_RESORT_ALL = merged;
+  }
+  return window.TPCP_TILES_RESORT_ALL;
+}
+function tpcpEnsureResort() {
+  var jobs = [];
+  if (!window.L) jobs.push(tpcpLoadScript('map-leaflet.js'));
+  if (!window.TPCP_GRAPH_DL) jobs.push(tpcpLoadScript('park-graph-dl.js'));
+  if (!window.TPCP_GRAPH_DCA) jobs.push(tpcpLoadScript('park-graph-dca.js'));
+  if (!window.TPCP_TILES_DL) jobs.push(tpcpLoadScript('park-tiles-dl.js'));
+  if (!window.TPCP_TILES_DCA) jobs.push(tpcpLoadScript('park-tiles-dca.js'));
+  if (!window.TPCP_TILES_RESORT) jobs.push(tpcpLoadScript('park-tiles-resort.js'));
+  return Promise.all(jobs);
 }
 function tpcpResolveIn(graph, e) {
   if (!e) return null;
@@ -8245,23 +8278,28 @@ function tpcpMiniPark() {
 function tpcpInitMiniMap() {
   var el = document.getElementById('tpcpMiniMap');
   if (!el) return;
-  var park = tpcpMiniPark();
-  tpcpEnsurePark(park).then(function () {
+  tpcpEnsureResort().then(function () {
     var host = document.getElementById('tpcpMiniMap');
     if (!host) return;
     if (_miniMap) { _miniMap.remove(); _miniMap = null; }
-    _miniMap = L.map('tpcpMiniMap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, attributionControl: false });
-    _miniMap.setView(park === 'DL' ? [33.8125, -117.9190] : [33.8072, -117.9190], 16);
-    tpcpTileLayer(park).addTo(_miniMap);
-    var graph = window['TPCP_GRAPH_' + park];
-    if (graph && graph.places) {
-      graph.places.forEach(function (p) {
+    _miniMap = L.map('tpcpMiniMap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, attributionControl: false, minZoom: 13, maxZoom: 19, maxBounds: TPCP_RESORT_MAXBOUNDS, maxBoundsViscosity: 1.0 });
+    _miniMap.fitBounds(TPCP_RESORT_BOUNDS);
+    tpcpTileLayer(null, tpcpResortTiles()).addTo(_miniMap);
+    var svcColors = (typeof TPCP_SVC_COLORS !== 'undefined') ? TPCP_SVC_COLORS : {};
+    ['DL', 'DCA'].forEach(function (pk) {
+      var graph = window['TPCP_GRAPH_' + pk];
+      if (!graph) return;
+      (graph.places || []).forEach(function (p) {
         if (p.lat == null) return;
         L.circleMarker([p.lat, p.lon], { radius: 5, color: '#FFFFFF', weight: 1.4, fillColor: p.k === 'food' ? '#D4893A' : '#1A6860', fillOpacity: 0.95, interactive: false }).addTo(_miniMap);
       });
-    }
-    _miniMap.on('click', function () { openParkMap(park); });
-    setTimeout(function () { if (_miniMap) _miniMap.invalidateSize(); }, 80);
+      (graph.services || []).forEach(function (p) {
+        if (p.lat == null) return;
+        L.circleMarker([p.lat, p.lon], { radius: 4, color: '#FFFFFF', weight: 1.2, fillColor: svcColors[p.k] || '#173A5E', fillOpacity: 0.95, interactive: false }).addTo(_miniMap);
+      });
+    });
+    _miniMap.on('click', function () { openParkMap(tpcpMiniPark()); });
+    setTimeout(function () { if (_miniMap) { _miniMap.invalidateSize(); _miniMap.fitBounds(TPCP_RESORT_BOUNDS); } }, 80);
   }).catch(function () { var h = document.getElementById('tpcpMiniMap'); if (h) h.style.display = 'none'; });
 }
 // ---------- Full park map (Info tab) ----------
