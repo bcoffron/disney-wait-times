@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, correctVenueServices, normalizeLLAssignments } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -678,6 +678,19 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               if (_ropePick) { _ropeSlot.preferRide = _ropePick.name; console.log('[scaffold] rope drop assigned:', _ropePick.name); }
             }
           } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
+          // Coverage-first reservation (Item 3, Oct 7, 2026 -- Claude's
+          // locked two-phase design, phase 1): BEFORE the morning picker and
+          // the fill model see the day, reserve every seatable must-do into
+          // a legal slot in its own park's window (pre-hop only on hop days)
+          // via preferRide -- headliner tier first, then the rest in guest
+          // order. Non-must-dos only ever see the slots left over.
+          let _coverage = null;
+          try {
+            _coverage = planCoverageReservations(_sk, { catalog: buildCatalogIndex(cacheCtx.CATALOG), mustDoNames: mustDo, closedNames: _closedS, bannedNames: skipRides, priorRideNames: priorRides, closeMinByPark: _closeByPark, closeMin: _closeMin });
+            if (_coverage.assignments.length) console.log('[scaffold] coverage reserved:', _coverage.assignments.map(a => a.name + ' @' + a.slotId + ' (' + a.tier + ')').join(', '));
+            if (_coverage.unreserved.length) console.log('[scaffold] coverage unreserved:', JSON.stringify(_coverage.unreserved));
+            if (_coverage.insights.length) console.log('[scaffold] coverage insights:', JSON.stringify(_coverage.insights));
+          } catch (e) { console.warn('[scaffold] coverage reservation failed:', e.message); }
           // Morning block assignment: the start park's early ride slots are
           // ASSIGNED from the catalog, not left to the fill model. This wiring
           // was missing from the handler -- pickMorningRides shipped Oct 4 but
@@ -688,15 +701,21 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             const _ropeSlot2 = _sk.slots.find(x => x.block === 'ropedrop');
             if (_ropeSlot2 && _ropeSlot2.preferRide) {
               const _wsOf = (w) => Array.isArray(w[0]) ? w[0][0] : w[0];
-              const _mSlots = _sk.slots.filter(x => x.type === 'ride' && x.block !== 'ropedrop' && x.park === _ropeSlot2.park && _wsOf(x.window) < (_sk.openMin || 480) + 180)
+              // Item 3: slots already carrying a coverage reservation are not
+              // the morning picker's to give away, and a ride reserved
+              // anywhere today (rope drop or coverage) must never be picked
+              // for a second slot -- the group-level filter below replaces
+              // the old rope-name-only filter.
+              const _mSlots = _sk.slots.filter(x => x.type === 'ride' && x.block !== 'ropedrop' && !x.preferRide && x.park === _ropeSlot2.park && _wsOf(x.window) < (_sk.openMin || 480) + 180)
                 .sort((a, b) => _wsOf(a.window) - _wsOf(b.window));
               if (_mSlots.length) {
+                const _reservedGroups = new Set(_sk.slots.filter(s => s.preferRide).map(s => rideGroupKey(s.preferRide)).filter(Boolean));
                 const _mPicks = pickMorningRides(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot2.park, _mSlots.length, {
-                  priorNames: [...(priorRides || []), _ropeSlot2.preferRide],
+                  priorNames: [...(priorRides || []), _ropeSlot2.preferRide, ...((_coverage && _coverage.reservedNames) || [])],
                   bannedNames: [...new Set([...(skipRides || []), ..._closedS])],
                   priorRopeDropNames: Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : [],
                   closedNames: _closedS
-                }).filter(p => p && normName(p.name) !== normName(_ropeSlot2.preferRide));
+                }).filter(p => p && !_reservedGroups.has(rideGroupKey(p.name)));
                 _mSlots.forEach((s, i) => { if (_mPicks[i]) { s.preferRide = _mPicks[i].name; } });
                 console.log('[scaffold] morning assigned:', _mSlots.map(s => s.preferRide || '(model)').join(', '));
               }
@@ -723,6 +742,20 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             }
           } catch (e) {}
           const _reservationKeys = new Set(_resvNames.map(canonicalVenueKey).filter(Boolean));
+          // Reservation anchors (Item 4, Oct 7, 2026 -- Claude's locked
+          // design): each confirmed reservation for THIS day becomes an
+          // immutable anchor slot injected into the skeleton BEFORE the fill
+          // prompt is built, and the day's generic meal slot for its period
+          // is removed so no duplicate meal can be generated beside it.
+          // Conflicts (wrong park at that time, closed venue, inside the VIP
+          // window, unresolvable) are surfaced in the response, never
+          // silently dropped.
+          let _resvPlan = null;
+          try {
+            _resvPlan = planReservationAnchors(_sk, (typeof _allReservations !== 'undefined' && Array.isArray(_allReservations)) ? _allReservations : [], { venues: _venuesEarly, closedVenueNames: _closedV, vipWindow: (_vipStart !== null && _vipEnd !== null) ? [_vipStart, _vipEnd] : null });
+            if (_resvPlan.anchors.length) console.log('[scaffold] reservation anchors:', JSON.stringify(_resvPlan.anchors), 'suppressed:', JSON.stringify(_resvPlan.suppressed));
+            if (_resvPlan.conflicts.length) console.warn('[scaffold] reservation conflicts:', JSON.stringify(_resvPlan.conflicts));
+          } catch (e) { console.warn('[scaffold] reservation anchor planning failed:', e.message); }
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '')
@@ -888,7 +921,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           if (_enf.unfixable.length) console.warn('[scaffold] param UNFIXABLE:', JSON.stringify(_enf.unfixable));
           console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
           if (_mutations.length) console.log('[scaffold] verify mutations:', JSON.stringify(_mutations));
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos });
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [] });
         } catch (_se) {
           console.error('[scaffold] error, falling back to legacy generator:', _se.message);
         }

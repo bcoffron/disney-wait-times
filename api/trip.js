@@ -264,9 +264,16 @@ export default async function handler(req, res) {
             currentClosures: _scache.CURRENT_CLOSURES
           });
           if (_surf) {
-            _surfFields = { tripUnplacedMustDos: _surf.tripUnplacedMustDos, closedMustDos: _surf.closedMustDos };
+            // tripInsights (Items 3+4, Oct 7, 2026): the per-trip insights
+            // channel -- hop-window starvation and reservation-not-seated
+            // explanations, computed by computeTripSurfacing from the stored
+            // trip. Data only this pass; client rendering is a follow-up.
+            _surfFields = { tripUnplacedMustDos: _surf.tripUnplacedMustDos, closedMustDos: _surf.closedMustDos, tripInsights: Array.isArray(_surf.insights) ? _surf.insights : [] };
             if (_surf.tripUnplacedMustDos.length || _surf.closedMustDos.length) {
               console.log('[trip] surfacing trip ' + entry.tripId + ': couldnt-fit=[' + _surf.tripUnplacedMustDos.join(', ') + '] closed-all-dates=[' + _surf.closedMustDos.join(', ') + ']');
+            }
+            if (_surfFields.tripInsights.length) {
+              console.log('[trip] insights trip ' + entry.tripId + ': ' + JSON.stringify(_surfFields.tripInsights.map(i => i.type + ':' + (i.park || i.name || ''))));
             }
           }
         }

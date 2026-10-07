@@ -355,7 +355,7 @@ function placeholderCard(slot) { return { t: toClock(rangesOf(slot.window)[0][0]
 // Short fill prompt -- the skeleton replaces ~30 of the old structural prose rules.
 export function buildFillPrompt(skeleton, opts) {
   opts = opts || {};
-  const lines = skeleton.slots.map(s => s.id + ' | ' + s.type + ' | ' + s.park + ' | ' + renderWin(s.window) + ' | ' + (s.role || '') + (s.preferRide ? ' | ASSIGNED RIDE: ' + s.preferRide + ' (rope-drop priority -- use exactly this ride)' : '') + (s.meetName ? ' | CHARACTER MEET: ' + s.meetName : ''));
+  const lines = skeleton.slots.map(s => s.id + ' | ' + s.type + ' | ' + s.park + ' | ' + renderWin(s.window) + ' | ' + (s.role || '') + (s.preferRide ? ' | ASSIGNED RIDE: ' + s.preferRide + (s.coverageTier ? ' (must-do reserved by the plan -- use exactly this ride)' : ' (rope-drop priority -- use exactly this ride)') : '') + (s.meetName ? ' | CHARACTER MEET: ' + s.meetName : ''));
   let sys = 'You are the genius best friend who knows Disneyland and Disney California Adventure inside out. A structural plan (the SKELETON) has already been built for this day: the time blocks, which park each block is in, the single lunch and single dinner, the show, and the Lightning Lane checkpoints are all FIXED. Your only job is to fill each slot with the smartest real choice from the CACHE DATA.';
   sys += '\n\nRULES:';
   sys += '\n- Return a JSON array with EXACTLY one object per slot, using the same slot ids in the same order. Never add, remove, reorder, merge, or split slots.';
@@ -462,6 +462,20 @@ export function applyFills(skeleton, fills, opts) {
   for (const slot of skeleton.slots) {
     if (slot.type === 'vip') {
       cards.push({ t: toClock(winStart(slot.window)), h: 'VIP Tour', type: 'vip', n: slot.role || '', land: '' });
+      continue;
+    }
+    if (slot.block === 'anchor') {
+      // Item 4 (Oct 7, 2026): a confirmed reservation is an IMMUTABLE anchor.
+      // The card is emitted verbatim from catalog data -- any model fill for
+      // this slot is ignored, so nothing can rename, move, or re-price it.
+      // Its venue registers in the canonical used-venue set like any seated
+      // meal, so no other slot today (and no later day, via the client's
+      // usedVenues accumulation) seats the same restaurant again.
+      const aCard = { t: toClock(typeof slot.fixed === 'number' ? slot.fixed : winStart(slot.window)), h: slot.anchorName || 'Confirmed Reservation', type: 'dining', n: 'Your confirmed reservation -- the rest of the day is built around it.', land: slot.anchorLand || '', anchor: true, reservation: true };
+      cards.push(aCard);
+      used.add(aCard.h.toLowerCase());
+      const _avk = _venueKeyOf(aCard.h);
+      if (_avk) placedVenueCanon.add(_avk);
       continue;
     }
     const f = byId[slot.id];
@@ -898,6 +912,14 @@ function sortAndSpace(cards, mutations) {
     if (r.m == null) continue;
     const _origT = r.c.t;
     let m = r.m;
+    if (r.c.anchor === true) {
+      // Item 4 (Oct 7, 2026): reservation anchors are NEVER retimed -- not
+      // even the +1 de-collision bump. Neighbouring cards move around the
+      // reservation; the reservation never moves for them.
+      prev = m;
+      prevComfort = m;
+      continue;
+    }
     if (m <= prev) m = prev + 1;
     // Comfort spacing: a restroom break hard on the heels of a snack, break, or
     // meal reads as dead time (guests saw snack 9:30 + break 9:34). Nudge the
@@ -1151,6 +1173,12 @@ export function verifyScaffold(cards, opts) {
   }
   for (const c of _inputCards) {
     const hL = String(c.h || '').toLowerCase();
+    // Item 4 (Oct 7, 2026): reservation anchors bypass the remove-only net
+    // entirely. A venue-closed or wrong-park reading on an anchor is a
+    // planning conflict, surfaced at generation time -- never a silent drop
+    // here. (Anchors are code-emitted from catalog data; there is nothing
+    // model-made in them for this layer to verify.)
+    if (c.anchor === true) { kept.push(c); continue; }
     // ILL correction: only Rise and Radiator Springs Racers are Individual
     // Lightning Lane. A 'single' tag on anything else (e.g. Space Mountain) is a
     // model error -- downgrade it to Multi Pass and scrub the wording, so the app
@@ -1647,6 +1675,293 @@ export function pickCharacterMeet(characters, categories, dayParks, priorNames, 
   return { name: pick.name, park: parkMatch || dayParks[0], land: pick.location || '', category: pick.category || '', wait: pick.typicalWait || 0, windows: Array.isArray(pick.typicalWindows) ? pick.typicalWindows : [] };
 }
 
+// ---------------------------------------------------------------------------
+// COVERAGE-FIRST RESERVATION (Item 3, Oct 7, 2026 -- Claude's locked design).
+// Phase 1 of the two-phase fill: BEFORE the model (and before the morning
+// picker) sees the day, every must-do that can legally sit today is RESERVED
+// into a slot in its own park's window by stamping preferRide on the slot --
+// the same deterministic rail the rope-drop assignment rides (applyFills
+// rejects any deviating fill as ropeBad and the deterministic backfill honors
+// preferRide exactly), so the reservation is structure the fill works within,
+// never a prompt instruction the model can talk its way out of. On hop days a
+// start-park must-do's window is the PRE-HOP segment only (plus a return
+// segment when the skeleton has one): segments are the maximal same-park runs
+// of ride slots, and a must-do may only take a slot in one of its own park's
+// segments. Within a window the order is (1) rope-drop-tier headliners --
+// their legal standby windows (headlinerWindowOk) are the scarcest resource
+// in the day -- then (2) the remaining must-dos in guest order; comfort,
+// photo, and non-must-do fill only ever see the slots left over, which is
+// what bars non-must-dos from a park's slots until that park's must-dos are
+// seated (the Little Mermaid / Monsters Inc leak: both filled Day-2 DCA
+// morning slots ahead of unseated DCA must-dos in the Oct 7 real-model run).
+// Must-dos already covered by the rope-drop pick, ridden on an earlier day,
+// banned, or closed today are not targets. Overflow is returned with its
+// STRUCTURAL reason; a hop-starved start park also yields an insight for the
+// surfacing channel. Pure: mutates only slot.preferRide / slot.coverageTier.
+// opts: { catalog, mustDoNames, closedNames, bannedNames, priorRideNames,
+//         closeMinByPark, closeMin }
+// ---------------------------------------------------------------------------
+function winEnd(w) { return Array.isArray(w[0]) ? w[w.length - 1][1] : w[1]; }
+export function planCoverageReservations(skeleton, opts) {
+  opts = opts || {};
+  const out = { assignments: [], unreserved: [], insights: [], reservedNames: [] };
+  const slots = (skeleton && Array.isArray(skeleton.slots)) ? skeleton.slots : [];
+  const catalog = opts.catalog || {};
+  const closedLc = (opts.closedNames || []).map(s => String(s || '').toLowerCase()).filter(Boolean);
+  const bannedKeys = new Set((opts.bannedNames || []).map(normName).filter(Boolean));
+  const bannedGroups = new Set([...bannedKeys].map(k => rideGroupKey(k)).filter(Boolean));
+  const priorGroups = new Set((opts.priorRideNames || []).map(n => rideGroupKey(n)).filter(Boolean));
+  const closeByPark = opts.closeMinByPark || {};
+
+  // Park segments: maximal runs of same-park RIDE slots, in slot order.
+  const rideSlots = slots.filter(s => s && s.type === 'ride');
+  const segments = [];
+  for (const s of rideSlots) {
+    const pk = normParkName(s.park);
+    const last = segments[segments.length - 1];
+    if (last && last.parkKey === pk) last.slots.push(s);
+    else segments.push({ parkKey: pk, park: s.park, slots: [s] });
+  }
+  for (const seg of segments) {
+    seg.startMin = winStart(seg.slots[0].window);
+    seg.endMin = winEnd(seg.slots[seg.slots.length - 1].window);
+  }
+
+  // A ride already spoken for by an earlier deterministic assignment (the
+  // rope-drop pick) counts as covered for its park.
+  const coveredGroups = new Set();
+  for (const s of rideSlots) if (s.preferRide) coveredGroups.add(rideGroupKey(s.preferRide));
+
+  // Targets: today's must-dos, group-deduped, in guest order.
+  const targets = [];
+  const coveredCountByPark = {};
+  const seenGroups = new Set();
+  for (const raw of (opts.mustDoNames || [])) {
+    const name = String(raw || '').trim();
+    if (!name) continue;
+    const g = rideGroupKey(name);
+    if (!g || seenGroups.has(g)) continue;
+    seenGroups.add(g);
+    const entry = catalogEntryForGroup(catalog, name);
+    if (!entry || !entry.name) { out.unreserved.push({ name, park: null, reason: 'not-in-catalog' }); continue; }
+    const parkKey = normParkName(entry.park);
+    if (!segments.some(seg => seg.parkKey === parkKey)) continue; // another day's park -- not today's problem
+    if (coveredGroups.has(g)) { coveredCountByPark[parkKey] = (coveredCountByPark[parkKey] || 0) + 1; continue; }
+    if (priorGroups.has(g)) continue; // ridden an earlier day -- coverage already satisfied trip-wide
+    if (bannedKeys.has(normName(name)) || bannedKeys.has(normName(entry.name)) || bannedGroups.has(g)) continue;
+    const eLc = entry.name.toLowerCase();
+    if (closedLc.some(cn => eLc.indexOf(cn) !== -1)) continue; // closed today -- the closure surfacing owns it
+    const key = normName(entry.name);
+    targets.push({ name, entry, parkKey, park: entry.park, group: g, tier: isHeadlinerKey(key, entry) ? 'headliner' : 'mustdo' });
+  }
+
+  const ordered = targets.filter(t => t.tier === 'headliner').concat(targets.filter(t => t.tier !== 'headliner'));
+  const closeFor = (pk) => closeByPark[pk] || skeleton.closeMin || opts.closeMin || null;
+  const slotLegalFor = (t, s) => {
+    const w = winStart(s.window);
+    if (NEVER_MORNING_KEYS.has(normName(t.entry.name)) && w < 720) return false;
+    if (t.tier === 'headliner' && !headlinerWindowOk(w, closeFor(t.parkKey))) return false;
+    return true;
+  };
+  const unseated = [];
+  for (const t of ordered) {
+    let placedSlot = null;
+    for (const seg of segments) {
+      if (seg.parkKey !== t.parkKey) continue;
+      for (const s of seg.slots) {
+        if (s.preferRide) continue;
+        if (!slotLegalFor(t, s)) continue;
+        placedSlot = s; break;
+      }
+      if (placedSlot) break;
+    }
+    if (placedSlot) {
+      placedSlot.preferRide = t.entry.name;
+      placedSlot.coverageTier = t.tier;
+      out.assignments.push({ slotId: placedSlot.id, name: t.entry.name, park: t.park, tier: t.tier });
+      out.reservedNames.push(t.entry.name);
+    } else unseated.push(t);
+  }
+
+  // Overflow carries its STRUCTURAL reason, never a bare "didn't fit".
+  const hopAtMin = (skeleton && typeof skeleton.hopAtMin === 'number') ? skeleton.hopAtMin : null;
+  const startParkKey = normParkName(skeleton && skeleton.park);
+  const hopStarved = (pk) => hopAtMin !== null && pk === startParkKey && !segments.some(seg => seg.parkKey === pk && seg.startMin >= hopAtMin);
+  const hopUnplaced = new Map();
+  for (const t of unseated) {
+    let shapeFits = false; // did ANY slot in the park fit this ride's shape, ignoring occupancy?
+    for (const seg of segments) {
+      if (seg.parkKey !== t.parkKey) continue;
+      for (const s of seg.slots) { if (slotLegalFor(t, s)) { shapeFits = true; break; } }
+      if (shapeFits) break;
+    }
+    let reason = 'window-capacity';
+    if (hopStarved(t.parkKey)) reason = 'hop-window';
+    else if (!shapeFits) reason = (t.tier === 'headliner') ? 'headliner-window' : 'morning-window';
+    out.unreserved.push({ name: t.name, park: t.park, reason });
+    if (reason === 'hop-window') {
+      if (!hopUnplaced.has(t.parkKey)) hopUnplaced.set(t.parkKey, { park: t.park, names: [] });
+      hopUnplaced.get(t.parkKey).names.push(t.name);
+    }
+  }
+  for (const [pk, info] of hopUnplaced) {
+    const capacity = segments.filter(seg => seg.parkKey === pk).reduce((n, seg) => n + seg.slots.length, 0);
+    const demand = targets.filter(t => t.parkKey === pk).length + (coveredCountByPark[pk] || 0);
+    out.insights.push({
+      type: 'hop-window',
+      day: skeleton.day || null,
+      park: info.park,
+      toPark: skeleton.toPark || null,
+      hopAtMin,
+      hopAt: toClock(hopAtMin),
+      unplaced: info.names,
+      preHopRideSlots: capacity,
+      mustDoDemand: demand,
+      message: info.names.join(', ') + " didn't fit: " + info.park + ' is only a morning stop on this day -- the group hops to ' + (skeleton.toPark || 'the other park') + ' at ' + toClock(hopAtMin) + ', and every pre-hop ride slot was claimed by higher-priority must-dos.',
+      recourse: 'Hop later, or give ' + info.park + ' another block in the trip.'
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// RESERVATION ANCHORS (Item 4, Oct 7, 2026 -- Claude's locked design). A
+// confirmed reservation is an IMMUTABLE anchor in the must-do class: it is
+// injected into the skeleton BEFORE the fill as a dedicated slot whose card
+// applyFills emits verbatim from catalog data, and it counts as that meal
+// period -- the day's generic meal slot for the period is removed from the
+// skeleton, so no duplicate meal can be generated next to it (a 12:00 PM
+// Blue Bayou reservation means NO separate 11:00 AM lunch card). Anchors are
+// never moved (sortAndSpace exemption), never evicted and never trimmed
+// (verifyScaffold bypass + dining trim protection). A reservation that
+// cannot be seated -- its park is not where the group is at that time, the
+// venue is closed that date, the time falls inside a VIP tour, or the entry
+// cannot be resolved -- is NOT silently dropped: it is returned as a
+// conflict for the surfacing channel. A reservation inside the rope-drop
+// hour is seated as confirmed (the guest's commitment wins) AND surfaced as
+// a conflict so the trade-off is visible.
+// ---------------------------------------------------------------------------
+export function parseReservationEntry(r) {
+  if (!r) return null;
+  let name = '', timeStr = '', day = null;
+  if (typeof r === 'string') {
+    // Flat onboarding encoding: 'Name, Time, Day N' -- parsed exactly the
+    // way the generateschedule Part C parser splits it.
+    const parts = r.split(',').map(p => p.trim());
+    name = parts[0] || '';
+    timeStr = parts[1] || '';
+    const dm = (parts[2] || '').match(/(\d+)/);
+    day = dm ? parseInt(dm[1], 10) : null;
+  } else if (typeof r === 'object') {
+    name = String(r.name || r.venue || r.restaurant || '').trim();
+    timeStr = String(r.time || '').trim();
+    if (typeof r.day === 'number' && isFinite(r.day)) day = r.day;
+    else if (typeof r.day === 'string') { const dm = r.day.match(/(\d+)/); day = dm ? parseInt(dm[1], 10) : null; }
+  }
+  if (!name) return null;
+  let timeMin = parseClock(timeStr);
+  if (timeMin === null && timeStr) {
+    const m24 = timeStr.match(/^\s*(\d{1,2}):(\d{2})\s*$/);
+    if (m24) { const h = parseInt(m24[1], 10), mn = parseInt(m24[2], 10); if (h <= 23 && mn <= 59) timeMin = h * 60 + mn; }
+  }
+  return { name, time: timeStr, timeMin, day };
+}
+
+export function planReservationAnchors(skeleton, reservations, opts) {
+  opts = opts || {};
+  const out = { anchors: [], conflicts: [], suppressed: [] };
+  if (!skeleton || !Array.isArray(skeleton.slots)) return out;
+  const venues = Array.isArray(opts.venues) ? opts.venues : [];
+  const dayNum = skeleton.day || 1;
+  const openMin = (typeof skeleton.openMin === 'number') ? skeleton.openMin : 480;
+  const closedVenueLc = (opts.closedVenueNames || []).map(s => String(s || '').toLowerCase()).filter(Boolean);
+  const vipWindow = (Array.isArray(opts.vipWindow) && typeof opts.vipWindow[0] === 'number' && typeof opts.vipWindow[1] === 'number') ? opts.vipWindow : null;
+
+  // Park presence over the PRISTINE skeleton: maximal runs of same-park
+  // slots; a run lasts until the next run's first slot starts. (The hop tip
+  // slot is stamped with the destination park, so presence flips as the
+  // group starts walking -- a reservation in the last minutes before the
+  // hop reads as a conflict, which is the honest answer.)
+  const runs = [];
+  for (const s of skeleton.slots) {
+    const pk = normParkName(s.park);
+    const last = runs[runs.length - 1];
+    if (last && last.parkKey === pk) continue;
+    runs.push({ parkKey: pk, park: s.park, startMin: winStart(s.window) });
+  }
+  const presentParkAt = (t) => {
+    let cur = null;
+    for (const r of runs) { if (r.startMin <= t) cur = r; else break; }
+    return cur;
+  };
+  const resolveVenue = (name) => {
+    const ck = canonicalVenueKey(name);
+    if (!ck) return null;
+    for (const v of venues) { if (v && v.name && canonicalVenueKey(v.name) === ck) return v; }
+    for (const v of venues) { const vk = (v && v.name) ? canonicalVenueKey(v.name) : ''; if (vk && (ck.indexOf(vk) !== -1 || (ck.length >= 4 && vk.indexOf(ck) !== -1))) return v; }
+    return null;
+  };
+
+  let mutated = false;
+  const suppressedPeriods = new Set();
+  for (const raw of (Array.isArray(reservations) ? reservations : [])) {
+    const r = parseReservationEntry(raw);
+    if (!r) continue;
+    if (r.day !== null && r.day !== dayNum) continue; // another day's reservation
+    if (r.timeMin === null) {
+      out.conflicts.push({ type: 'reservation-unparsed', name: r.name, day: dayNum, detail: 'no readable time (' + (r.time || 'none given') + ') -- the reservation was not seated' });
+      continue;
+    }
+    const venue = resolveVenue(r.name);
+    if (!venue) {
+      out.conflicts.push({ type: 'reservation-unresolved', name: r.name, day: dayNum, timeMin: r.timeMin, time: toClock(r.timeMin), detail: 'venue not found in the verified dining list -- the reservation was not seated' });
+      continue;
+    }
+    const vLc = venue.name.toLowerCase();
+    if (closedVenueLc.some(cn => vLc.indexOf(cn) !== -1)) {
+      out.conflicts.push({ type: 'reservation-venue-closed', name: venue.name, day: dayNum, timeMin: r.timeMin, time: toClock(r.timeMin), detail: venue.name + ' is closed for refurbishment on this date -- the reservation was not seated' });
+      continue;
+    }
+    if (vipWindow && r.timeMin >= vipWindow[0] && r.timeMin < vipWindow[1]) {
+      out.conflicts.push({ type: 'reservation-during-vip', name: venue.name, day: dayNum, timeMin: r.timeMin, time: toClock(r.timeMin), detail: 'the reservation falls inside the VIP tour window -- the reservation was not seated' });
+      continue;
+    }
+    const pres = presentParkAt(r.timeMin);
+    if (!pres || normParkName(venue.park) !== pres.parkKey) {
+      out.conflicts.push({ type: 'reservation-park-conflict', name: venue.name, day: dayNum, timeMin: r.timeMin, time: toClock(r.timeMin), venuePark: venue.park || '', presentPark: pres ? pres.park : '', detail: 'the group is in ' + (pres ? pres.park : 'neither park') + ' at ' + toClock(r.timeMin) + ', but ' + venue.name + ' is in ' + (venue.park || 'another park') + ' -- the reservation was not seated' });
+      continue;
+    }
+    if (r.timeMin < openMin + 60) {
+      out.conflicts.push({ type: 'reservation-rope-window', name: venue.name, day: dayNum, timeMin: r.timeMin, time: toClock(r.timeMin), detail: 'the reservation starts inside the rope-drop hour -- it is seated as confirmed, and the rope-drop plan gives way to it' });
+    }
+    const period = r.timeMin < 960 ? 'lunch' : 'dinner';
+    // The anchor IS that meal: remove the day's generic slot for the period
+    // (once per period) so the fill cannot seat a duplicate meal beside it.
+    if (!suppressedPeriods.has(period)) {
+      suppressedPeriods.add(period);
+      const idxMeal = skeleton.slots.findIndex(s => s.block === period);
+      if (idxMeal !== -1) { const rm = skeleton.slots.splice(idxMeal, 1)[0]; out.suppressed.push({ period, slotId: rm.id }); mutated = true; }
+    }
+    skeleton.slots.push({
+      id: 'anchor', block: 'anchor', type: 'dining', park: venue.park,
+      window: [r.timeMin, r.timeMin], fixed: r.timeMin,
+      anchorName: venue.name, anchorLand: venue.land || '', anchorPeriod: period,
+      role: 'CONFIRMED RESERVATION at ' + venue.name + ' -- a fixed anchor seated by the plan at exactly ' + toClock(r.timeMin) + '; return this venue name at exactly that time'
+    });
+    mutated = true;
+    out.anchors.push({ name: venue.name, timeMin: r.timeMin, time: toClock(r.timeMin), park: venue.park, land: venue.land || '', period, day: dayNum });
+  }
+  if (mutated) {
+    skeleton.slots.sort((a, b) => winStart(a.window) - winStart(b.window));
+    skeleton.slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
+    for (const a of out.anchors) {
+      const sl = skeleton.slots.find(s => s.block === 'anchor' && s.fixed === a.timeMin && s.anchorName === a.name);
+      if (sl) a.slotId = sl.id;
+    }
+  }
+  return out;
+}
+
 export function deterministicBackfill(slot, ctx) {
   ctx = ctx || {};
   const catalog = Array.isArray(ctx.catalog) ? ctx.catalog : [];
@@ -2108,6 +2423,97 @@ export function computeTripSurfacing(tripConfig, ctx) {
       if (placedKeys.has(normName(name)) || placedGroups.has(g)) continue;
       tripUnplacedMustDos.push(name);
     }
-    return { tripUnplacedMustDos, closedMustDos };
+    // ---- Per-trip INSIGHTS channel (Items 3+4, Oct 7, 2026) ----
+    // Structural explanations for things that did not fit, computed from the
+    // stored trip alone (config + saved schedule + catalog), so old saves
+    // surface them too. Additive and failure-isolated: an insights failure
+    // never changes the two surfacing lists above.
+    const insights = [];
+    try {
+      // Hop-window: a park that appears in this trip ONLY as pre-hop
+      // mornings, with must-dos still unplaced trip-wide, was starved by
+      // the hop structure -- name the park, the hop, and the recourse.
+      const cfgDays = Array.isArray(tc.days) ? tc.days : [];
+      const unplacedByPark = new Map();
+      for (const name of tripUnplacedMustDos) {
+        const e = catalogEntryForGroup(catalog, name);
+        if (!e || !e.park) continue;
+        const pk = normParkName(e.park);
+        if (!unplacedByPark.has(pk)) unplacedByPark.set(pk, { park: e.park, names: [] });
+        unplacedByPark.get(pk).names.push(name);
+      }
+      for (const [pk, info] of unplacedByPark) {
+        let starved = true, sawPark = false, hopAtMin = null;
+        const hopDayIdx = [];
+        cfgDays.forEach((dy, i) => {
+          if (!dy) return;
+          const startPk = normParkName(dy.park);
+          const hop = (dy.intent && dy.intent.hop) || null;
+          const toPk = hop ? normParkName(hop.toPark) : null;
+          if (toPk === pk) starved = false; // an evening in this park exists somewhere in the trip
+          if (startPk === pk) {
+            sawPark = true;
+            if (hop && toPk !== pk) { hopDayIdx.push(i); if (hopAtMin === null && typeof hop.atMin === 'number') hopAtMin = hop.atMin; }
+            else starved = false; // a full day in this park exists
+          }
+        });
+        if (!sawPark || !starved || !hopDayIdx.length) continue;
+        // A saved schedule showing this park's rides at/after the hop means
+        // the day came BACK (return hop) -- not starved after all.
+        let returned = false, preHopSeats = 0;
+        for (const i of hopDayIdx) {
+          const items = (schedDays[i] && Array.isArray(schedDays[i].items)) ? schedDays[i].items : [];
+          for (const it of items) {
+            if (!it || it.type !== 'ride') continue;
+            const e2 = catalogEntryForGroup(catalog, it.ride || it.h || '');
+            if (!e2 || normParkName(e2.park) !== pk) continue;
+            const tm = parseClock(it.t);
+            if (tm === null) continue;
+            if (hopAtMin !== null && tm >= hopAtMin + 30) returned = true;
+            else preHopSeats++;
+          }
+        }
+        if (returned) continue;
+        insights.push({
+          type: 'hop-window',
+          park: info.park,
+          days: hopDayIdx.map(i => i + 1),
+          hopAtMin,
+          hopAt: hopAtMin !== null ? toClock(hopAtMin) : null,
+          unplaced: info.names,
+          preHopRideSeats: preHopSeats,
+          message: info.names.join(', ') + " couldn't fit anywhere in the trip: " + info.park + ' appears only as a morning before a park hop, and its pre-hop ride slots were full.',
+          recourse: 'Hop later on that day, or give ' + info.park + ' another block in the trip.'
+        });
+      }
+    } catch (e) { /* insights are additive; never break surfacing */ }
+    try {
+      // Reservation-not-seated: a confirmed reservation whose venue has no
+      // matching dining card on its day in the SAVED schedule. (Park/time
+      // conflicts are computed at generation time, where the skeleton and
+      // park hours exist; this save-seam check is the stored-truth version.)
+      const resvAll = [].concat(
+        Array.isArray(tc.reservations) ? tc.reservations : [],
+        (tc.dining && Array.isArray(tc.dining.reservations)) ? tc.dining.reservations : []);
+      for (const raw of resvAll) {
+        const r = parseReservationEntry(raw);
+        if (!r || r.day === null) continue;
+        const dayItems = (schedDays[r.day - 1] && Array.isArray(schedDays[r.day - 1].items)) ? schedDays[r.day - 1].items : null;
+        if (!dayItems || !dayItems.length) continue;
+        const ck = canonicalVenueKey(r.name);
+        const seated = !!ck && dayItems.some(it => it && (it.type === 'dining' || it.type === 'quickservice' || it.type === 'snack') && canonicalVenueKey(it.h || '') === ck);
+        if (!seated) {
+          insights.push({
+            type: 'reservation-not-seated',
+            name: r.name,
+            day: r.day,
+            timeMin: r.timeMin,
+            time: r.timeMin !== null ? toClock(r.timeMin) : (r.time || null),
+            message: 'Your confirmed reservation at ' + r.name + ' (Day ' + r.day + (r.timeMin !== null ? ', ' + toClock(r.timeMin) : '') + ') does not appear in the saved schedule.'
+          });
+        }
+      }
+    } catch (e) { /* additive */ }
+    return { tripUnplacedMustDos, closedMustDos, insights };
   } catch (e) { return null; }
 }
