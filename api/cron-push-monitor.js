@@ -6,14 +6,18 @@
 //
 // INTERNAL ONLY. Auth: Bearer CRON_SECRET (Vercel attaches it to cron invocations), OR admin key. The bare x-vercel-cron header stopped authenticating Oct 6, 2026 -- it is spoofable by anyone.
 // Storage:
-//   twize/push-subs/<tripCode>.json  -- subscriptions (read; reuse push-send logic)
+//   twize/push-subs/<tripCode>.json  -- web subscriptions (read; reuse push-send logic)
+//   twize/push-devices/<tripCode>.json -- APNs device tokens (native app; api/push-register.js)
 //   twize/trip_registry.json         -- code -> { tripId, status, expires }
 //   twize/trip_<tripId>.json         -- tripData.tripConfig.schedule + .days[].isVip
 //   twize/wait-state/<tripId>.json   -- last-known waits + per-ride alert cooldowns
 //
 // Spike definition mirrors the in-app toast: was <= LOW_MAX, now >= SPIKE_MIN.
+// Oct 7, 2026: alerts also go to native iOS devices via APNs (api/apns.js), and
+// planned rides alert on all-day DOWN episodes + back-up (evaluateRideEpisode).
 
 import webpush from 'web-push';
+import { isApnsConfigured, sendApnsToDevices, evaluateRideEpisode } from './apns.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment. Reads are salted-first
@@ -204,8 +208,13 @@ async function listTripCodesWithSubs() {
   }
 }
 
+// Set by the handler once VAPID is validated; sendToTrip no-ops without it so
+// a missing VAPID config can no longer hard-fail a run APNs could have served.
+let _vapidConfigured = false;
+
 // ---- send to one trip's subscriptions (mirrors push-send) ----
 async function sendToTrip(tripCode, payloadObj) {
+  if (!_vapidConfigured) return { sent: 0, failed: 0, pruned: 0, skipped: true };
   const subsBlob = await readJsonBlob('twize/push-subs/' + tripCode + '.json');
   const subs = (subsBlob && Array.isArray(subsBlob.subscriptions)) ? subsBlob.subscriptions : [];
   if (!subs.length) return { sent: 0, failed: 0, pruned: 0 };
@@ -234,6 +243,54 @@ async function sendToTrip(tripCode, payloadObj) {
   return { sent, failed, pruned };
 }
 
+async function listTripCodesWithDevices() {
+  try {
+    const { list } = await import('@vercel/blob');
+    const { blobs } = await list({ prefix: 'twize/push-devices/' });
+    const codes = [];
+    for (const b of (blobs || [])) {
+      const m = (b.pathname || b.url || '').match(/push-devices\/([^/]+)\.json/);
+      if (m) { const c = safeTripCode(m[1]); if (c) codes.push(c); }
+    }
+    return Array.from(new Set(codes));
+  } catch (e) {
+    console.error('[push-monitor] list devices error', e.message);
+    return [];
+  }
+}
+
+// ---- send to one trip's native devices via APNs (api/apns.js) ----
+// No-ops cleanly until APNs env is configured and a device registers, so the
+// native channel is effectively feature-flagged OFF until tokens exist.
+async function sendApnsToTrip(tripCode, payloadObj) {
+  if (!isApnsConfigured()) return { sent: 0, failed: 0, pruned: 0, skipped: true };
+  const devBlob = await readJsonBlob('twize/push-devices/' + tripCode + '.json');
+  const devices = (devBlob && Array.isArray(devBlob.devices)) ? devBlob.devices : [];
+  const targets = devices.filter(d => d && d.platform === 'ios' && typeof d.token === 'string' && d.alertsEnabled !== false);
+  if (!targets.length) return { sent: 0, failed: 0, pruned: 0 };
+  const results = await sendApnsToDevices(targets.map(d => d.token), payloadObj);
+  let sent = 0, failed = 0;
+  const deadTokens = new Set();
+  for (const r of results) {
+    if (r.verdict === 'ok') sent++;
+    else {
+      failed++;
+      if (r.verdict === 'prune') deadTokens.add(r.token); // 410 / BadDeviceToken: token is dead
+      else if (r.verdict === 'auth-error') console.warn('[push-monitor] APNs auth error', r.reason);
+    }
+  }
+  let pruned = 0;
+  if (deadTokens.size) {
+    const survivors = devices.filter(d => !(d && deadTokens.has(d.token)));
+    pruned = devices.length - survivors.length;
+    try {
+      await writeJsonBlob('twize/push-devices/' + tripCode + '.json',
+        { tripCode: tripCode, devices: survivors, updated: new Date().toISOString() });
+    } catch (e) { console.error('[push-monitor] apns prune write failed', e.message); }
+  }
+  return { sent, failed, pruned };
+}
+
 export default async function handler(req, res) {
   // ---- AUTH FIRST (internal only) ----
   const secret = process.env.CRON_SECRET;
@@ -255,17 +312,26 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, skipped: 'outside park hours', ptHour: pt.hour });
   }
 
-  // ---- VAPID config ----
+  // ---- Push channel config: Web Push (VAPID) and/or native APNs ----
+  // Either channel alone is enough to run; fail only when neither is usable.
   const pub = process.env.VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
   const subj = process.env.VAPID_SUBJECT || 'mailto:hello@themeparkcopilot.com';
-  if (!pub || !priv) return res.status(500).json({ error: 'VAPID keys not configured' });
-  try { webpush.setVapidDetails(subj, pub, priv); }
-  catch (e) { return res.status(500).json({ error: 'VAPID config invalid: ' + e.message }); }
+  _vapidConfigured = false;
+  if (pub && priv) {
+    try { webpush.setVapidDetails(subj, pub, priv); _vapidConfigured = true; }
+    catch (e) { console.warn('[push-monitor] VAPID config invalid: ' + e.message); }
+  }
+  const apnsOk = isApnsConfigured();
+  if (!_vapidConfigured && !apnsOk) {
+    return res.status(500).json({ error: 'No push channel configured (VAPID or APNs)' });
+  }
 
   try {
-    // ---- 1. discover trips with subscriptions ----
-    const tripCodes = await listTripCodesWithSubs();
+    // ---- 1. discover trips with web subscriptions or native devices ----
+    const subCodes = await listTripCodesWithSubs();
+    const devCodes = await listTripCodesWithDevices();
+    const tripCodes = Array.from(new Set(subCodes.concat(devCodes)));
     if (!tripCodes.length) return res.status(200).json({ ok: true, trips: 0, note: 'no subscribed trips' });
 
     // ---- 2. registry: code -> tripId (salted-first, bare-fallback) ----
@@ -329,14 +395,40 @@ export default async function handler(req, res) {
 
       const nowMin = pt.hour * 60 + pt.minute;
       let firedThisTrip = 0;
+      let apnsSentTrip = 0;
       const spikes = [];
       const drops = [];
       const highs = [];
       const downs = [];
+      const downsAll = [];
+      const backUps = [];
       const lastHigh = (typeof state.lastHighAlertMin === 'number') ? state.lastHighAlertMin : -99999;
+
+      // One alert payload, both channels: web subscriptions + native APNs.
+      // "Delivered" for cooldown/commit purposes = at least one channel sent.
+      const fire = async (payload) => {
+        const w = await sendToTrip(code, payload);
+        const a = await sendApnsToTrip(code, payload);
+        apnsSentTrip += a.sent;
+        return { sent: w.sent + a.sent, web: w, apns: a };
+      };
 
       for (const it of rideItems) {
         const live = resolveLive(it.h, liveByName, liveKeys);
+        // ALL-DAY DOWN / BACK-UP episodes (any planned ride, same live feed):
+        // evaluate against stored state; alert flags commit only after a send.
+        if (live) {
+          const ekey = normName(live.name);
+          const erec = state.rides[ekey] || {};
+          const ev = evaluateRideEpisode(erec, live.status, nowMin, hmToMin(it.t));
+          if (ev === 'down' && !downsAll.some(d => d.key === ekey)) {
+            downsAll.push({ name: live.name, key: ekey, status: live.status });
+          } else if (ev === 'up' && !backUps.some(d => d.key === ekey)) {
+            backUps.push({ name: live.name, key: ekey });
+          }
+          erec.status = live.status; // status memory for the next run
+          state.rides[ekey] = erec;
+        }
         // DOWN detector: a ride you planned to ride this morning is not operating (rope-drop window only,
         // once per ride per day -- state.rides resets daily). Runs before the OPERATING bail below.
         if (nowMin <= ROPE_DROP_END_MIN && live && DOWN_STATUSES[live.status]) {
@@ -375,16 +467,18 @@ export default async function handler(req, res) {
         if (isHigh) highs.push({ name: live.name, key: key, to: cur });
         if (isSpike) {
           spikes.push({ name: live.name, from: prev, to: cur });
-          state.rides[key] = { wait: cur, lastAlertMin: nowMin, lastDropMin: lastDrop, highAlerted: highDone };
+          state.rides[key] = { ...prevRec, wait: cur, lastAlertMin: nowMin, lastDropMin: lastDrop, highAlerted: highDone };
         } else if (isDrop) {
           drops.push({ name: live.name, from: prev, to: cur });
-          state.rides[key] = { wait: cur, lastAlertMin: lastAlert, lastDropMin: nowMin, highAlerted: highDone };
+          state.rides[key] = { ...prevRec, wait: cur, lastAlertMin: lastAlert, lastDropMin: nowMin, highAlerted: highDone };
         } else {
-          state.rides[key] = { wait: cur, lastAlertMin: lastAlert, lastDropMin: lastDrop, highAlerted: highDone };
+          state.rides[key] = { ...prevRec, wait: cur, lastAlertMin: lastAlert, lastDropMin: lastDrop, highAlerted: highDone };
         }
       }
 
-      // fire one notification per trip. A planned ride down at rope drop wins; then spikes, busy nudges, drops.
+      // fire one notification per trip. A planned ride down wins (rope-drop
+      // morning case first, then any all-day down episode); then spikes,
+      // back-up good news, busy nudges, drops.
       if (downs.length) {
         const d = downs[0];
         const more = downs.length > 1 ? (' (+' + (downs.length - 1) + ' more)') : '';
@@ -397,12 +491,36 @@ export default async function handler(req, res) {
           url: '/app.html',
           tag: 'tpcp-ride-down'
         };
-        const r = await sendToTrip(code, payload);
+        const r = await fire(payload);
         firedThisTrip = r.sent;
         if (r.sent > 0) {
-          for (const dn of downs) {
+          // The morning alert also covers any all-day down candidates.
+          for (const dn of downs.concat(downsAll)) {
             const rec = state.rides[dn.key] || {};
             rec.downAlerted = true;
+            rec.lastDownAlertMin = nowMin;
+            state.rides[dn.key] = rec;
+          }
+        }
+      } else if (downsAll.length) {
+        const d = downsAll[0];
+        const more = downsAll.length > 1 ? (' (+' + (downsAll.length - 1) + ' more)') : '';
+        const body = (d.status === 'REFURBISHMENT')
+          ? (d.name + ' is closed for refurbishment today' + more + '. Tap to see your options.')
+          : (d.name + ' is temporarily down' + more + '. Tap to see your options.');
+        const payload = {
+          title: 'Planned ride is down',
+          body: body,
+          url: '/app.html',
+          tag: 'tpcp-ride-down'
+        };
+        const r = await fire(payload);
+        firedThisTrip = r.sent;
+        if (r.sent > 0) {
+          for (const dn of downsAll) {
+            const rec = state.rides[dn.key] || {};
+            rec.downAlerted = true;
+            rec.lastDownAlertMin = nowMin;
             state.rides[dn.key] = rec;
           }
         }
@@ -416,8 +534,26 @@ export default async function handler(req, res) {
           url: '/app.html',
           tag: 'tpcp-wait-spike'
         };
-        const r = await sendToTrip(code, payload);
+        const r = await fire(payload);
         firedThisTrip = r.sent;
+      } else if (backUps.length) {
+        const u = backUps[0];
+        const more = backUps.length > 1 ? (' (+' + (backUps.length - 1) + ' more)') : '';
+        const payload = {
+          title: 'Good news \u2014 ride is back',
+          body: u.name + ' is operating again' + more + ' \u2014 it\u2019s on your plan if you want to swing back.',
+          url: '/app.html',
+          tag: 'tpcp-ride-up'
+        };
+        const r = await fire(payload);
+        firedThisTrip = r.sent;
+        if (r.sent > 0) {
+          for (const up of backUps) {
+            const rec = state.rides[up.key] || {};
+            rec.downAlerted = false; // episode closed; a re-down can alert again after the cooldown
+            state.rides[up.key] = rec;
+          }
+        }
       } else if (highs.length) {
         highs.sort((a, b) => b.to - a.to);
         const worst = highs[0];
@@ -427,7 +563,7 @@ export default async function handler(req, res) {
           url: '/app.html',
           tag: 'tpcp-wait-high'
         };
-        const r = await sendToTrip(code, payload);
+        const r = await fire(payload);
         firedThisTrip = r.sent;
         if (r.sent > 0) {
           state.lastHighAlertMin = nowMin;
@@ -443,12 +579,12 @@ export default async function handler(req, res) {
           url: '/app.html',
           tag: 'tpcp-wait-drop'
         };
-        const r = await sendToTrip(code, payload);
+        const r = await fire(payload);
         firedThisTrip = r.sent;
       }
 
       await writeJsonBlob(stateKey, state);
-      summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip });
+      summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip, apnsSent: apnsSentTrip });
     }
 
     console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));
