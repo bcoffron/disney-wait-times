@@ -228,8 +228,18 @@ export default async function handler(req, res) {
       // trip blob, never the registry. Auth mirrors the trip save exactly
       // (admin key, or an active unexpired role-admin code). A null draft
       // is a tombstone: it clears the draft without deleting the blob.
-      if (body && body.action === 'save_draft') {
-        const dcode = typeof body.code === 'string' ? body.code.trim() : '';
+      // Routing accepts BOTH signals (integration fix, Oct 7, 2026): the
+      // body action above, AND the shipped onboarding client's mirror
+      // shape -- POST /api/trip?draft=1 with { code, tripCode, draft } and
+      // no tripData (pretrip.html ptMirrorDraft). The client's POST fell
+      // through to the trip-save path and 400'd before this adapter, so
+      // the server mirror never landed. Auth, validation, storage and
+      // response below are identical for either signal.
+      const _isDraftWrite = body && (body.action === 'save_draft' ||
+        (req.query && req.query.draft === '1' && body.draft !== undefined && !body.tripData));
+      if (_isDraftWrite) {
+        const _rawCode = typeof body.code === 'string' ? body.code : (typeof body.tripCode === 'string' ? body.tripCode : '');
+        const dcode = _rawCode.trim();
         if (!dcode || !/^[A-Za-z0-9_-]{3,64}$/.test(dcode)) return res.status(400).json({ error: 'Invalid code' });
         const registry = await readRegistry();
         const entry = registry[dcode];
