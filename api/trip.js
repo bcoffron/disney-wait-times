@@ -163,12 +163,27 @@ export default async function handler(req, res) {
       // schedule forward. An incoming schedule always wins.
       try {
         const _inDays = tripData && tripData.tripConfig && tripData.tripConfig.schedule && tripData.tripConfig.schedule.days;
-        const _hasIn = Array.isArray(_inDays) && _inDays.some(d => d && d.items && d.items.length);
-        if (!_hasIn) {
+        const _needsGuard = !Array.isArray(_inDays) || !_inDays.length || _inDays.some(d => !d || !d.items || !d.items.length);
+        if (_needsGuard) {
           const _stored = await readTripBlob(entry.tripId);
           const _stDays = _stored && _stored.tripConfig && _stored.tripConfig.schedule && _stored.tripConfig.schedule.days;
           if (Array.isArray(_stDays) && _stDays.some(d => d && d.items && d.items.length)) {
-            tripData.tripConfig.schedule = _stored.tripConfig.schedule;
+            if (!Array.isArray(_inDays) || !_inDays.some(d => d && d.items && d.items.length)) {
+              // No usable schedule incoming at all: keep the stored one wholesale.
+              tripData.tripConfig.schedule = _stored.tripConfig.schedule;
+            } else {
+              // Per-day guard (Oct 6, 2026, build-7 incident): an incoming day
+              // with zero items must never erase a stored day that has items.
+              // A client save once serialized an empty Day 1 over a freshly
+              // generated plan while Days 2-3 were fine, and the old
+              // all-or-nothing guard let it through because SOME day had items.
+              for (let _di = 0; _di < _inDays.length; _di++) {
+                const _id = _inDays[_di], _sd = _stDays[_di];
+                if ((!_id || !_id.items || !_id.items.length) && _sd && _sd.items && _sd.items.length) {
+                  _inDays[_di] = _sd;
+                }
+              }
+            }
           }
         }
       } catch (e) { /* best-effort: never block a save */ }
