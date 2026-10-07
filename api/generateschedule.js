@@ -437,6 +437,12 @@ system += '\n\nDo NOT show dietary tags (VEG/VEGAN/GF) unless the group selected
       const _structuredResArr = (tripConfig && tripConfig.dining && Array.isArray(tripConfig.dining.reservations)) ? tripConfig.dining.reservations : [];
       const _parsedFlatRes = _flatResArr.map(function(s) {
         if (!s || typeof s !== 'string') return null;
+        // The client's per-day encoding (pretrip _genDaySeq): the string
+        // carries venue + time; the day is the day being generated, which
+        // a null day already means to every consumer. Twin of
+        // splitThisDayReservation in scaffold.js (finding 4a fix (a)).
+        const td = s.match(/^THIS DAY['’]S CONFIRMED RESERVATION:\s*(.+)\s+at\s+(\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?)\s*$/i);
+        if (td) return { name: td[1].trim(), time: td[2].trim(), day: null, isConfirmed: true };
         const parts = s.split(',').map(function(p) { return p.trim(); });
         const name = parts[0] || '';
         const time = parts[1] || '';
