@@ -3004,8 +3004,83 @@ function tpcpUrlB64ToUint8(base64){
   for(var i=0;i<raw.length;i++){arr[i]=raw.charCodeAt(i);}
   return arr;
 }
+//    Native push (APNs via @capacitor/push-notifications): register this
+//    device for wait alerts on the current trip. Web Push does not exist in
+//    the native webview; this is the native counterpart of
+//    tpcpEnableWaitAlerts()' web path.
+function tpcpPushPlugin(){
+  if(!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return null;
+  var P = (Capacitor.Plugins && Capacitor.Plugins.PushNotifications) ||
+          (Capacitor.registerPlugin ? Capacitor.registerPlugin('PushNotifications') : null);
+  return P || null;
+}
+var _tpcpPushListenersBound = false;
+async function tpcpRegisterNativePushToken(tokenValue){
+  var code = localStorage.getItem('tpcp_code') || '';
+  if(!code || !tokenValue) return;
+  try{
+    await fetch(SYNC_BASE + '/api/push-register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-trip-code': code },
+      body: JSON.stringify({ tripCode: code, platform: 'ios', token: tokenValue, alertsEnabled: true })
+    });
+  }catch(e){ console.warn('[push] token register failed', e && e.message); }
+}
+async function tpcpEnableNativeWaitAlerts(){
+  var P = tpcpPushPlugin();
+  if(!P) return { ok: false, reason: 'plugin-missing' };
+  try{
+    var perm = await P.checkPermissions();
+    if(perm.receive !== 'granted'){
+      perm = await P.requestPermissions();
+    }
+    if(perm.receive !== 'granted') return { ok: false, reason: 'denied' };
+    if(!_tpcpPushListenersBound){
+      _tpcpPushListenersBound = true;
+      P.addListener('registration', function(t){ tpcpRegisterNativePushToken(t && t.value); });
+      P.addListener('registrationError', function(err){ console.warn('[push] registration error', err); });
+      // Foreground arrival: the in-app wait UI already live-updates; nothing
+      // extra to render. (iOS also shows the banner per the aps payload.)
+      P.addListener('pushNotificationReceived', function(n){ /* console.log('[push] received', n && n.title); */ });
+      // Tap on a notification: bring the guest to the app (Waits is one tap
+      // away; the payload url is '/app.html').
+      P.addListener('pushNotificationActionPerformed', function(action){
+        var url = (action && action.notification && action.notification.data && action.notification.data.url) || '';
+        if(url){ /* single-page app: already at app.html; optionally switch to the Waits tab here */ }
+      });
+    }
+    await P.register();
+    localStorage.setItem('tpcp_push_native', '1');
+    return { ok: true };
+  }catch(e){
+    console.warn('[push] native enable failed', e && e.message);
+    return { ok: false, reason: 'error' };
+  }
+}
+async function tpcpNativeAlertsAreOn(){
+  var P = tpcpPushPlugin();
+  if(!P) return false;
+  try{
+    var perm = await P.checkPermissions();
+    return perm.receive === 'granted' && localStorage.getItem('tpcp_push_native') === '1';
+  }catch(e){ return false; }
+}
+// On every app load, if the guest already enabled native alerts, refresh
+// the device-token registration: tokens rotate, and the registration
+// endpoint may not have existed on first launch. No-ops when the plugin
+// is absent or alerts were never enabled on this device.
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    if (localStorage.getItem('tpcp_push_native')==='1' && tpcpPushPlugin()) {
+      tpcpEnableNativeWaitAlerts();
+    }
+  }catch(e){ console.warn('[push] boot re-register failed', e && e.message); }
+});
 async function tpcpAlertsAreOn(){
   try{
+    if (window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform()) {
+      return await tpcpNativeAlertsAreOn();
+    }
     if(!('serviceWorker' in navigator)||!('PushManager' in window)) return false;
     if(typeof Notification==='undefined'||Notification.permission!=='granted') return false;
     var reg=await navigator.serviceWorker.ready;
@@ -3077,10 +3152,9 @@ async function tpcpAlertTestTap(){
 async function tpcpEnableWaitAlerts(){
   try{
     // In the native app, Web Push (PushManager) does not exist -- wait alerts
-    // there need iOS notifications via APNs, which is a separate native hookup.
-    // Report it honestly instead of a cryptic "unsupported" failure.
+    // there go through the native APNs hookup (tpcpEnableNativeWaitAlerts).
     if (window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform()) {
-      return {ok:false,reason:'in-app'};
+      return await tpcpEnableNativeWaitAlerts();
     }
     if(!('serviceWorker' in navigator)||!('PushManager' in window)){
       return {ok:false,reason:'unsupported'};
