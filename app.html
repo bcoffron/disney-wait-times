@@ -5861,6 +5861,7 @@ async function completeSetup(){
 }
 function showSetupGeneratePrompt(){var card=document.createElement('div');card.id='sgc';card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M19 16l.5 1.5L21 18l-1.5.5L19 20l-.5-1.5L17 18l1.5-.5z"/><path d="M5 4l.5 1.5L7 6l-1.5.5L5 8l-.5-1.5L3 6l1.5-.5z"/></svg> Generate personalized schedule?</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Claude can rebuild your schedule based on your Ride Style.</div><div style="display:flex;gap:8px"><button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild</button><button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button></div>';document.body.appendChild(card);}
 function dismissGenCard(){var c=document.getElementById('sgc');if(c)c.remove();showToast('Ride Style saved!');}
+function _flushUnplacedToast(){ var u = window._genUnplaced || []; window._genUnplaced = []; if (u.length) showToast("Heads up: we couldn't fit " + u.join(', ') + " into this trip. Consider removing a must-do or adding a day.", '#D97706'); }
 function generateFromSetup(params, callback) {
   var context = [
     parkIntelCache ? '=== PARK STRATEGY ===\n' + parkIntelCache : '',
@@ -5887,6 +5888,11 @@ function generateFromSetup(params, callback) {
   .then(function(r){return r.json();})
   .then(function(d){
     if(!d.ok||!(d.parsed&&d.parsed.length)&&!d.text){if(typeof callback==='function')callback('AI error: '+(d.error||'no response'));return;}
+    // Fix 4 completeness surfacing: must-dos the generator could not fit
+    // come back on the response -- accumulate across days; generateAllDays
+    // (or this call, when standalone) shows ONE guest-visible summary.
+    if (d.unplacedMustDos && d.unplacedMustDos.length) { window._genUnplaced = window._genUnplaced || []; d.unplacedMustDos.forEach(function(nm){ if (window._genUnplaced.indexOf(nm) === -1) window._genUnplaced.push(nm); }); console.warn('[generateFromSetup] unplaced must-dos: ' + d.unplacedMustDos.join(', ')); }
+    if (typeof callback !== 'function') _flushUnplacedToast();
     try{
       var sections = (d.parsed && d.parsed.length) ? d.parsed : null;
       if (!sections) {
@@ -5921,9 +5927,10 @@ function generateAllDays() {
   var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || {};
   var n = (Array.isArray(tc.days) && tc.days.length) || (Array.isArray(tc.dates) && tc.dates.length) || 3;
   showToast('Building your schedule \u2014 one day at a time\u2026');
+  window._genUnplaced = []; // Fix 4: per-build accumulator for unplaced must-dos
   var i = 0;
   function next() {
-    if (i >= n) { showToast('Schedule built!'); if (typeof loadCustom === 'function') loadCustom(); if (typeof renderSched === 'function') renderSched(); return; }
+    if (i >= n) { var _u = window._genUnplaced || []; window._genUnplaced = []; if (_u.length) { showToast("Heads up: we couldn't fit " + _u.join(', ') + " into this trip. Consider removing a must-do or adding a day.", '#D97706'); } else { showToast('Schedule built!'); } if (typeof loadCustom === 'function') loadCustom(); if (typeof renderSched === 'function') renderSched(); return; }
     var idx = i; i++;
     generateFromSetup(idx, function (err, sections) {
       if (err) { showToast('Day ' + (idx + 1) + ' hit a snag \u2014 tap AI Optimize to retry'); return; }

@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -767,7 +767,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _fallbackFor = (slot, fb) => deterministicBackfill(slot, {
             catalog: _catList, venues: _venues, closedNames: _closedS, closedVenueNames: _closedV,
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
-            priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys, bannedKeys: fb.bannedKeys,
+            priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys, encoredRideKeys: fb.encoredRideKeys, bannedKeys: fb.bannedKeys,
             shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand
           });
 
@@ -787,13 +787,14 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // Verify layer -- REMOVE-ONLY safety net (replaces the heavy validateSchedule on this path;
           // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
           const _dayParks = (_hop && _vipStart === null) ? [_park, _hop.toPark] : [_park];
-          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj });
+          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo });
 
           // Parameter-fidelity verifier (recommendation #2): guest parameters are absolute.
           // Cite the specific failures back to the model once; deterministically enforce the rest.
           const _pvParams = { mustDo: mustDo, skip: skipRides, hasLL: _hasLL };
           let _violations = verifyTripParams(_vf.cards, _pvParams);
           let _items = _vf.cards;
+          let _trimMustDos = Array.isArray(_vf.trimmedMustDos) ? _vf.trimmedMustDos.slice() : [];
           if (_violations.length) {
             console.log('[scaffold] param violations:', JSON.stringify(_violations));
             const _missingCt = _violations.filter(function(v) { return v.kind === 'mustdo-missing'; }).length;
@@ -813,17 +814,49 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               }).join('; ');
               const _r3 = await _fill(_dynSys + '\n\nPARAMETER CORRECTION -- guest parameters are absolute, not suggestions: ' + _cite + '. Return the FULL array again, same slot ids in the same order, with every one of these fixed and nothing else broken.');
               const _ap3 = applyFills(_sk, Array.isArray(_r3.arr) ? _r3.arr : [], _fillOpts);
-              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj });
+              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo });
+              if (Array.isArray(_vf3.trimmedMustDos)) _trimMustDos = _trimMustDos.concat(_vf3.trimmedMustDos);
               const _v3 = verifyTripParams(_vf3.cards, _pvParams);
               if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; }
             } catch (e) { console.warn('[scaffold] param retry failed:', e.message); }
           }
           const _enf = enforceTripParams(_items, _violations, { catalog: _catIdx, landToPark: landToPark, closedNames: _closedS, bannedNames: skipRides, mustDoNames: mustDo });
           _items = _enf.cards;
+          // Fix 4 completeness surfacing (Oct 7, 2026): a must-do that could
+          // not be placed today must NEVER vanish silently. Collect from the
+          // enforcer's unfixable list (must-dos belonging to today's parks
+          // only -- the list is trip-wide) and from the feasibility trim's
+          // last-resort must-do removals; drop anything that nevertheless
+          // ended up placed (a swap can rescue a trimmed ride); exclude
+          // closed/banned must-dos, which are impossible by closure/ban, not
+          // unplaced for lack of room. Surfaced in the response as
+          // unplacedMustDos and logged loudly; the clients turn a non-empty
+          // list into one guest-visible "couldn't fit" summary.
+          const unplacedMustDos = (function () {
+            const dayParkKeys = new Set((_dayParks || []).map(p => normParkName(p)).filter(Boolean));
+            const closedKeysU = new Set((_closedS || []).map(normName).filter(Boolean));
+            const bannedKeysU = new Set((skipRides || []).map(normName).filter(Boolean));
+            const placedGroups = new Set((_items || []).filter(c => c && c.type === 'ride').map(c => rideGroupKey(c.ride || c.h)).filter(Boolean));
+            const byGroup = new Map();
+            const consider = (name) => {
+              const nm = String(name || '').trim(); if (!nm) return;
+              const k = normName(nm); if (!k) return;
+              if (closedKeysU.has(k) || bannedKeysU.has(k)) return;
+              const gk = rideGroupKey(nm);
+              if (placedGroups.has(gk)) return;
+              const ce = _catIdx[normName(nm)];
+              if (ce && ce.park && dayParkKeys.size && !dayParkKeys.has(normParkName(ce.park))) return;
+              if (!byGroup.has(gk)) byGroup.set(gk, nm);
+            };
+            for (const u of (_enf.unfixable || [])) { if (u && u.kind === 'mustdo-missing') consider(u.name); }
+            _trimMustDos.forEach(consider);
+            return [...byGroup.values()];
+          })();
+          if (unplacedMustDos.length) console.error('[scaffold] UNPLACED MUST-DOS day ' + (_di + 1) + ' (' + _dayParks.join('/') + '): ' + unplacedMustDos.join(', '));
           if (_enf.fixed.length) console.log('[scaffold] param enforced:', JSON.stringify(_enf.fixed));
           if (_enf.unfixable.length) console.warn('[scaffold] param UNFIXABLE:', JSON.stringify(_enf.unfixable));
           console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable });
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, unplacedMustDos: unplacedMustDos });
         } catch (_se) {
           console.error('[scaffold] error, falling back to legacy generator:', _se.message);
         }

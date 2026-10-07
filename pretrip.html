@@ -1421,6 +1421,14 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       }
       return;
     }
+    // Fix 4 completeness surfacing: must-dos the generator could not fit
+    // today come back on the response -- accumulate across days; the finish
+    // step shows ONE guest-visible summary before saving. Never silent.
+    if (Array.isArray(d.unplacedMustDos) && d.unplacedMustDos.length) {
+      window._ptUnplacedMustDos = window._ptUnplacedMustDos || [];
+      d.unplacedMustDos.forEach(function(nm){ if (window._ptUnplacedMustDos.indexOf(nm) === -1) window._ptUnplacedMustDos.push(nm); });
+      console.warn('[pretrip] Day ' + (dayIndex+1) + ' unplaced must-dos: ' + d.unplacedMustDos.join(', '));
+    }
     try {
       // Prefer the server-VALIDATED items (validate-schedule.js corrections: snack dedup, height rider-swap,
       // Splash rename, LL fixes, character meets, etc.). Only fall back to raw text if parsed is absent.
@@ -1584,6 +1592,7 @@ function ptFinish() {
 
 function ptFinishAfterHours(tripConfig, d, totalDays) {
   var code = localStorage.getItem('tpcp_code') || '';
+  window._ptUnplacedMustDos = []; // Fix 4: per-trip accumulator, filled by ptGenerateDaySchedule
 
   // Persist the trip config to the blob IMMEDIATELY, before generation starts.
   // Generation can fail, hang, or be interrupted; if the only config write is the
@@ -1614,6 +1623,13 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   var _completed = 0;
 
   function _finishAndSave() {
+    // Fix 4 completeness surfacing: if any must-do could not fit anywhere in
+    // this trip, say so out loud BEFORE the save + redirect -- framed as a
+    // didn't-fit outcome, not an error.
+    if (window._ptUnplacedMustDos && window._ptUnplacedMustDos.length) {
+      alert("Heads up: we couldn't fit " + window._ptUnplacedMustDos.join(', ') + " into this trip. Consider removing a must-do or adding a day.");
+      window._ptUnplacedMustDos = [];
+    }
     // Carry-forward guard (Oct 6, 2026): a day whose generation failed must
     // never overwrite a stored non-empty day with an empty one. If any
     // generated day is empty, read the stored schedule first and substitute

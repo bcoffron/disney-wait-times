@@ -313,7 +313,7 @@ function clampToWindow(min, win, fixed) {
   for (const r of rs) for (const edge of r) { const d = Math.abs(edge - min); if (d < bd) { bd = d; best = edge; } }
   return { t: best, changed: true };
 }
-function normParkName(p) { const s = String(p || '').toLowerCase(); if (/cali|dca|adventure/.test(s)) return 'dca'; if (/disneyland|\bdl\b/.test(s)) return 'dl'; return s; }
+export function normParkName(p) { const s = String(p || '').toLowerCase(); if (/cali|dca|adventure/.test(s)) return 'dca'; if (/disneyland|\bdl\b/.test(s)) return 'dl'; return s; }
 function sameParkName(a, b) { const x = normParkName(a); return x !== '' && x === normParkName(b); }
 
 // Match a card heading against the known-shows list (dynamic SHOWS section:
@@ -422,6 +422,7 @@ export function applyFills(skeleton, fills, opts) {
   const _mustKeys = new Set((opts.mustDoNames || []).map(normName));
   const priorRideKeySet = new Set();
   const todayRideNames = new Set();
+  const encoredTodayNames = new Set(); // rides already same-day-encored (Fix 4)
   (opts.priorRides || []).forEach(function(n) { const k = normName(n); if (k && !_mustKeys.has(k)) { usedRideNames.add(k); priorRideKeySet.add(k); } });
   const usedRideSquash = new Set([...usedRideNames].map(k => k.replace(/ /g, '')));
   // Variant groups of everything already used (prior days + today). A sibling
@@ -435,7 +436,7 @@ export function applyFills(skeleton, fills, opts) {
   (opts.priorVenues || []).forEach(n => { if (n) used.add(String(n).toLowerCase()); });
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
-    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, nearLand: (function () { for (let i = cards.length - 1; i >= 0; i--) { if (cards[i] && cards[i].land) return cards[i].land; } return ''; })() }) : placeholderCard(slot);
+    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, encoredRideKeys: encoredTodayNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, nearLand: (function () { for (let i = cards.length - 1; i >= 0; i--) { if (cards[i] && cards[i].land) return cards[i].land; } return ''; })() }) : placeholderCard(slot);
     if (fallbackFor) report.fallback++;
     c.t = toClock(clampToWindow(parseClock(c.t), slot.window, slot.fixed).t); // stamp a valid in-window time
     if (!c.type) c.type = slot.type;
@@ -702,7 +703,7 @@ function dezigzagRides(kept, catalog) {
     return normName((ce && ce.land) || c.land || '');
   };
   const swapIdentity = (a, b) => {
-    for (const f of ['h', 'ride', 'land', 'll', 'n']) {
+    for (const f of ['h', 'ride', 'land', 'll', 'n', 'encore']) {
       const t = a[f];
       if (b[f] === undefined) delete a[f]; else a[f] = b[f];
       if (t === undefined) delete b[f]; else b[f] = t;
@@ -806,11 +807,29 @@ const ACTIVITY_TYPES = new Set(['ride', 'show', 'dining', 'quickservice', 'chara
 export function trimInfeasible(cards, opts) {
   const wp = opts && opts.waitPatterns;
   const trimmed = [];
-  if (!wp) return { cards, trimmed };
+  const trimmedMustDos = [];
+  if (!wp) return { cards, trimmed, trimmedMustDos };
   const catalog = (opts && opts.catalog) || {};
   const landToPark = (opts && opts.landToPark) || (() => null);
   let list = (cards || []).slice();
-  const isProtected = (c, arr) => {
+  // Must-do rides (Fix 4, Oct 7, 2026): a must-do is guest-non-negotiable, so
+  // it is NEVER a silent trim victim. The trim used to delete placed must-do
+  // headliners as 'infeasible-pace' (their catalog peak wait under 75 meant
+  // no headliner protection) and the loss surfaced nowhere. Matching mirrors
+  // verifyTripParams: exact normName OR variant group (one Soarin' film
+  // stands for both). Phase 1 treats must-dos as protected, like dining.
+  // Phase 2 runs only over pairs phase 1 could not resolve: if NO legal
+  // non-must-do victim remains, a must-do may be removed as a last resort --
+  // and every such removal is returned in trimmedMustDos so the handler can
+  // surface it as unplaced (generateschedule unplacedMustDos). Never silent.
+  const mustKeys = new Set(((opts && opts.mustDoNames) || []).map(normName).filter(Boolean));
+  const mustGroups = new Set([...mustKeys].map(k => rideGroupKey(k)).filter(Boolean));
+  const isMustDoCard = (c) => {
+    if (!c || c.type !== 'ride') return false;
+    const k = normName(c.ride || c.h);
+    return !!k && (mustKeys.has(k) || mustGroups.has(rideGroupKey(k)));
+  };
+  const isProtected = (c, arr, phase) => {
     if (c.type === 'dining' || c.type === 'show' || c.type === 'character') return true;
     // Comfort cards are the product, not filler (Beau, Oct 5, 2026): the old
     // trim dropped the day's only snack card as an 'infeasible-pace' victim
@@ -822,29 +841,40 @@ export function trimInfeasible(cards, opts) {
       if (rides[rides.length - 1] === c) return true; // run-to-closing anchor
       const e = catalog[normName(c.ride || c.h)] || {};
       if ((e.typicalPeakWait || 0) >= 75) return true; // headliner: the plan bends around it
+      if (phase === 1 && isMustDoCard(c)) return true; // must-do: the plan bends around it too
     }
     return false;
   };
-  for (let iter = 0; iter < 14; iter++) {
-    const acts = list.filter(c => ACTIVITY_TYPES.has(c.type) && parseClock(c.t) !== null);
-    let dropped = false;
-    for (let i = 0; i + 1 < acts.length; i++) {
-      const cur = acts[i], nxt = acts[i + 1];
-      const ct = parseClock(cur.t), nt = parseClock(nxt.t);
-      const need = waitEstimateMin(cur, ct, wp, catalog) + activityDurationMin(cur) + walkMin(cur, nxt, landToPark);
-      if (nt - ct - need >= -8) continue;
-      const dropCur = !isProtected(cur, acts) && i > 0;
-      const dropNxt = !isProtected(nxt, acts);
-      const victim = dropNxt ? nxt : (dropCur ? cur : null);
-      if (!victim) continue;
-      list = list.filter(x => x !== victim);
-      trimmed.push({ h: victim.h, reason: 'infeasible-pace' });
-      dropped = true;
-      break;
+  const runPhase = (phase) => {
+    for (let iter = 0; iter < 14; iter++) {
+      const acts = list.filter(c => ACTIVITY_TYPES.has(c.type) && parseClock(c.t) !== null);
+      let dropped = false;
+      for (let i = 0; i + 1 < acts.length; i++) {
+        const cur = acts[i], nxt = acts[i + 1];
+        const ct = parseClock(cur.t), nt = parseClock(nxt.t);
+        const need = waitEstimateMin(cur, ct, wp, catalog) + activityDurationMin(cur) + walkMin(cur, nxt, landToPark);
+        if (nt - ct - need >= -8) continue;
+        const dropCur = !isProtected(cur, acts, phase) && i > 0;
+        const dropNxt = !isProtected(nxt, acts, phase);
+        const victim = dropNxt ? nxt : (dropCur ? cur : null);
+        if (!victim) continue;
+        list = list.filter(x => x !== victim);
+        if (phase === 2 && isMustDoCard(victim)) {
+          trimmed.push({ h: victim.h, reason: 'infeasible-pace-mustdo' });
+          const nm = String(victim.ride || victim.h || '').trim();
+          if (nm && trimmedMustDos.indexOf(nm) === -1) trimmedMustDos.push(nm);
+        } else {
+          trimmed.push({ h: victim.h, reason: 'infeasible-pace' });
+        }
+        dropped = true;
+        break;
+      }
+      if (!dropped) break;
     }
-    if (!dropped) break;
-  }
-  return { cards: list, trimmed };
+  };
+  runPhase(1);
+  runPhase(2);
+  return { cards: list, trimmed, trimmedMustDos };
 }
 
 export function verifyScaffold(cards, opts) {
@@ -867,6 +897,7 @@ export function verifyScaffold(cards, opts) {
   const usedRideSquash = new Set();
   const usedGroups = new Set();
   const removed = [], kept = [], usedRide = new Set();
+  const encoredGroups = new Set(); // same-day encore repeats already kept (Fix 4)
   // ILL gating: the group did not buy Individual Lightning Lane, so no card may
   // carry ILL instructions. Tip cards built around ILL are removed outright;
   // ride cards keep the ride but lose any ILL sentence in the note.
@@ -923,14 +954,28 @@ export function verifyScaffold(cards, opts) {
         if (allowedParks.length && p && !inAllowed(p)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
       }
       // 4. dupe (spaced key OR squash key -- respelled duplicates collide on squash)
-      const k = normName(c.ride || c.h);
-      const sk2 = squash(c.ride || c.h);
-      if ((k && usedRide.has(k)) || (sk2 && usedRideSquash.has(sk2))) { removed.push({ h: c.h, reason: 'dupe' }); continue; }
       // 4b. variant dupe: the sibling variant of an attraction already placed
       // today (the other Soarin' film, the other Pal-A-Round gondola) is the
       // same ride to a guest -- never twice in one day.
+      const k = normName(c.ride || c.h);
+      const sk2 = squash(c.ride || c.h);
       const gk = rideGroupKey(c.ride || c.h);
-      if (gk && usedGroups.has(gk)) { removed.push({ h: c.h, reason: 'dupe-variant' }); continue; }
+      const isDupe = (k && usedRide.has(k)) || (sk2 && usedRideSquash.has(sk2));
+      const isVarDupe = !!(gk && usedGroups.has(gk));
+      if (isDupe || isVarDupe) {
+        // Same-day encore exception (Fix 4, Oct 7, 2026): deterministicBackfill
+        // may deliberately repeat a ride ridden earlier TODAY when the fresh
+        // and prior-day pools are both exhausted; that card carries
+        // encore:'same-day'. Keep exactly ONE such repeat per attraction
+        // group per day (a ride tops out at twice in a day); any further
+        // copy -- or an unflagged repeat -- is a real dupe.
+        const egk = gk || k;
+        if (c.encore === 'same-day' && egk && !encoredGroups.has(egk)) {
+          encoredGroups.add(egk);
+        } else {
+          removed.push({ h: c.h, reason: isDupe ? 'dupe' : 'dupe-variant' }); continue;
+        }
+      }
       if (k) usedRide.add(k);
       if (sk2) usedRideSquash.add(sk2);
       if (gk) usedGroups.add(gk);
@@ -967,9 +1012,9 @@ export function verifyScaffold(cards, opts) {
   if (opts.hasLLMP !== undefined || opts.hasILL !== undefined) {
     normalizeLLAssignments(_finalCards, { llmp: opts.hasLLMP === true, ill: opts.hasILL === true, catalog });
   }
-  const _trim = trimInfeasible(_finalCards, { waitPatterns: opts.waitPatterns || null, catalog, landToPark });
+  const _trim = trimInfeasible(_finalCards, { waitPatterns: opts.waitPatterns || null, catalog, landToPark, mustDoNames: opts.mustDoNames || [] });
   for (const r of _trim.trimmed) removed.push(r);
-  return { cards: _trim.cards, removed };
+  return { cards: _trim.cards, removed, trimmedMustDos: _trim.trimmedMustDos || [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -1381,6 +1426,35 @@ export function deterministicBackfill(slot, ctx) {
       usedNames.add(String(pick.name).toLowerCase());
       _todayKeys.add(normName(pick.name));
       return { t: t0, h: pick.name, type: 'ride', n: 'Back for an encore -- a favorite from earlier in the trip.', land: pick.land || '', ride: pick.name };
+    }
+    // Same-day encore (Fix 4, Oct 7, 2026): Day 1 has no prior days, so when
+    // the fresh catalog AND the prior-day pool are both exhausted -- a small
+    // park minus the guest's bans can leave fewer placeable rides than ride
+    // slots (B-config DCA: 12 placeable for 13 slots) -- repeat a ride from
+    // earlier TODAY instead of degrading the slot into a generic tip card.
+    // Guards: a ride is encored at most once per day (so it appears at most
+    // twice -- verifyScaffold keeps exactly one encore:'same-day' repeat per
+    // attraction group), an already-encored ride or its variant sibling is
+    // never re-encored, and the ride placed in the immediately preceding slot
+    // is avoided when an alternative exists (no back-to-back same ride).
+    const _encoredKeys = (ctx.encoredRideKeys instanceof Set) ? ctx.encoredRideKeys : new Set();
+    const _encoredGroups = new Set([..._encoredKeys].map(k => rideGroupKey(k)));
+    const _todayList = [..._todayKeys];
+    const _lastTodayKey = _todayList.length ? _todayList[_todayList.length - 1] : null;
+    const sameDay = catalog.filter(e =>
+      e && e.name && _todayKeys.has(normName(e.name)) &&
+      !_encoredKeys.has(normName(e.name)) && !_encoredGroups.has(rideGroupKey(e.name)) &&
+      inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !rsrBlocked(e) &&
+      !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
+    sameDay.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
+    if (sameDay.length) {
+      const pick = (sameDay.length > 1 && _lastTodayKey) ? (sameDay.find(e => normName(e.name) !== _lastTodayKey) || sameDay[0]) : sameDay[0];
+      usedRideKeys.add(normName(pick.name));
+      usedNames.add(String(pick.name).toLowerCase());
+      _todayKeys.add(normName(pick.name));
+      _encoredKeys.add(normName(pick.name));
+      return { t: t0, h: pick.name, type: 'ride', n: 'Back for an encore -- a favorite from earlier today.', land: pick.land || '', ride: pick.name, encore: 'same-day' };
     }
   }
 
