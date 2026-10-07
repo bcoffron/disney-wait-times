@@ -618,18 +618,23 @@ function classifyVenue(rawName) {
   if (CATALOG_EXCLUDE_NAMES.some(function(x){ return n.indexOf(x) !== -1; })) {
     return { service: 'quickservice', walkupEase: 'easy', exclude: true };
   }
-  // LOUNGE
-  if (Object.prototype.hasOwnProperty.call(CATALOG_LOUNGE_MAP, n)) {
-    return { service: 'lounge', walkupEase: CATALOG_LOUNGE_MAP[n], exclude: false };
+  // LOUNGE (suffix-tolerant, mirroring the EXCLUDE/PLAZA INN substring style:
+  // dining intel lists 'Lamplight Lounge Dining Room', which the old EXACT
+  // match missed so it fell through to the quickservice default -- the
+  // Lamplight QS leak, root-fixed Oct 7, 2026)
+  const loungeKey = Object.keys(CATALOG_LOUNGE_MAP).find(function(k){ return n === k || n.indexOf(k) !== -1; });
+  if (loungeKey) {
+    return { service: 'lounge', walkupEase: CATALOG_LOUNGE_MAP[loungeKey], exclude: false };
   }
   // PLAZA INN special case
   if (n.indexOf(CATALOG_PLAZA_INN) !== -1) {
     return { service: 'quickservice', walkupEase: 'walkupOnly', exclude: false };
   }
-  // TABLE-SERVICE
-  if (CATALOG_TABLE_NAMES.indexOf(n) !== -1) {
-    // Character dining -> hard
-    const we = CATALOG_WALKUP_EASE[n] !== undefined ? CATALOG_WALKUP_EASE[n] : 'easy';
+  // TABLE-SERVICE (suffix-tolerant, same matching style as LOUNGE above)
+  const tableKey = CATALOG_TABLE_NAMES.find(function(x){ return n === x || n.indexOf(x) !== -1; });
+  if (tableKey) {
+    const we = CATALOG_WALKUP_EASE[tableKey] !== undefined ? CATALOG_WALKUP_EASE[tableKey]
+             : (CATALOG_WALKUP_EASE[n] !== undefined ? CATALOG_WALKUP_EASE[n] : 'easy');
     return { service: 'table', walkupEase: we, exclude: false };
   }
   // Check character dining keywords -> table + hard
@@ -799,8 +804,13 @@ function buildCatalogAttractions() {
     { id: 'jessies_critter_carousel', name: "Jessie's Critter Carousel", park: 'DCA', land: 'Pixar Pier', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 15, status: 'operating' },
     { id: 'inside_out_emotional_whirlwind', name: 'Inside Out Emotional Whirlwind', park: 'DCA', land: 'Pixar Pier', heightInches: 0, llKind: 'multi', ropeDropValue: 'low', typicalPeakWait: 25, status: 'operating' },
     // --- Grizzly Peak ---
+    // Soarin' is ONE attraction (one theater): 'Across America' was a
+    // limited-time film overlay of the standing 'Around the World'
+    // attraction, not a second ride -- merged into the single canonical
+    // entry Oct 7, 2026 (both entries carried identical stats). The
+    // scaffold rideGroupKey 'soarin' group remains the tripwire for trips
+    // saved while both names circulated.
     { id: 'soarin_around_the_world', name: "Soarin' Around the World", park: 'DCA', land: 'Grizzly Peak', heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
-    { id: 'soarin_across_america', name: "Soarin' Across America", park: 'DCA', land: 'Grizzly Peak', heightInches: 0, llKind: 'multi', ropeDropValue: 'high', typicalPeakWait: 45, status: 'operating' },
     { id: 'grizzly_river_run', name: 'Grizzly River Run', park: 'DCA', land: 'Grizzly Peak', heightInches: 0, llKind: 'multi', ropeDropValue: 'med', typicalPeakWait: 40, status: 'operating' },
     { id: 'redwood_creek_challenge_trail', name: 'Redwood Creek Challenge Trail', park: 'DCA', land: 'Grizzly Peak', heightInches: 0, llKind: 'none', ropeDropValue: 'low', typicalPeakWait: 0, status: 'operating' },
     // --- Paradise Gardens Park ---

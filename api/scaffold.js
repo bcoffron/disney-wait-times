@@ -1462,6 +1462,25 @@ export function rideGroupKey(name) {
   const k = normName(name);
   return RIDE_VARIANT_GROUPS[k] || k;
 }
+// Catalog resolution for a ride name: the exact normName entry first; when
+// the name has no entry of its own -- a variant whose duplicate catalog
+// entry was merged into its sibling (the Soarin' merge, Oct 7, 2026) --
+// fall back to the entry carrying the same rideGroupKey. Keeps must-do
+// enforcement and coverage accounting correct for trips saved while both
+// variant names circulated, and if a duplicate ever slips back in, exact
+// hits win and nothing changes. Returns null when no group member is
+// catalogued.
+export function catalogEntryForGroup(catalog, name) {
+  const idx = catalog || {};
+  const exact = idx[normName(name)];
+  if (exact) return exact;
+  const g = rideGroupKey(name);
+  if (!g) return null;
+  for (const e of Object.values(idx)) {
+    if (e && e.name && rideGroupKey(e.name) === g) return e;
+  }
+  return null;
+}
 const LAND_LOOPS = {
   dl: ['Main Street, U.S.A.', 'Tomorrowland', "Mickey's Toontown", 'Fantasyland', "Star Wars: Galaxy's Edge", 'Frontierland', 'Bayou Country', 'Critter Country', 'New Orleans Square', 'Adventureland'],
   dca: ['Buena Vista Street', 'Hollywood Land', 'Avengers Campus', 'Cars Land', 'San Fransokyo Square', 'Paradise Gardens Park', 'Pixar Pier', 'Grizzly Peak', 'Performance Corridor']
@@ -1898,7 +1917,7 @@ export function enforceTripParams(cards, violations, ctx) {
   const gateCtx = { catalog, landToPark, closedNames: ctx.closedNames || [], bannedNames: ctx.bannedNames || [], closeMin: (ctx.closeMin != null ? ctx.closeMin : null), closeMinByPark: ctx.closeMinByPark || null, llmp: ctx.llmp === true, ill: ctx.ill === true, parks: ctx.parks || null, venueServiceMap: ctx.venueServiceMap || null, reservationKeys: ctx.reservationKeys || null, closedVenueNames: ctx.closedVenueNames || [] };
   const parkOfCard = (c) => normParkName(landToPark(c.land) || landToPark(c.h) || '');
   const parkOfName = (name) => {
-    const ce = catalog[normName(name)];
+    const ce = catalogEntryForGroup(catalog, name);
     if (ce && ce.park) return normParkName(ce.park);
     return normParkName(landToPark(name) || '');
   };
@@ -1956,16 +1975,22 @@ export function enforceTripParams(cards, violations, ctx) {
       const _pref = rc.filter(({ c }) => c !== (fr && fr.c) && (!wantPark || parkOfCard(c) === wantPark));
       const _rest = rc.filter(x => _pref.indexOf(x) === -1 && (!wantPark || parkOfCard(x.c) === wantPark));
       const candidates = _pref.concat(_rest);
-      const ce = catalog[normName(v.name)];
-      const derivedLL = deriveLLForRide(v.name, gateCtx);
+      const exactCe = catalog[normName(v.name)];
+      const ce = exactCe || catalogEntryForGroup(catalog, v.name);
+      // When the must-do names a variant whose own catalog entry is gone
+      // (merged into its sibling), swap in the CANONICAL catalog name so
+      // the shipped schedule never carries a ride the catalog doesn't
+      // know (and the gate judges the entry that actually exists).
+      const swapName = exactCe ? v.name : ((ce && ce.name) || v.name);
+      const derivedLL = deriveLLForRide(swapName, gateCtx);
       let swapped = false;
       for (const target of candidates) {
-        const prospective = { type: 'ride', t: target.c.t, h: v.name, ride: v.name, land: (ce && ce.land) || target.c.land, ll: derivedLL || undefined };
+        const prospective = { type: 'ride', t: target.c.t, h: swapName, ride: swapName, land: (ce && ce.land) || target.c.land, ll: derivedLL || undefined };
         const gv = revalidateCard(prospective, gateCtx);
         if (!gv.ok) { blocked.push({ kind: v.kind, name: v.name, at: target.c.t, reason: gv.reasons[0], reasons: gv.reasons }); continue; }
         swappedTargets.add(target.i);
-        target.c.h = v.name;
-        target.c.ride = v.name;
+        target.c.h = swapName;
+        target.c.ride = swapName;
         if (ce && ce.land) target.c.land = ce.land;
         // RE-DERIVE the card's LL fresh: a swapped-in ride never inherits
         // the target's tag (SIM1 shipped RSR -- an ILL-only ride -- with
@@ -2012,6 +2037,9 @@ export function computeTripSurfacing(tripConfig, ctx) {
     // two rides generateschedule adds), so a water ride the guest opted out
     // of never surfaces as "couldn't fit".
     const bannedKeys = new Set((Array.isArray(rp.skip) ? rp.skip : []).map(normName).filter(Boolean));
+    // Bans key by variant group too (mirroring the placed-side accounting
+    // below): a skip naming one Soarin' film suppresses the whole group.
+    const bannedGroups = new Set([...bannedKeys].map(k => rideGroupKey(k)).filter(Boolean));
     if (tc.avoidWater === true) {
       bannedKeys.add(normName("Tiana's Bayou Adventure"));
       bannedKeys.add(normName('Grizzly River Run'));
@@ -2076,7 +2104,7 @@ export function computeTripSurfacing(tripConfig, ctx) {
       if (seenGroups.has(g)) continue;
       seenGroups.add(g);
       if (closedOnAllDates(name)) { closedMustDos.push(name); continue; }
-      if (bannedKeys.has(normName(name))) continue;
+      if (bannedKeys.has(normName(name)) || bannedGroups.has(g)) continue;
       if (placedKeys.has(normName(name)) || placedGroups.has(g)) continue;
       tripUnplacedMustDos.push(name);
     }
