@@ -1494,7 +1494,13 @@ function ptMirrorDraft() {
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ code: code, tripCode: code, draft: { version: 1, savedAt: new Date().toISOString(), step: ptCurrentStep, data: d } })
     }).then(function(r){
-      console.log('[pretrip] draft mirror status: ' + r.status);
+      // A non-OK mirror response (400/403/413...) must be LOUD in the
+      // console, not a status line indistinguishable from success: the
+      // local save still stands, but a silently rejected mirror is how
+      // the draft seam failure hid. Non-fatal by design -- never block
+      // or alarm the guest over a mirror write.
+      if (r && r.ok) console.log('[pretrip] draft mirror status: ' + r.status);
+      else console.warn('[pretrip] draft mirror rejected: HTTP ' + (r && r.status) + ' (local save stands)');
     }).catch(function(err){ console.warn('[pretrip] draft mirror failed (local save stands):', err && err.message); });
   } catch(e){}
 }
