@@ -1665,3 +1665,106 @@ export function enforceTripParams(cards, violations, ctx) {
   }
   return { cards: out, fixed, unfixable };
 }
+
+// ---------------------------------------------------------------------------
+// TRIP-LEVEL MUST-DO SURFACING (Oct 7, 2026) -- computed ONCE, at the save
+// seam (api/trip.js), against the schedule exactly as stored. The per-day
+// unplacedMustDos in generateschedule stays a diagnostic channel only: on a
+// multi-day trip a must-do placed on Day 3 reads "unplaced" on Day 1, so any
+// client that unions per-day lists into a guest summary cries wolf (~20
+// names on a healthy BEAU01 build). This function is the trip-level truth:
+//   tripUnplacedMustDos = requested must-dos placed on NO day of the saved
+//     schedule, minus closed-all-dates, minus banned (guest skip list plus
+//     the avoidWater fold, mirroring the generator's effective skip list).
+//   closedMustDos = requested must-dos closed on EVERY date of the trip,
+//     derived per date from the same closure source the generator uses (the
+//     structured CLOSURES list merged with CURRENT_CLOSURES prose). A ride
+//     closed on some days but open on others is NOT closed for the trip.
+// Matching mirrors verifyTripParams: cards key by normName(ride || h), and
+// one placed variant satisfies its whole rideGroupKey group. Pure function;
+// never throws -- returns null when there is no saved schedule to judge.
+// ctx: { catalog: buildCatalogIndex(...) output, closures: raw CLOSURES
+//        section, currentClosures: raw CURRENT_CLOSURES section }
+export function computeTripSurfacing(tripConfig, ctx) {
+  try {
+    const tc = tripConfig || {};
+    const c = ctx || {};
+    const schedDays = (tc.schedule && Array.isArray(tc.schedule.days)) ? tc.schedule.days : null;
+    if (!schedDays || !schedDays.some(d => d && Array.isArray(d.items) && d.items.length)) return null;
+    const rp = tc.ridePreferences || {};
+    const mustDo = (Array.isArray(rp.mustDo) ? rp.mustDo : []).map(x => String(x || '').trim()).filter(Boolean);
+    // Banned = guest skip list + the generator's avoidWater fold (the same
+    // two rides generateschedule adds), so a water ride the guest opted out
+    // of never surfaces as "couldn't fit".
+    const bannedKeys = new Set((Array.isArray(rp.skip) ? rp.skip : []).map(normName).filter(Boolean));
+    if (tc.avoidWater === true) {
+      bannedKeys.add(normName("Tiana's Bayou Adventure"));
+      bannedKeys.add(normName('Grizzly River Run'));
+    }
+    // Placed anywhere in the saved schedule (verifyTripParams keying).
+    const placedKeys = new Set(), placedGroups = new Set();
+    for (const d of schedDays) {
+      for (const it of (d && Array.isArray(d.items) ? d.items : [])) {
+        const k = normName((it && (it.ride || it.h)) || '');
+        if (!k) continue;
+        placedKeys.add(k);
+        placedGroups.add(rideGroupKey(k));
+      }
+    }
+    // Trip dates as ISO YYYY-MM-DD: tripConfig.days[].date first; fall back
+    // to expanding tripConfig.dates start..end (capped at 31 days).
+    const toISODate = (s) => {
+      if (!s) return '';
+      const t = String(s);
+      if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+      const dt = new Date(t);
+      return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0, 10);
+    };
+    const dateSet = new Set();
+    if (Array.isArray(tc.days)) for (const dy of tc.days) { const iso = toISODate(dy && dy.date); if (iso) dateSet.add(iso); }
+    if (!dateSet.size && tc.dates && tc.dates.start && tc.dates.end) {
+      let cur = new Date(String(tc.dates.start).slice(0, 10) + 'T00:00:00Z');
+      const end = new Date(String(tc.dates.end).slice(0, 10) + 'T00:00:00Z');
+      let guard = 0;
+      while (!isNaN(cur.getTime()) && !isNaN(end.getTime()) && cur <= end && guard++ < 31) {
+        dateSet.add(cur.toISOString().slice(0, 10));
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+    const dates = [...dateSet];
+    // Closure keys per date, from the generator's own source.
+    const catalog = c.catalog || {};
+    const catalogNames = Object.values(catalog).map(e => (e && e.name) || '').filter(Boolean);
+    // Catalog variant groups: a must-do counts as closed on a date only when
+    // EVERY catalog form of the attraction is closed that date -- one open
+    // variant means the attraction is rideable.
+    const groupVariants = new Map();
+    for (const e of Object.values(catalog)) {
+      if (!e || !e.name) continue;
+      const g = rideGroupKey(e.name);
+      if (!groupVariants.has(g)) groupVariants.set(g, []);
+      groupVariants.get(g).push(normName(e.name));
+    }
+    const closedKeysByDate = dates.map(iso => {
+      const names = [...closedNamesForDate(c.closures, iso), ...closedNamesFromProse(c.currentClosures, iso, catalogNames)];
+      return new Set(names.map(normName).filter(Boolean));
+    });
+    const closedOnAllDates = (name) => {
+      if (!dates.length || !closedKeysByDate.length) return false;
+      const variants = groupVariants.get(rideGroupKey(name)) || [normName(name)];
+      return closedKeysByDate.every(ks => variants.every(v => ks.has(v)));
+    };
+    const closedMustDos = [], tripUnplacedMustDos = [];
+    const seenGroups = new Set();
+    for (const name of mustDo) {
+      const g = rideGroupKey(name);
+      if (seenGroups.has(g)) continue;
+      seenGroups.add(g);
+      if (closedOnAllDates(name)) { closedMustDos.push(name); continue; }
+      if (bannedKeys.has(normName(name))) continue;
+      if (placedKeys.has(normName(name)) || placedGroups.has(g)) continue;
+      tripUnplacedMustDos.push(name);
+    }
+    return { tripUnplacedMustDos, closedMustDos };
+  } catch (e) { return null; }
+}

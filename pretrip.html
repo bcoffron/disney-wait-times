@@ -1421,13 +1421,13 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
       }
       return;
     }
-    // Fix 4 completeness surfacing: must-dos the generator could not fit
-    // today come back on the response -- accumulate across days; the finish
-    // step shows ONE guest-visible summary before saving. Never silent.
+    // Fix 4 per-day unplacedMustDos is a DIAGNOSTIC only (console): on a
+    // multi-day trip it names every must-do belonging to other days, so it
+    // must never be unioned into a guest summary. The guest-visible
+    // TRIP-level summary is computed once by the server at the save seam
+    // (api/trip.js) and rendered from the save response in _saveDays.
     if (Array.isArray(d.unplacedMustDos) && d.unplacedMustDos.length) {
-      window._ptUnplacedMustDos = window._ptUnplacedMustDos || [];
-      d.unplacedMustDos.forEach(function(nm){ if (window._ptUnplacedMustDos.indexOf(nm) === -1) window._ptUnplacedMustDos.push(nm); });
-      console.warn('[pretrip] Day ' + (dayIndex+1) + ' unplaced must-dos: ' + d.unplacedMustDos.join(', '));
+      console.warn('[pretrip] Day ' + (dayIndex+1) + ' unplaced must-dos (per-day diagnostic): ' + d.unplacedMustDos.join(', '));
     }
     try {
       // Prefer the server-VALIDATED items (validate-schedule.js corrections: snack dedup, height rider-swap,
@@ -1592,7 +1592,6 @@ function ptFinish() {
 
 function ptFinishAfterHours(tripConfig, d, totalDays) {
   var code = localStorage.getItem('tpcp_code') || '';
-  window._ptUnplacedMustDos = []; // Fix 4: per-trip accumulator, filled by ptGenerateDaySchedule
 
   // Persist the trip config to the blob IMMEDIATELY, before generation starts.
   // Generation can fail, hang, or be interrupted; if the only config write is the
@@ -1623,13 +1622,8 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   var _completed = 0;
 
   function _finishAndSave() {
-    // Fix 4 completeness surfacing: if any must-do could not fit anywhere in
-    // this trip, say so out loud BEFORE the save + redirect -- framed as a
-    // didn't-fit outcome, not an error.
-    if (window._ptUnplacedMustDos && window._ptUnplacedMustDos.length) {
-      alert("Heads up: we couldn't fit " + window._ptUnplacedMustDos.join(', ') + " into this trip. Consider removing a must-do or adding a day.");
-      window._ptUnplacedMustDos = [];
-    }
+    // Trip-level must-do surfacing renders from the SAVE response inside
+    // _saveDays (server computes it once, against the schedule as stored).
     // Carry-forward guard (Oct 6, 2026): a day whose generation failed must
     // never overwrite a stored non-empty day with an empty one. If any
     // generated day is empty, read the stored schedule first and substitute
@@ -1651,6 +1645,17 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
         var bytesWritten = bodyStr ? bodyStr.length : 0;
         console.log('[ptFinish] trip blob write status: ' + writeResp._httpStatus + ', bytes written: ' + bytesWritten + ', ok: ' + (writeResp.ok ? 'true' : 'false') + (writeResp.error ? ', error: ' + writeResp.error : ''));
         if (!writeResp.ok) { console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unknown') + ', error: ' + (writeResp.error || 'unknown')); }
+        // Trip-level must-do surfacing (Oct 7, 2026): the server computed
+        // these once, against the schedule exactly as saved -- show them
+        // here, before leaving, each line only when its list is non-empty.
+        var _surfLines = [];
+        if (Array.isArray(writeResp.tripUnplacedMustDos) && writeResp.tripUnplacedMustDos.length) {
+          _surfLines.push("Heads up: we couldn't fit " + writeResp.tripUnplacedMustDos.join(', ') + " into this trip. Consider removing a must-do or adding a day.");
+        }
+        if (Array.isArray(writeResp.closedMustDos) && writeResp.closedMustDos.length) {
+          _surfLines.push("Closed during your dates: " + writeResp.closedMustDos.join(', '));
+        }
+        if (_surfLines.length) alert(_surfLines.join('\n'));
         window.location.href = ptHomeUrl();
       })
       .catch(function(err){ clearTimeout(_saveAbortT); console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = ptHomeUrl(); });

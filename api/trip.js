@@ -1,6 +1,10 @@
 // api/trip.js - Trip code registry handler
 import { put, list, del } from '@vercel/blob';
 // validateSchedule is intentionally NOT imported here: saves must not rewrite schedules (see note in the POST handler).
+// scaffold.js IS imported, but only for the read-only trip-level surfacing
+// computation (computeTripSurfacing) in the POST handler: it reads the final
+// stored schedule and reports; it never mutates anything.
+import { buildCatalogIndex, computeTripSurfacing } from './scaffold.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment so their fixed public
@@ -70,6 +74,49 @@ async function writeTripBlob(tripId, tripData) {
     addRandomSuffix: false,
     contentType: 'application/json'
   });
+}
+
+// Cache sections for the trip-level surfacing computation: the SAME blobs and
+// sections the generator reads (stable CATALOG; dynamic CLOSURES +
+// CURRENT_CLOSURES), read the same way generateschedule's buildCacheContext
+// reads them. Best-effort: any failure yields an empty context and the
+// surfacing computation simply finds no closures.
+async function readSurfacingCache() {
+  const out = {};
+  const readBlob = async (key) => {
+    const { blobs } = await list({ prefix: key });
+    if (!blobs || !blobs.length) return null;
+    const resp = await fetch(blobs[0].downloadUrl || blobs[0].url);
+    if (!resp.ok) return null;
+    return await resp.json();
+  };
+  const section = (data, name) => {
+    const sections = (data && data.data && data.data.sections) || {};
+    const v = sections[name];
+    if (v === undefined || v === null) return undefined;
+    return typeof v === 'string' ? v : JSON.stringify(v);
+  };
+  await Promise.all([
+    (async () => {
+      try {
+        const d = await readBlob('twize/park_intel_dl_stable.json');
+        const v = d && section(d, 'CATALOG');
+        if (v !== undefined) out.CATALOG = v;
+      } catch (e) { console.warn('[trip] surfacing stable cache read failed:', e.message); }
+    })(),
+    (async () => {
+      try {
+        const d = await readBlob('twize/park_intel_dl_dynamic.json');
+        if (d) {
+          const cl = section(d, 'CLOSURES');
+          if (cl !== undefined) out.CLOSURES = cl;
+          const cc = section(d, 'CURRENT_CLOSURES');
+          if (cc !== undefined) out.CURRENT_CLOSURES = cc;
+        }
+      } catch (e) { console.warn('[trip] surfacing dynamic cache read failed:', e.message); }
+    })()
+  ]);
+  return out;
 }
 
 export default async function handler(req, res) {
@@ -196,7 +243,36 @@ export default async function handler(req, res) {
       const _blobBodyLen = JSON.stringify(tripData).length;
       console.log('[ptFinish] trip blob write status: 200, bytes written: ' + _blobBodyLen + ', tripId: ' + entry.tripId);
 
-      return res.status(200).json({ ok: true, tripId: entry.tripId });
+      // Trip-level must-do surfacing (Oct 7, 2026): computed ONCE, here at
+      // the save seam, against the schedule exactly as stored (post
+      // merge-guard) -- the one place the complete trip is visible.
+      // tripUnplacedMustDos = must-dos placed on no day of the saved
+      // schedule (minus closed-all-dates and banned); closedMustDos =
+      // must-dos closed on every date of the trip. Clients render these
+      // response fields as the end-of-build summary and must NOT union the
+      // per-day unplacedMustDos diagnostic (it over-reports by design).
+      // Best-effort: a surfacing failure never affects the save.
+      let _surfFields = null;
+      try {
+        const _stc = tripData && tripData.tripConfig;
+        const _sdays = _stc && _stc.schedule && _stc.schedule.days;
+        if (Array.isArray(_sdays) && _sdays.some(d => d && Array.isArray(d.items) && d.items.length)) {
+          const _scache = await readSurfacingCache();
+          const _surf = computeTripSurfacing(_stc, {
+            catalog: buildCatalogIndex(_scache.CATALOG),
+            closures: _scache.CLOSURES,
+            currentClosures: _scache.CURRENT_CLOSURES
+          });
+          if (_surf) {
+            _surfFields = { tripUnplacedMustDos: _surf.tripUnplacedMustDos, closedMustDos: _surf.closedMustDos };
+            if (_surf.tripUnplacedMustDos.length || _surf.closedMustDos.length) {
+              console.log('[trip] surfacing trip ' + entry.tripId + ': couldnt-fit=[' + _surf.tripUnplacedMustDos.join(', ') + '] closed-all-dates=[' + _surf.closedMustDos.join(', ') + ']');
+            }
+          }
+        }
+      } catch (e) { console.warn('[trip] surfacing computation failed (save unaffected):', e.message); }
+
+      return res.status(200).json(Object.assign({ ok: true, tripId: entry.tripId }, _surfFields || {}));
     } catch (e) {
       return res.status(400).json({ error: e.message });
     }
