@@ -2292,22 +2292,52 @@ export function planCoverageReservations(skeleton, opts) {
 // hour is seated as confirmed (the guest's commitment wins) AND surfaced as
 // a conflict so the trade-off is visible.
 // ---------------------------------------------------------------------------
+// The shipped client's per-day reservation encoding (pretrip.html
+// _genDaySeq): each day's generation request carries that day's confirmed
+// reservations as context strings of the form
+//   THIS DAY'S CONFIRMED RESERVATION: <venue name> at <h:MM AM>
+// The day is implied by the request that carries the string, so an entry
+// parsed from it reports day: null -- the 'day being generated' semantics
+// both consumers already give a null day. The split lands on the LAST
+// ' at ' whose tail is clock-shaped, so a venue name containing ' at '
+// survives; a string whose trailing token is not a time is not this
+// format and falls through to the other parsers (and, if nothing reads
+// it, to the unparsed surfacing -- finding 4a fix (a), Oct 7, 2026).
+const THIS_DAY_RES_RE = /^THIS DAY['’]S CONFIRMED RESERVATION:\s*(.+)\s+at\s+(\d{1,2}:\d{2}\s*(?:[AaPp][Mm])?)\s*$/i;
+export function splitThisDayReservation(str) {
+  const m = String(str || '').match(THIS_DAY_RES_RE);
+  if (!m) return null;
+  return { name: m[1].trim(), time: m[2].trim() };
+}
+
 export function parseReservationEntry(r) {
   if (!r) return null;
   let name = '', timeStr = '', day = null;
   if (typeof r === 'string') {
-    // Flat onboarding encoding: 'Name, Time, Day N' -- parsed exactly the
-    // way the generateschedule Part C parser splits it.
-    const parts = r.split(',').map(p => p.trim());
-    name = parts[0] || '';
-    timeStr = parts[1] || '';
-    const dm = (parts[2] || '').match(/(\d+)/);
-    day = dm ? parseInt(dm[1], 10) : null;
+    const td = splitThisDayReservation(r);
+    if (td) {
+      name = td.name;
+      timeStr = td.time;
+    } else {
+      // Flat onboarding encoding: 'Name, Time, Day N' -- parsed exactly the
+      // way the generateschedule Part C parser splits it.
+      const parts = r.split(',').map(p => p.trim());
+      name = parts[0] || '';
+      timeStr = parts[1] || '';
+      const dm = (parts[2] || '').match(/(\d+)/);
+      day = dm ? parseInt(dm[1], 10) : null;
+    }
   } else if (typeof r === 'object') {
     name = String(r.name || r.venue || r.restaurant || '').trim();
     timeStr = String(r.time || '').trim();
     if (typeof r.day === 'number' && isFinite(r.day)) day = r.day;
     else if (typeof r.day === 'string') { const dm = r.day.match(/(\d+)/); day = dm ? parseInt(dm[1], 10) : null; }
+    // An upstream splitter that does not know the per-day encoding (the
+    // generateschedule Part C comma parser) delivers the whole context
+    // string in the name field with an empty time. Recognize the encoding
+    // wherever it surfaces and read the entry from the string itself.
+    const td = splitThisDayReservation(name);
+    if (td) { name = td.name; timeStr = td.time; }
   }
   if (!name) return null;
   let timeMin = parseClock(timeStr);
