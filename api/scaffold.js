@@ -434,9 +434,25 @@ export function applyFills(skeleton, fills, opts) {
   // venue filter reads the same set.
   const priorVenueKeys = new Set((opts.priorVenues || []).map(normName).filter(Boolean));
   (opts.priorVenues || []).forEach(n => { if (n) used.add(String(n).toLowerCase()); });
+  // Canonical venue identity (Phase 1+3, Oct 7, 2026): venue dedup, the
+  // table-service gate, and the wrong-park venue check all resolve through
+  // canonicalVenueKey so variant name forms ('Lamplight Lounge Dining
+  // Room') hit the same key as the catalog venue. The used-venue set handed
+  // to the deterministic backfill (mkFallback) is THIS set, so snack venues
+  // accumulate into the trip used-set alongside dining -- a snack use used
+  // to be invisible to dedup, which let one cafe appear 3x in a trip.
+  const _venuesArr = Array.isArray(opts.venues) ? opts.venues : [];
+  const _venueKeyOf = makeVenueKeyResolver(_venuesArr);
+  const _svcByCanon = buildVenueServiceMap(_venuesArr);
+  if (opts.venueServices && typeof opts.venueServices === 'object') {
+    for (const k of Object.keys(opts.venueServices)) { const ck = canonicalVenueKey(k); if (ck && !_svcByCanon[ck]) _svcByCanon[ck] = opts.venueServices[k]; }
+  }
+  const _resvCanon = new Set([...(opts.reservationKeys || [])].map(canonicalVenueKey).filter(Boolean));
+  const priorVenueCanon = new Set((opts.priorVenues || []).map(n => _venueKeyOf(n)).filter(Boolean));
+  const placedVenueCanon = new Set();
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
-    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, encoredRideKeys: encoredTodayNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, nearLand: (function () { for (let i = cards.length - 1; i >= 0; i--) { if (cards[i] && cards[i].land) return cards[i].land; } return ''; })() }) : placeholderCard(slot);
+    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, encoredRideKeys: encoredTodayNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, closeMin: (opts.closeMinByPark && opts.closeMinByPark[normParkName(slot.park)]) || opts.closeMin || null, usedVenueKeys: placedVenueCanon, nearLand: (function () { for (let i = cards.length - 1; i >= 0; i--) { if (cards[i] && cards[i].land) return cards[i].land; } return ''; })() }) : placeholderCard(slot);
     if (fallbackFor) report.fallback++;
     c.t = toClock(clampToWindow(parseClock(c.t), slot.window, slot.fixed).t); // stamp a valid in-window time
     if (!c.type) c.type = slot.type;
@@ -472,7 +488,8 @@ export function applyFills(skeleton, fills, opts) {
       const venueClosed = isDiningSlot && closedVenueNames.some(cn => cn && hL.indexOf(cn) !== -1);
       // A restaurant repeated from an earlier day (or twice in one day) is a
       // failed fill -- the backfill has the full venue catalog to pick from.
-      const venueDup = isDiningSlot && (priorVenueKeys.has(normName(cleanH)) || used.has(hL));
+      const _canonVk = isDiningSlot ? _venueKeyOf(cleanH) : '';
+      const venueDup = isDiningSlot && ((_canonVk && (priorVenueCanon.has(_canonVk) || placedVenueCanon.has(_canonVk))) || priorVenueKeys.has(normName(cleanH)) || used.has(hL));
       const mealGeneric = (slot.type === 'dining' || slot.type === 'quickservice') && GENERIC_MEAL_KEYS.has(normName(cleanH));
       // A dining/quickservice heading that names no venue from the verified
       // catalog list is an invented restaurant -- a failed fill, so the
@@ -484,9 +501,9 @@ export function applyFills(skeleton, fills, opts) {
         const venues = Array.isArray(opts.venues) ? opts.venues : [];
         if (!venues.length) return false;
         const stripped = cleanH.replace(/^(lunch|dinner|breakfast|brunch)\s*[:\-]\s*/i, '').replace(/^(lunch|dinner|breakfast|brunch)\s+at\s+/i, '');
-        const hk = normName(stripped);
+        const hk = canonicalVenueKey(stripped);
         if (!hk) return false;
-        const hitV = venues.find(v => { const vk = normName(v && v.name); return vk && (hk === vk || hk.indexOf(vk) !== -1 || (hk.length >= 4 && vk.indexOf(hk) !== -1)); });
+        const hitV = venues.find(v => { const vk = canonicalVenueKey(v && v.name); return vk && (hk === vk || hk.indexOf(vk) !== -1 || (hk.length >= 4 && vk.indexOf(hk) !== -1)); });
         if (hitV) return !!(hitV.park && !sameParkName(hitV.park, slot.park));
         if (slot.type === 'snack' && /snack|break|shopping|hydration|rest|dole whip/i.test(cleanH)) return false;
         return true;
@@ -498,17 +515,22 @@ export function applyFills(skeleton, fills, opts) {
       // (opts.reservationKeys). Mirrors the onboarding promise in pretrip.
       const venueServiceBad = (function () {
         if (!isDiningSlot) return false;
-        const vsMap = opts.venueServices || null;
-        if (!vsMap || !Object.keys(vsMap).length) return false;
+        if (!Object.keys(_svcByCanon).length) return false;
         const stripped = cleanH.replace(/^(lunch|dinner|breakfast|brunch)\s*[:\-]\s*/i, '').replace(/^(lunch|dinner|breakfast|brunch)\s+at\s+/i, '');
-        const hk = normName(stripped);
+        const hk = canonicalVenueKey(stripped);
         if (!hk) return false;
+        // Canonical resolution BEFORE the service check: variant suffixes
+        // are stripped from both the heading and the catalog keys, so
+        // 'Lamplight Lounge Dining Room' resolves to the Lamplight Lounge
+        // entry (a lounge after name-form correction) instead of sailing
+        // past the gate on a string mismatch.
         let hitSvc = null, hitKey = null;
-        for (const k of Object.keys(vsMap)) {
-          if (k && (hk === k || hk.indexOf(k) !== -1 || (hk.length >= 4 && k.indexOf(hk) !== -1))) { hitSvc = vsMap[k]; hitKey = k; break; }
+        if (_svcByCanon[hk]) { hitSvc = _svcByCanon[hk]; hitKey = hk; }
+        else for (const k of Object.keys(_svcByCanon)) {
+          if (k && (hk.indexOf(k) !== -1 || (hk.length >= 4 && k.indexOf(hk) !== -1))) { hitSvc = _svcByCanon[k]; hitKey = k; break; }
         }
         if (hitSvc !== 'table' && hitSvc !== 'lounge') return false;
-        if (opts.reservationKeys && opts.reservationKeys.has(hitKey)) return false;
+        if (hitKey && _resvCanon.has(hitKey)) return false;
         return true;
       })();
       // Guest bans are absolute at fill time (skip list + avoidWater folds):
@@ -532,7 +554,17 @@ export function applyFills(skeleton, fills, opts) {
       // Transport/walkthrough attractions never occupy a morning slot
       // (afternoon/evening only -- see NEVER_MORNING_KEYS).
       const transportBad = isRideSlot && !!nkey && NEVER_MORNING_KEYS.has(nkey) && winStart(slot.window) < 720;
-      const rsrBad = isRideSlot && !!nkey && nkey === RSR_KEY && !rsrWindowOk(winStart(slot.window), opts && opts.closeMin);
+      // Headliner window (generalized from RSR, Oct 7, 2026): any catalog
+      // ropeDropValue='high' ride placed STANDBY outside the morning edge /
+      // final-90-minutes window is a failed fill. The close is per park/day
+      // (opts.closeMinByPark, plumbed Phase 1 -- the old code never received
+      // a closeMin at all, so every check silently used the 8:30 PM
+      // fallback). A fill carrying a genuine LL/ILL return tag for a bought
+      // product is exempt (Beau's ruling: the rule is about standby waits).
+      const _slotClose = (opts.closeMinByPark && opts.closeMinByPark[normParkName(slot.park)]) || opts.closeMin || null;
+      const _isHeadliner = isRideSlot && isHeadlinerKey(nkey, catalogEntry);
+      const _llExempt = _isHeadliner && llWindowExempt(nkey, f && f.ll, { llmp: opts.llmp === true, ill: opts.ill === true });
+      const headlinerBad = _isHeadliner && !_llExempt && !headlinerWindowOk(winStart(slot.window), _slotClose);
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
       // A park or land name is not a fill: the model sometimes answers a dining,
       // snack, or show slot with the place it sits in ("Disneyland", "DCA",
@@ -548,12 +580,12 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad || rsrBad) {
+      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad || headlinerBad) {
         if (parkBad || catalogParkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : rsrBad ? 'rsr-window' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : headlinerBad ? (nkey === RSR_KEY ? 'rsr-window' : 'headliner-window') : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -573,6 +605,16 @@ export function applyFills(skeleton, fills, opts) {
       if (slot.type === 'ride') {
         const ck = normName(card.ride || card.h || '');
         if (ck) { usedRideNames.add(ck); usedRideSquash.add(ck.replace(/ /g, '')); todayRideNames.add(ck); const cg = rideGroupKey(ck); if (cg) usedGroups.add(cg); }
+      }
+      // Register the venue of EVERY dining-ish card (accepted fill AND
+      // fallback) in the canonical used-venue set -- SNACK cards included.
+      // Fallback cards are built from this same set via mkFallback, so a
+      // venue seated by the backfill can never be re-seated later today,
+      // and a snack use now counts against the trip used-set exactly like
+      // a meal (the Fiddler Fifer 3x repeat rode on snack invisibility).
+      if (slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack') {
+        const _cvk = _venueKeyOf(card.h || '');
+        if (_cvk) placedVenueCanon.add(_cvk);
       }
       cards.push(card);
     }
@@ -617,13 +659,191 @@ const ILL_ONLY_KEYS = new Set(['star wars rise of the resistance', 'radiator spr
 // the close is unknown). A 1:25 PM Radiator Springs card is exactly the
 // failure this rule exists to prevent.
 export const RSR_KEY = normName('Radiator Springs Racers');
-export function rsrWindowOk(startMin, closeMin) {
+export function rsrWindowOk(startMin, closeMin) { return headlinerWindowOk(startMin, closeMin); }
+// HEADLINER WINDOW (Beau, Oct 7, 2026 -- generalizes the RSR rule): EVERY
+// catalog ropeDropValue='high' ride has the same standby physics as RSR --
+// the line explodes by late morning and stays brutal until the evening --
+// so a STANDBY placement is legal only before 10:30 AM or in the park's
+// final 90 minutes (closeMin - 90; 8:30 PM fallback when the close is
+// unknown). The catalog is the source of truth for which rides are
+// headliners (ropeDropValue), never a wait threshold. A placement carrying
+// a GENUINE Lightning Lane return tag for a product the group actually
+// bought is exempt -- the rule governs standby waits, not LL returns.
+export function headlinerWindowOk(startMin, closeMin) {
   if (startMin == null || isNaN(startMin)) return false;
   if (startMin < 630) return true;
   if (closeMin) return startMin >= closeMin - 90;
   return startMin >= 1230;
 }
+export function isHeadlinerKey(key, catalogEntry) {
+  return !!key && (key === RSR_KEY || !!(catalogEntry && catalogEntry.ropeDropValue === 'high'));
+}
+// Is this ll tag a genuine return for a purchased product on this ride?
+// 'single' is genuine only on ILL-only rides when ILL was bought; 'multi'
+// only on Multi-Pass rides when LLMP was bought. Anything else (a stale tag
+// inherited from another card, a tag for a product the group never bought)
+// does NOT exempt the placement from the headliner window.
+export function llWindowExempt(key, ll, products) {
+  if (!ll || !key) return false;
+  const p = products || {};
+  if (ll.t === 'single') return ILL_ONLY_KEYS.has(key) && p.ill === true;
+  if (ll.t === 'multi') return !ILL_ONLY_KEYS.has(key) && p.llmp === true;
+  return false;
+}
 export const NEVER_MORNING_KEYS = new Set(['disneyland monorail', 'disneyland railroad', 'main street vehicles', 'mark twain riverboat', 'sailing ship columbia', "davy crockett's explorer canoes", 'sleeping beauty castle walkthrough'].map(normName));
+
+// ---------------------------------------------------------------------------
+// CANONICAL VENUE IDENTITY (Phase 3, Oct 7, 2026). Venue names arrive with
+// variant suffixes the model and the caches disagree on ('Lamplight Lounge',
+// 'Lamplight Lounge Dining Room', 'Blue Bayou', 'Blue Bayou Restaurant').
+// Every venue comparison -- table-service gate, trip-wide dedup, wrong-park
+// -- runs on the canonical key: normName with trailing venue-form suffixes
+// stripped, applied IDENTICALLY to catalog names, card headings, prior-day
+// venue lists, and reservation names, so both sides of every comparison
+// land on the same key ('lamplight lounge dining room' -> 'lamplight
+// lounge', 'blue bayou restaurant' -> 'blue bayou').
+// ---------------------------------------------------------------------------
+const VENUE_SUFFIX_TOKENS = ['restaurant', 'cafe', 'bakery', 'grill', 'bar'];
+export function canonicalVenueKey(name) {
+  let k = normName(name);
+  if (!k) return '';
+  let changed = true;
+  while (changed && k.indexOf(' ') !== -1) {
+    changed = false;
+    if (k.endsWith(' dining room')) { k = k.slice(0, -(' dining room'.length)).trim(); changed = true; continue; }
+    for (const suf of VENUE_SUFFIX_TOKENS) {
+      if (k.endsWith(' ' + suf)) { k = k.slice(0, -(suf.length + 1)).trim(); changed = true; break; }
+    }
+  }
+  return k;
+}
+// Name-form service correction: a venue whose own name carries the word
+// 'Lounge' IS a lounge (Disney's category word is in the name -- Carthay
+// Circle Lounge is catalogued 'lounge'). The one catalog entry that breaks
+// the invariant, 'Lamplight Lounge Dining Room', is an upstream
+// misclassification (also the catalog's only quickservice entry with a
+// 'recommended' reservation policy); correcting the name form here keeps
+// the QS-only gate honest until the cache builder's own fix lands.
+export function correctVenueServices(venues) {
+  return (Array.isArray(venues) ? venues : []).map(v => {
+    if (!v || !v.name) return v;
+    if (v.service === 'quickservice' && canonicalVenueKey(v.name).split(' ').indexOf('lounge') !== -1) {
+      return Object.assign({}, v, { service: 'lounge' });
+    }
+    return v;
+  });
+}
+// canonicalKey -> service, built from (corrected) catalog venues. On a
+// canonical collision between distinct entries the MORE restrictive service
+// wins (table > lounge > quickservice/snack) -- the gate fails safe.
+export function buildVenueServiceMap(venues) {
+  const rank = (s) => s === 'table' ? 3 : s === 'lounge' ? 2 : (s === 'quickservice' || s === 'snack') ? 1 : 0;
+  const map = {};
+  for (const v of correctVenueServices(venues)) {
+    if (!v || !v.name || !v.service) continue;
+    const k = canonicalVenueKey(v.name);
+    if (!k) continue;
+    if (!map[k] || rank(v.service) > rank(map[k])) map[k] = v.service;
+  }
+  return map;
+}
+// Resolve any venue-ish heading to ONE dedup key: the canonical catalog key
+// when the heading names a catalog venue (exact or containment, in
+// canonical space), else 'raw:' + its own canonical key so identical
+// non-catalog headings still dedupe against each other.
+export function makeVenueKeyResolver(venues) {
+  const canonKeys = [];
+  const seen = new Set();
+  for (const v of (Array.isArray(venues) ? venues : [])) {
+    if (!v || !v.name) continue;
+    const k = canonicalVenueKey(v.name);
+    if (k && !seen.has(k)) { seen.add(k); canonKeys.push(k); }
+  }
+  return function venueKeyOf(heading) {
+    const stripped = String(heading || '').replace(/^(lunch|dinner|breakfast|brunch)\s*[:\-]\s*/i, '').replace(/^(lunch|dinner|breakfast|brunch)\s+at\s+/i, '');
+    const hk = canonicalVenueKey(stripped);
+    if (!hk) return '';
+    if (seen.has(hk)) return hk;
+    for (const k of canonKeys) { if (hk.indexOf(k) !== -1 || (hk.length >= 4 && k.indexOf(hk) !== -1)) return k; }
+    return 'raw:' + hk;
+  };
+}
+
+// Fresh LL derivation for a card whose identity was just changed by a
+// mutator: the tag is computed from the ride + the day's purchased
+// products, NEVER inherited from the card it replaced. Returns null when
+// no tag applies (no product, or an ILL-only ride without ILL).
+export function deriveLLForRide(name, products) {
+  const k = normName(name);
+  if (!k) return null;
+  const p = products || {};
+  if (ILL_ONLY_KEYS.has(k)) return p.ill === true ? { t: 'single', a: 'Individual Lightning Lane -- book in the app at park open.' } : null;
+  if (p.llmp === true) return { t: 'multi', a: 'Lightning Lane Multi Pass pick -- book a return time in the app.' };
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// POST-MUTATION RE-VALIDATION GATE (Fix 3 F1/F2, Oct 7, 2026). ONE shared
+// helper every post-fill mutator routes through before committing a change:
+// for the card AS IT WOULD SHIP it checks closures, guest bans, park
+// presence (against ctx.parks when supplied), the headliner window for
+// standby placements (genuine LL/ILL returns exempt), NEVER_MORNING
+// transports, and QS-only dining via canonical venue resolution. Must-do
+// preservation is a property of the mutation, not the card, and stays a
+// call-site invariant (swap-in never targets a must-do card; dezigzag swaps
+// identities pairwise so the day's must-do multiset cannot change).
+// ctx: { catalog, closedNames, bannedNames, closeMin, closeMinByPark,
+//        llmp, ill, parks, venueServiceMap, reservationKeys,
+//        closedVenueNames }
+// Returns { ok, reasons[] } -- never throws.
+// ---------------------------------------------------------------------------
+export function revalidateCard(card, ctx) {
+  const reasons = [];
+  try {
+    if (!card) return { ok: false, reasons: ['no-card'] };
+    ctx = ctx || {};
+    const catalog = ctx.catalog || {};
+    const startMin = parseClock(card.t);
+    if (card.type === 'ride') {
+      const key = normName(card.ride || card.h || '');
+      const hL = String(card.h || '').toLowerCase();
+      const closedHit = (ctx.closedNames || []).some(cn => { const c = String(cn || '').toLowerCase(); return c && hL.indexOf(c) !== -1; });
+      if (closedHit) reasons.push('closed');
+      if (key) {
+        const bannedKeys = new Set((ctx.bannedNames || []).map(normName).filter(Boolean));
+        const bannedGroups = new Set([...bannedKeys].map(k => rideGroupKey(k)));
+        if (bannedKeys.has(key) || bannedGroups.has(rideGroupKey(key))) reasons.push('banned');
+      }
+      const ce = key ? (catalog[key] || null) : null;
+      if (ce && ce.park && Array.isArray(ctx.parks) && ctx.parks.length) {
+        if (!ctx.parks.some(p => sameParkName(p, ce.park))) reasons.push('wrong-park');
+      }
+      if (key && NEVER_MORNING_KEYS.has(key) && startMin != null && startMin < 720) reasons.push('transport-morning');
+      if (isHeadlinerKey(key, ce) && startMin != null) {
+        if (!llWindowExempt(key, card.ll, { llmp: ctx.llmp === true, ill: ctx.ill === true })) {
+          let cm = (ctx.closeMin != null) ? ctx.closeMin : null;
+          if (ctx.closeMinByPark && ce && ce.park) { const v = ctx.closeMinByPark[normParkName(ce.park)]; if (v != null) cm = v; }
+          if (!headlinerWindowOk(startMin, cm)) reasons.push('headliner-window');
+        }
+      }
+    } else if (card.type === 'dining' || card.type === 'quickservice' || card.type === 'snack') {
+      const hL = String(card.h || '').toLowerCase();
+      if ((ctx.closedVenueNames || []).some(cn => { const c = String(cn || '').toLowerCase(); return c && hL.indexOf(c) !== -1; })) reasons.push('venue-closed');
+      if (ctx.venueServiceMap && Object.keys(ctx.venueServiceMap).length) {
+        const hk = canonicalVenueKey(String(card.h || '').replace(/^(lunch|dinner|breakfast|brunch)\s*[:\-]\s*/i, '').replace(/^(lunch|dinner|breakfast|brunch)\s+at\s+/i, ''));
+        let svc = hk ? (ctx.venueServiceMap[hk] || null) : null;
+        if (!svc && hk) { for (const k of Object.keys(ctx.venueServiceMap)) { if (k && (hk.indexOf(k) !== -1 || (hk.length >= 4 && k.indexOf(hk) !== -1))) { svc = ctx.venueServiceMap[k]; break; } } }
+        if (svc === 'table' || svc === 'lounge') {
+          const resv = new Set([...(ctx.reservationKeys || [])].map(canonicalVenueKey).filter(Boolean));
+          let reserved = hk && resv.has(hk);
+          if (!reserved && hk) { for (const rk of resv) { if (rk && hk.indexOf(rk) !== -1) { reserved = true; break; } } }
+          if (!reserved) reasons.push('venue-table-service');
+        }
+      }
+    }
+  } catch (e) { /* gate is fail-open on its own bugs: callers log the verdict */ }
+  return { ok: reasons.length === 0, reasons };
+}
 
 // Parse the CATALOG cache section (JSON string or object) into a lookup:
 //   normName(attraction name) -> { name, park, land, status, typicalPeakWait, ropeDropValue }
@@ -669,13 +889,14 @@ export function parseCatalogVenues(catalogRaw) {
 // Order final cards chronologically and de-collide identical timestamps. The model may pick
 // any time inside a slot window, so slot order (window-start) can invert against chosen times.
 // Equal times get bumped +1 min so each is distinct (display-only). Unparseable times sort last.
-function sortAndSpace(cards) {
+function sortAndSpace(cards, mutations) {
   const rows = (cards || []).map((c, i) => ({ c, i, m: parseClock(c.t) }));
   rows.sort((a, b) => ((a.m == null) - (b.m == null)) || ((a.m || 0) - (b.m || 0)) || (a.i - b.i));
   let prev = -1;
   let prevComfort = -1;
   for (const r of rows) {
     if (r.m == null) continue;
+    const _origT = r.c.t;
     let m = r.m;
     if (m <= prev) m = prev + 1;
     // Comfort spacing: a restroom break hard on the heels of a snack, break, or
@@ -684,6 +905,9 @@ function sortAndSpace(cards) {
     if (r.c.type === 'break' && prevComfort >= 0 && m - prevComfort < 25) m = prevComfort + 25;
     if (m <= prev) m = prev + 1;
     r.c.t = toClock(m);
+    // Every retime is surfaced (Fix 3 F13): a +1 bump can carry a headliner
+    // across the window edge, and silence made such changes unauditable.
+    if (mutations && r.c.t !== _origT) mutations.push({ action: 'retime', h: r.c.h, from: _origT, to: r.c.t });
     prev = m;
     if (r.c.type === 'break' || r.c.type === 'snack' || r.c.type === 'dining') prevComfort = m;
   }
@@ -697,7 +921,7 @@ function sortAndSpace(cards) {
 // Conservative: plain ride triples only, never an Individual Lightning Lane
 // card (appointment-like), and the day's rope-drop card is only ever the
 // first A, which this swap never touches.
-function dezigzagRides(kept, catalog) {
+function dezigzagRides(kept, catalog, gateCtx, mutations) {
   const landOf = (c) => {
     const ce = catalog && catalog[normName(c.ride || c.h)];
     return normName((ce && ce.land) || c.land || '');
@@ -718,7 +942,23 @@ function dezigzagRides(kept, catalog) {
         const la = landOf(a), lb = landOf(b), lc = landOf(c);
         if (!la || !lb || !lc || la !== lc || la === lb) continue;
         if ((b.ll && b.ll.t === 'single') || (c.ll && c.ll.t === 'single')) continue;
+        // Re-validation gate (Fix 3 F2): the swap moves each ride to the
+        // OTHER card's time -- validate both resulting cards before
+        // committing. The audit's SIM2 moved a legal 8:35 PM RSR to
+        // 7:00 PM (standby, outside the window) through this exact swap;
+        // a violating swap is now reverted (never committed) and logged.
+        if (gateCtx) {
+          const _names = [String(b.ride || b.h || ''), String(c.ride || c.h || '')];
+          const _vb = revalidateCard({ type: 'ride', t: b.t, h: c.h, ride: c.ride || c.h, land: c.land, ll: c.ll }, gateCtx);
+          const _vc = revalidateCard({ type: 'ride', t: c.t, h: b.h, ride: b.ride || b.h, land: b.land, ll: b.ll }, gateCtx);
+          if (!_vb.ok || !_vc.ok) {
+            if (mutations) mutations.push({ action: 'dezigzag-blocked', rides: _names, at: [b.t, c.t], reason: (!_vb.ok ? _vb.reasons[0] : _vc.reasons[0]) });
+            continue;
+          }
+        }
+        const _swapNames = [String(b.ride || b.h || ''), String(c.ride || c.h || '')];
         swapIdentity(b, c);
+        if (mutations) mutations.push({ action: 'dezigzag-swap', rides: _swapNames, at: [b.t, c.t] });
         changed = true;
       }
       seg = [];
@@ -776,17 +1016,21 @@ function walkMin(a, b, landToPark) {
   if (EDGE_LANDS.has(String(a.land).toLowerCase()) || EDGE_LANDS.has(String(b.land).toLowerCase())) return 11;
   return 8;
 }
-export function normalizeLLAssignments(cards, opts) {
+export function normalizeLLAssignments(cards, opts, mutations) {
   const llmp = !!(opts && opts.llmp), ill = !!(opts && opts.ill);
   const catalog = (opts && opts.catalog) || {};
   const list = cards || [];
-  if (!llmp && !ill) { for (const c of list) if (c.ll) delete c.ll; return list; }
+  // Every tag change is surfaced (Fix 3 F13): stripping a tag can turn an
+  // LL-exempt afternoon headliner into a standby window violation, and
+  // silence made that invisible in the generation response.
+  const _note = (c, from, to) => { if (mutations && from !== to) mutations.push({ action: to ? 'll-tag' : 'll-untag', h: c.h, from: from || null, to: to || null }); };
+  if (!llmp && !ill) { for (const c of list) if (c.ll) { _note(c, c.ll.t, null); delete c.ll; } return list; }
   for (const c of list) {
     if (c.type !== 'ride') continue;
     const k = normName(c.ride || c.h);
     if (ILL_ONLY_KEYS.has(k)) {
-      if (ill) c.ll = { t: 'single', a: (c.ll && c.ll.a) || 'Individual Lightning Lane -- book in the app at park open.' };
-      else if (c.ll && c.ll.t === 'single') delete c.ll;
+      if (ill) { if (!c.ll || c.ll.t !== 'single') _note(c, c.ll && c.ll.t, 'single'); c.ll = { t: 'single', a: (c.ll && c.ll.a) || 'Individual Lightning Lane -- book in the app at park open.' }; }
+      else if (c.ll && c.ll.t === 'single') { _note(c, 'single', null); delete c.ll; }
     }
   }
   if (llmp) {
@@ -795,11 +1039,11 @@ export function normalizeLLAssignments(cards, opts) {
     scored.sort((a, b) => (b.tagged - a.tagged) || (b.peak - a.peak) || (a.m - b.m));
     const chosen = new Set(scored.slice(0, 8).map(x => x.c));
     for (const c of eligible) {
-      if (chosen.has(c)) { if (!c.ll || c.ll.t !== 'multi') c.ll = { t: 'multi', a: 'Lightning Lane Multi Pass pick -- book a return time in the app.' }; }
-      else if (c.ll && c.ll.t === 'multi') delete c.ll;
+      if (chosen.has(c)) { if (!c.ll || c.ll.t !== 'multi') { _note(c, c.ll && c.ll.t, 'multi'); c.ll = { t: 'multi', a: 'Lightning Lane Multi Pass pick -- book a return time in the app.' }; } }
+      else if (c.ll && c.ll.t === 'multi') { _note(c, 'multi', null); delete c.ll; }
     }
   } else {
-    for (const c of list) if (c.ll && c.ll.t === 'multi') delete c.ll;
+    for (const c of list) if (c.ll && c.ll.t === 'multi') { _note(c, 'multi', null); delete c.ll; }
   }
   return list;
 }
@@ -888,6 +1132,7 @@ export function verifyScaffold(cards, opts) {
   const usedRideSquash = new Set();
   const usedGroups = new Set();
   const removed = [], kept = [], usedRide = new Set();
+  const mutations = []; // Fix 3 F13: every post-fill mutator change surfaces here
   const encoredGroups = new Set(); // same-day encore repeats already kept (Fix 4)
   // ILL gating: the group did not buy Individual Lightning Lane, so no card may
   // carry ILL instructions. Tip cards built around ILL are removed outright;
@@ -899,7 +1144,7 @@ export function verifyScaffold(cards, opts) {
     for (const c of _inputCards) {
       const text = String(c.h || '') + ' ' + String(c.n || '');
       if (c.type === 'tip' && illRe.test(text)) { removed.push({ h: c.h, reason: 'ill-not-purchased' }); continue; }
-      if (c.n && illRe.test(c.n)) c.n = c.n.split(/(?<=[.!])\s+/).filter(p => !illRe.test(p)).join(' ').trim();
+      if (c.n && illRe.test(c.n)) { const _n0 = c.n; c.n = c.n.split(/(?<=[.!])\s+/).filter(p => !illRe.test(p)).join(' ').trim(); if (c.n !== _n0) mutations.push({ action: 'ill-scrub', h: c.h }); }
       nextIn.push(c);
     }
     _inputCards = nextIn;
@@ -914,6 +1159,7 @@ export function verifyScaffold(cards, opts) {
       const _lk = normName(c.ride || c.h);
       if (_lk && !ILL_ONLY_KEYS.has(_lk)) {
         c.ll = Object.assign({}, c.ll, { t: 'multi' });
+        mutations.push({ action: 'll-correct', h: c.h, from: 'single', to: 'multi' });
         const _scrub = (s) => typeof s === 'string' ? s.replace(/single pass/gi, 'Multi Pass').replace(/\bILL\b/g, 'LLMP') : s;
         if (c.ll.a) c.ll.a = _scrub(c.ll.a);
         c.h = _scrub(c.h); if (c.n) c.n = _scrub(c.n);
@@ -998,14 +1244,28 @@ export function verifyScaffold(cards, opts) {
     }
     kept.push(c);
   }
-  dezigzagRides(kept, catalog);
-  const _finalCards = sortAndSpace(kept);
+  // Post-fill mutators route through the shared re-validation gate
+  // (revalidateCard) and log every change into `mutations`, which the
+  // handler returns as verifyMutations -- silence was the defect (F13).
+  const _gateCtx = { catalog, landToPark, closedNames: opts.closedNames || [], bannedNames: opts.bannedNames || [], closeMin: (opts.closeMin != null ? opts.closeMin : null), closeMinByPark: opts.closeMinByPark || null, llmp: opts.hasLLMP === true, ill: opts.hasILL === true, parks: allowedParks };
+  dezigzagRides(kept, catalog, _gateCtx, mutations);
+  const _finalCards = sortAndSpace(kept, mutations);
   if (opts.hasLLMP !== undefined || opts.hasILL !== undefined) {
-    normalizeLLAssignments(_finalCards, { llmp: opts.hasLLMP === true, ill: opts.hasILL === true, catalog });
+    normalizeLLAssignments(_finalCards, { llmp: opts.hasLLMP === true, ill: opts.hasILL === true, catalog }, mutations);
+  }
+  // Post-mutation gate scan: if LL normalization stripped the tag that
+  // exempted an afternoon headliner, that card is now a standby window
+  // violation -- surface it here (verify stays remove-only by design; the
+  // window is enforced in applyFills, the backfill pools, and the
+  // swap/dezigzag gates).
+  for (const c of _finalCards) {
+    if (!c || c.type !== 'ride') continue;
+    const _gv = revalidateCard(c, _gateCtx);
+    if (!_gv.ok && _gv.reasons.indexOf('headliner-window') !== -1) mutations.push({ action: 'gate-warning', h: c.h, at: c.t, reason: 'headliner-window' });
   }
   const _trim = trimInfeasible(_finalCards, { waitPatterns: opts.waitPatterns || null, catalog, landToPark, mustDoNames: opts.mustDoNames || [] });
   for (const r of _trim.trimmed) removed.push(r);
-  return { cards: _trim.cards, removed, trimmedMustDos: _trim.trimmedMustDos || [] };
+  return { cards: _trim.cards, removed, trimmedMustDos: _trim.trimmedMustDos || [], mutations };
 }
 
 // ---------------------------------------------------------------------------
@@ -1350,8 +1610,20 @@ export function pickCharacterMeet(characters, categories, dayParks, priorNames, 
   const wasMet = (c) => { const k = normName(c.name); return priorNorms.some(p => p === k || p.indexOf(k) !== -1 || k.indexOf(p) !== -1); };
   const coveredCats = new Set();
   for (const c of pool) { if (wasMet(c)) coveredCats.add(c.category); }
-  const score = (c) => (coveredCats.has(c.category) ? 2 : 0) + (wasMet(c) ? 1 : 0);
-  const pick = inParks.slice().sort((a, b) => score(a) - score(b))[0];
+  // HARD trip-wide dedup (Beau, Oct 7, 2026): a character met on an earlier
+  // day is NEVER selected again -- the old scoring merely preferred un-met
+  // characters (weight 1), so a repeat won whenever the fresh pool was thin
+  // (Mandalorian & Grogu landed on Days 1 AND 3 of Beau's saved plan). If
+  // the category-filtered pool is exhausted, fall back to the full roster
+  // before giving up; if every in-park character has been met, return null
+  // (the daily-meet requirement yields to never-twice; the handler logs it).
+  let fresh = inParks.filter(c => !wasMet(c));
+  if (!fresh.length && usable !== pool) {
+    fresh = pool.filter(c => { const p = parkOf(c); return p && dayParks.some(dp => sameParkName(dp, p)); }).filter(c => !wasMet(c));
+  }
+  if (!fresh.length) return null;
+  const score = (c) => (coveredCats.has(c.category) ? 2 : 0);
+  const pick = fresh.slice().sort((a, b) => score(a) - score(b))[0];
   const parkMatch = dayParks.find(dp => sameParkName(dp, parkOf(pick)));
   return { name: pick.name, park: parkMatch || dayParks[0], land: pick.location || '', category: pick.category || '', wait: pick.typicalWait || 0, windows: Array.isArray(pick.typicalWindows) ? pick.typicalWindows : [] };
 }
@@ -1359,7 +1631,12 @@ export function pickCharacterMeet(characters, categories, dayParks, priorNames, 
 export function deterministicBackfill(slot, ctx) {
   ctx = ctx || {};
   const catalog = Array.isArray(ctx.catalog) ? ctx.catalog : [];
-  const venues = Array.isArray(ctx.venues) ? ctx.venues : [];
+  // Name-form service correction applied here too (idempotent), so every
+  // caller of the backfill -- not just the generate handler -- gets the
+  // corrected Lamplight classification in its dining pool.
+  const venues = correctVenueServices(Array.isArray(ctx.venues) ? ctx.venues : []);
+  const _venueKeyOfB = makeVenueKeyResolver(venues);
+  const usedVenueKeys = (ctx.usedVenueKeys instanceof Set) ? ctx.usedVenueKeys : null;
   const usedRideKeys = (ctx.usedRideKeys instanceof Set) ? ctx.usedRideKeys : new Set();
   const usedNames = (ctx.usedNames instanceof Set) ? ctx.usedNames : new Set();
   const closedKeys = new Set((ctx.closedNames || []).map(s => normName(s)).filter(Boolean));
@@ -1371,7 +1648,12 @@ export function deterministicBackfill(slot, ctx) {
     // Rope-drop slots carry an ASSIGNED ride: the backfill honors it exactly.
     if (slot.preferRide) {
       const pe = catalog.find(e => e && e.name && normName(e.name) === normName(slot.preferRide) && inSlotPark(e.park) && !(ctx.bannedKeys && ctx.bannedKeys.has(normName(e.name))));
-      if (pe) {
+      // Headliner window applies to ASSIGNED rides too: an assignment whose
+      // slot starts outside the legal standby window falls through to the
+      // general pools rather than shipping a window violation (the pools
+      // pick a legal ride for the slot; the assignment layer owns strategy).
+      const _peBlocked = !!pe && isHeadlinerKey(normName(pe.name), pe) && !headlinerWindowOk(parseClock(t0), (ctx && ctx.closeMin != null) ? ctx.closeMin : null);
+      if (pe && !_peBlocked) {
         usedRideKeys.add(normName(pe.name));
         usedNames.add(String(pe.name).toLowerCase());
         if (ctx.todayRideKeys instanceof Set) ctx.todayRideKeys.add(normName(pe.name));
@@ -1383,11 +1665,14 @@ export function deterministicBackfill(slot, ctx) {
     const isBannedE = (e) => !!(ctx.bannedKeys && (ctx.bannedKeys.has(normName(e.name)) || (bannedGroups && bannedGroups.has(rideGroupKey(e.name)))));
     const morningSlot = winStart(slot.window) < 720;
     const slotMin = parseClock(t0);
-    const rsrBlocked = (e) => normName(e.name) === RSR_KEY && !rsrWindowOk(slotMin, null);
+    // Headliner window in every pool (generalized from rsrBlocked): the
+    // close is the slot park's real close via ctx.closeMin (plumbed from
+    // applyFills per slot park) -- no more hardcoded 8:30 PM fallback.
+    const hlBlocked = (e) => isHeadlinerKey(normName(e.name), e) && !headlinerWindowOk(slotMin, (ctx && ctx.closeMin != null) ? ctx.closeMin : null);
     const cands = catalog.filter(e =>
       e && e.name && !usedRideKeys.has(normName(e.name)) && !usedGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !rsrBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     // Deterministic: highest typical peak wait first (headliners earn the slot), ties by name.
     cands.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
@@ -1408,7 +1693,7 @@ export function deterministicBackfill(slot, ctx) {
     const reuse = catalog.filter(e =>
       e && e.name && _priorKeys.has(normName(e.name)) && !_todayKeys.has(normName(e.name)) && !_todayGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !rsrBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     reuse.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (reuse.length) {
@@ -1436,7 +1721,7 @@ export function deterministicBackfill(slot, ctx) {
       e && e.name && _todayKeys.has(normName(e.name)) &&
       !_encoredKeys.has(normName(e.name)) && !_encoredGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !rsrBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     sameDay.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (sameDay.length) {
@@ -1455,6 +1740,11 @@ export function deterministicBackfill(slot, ctx) {
     const cands = venues
       .filter(v => v && v.name && !v.exclude && inSlotPark(v.park) &&
         !usedNames.has(String(v.name).toLowerCase()) &&
+        // Trip-wide venue dedup, canonical: a venue already seated today
+        // or on an earlier day (ctx.usedVenueKeys is applyFills' canonical
+        // set, seeded from priorVenues and fed by every dining/snack card)
+        // is never seated again -- for dining AND snack picks alike.
+        !(usedVenueKeys && usedVenueKeys.has(_venueKeyOfB(v.name))) &&
         !closedVenueKeys.has(normName(v.name)) &&
         (v.service === 'quickservice' || v.service === 'snack' || (v.service === '' && v.reservationPolicy === 'walkup')) &&
         v.reservationPolicy !== 'never_meal' && v.reservationPolicy !== 'required')
@@ -1462,6 +1752,7 @@ export function deterministicBackfill(slot, ctx) {
     if (cands.length) {
       const pick = cands[0];
       usedNames.add(String(pick.name).toLowerCase());
+      if (usedVenueKeys) usedVenueKeys.add(_venueKeyOfB(pick.name));
       const note = pick.reservationPolicy === 'walkup'
         ? 'Verified walkup pick from the dining list.'
         : 'From the verified dining list -- booking ahead recommended.';
@@ -1596,8 +1887,12 @@ export function enforceTripParams(cards, violations, ctx) {
   ctx = ctx || {};
   const catalog = ctx.catalog || {};
   const landToPark = ctx.landToPark || (() => null);
-  const fixed = [], unfixable = [];
+  const fixed = [], unfixable = [], blocked = [];
   let out = (cards || []).slice();
+  // Re-validation gate context (Fix 3 F1): swap-in candidates are judged by
+  // revalidateCard exactly as the swapped card would ship. The handler
+  // plumbs the day's per-park closes and purchased LL products through ctx.
+  const gateCtx = { catalog, landToPark, closedNames: ctx.closedNames || [], bannedNames: ctx.bannedNames || [], closeMin: (ctx.closeMin != null ? ctx.closeMin : null), closeMinByPark: ctx.closeMinByPark || null, llmp: ctx.llmp === true, ill: ctx.ill === true, parks: ctx.parks || null, venueServiceMap: ctx.venueServiceMap || null, reservationKeys: ctx.reservationKeys || null, closedVenueNames: ctx.closedVenueNames || [] };
   const parkOfCard = (c) => normParkName(landToPark(c.land) || landToPark(c.h) || '');
   const parkOfName = (name) => {
     const ce = catalog[normName(name)];
@@ -1642,28 +1937,45 @@ export function enforceTripParams(cards, violations, ctx) {
       const vk = normName(v.name);
       if (closedSet.has(vk) || bannedSet.has(vk)) { unfixable.push(v); continue; }
       const wantPark = parkOfName(v.name);
-      // Recompute per violation; targets are ride cards not already swapped
-      // this pass and not already holding a must-do.
-      const findTarget = () => {
-        const rc = out.map((c, i) => ({ c, i })).filter(({ c, i }) => c.type === 'ride' && !swappedTargets.has(i) && !mustSet.has(normName(c.ride || c.h || '')) && !(NEVER_MORNING_KEYS.has(normName(v.name)) && (parseClock(c.t) || 9999) < 720));
-        const fr = rc[0];
-        return rc.find(({ c }) => c !== (fr && fr.c) && (!wantPark || parkOfCard(c) === wantPark))
-          || rc.find(({ c }) => !wantPark || parkOfCard(c) === wantPark);
-      };
-      const target = findTarget();
-      if (target) {
+      // Candidate targets in the ORIGINAL preference order (park-matching
+      // cards first; the day's first ride card only via the fallback pass),
+      // recomputed per violation: ride cards not already swapped this pass
+      // and not already holding a must-do. Each candidate is now judged by
+      // the re-validation gate AS THE SWAPPED CARD WOULD SHIP -- with its
+      // LL derived fresh from the day's products, never the target's stale
+      // tag. A gate-rejected target (headliner window for a standby
+      // placement, NEVER_MORNING, closure/ban/park) is recorded in
+      // `blocked` and the next candidate is tried. The audit's SIM1 -- RSR
+      // renamed onto a 7:06 PM card, stale Multi Pass tag attached -- is
+      // exactly what this loop refuses.
+      const rc = out.map((c, i) => ({ c, i })).filter(({ c, i }) => c.type === 'ride' && !swappedTargets.has(i) && !mustSet.has(normName(c.ride || c.h || '')) && !(NEVER_MORNING_KEYS.has(normName(v.name)) && (parseClock(c.t) || 9999) < 720));
+      const fr = rc[0];
+      const _pref = rc.filter(({ c }) => c !== (fr && fr.c) && (!wantPark || parkOfCard(c) === wantPark));
+      const _rest = rc.filter(x => _pref.indexOf(x) === -1 && (!wantPark || parkOfCard(x.c) === wantPark));
+      const candidates = _pref.concat(_rest);
+      const ce = catalog[normName(v.name)];
+      const derivedLL = deriveLLForRide(v.name, gateCtx);
+      let swapped = false;
+      for (const target of candidates) {
+        const prospective = { type: 'ride', t: target.c.t, h: v.name, ride: v.name, land: (ce && ce.land) || target.c.land, ll: derivedLL || undefined };
+        const gv = revalidateCard(prospective, gateCtx);
+        if (!gv.ok) { blocked.push({ kind: v.kind, name: v.name, at: target.c.t, reason: gv.reasons[0], reasons: gv.reasons }); continue; }
         swappedTargets.add(target.i);
-        const ce = catalog[normName(v.name)];
         target.c.h = v.name;
         target.c.ride = v.name;
         if (ce && ce.land) target.c.land = ce.land;
+        // RE-DERIVE the card's LL fresh: a swapped-in ride never inherits
+        // the target's tag (SIM1 shipped RSR -- an ILL-only ride -- with
+        // the target's Multi Pass tag still attached).
+        if (derivedLL) target.c.ll = derivedLL; else delete target.c.ll;
         fixed.push({ kind: v.kind, name: v.name, action: 'swapped-in', at: target.c.t });
-      } else {
-        unfixable.push(v);
+        swapped = true;
+        break;
       }
+      if (!swapped) unfixable.push(v);
     }
   }
-  return { cards: out, fixed, unfixable };
+  return { cards: out, fixed, unfixable, blocked };
 }
 
 // ---------------------------------------------------------------------------

@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, correctVenueServices, normalizeLLAssignments } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -595,6 +595,13 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _hrs = _sHours(_isDcaDay ? /california adventure|\bDCA\b/i : /disneyland|\bDL\b/i);
           const _openMin = (_hrs && _hrs.openMin) || 480;                       // fallback 8:00 AM
           const _closeMin = (_hrs && _hrs.closeMin) || (_isDcaDay ? 1320 : 1380); // fallback 10 / 11 PM
+          // Per-park closes for the headliner window (Phase 1, Oct 7, 2026):
+          // the evening edge is closeMin-90 FOR THE PARK THE RIDE IS IN, so
+          // a hop day's DL segment and DCA segment each get their own edge
+          // instead of one hardcoded 8:30 PM fallback.
+          const _dlHrs2 = _sHours(/disneyland|\bDL\b/i);
+          const _dcaHrs2 = _sHours(/california adventure|\bDCA\b/i);
+          const _closeByPark = { dl: (_dlHrs2 && _dlHrs2.closeMin) || 1380, dca: (_dcaHrs2 && _dcaHrs2.closeMin) || 1320 };
 
           // VIP tour window: time strings like "10:30 AM" on the day object.
           const _sVip = (s) => { if (typeof s !== 'string') return null; let m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); if (m) { let h = parseInt(m[1], 10); if (/pm/i.test(m[3]) && h !== 12) h += 12; if (/am/i.test(m[3]) && h === 12) h = 0; return h * 60 + parseInt(m[2], 10); } m = s.match(/^\s*(\d{1,2}):(\d{2})\s*$/); if (m) { const h = parseInt(m[1], 10), mn = parseInt(m[2], 10); if (h <= 23 && mn <= 59) return h * 60 + mn; } return null; };
@@ -616,6 +623,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               if (_ci && Array.isArray(_ci.characters) && _ci.characters.length) {
                 const _meetParks = [_park].concat((_day.intent && _day.intent.hop && _day.intent.hop.toPark) ? [_day.intent.hop.toPark] : []);
                 _charMeet = pickCharacterMeet(_ci.characters, _cp.categories || [], _meetParks, Array.isArray(_cfg._priorCharacters) ? _cfg._priorCharacters : [], landToPark);
+                if (!_charMeet) console.log('[scaffold] no character meet planned (none in today\'s parks, or every candidate already met earlier this trip -- never-twice rule)');
               }
             }
           } catch (e) { console.warn('[scaffold] character meet planning failed:', e.message); }
@@ -697,9 +705,14 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // Dining service gate + guest reservations (Beau, Oct 6, 2026):
           // schedules are quick-service only; table/lounge venues pass only
           // when the guest noted them as reservations in onboarding.
-          const _venuesEarly = parseCatalogVenues(cacheCtx.CATALOG);
+          // Venue services keyed CANONICALLY (Phase 3, Oct 7, 2026), from
+          // name-form-corrected entries: variant suffixes are stripped on
+          // both sides of the table-service check, so 'Lamplight Lounge
+          // Dining Room' resolves to the Lamplight Lounge lounge entry
+          // instead of slipping the QS-only gate as a 'quickservice'.
+          const _venuesEarly = correctVenueServices(parseCatalogVenues(cacheCtx.CATALOG));
           const _venueServices = {};
-          for (const v of _venuesEarly) { if (v && v.name && v.service) _venueServices[normName(v.name)] = v.service; }
+          for (const v of _venuesEarly) { if (v && v.name && v.service) _venueServices[canonicalVenueKey(v.name)] = v.service; }
           const _tableVenueNames = _venuesEarly.filter(v => v && (v.service === 'table' || v.service === 'lounge')).map(v => v.name);
           const _resvNames = [];
           try {
@@ -709,7 +722,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               if (nm && String(nm).trim()) _resvNames.push(String(nm).trim());
             }
           } catch (e) {}
-          const _reservationKeys = new Set(_resvNames.map(normName).filter(Boolean));
+          const _reservationKeys = new Set(_resvNames.map(canonicalVenueKey).filter(Boolean));
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '')
@@ -753,7 +766,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _catIdx = buildCatalogIndex(cacheCtx.CATALOG);
           console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
           const _catList = Object.values(_catIdx);
-          const _venues = parseCatalogVenues(cacheCtx.CATALOG);
+          const _venues = correctVenueServices(parseCatalogVenues(cacheCtx.CATALOG));
           // Real show names for show-slot backfill (dynamic SHOWS section), with the
           // guest's wanted shows preferred. Without this the backfill can only emit
           // a generic 'Nighttime spectacular' card.
@@ -768,10 +781,16 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             catalog: _catList, venues: _venues, closedNames: _closedS, closedVenueNames: _closedV,
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
             priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys, encoredRideKeys: fb.encoredRideKeys, bannedKeys: fb.bannedKeys,
+            closeMin: (typeof fb.closeMin === 'number') ? fb.closeMin : null, usedVenueKeys: fb.usedVenueKeys,
             shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand
           });
 
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)), venueServices: _venueServices, reservationKeys: _reservationKeys };
+          // Phase 1 plumbing (Fix 3 F3+F5): the REAL catalog + venues now
+          // reach applyFills (catalogParkBad / venueBad were dead code
+          // without them), and the day's closes ride along per park so the
+          // headliner window uses closeMin-90 instead of the hardcoded
+          // 8:30 PM fallback in both fill layers.
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)), venueServices: _venueServices, reservationKeys: _reservationKeys, catalog: _catIdx, venues: _venues, closeMin: _closeMin, closeMinByPark: _closeByPark, llmp: _llmp, ill: _ill };
 
           let _r = await _fill(_dynSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
@@ -787,7 +806,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // Verify layer -- REMOVE-ONLY safety net (replaces the heavy validateSchedule on this path;
           // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
           const _dayParks = (_hop && _vipStart === null) ? [_park, _hop.toPark] : [_park];
-          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo });
+          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo, closeMin: _closeMin, closeMinByPark: _closeByPark, bannedNames: skipRides });
 
           // Parameter-fidelity verifier (recommendation #2): guest parameters are absolute.
           // Cite the specific failures back to the model once; deterministically enforce the rest.
@@ -795,6 +814,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           let _violations = verifyTripParams(_vf.cards, _pvParams);
           let _items = _vf.cards;
           let _trimMustDos = Array.isArray(_vf.trimmedMustDos) ? _vf.trimmedMustDos.slice() : [];
+          let _mutations = Array.isArray(_vf.mutations) ? _vf.mutations : [];
           if (_violations.length) {
             console.log('[scaffold] param violations:', JSON.stringify(_violations));
             const _missingCt = _violations.filter(function(v) { return v.kind === 'mustdo-missing'; }).length;
@@ -814,14 +834,25 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               }).join('; ');
               const _r3 = await _fill(_dynSys + '\n\nPARAMETER CORRECTION -- guest parameters are absolute, not suggestions: ' + _cite + '. Return the FULL array again, same slot ids in the same order, with every one of these fixed and nothing else broken.');
               const _ap3 = applyFills(_sk, Array.isArray(_r3.arr) ? _r3.arr : [], _fillOpts);
-              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo });
+              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo, closeMin: _closeMin, closeMinByPark: _closeByPark, bannedNames: skipRides });
               if (Array.isArray(_vf3.trimmedMustDos)) _trimMustDos = _trimMustDos.concat(_vf3.trimmedMustDos);
               const _v3 = verifyTripParams(_vf3.cards, _pvParams);
-              if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; }
+              if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; if (Array.isArray(_vf3.mutations)) _mutations = _vf3.mutations; }
             } catch (e) { console.warn('[scaffold] param retry failed:', e.message); }
           }
-          const _enf = enforceTripParams(_items, _violations, { catalog: _catIdx, landToPark: landToPark, closedNames: _closedS, bannedNames: skipRides, mustDoNames: mustDo });
+          const _enf = enforceTripParams(_items, _violations, { catalog: _catIdx, landToPark: landToPark, closedNames: _closedS, bannedNames: skipRides, mustDoNames: mustDo, llmp: _llmp, ill: _ill, closeMin: _closeMin, closeMinByPark: _closeByPark, parks: _dayParks, venueServiceMap: _venueServices, reservationKeys: _reservationKeys, closedVenueNames: _closedV });
           _items = _enf.cards;
+          if (_enf.blocked && _enf.blocked.length) console.warn('[scaffold] param swap BLOCKED by re-validation gate:', JSON.stringify(_enf.blocked));
+          // A swap-in renames a card after LL normalization already ran:
+          // re-run it so a swapped-in ride's tag is the day's canonical
+          // assignment (cap respected), never a leftover (Fix 3 F1).
+          if ((_enf.fixed || []).some(f => f && f.action === 'swapped-in')) {
+            try {
+              const _llMut = [];
+              normalizeLLAssignments(_items, { llmp: _llmp, ill: _ill, catalog: _catIdx }, _llMut);
+              for (const m of _llMut) _mutations.push(Object.assign({ stage: 'post-enforce' }, m));
+            } catch (e) { console.warn('[scaffold] post-enforce LL normalization failed:', e.message); }
+          }
           // Fix 4 completeness surfacing (Oct 7, 2026): a must-do that could
           // not be placed today must NEVER vanish silently. Collect from the
           // enforcer's unfixable list (must-dos belonging to today's parks
@@ -856,7 +887,8 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           if (_enf.fixed.length) console.log('[scaffold] param enforced:', JSON.stringify(_enf.fixed));
           if (_enf.unfixable.length) console.warn('[scaffold] param UNFIXABLE:', JSON.stringify(_enf.unfixable));
           console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, unplacedMustDos: unplacedMustDos });
+          if (_mutations.length) console.log('[scaffold] verify mutations:', JSON.stringify(_mutations));
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos });
         } catch (_se) {
           console.error('[scaffold] error, falling back to legacy generator:', _se.message);
         }
