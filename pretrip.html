@@ -131,6 +131,53 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 .pt-ride-counter{font-size:9px;font-weight:600;color:#4A7A7C;margin:2px 0 4px;padding:9px 12px;background:#F0FAF9;border-radius:8px;}
 .pt-ride-counter b{color:#1A6860;font-weight:800;}
 .pt-ride-loading{font-size:10px;color:#4A7A7C;padding:16px;text-align:center;}
+/* --- Onboarding refresh (Oct 7, 2026) --- */
+.pt-progress-segs{display:flex;gap:4px;margin-top:10px;padding-bottom:12px;}
+.pt-progress-segs i{height:4px;flex:1;border-radius:2px;background:rgba(255,255,255,0.18);}
+.pt-progress-segs i.on{background:linear-gradient(90deg,#1A8880,#35B5A9);}
+.pt-eyebrow .spark{color:#E8A840;}
+.pt-intro{font-size:12.5px;line-height:1.55;color:#33565E;margin-bottom:14px;}
+.pt-card{background:#fff;border:1px solid rgba(7,30,37,0.08);border-radius:14px;padding:14px;margin-bottom:12px;}
+.pt-card .pt-section-label:first-child{margin-top:0;}
+.pt-hero{position:relative;height:172px;border-radius:14px;overflow:hidden;}
+.pt-hero img{width:100%;height:100%;object-fit:cover;display:block;}
+.pt-hero-wm{position:absolute;left:0;right:0;bottom:0;padding:26px 14px 10px;background:linear-gradient(transparent,rgba(7,30,37,0.82));color:#fff;font-size:19px;font-weight:800;}
+.pt-hero-wm .spark{color:#E8A840;}
+.pt-hero-wm small{display:block;font-size:11px;font-weight:500;color:rgba(255,255,255,0.85);margin-top:2px;}
+.pt-credit{font-size:9px;color:#9DB4B1;text-align:right;margin:4px 2px 10px;}
+.pt-photo-band{height:128px;overflow:hidden;border-radius:10px;margin-bottom:10px;}
+.pt-photo-band img{width:100%;height:100%;object-fit:cover;display:block;}
+.pt-stepper{display:flex;align-items:center;justify-content:space-between;padding:9px 0;}
+.pt-stepper + .pt-stepper{border-top:1px solid rgba(7,30,37,0.06);}
+.pt-stepper-label{font-size:13px;font-weight:600;color:#071E25;min-width:0;}
+.pt-stepper-label small{display:block;font-size:10px;color:#7A9599;font-weight:400;margin-top:1px;}
+.pt-step-ctrl{display:flex;align-items:center;gap:10px;flex:none;}
+.pt-step-btn{width:32px;min-width:32px;height:32px;flex:none;border-radius:50%;border:1.5px solid #1A8880;color:#1A6860;background:#fff;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;padding:0;line-height:1;}
+.pt-step-num{font-size:16px;font-weight:700;min-width:18px;text-align:center;color:#071E25;}
+.pt-res-row{border:1.5px solid rgba(7,30,37,0.10);border-radius:12px;padding:11px 12px;margin-bottom:9px;background:#fff;}
+.pt-res-top{display:flex;gap:8px;align-items:flex-start;}
+.pt-res-top .pt-input{flex:1;min-width:0;box-sizing:border-box;}
+.pt-res-x{color:#B0552F;font-size:15px;font-weight:700;background:none;border:none;cursor:pointer;padding:4px 2px;flex:none;}
+.pt-res-grid{display:flex;gap:8px;margin-top:8px;}
+.pt-res-grid > div{flex:1;min-width:0;}
+.pt-res-grid .pt-input{min-width:0;box-sizing:border-box;}
+.pt-add-row{width:100%;border:1.5px dashed #9CC4BF;color:#1A6860;background:#F4F9F8;border-radius:12px;padding:10px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+.pt-conflict-hint{font-size:10.5px;line-height:1.45;color:#7A5200;background:#FDF3E0;border:1px solid #EFD9A0;border-radius:9px;padding:8px 10px;margin-top:8px;display:none;}
+.pt-draft-banner{background:#FFF7E8;border:1px solid #EFD9A0;color:#6B5200;border-radius:11px;padding:10px 12px;font-size:11.5px;line-height:1.5;margin-bottom:12px;display:none;}
+.pt-draft-banner button{background:none;border:none;color:#B0552F;font-weight:700;font-size:11.5px;cursor:pointer;padding:0;text-decoration:underline;font-family:'Outfit',sans-serif;}
+.pt-height-note{display:none;font-size:11px;line-height:1.45;color:#B0552F;margin-top:8px;}
+.pt-summary{background:#071E25;color:#fff;border-radius:14px;padding:13px 15px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.pt-summary small{display:block;color:rgba(255,255,255,0.6);font-size:10.5px;font-weight:500;margin-top:2px;}
+.pt-next-list{list-style:none;}
+.pt-next-list li{font-size:12px;line-height:1.55;color:#33565E;padding:7px 0 7px 22px;position:relative;border-top:1px solid rgba(7,30,37,0.06);}
+.pt-next-list li:first-child{border-top:none;}
+.pt-next-list li::before{content:'\2726';position:absolute;left:2px;top:7px;color:#E8A840;font-size:11px;}
+.pt-gen-line{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:8px 0;border-top:1px solid rgba(7,30,37,0.06);color:#8AA5A2;}
+.pt-gen-line.building{color:#071E25;font-weight:600;}
+.pt-gen-line.done{color:#1A6860;font-weight:700;}
+.pt-gen-line.failed{color:#B0552F;font-weight:600;flex-wrap:wrap;}
+.pt-gen-retry{background:#C86030;color:#fff;border:none;border-radius:9px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;}
+.pt-gen-skip{background:none;border:none;color:#4A7A7C;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;text-decoration:underline;padding:6px 0;}
 </style>
 </head>
 <body>
@@ -142,20 +189,25 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
       Back
     </button>
     <div style="text-align:center;">
-      <div class="pt-eyebrow">Theme Park Co-Pilot</div>
+      <div class="pt-eyebrow">Theme Park Co<span class="spark">✦</span>Pilot</div>
       <div class="pt-title" id="ptStepTitle">Your Group</div>
-      <div class="pt-step-indicator" id="ptStepInd">Step 1 of 5</div>
     </div>
   </div>
-  <div class="pt-progress-bar">
-    <div class="pt-progress-fill" id="ptProgressFill" style="width:20%;"></div>
-  </div>
+  <div class="pt-progress-segs" id="ptProgressSegs"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
 </div>
 
 <div class="pt-content">
 
 <!-- STEP 1: YOUR GROUP -->
 <div class="pt-step active" id="ptStep1">
+  <div id="ptDraftBanner" class="pt-draft-banner"></div>
+  <div class="pt-hero">
+    <img src="assets/photos/partners-statue.jpg" alt="Partners statue with Sleeping Beauty Castle behind">
+    <div class="pt-hero-wm">Theme Park Co<span class="spark">✦</span>Pilot<small>Your Disneyland days, planned for you</small></div>
+  </div>
+  <div class="pt-credit">Photo: HarshLight — CC BY 2.0</div>
+  <p class="pt-intro">Tell us when you're going and who's coming. We'll plan every day around your group — rides, meals, shows, and timing.</p>
+
   <div class="pt-section-label">Trip name</div>
   <div class="pt-field">
     <input class="pt-input" id="tripName" type="text" placeholder="e.g. Smith Family Disneyland Trip" autocomplete="off">
@@ -173,10 +225,33 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     </div>
   </div>
 
+  <div class="pt-section-label">Who's coming</div>
+  <div class="pt-card" style="margin-bottom:0;">
+    <div class="pt-stepper">
+      <div class="pt-stepper-label">Adults<small>Ages 18 and up</small></div>
+      <div class="pt-step-ctrl">
+        <button type="button" class="pt-step-btn" onclick="ptStepParty('adults',-1)" aria-label="Fewer adults">&minus;</button>
+        <div class="pt-step-num" id="ptAdultsNum">2</div>
+        <button type="button" class="pt-step-btn" onclick="ptStepParty('adults',1)" aria-label="More adults">+</button>
+      </div>
+    </div>
+    <div class="pt-stepper">
+      <div class="pt-stepper-label">Children<small>Under 18</small></div>
+      <div class="pt-step-ctrl">
+        <button type="button" class="pt-step-btn" onclick="ptStepParty('children',-1)" aria-label="Fewer children">&minus;</button>
+        <div class="pt-step-num" id="ptChildrenNum">0</div>
+        <button type="button" class="pt-step-btn" onclick="ptStepParty('children',1)" aria-label="More children">+</button>
+      </div>
+    </div>
+  </div>
+  <div class="pt-hint" style="margin-top:8px;">No names needed — just the count, so we size the plan for your party.</div>
+
 </div>
 
 <!-- STEP 2: RIDE PREFERENCES -->
 <div class="pt-step" id="ptStep2">
+  <p class="pt-intro">What your group loves, what to skip, and what everyone can ride together. Anything you leave blank, we'll decide — that's the job.</p>
+  <div class="pt-card">
   <div class="pt-section-label">Thrill level</div>
   <div class="pt-tiles" id="thrillTiles">
     <div class="pt-tile selected" onclick="ptTileSelect('thrillTiles',this,'Mix of everything')">
@@ -209,13 +284,16 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     </div>
   </div>
 
-  <div class="pt-section-label" style="margin-top:20px;">Pick your rides</div>
-  <div class="pt-hint" style="margin-bottom:10px;">Tap a category to set several at once, or set any ride to Must-do or Skip on its own. Leave a ride untouched and we will decide.</div>
+  </div>
+  <div class="pt-card">
+  <div class="pt-section-label">Pick your rides</div>
+  <div class="pt-hint" style="margin-bottom:10px;">Tap a category to handle several rides at once, or mark them one by one. Must-do means we build the day around it. Skip means it never appears. Leave a ride alone and we'll call it.</div>
   <div class="pt-catchips" id="rideCatChips"></div>
   <div id="rideSelector"><div class="pt-ride-loading">Loading rides...</div></div>
   <div class="pt-ride-counter" id="rideCounter"></div>
-
-  <div class="pt-section-label" style="margin-top:16px;">Accessibility needs</div>
+  </div>
+  <div class="pt-card">
+  <div class="pt-section-label">Accessibility needs</div>
   <div id="accessChkList">
     <div class="pt-check-row" onclick="ptCheckToggle('acc_mobility')">
       <div class="pt-check-box" id="acc_mobility"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -228,9 +306,9 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
   </div>
 
   <div class="pt-section-label" style="margin-top:16px;">Shortest person in your group</div>
-  <div class="pt-hint" style="margin-bottom:8px;">This sets which rides everyone can ride together. We will plan rider swap for anything above it. No names needed.</div>
+  <div class="pt-hint" style="margin-bottom:8px;">This decides which rides everyone can do together. For anything taller, we'll plan a rider swap. No names needed.</div>
   <div class="pt-tiles" id="heightTiles">
-    <div class="pt-tile selected" onclick="ptTileSelect('heightTiles',this,'over48')">
+    <div class="pt-tile" onclick="ptTileSelect('heightTiles',this,'over48')">
       <div>
         <div class="pt-tile-label">Everyone is 48&quot; or taller</div>
         <div class="pt-tile-sub">Can ride everything</div>
@@ -260,8 +338,11 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
     </div>
   </div>
 
-  <div class="pt-section-label" style="margin-top:16px;">Characters you would love to meet</div>
-  <div class="pt-hint" style="margin-bottom:8px;">Tap any that excite your group -- we will work in meet-and-greets.</div>
+  <div class="pt-height-note" id="heightNote">One quick thing — pick the tile that fits your shortest rider, so we never plan a ride they can't board.</div>
+  </div>
+  <div class="pt-card" style="margin-bottom:0;">
+  <div class="pt-section-label">Characters you would love to meet</div>
+  <div class="pt-hint" style="margin-bottom:8px;">Tap any that excite your group. We'll work meet-and-greets into your days — and never the same character twice on a trip.</div>
   <div class="pt-chips" id="charChips">
     <div class="pt-chip" onclick="ptChipToggle(this)">Princesses</div>
     <div class="pt-chip" onclick="ptChipToggle(this)">Mickey &amp; Friends</div>
@@ -286,90 +367,137 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
       <div class="pt-tile-check"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
   </div>
+  </div>
 </div>
 
-<!-- STEP 3: DINING -->
+<!-- STEP 3: SHOWS -->
 <div class="pt-step" id="ptStep3">
-  <div class="pt-section-label">Shows & entertainment</div>
-  <div class="pt-hint" style="margin-bottom:12px;line-height:1.5;">Pick the nighttime shows you want to be sure to catch, or skip the ones you'd rather miss. Leave a show untouched and we'll fit in the best one for each night -- and we never schedule the same show twice.</div>
+  <p class="pt-intro">Mark the ones you don't want to miss and we'll shape your evenings around them. Skip the ones you'd rather pass on. Anything unmarked, we'll fit in the best option each night — and never the same show twice.</p>
   <div id="showSelector"><div class="pt-ride-loading">Loading shows...</div></div>
   <div class="pt-ride-counter" id="showCounter"></div>
 </div>
 
+<!-- STEP 4: DAY-BY-DAY (moved ahead of Dining, S4 — reservations ask "which day?"
+     and that answer means more once each day has a shape) -->
 <div class="pt-step" id="ptStep4">
-  <div class="pt-section-label">Dining</div>
-  <div class="pt-hint" style="margin-bottom:14px;line-height:1.5;">As you go, we'll suggest quick-service spots along your route. Planning a sit-down (table-service) meal? Add it as a reservation below -- that's how we fit table service into your day.</div>
-
-  <div class="pt-section-label">Dietary needs</div>
-  <div class="pt-hint" style="margin-bottom:8px;">Select all that apply</div>
-  <div class="pt-chips" id="dietChips">
-    <div class="pt-chip" onclick="ptChipToggle(this)">No restrictions</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Vegetarian</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Vegan</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Gluten-free</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Nut allergy</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Dairy-free</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Kosher</div>
-    <div class="pt-chip" onclick="ptChipToggle(this)">Halal</div>
-  </div>
-
-  <div class="pt-section-label" style="margin-top:16px;">Do you have dining reservations?</div>
-  <div class="pt-toggle-row" style="margin-bottom:8px;">
-    <div class="pt-toggle-label">Yes, I have reservations</div>
-    <div class="pt-toggle" id="hasReservationsToggle" onclick="ptToggle('hasReservationsToggle');ptReservationsToggle()"><div class="pt-toggle-knob"></div></div>
-  </div>
-  <div class="pt-vip-sub" id="reservationsSub">
-    <div class="pt-hint" style="margin-bottom:8px;">Enter each reservation on its own line -- restaurant name and time</div>
-    <textarea class="pt-textarea" id="reservationsInput" placeholder="e.g.&#10;Cafe Orleans, 6:30 PM, Day 3&#10;Blue Bayou, 12:00 PM, Day 1" style="min-height:80px;font-size:12px;"></textarea>
-  </div>
-
-  <div class="pt-section-label" style="margin-top:16px;">Quick-service spots you'd love</div>
-  <div class="pt-hint" style="margin-bottom:6px;">We'll work these counter-service spots into your day where they fit. For sit-down spots, add a reservation above.</div>
-  <textarea class="pt-textarea" id="wantedRestaurants" placeholder="e.g. Bengal Barbecue, Jolly Holiday Bakery, Cozy Cone Motel..."></textarea>
-</div>
-
-<!-- STEP 4: DAY-BY-DAY -->
-<div class="pt-step" id="ptStep5">
-  <div class="pt-section-label" style="margin-top:0;">Day by day details</div>
-  <div class="pt-hint" style="margin-bottom:14px;">Set up each day of your trip individually</div>
+  <p class="pt-intro">The shape of each day: where you'll start, whether you'll hop, and any Lightning Lane or VIP plans. Not sure about a day? Leave it plain — we'll run it as a full single-park day, open to close.</p>
   <div id="ptDayCards">
-    <div style="text-align:center;padding:30px 0;color:#4A7A7C;font-size:12px;">Enter your trip dates in Step 1 to see your days here.</div>
+    <div style="text-align:center;padding:30px 0;color:#4A7A7C;font-size:12px;">Enter your trip dates on the Your Group slide to see your days here.</div>
   </div>
 </div>
 
-<!-- STEP 5: YOU'RE ALL SET -->
-<div class="pt-step" id="ptStep6">
-  <div style="background:#fff;border-radius:14px;border:1px solid rgba(7,30,37,0.08);overflow:hidden;margin-bottom:12px;">
-    <div style="background:#1A6860;padding:14px 16px;display:flex;align-items:center;gap:10px;">
-      <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L10 6H14.5L11 9L12.5 13.5L8 11L3.5 13.5L5 9L1.5 6H6L8 1.5Z" fill="#fff"/></svg>
-      </div>
-      <div>
-        <div style="font-size:13px;font-weight:700;color:#fff;">You're all set!</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.65);margin-top:1px;">Your schedule is ready to build</div>
-      </div>
-    </div>
-    <div style="padding:14px 16px;">
-      <div style="font-size:12px;color:#071E25;font-weight:600;margin-bottom:8px;">Before your trip, check the Info tab</div>
-      <div style="font-size:11px;color:#4A7A7C;line-height:1.55;">The Info tab in your schedule has everything you need -- Lightning Lane tips, dining strategy, park hours, and day-of advice. It updates automatically as your trip gets closer.</div>
+<!-- STEP 5: DINING -->
+<div class="pt-step" id="ptStep5">
+  <div class="pt-card" style="margin-bottom:4px;">
+    <div class="pt-photo-band"><img src="assets/photos/new-orleans-square-riverfront.jpg" alt="New Orleans Square riverfront"></div>
+    <p class="pt-intro" style="margin-bottom:2px;">Tell us where you'd love to eat — we'll plan your days around it. Along the way, we'll also suggest quick-service spots on your route.</p>
+  </div>
+  <div class="pt-credit">Photo: Patrick Pelletier — CC BY-SA 4.0</div>
+
+  <div class="pt-card">
+    <div class="pt-section-label">Dietary needs</div>
+    <div class="pt-hint" style="margin-bottom:8px;">Select all that apply</div>
+    <div class="pt-chips" id="dietChips">
+      <div class="pt-chip" onclick="ptChipToggle(this)">No restrictions</div>
+      <div class="pt-chip" onclick="ptChipToggle(this)">Vegetarian</div>
+      <div class="pt-chip" onclick="ptChipToggle(this)">Vegan</div>
+      <div class="pt-chip" onclick="ptChipToggle(this)">Gluten-free</div>
+      <div class="pt-chip" onclick="ptChipToggle(this)">Nut allergy</div>
+      <div class="pt-chip" onclick="ptChipToggle(this)">Dairy-free</div>
+      <div class="pt-chip" onclick="ptChipToggle(this)">Kosher</div>
+      <div class="pt-chip" onclick="ptChipToggle(this)">Halal</div>
     </div>
   </div>
 
-  <div style="background:#fff;border-radius:14px;border:1px solid rgba(7,30,37,0.08);padding:14px 16px;margin-bottom:12px;">
-    <div style="font-size:12px;font-weight:700;color:#071E25;margin-bottom:6px;">A few quick tips</div>
+  <div class="pt-card">
+    <div class="pt-toggle-row" style="margin-bottom:4px;">
+      <div class="pt-toggle-label" style="font-weight:600;">Do you have dining reservations?</div>
+      <div class="pt-toggle" id="hasReservationsToggle" onclick="ptToggle('hasReservationsToggle');ptReservationsToggle()"><div class="pt-toggle-knob"></div></div>
+    </div>
+    <div class="pt-vip-sub" id="reservationsSub">
+      <div class="pt-section-label" style="margin-top:6px;">Reservations you've already booked</div>
+      <div class="pt-hint" style="margin-bottom:8px;">Add each booking below. We'll treat it as a fixed point and build the rest of that day around it — sit-down meals only enter your plan this way, so nothing gets double-booked or dropped.</div>
+      <div id="resRows"></div>
+      <button type="button" class="pt-add-row" onclick="ptAddResRow()">+ Add another reservation</button>
+    </div>
+  </div>
+
+  <div class="pt-card" style="margin-bottom:0;">
+    <div class="pt-section-label">Where you'd love to eat</div>
+    <div class="pt-hint" style="margin-bottom:6px;">Quick-service favorites, snack stops, or a sit-down place you're hoping to land. List them here and we'll work them in where they fit — and keep them in mind for your trip. For a sit-down spot, a booking above is the sure thing.</div>
+    <textarea class="pt-textarea" id="wantedRestaurants" placeholder="e.g. Bengal Barbecue, Jolly Holiday Bakery, Cozy Cone Motel…"></textarea>
+  </div>
+  <datalist id="ptVenueList">
+    <option value="Blue Bayou Restaurant"></option>
+    <option value="Cafe Orleans"></option>
+    <option value="Carnation Cafe"></option>
+    <option value="River Belle Terrace"></option>
+    <option value="Plaza Inn"></option>
+    <option value="Carthay Circle Restaurant"></option>
+    <option value="Lamplight Lounge"></option>
+    <option value="Wine Country Trattoria"></option>
+    <option value="Oga's Cantina"></option>
+    <option value="Goofy's Kitchen"></option>
+    <option value="Storytellers Cafe"></option>
+    <option value="Napa Rose"></option>
+  </datalist>
+</div>
+
+<!-- STEP 6: YOU'RE ALL SET -->
+<div class="pt-step" id="ptStep6">
+  <div class="pt-hero" style="height:158px;">
+    <img src="assets/photos/sleeping-beauty-castle-at-night.jpg" alt="Sleeping Beauty Castle lit up at night">
+    <div class="pt-hero-wm">Theme Park Co<span class="spark">✦</span>Pilot<small>That's everything we need</small></div>
+  </div>
+  <div class="pt-credit">Photo: FA Jon — public domain</div>
+
+  <div class="pt-summary">
+    <div><span id="ptSummaryName">Your trip</span><small>Your trip, as you described it</small></div>
+    <div style="text-align:right;"><span id="ptSummaryDates"></span><small id="ptSummaryDays"></small></div>
+  </div>
+
+  <div class="pt-card">
+    <div class="pt-section-label">What happens next</div>
+    <ul class="pt-next-list">
+      <li>We build each of your days from park open to park close, around your must-dos, your meals, and your shows.</li>
+      <li>In the app you'll get live wait times, a heads-up when a wait on one of your rides spikes or drops, and park maps that work offline.</li>
+      <li>Your plan keeps updating as your trip gets closer — park hours, closures, and showtimes included. Tips for all of it live in the Co✦Pilot tab.</li>
+    </ul>
+  </div>
+
+  <div class="pt-card" style="margin-bottom:0;">
+    <div class="pt-section-label">Before you go</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;gap:10px;align-items:flex-start;">
         <div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:4px;flex-shrink:0;"></div>
-        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Download the Disneyland app and link your tickets before you arrive</div>
+        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Download the Disneyland app and link your tickets before you arrive.</div>
       </div>
       <div style="display:flex;gap:10px;align-items:flex-start;">
         <div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:4px;flex-shrink:0;"></div>
-        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Lightning Lane Multi Pass opens at 7am on the day -- buy early for the best ride selection</div>
+        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Lightning Lane Multi Pass goes on sale at 7 AM each day — earlier picks are better picks.</div>
       </div>
       <div style="display:flex;gap:10px;align-items:flex-start;">
         <div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:4px;flex-shrink:0;"></div>
-        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">Arrive at the gates 30 minutes before opening for rope drop</div>
+        <div style="font-size:11px;color:#4A7A7C;line-height:1.5;">On rope-drop days, be at the gates an hour before opening.</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- GENERATING / WAITING SCREEN (Claude's Q3 draft: sequential reassurance +
+     REAL per-day progress; no spinner-only, no percentage, no time estimates) -->
+<div id="ptGenScreen" style="display:none;">
+  <div class="pt-card" style="margin-bottom:12px;">
+    <div style="font-size:16px;font-weight:800;color:#071E25;margin-bottom:6px;" id="ptGenTitle">Building your plan…</div>
+    <p class="pt-intro" style="margin-bottom:6px;">We're shaping each day from park open to close — around your must-dos, your meals, and your shows. This takes a moment; it's worth it.</p>
+    <div id="ptGenDays"></div>
+  </div>
+  <div class="pt-card" style="margin-bottom:0;">
+    <div class="pt-section-label">While we work — three things worth doing now</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:11.5px;color:#33565E;line-height:1.5;">• Download the Disneyland app and link your tickets before you arrive.</div>
+      <div style="font-size:11.5px;color:#33565E;line-height:1.5;">• Lightning Lane Multi Pass goes on sale at 7 AM each day — earlier picks are better picks.</div>
+      <div style="font-size:11.5px;color:#33565E;line-height:1.5;">• On rope-drop days, be at the gates an hour before opening.</div>
     </div>
   </div>
 </div>
@@ -388,7 +516,34 @@ var ptTotalSteps = 6;
 var ptSegValues = {};
 var ptMemberCount = 0;
 
-var PT_STEP_TITLES = ['Your Group','Ride Preferences','Shows & Entertainment','Dining','Day by Day','Almost done!'];
+var PT_STEP_TITLES = ['Your Group','Rides, Your Way','Nighttime Shows','Day by Day','Food & Reservations',"You're All Set"];
+
+// Reservation-row state and the ILL ride list are declared HERE, with the
+// other state, because the day-card builder and the restore paths can run
+// before the sections further down the file initialize their own vars.
+var ptResState = [];
+var PT_ILL_RIDE_NAMES = ['Star Wars: Rise of the Resistance', 'Radiator Springs Racers', "Tiana's Bayou Adventure"];
+
+// -- Party size (Slide 1 steppers) ------------------------
+// Real collected values, written into groupProfile (size/adults/children) at
+// finish and carried in every autosave draft. groupProfile.size HAS a server
+// consumer as of the Oct 7, 2026 batch: it drives rider-swap eligibility in
+// the height gate and party size on dining/reservation cards. (This replaces
+// the old phantom default, which read a groupSize element that only existed
+// in the retired in-app flow and silently sized every plan for 9.)
+var ptAdults = 2;
+var ptChildren = 0;
+function ptPartySize(){ return (ptAdults || 0) + (ptChildren || 0); }
+function ptRenderParty(){
+  var a = document.getElementById('ptAdultsNum'); if (a) a.textContent = ptAdults;
+  var c = document.getElementById('ptChildrenNum'); if (c) c.textContent = ptChildren;
+}
+function ptStepParty(which, delta){
+  if (which === 'adults') ptAdults = Math.max(1, Math.min(20, ptAdults + delta));
+  if (which === 'children') ptChildren = Math.max(0, Math.min(20, ptChildren + delta));
+  ptRenderParty();
+  ptSaveLocal();
+}
 
 // -- Init ------------------------------------------------
 (function(){console.log("[pretrip] IIFE init start");
@@ -397,6 +552,16 @@ var PT_STEP_TITLES = ['Your Group','Ride Preferences','Shows & Entertainment','D
     var isEdit    = _sp.get('edit')    === 'true';
       var isRebuild = _sp.get('rebuild') === 'true'
   if (isEdit || isRebuild) { ptLoadFromBlob(isRebuild); }
+  else if (localStorage.getItem('tripSetupComplete') !== 'true') {
+    // Deferred past the end of this script's top-level run: several state
+    // vars (ptManual, ptShowManual, ptResState, PT_ILL_RIDE_NAMES) initialize
+    // further down the file, and a synchronous restore here would run before
+    // them -- its writes would be reset by their initializers and the day
+    // card builder would read uninitialized state. A 0ms defer restores into
+    // a fully-initialized page. (This is not the old rebuild race: nothing
+    // here advances a step or fires generation.)
+    setTimeout(function(){ try { ptResumeDraft(); } catch(e){} }, 0);
+  }
 
   // Add initial members
 
@@ -411,6 +576,7 @@ function ptNext(){console.log("[pretrip] ptNext called");
   if(_ptNextLock){ console.log("[pretrip] ptNext locked -- ignoring double tap"); return; }
   _ptNextLock = true;
   // lock cleared at end of ptGoToStep
+  if(!ptValidateStep(ptCurrentStep)){ _ptNextLock = false; return; }
   ptSaveCurrentStep();
   if(ptCurrentStep < ptTotalSteps){
     ptGoToStep(ptCurrentStep + 1);
@@ -421,8 +587,40 @@ function ptNext(){console.log("[pretrip] ptNext called");
 
 function ptBack(){console.log("[pretrip] ptBack called");
   if(ptCurrentStep > 1){
+    ptSaveLocal();
     ptGoToStep(ptCurrentStep - 1);
   }
+}
+
+// Per-slide validation gate (runs on Continue, before the autosave).
+function ptValidateStep(n){
+  // S1 + P-A are ONE safety item (Claude's ruling): the height tiles carry no
+  // pre-selection, so the Rides slide requires an explicit tap before moving
+  // on -- a skipped section must never silently mean "everyone is 48in+".
+  if (n === 2 && !ptSegValues['heightTiles']) {
+    var note = document.getElementById('heightNote');
+    if (note) note.style.display = 'block';
+    var ht = document.getElementById('heightTiles');
+    if (ht && ht.scrollIntoView) { try { ht.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e){} }
+    return false;
+  }
+  return true;
+}
+
+function ptRenderSummary(){
+  var nameEl = document.getElementById('ptSummaryName');
+  if (!nameEl) return;
+  var name = (document.getElementById('tripName') || {}).value || '';
+  nameEl.textContent = name.trim() || 'Your trip';
+  var s = (document.getElementById('tripStart') || {}).value || '';
+  var e = (document.getElementById('tripEnd') || {}).value || '';
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmt(v){ if(!v) return ''; var d = new Date(v + 'T12:00:00'); return months[d.getMonth()] + ' ' + d.getDate(); }
+  var datesEl = document.getElementById('ptSummaryDates');
+  if (datesEl) datesEl.textContent = (s && e) ? (fmt(s) + '–' + fmt(e)) : '';
+  var count = ptGetDayCount();
+  var daysEl = document.getElementById('ptSummaryDays');
+  if (daysEl) daysEl.textContent = count ? (count + (count === 1 ? ' day' : ' days')) : '';
 }
 
 function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
@@ -454,10 +652,11 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
       });
     });
   }
-  // Update header
+  // Update header (S6: filling segment bar only -- no printed step fraction,
+  // so the indicator can never display the wrong total again)
   document.getElementById('ptStepTitle').textContent = PT_STEP_TITLES[n-1];
-  document.getElementById('ptStepInd').textContent = 'Step ' + n + ' of ' + ptTotalSteps;
-  document.getElementById('ptProgressFill').style.width = ((n/ptTotalSteps)*100) + '%';
+  var _segs = document.querySelectorAll('#ptProgressSegs i');
+  for (var _si = 0; _si < _segs.length; _si++) _segs[_si].classList.toggle('on', _si < n);
   // Back button
   var backBtn = document.getElementById('ptBackBtn');
   backBtn.style.display = n > 1 ? 'flex' : 'none';
@@ -472,6 +671,7 @@ function ptGoToStep(n){console.log("[pretrip] ptGoToStep called");
   }
   if (n === 2) { try { ptFetchRideCatalog(); } catch(e){} }
   if (n === 3) { try { ptFetchShows(); } catch(e){} }
+  if (n === 6) { try { ptRenderSummary(); } catch(e){} }
   _ptNextLock = false;
 }
 
@@ -491,6 +691,7 @@ function ptTileSelect(groupId, tile, value){console.log("[pretrip] ptTileSelect 
   group.querySelectorAll('.pt-tile').forEach(function(t){ t.classList.remove('selected'); });
   tile.classList.add('selected');
   ptSegValues[groupId] = value;
+  if (groupId === 'heightTiles') { var _hn = document.getElementById('heightNote'); if (_hn) _hn.style.display = 'none'; }
 }
 
 // -- Multi-select chips ----------------------------------
@@ -810,6 +1011,7 @@ function ptVipToggle(day){console.log("[pretrip] ptVipToggle called");
   var sub = document.getElementById('day'+day+'VipSub');
   if(!tog || !sub) return;
   sub.classList.toggle('visible', tog.classList.contains('on'));
+  ptDayConflictCheck(day);
 }
 
 function ptSyncStartPark(day, park) {
@@ -830,7 +1032,146 @@ function ptReservationsToggle(){
   var tog = document.getElementById('hasReservationsToggle');
   var sub = document.getElementById('reservationsSub');
   if(!tog || !sub) return;
-  sub.classList.toggle('visible', tog.classList.contains('on'));
+  var on = tog.classList.contains('on');
+  sub.classList.toggle('visible', on);
+  if (on && !ptResState.length) ptResState.push({ name:'', time:'', day:1 });
+  if (on) ptRenderResRows();
+}
+
+// -- Structured reservation rows (functional proposal (c)) -----------------
+// Rows are the source of truth: { name, time:'h:MM AM', day:<int> } -- the
+// exact {name,time,day} shape the dining.reservations consumers read.
+// ptCollectData derives BOTH the structured array (diningReservations) and
+// the flat "Name, Time, Day N" mirror strings (reservations) from these
+// rows, so no comma-split parsing ever touches a guest's booking again.
+// (ptResState is declared with the top-of-file state -- see the note there.)
+function ptResDayOptions(selDay){
+  var count = ptGetDayCount();
+  var startVal = document.getElementById('tripStart') ? document.getElementById('tripStart').value : '';
+  var html = '';
+  if (!count) html = '<option value="1"' + (selDay === 1 ? ' selected' : '') + '>Day 1</option>';
+  for (var i = 1; i <= count; i++) {
+    var lbl = 'Day ' + i + (startVal ? ' · ' + ptGetDateLabel(startVal, i - 1).replace(/, \d{4}$/, '') : '');
+    html += '<option value="' + i + '"' + (i === selDay ? ' selected' : '') + '>' + ptEsc(lbl) + '</option>';
+  }
+  return html;
+}
+function ptTime24to12(v){
+  if (!v) return '';
+  var m = String(v).match(/^(\d{1,2}):(\d{2})/); if (!m) return String(v);
+  var h = parseInt(m[1], 10); var ap = h >= 12 ? 'PM' : 'AM'; var h12 = h % 12; if (h12 === 0) h12 = 12;
+  return h12 + ':' + m[2] + ' ' + ap;
+}
+function ptTime12to24(v){
+  if (!v) return '';
+  var m = String(v).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i); if (!m) return String(v);
+  var h = parseInt(m[1], 10) % 12; if (/pm/i.test(m[3])) h += 12;
+  return (h < 10 ? '0' : '') + h + ':' + m[2];
+}
+function ptRenderResRows(){
+  var host = document.getElementById('resRows');
+  if (!host) return;
+  if (!ptResState.length) { host.innerHTML = ''; return; }
+  var html = '';
+  ptResState.forEach(function(r, i){
+    html += '<div class="pt-res-row">' +
+      '<div class="pt-res-top"><input class="pt-input" type="text" list="ptVenueList" placeholder="Restaurant name" value="' + ptEsc(r.name || '') + '" oninput="ptResField(' + i + ',\'name\',this.value)" autocomplete="off">' +
+      '<button type="button" class="pt-res-x" onclick="ptRemoveResRow(' + i + ')" aria-label="Remove reservation">✕</button></div>' +
+      '<div class="pt-res-grid">' +
+        '<div><div class="pt-label">Day</div><select class="pt-input" onchange="ptResField(' + i + ',\'day\',this.value)">' + ptResDayOptions(r.day || 1) + '</select></div>' +
+        '<div><div class="pt-label">Time</div><input class="pt-input" type="time" value="' + ptEsc(ptTime12to24(r.time || '')) + '" onchange="ptResField(' + i + ',\'time\',this.value)"></div>' +
+      '</div></div>';
+  });
+  host.innerHTML = html;
+}
+function ptResField(i, field, value){
+  if (!ptResState[i]) return;
+  if (field === 'day') ptResState[i].day = parseInt(value, 10) || 1;
+  else if (field === 'time') ptResState[i].time = ptTime24to12(value);
+  else ptResState[i].name = value;
+}
+function ptAddResRow(){
+  ptResState.push({ name:'', time:'', day:1 });
+  ptRenderResRows();
+}
+function ptRemoveResRow(i){
+  ptResState.splice(i, 1);
+  ptRenderResRows();
+}
+function ptResRowsClean(){
+  // Only rows with a name are real bookings; a blank scaffold row collects nothing.
+  return ptResState.filter(function(r){ return r && r.name && r.name.trim(); })
+    .map(function(r){ return { name: r.name.trim(), time: r.time || '', day: (typeof r.day === 'number' && r.day >= 1) ? r.day : 1 }; });
+}
+function ptRestoreReservations(src){
+  // Accepts the collected shape ({diningReservations, reservations}) or the
+  // saved-blob shape ({dining:{reservations:[{name,time,day}]}, reservations}).
+  var rows = [];
+  var structured = (src && Array.isArray(src.diningReservations) && src.diningReservations.length)
+    ? src.diningReservations
+    : (src && src.dining && Array.isArray(src.dining.reservations) ? src.dining.reservations : null);
+  if (structured) {
+    structured.forEach(function(r){ if (r && r.name) rows.push({ name: String(r.name), time: r.time || '', day: (typeof r.day === 'number' ? r.day : 1) }); });
+  } else if (src && Array.isArray(src.reservations)) {
+    // Legacy flat strings ("Name, 12:00 PM, Day 1") -- parsed here ONLY to
+    // pre-fill the rows for display; new saves never produce this path.
+    src.reservations.forEach(function(s){
+      if (!s || typeof s !== 'string') return;
+      var parts = s.split(',').map(function(p){ return p.trim(); });
+      var dm = (parts[2] || '').match(/(\d+)/);
+      if (parts[0]) rows.push({ name: parts[0], time: parts[1] || '', day: dm ? parseInt(dm[1], 10) : 1 });
+    });
+  }
+  ptResState = rows;
+  var tog = document.getElementById('hasReservationsToggle');
+  if (rows.length && tog && !tog.classList.contains('on')) tog.classList.add('on');
+  if (tog && tog.classList.contains('on')) {
+    var sub = document.getElementById('reservationsSub');
+    if (sub) sub.classList.add('visible');
+    ptRenderResRows();
+  }
+}
+
+// -- ILL rides as tap-to-pick chips (S2) ------------------------------------
+// The catalog's Individual Lightning Lane rides, as chips: a mistyped
+// free-text name was a ride the system could not match, seat, or tag (D6).
+// (PT_ILL_RIDE_NAMES is declared with the top-of-file state -- see there.)
+function ptILLChipToggle(day, chip){
+  chip.classList.toggle('selected');
+}
+function ptILLChipsHTML(day, selectedStr){
+  var sel = (selectedStr || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  var html = '<div class="pt-chips" id="day' + day + 'ILLChips">';
+  PT_ILL_RIDE_NAMES.forEach(function(nm){
+    html += '<div class="pt-chip' + (sel.indexOf(nm) !== -1 ? ' selected' : '') + '" onclick="ptILLChipToggle(' + day + ',this)">' + ptEsc(nm) + '</div>';
+  });
+  return html + '</div>';
+}
+function ptILLSelected(day){
+  var wrap = document.getElementById('day' + day + 'ILLChips');
+  if (!wrap) return [];
+  var out = [];
+  wrap.querySelectorAll('.pt-chip.selected').forEach(function(c){ out.push(c.textContent.trim()); });
+  return out;
+}
+function ptSetILLChips(day, selectedStr){
+  var wrap = document.getElementById('day' + day + 'ILLChips');
+  if (!wrap) return;
+  var sel = (selectedStr || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  wrap.querySelectorAll('.pt-chip').forEach(function(c){ c.classList.toggle('selected', sel.indexOf(c.textContent.trim()) !== -1); });
+}
+
+// -- Hop + VIP conflict (audit X1) -------------------------------------------
+// The generator builds a VIP day around the tour window and the hop is not
+// scheduled. That precedence must never be silent: the day card says so,
+// visibly, the moment both toggles are on.
+function ptDayConflictCheck(day){
+  var note = document.getElementById('day' + day + 'HopVipNote');
+  if (!note) return;
+  var hop = document.getElementById('day' + day + 'Hopper');
+  var vip = document.getElementById('day' + day + 'Vip');
+  var both = !!(hop && vip && hop.classList.contains('on') && vip.classList.contains('on'));
+  note.style.display = both ? 'block' : 'none';
 }
 
 function ptHopperToggle(day){
@@ -838,6 +1179,7 @@ function ptHopperToggle(day){
   var sub = document.getElementById('day'+day+'HopSub');
   if(!tog||!sub) return;
   sub.classList.toggle('visible', tog.classList.contains('on'));
+  ptDayConflictCheck(day);
 }
 function ptLLToggle(day){
   var tog = document.getElementById('day'+day+'LL');
@@ -917,7 +1259,7 @@ function ptUpdateDayCards() {
   var startVal = document.getElementById('tripStart') ? document.getElementById('tripStart').value : '';
   var count = ptGetDayCount();
   if (!count || !startVal) {
-    container.innerHTML = '<div style="text-align:center;padding:30px 0;color:#4A7A7C;font-size:12px;">Enter your trip dates in Step 1 to see your days here.</div>';
+    container.innerHTML = '<div style="text-align:center;padding:30px 0;color:#4A7A7C;font-size:12px;">Enter your trip dates on the Your Group slide to see your days here.</div>';
     _ptDayCount = 0;
     return;
   }
@@ -930,7 +1272,7 @@ function ptUpdateDayCards() {
       hasLL: document.getElementById('day'+i+'LL') ? document.getElementById('day'+i+'LL').classList.contains('on') : false,
       hasLLMP: document.getElementById('day'+i+'LLMP') ? document.getElementById('day'+i+'LLMP').classList.contains('checked') : false,
       hasILL: document.getElementById('day'+i+'ILL') ? document.getElementById('day'+i+'ILL').classList.contains('checked') : false,
-      illRides: document.getElementById('day'+i+'ILLRides') ? document.getElementById('day'+i+'ILLRides').value : '',
+      illRides: (typeof ptILLSelected === 'function') ? ptILLSelected(i).join(', ') : '',
       isVip: document.getElementById('day'+i+'Vip') ? document.getElementById('day'+i+'Vip').classList.contains('on') : false,
       vipStart: document.getElementById('day'+i+'VipStart') ? document.getElementById('day'+i+'VipStart').value : '10:00',
       vipEnd: document.getElementById('day'+i+'VipEnd') ? document.getElementById('day'+i+'VipEnd').value : '17:00'
@@ -949,7 +1291,7 @@ function ptUpdateDayCards() {
     
     if (!parkDL && !parkDCA) parkDL = ' active';
     html += '<div class="pt-day-card">' +
-      '<div class="pt-day-card-header"><div>Day ' + n + '</div><div class="pt-day-date">' + dateLabel + '</div></div>' +
+      '<div class="pt-day-card-header"><div style="font-size:15px;">Day ' + n + '</div><div class="pt-day-date">' + dateLabel + '</div></div>' +
       '<div class="pt-field"><div class="pt-label">Which park will you start the day in?</div>' +
       '<div class="pt-seg" id="day'+n+'ParkSeg" style="margin-bottom:0;">' +
         '<button class="pt-seg-btn'+parkDL+'" onclick="ptSegSelect(\'day'+n+'ParkSeg\',this,\'Disneyland\');ptSyncStartPark('+n+',\'Disneyland\')">Disneyland</button>' +
@@ -986,8 +1328,8 @@ function ptUpdateDayCards() {
           '<div class="pt-check-label" style="font-size:11px;">Individual Lightning Lane (ILL) -- paid per ride</div>' +
         '</div>' +
         '<div class="pt-vip-sub' + (prev.hasILL ? ' visible' : '') + '" id="day'+n+'ILLSub" style="margin-top:4px;">' +
-          '<div class="pt-label" style="margin-bottom:4px;font-size:10px;">Which ILL rides? (e.g. Rise of the Resistance)</div>' +
-          '<input class="pt-input" id="day'+n+'ILLRides" type="text" placeholder="e.g. Rise of the Resistance, Tiana\'s Bayou Adventure" value="' + (prev.illRides || '') + '" autocomplete="off">' +
+          '<div class="pt-label" style="margin-bottom:4px;font-size:10px;">Which ILL rides?</div>' +
+          ptILLChipsHTML(n, prev.illRides || '') +
         '</div>' +
       '</div>' +
       '<div class="pt-toggle-row">' +
@@ -1003,12 +1345,15 @@ function ptUpdateDayCards() {
           '<input class="pt-input" id="day'+n+'VipEnd" type="time" value="' + (prev.vipEnd || '17:00') + '">' +
         '</div>' +
       '</div>' +
+      '<div class="pt-conflict-hint" id="day'+n+'HopVipNote">Both a park hop and a VIP tour are on for this day. The day is built around your VIP tour window, so the hop won\'t be scheduled.</div>' +
     '</div>';
     // Re-register seg value
     ptSegValues['day'+n+'ParkSeg'] = prevPark;
     ptSegValues['day'+n+'StartPark'] = prevPark;
   }
   container.innerHTML = html;
+  for (var _cn = 1; _cn <= count; _cn++) { try { ptDayConflictCheck(_cn); } catch(e){} }
+  try { ptRenderResRows(); } catch(e){}
 }
 
 // -- Day labels (legacy, kept for load-from-storage) -----
@@ -1030,7 +1375,7 @@ function ptCollectData() {
     var hasLL = document.getElementById('day'+n+'LL') ? document.getElementById('day'+n+'LL').classList.contains('on') : false;
     var hasLLMP = document.getElementById('day'+n+'LLMP') ? document.getElementById('day'+n+'LLMP').classList.contains('checked') : false;
     var hasILL = document.getElementById('day'+n+'ILL') ? document.getElementById('day'+n+'ILL').classList.contains('checked') : false;
-    var illRides = document.getElementById('day'+n+'ILLRides') ? document.getElementById('day'+n+'ILLRides').value.trim() : '';
+    var illRides = ptILLSelected(n).join(', ');
     return {
       num: n,
       date: startVal ? ptGetDateLabel(startVal, n-1) : '',
@@ -1108,21 +1453,110 @@ function ptCollectData() {
     reservations: (function(){
       var tog = document.getElementById('hasReservationsToggle');
       if(!tog || !tog.classList.contains('on')) return [];
-      var raw = document.getElementById('reservationsInput') ? document.getElementById('reservationsInput').value.trim() : '';
-      if(!raw) return [];
-      return raw.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+      // Flat mirror of the structured rows, in the established
+      // "Name, Time, Day N" encoding the server also parses.
+      return ptResRowsClean().map(function(r){ return r.name + ', ' + r.time + ', Day ' + r.day; });
     })(),
+    diningReservations: (function(){
+      var tog = document.getElementById('hasReservationsToggle');
+      if(!tog || !tog.classList.contains('on')) return [];
+      return ptResRowsClean();
+    })(),
+    party: { adults: ptAdults, children: ptChildren, size: ptPartySize() },
     wantedRestaurants: document.getElementById('wantedRestaurants') ? document.getElementById('wantedRestaurants').value : '',
     days: days
   };
 }
 
-// -- Save current step -----------------------------------
-function ptSaveCurrentStep() {
+// -- Per-slide autosave (Claude's Q4 guardrails) ---------------------------
+// Local-first: every Continue (and every stepper tap) writes the collected
+// state to localStorage under the existing pretripData key -- frequent local
+// writes are fine. The SERVER mirror fires on Continue only (per-slide, never
+// per-keystroke: trip writes sit behind the trip-writes firewall), and it
+// writes to the SEPARATE onboarding-draft namespace (POST /api/trip?draft=1,
+// body { code, tripCode, draft }) -- a draft can never clobber a finished
+// trip/schedule blob; promotion to the real trip happens only at ptFinish.
+// Resume reads are tolerant of the draft envelope shape.
+function ptSaveLocal() {
   try {
     var d = ptCollectData();
     localStorage.setItem('pretripData', JSON.stringify(d));
+    localStorage.setItem('pretripDraftAt', new Date().toISOString());
   } catch(e){}
+}
+function ptMirrorDraft() {
+  try {
+    var code = localStorage.getItem('tpcp_code') || '';
+    if (!code) return; // local-first covers any pre-code start
+    var d = ptCollectData();
+    fetch(SYNC_BASE + '/api/trip?draft=1', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ code: code, tripCode: code, draft: { version: 1, savedAt: new Date().toISOString(), step: ptCurrentStep, data: d } })
+    }).then(function(r){
+      console.log('[pretrip] draft mirror status: ' + r.status);
+    }).catch(function(err){ console.warn('[pretrip] draft mirror failed (local save stands):', err && err.message); });
+  } catch(e){}
+}
+function ptSaveCurrentStep() {
+  ptSaveLocal();
+  ptMirrorDraft();
+}
+
+// -- Draft resume -------------------------------------------------------------
+// On a plain load (not edit/rebuild), an unfinished draft restores into the
+// slides so a guest who was interrupted never restarts the whole flow.
+// Restore goes through the same collected-shape path as ptLoadFromStorage,
+// which rehydrates EVERY persisted field (see the field-by-field audit in
+// ptLoadFromStorage). The rebuild path's 300ms premature-finish race is not
+// reintroduced: resume never calls ptFinish and never auto-advances.
+function ptShowDraftBanner(savedAt) {
+  var b = document.getElementById('ptDraftBanner');
+  if (!b) return;
+  var when = '';
+  try { if (savedAt) when = ' (' + new Date(savedAt).toLocaleDateString() + ')'; } catch(e){}
+  b.innerHTML = 'Welcome back — we saved your progress' + when + ', so you can pick up right where you left off. <button type="button" onclick="ptStartOver()">Start over</button>';
+  b.style.display = 'block';
+}
+function ptStartOver() {
+  try {
+    localStorage.removeItem('pretripData');
+    localStorage.removeItem('pretripDraftAt');
+    localStorage.removeItem('tripSetupComplete');
+  } catch(e){}
+  window.location.href = window.location.pathname;
+}
+function ptExtractDraft(j) {
+  // Tolerant envelope parsing: { draft:{ data } } or { draft:{...fields} }.
+  if (!j || typeof j !== 'object') return null;
+  var dr = j.draft || (j.tripData && j.tripData.draft) || null;
+  if (!dr || typeof dr !== 'object') return null;
+  if (dr.data && typeof dr.data === 'object') return dr.data;
+  if (dr.tripName !== undefined || dr.days !== undefined || dr.dates !== undefined) return dr;
+  return null;
+}
+function ptResumeDraft() {
+  var localRaw = null;
+  try { localRaw = localStorage.getItem('pretripData'); } catch(e){}
+  if (localRaw) {
+    ptLoadFromStorage();
+    ptShowDraftBanner(localStorage.getItem('pretripDraftAt') || '');
+    return;
+  }
+  var code = '';
+  try { code = localStorage.getItem('tpcp_code') || ''; } catch(e){}
+  if (!code) return;
+  fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code) + '&draft=1', { cache: 'no-store' })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var d = ptExtractDraft(j);
+      if (d) {
+        try { localStorage.setItem('pretripData', JSON.stringify(d)); } catch(e){}
+        ptLoadFromStorage();
+        ptShowDraftBanner(d.savedAt || '');
+      }
+    })
+    .catch(function(){ /* no server draft -- a fresh start is correct */ });
 }
 
 // -- Load from storage -----------------------------------
@@ -1146,6 +1580,7 @@ function ptLoadFromBlob(isRebuild) {
 
                                                             function ptRestoreFromConfig(cfg, isRebuild) {
                                                               var nameEl = document.getElementById('tripName');
+                                                                ptRestoreParty(cfg);
                                                                 if (nameEl && cfg.tripName) nameEl.value = cfg.tripName;
                                                                   if (cfg.dates && (cfg.dates.length || cfg.dates.start)) {
                                                                       var sd = document.getElementById('tripStart');
@@ -1164,19 +1599,14 @@ function ptLoadFromBlob(isRebuild) {
                                                                                             if (day.hasLL && document.getElementById('day'+n+'LL')) { document.getElementById('day'+n+'LL').classList.add('on'); ptLLToggle(n); }
                                                                                             if (day.hasLLMP && document.getElementById('day'+n+'LLMP')) document.getElementById('day'+n+'LLMP').classList.add('checked');
                                                                                             if (day.hasILL && document.getElementById('day'+n+'ILL')) { document.getElementById('day'+n+'ILL').classList.add('checked'); ptILLToggle(n); }
-                                                                                            if (day.illRides && document.getElementById('day'+n+'ILLRides')) document.getElementById('day'+n+'ILLRides').value = day.illRides;
+                                                                                            if (day.illRides) ptSetILLChips(n, day.illRides);
                                                                                             if (day.isVip && document.getElementById('day'+n+'Vip')) { document.getElementById('day'+n+'Vip').classList.add('on'); ptVipToggle(n); }
                                                                                             if (day.vipStart && document.getElementById('day'+n+'VipStart')) document.getElementById('day'+n+'VipStart').value = day.vipStart;
                                                                                             if (day.vipEnd && document.getElementById('day'+n+'VipEnd')) document.getElementById('day'+n+'VipEnd').value = day.vipEnd;
                                                                                             if (day.park) { ptSegValues['day'+n+'StartPark'] = day.startPark || day.park; }
                                                                                           });
                                                                                         }
-                                                                                          if (cfg.thrillLevel) {
-                                                                                              document.querySelectorAll('.pt-seg-btn[data-seg="thrillSeg"]').forEach(function(b) {
-                                                                                                    b.classList.toggle('active', b.dataset.val === cfg.thrillLevel);
-                                                                                                        });
-                                                                                                            if (typeof ptSegValues !== 'undefined') ptSegValues['thrillSeg'] = cfg.thrillLevel;
-                                                                                                              }
+                                                                                          if (cfg.thrillLevel) { ptSelectTileByValue('thrillTiles', cfg.thrillLevel, true); }
                                                                                                                 if (cfg.ridePreferences) {
           ptManual = {};
           (cfg.ridePreferences.mustDo || []).forEach(function(ride){ ptManual[ptNorm(ride)] = 'must'; });
@@ -1242,10 +1672,37 @@ function ptLoadFromBlob(isRebuild) {
 if (Array.isArray(cfg.dietaryNeeds)) { cfg.dietaryNeeds.forEach(function(_lbl){ var _cs=document.querySelectorAll('#dietChips .pt-chip'); for (var _i=0;_i<_cs.length;_i++){ if(_cs[_i].textContent.trim()===_lbl) _cs[_i].classList.add('selected'); } }); }
 if (Array.isArray(cfg.accessibility)) { cfg.accessibility.forEach(function(_k){ var _b=document.getElementById('acc_'+_k); if(_b) _b.classList.add('checked'); }); }
 if (cfg.showPreferences) { ptShowManual = {}; (cfg.showPreferences.want||[]).forEach(function(_n){ ptShowManual[ptNorm(_n)]='want'; }); (cfg.showPreferences.skip||[]).forEach(function(_n){ var _k=ptNorm(_n); if(!ptShowManual[_k]) ptShowManual[_k]='skip'; }); if (ptShowCatalog) ptRenderShows(); }
-if (Array.isArray(cfg.reservations) && cfg.reservations.length) { var _rt=document.getElementById('hasReservationsToggle'); if(_rt && !_rt.classList.contains('on')){ _rt.classList.add('on'); if(typeof ptReservationsToggle==='function') ptReservationsToggle(); } var _ri=document.getElementById('reservationsInput'); if(_ri) _ri.value = cfg.reservations.join('\n'); }
+ptRestoreReservations(cfg);
 // Rebuild and edit both only pre-fill the form. Generation fires ONLY on the final-page button (ptFinish via ptNext). No auto-fire.
                                                                                                                                                                                                                                                                                                 }
 
+
+function ptSelectTileByValue(groupId, value, byLabel){
+  if (!value) return;
+  var tiles = document.querySelectorAll('#' + groupId + ' .pt-tile');
+  for (var i = 0; i < tiles.length; i++) {
+    var t = tiles[i];
+    var hit = byLabel
+      ? (t.querySelector('.pt-tile-label') && t.querySelector('.pt-tile-label').textContent.trim() === value)
+      : (t.getAttribute('onclick') && t.getAttribute('onclick').indexOf("'" + value + "'") !== -1);
+    if (hit) {
+      tiles.forEach(function(x){ x.classList.remove('selected'); });
+      t.classList.add('selected');
+      ptSegValues[groupId] = value;
+      return;
+    }
+  }
+}
+function ptRestoreParty(src){
+  var p = (src && src.party) ? src.party : null;
+  if (!p && src && src.groupProfile && typeof src.groupProfile.adults === 'number') {
+    p = { adults: src.groupProfile.adults, children: (typeof src.groupProfile.children === 'number' ? src.groupProfile.children : 0) };
+  }
+  if (!p) return; // legacy blobs carry size only (often the phantom 9) -- never guess a split
+  if (typeof p.adults === 'number') ptAdults = Math.max(1, Math.min(20, p.adults));
+  if (typeof p.children === 'number') ptChildren = Math.max(0, Math.min(20, p.children));
+  ptRenderParty();
+}
 
 function ptLoadFromStorage() {
   try {
@@ -1268,7 +1725,7 @@ function ptLoadFromStorage() {
         if (day.hasLL && document.getElementById('day'+n+'LL')) { document.getElementById('day'+n+'LL').classList.add('on'); ptLLToggle(n); }
         if (day.hasLLMP && document.getElementById('day'+n+'LLMP')) document.getElementById('day'+n+'LLMP').classList.add('checked');
         if (day.hasILL && document.getElementById('day'+n+'ILL')) { document.getElementById('day'+n+'ILL').classList.add('checked'); ptILLToggle(n); }
-        if (day.illRides && document.getElementById('day'+n+'ILLRides')) document.getElementById('day'+n+'ILLRides').value = day.illRides;
+        if (day.illRides) ptSetILLChips(n, day.illRides);
         if (day.isVip && document.getElementById('day'+n+'Vip')) { document.getElementById('day'+n+'Vip').classList.add('on'); ptVipToggle(n); }
         if (day.vipStart && document.getElementById('day'+n+'VipStart')) document.getElementById('day'+n+'VipStart').value = day.vipStart;
         if (day.vipEnd && document.getElementById('day'+n+'VipEnd')) document.getElementById('day'+n+'VipEnd').value = day.vipEnd;
@@ -1281,32 +1738,73 @@ function ptLoadFromStorage() {
     if (d.showPreferences) { ptShowManual = {}; (d.showPreferences.want||[]).forEach(function(_n){ ptShowManual[ptNorm(_n)]='want'; }); (d.showPreferences.skip||[]).forEach(function(_n){ var _k=ptNorm(_n); if(!ptShowManual[_k]) ptShowManual[_k]='skip'; }); if (ptShowCatalog) ptRenderShows(); }
     if (d.mustDo || d.neverSchedule) { ptManual = {}; (d.mustDo||[]).forEach(function(ride){ ptManual[ptNorm(ride)] = 'must'; }); (d.neverSchedule||[]).forEach(function(ride){ var nn = ptNorm(ride); if (!ptManual[nn]) ptManual[nn] = 'skip'; }); if (ptRideCatalog) { ptRenderRideSelector(); } }
     if (Array.isArray(d.activeCats)) { ptActiveCats = {}; d.activeCats.forEach(function(k){ ptActiveCats[k] = true; }); document.querySelectorAll('.pt-catchip').forEach(function(c){ c.classList.toggle('active', !!ptActiveCats[c.getAttribute('data-cat')]); }); if (ptRideCatalog) { ptRenderRideSelector(); } }
+    // Field-drop family audit (Oct 7, 2026): everything ptCollectData writes
+    // must rehydrate on this path. Party, thrill, height, characters, and
+    // reservations were previously dropped here and are restored below.
+    ptRestoreParty(d);
+    ptSelectTileByValue('thrillTiles', d.thrillLevel, true);
+    if (d.minHeight) ptSelectTileByValue('heightTiles', d.minHeight, false);
+    if (d.characters) {
+      var catToLabel2 = { 'princess': 'Princesses', 'classic': 'Mickey & Friends', 'star_wars': 'Star Wars', 'pixar': 'Pixar Pals', 'marvel': 'Marvel Heroes', 'villain': 'Villains' };
+      (d.characters.categories || []).forEach(function(cat) {
+        var label = catToLabel2[cat] || cat;
+        document.querySelectorAll('#charChips .pt-chip').forEach(function(chip) { if (chip.textContent.trim() === label) chip.classList.add('selected'); });
+      });
+      if (d.characters.priority) ptSelectTileByValue('charPriorityTiles', d.characters.priority, false);
+    }
+    ptRestoreReservations(d);
   } catch(e){}
 }
 
 // -- Schedule generation ---------------------------------
 var SYNC_BASE = 'https://app.themeparkcopilot.com';
 
-function ptShowGenerating(dayNum, totalDays) {
-  var bar = document.getElementById('ptCtaBar');
-  if (bar) {
-    bar.innerHTML = '<div style="background:#1A8880;border-radius:13px;padding:14px 16px;text-align:center;">' +
-      '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Building your schedule...</div>' +
-      '<div style="font-size:11px;color:rgba(255,255,255,0.70);">Generating all ' + totalDays + ' days at once -- usually about a minute</div>' +
-      '<div style="margin-top:10px;height:4px;background:rgba(255,255,255,0.20);border-radius:2px;overflow:hidden;">' +
-        '<div id="ptGenBar" style="height:100%;background:#fff;border-radius:2px;width:' + Math.round((dayNum-1)/totalDays*100) + '%;transition:width 0.5s ease;"></div>' +
-      '</div>' +
-    '</div>';
+function ptSetGenLine(idx, state, canRetry) {
+  var el = document.getElementById('ptGenDay' + idx);
+  if (!el) return;
+  var label = 'Day ' + (idx + 1);
+  el.className = 'pt-gen-line ' + state;
+  if (state === 'done') el.innerHTML = '<span>\u2713</span><span>' + label + ' ready</span>';
+  else if (state === 'building') el.innerHTML = '<span>\u2022</span><span>Building ' + label + '\u2026</span>';
+  else if (state === 'failed') {
+    el.innerHTML = '<span>\u2715</span><span>' + label + ' \u2014 couldn\'t build</span>' +
+      (canRetry ? '<button type="button" class="pt-gen-retry" onclick="ptGenRetryDay(' + idx + ')">Tap to retry</button>' +
+      '<button type="button" class="pt-gen-skip" onclick="ptGenSkipDay(' + idx + ')">Continue without this day</button>' : '');
   }
+  else el.innerHTML = '<span>\u00B7</span><span>' + label + '</span>';
+}
+var _ptGenRetry = null, _ptGenSkip = null;
+function ptGenRetryDay(idx) { if (_ptGenRetry) _ptGenRetry(); }
+function ptGenSkipDay(idx) { if (_ptGenSkip) _ptGenSkip(); }
+
+function ptShowGenerating(dayNum, totalDays) {
+  // Claude's Q3 waiting screen: sequential reassurance + REAL per-day
+  // progress ("Day 1 ready \u00B7 Building Day 3\u2026"). No spinner-only, no
+  // percentage bar, no clock estimates; the before-you-go tips double as
+  // waiting-reading in the #ptGenScreen markup.
+  var title = document.getElementById('ptGenTitle');
+  if (title) title.textContent = 'Building your ' + totalDays + '-day plan\u2026';
+  var days = document.getElementById('ptGenDays');
+  if (days) {
+    var html = '';
+    for (var i = 0; i < totalDays; i++) html += '<div class="pt-gen-line" id="ptGenDay' + i + '"></div>';
+    days.innerHTML = html;
+    for (var j = 0; j < totalDays; j++) ptSetGenLine(j, j === 0 ? 'building' : 'waiting', false);
+  }
+  var step6 = document.getElementById('ptStep6');
+  if (step6) step6.classList.remove('active');
+  var screen = document.getElementById('ptGenScreen');
+  if (screen) screen.style.display = 'block';
+  var cta = document.getElementById('ptCtaBar');
+  if (cta) cta.style.display = 'none';
+  try { window.scrollTo(0, 0); } catch(e){}
 }
 
 function ptUpdateGenBar(dayNum, totalDays) {
-  var bar = document.getElementById('ptGenBar');
-  if (bar) bar.style.width = Math.round(dayNum/totalDays*100) + '%';
-  var label = document.querySelector('#ptCtaBar div div');
-  if (label) {
-    var sub = label.nextElementSibling;
-    if (sub) sub.textContent = dayNum + ' of ' + totalDays + ' days ready -- almost there...';
+  // Name kept (the day sequence calls it): dayNum days are complete.
+  for (var i = 0; i < totalDays; i++) {
+    if (i < dayNum) ptSetGenLine(i, 'done', false);
+    else if (i === dayNum) ptSetGenLine(i, 'building', false);
   }
 }
 
@@ -1358,13 +1856,17 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         tripConfig: {
           characters: tripConfig.characters,
           minHeight: tripConfig.minHeight,
+          thrillLevel: tripConfig.thrillLevel || '',
+          accessibility: tripConfig.accessibility || [],
+          wantedRestaurants: tripConfig.wantedRestaurants || '',
           ridePreferences: tripConfig.ridePreferences || {},
           avoidWater: tripConfig.avoidWater === true,
           showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
           _priorRides: tripConfig._priorRides || [],
           _priorCharacters: tripConfig._priorCharacters || [],
           _priorRopeDrops: tripConfig._priorRopeDrops || [],
-          groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
+          _priorShows: tripConfig._priorShows || [],
+          groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary, size: tripConfig.groupProfile.size, adults: tripConfig.groupProfile.adults, children: tripConfig.groupProfile.children } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
           dining: {
@@ -1377,7 +1879,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
               var _start = (tripConfig.days && tripConfig.days[0] && tripConfig.days[0].date) || tripConfig.startDate || null;
               if (_start) { var _o = new Date(_start); _o.setDate(_o.getDate() + di); _dt = _o.toISOString().slice(0,10); }
             }
-            return { park: dd.park, date: _dt, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP === true, hasILL: dd.hasILL === true, intent: dd.intent };
+            return { park: dd.park, date: _dt, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP === true, hasILL: dd.hasILL === true, illRides: (dd.illRides || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean), intent: dd.intent };
           })
         } }
     : { prompt: prompt, mode: 'setup', maxTokens: 8000,
@@ -1385,13 +1887,17 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         tripConfig: {
           characters: tripConfig.characters,
           minHeight: tripConfig.minHeight,
+          thrillLevel: tripConfig.thrillLevel || '',
+          accessibility: tripConfig.accessibility || [],
+          wantedRestaurants: tripConfig.wantedRestaurants || '',
           ridePreferences: tripConfig.ridePreferences || {},
           avoidWater: tripConfig.avoidWater === true,
           showPreferences: tripConfig.showPreferences || { want: [], skip: [] },
           _priorRides: tripConfig._priorRides || [],
           _priorCharacters: tripConfig._priorCharacters || [],
           _priorRopeDrops: tripConfig._priorRopeDrops || [],
-          groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary } : undefined,
+          _priorShows: tripConfig._priorShows || [],
+          groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary, size: tripConfig.groupProfile.size, adults: tripConfig.groupProfile.adults, children: tripConfig.groupProfile.children } : undefined,
           reservations: tripConfig.reservations || [],
           parkHopping: tripConfig.parkHopping,
           _usedQuickService: tripConfig._usedQuickService || [],
@@ -1502,23 +2008,33 @@ function ptFinish() {
     minHeight: d.minHeight || 'over48',
     characters: d.characters || { categories: [], priority: 'niceToHave' },
     groupProfile: {
-      size: (parseInt(document.getElementById('groupSize') && document.getElementById('groupSize').value,10)||9),
+      size: (d.party && d.party.size) ? d.party.size : 2,
+      adults: d.party ? d.party.adults : undefined,
+      children: d.party ? d.party.children : undefined,
       shortestHeightInches: (function(h){ return h==='under40'?38 : h==='40to46'?40 : h==='46to48'?46 : 0; })(d.minHeight||'over48'),
       dietary: d.dietaryNeeds || [],
       characterCategories: (d.characters && d.characters.categories) ? d.characters.categories : [],
       characterPriority: (d.characters && d.characters.priority) ? d.characters.priority : 'niceToHave'
     },
     dining: {
-      reservations: (d.reservations || []).map(function(s) {
-        if (!s || typeof s !== 'string') return null;
-        var parts = s.split(',').map(function(p) { return p.trim(); });
-        var name = parts[0] || '';
-        var time = parts[1] || '';
-        var dayRaw = parts[2] || '';
-        var dayMatch = dayRaw.match(/(\d+)/);
-        var day = dayMatch ? parseInt(dayMatch[1], 10) : null;
-        return name ? { name: name, time: time, day: day, isConfirmed: true } : null;
-      }).filter(Boolean)
+      // Structured rows from the Dining slide write {name,time,day} directly
+      // (functional proposal (c)) -- no comma-split parsing. The flat-string
+      // parse survives only as a fallback for legacy collected shapes. Every
+      // structured row carries a real day, which also closes the old
+      // day-null parse edge (a reservation with no parseable "Day N" used to
+      // be sent on no day at all).
+      reservations: (d.diningReservations && d.diningReservations.length)
+        ? d.diningReservations.map(function(r) { return { name: r.name, time: r.time || '', day: (typeof r.day === 'number' ? r.day : 1), isConfirmed: true }; })
+        : (d.reservations || []).map(function(s) {
+            if (!s || typeof s !== 'string') return null;
+            var parts = s.split(',').map(function(p) { return p.trim(); });
+            var name = parts[0] || '';
+            var time = parts[1] || '';
+            var dayRaw = parts[2] || '';
+            var dayMatch = dayRaw.match(/(\d+)/);
+            var day = dayMatch ? parseInt(dayMatch[1], 10) : null;
+            return name ? { name: name, time: time, day: day, isConfirmed: true } : null;
+          }).filter(Boolean)
     },
     onboardingComplete: true
   };
@@ -1682,16 +2198,19 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
     }
   }
 
-  // SEQUENTIAL day generation with cross-day dining accumulation. Days run back-to-back
-  // (not in parallel) so each day is told the venues chosen on earlier days via
-  // tripConfig.dining.usedVenues; the scaffold fill prompt already refuses to repeat any
-  // venue on that list, so no restaurant is picked twice across the trip. This trades
-  // ~3x generation wall-time for non-repeating dining (the per-day progress bar covers it).
+  // SEQUENTIAL day generation with cross-day accumulation. Days run back-to-back
+  // (not in parallel) so each day is told the venues, rides, characters, rope
+  // drops, AND shows chosen on earlier days (tripConfig.dining.usedVenues and
+  // the _prior* lists); the scaffold refuses repeats, so no restaurant, ride,
+  // character, or show is picked twice across the trip. _priorShows was
+  // hardcoded [] until Oct 7, 2026 -- the "never the same show twice" promise
+  // on the Nighttime Shows slide now has its mechanism (audit X2).
   var _seedUsed = (tripConfig.dining && Array.isArray(tripConfig.dining.usedVenues))
     ? tripConfig.dining.usedVenues.slice() : [];
-  function _genDaySeq(idx, usedSoFar, priorRidesSoFar, priorCharsSoFar, priorRopeSoFar) {
+  function _genDaySeq(idx, usedSoFar, priorRidesSoFar, priorCharsSoFar, priorRopeSoFar, priorShowsSoFar) {
     if (idx >= totalDays) { _finishAndSave(); return; }
     var _dayNum = idx + 1;
+    ptSetGenLine(idx, 'building', false);
     var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
       ? tripConfig.dining.reservations.filter(function(r) { return r && r.day === _dayNum; })
       : [];
@@ -1704,38 +2223,44 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       _priorRides: (priorRidesSoFar || []).slice(),
       _priorCharacters: (priorCharsSoFar || []).slice(),
       _priorRopeDrops: (priorRopeSoFar || []).slice(),
-      _priorShows: []
+      _priorShows: (priorShowsSoFar || []).slice()
     });
-    ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
-      if (err) {
-        console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
-        var bar = document.getElementById('ptCtaBar');
-        if (bar) {
-          var errDiv = bar.querySelector('.pt-gen-error');
-          if (!errDiv) {
-            errDiv = document.createElement('div');
-            errDiv.className = 'pt-gen-error';
-            errDiv.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.7);margin-top:6px;text-align:center;';
-            bar.firstElementChild && bar.firstElementChild.appendChild(errDiv);
-          }
-          errDiv.textContent = 'Day ' + (idx+1) + ' had trouble -- keeping your saved plan for that day, continuing...';
-        }
-        generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
-      } else {
-        var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; generatedDays[idx] = _dayObj;
-        console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
-      }
+    function _proceed(items) {
       var _dayVenues = (items || []).filter(function(x){ return x && (x.type === 'dining' || x.type === 'quickservice' || x.type === 'snack') && x.h; }).map(function(x){ return x.h; });
       var _dayRides = (items || []).filter(function(x){ return x && x.type === 'ride'; }).map(function(x){ return x.ride || x.h; }).filter(Boolean);
       var _dayChars = (items || []).filter(function(x){ return x && x.type === 'character'; }).map(function(x){ return x.h; }).filter(Boolean);
+      var _dayShows = (items || []).filter(function(x){ return x && x.type === 'show'; }).map(function(x){ return x.h; }).filter(Boolean);
       var _firstRide = (items || []).filter(function(x){ return x && x.type === 'ride'; })[0];
       var _dayRope = _firstRide ? [(_firstRide.ride || _firstRide.h)] : [];
       _completed++;
       ptUpdateGenBar(_completed, totalDays);
-      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues), (priorRidesSoFar || []).concat(_dayRides), (priorCharsSoFar || []).concat(_dayChars), (priorRopeSoFar || []).concat(_dayRope));
-    });
+      _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues), (priorRidesSoFar || []).concat(_dayRides), (priorCharsSoFar || []).concat(_dayChars), (priorRopeSoFar || []).concat(_dayRope), (priorShowsSoFar || []).concat(_dayShows));
+    }
+    function _attempt() {
+      ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
+        if (err) {
+          console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
+          // Honest failure at the day's own progress line (Claude Q3): retry
+          // this day, or continue without it -- the carry-forward guard in
+          // _finishAndSave protects any stored plan for that day either way.
+          // Generation is sequential, so exactly one day can be failed at a
+          // time and a single pending retry/skip handler is correct.
+          ptSetGenLine(idx, 'failed', true);
+          _ptGenRetry = function() { ptSetGenLine(idx, 'building', false); _attempt(); };
+          _ptGenSkip = function() {
+            generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
+            _proceed(null);
+          };
+          return;
+        }
+        var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; generatedDays[idx] = _dayObj;
+        console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
+        _proceed(items);
+      });
+    }
+    _attempt();
   }
-  _genDaySeq(0, _seedUsed, [], [], []);
+  _genDaySeq(0, _seedUsed, [], [], [], []);
 }
 </script>
 </body>
