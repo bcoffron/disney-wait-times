@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, shortestHeightInches, thrillModeFor } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -607,10 +607,55 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           const _sVip = (s) => { if (typeof s !== 'string') return null; let m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); if (m) { let h = parseInt(m[1], 10); if (/pm/i.test(m[3]) && h !== 12) h += 12; if (/am/i.test(m[3]) && h === 12) h = 0; return h * 60 + parseInt(m[2], 10); } m = s.match(/^\s*(\d{1,2}):(\d{2})\s*$/); if (m) { const h = parseInt(m[1], 10), mn = parseInt(m[2], 10); if (h <= 23 && mn <= 59) return h * 60 + mn; } return null; };
           const _vipStart = _day.isVip ? _sVip(_day.vipStart) : null;
           const _vipEnd = _day.isVip ? _sVip(_day.vipEnd) : null;
-          const _llmp = _day.hasLLMP === true;
-          const _ill = _day.hasILL === true;
-          const _llFlagsDefined = typeof _day.hasLLMP === 'boolean' || typeof _day.hasILL === 'boolean';
-          const _hasLL = _llFlagsDefined ? (_llmp || _ill) : !(_day.hasLL === false || _cfg.hasLL === false);
+          // LL MASTER TOGGLE (Onboarding wiring Tier 1, Oct 7, 2026 --
+          // Claude's pinned formula): the day's hasLL flag is the source of
+          // truth. _hasLL = hasLL === true && (llmp || ill || subtypes
+          // unspecified). Master OFF means NO Lightning Lane at all, even
+          // when stale subtype flags persisted from an earlier edit say
+          // otherwise; master ON with no subtype named gets LL present per
+          // the default product (Lightning Lane Multi Pass). Pre-fix, the
+          // _llFlagsDefined check was effectively always true (the client
+          // coerces hasLLMP/hasILL with === true), so the master flag was
+          // ignored in BOTH directions.
+          let _llmp = _day.hasLLMP === true;
+          let _ill = _day.hasILL === true;
+          const _llSubtypesSpecified = typeof _day.hasLLMP === 'boolean' || typeof _day.hasILL === 'boolean';
+          let _hasLL;
+          if (typeof _day.hasLL === 'boolean') _hasLL = _day.hasLL && (_llmp || _ill || !_llSubtypesSpecified);
+          else _hasLL = _llSubtypesSpecified ? (_llmp || _ill) : (_cfg.hasLL !== false);
+          if (!_hasLL) { _llmp = false; _ill = false; }
+          else if (!_llmp && !_ill) { _llmp = true; }
+
+          // Onboarding wiring context (Oct 7, 2026): every Flow P soft-
+          // preference control the guest set resolves HERE, once, into the
+          // exact values the scaffold seams consume below.
+          const _gp = (_cfg.groupProfile && typeof _cfg.groupProfile === 'object') ? _cfg.groupProfile : {};
+          const _groupSize = (typeof _gp.size === 'number' && _gp.size > 0) ? Math.floor(_gp.size)
+            : (typeof _cfg.groupSize === 'number' && _cfg.groupSize > 0) ? Math.floor(_cfg.groupSize) : null;
+          // HEIGHT GATE (Tier 1): legacy bracket semantics; the gate is
+          // active only when the shortest rider is under 48in. A SOLO guest
+          // gets hard exclusion (maxHeightInches for the pickers); a group
+          // gets the rider-swap note path in verify.
+          const _minH = shortestHeightInches(_cfg.minHeight);
+          const _heightActive = _minH < 48;
+          const _soloHeight = _groupSize === 1;
+          const _maxHeightInches = (_heightActive && _soloHeight) ? _minH : null;
+          const _thrillMode = thrillModeFor(_cfg.thrillLevel);
+          // ACCESSIBILITY (Tier 3): chip labels map to the two consumers --
+          // mobility (dezigzag / spacing / fill context) and service animal
+          // (relief-area notes / fill context).
+          const _accList = (Array.isArray(_cfg.accessibility) ? _cfg.accessibility : []).map(s => String(s || '').toLowerCase());
+          const _mobility = _accList.some(s => s.indexOf('mobility') !== -1);
+          const _serviceAnimal = _accList.some(s => s.indexOf('service') !== -1);
+          // DIETARY (Tier 2): groupProfile.dietary ONLY -- the top-level
+          // dietaryNeeds field is read by nothing and stays that way
+          // (Claude's checklist correction).
+          const _dietNeeds = Array.isArray(_gp.dietary) ? _gp.dietary.filter(s => typeof s === 'string' && s.trim()) : [];
+          // PRIOR SHOWS (Tier 2): the client accumulates shows seated on
+          // earlier days; absent/empty degrades to no dedup signal.
+          const _priorShows = Array.isArray(_cfg._priorShows) ? _cfg._priorShows.filter(s => typeof s === 'string' && s.trim())
+            : (req.body && Array.isArray(req.body._priorShows)) ? req.body._priorShows.filter(s => typeof s === 'string' && s.trim()) : [];
+          console.log('[scaffold] wiring ctx: groupSize=' + _groupSize + ' minH=' + _minH + ' soloHeight=' + _soloHeight + ' thrill=' + _thrillMode + ' mobility=' + _mobility + ' serviceAnimal=' + _serviceAnimal + ' diet=' + JSON.stringify(_dietNeeds) + ' priorShows=' + _priorShows.length);
 
           // Character meet (must-do categories): plan the day's meet BEFORE the
           // skeleton is built so the skeleton can carry a dedicated character
@@ -623,6 +668,9 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               if (_ci && Array.isArray(_ci.characters) && _ci.characters.length) {
                 const _meetParks = [_park].concat((_day.intent && _day.intent.hop && _day.intent.hop.toPark) ? [_day.intent.hop.toPark] : []);
                 _charMeet = pickCharacterMeet(_ci.characters, _cp.categories || [], _meetParks, Array.isArray(_cfg._priorCharacters) ? _cfg._priorCharacters : [], landToPark);
+                // Character priority (Tier 3): the skeleton slot carries the
+                // priority so niceToHave meets seat opportunistically only.
+                if (_charMeet) _charMeet.priority = _cp.priority || 'niceToHave';
                 if (!_charMeet) console.log('[scaffold] no character meet planned (none in today\'s parks, or every candidate already met earlier this trip -- never-twice rule)');
               }
             }
@@ -630,6 +678,16 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
 
           // Hop day: derive start-park open + to-park close, pass hop params. Non-hop/VIP days use the original call (else).
           const _hop = (_day.intent && _day.intent.hop && _day.intent.hop.toPark) ? _day.intent.hop : null;
+          // X1 (Onboarding wiring, Oct 7, 2026): a day with BOTH park
+          // hopping and a VIP-tour start cannot honor the hop -- the VIP
+          // branch below skips the hop skeleton entirely. That conflict
+          // used to drop SILENTLY; it is now surfaced in the response as a
+          // dayConflicts record (the server record; the client also hints).
+          const _dayConflicts = [];
+          if (_hop && _vipStart !== null) {
+            _dayConflicts.push({ kind: 'hop-vip-conflict', day: _di + 1, detail: 'Park hopping to ' + _hop.toPark + ' was not scheduled because this day starts with a VIP tour -- remove one of the two in onboarding to use it.' });
+            console.warn('[scaffold] hop dropped for VIP start on day', _di + 1, '-- surfaced as dayConflicts');
+          }
           let _sk;
           if (_hop && _vipStart === null) {
             const _toPark = _hop.toPark;
@@ -674,7 +732,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           try {
             const _ropeSlot = _sk.slots.find(x => x.block === 'ropedrop');
             if (_ropeSlot) {
-              const _ropePick = pickRopeDropRide(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot.park, priorRides, [...new Set([...(skipRides || []), ..._closedS])], Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : []);
+              const _ropePick = pickRopeDropRide(buildCatalogIndex(cacheCtx.CATALOG), _ropeSlot.park, priorRides, [...new Set([...(skipRides || []), ..._closedS])], Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : [], _closedS, { maxHeightInches: _maxHeightInches });
               if (_ropePick) { _ropeSlot.preferRide = _ropePick.name; console.log('[scaffold] rope drop assigned:', _ropePick.name); }
             }
           } catch (e) { console.warn('[scaffold] rope-drop assignment failed:', e.message); }
@@ -714,7 +772,9 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
                   priorNames: [...(priorRides || []), _ropeSlot2.preferRide, ...((_coverage && _coverage.reservedNames) || [])],
                   bannedNames: [...new Set([...(skipRides || []), ..._closedS])],
                   priorRopeDropNames: Array.isArray(_cfg._priorRopeDrops) ? _cfg._priorRopeDrops : [],
-                  closedNames: _closedS
+                  closedNames: _closedS,
+                  maxHeightInches: _maxHeightInches,
+                  thrillMode: _thrillMode
                 }).filter(p => p && !_reservedGroups.has(rideGroupKey(p.name)));
                 _mSlots.forEach((s, i) => { if (_mPicks[i]) { s.preferRide = _mPicks[i].name; } });
                 console.log('[scaffold] morning assigned:', _mSlots.map(s => s.preferRide || '(model)').join(', '));
@@ -742,6 +802,36 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             }
           } catch (e) {}
           const _reservationKeys = new Set(_resvNames.map(canonicalVenueKey).filter(Boolean));
+          // WANTED QUICK-SERVICE SPOTS (Onboarding wiring Tier 2, Oct 7,
+          // 2026): tripConfig.wantedRestaurants (free text, one or more
+          // names) is canonical-matched against the verified venue list --
+          // the same containment semantics as the reservation matching.
+          // Matched venues rank FIRST in deterministic dining picks and are
+          // named in the fill prompt (the item is model-gated: ranking +
+          // prompt context together are the wire).
+          const _wantedVenues = (function () {
+            const raw = _cfg.wantedRestaurants;
+            const parts = Array.isArray(raw) ? raw.map(s => String(s || ''))
+              : (typeof raw === 'string' && raw.trim()) ? raw.split(/[\n,;]+/) : [];
+            const names = [], keys = new Set();
+            for (const part of parts) {
+              const t = String(part || '').trim();
+              if (!t) continue;
+              const tk = canonicalVenueKey(t);
+              if (!tk) continue;
+              for (const v of _venuesEarly) {
+                if (!v || !v.name) continue;
+                const vk = canonicalVenueKey(v.name);
+                if (!vk) continue;
+                if (vk === tk || vk.indexOf(tk) !== -1 || (tk.length >= 4 && tk.indexOf(vk) !== -1)) {
+                  if (!keys.has(vk)) { keys.add(vk); names.push(v.name); }
+                  break;
+                }
+              }
+            }
+            return { names, keys };
+          })();
+          if (_wantedVenues.names.length) console.log('[scaffold] wanted venues matched:', JSON.stringify(_wantedVenues.names));
           // Reservation anchors (Item 4, Oct 7, 2026 -- Claude's locked
           // design): each confirmed reservation for THIS day becomes an
           // immutable anchor slot injected into the skeleton BEFORE the fill
@@ -752,7 +842,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // silently dropped.
           let _resvPlan = null;
           try {
-            _resvPlan = planReservationAnchors(_sk, (typeof _allReservations !== 'undefined' && Array.isArray(_allReservations)) ? _allReservations : [], { venues: _venuesEarly, closedVenueNames: _closedV, vipWindow: (_vipStart !== null && _vipEnd !== null) ? [_vipStart, _vipEnd] : null });
+            _resvPlan = planReservationAnchors(_sk, (typeof _allReservations !== 'undefined' && Array.isArray(_allReservations)) ? _allReservations : [], { venues: _venuesEarly, closedVenueNames: _closedV, vipWindow: (_vipStart !== null && _vipEnd !== null) ? [_vipStart, _vipEnd] : null, groupSize: _groupSize });
             if (_resvPlan.anchors.length) console.log('[scaffold] reservation anchors:', JSON.stringify(_resvPlan.anchors), 'suppressed:', JSON.stringify(_resvPlan.suppressed));
             if (_resvPlan.conflicts.length) console.warn('[scaffold] reservation conflicts:', JSON.stringify(_resvPlan.conflicts));
           } catch (e) { console.warn('[scaffold] reservation anchor planning failed:', e.message); }
@@ -760,7 +850,10 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '')
             + (_resvNames.length ? '\n\n=== GUEST RESERVATIONS (confirmed in onboarding) ===\n' + _resvNames.join('; ') + '\nSeat a listed venue as that meal card when its day/time matches this day, and note it is their reservation. These are the ONLY sit-down venues allowed in the schedule.' : '');
-          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, usedRides: priorRides, closedNames: _closedS, closedVenueNames: _closedV, llmp: _llmp, ill: _ill, tableVenueNames: _tableVenueNames })
+          const _heightNote = !_heightActive ? null
+            : _soloHeight ? 'HEIGHT -- SOLO GUEST: this guest is traveling SOLO and the shortest rider is ' + _minH + 'in tall (onboarding bracket). Never choose a ride whose height requirement exceeds ' + _minH + 'in -- with no second adult there is no rider swap, so an over-height ride is a wasted stop.'
+            : 'HEIGHT: the shortest rider in this group is ' + _minH + 'in tall (onboarding bracket). Rides with a height requirement above ' + _minH + 'in are rider-swap stops for this group -- present them that way, never as whole-group rides.';
+          const _fillSys = buildFillPrompt(_sk, { usedDining: allUsedDining, usedRides: priorRides, closedNames: _closedS, closedVenueNames: _closedV, llmp: _llmp, ill: _ill, tableVenueNames: _tableVenueNames, wantedVenues: _wantedVenues.names, thrillMode: _thrillMode, dietaryNeeds: _dietNeeds, mobility: _mobility, serviceAnimal: _serviceAnimal, heightNote: _heightNote })
             + ((typeof ridePrefsContext === 'string' && ridePrefsContext) ? '\n\n' + ridePrefsContext : '')
             + '\n\n=== CURRENT PARK INTELLIGENCE (use ONLY this -- never the web) ===\n' + _fillCtx;
 
@@ -800,6 +893,28 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
           const _catList = Object.values(_catIdx);
           const _venues = correctVenueServices(parseCatalogVenues(cacheCtx.CATALOG));
+          // Guest-listed ILL rides (Tier 3): days[].illRides names the rides
+          // the guest bought Individual Lightning Lane for. Expanded to a
+          // group-aware normName key set (a listed ride covers its variant
+          // siblings). Empty/absent = unspecified -- the catalog governs.
+          const _illRideKeys = (function () {
+            const raw = _day.illRides;
+            const names = Array.isArray(raw) ? raw.map(s => String(s || '').trim()).filter(Boolean)
+              : (typeof raw === 'string' && raw.trim()) ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+            if (!names.length) return null;
+            const set = new Set();
+            for (const n of names) {
+              const k = normName(n);
+              if (k) set.add(k);
+              const g = rideGroupKey(n);
+              if (g) { for (const ck of Object.keys(_catIdx)) { if (rideGroupKey(_catIdx[ck].name) === g) set.add(ck); } }
+            }
+            console.log('[scaffold] guest-listed ILL rides:', JSON.stringify([...set]));
+            return set.size ? set : null;
+          })();
+          // Dietary intel per venue, canonical-keyed (Tier 2 surfacing).
+          const _venueDietary = {};
+          for (const v of _venues) { if (v && v.name && v.dietary) _venueDietary[canonicalVenueKey(v.name)] = v.dietary; }
           // Real show names for show-slot backfill (dynamic SHOWS section), with the
           // guest's wanted shows preferred. Without this the backfill can only emit
           // a generic 'Nighttime spectacular' card.
@@ -815,7 +930,10 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
             priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys, encoredRideKeys: fb.encoredRideKeys, bannedKeys: fb.bannedKeys,
             closeMin: (typeof fb.closeMin === 'number') ? fb.closeMin : null, usedVenueKeys: fb.usedVenueKeys,
-            shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand
+            shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand,
+            skipShows: showSkip, priorShows: _priorShows, wantedVenueKeys: _wantedVenues.keys,
+            dietaryNeeds: _dietNeeds, groupSize: _groupSize,
+            minHeightInches: _heightActive ? _minH : null, soloHeight: _soloHeight, thrillMode: _thrillMode
           });
 
           // Phase 1 plumbing (Fix 3 F3+F5): the REAL catalog + venues now
@@ -823,7 +941,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // without them), and the day's closes ride along per park so the
           // headliner window uses closeMin-90 instead of the hardcoded
           // 8:30 PM fallback in both fill layers.
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)), venueServices: _venueServices, reservationKeys: _reservationKeys, catalog: _catIdx, venues: _venues, closeMin: _closeMin, closeMinByPark: _closeByPark, llmp: _llmp, ill: _ill };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)), venueServices: _venueServices, reservationKeys: _reservationKeys, catalog: _catIdx, venues: _venues, closeMin: _closeMin, closeMinByPark: _closeByPark, llmp: _llmp, ill: _ill, skipShowKeys: new Set((showSkip || []).map(normName).filter(Boolean)), priorShowKeys: new Set(_priorShows.map(normName).filter(Boolean)), minHeightInches: _heightActive ? _minH : null, groupSize: _groupSize };
 
           let _r = await _fill(_dynSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
@@ -839,13 +957,14 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // Verify layer -- REMOVE-ONLY safety net (replaces the heavy validateSchedule on this path;
           // the scaffold already owns structure, so no gap-fill / time-shift / evening-fill here).
           const _dayParks = (_hop && _vipStart === null) ? [_park, _hop.toPark] : [_park];
-          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo, closeMin: _closeMin, closeMinByPark: _closeByPark, bannedNames: skipRides });
+          const _vf = verifyScaffold(_ap.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo, closeMin: _closeMin, closeMinByPark: _closeByPark, bannedNames: skipRides, showSkipNames: showSkip, priorShowNames: _priorShows, minHeightInches: _heightActive ? _minH : null, groupSize: _groupSize, dietaryNeeds: _dietNeeds, venueDietary: _venueDietary, mobility: _mobility, serviceAnimal: _serviceAnimal, illRideKeys: _illRideKeys });
 
           // Parameter-fidelity verifier (recommendation #2): guest parameters are absolute.
           // Cite the specific failures back to the model once; deterministically enforce the rest.
           const _pvParams = { mustDo: mustDo, skip: skipRides, hasLL: _hasLL };
           let _violations = verifyTripParams(_vf.cards, _pvParams);
           let _items = _vf.cards;
+          let _dietaryConflicts = Array.isArray(_vf.dietaryConflicts) ? _vf.dietaryConflicts : [];
           let _trimMustDos = Array.isArray(_vf.trimmedMustDos) ? _vf.trimmedMustDos.slice() : [];
           let _mutations = Array.isArray(_vf.mutations) ? _vf.mutations : [];
           if (_violations.length) {
@@ -867,13 +986,13 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               }).join('; ');
               const _r3 = await _fill(_dynSys + '\n\nPARAMETER CORRECTION -- guest parameters are absolute, not suggestions: ' + _cite + '. Return the FULL array again, same slot ids in the same order, with every one of these fixed and nothing else broken.');
               const _ap3 = applyFills(_sk, Array.isArray(_r3.arr) ? _r3.arr : [], _fillOpts);
-              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo, closeMin: _closeMin, closeMinByPark: _closeByPark, bannedNames: skipRides });
+              const _vf3 = verifyScaffold(_ap3.cards, { parks: _dayParks, landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, catalog: _catIdx, shows: _showPicks, hasILL: _ill, hasLLMP: _llmp, waitPatterns: _wpObj, mustDoNames: mustDo, closeMin: _closeMin, closeMinByPark: _closeByPark, bannedNames: skipRides, showSkipNames: showSkip, priorShowNames: _priorShows, minHeightInches: _heightActive ? _minH : null, groupSize: _groupSize, dietaryNeeds: _dietNeeds, venueDietary: _venueDietary, mobility: _mobility, serviceAnimal: _serviceAnimal, illRideKeys: _illRideKeys });
               if (Array.isArray(_vf3.trimmedMustDos)) _trimMustDos = _trimMustDos.concat(_vf3.trimmedMustDos);
               const _v3 = verifyTripParams(_vf3.cards, _pvParams);
-              if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; if (Array.isArray(_vf3.mutations)) _mutations = _vf3.mutations; }
+              if (_v3.length <= _violations.length) { _violations = _v3; _items = _vf3.cards; _r = _r3; if (Array.isArray(_vf3.mutations)) _mutations = _vf3.mutations; if (Array.isArray(_vf3.dietaryConflicts)) _dietaryConflicts = _vf3.dietaryConflicts; }
             } catch (e) { console.warn('[scaffold] param retry failed:', e.message); }
           }
-          const _enf = enforceTripParams(_items, _violations, { catalog: _catIdx, landToPark: landToPark, closedNames: _closedS, bannedNames: skipRides, mustDoNames: mustDo, llmp: _llmp, ill: _ill, closeMin: _closeMin, closeMinByPark: _closeByPark, parks: _dayParks, venueServiceMap: _venueServices, reservationKeys: _reservationKeys, closedVenueNames: _closedV });
+          const _enf = enforceTripParams(_items, _violations, { catalog: _catIdx, landToPark: landToPark, closedNames: _closedS, bannedNames: skipRides, mustDoNames: mustDo, llmp: _llmp, ill: _ill, closeMin: _closeMin, closeMinByPark: _closeByPark, parks: _dayParks, venueServiceMap: _venueServices, reservationKeys: _reservationKeys, closedVenueNames: _closedV, minHeightInches: _heightActive ? _minH : null, groupSize: _groupSize, illRideKeys: _illRideKeys });
           _items = _enf.cards;
           if (_enf.blocked && _enf.blocked.length) console.warn('[scaffold] param swap BLOCKED by re-validation gate:', JSON.stringify(_enf.blocked));
           // A swap-in renames a card after LL normalization already ran:
@@ -882,7 +1001,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           if ((_enf.fixed || []).some(f => f && f.action === 'swapped-in')) {
             try {
               const _llMut = [];
-              normalizeLLAssignments(_items, { llmp: _llmp, ill: _ill, catalog: _catIdx }, _llMut);
+              normalizeLLAssignments(_items, { llmp: _llmp, ill: _ill, catalog: _catIdx, illRideKeys: _illRideKeys }, _llMut);
               for (const m of _llMut) _mutations.push(Object.assign({ stage: 'post-enforce' }, m));
             } catch (e) { console.warn('[scaffold] post-enforce LL normalization failed:', e.message); }
           }
@@ -921,7 +1040,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           if (_enf.unfixable.length) console.warn('[scaffold] param UNFIXABLE:', JSON.stringify(_enf.unfixable));
           console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
           if (_mutations.length) console.log('[scaffold] verify mutations:', JSON.stringify(_mutations));
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [] });
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts });
         } catch (_se) {
           console.error('[scaffold] error, falling back to legacy generator:', _se.message);
         }

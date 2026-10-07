@@ -76,6 +76,43 @@ async function writeTripBlob(tripId, tripData) {
   });
 }
 
+// Onboarding drafts (Oct 7, 2026 -- Claude's guardrails, load-bearing after
+// the BCDIS2026-A incident): autosave drafts from the onboarding flow live
+// in a SEPARATE blob namespace keyed by trip CODE. A draft write can never
+// touch the live trip blob (twize/trip_<id>.json); a draft becomes a real
+// trip only when the client promotes it through the normal POST save path
+// above. Draft keys are intentionally NOT salted (same as the booking-cron
+// and device-state keys); the trip-code registry is the access control.
+const DRAFT_PREFIX = 'twize/onboarding-drafts/';
+const draftKey = (code) => DRAFT_PREFIX + code + '.json';
+
+async function writeDraftBlob(code, payload) {
+  await put(draftKey(code), JSON.stringify(payload), {
+    access: 'public',
+    allowOverwrite: true,
+    addRandomSuffix: false,
+    contentType: 'application/json'
+  });
+}
+
+// Reads are suffix-tolerant (a stray suffixed variant never hides the
+// draft): list the code's prefix, match the exact-or-suffixed pathname,
+// and take the newest by upload time.
+async function readDraftBlob(code) {
+  try {
+    const { blobs } = await list({ prefix: DRAFT_PREFIX + code });
+    if (!blobs || !blobs.length) return null;
+    const esc = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('^' + DRAFT_PREFIX + esc + '(-[^/]*)?\\.json$');
+    const matches = blobs.filter(b => b && re.test(b.pathname || ''));
+    if (!matches.length) return null;
+    matches.sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0));
+    const resp = await fetch((matches[0].downloadUrl || matches[0].url) + '?t=' + Date.now());
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch (e) { return null; }
+}
+
 // Cache sections for the trip-level surfacing computation: the SAME blobs and
 // sections the generator reads (stable CATALOG; dynamic CLOSURES +
 // CURRENT_CLOSURES), read the same way generateschedule's buildCacheContext
@@ -148,6 +185,21 @@ export default async function handler(req, res) {
       if (expDate < new Date()) return res.status(403).json({ error: 'Code expired', expires: entry.expires, valid: false });
     }
 
+    // Onboarding draft read (Oct 7, 2026): GET ?code=X&draft=1 returns the
+    // autosave draft for the code (registry auth above applies unchanged).
+    // A tombstone payload ({ draft: null }) reads as "no draft".
+    if (req.query.draft === '1') {
+      const stored = await readDraftBlob(code);
+      const hasDraft = !!(stored && stored.draft != null);
+      return res.status(200).json({
+        valid: true,
+        tripId: entry.tripId,
+        hasDraft,
+        draft: hasDraft ? stored.draft : null,
+        updatedAt: stored ? (stored.updatedAt || null) : null
+      });
+    }
+
     // Check if trip data exists
     let tripData = await readTripBlob(entry.tripId);
     const hasTrip = !!tripData;
@@ -170,6 +222,33 @@ export default async function handler(req, res) {
 
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
+      // Onboarding draft write (Oct 7, 2026): POST { action: 'save_draft',
+      // code, draft }. Writes ONLY the draft namespace -- never the live
+      // trip blob, never the registry. Auth mirrors the trip save exactly
+      // (admin key, or an active unexpired role-admin code). A null draft
+      // is a tombstone: it clears the draft without deleting the blob.
+      if (body && body.action === 'save_draft') {
+        const dcode = typeof body.code === 'string' ? body.code.trim() : '';
+        if (!dcode || !/^[A-Za-z0-9_-]{3,64}$/.test(dcode)) return res.status(400).json({ error: 'Invalid code' });
+        const registry = await readRegistry();
+        const entry = registry[dcode];
+        if (!entry) return res.status(404).json({ error: 'Code not found' });
+        if (!isAdmin) {
+          if (entry.status !== 'active') return res.status(403).json({ error: 'Code inactive' });
+          if (entry.expires) {
+            const expDate = new Date(entry.expires + 'T23:59:59Z');
+            if (expDate < new Date()) return res.status(403).json({ error: 'Code expired' });
+          }
+          if (entry.role !== 'admin') return res.status(403).json({ error: 'Not authorized to write drafts for this trip' });
+        }
+        const payload = { code: dcode, draft: (body.draft === undefined ? null : body.draft), updatedAt: new Date().toISOString() };
+        if (JSON.stringify(payload).length > 262144) return res.status(413).json({ error: 'Draft too large' });
+        await writeDraftBlob(dcode, payload);
+        console.log('[trip] onboarding draft saved for code (draft namespace only)');
+        return res.status(200).json({ ok: true, draft: true, updatedAt: payload.updatedAt });
+      }
+
       const { code, tripData } = body;
       if (!code || !tripData) return res.status(400).json({ error: 'Missing code or tripData' });
 

@@ -120,7 +120,7 @@ function buildHopSkeleton(cfg) {
 
   // Character meet (must-do categories): one guaranteed meet in the start park.
   if (cfg.charMeet && sameParkName(cfg.charMeet.park, startPark)) {
-    push({ block: 'character', type: 'character', park: startPark, window: [open + 150, open + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
+    push({ block: 'character', type: 'character', park: startPark, window: [open + 150, open + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + (cfg.charMeet.priority === 'niceToHave' ? ' -- a nice-to-have for this group; include it only if it fits naturally, never at the cost of a ride' : ' -- a must-do for this group'), meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '', meetPriority: cfg.charMeet.priority || '' });
   }
 
   // Morning comfort stops (Beau, Oct 5, 2026: generated days had NO bathroom,
@@ -152,7 +152,7 @@ function buildHopSkeleton(cfg) {
   }
 
   if (cfg.charMeet && sameParkName(cfg.charMeet.park, toPark)) {
-    push({ block: 'character', type: 'character', park: toPark, window: [hopAt + 55, hopAt + 145], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
+    push({ block: 'character', type: 'character', park: toPark, window: [hopAt + 55, hopAt + 145], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + (cfg.charMeet.priority === 'niceToHave' ? ' -- a nice-to-have for this group; include it only if it fits naturally, never at the cost of a ride' : ' -- a must-do for this group'), meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '', meetPriority: cfg.charMeet.priority || '' });
   }
   const sWin = [Math.max(SNACK_PM_WINDOW[0], afternoonFrom), Math.min(SNACK_PM_WINDOW[1], preDinnerEnd)];
   const snackFits = (sWin[1] - sWin[0] >= 20) && afternoonFrom <= SNACK_PM_WINDOW[1];
@@ -187,7 +187,7 @@ function buildHopSkeleton(cfg) {
 
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
   slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
-  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; } if (s.breakTitle) o.breakTitle = s.breakTitle; return o; });
+  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; if (s.meetPriority) o.meetPriority = s.meetPriority; } if (s.breakTitle) o.breakTitle = s.breakTitle; return o; });
   return { day: cfg.dayNum || 1, park: startPark, toPark, hop: true, openMin: open, closeMin: returning ? cfg.hop.returnCloseMin : close, hopAtMin: hopAt, paceMinPerRide: pace, vip: false, slots: ordered };
 }
 
@@ -270,7 +270,7 @@ export function buildSkeleton(cfg) {
     }
     if (hasLL) push({ block: 'llTip', type: 'tip', park, window: [590, 620], role: 'mid-morning Lightning Lane rebook' });
     if (cfg.charMeet && sameParkName(cfg.charMeet.park, park)) {
-      push({ block: 'character', type: 'character', park, window: [openMin + 150, openMin + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + ' -- a must-do for this group', meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '' });
+      push({ block: 'character', type: 'character', park, window: [openMin + 150, openMin + 215], role: 'character meet: ' + cfg.charMeet.name + ' at ' + (cfg.charMeet.land || '') + (cfg.charMeet.priority === 'niceToHave' ? ' -- a nice-to-have for this group; include it only if it fits naturally, never at the cost of a ride' : ' -- a must-do for this group'), meetName: cfg.charMeet.name, meetLand: cfg.charMeet.land || '', meetCategory: cfg.charMeet.category || '', meetPriority: cfg.charMeet.priority || '' });
     }
     push({ block: 'snackAM', type: 'snack', park, window: [openMin + 90, openMin + 135], role: 'morning snack / coffee break -- a quick bite and drinks' });
     push({ block: 'breakAM', type: 'break', park, window: [openMin + 140, openMin + 185], role: 'restroom break -- restrooms, water refill, and a breather', breakTitle: 'Restroom Break' });
@@ -280,7 +280,7 @@ export function buildSkeleton(cfg) {
   // sort by time, then assign stable ids in time order
   slots.sort((a, b) => winStart(a.window) - winStart(b.window));
   slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
-  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; } if (s.breakTitle) o.breakTitle = s.breakTitle; return o; });
+  const ordered = slots.map(s => { const o = { id: s.id, block: s.block, type: s.type, park: s.park, window: s.window, role: s.role }; if (s.meetName) { o.meetName = s.meetName; o.meetLand = s.meetLand || ''; o.meetCategory = s.meetCategory || ''; if (s.meetPriority) o.meetPriority = s.meetPriority; } if (s.breakTitle) o.breakTitle = s.breakTitle; return o; });
 
   return { day: cfg.dayNum || 1, park, openMin, closeMin, paceMinPerRide: pace, vip: isVip, slots: ordered };
 }
@@ -380,6 +380,17 @@ export function buildFillPrompt(skeleton, opts) {
   sys += '\n\nSKELETON (fill EVERY slot):\n' + lines.join('\n');
   if (opts.usedDining && opts.usedDining.length) sys += '\n\nALREADY-USED venues (never repeat): ' + opts.usedDining.join('; ');
   if (opts.usedRides && opts.usedRides.length) sys += '\n\nALREADY-USED rides on earlier days of this trip (never repeat): ' + opts.usedRides.join('; ');
+  // Onboarding preference context (Oct 7, 2026): the guest's stated
+  // preferences reach the MODEL too, not just the deterministic paths --
+  // wanted spots and thrill level are model-gated items, so the fill
+  // prompt is where their signal has to live.
+  if (opts.wantedVenues && opts.wantedVenues.length) sys += "\n\nGUEST'S WANTED SPOTS: this guest named these dining spots in onboarding -- " + opts.wantedVenues.join('; ') + ". Prefer them for meal and snack slots whenever they fit the slot's park and the quick-service rules; never seat a table-service venue without a reservation in their place.";
+  if (opts.thrillMode === 'gentle') sys += '\n\nTHRILL LEVEL: this group asked for GENTLE days. When a ride slot offers a choice, pick calmer attractions over high-thrill ones (big coasters, drops, intense simulators); save the headliners for the slots the skeleton assigned them to.';
+  if (opts.thrillMode === 'seeker') sys += '\n\nTHRILL LEVEL: this group are THRILL SEEKERS. When a ride slot offers a choice, lean toward the headliners and high-thrill attractions over gentle ones.';
+  if (opts.dietaryNeeds && opts.dietaryNeeds.length) sys += '\n\nDIETARY: this group needs ' + opts.dietaryNeeds.join(', ') + ' options. For dining and snack slots, prefer venues whose menu is known for those options; do not seat a venue you know conflicts with a stated restriction.';
+  if (opts.mobility) sys += '\n\nACCESSIBILITY -- MOBILITY: someone in this group uses a mobility aid. Cluster each stretch of the day land by land to minimize backtracking, and leave comfortable transfer time between seated stops (shows, meals, meets) and the rides around them.';
+  if (opts.serviceAnimal) sys += '\n\nACCESSIBILITY -- SERVICE ANIMAL: this group travels with a service animal. Designated relief areas sit by First Aid on Main Street and across from "it\'s a small world" in Disneyland, and near the Grizzly Peak Pass sign in Disney California Adventure -- route nearby stops with that in mind.';
+  if (opts.heightNote) sys += '\n\n' + opts.heightNote;
   return sys;
 }
 
@@ -420,6 +431,7 @@ export function applyFills(skeleton, fills, opts) {
   // used, so fills and the deterministic backfill will not repeat them. Must-dos
   // are exempt -- the guest asked for those by name, repeats included.
   const _mustKeys = new Set((opts.mustDoNames || []).map(normName));
+  const _mustGroups = new Set([..._mustKeys].map(k => rideGroupKey(k)).filter(Boolean));
   const priorRideKeySet = new Set();
   const todayRideNames = new Set();
   const encoredTodayNames = new Set(); // rides already same-day-encored (Fix 4)
@@ -471,11 +483,39 @@ export function applyFills(skeleton, fills, opts) {
       // Its venue registers in the canonical used-venue set like any seated
       // meal, so no other slot today (and no later day, via the client's
       // usedVenues accumulation) seats the same restaurant again.
-      const aCard = { t: toClock(typeof slot.fixed === 'number' ? slot.fixed : winStart(slot.window)), h: slot.anchorName || 'Confirmed Reservation', type: 'dining', n: 'Your confirmed reservation -- the rest of the day is built around it.', land: slot.anchorLand || '', anchor: true, reservation: true };
+      const aCard = { t: toClock(typeof slot.fixed === 'number' ? slot.fixed : winStart(slot.window)), h: slot.anchorName || 'Confirmed Reservation', type: 'dining', n: 'Your confirmed reservation -- the rest of the day is built around it.' + ((typeof slot.partySize === 'number' && slot.partySize > 0) ? ' Party of ' + slot.partySize + '.' : ''), land: slot.anchorLand || '', anchor: true, reservation: true };
       cards.push(aCard);
       used.add(aCard.h.toLowerCase());
       const _avk = _venueKeyOf(aCard.h);
       if (_avk) placedVenueCanon.add(_avk);
+      continue;
+    }
+    if (slot.type === 'character' && slot.meetPriority === 'niceToHave') {
+      // Character priority (Onboarding wiring Tier 3, Oct 7, 2026):
+      // niceToHave meets are OPPORTUNISTIC -- seated only when the fill
+      // naturally provides the planned meet in the right park. They are
+      // never force-seated by the deterministic backfill and never displace
+      // anything: an unfilled or off-plan slot simply yields no card.
+      const f2 = byId[slot.id];
+      let seated = null;
+      if (f2 && f2.h) {
+        const cleanH2 = stripAlt(f2.h).trim();
+        const fk = normName(cleanH2.replace(/^meet\s+/i, ''));
+        const mk = normName(slot.meetName || '');
+        const nameOk = !slot.meetName || (fk && mk && (fk === mk || fk.indexOf(mk) !== -1 || mk.indexOf(fk) !== -1));
+        const lp2 = f2.land ? landToPark(f2.land) : null;
+        const parkOk = !(f2.land && lp2 && !sameParkName(lp2, slot.park));
+        if (nameOk && parkOk) {
+          const clamp2 = clampToWindow(parseClock(f2.t), slot.window, slot.fixed);
+          seated = buildCard(slot, Object.assign({}, f2, { h: cleanH2 }), clamp2.t);
+        }
+      }
+      if (seated) {
+        cards.push(seated);
+        if (seated.h) used.add(seated.h.toLowerCase());
+      } else {
+        report.dropped.push({ h: slot.meetName || '(character)', reason: 'character-nice-to-have' });
+      }
       continue;
     }
     const f = byId[slot.id];
@@ -594,12 +634,31 @@ export function applyFills(skeleton, fills, opts) {
       // the heading (model shortens official show names).
       const showMatch = slot.type === 'show' ? matchKnownShow(cleanH, opts.shows) : null;
       const showWrongPark = !!showMatch && !sameParkName(showMatch.park, slot.park);
-      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad || headlinerBad) {
+      // Show skip + cross-day dedup (Onboarding wiring Tier 1/Tier 2, Oct 7,
+      // 2026): a guest-SKIPPED show is a failed fill outright (mirrors ride
+      // bannedNames). A show already seated on a PRIOR day is only
+      // deprioritized (Claude's checklist correction: not banned -- a guest
+      // may legitimately want a repeat), so it fails here only when a fresh
+      // show exists for this slot's park; the backfill then picks fresh
+      // first and may still seat the repeat when nothing fresh fits.
+      const _showKeyF = slot.type === 'show' ? normName(showMatch ? showMatch.name : cleanH) : '';
+      const showSkipped = !!_showKeyF && showKeyInSet(opts.skipShowKeys, _showKeyF);
+      const showPrior = !!_showKeyF && !showSkipped && showKeyInSet(opts.priorShowKeys, _showKeyF);
+      const showFreshExists = showPrior && (opts.shows || []).some(s => s && s.name && sameParkName(s.park, slot.park) && !showKeyInSet(opts.priorShowKeys, normName(s.name)) && !showKeyInSet(opts.skipShowKeys, normName(s.name)));
+      const showBad = showSkipped || (showPrior && showFreshExists);
+      // HEIGHT GATE at fill time (Tier 1): for a SOLO guest a too-tall ride
+      // is a failed fill, so the backfill seats a ride they can actually
+      // board instead of verify leaving a hole. Must-dos are exempt (kept,
+      // with the plain height warning from the verify pass).
+      const heightSoloBad = isRideSlot && !!catalogEntry && opts.groupSize === 1 &&
+        heightGateHit(catalogEntry, (opts.minHeightInches != null ? opts.minHeightInches : null)) &&
+        !_mustKeys.has(nkey) && !(gkey && _mustGroups.has(gkey));
+      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad || headlinerBad || showBad || heightSoloBad) {
         if (parkBad || catalogParkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : headlinerBad ? (nkey === RSR_KEY ? 'rsr-window' : 'headliner-window') : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : headlinerBad ? (nkey === RSR_KEY ? 'rsr-window' : 'headliner-window') : showSkipped ? 'show-skipped' : showBad ? 'show-prior-day' : heightSoloBad ? 'height-solo' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -700,7 +759,7 @@ export function isHeadlinerKey(key, catalogEntry) {
 export function llWindowExempt(key, ll, products) {
   if (!ll || !key) return false;
   const p = products || {};
-  if (ll.t === 'single') return ILL_ONLY_KEYS.has(key) && p.ill === true;
+  if (ll.t === 'single') return ILL_ONLY_KEYS.has(key) && p.ill === true && illRideListed(key, p);
   if (ll.t === 'multi') return !ILL_ONLY_KEYS.has(key) && p.llmp === true;
   return false;
 }
@@ -783,6 +842,17 @@ export function makeVenueKeyResolver(venues) {
   };
 }
 
+// Guest-listed ILL rides (Onboarding wiring Tier 3, Oct 7, 2026): when the
+// guest names the specific rides they bought Individual Lightning Lane for
+// (onboarding chips, sent as days[].illRides), single-pass tags go ONLY to
+// listed rides. products.illRideKeys is a group-expanded Set of normName
+// keys built by the handler; absent/empty = unspecified, catalog governs.
+export function illRideListed(key, products) {
+  const s = products && products.illRideKeys;
+  if (!s || !(s instanceof Set) || s.size === 0) return true;
+  return s.has(key);
+}
+
 // Fresh LL derivation for a card whose identity was just changed by a
 // mutator: the tag is computed from the ride + the day's purchased
 // products, NEVER inherited from the card it replaced. Returns null when
@@ -791,9 +861,121 @@ export function deriveLLForRide(name, products) {
   const k = normName(name);
   if (!k) return null;
   const p = products || {};
-  if (ILL_ONLY_KEYS.has(k)) return p.ill === true ? { t: 'single', a: 'Individual Lightning Lane -- book in the app at park open.' } : null;
+  if (ILL_ONLY_KEYS.has(k)) return (p.ill === true && illRideListed(k, p)) ? { t: 'single', a: 'Individual Lightning Lane -- book in the app at park open.' } : null;
   if (p.llmp === true) return { t: 'multi', a: 'Lightning Lane Multi Pass pick -- book a return time in the app.' };
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// ONBOARDING WIRING HELPERS (Oct 7, 2026 -- Claude's ordered checklist).
+// The Flow P "soft preference" controls get real server consumers here; each
+// helper names its seam and its limits. Nothing in this block invents data:
+// height comes from the catalog's heightInches, dietary fit from the dining
+// intel's verified menu tags, relief areas from Disney's published
+// Accessibility Planning Guide.
+// ---------------------------------------------------------------------------
+
+// Append a note sentence to a card note, keeping the ~200-char budget: the
+// existing note is trimmed first so the appended sentence always survives.
+function appendNote(n, add) {
+  const base = String(n || '').trim();
+  if (!base) return add;
+  const room = 200 - add.length - 1;
+  return (base.length > room ? trimNoteText(base, Math.max(40, room)) : base) + ' ' + add;
+}
+
+// HEIGHT GATE (Tier 1, paired with onboarding fix S1 -- ONE safety item).
+// Bracket semantics mirror the legacy validator EXACTLY (validate-schedule.js
+// rule 9p): the onboarding bracket becomes the group's effective shortest
+// rider height -- 'under40' -> 38, '40to46' -> 43 (midpoint), '46to48' -> 47,
+// 'over48'/unset -> 48 (gate inactive). A ride whose catalog heightInches
+// EXCEEDS that height cannot be boarded by the shortest rider.
+export function shortestHeightInches(minHeight) {
+  if (minHeight === 'under40') return 38;
+  if (minHeight === '40to46') return 43;
+  if (minHeight === '46to48') return 47;
+  return 48;
+}
+// Legacy wording, verbatim (validate-schedule.js rule 9p).
+export function riderSwapNote(heightInches) {
+  return 'Rider swap: requires ' + heightInches + 'in; shortest member cannot board.';
+}
+// Solo variant: no second adult exists, so no swap can be promised -- the
+// note states the requirement plainly (used for must-dos, which are kept).
+export function heightWarningNote(heightInches) {
+  return 'Height note: requires ' + heightInches + 'in -- above the shortest rider\'s height, and rider swap needs a second adult.';
+}
+export function heightGateHit(catalogEntry, minHeightInches) {
+  if (minHeightInches == null || minHeightInches >= 48) return false;
+  const h = (catalogEntry && typeof catalogEntry.heightInches === 'number') ? catalogEntry.heightInches : 0;
+  return h > minHeightInches;
+}
+
+// THRILL LEVEL (Tier 3): guest label text -> soft ranking mode. 'gentle'
+// deprioritizes high-thrill rides in fill pools, 'seeker' weights them up.
+// Never a hard ban -- the must-do / skip pickers own hard choices.
+export function thrillModeFor(label) {
+  const s = String(label || '').toLowerCase();
+  if (!s) return null;
+  if (/gentle|mild|calm|easy|relaxed|low.key/.test(s)) return 'gentle';
+  if (/thrill|adrenaline|extreme|seeker|wild/.test(s)) return 'seeker';
+  return 'balanced'; // 'Mix of everything' and friends: no weighting
+}
+export function isHighThrillEntry(e) {
+  return !!e && (e.ropeDropValue === 'high' || (typeof e.heightInches === 'number' && e.heightInches >= 40));
+}
+
+// DIETARY (Tier 2): consume groupProfile.dietary ONLY (the top-level
+// dietaryNeeds field is read by nothing and stays that way). Need labels
+// map to the dining intel's verified-tag signals: veg / vegan / gf. Needs
+// with no intel signal (dairy, nut, kosher, ...) produce NO determination
+// -- they are never guessed at.
+export function dietarySignalsFor(needs) {
+  const out = [];
+  for (const n of (Array.isArray(needs) ? needs : [])) {
+    const s = String(n || '').toLowerCase();
+    if (/vegan/.test(s)) { if (out.indexOf('vegan') === -1) out.push('vegan'); }
+    else if (/vegetarian|plant.based/.test(s)) { if (out.indexOf('veg') === -1) out.push('veg'); }
+    if (/gluten|celiac|coeliac/.test(s)) { if (out.indexOf('gf') === -1) out.push('gf'); }
+  }
+  return out;
+}
+// Does a venue's verified-tag set satisfy one signal? A vegan item also
+// satisfies a vegetarian need; the reverse is not true.
+export function dietaryTagSatisfies(tags, sig) {
+  if (!tags) return false;
+  if (sig === 'veg') return !!(tags.veg || tags.vegan);
+  return !!tags[sig];
+}
+export function dietaryNeedLabel(sig) {
+  return sig === 'veg' ? 'vegetarian' : sig === 'vegan' ? 'vegan' : sig === 'gf' ? 'gluten-free' : sig;
+}
+
+// SERVICE ANIMAL RELIEF AREAS (Tier 3): designated areas per Disney's
+// Accessibility Planning Guide for the Disneyland Resort (official guide
+// PDF, parksmedia.wdprapps.disney.com). Static counterpart pattern, same as
+// RETIRED / ILL_ONLY_KEYS: these are fixed park locations. landKey is the
+// catalog land (normName form) a card must sit in to earn the note.
+export const SERVICE_RELIEF_AREAS = [
+  { parkKey: 'dl', landKey: normName('Main Street, U.S.A.'), label: 'planter in front of First Aid, near Plaza Inn' },
+  { parkKey: 'dl', landKey: normName('Fantasyland'), label: 'planter across from "it\'s a small world"' },
+  { parkKey: 'dl', landKey: normName('Bayou Country'), label: 'planter near the Galaxy\'s Edge entrance, by Hungry Bear Barbecue Jamboree' },
+  { parkKey: 'dl', landKey: normName("Mickey's Toontown"), label: 'planter between the Post Office and the Fire Station' },
+  { parkKey: 'dca', landKey: normName('Grizzly Peak'), label: 'near the Grizzly Peak Pass sign' },
+  { parkKey: 'dca', landKey: normName('Grizzly Peak Airfield'), label: 'planter to the right of the restrooms' },
+  { parkKey: 'dca', landKey: normName('Paradise Gardens Park'), label: 'access gate between Seaside Souvenirs and the Little Mermaid queue' },
+  { parkKey: 'dca', landKey: normName('Cars Land'), label: 'between Sarge\'s Surplus Hut and Fillmore\'s Taste-In' }
+];
+
+// Loose show-name membership: guest show strings and catalog show names
+// disagree on punctuation/subtitles, so equality OR containment either way
+// (the same semantics matchKnownShow uses).
+function showKeyInSet(set, key) {
+  if (!set || !key) return false;
+  for (const k of set) {
+    if (k && (k === key || k.startsWith(key) || key.startsWith(k))) return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -832,9 +1014,20 @@ export function revalidateCard(card, ctx) {
       if (ce && ce.park && Array.isArray(ctx.parks) && ctx.parks.length) {
         if (!ctx.parks.some(p => sameParkName(p, ce.park))) reasons.push('wrong-park');
       }
+      // HEIGHT GATE (Tier 1): a SOLO guest has no one to rider-swap with, so
+      // a ride above the shortest rider's height can never ship for them --
+      // rejected here like any other gate violation. With 2+ guests the
+      // card passes and verifyScaffold guarantees the rider-swap note
+      // instead (legacy rule-9p semantics). Must-dos are exempt even solo:
+      // they are the guest's explicit non-negotiable, kept with a plain
+      // height warning by the verify pass, never silently swapped away.
+      if (key && ctx.groupSize === 1 && heightGateHit(ce, (ctx.minHeightInches != null ? ctx.minHeightInches : null))) {
+        const _mdKeys = new Set((ctx.mustDoNames || []).map(normName).filter(Boolean));
+        if (!_mdKeys.has(key)) reasons.push('height-solo');
+      }
       if (key && NEVER_MORNING_KEYS.has(key) && startMin != null && startMin < 720) reasons.push('transport-morning');
       if (isHeadlinerKey(key, ce) && startMin != null) {
-        if (!llWindowExempt(key, card.ll, { llmp: ctx.llmp === true, ill: ctx.ill === true })) {
+        if (!llWindowExempt(key, card.ll, { llmp: ctx.llmp === true, ill: ctx.ill === true, illRideKeys: (ctx.illRideKeys instanceof Set) ? ctx.illRideKeys : null })) {
           let cm = (ctx.closeMin != null) ? ctx.closeMin : null;
           if (ctx.closeMinByPark && ce && ce.park) { const v = ctx.closeMinByPark[normParkName(ce.park)]; if (v != null) cm = v; }
           if (!headlinerWindowOk(startMin, cm)) reasons.push('headliner-window');
@@ -877,7 +1070,8 @@ export function buildCatalogIndex(catalogRaw) {
     idx[k] = { name: String(a.name), park: a.park || '', land: a.land || '',
       status: String(a.status || 'operating'),
       typicalPeakWait: (typeof a.typicalPeakWait === 'number') ? a.typicalPeakWait : 0,
-      ropeDropValue: a.ropeDropValue || '' };
+      ropeDropValue: a.ropeDropValue || '',
+      heightInches: (typeof a.heightInches === 'number') ? a.heightInches : 0 };
   }
   return idx;
 }
@@ -895,7 +1089,14 @@ export function parseCatalogVenues(catalogRaw) {
     if (!v || !v.name) continue;
     out.push({ name: String(v.name), park: v.park || '', land: v.land || '',
       service: v.service || '', reservationPolicy: v.reservationPolicy || '',
-      exclude: v.exclude === true });
+      exclude: v.exclude === true,
+      // Dietary intel (Onboarding wiring Tier 2, Oct 7, 2026): the catalog
+      // builder now carries the dining intel's VERIFIED menu tags per venue
+      // ({veg, vegan, gf} item names or nulls). Absent/null = the intel
+      // verified nothing for that venue -- unknown, never "no option".
+      dietary: (v.dietary && typeof v.dietary === 'object')
+        ? { veg: v.dietary.veg || null, vegan: v.dietary.vegan || null, gf: v.dietary.gf || null }
+        : null });
   }
   return out;
 }
@@ -903,11 +1104,14 @@ export function parseCatalogVenues(catalogRaw) {
 // Order final cards chronologically and de-collide identical timestamps. The model may pick
 // any time inside a slot window, so slot order (window-start) can invert against chosen times.
 // Equal times get bumped +1 min so each is distinct (display-only). Unparseable times sort last.
-function sortAndSpace(cards, mutations) {
+function sortAndSpace(cards, mutations, opts2) {
   const rows = (cards || []).map((c, i) => ({ c, i, m: parseClock(c.t) }));
   rows.sort((a, b) => ((a.m == null) - (b.m == null)) || ((a.m || 0) - (b.m || 0)) || (a.i - b.i));
+  const mobility = !!(opts2 && opts2.mobility);
+  const closeCap = (opts2 && typeof opts2.closeMin === 'number') ? opts2.closeMin : null;
   let prev = -1;
   let prevComfort = -1;
+  let prevSeatedStart = -1; // start of the last seated block (dining / show / character)
   for (const r of rows) {
     if (r.m == null) continue;
     const _origT = r.c.t;
@@ -918,6 +1122,7 @@ function sortAndSpace(cards, mutations) {
       // reservation; the reservation never moves for them.
       prev = m;
       prevComfort = m;
+      if (r.c.type === 'dining') prevSeatedStart = m;
       continue;
     }
     if (m <= prev) m = prev + 1;
@@ -925,6 +1130,17 @@ function sortAndSpace(cards, mutations) {
     // meal reads as dead time (guests saw snack 9:30 + break 9:34). Nudge the
     // break later -- these are display times; slot structure is untouched.
     if (r.c.type === 'break' && prevComfort >= 0 && m - prevComfort < 25) m = prevComfort + 25;
+    // MOBILITY SPACING (Onboarding wiring Tier 3, Oct 7, 2026): for a group
+    // with a mobility aid, the first card after a seated block (meal, show,
+    // character meet) gets a real transfer buffer -- at least 15 minutes
+    // after the seated block STARTS before the next placed card begins,
+    // instead of the 1-minute collision adjacency a dense day can produce.
+    // Bounded: never pushes past the day's close, never moves an anchor,
+    // and every change rides the retime surfacing below.
+    if (mobility && prevSeatedStart >= 0 && (r.c.type === 'ride' || r.c.type === 'dining' || r.c.type === 'show' || r.c.type === 'character' || r.c.type === 'snack') && m < prevSeatedStart + 15) {
+      const bumped = prevSeatedStart + 15;
+      if (closeCap === null || bumped <= closeCap) m = bumped;
+    }
     if (m <= prev) m = prev + 1;
     r.c.t = toClock(m);
     // Every retime is surfaced (Fix 3 F13): a +1 bump can carry a headliner
@@ -932,6 +1148,7 @@ function sortAndSpace(cards, mutations) {
     if (mutations && r.c.t !== _origT) mutations.push({ action: 'retime', h: r.c.h, from: _origT, to: r.c.t });
     prev = m;
     if (r.c.type === 'break' || r.c.type === 'snack' || r.c.type === 'dining') prevComfort = m;
+    if (r.c.type === 'dining' || r.c.type === 'show' || r.c.type === 'character') prevSeatedStart = m;
   }
   return rows.map(r => r.c);
 }
@@ -985,8 +1202,16 @@ function dezigzagRides(kept, catalog, gateCtx, mutations) {
       }
       seg = [];
     };
+    // MOBILITY (Onboarding wiring Tier 3, Oct 7, 2026): the backtracking
+    // penalty widens -- a single intervening non-ride card (a break, a tip)
+    // no longer hides an A -> B -> A crossing from the swap pass, because
+    // the group still walked it. Two consecutive non-ride cards still end
+    // the run. Every swap remains gate-validated exactly as above.
+    let _gapRun = 0;
     for (const c of kept) {
-      if (c.type === 'ride') seg.push(c); else flush();
+      if (c.type === 'ride') { seg.push(c); _gapRun = 0; }
+      else if (gateCtx && gateCtx.mobility === true && seg.length && _gapRun < 1) { _gapRun++; }
+      else flush();
     }
     flush();
     if (!changed) break;
@@ -1051,7 +1276,10 @@ export function normalizeLLAssignments(cards, opts, mutations) {
     if (c.type !== 'ride') continue;
     const k = normName(c.ride || c.h);
     if (ILL_ONLY_KEYS.has(k)) {
-      if (ill) { if (!c.ll || c.ll.t !== 'single') _note(c, c.ll && c.ll.t, 'single'); c.ll = { t: 'single', a: (c.ll && c.ll.a) || 'Individual Lightning Lane -- book in the app at park open.' }; }
+      // Guest-listed ILL rides (Tier 3): when the guest named the rides
+      // they bought ILL for, a single-pass tag belongs ONLY on a listed
+      // ride; an unlisted ILL-only ride rides standby like any other.
+      if (ill && illRideListed(k, opts)) { if (!c.ll || c.ll.t !== 'single') _note(c, c.ll && c.ll.t, 'single'); c.ll = { t: 'single', a: (c.ll && c.ll.a) || 'Individual Lightning Lane -- book in the app at park open.' }; }
       else if (c.ll && c.ll.t === 'single') { _note(c, 'single', null); delete c.ll; }
     }
   }
@@ -1144,6 +1372,10 @@ export function verifyScaffold(cards, opts) {
   const closedNames = (opts.closedNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
   // DINING_CLOSURES cache (trip-date-windowed): closed restaurant / quick-service / snack names.
   const closedVenueNames = (opts.closedVenueNames || []).map(s => String(s).toLowerCase()).filter(Boolean);
+  // Guest show lists (Onboarding wiring, Oct 7, 2026): skip = hard reject,
+  // prior-day = deprioritized + surfaced. Stored as normName key sets.
+  opts._skipShowKeys = new Set((opts.showSkipNames || []).map(normName).filter(Boolean));
+  opts._priorShowKeys = new Set((opts.priorShowNames || []).map(normName).filter(Boolean));
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']);
   // Squash key: normName with spaces removed. The model respells rides across
   // cards ("WEB SLINGERS: ..." vs "Webslingers: ..."), which defeats the spaced
@@ -1254,6 +1486,16 @@ export function verifyScaffold(cards, opts) {
       // lives in ("Pixar Pier") instead of the show itself. Drop those cards.
       if (c.type === 'show') {
         const _hk = normName(c.h);
+        // Show skip (Onboarding wiring Tier 1, Oct 7, 2026): a show the
+        // guest explicitly skipped must never ship -- the verify-layer
+        // rejection mirroring the ride bannedNames handling (applyFills
+        // and the backfill already exclude it; this is the last net).
+        if (showKeyInSet(opts._skipShowKeys, _hk)) { removed.push({ h: c.h, reason: 'show-skipped' }); continue; }
+        // Cross-day dedup (Tier 2): a show already seated on a prior day is
+        // DEPRIORITIZED, never banned (Claude's checklist correction) -- it
+        // may ship when the guest plausibly wants the repeat, but the
+        // repeat is surfaced, not silent.
+        if (showKeyInSet(opts._priorShowKeys, _hk)) mutations.push({ action: 'show-repeat-prior-day', h: c.h });
         const _landKeys = new Set(Object.values(catalog).map(e => normName(e.land || '')).filter(Boolean));
         if (_landKeys.has(_hk) || _hk === 'disneyland' || _hk === 'disneyland park' || _hk === 'disney california adventure' || _hk === 'dca') {
           removed.push({ h: c.h, reason: 'land-as-show' }); continue;
@@ -1275,11 +1517,11 @@ export function verifyScaffold(cards, opts) {
   // Post-fill mutators route through the shared re-validation gate
   // (revalidateCard) and log every change into `mutations`, which the
   // handler returns as verifyMutations -- silence was the defect (F13).
-  const _gateCtx = { catalog, landToPark, closedNames: opts.closedNames || [], bannedNames: opts.bannedNames || [], closeMin: (opts.closeMin != null ? opts.closeMin : null), closeMinByPark: opts.closeMinByPark || null, llmp: opts.hasLLMP === true, ill: opts.hasILL === true, parks: allowedParks };
+  const _gateCtx = { catalog, landToPark, closedNames: opts.closedNames || [], bannedNames: opts.bannedNames || [], closeMin: (opts.closeMin != null ? opts.closeMin : null), closeMinByPark: opts.closeMinByPark || null, llmp: opts.hasLLMP === true, ill: opts.hasILL === true, parks: allowedParks, illRideKeys: (opts.illRideKeys instanceof Set) ? opts.illRideKeys : null, minHeightInches: (opts.minHeightInches != null ? opts.minHeightInches : null), groupSize: (typeof opts.groupSize === 'number' ? opts.groupSize : null), mustDoNames: opts.mustDoNames || [], mobility: opts.mobility === true };
   dezigzagRides(kept, catalog, _gateCtx, mutations);
-  const _finalCards = sortAndSpace(kept, mutations);
+  const _finalCards = sortAndSpace(kept, mutations, { mobility: opts.mobility === true, closeMin: (opts.closeMin != null ? opts.closeMin : null) });
   if (opts.hasLLMP !== undefined || opts.hasILL !== undefined) {
-    normalizeLLAssignments(_finalCards, { llmp: opts.hasLLMP === true, ill: opts.hasILL === true, catalog }, mutations);
+    normalizeLLAssignments(_finalCards, { llmp: opts.hasLLMP === true, ill: opts.hasILL === true, catalog, illRideKeys: (opts.illRideKeys instanceof Set) ? opts.illRideKeys : null }, mutations);
   }
   // Post-mutation gate scan: if LL normalization stripped the tag that
   // exempted an afternoon headliner, that card is now a standby window
@@ -1291,9 +1533,88 @@ export function verifyScaffold(cards, opts) {
     const _gv = revalidateCard(c, _gateCtx);
     if (!_gv.ok && _gv.reasons.indexOf('headliner-window') !== -1) mutations.push({ action: 'gate-warning', h: c.h, at: c.t, reason: 'headliner-window' });
   }
+  // HEIGHT GATE -- final enforcement (Onboarding wiring Tier 1, Oct 7,
+  // 2026; Claude's named seam). For every shipped ride card above the
+  // group's shortest rider (catalog heightInches vs the legacy bracket
+  // semantics in shortestHeightInches):
+  //   - group of 2+ (or size unknown): the card stays and MUST carry the
+  //     legacy rider-swap note (appended here when missing -- the note is
+  //     the whole-group protection the legacy validator guaranteed);
+  //   - SOLO guest: the ride cannot be ridden at all (no one to swap
+  //     with), so the card is REMOVED -- except must-dos, which are the
+  //     guest's explicit non-negotiable and stay with a plain height
+  //     warning that never promises a swap.
+  const _minH = (opts.minHeightInches != null ? opts.minHeightInches : null);
+  if (_minH !== null && _minH < 48) {
+    const _mustK = new Set((opts.mustDoNames || []).map(normName).filter(Boolean));
+    const _mustG = new Set([..._mustK].map(k => rideGroupKey(k)).filter(Boolean));
+    for (let i = _finalCards.length - 1; i >= 0; i--) {
+      const c = _finalCards[i];
+      if (!c || c.type !== 'ride' || c.anchor === true) continue;
+      const _ce = catalog[normName(c.ride || c.h)] || catalogBySquash[squash(c.ride || c.h)] || null;
+      if (!heightGateHit(_ce, _minH)) continue;
+      const _k = normName(c.ride || c.h), _g = rideGroupKey(c.ride || c.h);
+      const _isMust = _mustK.has(_k) || _mustG.has(_g);
+      if (opts.groupSize === 1 && !_isMust) {
+        removed.push({ h: c.h, reason: 'height-solo' });
+        mutations.push({ action: 'height-solo-remove', h: c.h, at: c.t, requires: _ce.heightInches });
+        _finalCards.splice(i, 1);
+        continue;
+      }
+      const _note = (opts.groupSize === 1) ? heightWarningNote(_ce.heightInches) : riderSwapNote(_ce.heightInches);
+      if (!/rider swap|height note/i.test(c.n || '')) {
+        c.n = appendNote(c.n, _note);
+        mutations.push({ action: (opts.groupSize === 1 ? 'height-warning' : 'rider-swap-note'), h: c.h, at: c.t, requires: _ce.heightInches });
+      }
+    }
+  }
+  // DIETARY CONFLICT SURFACING (Tier 2 floor, Oct 7, 2026): when a seated
+  // venue's verified intel covers dietary options (at least one VEG /
+  // VEGAN / GF tag exists for it) but has NO verified option for a stated
+  // need, the conflict is SURFACED (response field + mutation) -- never
+  // silently seated, and never removed on inference: the intel is
+  // positive-only, so a venue with no dietary data at all is UNKNOWN and
+  // is not flagged. The guest keeps the venue; they see the gap.
+  const dietaryConflicts = [];
+  const _dietSigs = dietarySignalsFor(opts.dietaryNeeds || []);
+  if (_dietSigs.length && opts.venueDietary && typeof opts.venueDietary === 'object') {
+    for (const c of _finalCards) {
+      if (!c || (c.type !== 'dining' && c.type !== 'quickservice' && c.type !== 'snack')) continue;
+      const _hk = canonicalVenueKey(String(c.h || '').replace(/^(lunch|dinner|breakfast|brunch)\s*[:\-]\s*/i, '').replace(/^(lunch|dinner|breakfast|brunch)\s+at\s+/i, ''));
+      if (!_hk) continue;
+      let _vd = opts.venueDietary[_hk] || null;
+      if (!_vd) { for (const k of Object.keys(opts.venueDietary)) { if (k && (_hk.indexOf(k) !== -1 || (_hk.length >= 4 && k.indexOf(_hk) !== -1))) { _vd = opts.venueDietary[k]; break; } } }
+      if (!_vd) continue; // intel silent on this venue: no determination
+      if (!(_vd.veg || _vd.vegan || _vd.gf)) continue; // intel covers the venue but verified no dietary items at all -- still "unknown", not a conflict
+      for (const sig of _dietSigs) {
+        if (!dietaryTagSatisfies(_vd, sig)) {
+          dietaryConflicts.push({ venue: c.h, at: c.t, need: dietaryNeedLabel(sig), kind: 'dietary-unverified', detail: 'Our dining intel lists verified dietary options at ' + c.h + ', but none verified for ' + dietaryNeedLabel(sig) + ' -- check the menu before you go.' });
+          mutations.push({ action: 'dietary-conflict', h: c.h, need: dietaryNeedLabel(sig) });
+        }
+      }
+    }
+  }
+  // SERVICE ANIMAL (Tier 3): the first card seated in a land with a
+  // designated relief area carries the relief note for that land (once
+  // per land per day -- proximity, not spam). Areas are Disney's published
+  // list (SERVICE_RELIEF_AREAS).
+  if (opts.serviceAnimal === true) {
+    const _notedLands = new Set();
+    for (const c of _finalCards) {
+      if (!c || !placed.has(c.type) || c.type === 'show') continue;
+      const _lk = normName(c.land || '');
+      if (!_lk || _notedLands.has(_lk)) continue;
+      const _ra = SERVICE_RELIEF_AREAS.find(a => a.landKey === _lk);
+      if (_ra && !/relief area/i.test(c.n || '')) {
+        c.n = appendNote(c.n, 'Service animal relief area nearby: ' + _ra.label + '.');
+        _notedLands.add(_lk);
+        mutations.push({ action: 'service-animal-note', h: c.h, land: c.land });
+      }
+    }
+  }
   const _trim = trimInfeasible(_finalCards, { waitPatterns: opts.waitPatterns || null, catalog, landToPark, mustDoNames: opts.mustDoNames || [] });
   for (const r of _trim.trimmed) removed.push(r);
-  return { cards: _trim.cards, removed, trimmedMustDos: _trim.trimmedMustDos || [], mutations };
+  return { cards: _trim.cards, removed, trimmedMustDos: _trim.trimmedMustDos || [], mutations, dietaryConflicts };
 }
 
 // ---------------------------------------------------------------------------
@@ -1538,7 +1859,7 @@ const ROPE_DROP_PRIORITY = {
   dl: ['Indiana Jones Adventure', 'Space Mountain', 'Star Wars: Rise of the Resistance', "Mickey & Minnie's Runaway Railway"],
   dca: ['Radiator Springs Racers', 'Guardians of the Galaxy - Mission: BREAKOUT!', 'Incredicoaster', "Soarin' Around the World", 'WEB SLINGERS: A Spider-Man Adventure']
 };
-export function pickRopeDropRide(catalogIdx, parkName, priorNames, bannedNames, priorRopeDropNames, closedNames) {
+export function pickRopeDropRide(catalogIdx, parkName, priorNames, bannedNames, priorRopeDropNames, closedNames, opts) {
   const idx = catalogIdx || {};
   const pk = normParkName(parkName);
   const priorKeys = new Set((priorNames || []).map(normName).filter(Boolean));
@@ -1547,7 +1868,11 @@ export function pickRopeDropRide(catalogIdx, parkName, priorNames, bannedNames, 
   const bannedGroups = new Set((bannedNames || []).map(rideGroupKey).filter(Boolean));
   const closedKeys = new Set((closedNames || []).map(normName).filter(Boolean));
   const isBanned = (e) => bannedKeys.has(normName(e.name)) || bannedGroups.has(rideGroupKey(e.name));
-  const entries = Object.values(idx).filter(e => e && e.name && normParkName(e.park) === pk && (!e.status || e.status === 'operating') && !isBanned(e) && !closedKeys.has(normName(e.name)));
+  // SOLO HEIGHT (Onboarding wiring Tier 1): opts.maxHeightInches is set
+  // only for a solo guest under the height gate -- rides they cannot board
+  // leave the pool outright, so rope drop never opens on an unrideable ride.
+  const maxH = (opts && typeof opts.maxHeightInches === 'number') ? opts.maxHeightInches : null;
+  const entries = Object.values(idx).filter(e => e && e.name && normParkName(e.park) === pk && (!e.status || e.status === 'operating') && !isBanned(e) && !closedKeys.has(normName(e.name)) && (maxH === null || (e.heightInches || 0) <= maxH));
   if (!entries.length) return null;
   const prio = ROPE_DROP_PRIORITY[pk] || [];
   // GUARANTEED ONCE: the park's #1 ride must be ROPE-DROPPED at least once in
@@ -1593,7 +1918,9 @@ export function pickMorningRides(catalogIdx, parkName, count, opts) {
   const bannedGroups = new Set(bannedNames.map(rideGroupKey).filter(Boolean));
   const closedKeys = new Set(closedNames.map(normName).filter(Boolean));
   const picks = [];
-  const first = pickRopeDropRide(idx, parkName, opts.priorNames, bannedNames, opts.priorRopeDropNames, closedNames);
+  const maxH = (typeof opts.maxHeightInches === 'number') ? opts.maxHeightInches : null;
+  const thrillMode = opts.thrillMode || null;
+  const first = pickRopeDropRide(idx, parkName, opts.priorNames, bannedNames, opts.priorRopeDropNames, closedNames, { maxHeightInches: maxH });
   if (first) picks.push(first);
   const usedNames = new Set(picks.map(e => normName(e.name)));
   const usedGroups = new Set(picks.map(e => rideGroupKey(e.name)));
@@ -1603,7 +1930,8 @@ export function pickMorningRides(catalogIdx, parkName, count, opts) {
   const pool = Object.values(idx).filter(e => e && e.name && normParkName(e.park) === pk &&
     (!e.status || e.status === 'operating') &&
     !bannedKeys.has(normName(e.name)) && !bannedGroups.has(rideGroupKey(e.name)) &&
-    !closedKeys.has(normName(e.name)) && !NEVER_MORNING_KEYS.has(normName(e.name)));
+    !closedKeys.has(normName(e.name)) && !NEVER_MORNING_KEYS.has(normName(e.name)) &&
+    (maxH === null || (e.heightInches || 0) <= maxH));
   const value = (e) => {
     let v = 0;
     const pi = prio.findIndex(n => normName(n) === normName(e.name));
@@ -1611,6 +1939,11 @@ export function pickMorningRides(catalogIdx, parkName, count, opts) {
     v += (e.ropeDropValue === 'high' ? 300 : e.ropeDropValue === 'med' ? 150 : 0);
     v += (e.typicalPeakWait || 0);
     if (!priorKeys.has(normName(e.name)) && !priorGroups.has(rideGroupKey(e.name))) v += 120; // prefer fresh
+    // THRILL LEVEL (Tier 3, soft weight only): gentle groups get high-thrill
+    // morning rides pushed well down the pool; thrill seekers get headliners
+    // weighted further up. Nothing is banned -- ranking only.
+    if (thrillMode === 'gentle' && isHighThrillEntry(e)) v -= 500;
+    if (thrillMode === 'seeker' && e.ropeDropValue === 'high') v += 200;
     return v;
   };
   let lastLand = picks.length ? picks[0].land : null;
@@ -1946,6 +2279,9 @@ export function planReservationAnchors(skeleton, reservations, opts) {
       id: 'anchor', block: 'anchor', type: 'dining', park: venue.park,
       window: [r.timeMin, r.timeMin], fixed: r.timeMin,
       anchorName: venue.name, anchorLand: venue.land || '', anchorPeriod: period,
+      // Group size (Claude's checklist, Oct 7, 2026): the party size rides
+      // the anchor slot so the emitted card can state it.
+      partySize: (opts && typeof opts.groupSize === 'number' && opts.groupSize > 0) ? opts.groupSize : null,
       role: 'CONFIRMED RESERVATION at ' + venue.name + ' -- a fixed anchor seated by the plan at exactly ' + toClock(r.timeMin) + '; return this venue name at exactly that time'
     });
     mutated = true;
@@ -1997,6 +2333,19 @@ export function deterministicBackfill(slot, ctx) {
     const usedGroups = new Set([...usedRideKeys].map(k => rideGroupKey(k)));
     const bannedGroups = (ctx.bannedKeys instanceof Set) ? new Set([...ctx.bannedKeys].map(k => rideGroupKey(k))) : null;
     const isBannedE = (e) => !!(ctx.bannedKeys && (ctx.bannedKeys.has(normName(e.name)) || (bannedGroups && bannedGroups.has(rideGroupKey(e.name)))));
+    // SOLO HEIGHT (Onboarding wiring Tier 1): for a solo guest under the
+    // height gate, the pools never contain a ride they cannot board. The
+    // ASSIGNED-ride path above is untouched -- an assignment is an explicit
+    // choice and keeps the verify note path.
+    const _soloBlocked = (e) => ctx.soloHeight === true && ctx.minHeightInches != null && (e.heightInches || 0) > ctx.minHeightInches;
+    // THRILL LEVEL (Tier 3, soft weight only): pool partition key -- gentle
+    // groups rank high-thrill rides after everything else; thrill seekers
+    // rank them first. Within a partition the peak-wait order rules.
+    const _thrillRank = (e) => {
+      if (ctx.thrillMode === 'gentle') return isHighThrillEntry(e) ? 1 : 0;
+      if (ctx.thrillMode === 'seeker') return isHighThrillEntry(e) ? 0 : 1;
+      return 0;
+    };
     const morningSlot = winStart(slot.window) < 720;
     const slotMin = parseClock(t0);
     // Headliner window in every pool (generalized from rsrBlocked): the
@@ -2006,10 +2355,10 @@ export function deterministicBackfill(slot, ctx) {
     const cands = catalog.filter(e =>
       e && e.name && !usedRideKeys.has(normName(e.name)) && !usedGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !_soloBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     // Deterministic: highest typical peak wait first (headliners earn the slot), ties by name.
-    cands.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
+    cands.sort((a, b) => (_thrillRank(a) - _thrillRank(b)) || ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (cands.length) {
       const pick = cands[0];
       usedRideKeys.add(normName(pick.name));
@@ -2027,9 +2376,9 @@ export function deterministicBackfill(slot, ctx) {
     const reuse = catalog.filter(e =>
       e && e.name && _priorKeys.has(normName(e.name)) && !_todayKeys.has(normName(e.name)) && !_todayGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !_soloBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
-    reuse.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
+    reuse.sort((a, b) => (_thrillRank(a) - _thrillRank(b)) || ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (reuse.length) {
       const pick = reuse[0];
       usedRideKeys.add(normName(pick.name));
@@ -2055,9 +2404,9 @@ export function deterministicBackfill(slot, ctx) {
       e && e.name && _todayKeys.has(normName(e.name)) &&
       !_encoredKeys.has(normName(e.name)) && !_encoredGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !_soloBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
-    sameDay.sort((a, b) => ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
+    sameDay.sort((a, b) => (_thrillRank(a) - _thrillRank(b)) || ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (sameDay.length) {
       const pick = (sameDay.length > 1 && _lastTodayKey) ? (sameDay.find(e => normName(e.name) !== _lastTodayKey) || sameDay[0]) : sameDay[0];
       usedRideKeys.add(normName(pick.name));
@@ -2071,6 +2420,24 @@ export function deterministicBackfill(slot, ctx) {
   if (slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack') {
     const rankResv = (r) => r === 'walkup' ? 0 : r === 'recommended' ? 1 : 2;
     const rankSvc = (s) => (s === 'quickservice' || s === 'snack') ? 0 : 1;
+    // WANTED QUICK-SERVICE SPOTS (Onboarding wiring Tier 2, Oct 7, 2026):
+    // venues the guest named in onboarding (tripConfig.wantedRestaurants,
+    // canonical-matched by the handler into ctx.wantedVenueKeys) rank FIRST
+    // in the pick order -- still under every rule below (QS-only, never
+    // twice, closed excluded): a wanted spot that breaks a rule is never
+    // seated, it just wins among legal candidates.
+    const wantRank = (v) => (ctx.wantedVenueKeys instanceof Set && ctx.wantedVenueKeys.has(_venueKeyOfB(v.name))) ? 0 : 1;
+    // DIETARY PREFERENCE (Tier 2): with verified intel tags, a venue whose
+    // tags satisfy every stated need ranks ahead of unknown venues; a venue
+    // whose intel covers dietary options but verifies NONE for a stated
+    // need ranks last. No tags = unknown = neutral (never guessed).
+    const _dietSigs = dietarySignalsFor(ctx.dietaryNeeds || []);
+    const dietRank = (v) => {
+      if (!_dietSigs.length) return 0;
+      const d = v.dietary;
+      if (!d || !(d.veg || d.vegan || d.gf)) return 1;
+      return _dietSigs.every(sig => dietaryTagSatisfies(d, sig)) ? 0 : 2;
+    };
     const cands = venues
       .filter(v => v && v.name && !v.exclude && inSlotPark(v.park) &&
         !usedNames.has(String(v.name).toLowerCase()) &&
@@ -2082,14 +2449,17 @@ export function deterministicBackfill(slot, ctx) {
         !closedVenueKeys.has(normName(v.name)) &&
         (v.service === 'quickservice' || v.service === 'snack' || (v.service === '' && v.reservationPolicy === 'walkup')) &&
         v.reservationPolicy !== 'never_meal' && v.reservationPolicy !== 'required')
-      .sort((a, b) => (rankResv(a.reservationPolicy) - rankResv(b.reservationPolicy)) || (rankSvc(a.service) - rankSvc(b.service)));
+      .sort((a, b) => (wantRank(a) - wantRank(b)) || (dietRank(a) - dietRank(b)) || (rankResv(a.reservationPolicy) - rankResv(b.reservationPolicy)) || (rankSvc(a.service) - rankSvc(b.service)));
     if (cands.length) {
       const pick = cands[0];
       usedNames.add(String(pick.name).toLowerCase());
       if (usedVenueKeys) usedVenueKeys.add(_venueKeyOfB(pick.name));
-      const note = pick.reservationPolicy === 'walkup'
+      let note = pick.reservationPolicy === 'walkup'
         ? 'Verified walkup pick from the dining list.'
         : 'From the verified dining list -- booking ahead recommended.';
+      // Group size (Claude's checklist, Oct 7, 2026): state the party size
+      // where the card carries it.
+      if (typeof ctx.groupSize === 'number' && ctx.groupSize > 0) note += ' Party of ' + ctx.groupSize + '.';
       return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '' };
     }
   }
@@ -2097,17 +2467,28 @@ export function deterministicBackfill(slot, ctx) {
   if (slot.type === 'show') {
     const shows = Array.isArray(ctx.shows) ? ctx.shows : [];
     const wantedK = (ctx.wantedShows || []).map(s => normName(s)).filter(Boolean);
-    const inPark = shows.filter(s => s && s.name && inSlotPark(s.park) && !usedNames.has(String(s.name).toLowerCase()));
-    const pick = inPark.find(s => wantedK.some(w => { const sn = normName(s.name); return sn === w || sn.startsWith(w) || w.startsWith(sn); })) || inPark[0];
+    // SHOW SKIP (Tier 1): a guest-skipped show is excluded from the pool
+    // outright (mirrors the ride ban handling). CROSS-DAY DEDUP (Tier 2):
+    // shows seated on prior days are DEPRIORITIZED, never banned (Claude's
+    // checklist correction) -- a fresh show always wins; a repeat is picked
+    // only when nothing fresh fits the park.
+    const skipK = new Set((ctx.skipShows || []).map(s => normName(s)).filter(Boolean));
+    const priorK = new Set((ctx.priorShows || []).map(s => normName(s)).filter(Boolean));
+    const inPark = shows.filter(s => s && s.name && inSlotPark(s.park) && !usedNames.has(String(s.name).toLowerCase()) && !showKeyInSet(skipK, normName(s.name)));
+    const isWanted = (s) => wantedK.some(w => { const sn = normName(s.name); return sn === w || sn.startsWith(w) || w.startsWith(sn); });
+    const fresh = inPark.filter(s => !showKeyInSet(priorK, normName(s.name)));
+    const pick = fresh.find(isWanted) || fresh[0] || inPark.find(isWanted) || inPark[0];
     if (pick) {
       usedNames.add(String(pick.name).toLowerCase());
       return { t: t0, h: pick.name, type: 'show', n: 'Nighttime spectacular -- arrive early for a good spot.', land: '' };
     }
   }
 
-  // Character slot: emit the day's planned meet verbatim.
+  // Character slot: emit the day's planned meet verbatim. (niceToHave slots
+  // are dropped by applyFills before the backfill ever sees them, so this
+  // path is the must-do one; the note branches defensively anyway.)
   if (slot.type === 'character' && slot.meetName) {
-    return { t: t0, h: 'Meet ' + slot.meetName, type: 'character', n: (slot.meetLand ? 'Find them at ' + slot.meetLand + '. ' : '') + 'A must-do meet for this group.', land: slot.meetLand || '' };
+    return { t: t0, h: 'Meet ' + slot.meetName, type: 'character', n: (slot.meetLand ? 'Find them at ' + slot.meetLand + '. ' : '') + (slot.meetPriority === 'niceToHave' ? 'A character meet that fit the day.' : 'A must-do meet for this group.'), land: slot.meetLand || '' };
   }
 
   // Break slots: fixed guest-facing cards, emitted verbatim.
@@ -2229,7 +2610,7 @@ export function enforceTripParams(cards, violations, ctx) {
   // Re-validation gate context (Fix 3 F1): swap-in candidates are judged by
   // revalidateCard exactly as the swapped card would ship. The handler
   // plumbs the day's per-park closes and purchased LL products through ctx.
-  const gateCtx = { catalog, landToPark, closedNames: ctx.closedNames || [], bannedNames: ctx.bannedNames || [], closeMin: (ctx.closeMin != null ? ctx.closeMin : null), closeMinByPark: ctx.closeMinByPark || null, llmp: ctx.llmp === true, ill: ctx.ill === true, parks: ctx.parks || null, venueServiceMap: ctx.venueServiceMap || null, reservationKeys: ctx.reservationKeys || null, closedVenueNames: ctx.closedVenueNames || [] };
+  const gateCtx = { catalog, landToPark, closedNames: ctx.closedNames || [], bannedNames: ctx.bannedNames || [], closeMin: (ctx.closeMin != null ? ctx.closeMin : null), closeMinByPark: ctx.closeMinByPark || null, llmp: ctx.llmp === true, ill: ctx.ill === true, parks: ctx.parks || null, venueServiceMap: ctx.venueServiceMap || null, reservationKeys: ctx.reservationKeys || null, closedVenueNames: ctx.closedVenueNames || [], illRideKeys: (ctx.illRideKeys instanceof Set) ? ctx.illRideKeys : null, minHeightInches: (ctx.minHeightInches != null ? ctx.minHeightInches : null), groupSize: (typeof ctx.groupSize === 'number' ? ctx.groupSize : null), mustDoNames: ctx.mustDoNames || [] };
   const parkOfCard = (c) => normParkName(landToPark(c.land) || landToPark(c.h) || '');
   const parkOfName = (name) => {
     const ce = catalogEntryForGroup(catalog, name);

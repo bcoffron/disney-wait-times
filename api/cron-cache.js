@@ -127,7 +127,7 @@ const STABLE_SECTION_PROMPTS = {
   },
   ROPE_DROP_STRATEGY:{
     system:'You are a Disneyland rope drop strategy expert. 2024-2026 knowledge. Specific advice for a group of 9.',
-    user:`Search TouringPlans, KennyThePirate.com, and r/Disneyland for the best Disneyland and DCA rope drop strategies 2024-2026. Provide a comprehensive rope drop guide for a group of 9 people including children. For Disneyland cover THREE paths: Path A Fantasyland first (Peter Pan then other classic rides then Matterhorn); Path B Adventureland first (Indiana Jones then Haunted Mansion area); Path C Tomorrowland and Galaxy Edge first (Space Mountain then Rise of the Resistance). For each path: exact attraction sequence with realistic timing, which path wins on light vs heavy crowd days, walk-in time needed before official park open, how boarding group system affects Rise of the Resistance if applicable, what to do in the 10-10:30AM window after rope drop completes, how to handle a group of 9 moving together. Cover DCA rope drop separately: Radiator Springs Racers strategy which reaches 90-120 min by 10 AM, Guardians timing, best DCA morning sequence. Include Early Entry tips if staying onsite and recommended arrival time at main gate for summer weekend. REQUIRED OUTPUT: The DISNEYLAND ranked order MUST be output exactly as: DISNEYLAND order: 1) Rise of the Resistance 2) Peter Pan's Flight 3) Space Mountain 4) Mickey & Minnie's Runaway Railway 5) Indiana Jones Adventure. This is a hard constraint -- do not reorder these rides.`,
+    user:`Search TouringPlans, KennyThePirate.com, and r/Disneyland for the best Disneyland and DCA rope drop strategies 2024-2026. Provide a comprehensive rope drop guide for a group of 9 people including children. For Disneyland cover THREE paths: Path A Fantasyland first (Peter Pan then other classic rides then Matterhorn); Path B Adventureland first (Indiana Jones then Haunted Mansion area); Path C Tomorrowland and Galaxy Edge first (Space Mountain then Rise of the Resistance). For each path: exact attraction sequence with realistic timing, which path wins on light vs heavy crowd days, walk-in time needed before official park open, how boarding group system affects Rise of the Resistance if applicable, what to do in the 10-10:30AM window after rope drop completes, how to handle a group of 9 moving together. Cover DCA rope drop separately: Radiator Springs Racers strategy which reaches 90-120 min by 10 AM, Guardians timing, best DCA morning sequence. Include Early Entry tips if staying onsite and recommended arrival time at main gate for summer weekend. REQUIRED OUTPUT: The DISNEYLAND ranked order MUST be output exactly as: DISNEYLAND order: 1) Rise of the Resistance 2) Peter Pan's Flight 3) Space Mountain 4) Mickey & Minnie's Runaway Railway 5) Indiana Jones Adventure. This is a hard constraint -- do not reorder these rides. ARRIVAL GUIDANCE RULE (Oct 7, 2026): any main-gate arrival guidance in your output must recommend arriving a FULL HOUR (60 minutes) before official park opening -- never recommend arriving only 30 minutes before opening.`,
     maxTokens:2000
   },
   LIGHTNING_LANE_STRATEGY:{
@@ -696,6 +696,26 @@ async function buildCatalogVenues(cacheKey) {
     const land = m[3].trim();
     const reservationPolicy = m[4]; // "required" | "recommended" | "walkup"
 
+    // Dietary tags (Onboarding wiring Tier 2, Oct 7, 2026): the dining
+    // intel line format carries verified menu tags ("VEG:item VEGAN:item
+    // GF:item") ONLY when the research prompt verified a specific item --
+    // parse them onto the venue so the generator's dietary ranking and
+    // conflict surfacing have a real signal. No tag = intel silent =
+    // unknown, never "no option". (VEGAN is matched before VEG so the
+    // shorter tag cannot match inside it.)
+    let dietary = null;
+    {
+      const tagRe = /(VEGAN|VEG|GF):([^|]+?)(?=\s+(?:VEGAN|VEG|GF):|\s*$)/g;
+      let tm;
+      const tags = {};
+      while ((tm = tagRe.exec(line)) !== null) {
+        const key = tm[1] === 'VEGAN' ? 'vegan' : tm[1] === 'VEG' ? 'veg' : 'gf';
+        const val = tm[2].trim();
+        if (val && val.toLowerCase() !== 'null') tags[key] = val;
+      }
+      if (Object.keys(tags).length) dietary = tags;
+    }
+
     const cls = classifyVenue(name);
     const venue = {
       id: venueIdFromName(name),
@@ -706,6 +726,7 @@ async function buildCatalogVenues(cacheKey) {
       reservationPolicy: reservationPolicy,
       walkupEase: cls.walkupEase
     };
+    if (dietary) venue.dietary = dietary;
     if (cls.exclude) { venue.exclude = true; }
     venues.push(venue);
   }
