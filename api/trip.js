@@ -4,7 +4,7 @@ import { put, list, del } from '@vercel/blob';
 // scaffold.js IS imported, but only for the read-only trip-level surfacing
 // computation (computeTripSurfacing) in the POST handler: it reads the final
 // stored schedule and reports; it never mutates anything.
-import { buildCatalogIndex, computeTripSurfacing } from './scaffold.js';
+import { buildCatalogIndex, computeTripSurfacing, parseCatalogVenues, correctVenueServices, scanTripProseForwardFlags } from './scaffold.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment so their fixed public
@@ -424,6 +424,27 @@ export default async function handler(req, res) {
               console.log('[trip] insights trip ' + entry.tripId + ': ' + JSON.stringify(_surfFields.tripInsights.map(i => i.type + ':' + (i.park || i.name || ''))));
             }
           }
+          // Prose forward-reference reconciliation (Oct 7, 2026 -- Claude's
+          // package-2 ruling): the per-day prose tripwire in generation
+          // cannot see a note that names a venue seated on a LATER day
+          // (Day 1 prose previewing Day 2's venue). This save seam is the
+          // one place the complete trip exists exactly as stored, so the
+          // whole-trip reconciliation runs here, beside the surfacing
+          // above: scanTripProseForwardFlags re-runs the shipped per-day
+          // scanner against the complete trip venue set and reports only
+          // the forward references the per-day pass could not flag.
+          // Response-only surface (proseVenueFlagsForward); the stored
+          // blob is never modified by it. FLAGS ONLY -- never rewrites a
+          // note, never blocks the save. Failure-isolated like the rest of
+          // this block: its own try/catch, and the scanner itself is
+          // fail-open.
+          try {
+            const _fwd = scanTripProseForwardFlags(_sdays, { venues: correctVenueServices(parseCatalogVenues(_scache.CATALOG)) });
+            _surfFields = Object.assign({}, _surfFields || {}, { proseVenueFlagsForward: _fwd });
+            if (_fwd.length) {
+              console.log('[trip] prose-forward trip ' + entry.tripId + ': ' + JSON.stringify(_fwd.map(f => 'day' + f.day + ':' + f.venue + '->day' + f.seatedDay)));
+            }
+          } catch (e) { console.warn('[trip] prose-forward scan failed (save unaffected):', e.message); }
         }
       } catch (e) { console.warn('[trip] surfacing computation failed (save unaffected):', e.message); }
 
