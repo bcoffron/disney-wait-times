@@ -562,12 +562,15 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           system += '\nIf tripConfig shows hasLL: false or no Lightning Lane for this day, do NOT generate LL cards and do NOT include ll fields on any item.';
 
       // ============================================================
-      // SCAFFOLD PATH (parallel, opt-in via ?scaffold=1 or body.scaffold=true).
-      // The legacy generator below is untouched: on success this returns early;
-      // on ANY error it logs and falls through to the legacy path.
+      // SCAFFOLD PATH -- the ONLY generator (LEGACY RETIRED Oct 7, 2026,
+      // per Claude's ruling). The ?scaffold= query flag and body.scaffold
+      // are inert: every request runs the scaffold, and a scaffold error
+      // returns a clean safe failure (see the catch below) instead of
+      // falling through to the retired legacy engine, which remains
+      // in-file below, unreachable, for a later cleanup commit.
       // ============================================================
       const _body = req.body || {};
-      const _useScaffold = (req.query && (req.query.scaffold === '1' || req.query.scaffold === 'true')) || _body.scaffold === true;
+      const _useScaffold = true;
       if (_useScaffold) {
         try {
           const _cfg = tripConfig || {};
@@ -1042,10 +1045,25 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           if (_mutations.length) console.log('[scaffold] verify mutations:', JSON.stringify(_mutations));
           return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts });
         } catch (_se) {
-          console.error('[scaffold] error, falling back to legacy generator:', _se.message);
+          // SAFE FAILURE (legacy retired Oct 7, 2026): never fall through
+          // to a second engine. The shipped clients render { ok:false,
+          // error } as the failed day (Tap to retry / Continue without
+          // this day in pretrip; 'AI error' callback in app.html), and no
+          // schedule is returned, so nothing empty can be saved as a plan.
+          console.error('[scaffold] error (safe failure -- legacy retired):', _se.message);
+          return res.status(502).json({ ok: false, error: "Couldn't build your schedule — try again.", code: 'GENERATION_FAILED' });
         }
       }
 
+      // ============================================================
+      // LEGACY GENERATOR -- RETIRED Oct 7, 2026: UNREACHABLE.
+      // The scaffold block above returns on success (200) and on error
+      // (502 safe failure), so control never reaches this code. Kept
+      // in-file for a later cleanup commit. Also noted for that cleanup:
+      // the legacy prompt assembly ABOVE the scaffold block (system /
+      // park-intel context building) still executes per request; its
+      // outputs now feed nothing but this dead block.
+      // ============================================================
       // -- B: Model is hardcoded --- never use req.body.model or any client value
       const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
               signal: controller.signal,
