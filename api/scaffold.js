@@ -960,6 +960,82 @@ export function scanProseVenueFlags(cards, opts) {
   return flags;
 }
 
+// ---------------------------------------------------------------------------
+// PROSE FORWARD-REFERENCE RECONCILIATION (Oct 7, 2026 -- Claude's package-2
+// ruling). The per-day tripwire above judges a day at emission time, so its
+// jurisdiction is the used set AT THAT MOMENT: a note on Day 1 that names a
+// venue the trip seats on Day 2 -- a forward reference -- is invisible to
+// it (Day 1's own Flo's name-drop, seated Day 2, is the proven instance).
+// Claude ruled these come into scope NOT by widening the per-day scanner
+// but as a FINAL-PASS, WHOLE-TRIP reconciliation: once every day exists,
+// scan note prose against the COMPLETE trip venue set (past AND future).
+// The seam is the trip save (api/trip.js, beside computeTripSurfacing):
+// the one place the whole trip is visible exactly as stored -- per-day
+// generation is stateless, and a client-side pass would need a second
+// copy of the matcher and would judge the trip as generated rather than
+// as saved (merge-guard carry-forwards included).
+//
+// Detection is NOT re-implemented: for each day this runs the shipped
+// scanProseVenueFlags twice -- once with the earlier days' seated venues
+// (reproducing the authoritative per-day flags on the saved cards) and
+// once with ALL other days' seated venues (the whole-trip view) -- and
+// reports only what the per-day pass could not see: mentions of venues
+// whose FIRST seating in the trip is on a LATER day, minus anything the
+// per-day flags already carry for the same note+venue (Claude's general
+// rule: a secondary surface reconciles against the authoritative one
+// before emitting). FLAGS ONLY, like the tripwire: never rewrites a note,
+// never rejects a card, never blocks a save. Fail-open: returns [] on any
+// error. schedDays = the saved schedule's days ([{ items: [...] }, ...]);
+// opts.venues = the catalog venue list (same universe as the tripwire).
+// ---------------------------------------------------------------------------
+export function scanTripProseForwardFlags(schedDays, opts) {
+  try {
+    opts = opts || {};
+    const venues = Array.isArray(opts.venues) ? opts.venues : [];
+    const resolver = makeVenueKeyResolver(venues);
+    const DINING_TYPES = new Set(['dining', 'quickservice', 'snack']);
+    const days = Array.isArray(schedDays) ? schedDays : [];
+    const itemsByDay = days.map(d => (d && Array.isArray(d.items)) ? d.items : []);
+    // Seated venue names per day, accumulated exactly as the per-day
+    // scanner's callers accumulate them (raw dining-type headings).
+    const seatedNamesByDay = itemsByDay.map(items => items
+      .filter(c => c && DINING_TYPES.has(c.type) && c.h)
+      .map(c => String(c.h)));
+    // First day each venue key is seated anywhere in the trip.
+    const firstSeatedDay = new Map();
+    seatedNamesByDay.forEach((names, d) => {
+      for (const n of names) {
+        const k = resolver(n);
+        if (k && !firstSeatedDay.has(k)) firstSeatedDay.set(k, d);
+      }
+    });
+    const keyOfFlag = (f) => resolver(f.venue) || canonicalVenueKey(f.venue);
+    const idOfFlag = (f) => String(f.h || '') + '|' + String(f.at || '') + '|' + keyOfFlag(f);
+    const out = [];
+    itemsByDay.forEach((items, d) => {
+      if (!items.length) return;
+      const priorNames = seatedNamesByDay.slice(0, d).flat();
+      const perDay = scanProseVenueFlags(items, { venues: venues, priorVenues: priorNames });
+      const perDayIds = new Set(perDay.map(idOfFlag));
+      const otherNames = seatedNamesByDay.filter((_, i) => i !== d).flat();
+      const tripWide = scanProseVenueFlags(items, { venues: venues, priorVenues: otherNames });
+      for (const f of tripWide) {
+        const k = keyOfFlag(f);
+        if (!k) continue;
+        const first = firstSeatedDay.get(k);
+        // Not a forward reference: the venue's first seating is this day
+        // or an earlier one -- per-day jurisdiction (same-day / prior-day).
+        if (first === undefined || first <= d) continue;
+        // Reconcile against the authoritative per-day flags: never
+        // re-report a note+venue the per-day pass already flagged.
+        if (perDayIds.has(idOfFlag(f))) continue;
+        out.push({ action: 'prose-venue-forward-ref', day: d + 1, h: f.h || '', at: f.at || '', venue: f.venue, source: 'forward-day', seatedDay: first + 1 });
+      }
+    });
+    return out;
+  } catch (e) { return []; }
+}
+
 // Guest-listed ILL rides (Onboarding wiring Tier 3, Oct 7, 2026): when the
 // guest names the specific rides they bought Individual Lightning Lane for
 // (onboarding chips, sent as days[].illRides), single-pass tags go ONLY to
