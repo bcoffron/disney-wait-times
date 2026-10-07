@@ -396,7 +396,7 @@ End with one sentence that captures the whole trip and gets them excited.`,
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-async // A sampleUrl is photo-grade only if it opens ONE photo: a direct image
+// A sampleUrl is photo-grade only if it opens ONE photo: a direct image
 // file, a single Instagram post/reel, a single Flickr photo page, or a
 // Wikimedia Commons file page. Blog posts and articles never qualify.
 function isSinglePhotoUrl(u) {
@@ -411,7 +411,7 @@ function isSinglePhotoUrl(u) {
     return false;
   } catch (e) { return false; }
 }
-function isFresh(key) {
+async function isFresh(key) {
   try {
     const {blobs} = await list({prefix:'twize/'+key});
     if(!blobs||!blobs.length) return false;
