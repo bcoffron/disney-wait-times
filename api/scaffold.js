@@ -1344,7 +1344,11 @@ function dezigzagRides(kept, catalog, gateCtx, mutations) {
 // final schedule is checked against physics (wait + duration + walk) with
 // impossible transitions trimmed.
 // ---------------------------------------------------------------------------
-const RIDE_DURATIONS_MIN = { 'star wars rise of the resistance': 20, 'indiana jones adventure': 12, 'radiator springs racers': 10, 'guardians of the galaxy mission breakout': 10, 'mickey minnie runaway railway': 10, 'millennium falcon smugglers run': 10, 'pirates of the caribbean': 15, 'tiana bayou adventure': 12, 'haunted mansion': 10, 'jungle cruise': 10, 'toy story midway mania': 10, 'web slingers spider man adventure': 10, 'space mountain': 8, 'incredicoaster': 8, 'big thunder mountain railroad': 8, 'grizzly river run': 8, 'soarin around the world': 8, 'soarin across america': 8, 'matterhorn bobsleds': 7, 'disneyland railroad': 20, 'disneyland monorail': 15 };
+// RIDE_DURATIONS_MIN keys are the exact normName() output of each ride's display
+// name (the NEVER_MORNING_KEYS convention): normName strips articles like "the",
+// so the keys omit them on purpose. The lookup is RIDE_DURATIONS_MIN[normName(name)]
+// -- a key written any other way is unreachable and the ride silently costs 6.
+const RIDE_DURATIONS_MIN = { 'star wars rise of resistance': 20, 'indiana jones adventure': 12, 'radiator springs racers': 10, 'guardians of galaxy mission breakout': 10, 'mickey minnie runaway railway': 10, 'millennium falcon smugglers run': 10, 'pirates of caribbean': 15, 'tiana bayou adventure': 12, 'haunted mansion': 10, 'jungle cruise': 10, 'toy story midway mania': 10, 'web slingers spider man adventure': 10, 'space mountain': 8, 'incredicoaster': 8, 'big thunder mountain railroad': 8, 'grizzly river run': 8, 'soarin around world': 8, 'soarin across america': 8, 'matterhorn bobsleds': 7, 'disneyland railroad': 20, 'disneyland monorail': 15 };
 function activityDurationMin(c) {
   if (c.type === 'ride') return RIDE_DURATIONS_MIN[normName(c.ride || c.h)] || 6;
   if (c.type === 'show') return 25;
