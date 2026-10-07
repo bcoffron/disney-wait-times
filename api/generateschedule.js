@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, shortestHeightInches, thrillModeFor } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, scanProseVenueFlags, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, shortestHeightInches, thrillModeFor } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -1043,7 +1043,17 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           if (_enf.unfixable.length) console.warn('[scaffold] param UNFIXABLE:', JSON.stringify(_enf.unfixable));
           console.log('[scaffold] applyFills report:', JSON.stringify(_ap.report), 'needsRetry:', _ap.needsRetry.length, 'verify removed:', _vf.removed.length, JSON.stringify(_vf.removed));
           if (_mutations.length) console.log('[scaffold] verify mutations:', JSON.stringify(_mutations));
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts });
+          // Prose-consistency tripwire (Oct 7, 2026): judge the day AS IT
+          // SHIPS -- after every mutator and the enforcer -- for note prose
+          // that names a used venue on a card that is not about that venue.
+          // FLAG ONLY: proseVenueFlags is a log/response surface; it never
+          // rewrites a note and never rejects a card (Claude's ruling: no
+          // prose scrubber). Fail-open in a try/catch like the other
+          // surfacing seams: a tripwire bug must never break generation.
+          let proseVenueFlags = [];
+          try { proseVenueFlags = scanProseVenueFlags(_items, { venues: _venues, priorVenues: _priorVenues }); } catch (e) { console.warn('[scaffold] prose tripwire failed:', e.message); }
+          if (proseVenueFlags.length) console.log('[scaffold] prose venue flags:', JSON.stringify(proseVenueFlags));
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts, proseVenueFlags: proseVenueFlags });
         } catch (_se) {
           // SAFE FAILURE (legacy retired Oct 7, 2026): never fall through
           // to a second engine. The shipped clients render { ok:false,
