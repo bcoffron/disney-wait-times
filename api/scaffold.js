@@ -1818,7 +1818,10 @@ export function deterministicBackfill(slot, ctx) {
           ? (picks.length > 1 ? 'Two easy shots near your lunch spot: ' : 'An easy shot near your lunch spot: ')
           : (picks.length > 1 ? 'Two easy shots nearby: ' : 'An easy shot nearby: ');
         note = lead + picks.map(phrase).join(', and ') + '.';
-        const links = picks.filter(s => s.sampleUrl).map(s => ({ label: String(s.name), url: String(s.sampleUrl) }));
+        // Every pick carries its spot name: the client resolves bundled photos
+        // by spot label (bundled-or-nothing, Oct 7 2026). sampleUrl rides along
+        // when the cache has one, for provenance only -- it is never rendered.
+        const links = picks.map(s => { const o = { label: String(s.name) }; if (s.sampleUrl) o.url = String(s.sampleUrl); return o; });
         if (links.length) photoLinks = links;
       } else if (midday) {
         note = 'A quick photo stop while you are in the area -- the backdrop where you just ate makes an easy group photo.';

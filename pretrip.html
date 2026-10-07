@@ -1725,7 +1725,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
         var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; generatedDays[idx] = _dayObj;
         console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
       }
-      var _dayVenues = (items || []).filter(function(x){ return x && x.type === 'dining' && x.h; }).map(function(x){ return x.h; });
+      var _dayVenues = (items || []).filter(function(x){ return x && (x.type === 'dining' || x.type === 'quickservice' || x.type === 'snack') && x.h; }).map(function(x){ return x.h; });
       var _dayRides = (items || []).filter(function(x){ return x && x.type === 'ride'; }).map(function(x){ return x.ride || x.h; }).filter(Boolean);
       var _dayChars = (items || []).filter(function(x){ return x && x.type === 'character'; }).map(function(x){ return x.h; }).filter(Boolean);
       var _firstRide = (items || []).filter(function(x){ return x && x.type === 'ride'; })[0];
