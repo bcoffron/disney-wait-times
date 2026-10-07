@@ -813,15 +813,16 @@ export function trimInfeasible(cards, opts) {
   const landToPark = (opts && opts.landToPark) || (() => null);
   let list = (cards || []).slice();
   // Must-do rides (Fix 4, Oct 7, 2026): a must-do is guest-non-negotiable, so
-  // it is NEVER a silent trim victim. The trim used to delete placed must-do
+  // it is NEVER a trim victim. The trim used to delete placed must-do
   // headliners as 'infeasible-pace' (their catalog peak wait under 75 meant
   // no headliner protection) and the loss surfaced nowhere. Matching mirrors
   // verifyTripParams: exact normName OR variant group (one Soarin' film
-  // stands for both). Phase 1 treats must-dos as protected, like dining.
-  // Phase 2 runs only over pairs phase 1 could not resolve: if NO legal
-  // non-must-do victim remains, a must-do may be removed as a last resort --
-  // and every such removal is returned in trimmedMustDos so the handler can
-  // surface it as unplaced (generateschedule unplacedMustDos). Never silent.
+  // stands for both). When both members of an infeasible pair are protected,
+  // the pair is left tight -- an advisory time squeeze beats deleting a
+  // non-negotiable ride. Must-dos that genuinely cannot fit are surfaced by
+  // the handler's completeness channel (generateschedule unplacedMustDos,
+  // fed by the enforcer's unfixable list); trimmedMustDos stays in the
+  // return shape for that channel and is empty while this rule holds.
   const mustKeys = new Set(((opts && opts.mustDoNames) || []).map(normName).filter(Boolean));
   const mustGroups = new Set([...mustKeys].map(k => rideGroupKey(k)).filter(Boolean));
   const isMustDoCard = (c) => {
@@ -829,7 +830,7 @@ export function trimInfeasible(cards, opts) {
     const k = normName(c.ride || c.h);
     return !!k && (mustKeys.has(k) || mustGroups.has(rideGroupKey(k)));
   };
-  const isProtected = (c, arr, phase) => {
+  const isProtected = (c, arr) => {
     if (c.type === 'dining' || c.type === 'show' || c.type === 'character') return true;
     // Comfort cards are the product, not filler (Beau, Oct 5, 2026): the old
     // trim dropped the day's only snack card as an 'infeasible-pace' victim
@@ -841,39 +842,29 @@ export function trimInfeasible(cards, opts) {
       if (rides[rides.length - 1] === c) return true; // run-to-closing anchor
       const e = catalog[normName(c.ride || c.h)] || {};
       if ((e.typicalPeakWait || 0) >= 75) return true; // headliner: the plan bends around it
-      if (phase === 1 && isMustDoCard(c)) return true; // must-do: the plan bends around it too
+      if (isMustDoCard(c)) return true; // must-do: the plan bends around it too
     }
     return false;
   };
-  const runPhase = (phase) => {
-    for (let iter = 0; iter < 14; iter++) {
-      const acts = list.filter(c => ACTIVITY_TYPES.has(c.type) && parseClock(c.t) !== null);
-      let dropped = false;
-      for (let i = 0; i + 1 < acts.length; i++) {
-        const cur = acts[i], nxt = acts[i + 1];
-        const ct = parseClock(cur.t), nt = parseClock(nxt.t);
-        const need = waitEstimateMin(cur, ct, wp, catalog) + activityDurationMin(cur) + walkMin(cur, nxt, landToPark);
-        if (nt - ct - need >= -8) continue;
-        const dropCur = !isProtected(cur, acts, phase) && i > 0;
-        const dropNxt = !isProtected(nxt, acts, phase);
-        const victim = dropNxt ? nxt : (dropCur ? cur : null);
-        if (!victim) continue;
-        list = list.filter(x => x !== victim);
-        if (phase === 2 && isMustDoCard(victim)) {
-          trimmed.push({ h: victim.h, reason: 'infeasible-pace-mustdo' });
-          const nm = String(victim.ride || victim.h || '').trim();
-          if (nm && trimmedMustDos.indexOf(nm) === -1) trimmedMustDos.push(nm);
-        } else {
-          trimmed.push({ h: victim.h, reason: 'infeasible-pace' });
-        }
-        dropped = true;
-        break;
-      }
-      if (!dropped) break;
+  for (let iter = 0; iter < 14; iter++) {
+    const acts = list.filter(c => ACTIVITY_TYPES.has(c.type) && parseClock(c.t) !== null);
+    let dropped = false;
+    for (let i = 0; i + 1 < acts.length; i++) {
+      const cur = acts[i], nxt = acts[i + 1];
+      const ct = parseClock(cur.t), nt = parseClock(nxt.t);
+      const need = waitEstimateMin(cur, ct, wp, catalog) + activityDurationMin(cur) + walkMin(cur, nxt, landToPark);
+      if (nt - ct - need >= -8) continue;
+      const dropCur = !isProtected(cur, acts) && i > 0;
+      const dropNxt = !isProtected(nxt, acts);
+      const victim = dropNxt ? nxt : (dropCur ? cur : null);
+      if (!victim) continue;
+      list = list.filter(x => x !== victim);
+      trimmed.push({ h: victim.h, reason: 'infeasible-pace' });
+      dropped = true;
+      break;
     }
-  };
-  runPhase(1);
-  runPhase(2);
+    if (!dropped) break;
+  }
   return { cards: list, trimmed, trimmedMustDos };
 }
 
