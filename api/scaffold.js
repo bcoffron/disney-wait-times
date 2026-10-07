@@ -1535,7 +1535,7 @@ export function deterministicBackfill(slot, ctx) {
         note = 'Golden-hour photos and a souvenir stop while you are in the area -- the light is best right about now.';
       }
     }
-    const breakCard = { t: t0, h: slot.breakTitle || 'Rest Break', type: 'break', n: note, land: '' };
+    const breakCard = { t: t0, h: slot.breakTitle || 'Rest Break', type: 'break', n: trimNoteText(note, 200), land: '' };
     if (photoLinks) breakCard.photoLinks = photoLinks;
     return breakCard;
   }
@@ -1546,10 +1546,12 @@ export function deterministicBackfill(slot, ctx) {
     : slot.block === 'arrival' ? 'Arrival and rope-drop positioning'
     : slot.block === 'hop' ? 'Park hop'
     : slot.block === 'show' ? 'Nighttime spectacular'
-    : (slot.role || 'Break').split('--')[0].trim().slice(0, 60) || 'Break';
+    : trimNoteText((slot.role || 'Break').split('--')[0], 60) || 'Break';
+  // Notes ship through the shared word-boundary trim (Fix 1, Oct 7): the old
+  // slice(0, 80) here clipped the park-hop tip mid-word on every hopping day.
   const tipNote = slot.block === 'show'
     ? "Arrive early for a spot -- check today's showtimes."
-    : String(slot.role || '').slice(0, 80);
+    : trimNoteText(slot.role, 200);
   return { t: t0, h: tipTitle, type: slot.block === 'show' ? 'show' : 'tip', n: tipNote, land: '' };
 }
 
