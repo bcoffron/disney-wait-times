@@ -44,8 +44,8 @@ function esc(s) {
 }
 
 function formatDate(iso) {
-  if (!iso) return 'June 2026';
-  try { return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); } catch(e) { return 'June 2026'; }
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); } catch(e) { return ''; }
 }
 
 function tagClass(park) {
