@@ -3028,7 +3028,7 @@ async function pushSchedule(){
     }
     var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
     var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});
-    await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});
+    await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),tripData:{tripConfig:updatedTc}})});
     console.log('Schedule saved to tripConfig.schedule');
   }catch(e){console.warn('Push schedule:',e);}
 }
@@ -3051,7 +3051,7 @@ async function pullSchedule(){
 
 async function pushApiKey(key){if(!isAdmin())return;}
 async function pullApiKey(){ return; } // disabled: key is server-side only
-async function pushSchedule(){if(!isAdmin())return;try{var code=localStorage.getItem('tpcp_code')||'';if(!code)return;var days=[];for(var di=0;di<customSched.length;di++){var dayObj=customSched[di];var _ent=(dayObj&&dayObj.sections&&dayObj.sections[0]&&dayObj.sections[0].entries)||[];var _prk=(dayObj&&dayObj.sections&&dayObj.sections[0]&&dayObj.sections[0].title)||'';if(!_ent.length){var _fbDays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.schedule&&window._loadedTripData.tripConfig.schedule.days)||(window._schedData&&window._schedData.days)||[];var _fb=_fbDays[di];if(_fb&&_fb.items&&_fb.items.length){_ent=_fb.items;if(!_prk)_prk=_fb.park||'';}}days.push({park:_prk,items:_ent});}var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});console.log('Schedule saved to tripConfig.schedule');}catch(e){console.warn('Push schedule:',e);}}
+async function pushSchedule(){if(!isAdmin())return;try{var code=localStorage.getItem('tpcp_code')||'';if(!code)return;var days=[];for(var di=0;di<customSched.length;di++){var dayObj=customSched[di];var _ent=(dayObj&&dayObj.sections&&dayObj.sections[0]&&dayObj.sections[0].entries)||[];var _prk=(dayObj&&dayObj.sections&&dayObj.sections[0]&&dayObj.sections[0].title)||'';if(!_ent.length){var _fbDays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.schedule&&window._loadedTripData.tripConfig.schedule.days)||(window._schedData&&window._schedData.days)||[];var _fb=_fbDays[di];if(_fb&&_fb.items&&_fb.items.length){_ent=_fb.items;if(!_prk)_prk=_fb.park||'';}}days.push({park:_prk,items:_ent});}var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),tripData:{tripConfig:updatedTc}})});console.log('Schedule saved to tripConfig.schedule');}catch(e){console.warn('Push schedule:',e);}}
 async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;renderSched();renderDayInfoBar();renderPreTripBanner();setTimeout(renderPreTripWeather,500);}catch(e){console.warn('Pull schedule:',e);}}
 function startScheduleSync(){
   if(window._schedSyncStarted) return;
@@ -3134,6 +3134,12 @@ function tpcpRenderPushRegStatus(){
     }
   }
 }
+// This device's own push token (stashed at registration below). Trip
+// writes carry it so the server can exclude THIS device from the
+// plan-changed awareness push about its own edit (restoration step iv).
+// Empty when this device never registered for push -- the server then
+// notifies every device, the pre-(iv) behavior.
+function tpcpDeviceToken(){ try { return localStorage.getItem('tpcp_push_token') || ''; } catch(e){ return ''; } }
 async function tpcpRegisterNativePushToken(tokenValue){
   var code = localStorage.getItem('tpcp_code') || '';
   if(!code || !tokenValue) return false;
@@ -4057,7 +4063,7 @@ async function saveHeldReturns(){
     var updatedTc=Object.assign({},tc,{heldReturns:getHeldReturns(),scheduleVersion:Date.now().toString()});
     if(window._loadedTripData)window._loadedTripData.tripConfig=updatedTc;
     if(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG)TRIP_CONFIG.heldReturns=updatedTc.heldReturns;
-    var r=await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});
+    var r=await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),tripData:{tripConfig:updatedTc}})});
     return !!(r&&r.ok);
   }catch(e){console.warn('Save held returns:',e);return false;}
 }
@@ -4970,7 +4976,7 @@ async function runReoptimize(){
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
   var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},65000);
-    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{}),heldReturns:(typeof getHeldReturnsForDay==='function'?getHeldReturnsForDay(curDay):[]),tripCode:localStorage.getItem('tpcp_code')||''
+    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{}),heldReturns:(typeof getHeldReturnsForDay==='function'?getHeldReturnsForDay(curDay):[]),tripCode:localStorage.getItem('tpcp_code')||'',deviceToken:tpcpDeviceToken()
       }),signal:_reoptController.signal
     });
 
@@ -6410,6 +6416,7 @@ function generateFromSetup(params, callback) {
       scaffold: true,
       dayIndex: (typeof params === 'number') ? params : 0,
       tripCode: localStorage.getItem('tpcp_code') || '',
+      deviceToken: tpcpDeviceToken(),
       maxTokens: 8000,
       tripConfig: (function(){ var src = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}); return { tripName: src.tripName || '', characters: src.characters, minHeight: src.minHeight, ridePreferences: src.ridePreferences || {}, avoidWater: src.avoidWater === true, showPreferences: src.showPreferences || { want: [], skip: [] }, _priorRides: src._priorRides || [], _priorCharacters: src._priorCharacters || [], _priorRopeDrops: src._priorRopeDrops || [], groupProfile: src.groupProfile ? { dietary: src.groupProfile.dietary } : undefined, reservations: src.reservations || [], heldReturns: src.heldReturns || [], parkHopping: src.parkHopping, dining: { reservations: (src.dining && src.dining.reservations) || [], usedVenues: (src.dining && src.dining.usedVenues) || [] }, days: (src.days || []).map(function(dd){ return { park: dd.park, date: dd.date, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP === true, hasILL: dd.hasILL === true, intent: dd.intent }; }) }; }())
     };
@@ -6448,7 +6455,7 @@ function generateFromSetup(params, callback) {
           if(dayIdx>=newDays.length){ while(newDays.length<dayIdx)newDays.push({park:'',items:[]}); newDays.push({park:(existingTc.days&&existingTc.days[dayIdx]&&(existingTc.days[dayIdx].park||existingTc.days[dayIdx].startPark))||'',items:sections,llSequence:(window._genLlSeq&&window._genLlSeq[dayIdx])||undefined}); }
           if(!newDays.length){newDays=[{park:'Disneyland Park',items:sections}];}
           var updatedTc=Object.assign({},existingTc,{schedule:{days:newDays},scheduleVersion:Date.now().toString()});
-          window._genSavePromise = fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})})
+          window._genSavePromise = fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),tripData:{tripConfig:updatedTc}})})
             .then(function(r){return r.json().catch(function(){return {};}).then(function(j){
               if(r.ok){console.log('[generateFromSetup] schedule saved day '+dayIdx);if(typeof renderSched==='function')renderSched();}else{console.error('[generateFromSetup] save failed',r.status);}
               // Trip-level surfacing from THIS save (the latest save carries
@@ -6587,6 +6594,7 @@ function aiChooseRides(params, callback) {
     body: JSON.stringify({
       prompt: prompt,
       mode: 'rides',
+      deviceToken: tpcpDeviceToken(),
       maxTokens: 8000,
       tripConfig: (function(){ var m = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}, { tripCode: localStorage.getItem('tpcp_code') || '' }); return m; }())
     })
@@ -8445,6 +8453,7 @@ function tpcpConfirmSwap() {
         },
         body: JSON.stringify({
           code: localStorage.getItem('tpcp_code'),
+          deviceToken: tpcpDeviceToken(),
           tripData: {
             tripConfig: Object.assign({}, window._loadedTripData && window._loadedTripData.tripConfig,
               window._obTripConfig, { scheduleVersion: Date.now().toString() })
