@@ -2231,11 +2231,11 @@ const DAYS=[
 var usingCachedSchedule = false;
 
 const SHOWS=[
-  {name:'World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',hl:true,desc:'A 25-min water, light & projection show hosted by Joy from Inside Out. Best view is Monday VIP night with reserved lagoon-side viewing.'},
+  {name:'World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',hl:true,desc:'A 25-min water, light & projection show hosted by Joy from Inside Out. Reserved lagoon-side viewing areas offer the best view.'},
   {name:'Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',hl:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers, projections, and pyrotechnics. The greatest nighttime show at any Disney park.'},
   {name:'Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights',hl:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. The 2nd show is reversed and far less crowded.'},
-  {name:'Wondrous Journeys w/ Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',hl:false,desc:'Disney Animation tribute projected on Sleeping Beauty Castle and beyond with fireworks. Sunday night is the full version.'},
-  {name:'Wondrous Journeys \u2014 Projections',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',hl:false,desc:'Same show without fireworks. Beautiful castle projections. Tuesday night will likely be this version.'},
+  {name:'Wondrous Journeys w/ Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',hl:false,desc:'Disney Animation tribute projected on Sleeping Beauty Castle and beyond with fireworks.'},
+  {name:'Wondrous Journeys \u2014 Projections',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',hl:false,desc:'Same show without fireworks. Beautiful castle projections. Weeknights typically get this projections-only version.'},
   {name:'Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',hl:false,desc:"The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min. No reserved viewing needed."},
 ];
 
@@ -2664,38 +2664,67 @@ function generateStars(){
   c.innerHTML=html;
 }
 
-var PARK_HOURS=[
-  {dl:'8:00 AM   12:00 AM',dca:'8:00 AM   10:00 PM',note:'Sunday peak summer   always verify in the Disneyland app'},
-  {dl:'8:00 AM   12:00 AM',dca:'8:00 AM   10:00 PM',note:'Monday VIP Tour day   verify in Disneyland app'},
-  {dl:'8:00 AM   12:00 AM',dca:'8:00 AM   10:00 PM',note:'Tuesday   verify in Disneyland app'},
-];
-
-async function fetchParkHours(){
-  var now=new Date();
-  var start=new Date('2026-06-27T00:00:00');
-  var end=new Date('2026-07-02T00:00:00');
-  if(now<start||now>end) return;
-  var today=now.toDateString();
-  try{if(localStorage.getItem('park_hours_date')===today) return;}catch(e){}
-  try{localStorage.setItem('park_hours_date',today);}catch(e){}
-  renderDayInfoBar();
+// Real trip-day derivation (grep-zero, Oct 2026 -- msg 66 ruling E): every
+// date/hours claim on a render or prompt surface comes from the LOADED trip
+// config, or is omitted entirely. There is no hardcoded fallback date or
+// hours table anywhere: the June 2026 PARK_HOURS table, the June day-label
+// fallback, and the June-gated weather/countdown scaffolding that fed this
+// region were removed in this pass (they rendered the sample trip's hours,
+// dates, and countdowns on every trip, and blanked or mislabeled real trips
+// -- the blank-Day-1 family).
+function tpcpParseDayDate(str){
+  try{
+    var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(str));
+    if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+    var d=new Date(str); return isNaN(d.getTime())?null:d;
+  }catch(e){return null;}
 }
-
-function scheduleMorningCheck(){
-  var now=new Date();
-  var start=new Date('2026-06-27T00:00:00');
-  var end=new Date('2026-07-02T00:00:00');
-  if(now<start||now>end) return;
-  var next6=new Date(now);
-  next6.setHours(6,0,0,0);
-  if(next6<=now) next6.setDate(next6.getDate()+1);
-  setTimeout(function(){fetchParkHours();setInterval(fetchParkHours,24*60*60*1000);},next6-now);
+function tpcpRealDays(){
+  var out=[];
+  try{
+    var ds=((window.TRIP_CONFIG||{}).days||[]);
+    var WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    ds.forEach(function(dy,i){
+      if(!dy||!dy.date) return;
+      var dt=tpcpParseDayDate(dy.date); if(!dt) return;
+      out.push({idx:i,date:dt,iso:dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'),label:WD[dt.getDay()]+' '+MO[dt.getMonth()]+' '+dt.getDate(),park:dy.park||'',isVip:!!dy.isVip});
+    });
+  }catch(e){}
+  return out;
 }
+function tpcpTripRangeLabel(){
+  var rd=tpcpRealDays(); if(!rd.length) return '';
+  return rd[0].label+' - '+rd[rd.length-1].label;
+}
+// Real park hours for one trip day from the park_hours_intel cache (keyed by
+// ISO date). Returns {dl:'8:00 AM - 12:00 AM', dca:'...'} or null when the
+// cache has no entry for that date -- callers omit the hours claim entirely.
+function tpcpRealParkHours(iso){
+  try{
+    var intel=(typeof getParkHoursIntel==='function')?getParkHoursIntel():null;
+    if(!intel||!iso||!intel[iso]) return null;
+    var d=intel[iso]; if(!d.dl||!d.dca||!d.dl.open||!d.dca.open) return null;
+    var f=function(hhmm){var p=String(hhmm||'').split(':');if(p.length<2)return '';var h=+p[0],m=+p[1];if(h===24)h=0;if(isNaN(h)||isNaN(m)||h>24)return '';var ap=h>=12?'PM':'AM';var h12=h%12;if(h12===0)h12=12;return h12+':'+String(m).padStart(2,'0')+' '+ap;};
+    var dlo=f(d.dl.open), dlc=f(d.dl.close), dco=f(d.dca.open), dcc=f(d.dca.close);
+    if(!dlo||!dlc||!dco||!dcc) return null;
+    return {dl:dlo+' - '+dlc, dca:dco+' - '+dcc};
+  }catch(e){return null;}
+}
+// fetchParkHours + scheduleMorningCheck removed (grep-zero, Oct 2026): both
+// were gated to the June 27 - Jul 2 2026 window and did nothing on any other
+// trip; park hours now come from the park_hours_intel cache at render time
+// (tpcpRealParkHours), so there is nothing left for them to fetch.
 
 async function fetchWeather(){
+  // Forecast for the trip's REAL dates (grep-zero, Oct 2026). The June 2026
+  // version fetched a hardcoded Jun 27 - Jul 1 window, stamped today's
+  // weather onto the three June dates, and fell back to fabricated "typical
+  // June" averages keyed to June dates. All three are gone: no real trip
+  // dates -> no fetch -> nothing rendered (real data or nothing).
+  var rd=tpcpRealDays();
+  if(!rd.length) return;
   try{
-    // First try: get the actual June 28-30 forecast if within range
-    var tripUrl='https://api.open-meteo.com/v1/forecast?latitude=33.8104&longitude=-117.9190&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&start_date=2026-06-27&end_date=2026-07-01&forecast_days=16';
+    var tripUrl='https://api.open-meteo.com/v1/forecast?latitude=33.8104&longitude=-117.9190&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&start_date='+rd[0].iso+'&end_date='+rd[rd.length-1].iso;
     var r=await fetch(tripUrl);
     if(r.ok){
       var data=await r.json();
@@ -2708,24 +2737,16 @@ async function fetchWeather(){
       }
     }
   }catch(e){}
-  // Second try: get today's Anaheim weather to show something real right now
+  // Fallback: the coming 16 days of real forecast. renderPreTripWeather only
+  // attaches entries whose dates match the trip's real day labels, so extra
+  // days are inert and nothing is ever stamped onto a wrong date.
   try{
-    var nowUrl='https://api.open-meteo.com/v1/forecast?latitude=33.8104&longitude=-117.9190&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=1';
+    var nowUrl='https://api.open-meteo.com/v1/forecast?latitude=33.8104&longitude=-117.9190&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles&forecast_days=16';
     var r2=await fetch(nowUrl);
     if(r2.ok){
       var data2=await r2.json();
-      if(data2.daily&&data2.daily.temperature_2m_max){
-        var todayHi=Math.round(data2.daily.temperature_2m_max[0]);
-        var todayLo=Math.round(data2.daily.temperature_2m_min[0]);
-        var todayCode=data2.daily.weathercode[0];
-        // Show today's weather for all 3 days with note that trip forecast coming soon
-        weatherData={
-          time:['2026-06-28','2026-06-29','2026-06-30'],
-          temperature_2m_max:[todayHi,todayHi,todayHi],
-          temperature_2m_min:[todayLo,todayLo,todayLo],
-          weathercode:[todayCode,todayCode,todayCode],
-          isToday:true
-        };
+      if(data2.daily&&data2.daily.time&&data2.daily.time.length>=1){
+        weatherData=data2.daily;
         try{localStorage.setItem('wx_data',JSON.stringify(weatherData));localStorage.setItem('wx_date',new Date().toDateString());}catch(e){}
         renderDayInfoBar();
         renderPreTripWeather();
@@ -2733,16 +2754,6 @@ async function fetchWeather(){
       }
     }
   }catch(e2){}
-  // Final fallback: typical June Anaheim averages
-  weatherData={
-    time:['2026-06-27','2026-06-28','2026-06-29','2026-06-30','2026-07-01'],
-    temperature_2m_max:[87,88,90,89,87],
-    temperature_2m_min:[63,65,66,65,64],
-    weathercode:[0,1,1,1,0],
-    isTypical:true
-  };
-  renderDayInfoBar();
-  renderPreTripWeather();
 }
 function renderPreTripWeather() {
   try {
@@ -2799,11 +2810,15 @@ function scheduleWeatherCheck(){
   // Run immediately (use cache if available today, otherwise fetch)
   if(!loadCachedWeather()) fetchWeather();
   var now=new Date();
-  var tripStart=new Date('2026-06-28T00:00:00');
-  var tripEnd=new Date('2026-07-03T23:59:59');
-  var duringTrip=now>=tripStart&&now<tripEnd;
+  var rd=tpcpRealDays();
+  var duringTrip=false;
+  if(rd.length){
+    var ts=new Date(rd[0].date); ts.setHours(0,0,0,0);
+    var te=new Date(rd[rd.length-1].date); te.setHours(23,59,59,999);
+    duringTrip=now>=ts&&now<=te;
+  }
   if(duringTrip){
-    // During Jun 28-30: refresh every 3 hours
+    // During the trip: refresh every 3 hours
     setInterval(fetchWeather,3*60*60*1000);
   } else {
     // Before/after trip: just check once at 5 AM each day
@@ -2834,16 +2849,28 @@ function wxIcon(code){
 }
 
 function getCountdown(){
+  // Computed from the trip's REAL days (grep-zero, Oct 2026): the June 2026
+  // version hardcoded Jun 28 - Jul 1 and its messages, so the countdown was
+  // dead or wrong for every other trip. No dated days -> no countdown.
+  var rd=tpcpRealDays();
+  if(!rd.length) return null;
   var now=new Date();
-  var d1=new Date('2026-06-28T00:00:00');
-  var d2=new Date('2026-06-29T00:00:00');
-  var d3=new Date('2026-06-30T00:00:00');
-  var d4=new Date('2026-07-01T00:00:00');
-  if(now>=d4) return null;
-  if(now>=d3&&now<d4) return {during:true,msg:'Last day   Make it magical!'};
-  if(now>=d2&&now<d3) return {during:true,msg:'You re a VIP today! P'};
-  if(now>=d1&&now<d2) return {during:true,msg:'Day 1 of 3   Let s go! ('};
-  var days=Math.ceil((d1-now)/(1000*60*60*24));
+  var first=new Date(rd[0].date); first.setHours(0,0,0,0);
+  var last=new Date(rd[rd.length-1].date); last.setHours(23,59,59,999);
+  if(now>last) return null;
+  if(now>=first){
+    var idx=0;
+    for(var i=0;i<rd.length;i++){
+      var ds=new Date(rd[i].date); ds.setHours(0,0,0,0);
+      var de=new Date(rd[i].date); de.setHours(23,59,59,999);
+      if(now>=ds&&now<=de){idx=i;break;}
+    }
+    if(rd[idx].isVip) return {during:true,msg:'You\u2019re a VIP today! \u2728'};
+    if(rd.length===1) return {during:true,msg:'Your park day is here \u2014 make it magical!'};
+    if(idx===rd.length-1) return {during:true,msg:'Last day \u2014 make it magical!'};
+    return {during:true,msg:'Day '+(idx+1)+' of '+rd.length+' \u2014 let\u2019s go! \uD83C\uDF89'};
+  }
+  var days=Math.ceil((first-now)/(1000*60*60*24));
   return {during:false,days:days};
 }
 function renderCountdown(){
@@ -2864,14 +2891,15 @@ function renderCountdown(){
 function renderDayInfoBar(){
   var el=document.getElementById('dayInfoBar');
   if(!el) return;
-  var ph=PARK_HOURS[curDay]||PARK_HOURS[0];
-  var days=(function(){try{var td=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||[];if(!td.length)return null;var WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return td.map(function(dy){try{var dt=new Date(dy.date);return WD[dt.getDay()]+' '+MO[dt.getMonth()]+' '+dt.getDate();}catch(e){return dy.date||'';}});}catch(e){return null;}})()||['Sun Jun 28','Mon Jun 29','Tue Jun 30'];
+  var _rd=tpcpRealDays();
+  var _cur=_rd.filter(function(d){return d.idx===curDay;})[0]||_rd[curDay]||null;
+  var ph=_cur?tpcpRealParkHours(_cur.iso):null;
   var waitStatusTxt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live   just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+'m ago'):'Loading wait times...';
   var waitColor=waitLastFetch?'#15803D':'var(--text-dim)';
   var hoursHTML='<div class="park-hours-card">'
-    +'<div class="ph-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:3px"><path d="M3 21V9l4-4 4 4 4-4 4 4v12"/><path d="M9 21v-6h6v6"/></svg> PARK HOURS '+days[curDay]+'</div>'
-    +'<div class="ph-row"><span class="ph-park">Disneyland</span><span class="ph-time">'+ph.dl+'</span></div>'
-    +'<div class="ph-row"><span class="ph-park">DCA</span><span class="ph-time">'+ph.dca+'</span></div>'
+    +'<div class="ph-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:3px"><path d="M3 21V9l4-4 4 4 4-4 4 4v12"/><path d="M9 21v-6h6v6"/></svg> PARK HOURS'+(_cur?' '+_cur.label:'')+'</div>'
+    +(ph?'<div class="ph-row"><span class="ph-park">Disneyland</span><span class="ph-time">'+ph.dl+'</span></div>':'')
+    +(ph?'<div class="ph-row"><span class="ph-park">DCA</span><span class="ph-time">'+ph.dca+'</span></div>':'')
     
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">'
     +'<span style="font-size:11px;font-weight:600;color:'+waitColor+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:middle;margin-right:3px"><path d="M2 20h20"/><path d="M6 20V10l4-4 4 4 4-4 4 4v10"/></svg>'+waitStatusTxt+'</span>'
@@ -4698,10 +4726,8 @@ function renderClosed(){
     var el=document.getElementById(id);
     if(!el) return;
   var h='<div style="padding:12px 0">'
-    +'<div class="sec-hdr"><div class="sec-lbl">Rides Closed Jun 28\u201330</div><div class="sec-line"></div></div>'
+    +'<div class="sec-hdr"><div class="sec-lbl">Rides Closed '+(tpcpTripRangeLabel()||'For Your Trip')+'</div><div class="sec-line"></div></div>'
     +CLOSED.map(function(c){return '<div class="ride-block" style="margin-bottom:7px"><div class="ride-main"><div style="font-size:20px;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-lock"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/></svg></div><div class="ride-body"><div class="ride-name" style="color:var(--red)">'+c.n+'</div><div class="ride-note">'+c.d+'</div></div></div></div>';}).join('')
-    +'<div class="sec-hdr" style="margin-top:16px"><div class="sec-lbl">Dining Notes</div><div class="sec-line"></div></div>'
-    +'<div class="ride-block"><div class="ride-main"><div style="font-size:20px;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-alert-triangle"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.871l-8.106 -13.534a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg></div><div class="ride-body"><div class="ride-name" style="color:var(--color-teal-active)">Blue Bayou Restaurant</div><div class="ride-note">Open and fully reopened \u2014 Pirates of the Caribbean returns June 26, so the classic bayou-side dining experience is back. Reservations recommended.</div></div></div></div>'
     +'<div style="margin-top:16px;padding:11px 13px;background:var(--navy-card);border:1px solid var(--navy-border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);line-height:1.6">'
     +'<b style="color:var(--text)">Note:</b> Always check the Disneyland app the morning of your visit for any additional same-day closures or changes.'
     +'</div>'
@@ -5153,7 +5179,7 @@ function renderWaitTab(){
   if(!el) return;
   if(!isParkOpen()){showParkClosedState();return;}
   var keys=Object.keys(waits);
-  var onTripDay=['2026-06-28','2026-06-29','2026-06-30'].indexOf(todayPT())>-1;
+  var onTripDay=tpcpRealDays().some(function(d){return d.iso===todayPT();});
   if(!keys.length){
     el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">'+(onTripDay?'Loading wait times...':'Tap Refresh to load preview wait times')+'</div>';
     return;
@@ -5470,17 +5496,21 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
       + (_insight ? '<div class="crowd-insight">'+_insight+'</div>' : '')
       + '</div>';
   }
-    // Section 4: Park Hours
-  var ph=PARK_HOURS[curDay]||PARK_HOURS[0];
-  var dlParts=ph.dl.split('     ');
-  var dcaParts=ph.dca.split('     ');
+    // Section 4: Park Hours -- from the park_hours_intel cache for the current
+  // day's REAL date (grep-zero, Oct 2026). The hardcoded PARK_HOURS table and
+  // its fake 'Live - just updated' label are gone; when the cache has no
+  // hours for the date, the section says so and links the official calendar.
+  var _rd4=tpcpRealDays();
+  var _cur4=_rd4.filter(function(d){return d.idx===curDay;})[0]||_rd4[curDay]||null;
+  var _ph4=_cur4?tpcpRealParkHours(_cur4.iso):null;
   var hoursUrl=(TRIP_CONFIG.officialHoursUrl||'https://disneyland.disney.go.com/calendars/');
   var hoursContent='<div style="padding:0 14px 14px;">'
-    +'<div class="hours-row"><span class="hours-park-name">Disneyland</span><span class="hours-time">'+ph.dl+'</span></div>'
-    +'<div class="hours-row"><span class="hours-park-name">DCA</span><span class="hours-time">'+ph.dca+'</span></div>'
+    +(_ph4?'<div class="hours-row"><span class="hours-park-name">Disneyland</span><span class="hours-time">'+_ph4.dl+'</span></div>'
+    +'<div class="hours-row"><span class="hours-park-name">DCA</span><span class="hours-time">'+_ph4.dca+'</span></div>'
     +'<div class="hours-live-row">'
     +'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
-    +'<span class="hours-live-label">Live &middot; just updated</span>'
+    +'<span class="hours-live-label">Posted hours for '+_cur4.label+'</span>'
+    :'<div style="font-size:12px;color:var(--text-muted);line-height:1.6">Park hours for your dates are not loaded yet -- check the official calendar.</div><div class="hours-live-row">')
     +'<a href="'+hoursUrl+'" class="hours-view-all-btn" target="_blank">View All</a>'
     +'</div>'
     +'</div>';
@@ -5493,7 +5523,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     {icon:mapSvg,title:'Wondrous Journeys Fireworks \u2014 Best Spots',body:'#1: Castle Hub center path, dead center facing the castle. Arrive 15-20 min early. #2: The bridge near It\u2019s a Small World. #3: Main Street USA upper area near the train station for an elevated view. Avoid Tomorrowland \u2014 you see the castle sideways. The show projects on Main Street buildings too so being on Main Street itself is immersive.'},
     {icon:starSvg,title:'Paint the Night Parade \u2014 Best Spots',body:'Main Street USA is the best overall location \u2014 the whole street becomes a runway. The corner where Main Street meets the Plaza (castle end) is the sweet spot \u2014 floats slow for the turn giving you longer viewing time. Second show has reversed route and dramatically thinner crowds. Arrive 30 min early for first show, 15 min for second.'},
     {icon:mapSvg,title:'Fantasmic! \u2014 Best Viewing',body:'Center section, upper rows of the Rivers of America amphitheater. Arrive 40 min early for first show, 20 min for second. Stage left (your left facing the river) has the best angle for the dragon sequence. The front rows are magical but you may get lightly misted. Second show is always less crowded \u2014 often by 50%.'},
-    {icon:mapSvg,title:'World of Color \u2014 Best Viewing',body:'Paradise Gardens lagoon \u2014 center position is best. The show shoots water 200 feet high so any center spot works well. With VIP reserved viewing on Monday you\u2019re already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
+    {icon:mapSvg,title:'World of Color \u2014 Best Viewing',body:'Paradise Gardens lagoon \u2014 center position is best. The show shoots water 200 feet high so any center spot works well. If you have reserved viewing, you\u2019re already in the best spot. The left side has slightly better views of the Pixar finale sequence.'},
     {icon:starSvg,title:'Tapestry of Happiness \u2014 It\u2019s a Small World',body:'Runs automatically at dusk every night. No reserved viewing needed \u2014 just be in Fantasyland as the sun goes down. Stand directly in front of the facade for best projections. Combine with a late Small World ride for maximum magic.'},
     {icon:clockSvg,title:'Rope Drop Strategy',body:'Arrive at the gates an hour before official opening \u2014 security and the turnstiles take time, and Cast Members let people through in waves. Be in the first wave to get a head start on crowds. Have your tickets/app ready to scan. Once inside, walk briskly \u2014 don\u2019t run \u2014 to your first ride. The first 60-90 min of the day is when you can ride 2-3 headliners with minimal wait.'},
     {icon:clockSvg,title:'Lightning Lane Strategy',body:'Multi Pass: Book your first LL the moment you scan into the park. Book the next LL while standing in your current LL line \u2014 this chains your bookings and keeps you moving. Prioritize: Indiana Jones, Matterhorn, Haunted Mansion, Tiana\u2019s early. Single Pass (Rise of the Resistance): Buy as soon as the park opens at 7 AM. Sells out by 9-10 AM on busy days.'},
@@ -5504,8 +5534,8 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     {icon:clockSvg,title:'Mobile Order \u2014 Use It Every Time',body:'Mobile Order through the Disneyland app is the single biggest time saver at counter service. Order 30-45 min before you want to eat, then tap \u201cI\u2019m here\u201d when you arrive. You skip the entire ordering line. Available at most counter service locations in both parks. Especially useful during peak hours when lines stretch 20-30 min just to order.'},
     {icon:clockSvg,title:'Walk-up List \u2014 Your Secret Weapon',body:'Can\u2019t get a reservation? Join the walk-up list in the Disneyland app as soon as the restaurant opens for the day. The 2-hour cancellation policy creates constant openings throughout the day \u2014 people regularly snag same-day spots at Lamplight Lounge, Cafe Orleans, and Carthay Circle this way. Keep checking the app \u2014 spots open up frequently.'},
     {icon:starSvg,title:'Must-Order Dishes \u2014 Don\u2019t Miss These',body:'Cafe Orleans: Monte Cristo sandwich + pommes frites + beignets. Lamplight Lounge: Lobster Nachos (feeds 2 easily). Bengal Barbecue: teriyaki beef skewers \u2014 fastest snack in Adventureland. Dole Whip: go to the Tiki Room location, not the main stand \u2014 much shorter line. Galaxy\u2019s Edge: Ronto Wrap at Ronto Roasters. Pixar Pier: Adorable Snowman Frosted Treats for a hot day.'},
-    {icon:starSvg,title:'Share Portions \u2014 Save Money & Try More',body:'Portions at Disneyland are large. Lamplight\u2019s Lobster Nachos, Plaza Inn\u2019s fried chicken, and Cafe Orleans\u2019 Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. For a group of 9, order 5-6 items instead of 9 and share around the table.'},
-    {icon:clockSvg,title:'Dining Package Tip \u2014 Fantasmic!',body:'Cafe Orleans offers a Fantasmic! Dining Package \u2014 includes a reserved Fantasmic! viewing area with your meal. If you\u2019re eating at Cafe Orleans before the show on Tuesday, ask about this when you book. Paint the Night and Galaxy\u2019s Edge fireworks also have dining packages. Book 60 days ahead \u2014 same window as regular reservations.'},
+    {icon:starSvg,title:'Share Portions \u2014 Save Money & Try More',body:'Portions at Disneyland are large. Lamplight\u2019s Lobster Nachos, Plaza Inn\u2019s fried chicken, and Cafe Orleans\u2019 Monte Cristo all easily feed two adults. Splitting means you save money AND try more dishes. Order fewer items than there are people and share around the table.'},
+    {icon:clockSvg,title:'Dining Package Tip \u2014 Fantasmic!',body:'Cafe Orleans offers a Fantasmic! Dining Package \u2014 includes a reserved Fantasmic! viewing area with your meal. If you\u2019re eating at Cafe Orleans before the show, ask about this when you book. Paint the Night and Galaxy\u2019s Edge fireworks also have dining packages. Book 60 days ahead \u2014 same window as regular reservations.'},
     {icon:mapSvg,title:'Hidden Gems & Local Tips',body:'The Dream Suite above Pirates of the Caribbean is occasionally visible from New Orleans Square \u2014 look up. Club 33 entrance is the green door on Royal Street in New Orleans Square. The Haunted Mansion stretch room has a second portrait gallery on the right side most guests miss. Walk through Sleeping Beauty Castle \u2014 short queue, beautiful stained glass telling the full story. The back of Main Street near the fire station has Walt\u2019s personal apartment windows \u2014 a light is always kept on in his honor.'}
   ];
   var tipsHtml='<div class="tip-cards-list">';
@@ -5664,11 +5694,11 @@ function renderShows(){
     {
       label:'Must-See Nighttime Shows',
       shows:[
-        {name:'World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',must:true,desc:'A 25-min water, light & projection show at Paradise Gardens lagoon, hosted by Joy from Inside Out. Celebrates Disney/Pixar with fountains, fire, lasers and music. Your best view is Monday VIP night with reserved lagoon-side viewing. One or two showings per night.'},
+        {name:'World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',must:true,desc:'A 25-min water, light & projection show at Paradise Gardens lagoon, hosted by Joy from Inside Out. Celebrates Disney/Pixar with fountains, fire, lasers and music. Reserved lagoon-side viewing areas offer the best view. One or two showings per night.'},
         {name:'Fantasmic!',park:'Disneyland',time:'~9:00 PM & 10:30 PM',days:'Most nights',must:true,desc:'Mickey battles Disney villains in a 22-min spectacular on the Rivers of America. Fire on water, live performers on boats, projections, and pyrotechnics. The greatest nighttime show at any Disney park. Second show has shorter waits for viewing spots.'},
-        {name:'Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights through Aug 9',must:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. Part of the 70th Anniversary celebration. Two shows per night \u2014 2nd show is reversed route and far less crowded. On your schedule for Monday VIP reserved viewing.'},
-        {name:'Wondrous Journeys \u2014 Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',must:true,desc:'Disney Animation tribute projected on Sleeping Beauty Castle, Main Street, and beyond with fireworks. Part of the 70th Anniversary celebration through Aug 9. Sunday night is the full fireworks version \u2014 watch from the Castle hub for best view.'},
-        {name:'Wondrous Journeys \u2014 Projections Only',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',must:false,desc:'Same beautiful show without fireworks. Tuesday night will likely be this version. Still worth watching from Main Street.'},
+        {name:'Paint the Night Parade',park:'Disneyland',time:'~8:30 PM & 10:30 PM',days:'Most nights through Aug 9',must:true,desc:'1.5 million LED lights, 76 performers, iconic Disney/Pixar floats. Like a rock concert on wheels. Part of the 70th Anniversary celebration. Two shows per night \u2014 2nd show is reversed route and far less crowded.'},
+        {name:'Wondrous Journeys \u2014 Fireworks',park:'Disneyland',time:'~9:30 PM',days:'Fri\u2013Sun + peak nights',must:true,desc:'Disney Animation tribute projected on Sleeping Beauty Castle, Main Street, and beyond with fireworks. Part of the 70th Anniversary celebration through Aug 9. Watch from the Castle hub for the best view.'},
+        {name:'Wondrous Journeys \u2014 Projections Only',park:'Disneyland',time:'~9:30 PM',days:'Most weeknights',must:false,desc:'Same beautiful show without fireworks. Weeknights typically get this projections-only version. Still worth watching from Main Street.'},
       ]
     },
     {
@@ -5682,7 +5712,7 @@ function renderShows(){
       label:'Galaxy\u2019s Edge Shows',
       shows:[
         {name:'Shadows of Memory',park:'Disneyland',time:'~8:30\u201310:15 PM',days:'Nightly in Galaxy\u2019s Edge',must:false,desc:'The Skywalker Saga projected on the spires of Batuu with John Williams\u2019 score. ~15 min ambient experience. No reserved viewing \u2014 just be in Galaxy\u2019s Edge when it starts. Great for Star Wars fans.'},
-        {name:'Fire of the Rising Moons',park:'Disneyland',time:'Synced with fireworks ~9:30 PM',days:'Fri\u2013Sun fireworks nights',must:false,desc:'The same Wondrous Journeys fireworks watched from inside Galaxy s Edge with Star Wars music playing. Best for hardcore Star Wars fans. Sunday night you d miss the castle projections from Main Street \u2014 the Main Street view is better for most guests.'},
+        {name:'Fire of the Rising Moons',park:'Disneyland',time:'Synced with fireworks ~9:30 PM',days:'Fri\u2013Sun fireworks nights',must:false,desc:'The same Wondrous Journeys fireworks watched from inside Galaxy s Edge with Star Wars music playing. Best for hardcore Star Wars fans. From here you miss the castle projections on Main Street \u2014 the Main Street view is better for most guests.'},
       ]
     },
     {
@@ -5891,7 +5921,7 @@ function appendChatMsg(role,text){var msgs=document.getElementById('chatMessages
 
 function renderLockCountdowns(){
   var el=document.getElementById('lockCountdowns');if(!el)return;
-  var now=new Date();var tripStart=new Date('2026-06-28T00:00:00-07:00');
+  var now=new Date();var _lcdRd=tpcpRealDays();if(!_lcdRd.length){el.innerHTML='';return;}var tripStart=new Date(_lcdRd[0].date);tripStart.setHours(0,0,0,0);
   var diningOpen=new Date(tripStart.getTime()-60*24*60*60*1000);var llOpen=new Date(tripStart.getTime()-7*24*60*60*1000);
   var html='';
   var s1='background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.8);text-align:center';
@@ -6884,7 +6914,6 @@ function enterSplash(skipAnim) {
     if (typeof scheduleLLPrompts === 'function') scheduleLLPrompts();
     if (typeof startWazeChecks === 'function') startWazeChecks();
     if (typeof renderDayInfoBar === 'function') renderDayInfoBar(1);
-    if (typeof scheduleMorningCheck === 'function') scheduleMorningCheck();
     if (typeof scheduleWeatherCheck === 'function') scheduleWeatherCheck();
     if (typeof startNotesSync === 'function') startNotesSync();
     if (typeof initPusher === 'function') initPusher();
