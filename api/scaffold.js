@@ -510,8 +510,35 @@ export function applyFills(skeleton, fills, opts) {
   const priorVenueCanon = new Set((opts.priorVenues || []).map(n => _venueKeyOf(n)).filter(Boolean));
   const placedVenueCanon = new Set();
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
+  // Geography signals for the backfill (Item 2): the lands of the TIME-
+  // adjacent already-emitted cards. Skeleton order is NOT time order
+  // (snackAM is built after the character slot but timed before it), so
+  // "previous card" by emission order named the wrong neighbourhood --
+  // the last-emitted card before the Day-1 morning snack was the 10:30
+  // Galaxy's Edge meet, not the 9:01 Haunted Mansion the snack actually
+  // follows. A card's land counts as a signal only when the catalog
+  // itself uses that land name (venues + attractions): free-form meet
+  // locations ("Galaxy's Edge - Marketplace area, Batuu") are not lands
+  // and are skipped rather than matched against nothing.
+  const _landVocab = new Set();
+  for (const _lv of _venuesArr) { if (_lv && _lv.land) _landVocab.add(normName(_lv.land)); }
+  for (const _lk of Object.keys(catalogIdx)) { const _ll = catalogIdx[_lk] && catalogIdx[_lk].land; if (_ll) _landVocab.add(normName(_ll)); }
+  const _adjLands = (slot) => {
+    const start = winStart(slot.window);
+    let prev = '', prevT = -1, next = '', nextT = Infinity, lastEmitted = '';
+    for (const c of cards) {
+      if (!c || !c.land || !_landVocab.has(normName(c.land))) continue;
+      lastEmitted = c.land;
+      const m = parseClock(c.t);
+      if (m == null) continue;
+      if (m <= start && m >= prevT) { prevT = m; prev = c.land; }
+      if (m > start && m < nextT) { nextT = m; next = c.land; }
+    }
+    return { prev: prev || lastEmitted, next };
+  };
   const mkFallback = (slot) => {
-    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, encoredRideKeys: encoredTodayNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, closeMin: (opts.closeMinByPark && opts.closeMinByPark[normParkName(slot.park)]) || opts.closeMin || null, usedVenueKeys: placedVenueCanon, nearLand: (function () { for (let i = cards.length - 1; i >= 0; i--) { if (cards[i] && cards[i].land) return cards[i].land; } return ''; })(), nextLand: (function () { const _si = skeleton.slots.indexOf(slot); if (_si < 0) return ''; for (let j = _si + 1; j < skeleton.slots.length; j++) { const _ns = skeleton.slots[j]; if (!_ns) continue; if (_ns.anchorLand) return _ns.anchorLand; if (_ns.meetLand) return _ns.meetLand; if (_ns.preferRide) { const _ce = catalogIdx[normName(_ns.preferRide)]; if (_ce && _ce.land) return _ce.land; } } return ''; })() }) : placeholderCard(slot);
+    const _adj = _adjLands(slot);
+    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, encoredRideKeys: encoredTodayNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, closeMin: (opts.closeMinByPark && opts.closeMinByPark[normParkName(slot.park)]) || opts.closeMin || null, usedVenueKeys: placedVenueCanon, nearLand: _adj.prev, nextLand: _adj.next || (function () { const _si = skeleton.slots.indexOf(slot); if (_si < 0) return ''; for (let j = _si + 1; j < skeleton.slots.length; j++) { const _ns = skeleton.slots[j]; if (!_ns) continue; if (_ns.anchorLand) return _ns.anchorLand; if (_ns.meetLand) return _ns.meetLand; if (_ns.preferRide) { const _ce = catalogIdx[normName(_ns.preferRide)]; if (_ce && _ce.land) return _ce.land; } } return ''; })() }) : placeholderCard(slot);
     if (fallbackFor) report.fallback++;
     c.t = toClock(clampToWindow(parseClock(c.t), slot.window, slot.fixed).t); // stamp a valid in-window time
     if (!c.type) c.type = slot.type;
@@ -3377,22 +3404,31 @@ export function deterministicBackfill(slot, ctx) {
     // PREFERENCE, never a gate. So it enters ONLY as a sort rank, ONLY for
     // snack slots (meal seating order is unchanged), and BELOW want/diet:
     // among otherwise-equal candidates, a venue in the land of an adjacent
-    // seated card wins -- the previous card's land (ctx.nearLand, plumbed
-    // by applyFills) or the next slot's skeleton-fixed land (ctx.nextLand:
-    // a reservation anchor's land, a character meet's land, or an assigned
-    // ride's catalog land). Land match is the honest granularity the data
-    // supports: venues carry lands, not coordinates, so no distance is
-    // invented. No signal = rank 0 for every candidate = legacy order,
-    // and the eligibility filter above is untouched, so a remote venue is
-    // still seated when it is the only eligible one -- nothing is dropped,
-    // nothing is trimmed, dedup and protected stops are unaffected.
+    // seated card wins -- the previous card's land (ctx.nearLand) or the
+    // next card's land (ctx.nextLand), both plumbed by applyFills as the
+    // TIME-adjacent emitted cards' lands (skeleton order is not time
+    // order: snackAM is built after the character slot but timed before
+    // it), with the next slot's skeleton-fixed land (anchor / meet /
+    // assigned ride) as the forward fallback. Land match is the honest
+    // granularity the data supports: venues carry lands, not coordinates,
+    // so no distance is invented. Match is exact on normName OR suffix
+    // containment, because the catalog itself names one land two ways
+    // (venues say 'Toontown', attractions say "Mickey's Toontown") -- a
+    // venue matches an adjacent card when either normalized land is a
+    // suffix of the other. No signal = rank 0 for every candidate =
+    // legacy order, and the eligibility filter above is untouched, so a
+    // remote venue is still seated when it is the only eligible one --
+    // nothing is dropped, nothing is trimmed, dedup and protected stops
+    // are unaffected.
     const _snackGeo = slot.type === 'snack';
     const _nearK = _snackGeo ? normName(ctx.nearLand || '') : '';
     const _nextK = _snackGeo ? normName(ctx.nextLand || '') : '';
+    const _landMatch = (vl, k) => !!vl && !!k && (vl === k ||
+      (Math.min(vl.length, k.length) >= 4 && (vl.endsWith(k) || k.endsWith(vl))));
     const geoRank = (v) => {
       if (!_nearK && !_nextK) return 0;
       const vl = normName(v.land || '');
-      return (vl && ((_nearK && vl === _nearK) || (_nextK && vl === _nextK))) ? 0 : 1;
+      return (_landMatch(vl, _nearK) || _landMatch(vl, _nextK)) ? 0 : 1;
     };
     const cands = venues
       .filter(v => v && v.name && !v.exclude && inSlotPark(v.park) &&
