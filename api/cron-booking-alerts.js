@@ -6,6 +6,17 @@
 // restaurants the guest said they want for that day, with a tap-through link
 // into Disney's OFFICIAL booking pages.
 //
+// CATCH-UP (Beau's rule, Claude msg 72, Oct 8, 2026): a trip built INSIDE
+// the 60-day window -- or an opens-today send that was missed -- would
+// otherwise never alert for days whose windows are already open. Days
+// strictly inside the window (today < day < today+60) with alertable
+// wishes and no dedupe marker are catch-up candidates; the cron fires at
+// most ONE per trip per run (soonest park day first) with 'already open'
+// wording. Markers share the opens-today per-day namespace, so a day is
+// alerted exactly once across both paths, ever. Wishes whose venue the
+// guest already holds as a confirmed reservation never alert on either
+// path -- a booking alert for a table already booked is a nag.
+//
 // PERMITTED BY DESIGN (Beau's ruling, Oct 7, 2026): this feature does NO
 // availability polling, calls NO Disney endpoint, and holds NO credentials.
 // The only outbound calls are Vercel Blob storage and the push services
@@ -249,8 +260,39 @@ export function wishesForOpeningDay(wishes, dayNum) {
   return (wishes || []).filter((w) => (w.day !== null && w.day !== undefined) ? w.day === dayNum : dayNum === 1);
 }
 
+// Canonical display name for a wish: the matched venue's display name
+// when the name resolves to a known bookable venue ('blue bayou' ->
+// 'Blue Bayou Restaurant'), else the guest's text as-is. Payloads render
+// the canonical name -- never a string-cased transformation of raw user
+// text (Claude msg 72 rider).
+export function displayNameFor(rawName) {
+  const link = bookingLinkFor(rawName);
+  return link ? link.display : (rawName || '');
+}
+function venueKey(rawName) { return normName(displayNameFor(rawName)); }
+// Venues the guest already HOLDS as confirmed reservations, keyed by
+// canonical venue. A booking alert for a table already booked is a nag,
+// not a service -- excluded from BOTH planners (msg 72). Only the
+// structured dining.reservations source carries isConfirmed (onboarding
+// stamps it true for reservations the guest enters as already booked --
+// those are anchors, not wishes).
+function confirmedVenueKeys(cfg) {
+  const keys = new Set();
+  const structured = (cfg && cfg.dining && Array.isArray(cfg.dining.reservations)) ? cfg.dining.reservations : [];
+  for (const r of structured) {
+    if (r && r.isConfirmed === true && typeof r.name === 'string' && r.name.trim()) keys.add(venueKey(r.name));
+  }
+  return keys;
+}
+// One day's wishes, minus held venues, with canonical display names.
+function alertableWishes(dayWishes, confirmedKeys) {
+  return (dayWishes || [])
+    .filter((w) => !confirmedKeys.has(venueKey(w.name)))
+    .map((w) => Object.assign({}, w, { name: displayNameFor(w.name) }));
+}
+
 export function buildBookingPayload(wishes, openYmd) {
-  const names = wishes.map((w) => w.name);
+  const names = wishes.map((w) => displayNameFor(w.name));
   const first = names[0];
   const dateStr = prettyDate(openYmd);
   let body;
@@ -287,6 +329,7 @@ export function planBookingAlerts(tripConfig, todayYmd, alreadySent) {
   const schedDays = (cfg.schedule && Array.isArray(cfg.schedule.days)) ? cfg.schedule.days : [];
   const n = Math.max(cfgDays.length, schedDays.length);
   const wishes = extractDiningWishes(cfg);
+  const confirmed = confirmedVenueKeys(cfg);
   const plan = [];
   const seenDates = {};
   for (let i = 0; i < n; i++) {
@@ -296,11 +339,70 @@ export function planBookingAlerts(tripConfig, todayYmd, alreadySent) {
     if (!ymd || ymd !== target || seenDates[ymd]) continue;
     seenDates[ymd] = true;
     if (sent[ymd]) continue;
-    const dayWishes = wishesForOpeningDay(wishes, i + 1);
+    const dayWishes = alertableWishes(wishesForOpeningDay(wishes, i + 1), confirmed);
     if (!dayWishes.length) continue;
     plan.push({ date: ymd, dayNum: i + 1, wishes: dayWishes, payload: buildBookingPayload(dayWishes, ymd) });
   }
   return plan;
+}
+
+// 'Already open' payload for the catch-up path: same verified-link
+// discipline as opens-today, wording that tells the truth about the
+// case -- the window is not opening, it is open, and tables go fast.
+export function buildCatchUpPayload(wishes, dayYmd) {
+  const names = wishes.map((w) => displayNameFor(w.name));
+  const first = names[0];
+  const dateStr = prettyDate(dayYmd);
+  let body;
+  if (names.length === 1) {
+    body = 'Booking is already open for ' + first + ' \u2014 ' + dateStr + '. These tables go fast \u2014 tap to book on Disney\u2019s site.';
+  } else if (names.length === 2) {
+    body = 'Booking is already open for ' + names[0] + ' and ' + names[1] + ' \u2014 ' + dateStr + '. These tables go fast \u2014 tap to book on Disney\u2019s site.';
+  } else {
+    body = 'Booking is already open for ' + names[0] + ', ' + names[1] + ' and ' + (names.length - 2) + ' more of your picks \u2014 ' + dateStr + '. These tables go fast \u2014 tap to book on Disney\u2019s site.';
+  }
+  let url = DINING_HUB_URL;
+  for (const w of wishes) {
+    const link = bookingLinkFor(w.name);
+    if (link && link.verified) { url = link.url; break; }
+  }
+  return { title: 'Dining booking already open', body: body, url: url, tag: 'tpcp-booking-catchup' };
+}
+
+// Catch-up planner (pure, unit-tested): every park day strictly inside
+// the booking window (today < day < today+60) that carries alertable
+// wishes and has NO marker in the shared per-day sent namespace, ranked
+// soonest park day first (then day order). The handler fires at most the
+// first candidate per trip per run -- the msg-72 cap -- so a multi-day
+// backlog drains one alert per morning and unmarked days stay eligible
+// tomorrow (section-11 anti-nag posture). Disjoint from the opens-today
+// planner by construction: that one matches exactly today+60.
+export function planCatchUpAlerts(tripConfig, todayYmd, alreadySent) {
+  const cfg = tripConfig || {};
+  const target = addDaysYmd(todayYmd, BOOKING_WINDOW_DAYS);
+  if (!target) return [];
+  const sent = alreadySent || {};
+  const cfgDays = Array.isArray(cfg.days) ? cfg.days : [];
+  const schedDays = (cfg.schedule && Array.isArray(cfg.schedule.days)) ? cfg.schedule.days : [];
+  const n = Math.max(cfgDays.length, schedDays.length);
+  const wishes = extractDiningWishes(cfg);
+  const confirmed = confirmedVenueKeys(cfg);
+  const out = [];
+  const seenDates = {};
+  for (let i = 0; i < n; i++) {
+    const rawDate = (cfgDays[i] && cfgDays[i].date) ||
+                    (schedDays[i] && (schedDays[i].date || schedDays[i].isoDate)) || '';
+    const ymd = normDate(rawDate);
+    if (!ymd || seenDates[ymd]) continue;
+    seenDates[ymd] = true;
+    if (ymd <= todayYmd || ymd >= target) continue;
+    if (sent[ymd]) continue;
+    const dayWishes = alertableWishes(wishesForOpeningDay(wishes, i + 1), confirmed);
+    if (!dayWishes.length) continue;
+    out.push({ date: ymd, dayNum: i + 1, wishes: dayWishes, payload: buildCatchUpPayload(dayWishes, ymd), kind: 'catchup' });
+  }
+  out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.dayNum - b.dayNum));
+  return out;
 }
 
 // ---- blob helpers (match house pattern, @vercel/blob 0.27.3) ----
@@ -494,11 +596,19 @@ export default async function handler(req, res) {
       if (!state.sent || typeof state.sent !== 'object') state.sent = {};
 
       const plan = planBookingAlerts(cfg, todayYmd, state.sent);
-      if (!plan.length) { summary.push({ code, skip: 'no window opening today' }); continue; }
+      let items = plan;
+      if (!items.length) {
+        // Catch-up (msg 72 cap, held firm): at most ONE catch-up alert
+        // per trip per run -- the ranked soonest in-window unmarked day.
+        // The rest stay unmarked and eligible tomorrow.
+        const catchUp = planCatchUpAlerts(cfg, todayYmd, state.sent);
+        if (catchUp.length) items = [catchUp[0]];
+      }
+      if (!items.length) { summary.push({ code, skip: 'no window opening today' }); continue; }
 
-      for (const item of plan) {
+      for (const item of items) {
         if (dryRun) {
-          summary.push({ code, tripId, date: item.date, dayNum: item.dayNum, dryRun: true, wouldSend: item.payload, restaurants: item.wishes.map(w => w.name) });
+          summary.push({ code, tripId, date: item.date, dayNum: item.dayNum, kind: item.kind || 'open', dryRun: true, wouldSend: item.payload, restaurants: item.wishes.map(w => w.name) });
           continue;
         }
         // One alert per trip per opening day, both channels (monitor fire()).
@@ -506,16 +616,21 @@ export default async function handler(req, res) {
         const a = await sendApnsToTrip(code, item.payload);
         const sent = w.sent + a.sent;
         if (sent > 0) {
+          // Marker discipline is shared across both paths: the marker is
+          // keyed by park-day date in state.sent and written ONLY after a
+          // successful send, so a caught-up day can never later receive
+          // an opens-today alert for the same day (and vice versa).
           state.sent[item.date] = {
             at: new Date().toISOString(),
             restaurants: item.wishes.map(x => x.name),
             web: w.sent, apns: a.sent
           };
+          if (item.kind) state.sent[item.date].kind = item.kind;
           state.updated = new Date().toISOString();
           try { await writeJsonBlob(stateKey, state); }
           catch (e) { console.error('[booking-alerts] state write failed', e.message); }
         }
-        summary.push({ code, tripId, date: item.date, dayNum: item.dayNum, restaurants: item.wishes.map(x => x.name), sent, web: w, apns: a });
+        summary.push({ code, tripId, date: item.date, dayNum: item.dayNum, kind: item.kind || 'open', restaurants: item.wishes.map(x => x.name), sent, web: w, apns: a });
       }
     }
 
