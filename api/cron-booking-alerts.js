@@ -474,15 +474,22 @@ export async function listTripCodesWithDevices() {
 
 // ---- send path: mirrors cron-push-monitor's dual-channel fire() ----
 let _vapidConfigured = false;
-async function sendToTrip(tripCode, payloadObj) {
+// opts.excludeToken (plan-changed, step iv): skip the one subscription /
+// device whose token matches -- the device that ORIGINATED the change.
+// Excluded entries are never pruned; they simply do not receive this
+// send. Callers that pass no opts get byte-identical behavior.
+async function sendToTrip(tripCode, payloadObj, opts) {
   if (!_vapidConfigured) return { sent: 0, failed: 0, pruned: 0, skipped: true };
+  const exclude = (opts && typeof opts.excludeToken === 'string' && opts.excludeToken) ? opts.excludeToken : '';
   const subsBlob = await readJsonBlob('twize/push-subs/' + tripCode + '.json');
   const subs = (subsBlob && Array.isArray(subsBlob.subscriptions)) ? subsBlob.subscriptions : [];
   if (!subs.length) return { sent: 0, failed: 0, pruned: 0 };
+  const sendList = exclude ? subs.filter(s => !(s && s.token === exclude)) : subs;
+  if (!sendList.length) return { sent: 0, failed: 0, pruned: 0 };
   const payload = JSON.stringify(payloadObj);
   let sent = 0, failed = 0;
-  const survivors = [];
-  for (const s of subs) {
+  const survivors = exclude ? subs.filter(s => s && s.token === exclude) : [];
+  for (const s of sendList) {
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, payload);
       sent++; survivors.push(s);
@@ -503,11 +510,12 @@ async function sendToTrip(tripCode, payloadObj) {
   }
   return { sent, failed, pruned };
 }
-async function sendApnsToTrip(tripCode, payloadObj) {
+async function sendApnsToTrip(tripCode, payloadObj, opts) {
   if (!isApnsConfigured()) return { sent: 0, failed: 0, pruned: 0, skipped: true };
+  const exclude = (opts && typeof opts.excludeToken === 'string' && opts.excludeToken) ? opts.excludeToken : '';
   const devBlob = await readJsonBlob('twize/push-devices/' + tripCode + '.json');
   const devices = (devBlob && Array.isArray(devBlob.devices)) ? devBlob.devices : [];
-  const targets = devices.filter(d => d && d.platform === 'ios' && typeof d.token === 'string' && d.alertsEnabled !== false);
+  const targets = devices.filter(d => d && d.platform === 'ios' && typeof d.token === 'string' && d.alertsEnabled !== false && d.token !== exclude);
   if (!targets.length) return { sent: 0, failed: 0, pruned: 0 };
   const results = await sendApnsToDevices(targets.map(d => d.token), payloadObj);
   let sent = 0, failed = 0;
@@ -556,11 +564,13 @@ export function configureWebPush() {
 // path (Claude msg 76: only the trigger differs). Writes NO dedupe
 // markers of any kind -- marker discipline belongs to the callers (the
 // crons write state.sent only after a successful send; the test
-// endpoint never writes markers at all).
-export async function fireTripPush(tripCode, payloadObj) {
+// endpoint never writes markers at all). opts.excludeToken (optional,
+// step iv): the originating device's token is skipped on both channels
+// -- used by api/plan-changed.js so the editor's own phone stays silent.
+export async function fireTripPush(tripCode, payloadObj, opts) {
   configureWebPush();
-  const w = await sendToTrip(tripCode, payloadObj);
-  const a = await sendApnsToTrip(tripCode, payloadObj);
+  const w = await sendToTrip(tripCode, payloadObj, opts);
+  const a = await sendApnsToTrip(tripCode, payloadObj, opts);
   return {
     web: w, apns: a,
     sent: (w.sent || 0) + (a.sent || 0),
