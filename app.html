@@ -1034,6 +1034,18 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .reopt-btns{gap:8px;margin-top:12px;display:none}
 .reopt-btns.show{display:flex}
 .reopt-spinner{width:32px;height:32px;border:3px solid #EEF5F4;border-top:3px solid #C86030;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
+.gp-panel{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:430px;background:var(--card,#fff);border:1.5px solid var(--border,rgba(7,30,37,0.10));border-radius:var(--radius,14px);box-shadow:0 10px 40px rgba(0,0,0,.35);padding:14px 16px;z-index:890;font-family:Outfit,sans-serif}
+.gp-head{display:flex;align-items:flex-start;gap:10px}
+.gp-label{flex:1;font-size:13.5px;font-weight:700;color:var(--text,#071E25);line-height:1.45}
+.gp-close{background:none;border:none;color:var(--text-muted,#4A7A7C);font-size:18px;font-weight:700;line-height:1;cursor:pointer;padding:0 2px;font-family:inherit}
+.gp-segs{display:flex;gap:4px;margin:10px 0 2px}
+.gp-segs i{height:4px;flex:1;border-radius:2px;background:rgba(7,30,37,0.12)}
+.gp-segs i.on{background:linear-gradient(90deg,#1A8880,#35B5A9)}
+.gp-note{font-size:12px;color:#B0552F;line-height:1.45;padding-top:8px}
+.pt-gen-line{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:8px 0;border-top:1px solid var(--border,rgba(7,30,37,0.08));color:#8AA5A2}
+.pt-gen-line.building{color:var(--text,#071E25);font-weight:600}
+.pt-gen-line.done{color:#1A6860;font-weight:700}
+.pt-gen-line.failed{color:#B0552F;font-weight:600;flex-wrap:wrap}
 @keyframes spin{to{transform:rotate(360deg)}}
 .reopt-apply{flex:2;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--coral),var(--coral-dark));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
 .reopt-dismiss{flex:1;padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer}
@@ -6442,17 +6454,106 @@ function generateFromSetup(params, callback) {
   })
   .catch(function(e){if(typeof callback==='function')callback('Network error: '+e.message);});
 }
+// -- Generation progress (Claude msg 80): the in-app regeneration
+// waiting panel. ONE mechanism, shared with pretrip.html's onboarding
+// waiting screen: the same gpLabelText, the same per-day lines, the same
+// segment rule -- a segment fills ONLY when its day's generation has
+// actually returned (the sequential loop in generateAllDays steps it),
+// never on a timer. Surface real state or surface nothing.
+function gpLabelText(total, states) {
+  // Generation-progress label -- ONE mechanism, two surfaces: app.html
+  // (in-app regeneration) and pretrip.html (onboarding) carry this same
+  // function and the same segment rule (a segment fills only when its day
+  // has actually finished). The words only ever describe a day that has
+  // finished ('Day N ready'), the day actually being built, or a day that
+  // actually failed. Nothing here advances on a timer (Claude msg 80).
+  var done = [];
+  var building = -1, failed = -1;
+  for (var i = 0; i < total; i++) {
+    if (states[i] === 'done') done.push(i);
+    else if (states[i] === 'building' && building === -1) building = i;
+    else if (states[i] === 'failed' && failed === -1) failed = i;
+  }
+  var head;
+  if (failed !== -1) head = 'Day ' + (failed + 1) + ' of ' + total + ' hit a snag';
+  else if (total > 0 && done.length === total) head = 'All ' + total + (total === 1 ? ' day' : ' days') + ' ready';
+  else if (building !== -1) head = 'Building Day ' + (building + 1) + ' of ' + total;
+  else head = 'Building your plan\u2026';
+  if (done.length === total) return head;
+  return head + done.map(function (d) { return ' \u00B7 Day ' + (d + 1) + ' ready'; }).join('');
+}
+var _gpState = null;
+function gpShow(total) {
+  gpHide();
+  var panel = document.createElement('div');
+  panel.id = 'genProgPanel';
+  panel.className = 'gp-panel';
+  panel.innerHTML = '<div class="gp-head"><div class="gp-label" id="gpLabel"></div><button type="button" class="gp-close" id="gpClose" aria-label="Dismiss">\u00D7</button></div>'
+    + '<div class="gp-segs" id="gpSegs"></div>'
+    + '<div id="gpDays"></div>'
+    + '<div class="gp-note" id="gpNote" style="display:none"></div>';
+  document.body.appendChild(panel);
+  document.getElementById('gpClose').onclick = gpHide;
+  _gpState = { total: total, states: [] };
+  for (var i = 0; i < total; i++) _gpState.states.push(i === 0 ? 'building' : 'waiting');
+  gpSync();
+}
+function gpSetDay(idx, state) {
+  if (!_gpState || idx < 0 || idx >= _gpState.total) return;
+  _gpState.states[idx] = state;
+  gpSync();
+}
+function gpLineHTML(idx, state) {
+  // The same line markup pretrip.html's ptSetGenLine renders. (Its failed
+  // line carries retry/skip buttons because that driver offers them; the
+  // in-app driver's retry is the AI Optimize tap, named in the note.)
+  var label = 'Day ' + (idx + 1);
+  if (state === 'done') return '<span>\u2713</span><span>' + label + ' ready</span>';
+  if (state === 'building') return '<span>\u2022</span><span>Building ' + label + '\u2026</span>';
+  if (state === 'failed') return '<span>\u2715</span><span>' + label + ' \u2014 couldn\'t build</span>';
+  return '<span>\u00B7</span><span>' + label + '</span>';
+}
+function gpSync() {
+  if (!_gpState) return;
+  var labelEl = document.getElementById('gpLabel');
+  var segsEl = document.getElementById('gpSegs');
+  var daysEl = document.getElementById('gpDays');
+  var noteEl = document.getElementById('gpNote');
+  if (!labelEl || !segsEl || !daysEl) return;
+  var total = _gpState.total, states = _gpState.states;
+  labelEl.textContent = gpLabelText(total, states);
+  var segHtml = '', dayHtml = '', failedIdx = -1;
+  for (var i = 0; i < total; i++) {
+    segHtml += '<i class="' + (states[i] === 'done' ? 'on' : '') + '"></i>';
+    dayHtml += '<div class="pt-gen-line ' + states[i] + '">' + gpLineHTML(i, states[i]) + '</div>';
+    if (states[i] === 'failed' && failedIdx === -1) failedIdx = i;
+  }
+  segsEl.innerHTML = segHtml;
+  daysEl.innerHTML = dayHtml;
+  if (noteEl) {
+    if (failedIdx !== -1) { noteEl.style.display = 'block'; noteEl.textContent = 'Day ' + (failedIdx + 1) + ' hit a snag \u2014 tap AI Optimize to try again.'; }
+    else noteEl.style.display = 'none';
+  }
+}
+function gpHide() {
+  var p = document.getElementById('genProgPanel');
+  if (p) p.remove();
+  _gpState = null;
+}
 function generateAllDays() {
   var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || {};
   var n = (Array.isArray(tc.days) && tc.days.length) || (Array.isArray(tc.dates) && tc.dates.length) || 3;
   showToast('Building your schedule \u2014 one day at a time\u2026');
+  gpShow(n);
   window._genSurfacing = null; window._genSavePromise = null; // filled by the final day's save (see generateFromSetup)
   var i = 0;
   function next() {
-    if (i >= n) { var _finishBuild = function(){ if (!_renderSurfacingSummary(2700)) showToast('Schedule built!'); if (typeof loadCustom === 'function') loadCustom(); if (typeof renderSched === 'function') renderSched(); }; var _sp = window._genSavePromise; if (_sp && typeof _sp.then === 'function') { _sp.then(_finishBuild).catch(_finishBuild); } else { _finishBuild(); } return; }
+    if (i >= n) { var _finishBuild = function(){ gpHide(); if (!_renderSurfacingSummary(2700)) showToast('Schedule built!'); if (typeof loadCustom === 'function') loadCustom(); if (typeof renderSched === 'function') renderSched(); }; var _sp = window._genSavePromise; if (_sp && typeof _sp.then === 'function') { _sp.then(_finishBuild).catch(_finishBuild); } else { _finishBuild(); } return; }
     var idx = i; i++;
+    gpSetDay(idx, 'building');
     generateFromSetup(idx, function (err, sections) {
-      if (err) { showToast('Day ' + (idx + 1) + ' hit a snag \u2014 tap AI Optimize to retry'); return; }
+      if (err) { gpSetDay(idx, 'failed'); showToast('Day ' + (idx + 1) + ' hit a snag \u2014 tap AI Optimize to retry'); return; }
+      gpSetDay(idx, 'done');
       try {
         var ltc = window._loadedTripData.tripConfig;
         if (!ltc.schedule) ltc.schedule = { days: [] };

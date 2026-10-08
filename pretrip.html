@@ -179,6 +179,10 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 .pt-gen-line.failed{color:#B0552F;font-weight:600;flex-wrap:wrap;}
 .pt-gen-retry{background:#C86030;color:#fff;border:none;border-radius:9px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;}
 .pt-gen-skip{background:none;border:none;color:#4A7A7C;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;text-decoration:underline;padding:6px 0;}
+.gp-label{font-size:12.5px;font-weight:700;color:#071E25;margin-top:10px;}
+.gp-segs{display:flex;gap:4px;margin:8px 0 2px;}
+.gp-segs i{height:4px;flex:1;border-radius:2px;background:rgba(7,30,37,0.12);}
+.gp-segs i.on{background:linear-gradient(90deg,#1A8880,#35B5A9);}
 </style>
 </head>
 <body>
@@ -486,11 +490,15 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 </div>
 
 <!-- GENERATING / WAITING SCREEN (Claude's Q3 draft: sequential reassurance +
-     REAL per-day progress; no spinner-only, no percentage, no time estimates) -->
+     REAL per-day progress; no spinner-only, no percentage, no time estimates.
+     Msg 80 unification: the step bar + summary label above the lines derive
+     from the same line states (ptSyncGenProgress) -- one mechanism, shared
+     with app.html's regeneration panel.) -->
 <div id="ptGenScreen" style="display:none;">
   <div class="pt-card" style="margin-bottom:12px;">
     <div style="font-size:16px;font-weight:800;color:#071E25;margin-bottom:6px;" id="ptGenTitle">Building your plan…</div>
     <p class="pt-intro" style="margin-bottom:6px;">We're shaping each day from park open to close — around your must-dos, your meals, and your shows. This takes a moment; it's worth it.</p>
+    <div id="ptGenProg"><div class="gp-label" id="ptGenProgLabel"></div><div class="gp-segs" id="ptGenProgSegs"></div></div>
     <div id="ptGenDays"></div>
   </div>
   <div class="pt-card" style="margin-bottom:0;">
@@ -1807,6 +1815,49 @@ function ptSetGenLine(idx, state, canRetry) {
       '<button type="button" class="pt-gen-skip" onclick="ptGenSkipDay(' + idx + ')">Continue without this day</button>' : '');
   }
   else el.innerHTML = '<span>\u00B7</span><span>' + label + '</span>';
+  ptSyncGenProgress();
+}
+function gpLabelText(total, states) {
+  // Generation-progress label -- ONE mechanism, two surfaces: app.html
+  // (in-app regeneration) and pretrip.html (onboarding) carry this same
+  // function and the same segment rule (a segment fills only when its day
+  // has actually finished). The words only ever describe a day that has
+  // finished ('Day N ready'), the day actually being built, or a day that
+  // actually failed. Nothing here advances on a timer (Claude msg 80).
+  var done = [];
+  var building = -1, failed = -1;
+  for (var i = 0; i < total; i++) {
+    if (states[i] === 'done') done.push(i);
+    else if (states[i] === 'building' && building === -1) building = i;
+    else if (states[i] === 'failed' && failed === -1) failed = i;
+  }
+  var head;
+  if (failed !== -1) head = 'Day ' + (failed + 1) + ' of ' + total + ' hit a snag';
+  else if (total > 0 && done.length === total) head = 'All ' + total + (total === 1 ? ' day' : ' days') + ' ready';
+  else if (building !== -1) head = 'Building Day ' + (building + 1) + ' of ' + total;
+  else head = 'Building your plan\u2026';
+  if (done.length === total) return head;
+  return head + done.map(function (d) { return ' \u00B7 Day ' + (d + 1) + ' ready'; }).join('');
+}
+function ptSyncGenProgress() {
+  // The step bar + summary label DERIVE from the per-day line states --
+  // the lines are set only from real day returns (the sequential driver
+  // below), so the bar can never show progress a finished day hasn't
+  // earned. Every line-state change flows through ptSetGenLine, which
+  // calls this sync; there is no other writer and no timer.
+  var daysEl = document.getElementById('ptGenDays');
+  var labelEl = document.getElementById('ptGenProgLabel');
+  var segsEl = document.getElementById('ptGenProgSegs');
+  if (!daysEl || !labelEl || !segsEl) return;
+  var states = [];
+  for (var i = 0; i < daysEl.children.length; i++) {
+    var cl = daysEl.children[i].classList;
+    states.push(cl.contains('done') ? 'done' : cl.contains('building') ? 'building' : cl.contains('failed') ? 'failed' : 'waiting');
+  }
+  var html = '';
+  for (var j = 0; j < states.length; j++) html += '<i class="' + (states[j] === 'done' ? 'on' : '') + '"></i>';
+  segsEl.innerHTML = html;
+  labelEl.textContent = gpLabelText(states.length, states);
 }
 var _ptGenRetry = null, _ptGenSkip = null;
 function ptGenRetryDay(idx) { if (_ptGenRetry) _ptGenRetry(); }
