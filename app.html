@@ -940,6 +940,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .ll-seq-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:5px;}
 .ll-seq-line{font-size:12px;color:var(--text);line-height:1.5;}
 .ll-seq-note{font-size:11px;color:var(--text-muted);line-height:1.5;margin-top:3px;}
+.tpcp-reg-status{font-size:11px;font-weight:600;color:#C86030;font-family:'Outfit',sans-serif;line-height:1.45;margin-top:8px;cursor:pointer;}
 
 /* Live wait pill */
 .wait-pill{
@@ -1976,7 +1977,7 @@ window.renderClosureAlerts = function() {
 
     <!-- WAIT TIMES TAB -->
     <div id="tabWaits" style="display:none">
-       <div style="margin-top:14px;margin-bottom:12px"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpWaitsAlertHelp"></div></div>
+       <div style="margin-top:14px;margin-bottom:12px"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div class="tpcp-reg-status" style="display:none"></div><div id="tpcpWaitsAlertHelp"></div></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div id="waitStatus" style="font-size:12px;color:var(--text-muted)"></div>
         <button id="waitRefreshBtn" onclick="doRefreshWaits()" style="font-size:12px;color:var(--magic);background:none;border:1px solid rgba(27,47,160,0.2);padding:5px 12px;border-radius:99px;font-family:inherit;cursor:pointer;font-weight:600">Refresh</button>
@@ -3090,16 +3091,58 @@ function tpcpPushPlugin(){
   return P || null;
 }
 var _tpcpPushListenersBound = false;
+// Register-response discipline (Oct 8, 2026, Claude msg 72 -- the durable
+// half of the floor fix): a rejected registration must never be silent
+// again. The Oct 8 no-fire happened because push-register 400'd every
+// attempt (8-char code floor vs the real 6-char BEAU01) and this caller
+// never looked at the response, so the phone retried forever invisibly.
+// Failures are recorded in localStorage and rendered under the Wait Time
+// Alerts buttons (Waits tab + Info tab) as a tappable retry line; a
+// success clears the record. Retries happen on the next app launch (boot
+// re-register) and on any alerts-button tap, both of which flow back
+// through this function.
+function tpcpRecordPushRegError(status){
+  try{ localStorage.setItem('tpcp_push_reg_error', JSON.stringify({ at: Date.now(), status: status || 0 })); }catch(e){}
+  tpcpRenderPushRegStatus();
+}
+function tpcpRenderPushRegStatus(){
+  var rec = null;
+  try{ rec = JSON.parse(localStorage.getItem('tpcp_push_reg_error') || 'null'); }catch(e){}
+  var els = document.querySelectorAll('.tpcp-reg-status');
+  for(var i = 0; i < els.length; i++){
+    if(rec){
+      els[i].style.display = '';
+      els[i].textContent = 'This phone could not register for alerts, so notifications cannot reach it yet. Tap to retry.';
+      els[i].setAttribute('onclick', 'tpcpAlertTestTap()');
+    } else {
+      els[i].style.display = 'none';
+      els[i].textContent = '';
+      els[i].removeAttribute('onclick');
+    }
+  }
+}
 async function tpcpRegisterNativePushToken(tokenValue){
   var code = localStorage.getItem('tpcp_code') || '';
-  if(!code || !tokenValue) return;
+  if(!code || !tokenValue) return false;
   try{
-    await fetch(SYNC_BASE + '/api/push-register', {
+    var r = await fetch(SYNC_BASE + '/api/push-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-trip-code': code },
       body: JSON.stringify({ tripCode: code, platform: 'ios', token: tokenValue, alertsEnabled: true })
     });
-  }catch(e){ console.warn('[push] token register failed', e && e.message); }
+    if(!r.ok){
+      console.warn('[push] token register rejected: HTTP ' + r.status);
+      tpcpRecordPushRegError(r.status);
+      return false;
+    }
+    try{ localStorage.removeItem('tpcp_push_reg_error'); }catch(e){}
+    tpcpRenderPushRegStatus();
+    return true;
+  }catch(e){
+    console.warn('[push] token register failed', e && e.message);
+    tpcpRecordPushRegError(0);
+    return false;
+  }
 }
 async function tpcpEnableNativeWaitAlerts(){
   var P = tpcpPushPlugin();
@@ -3191,6 +3234,7 @@ function tpcpSetAlertBtn(btn,on){
   }
 }
 async function tpcpRefreshAlertButtons(){
+  tpcpRenderPushRegStatus();
   var on=await tpcpAlertsAreOn();
   var btns=document.querySelectorAll('.tpcp-alert-btn');
   for(var i=0;i<btns.length;i++){ tpcpSetAlertBtn(btns[i],on); }
@@ -5859,7 +5903,7 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
     ? ['parkmap','hours','closures','restrooms','services','weather','tips','crowds','checklist','share','settings','credits']
     : ['crowds','hours','closures','weather','checklist','parkmap','tips','restrooms','services','share','settings','credits'];
   var html='<div class="info-tab-wrap">'
-    +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div>'+tpcpAlertHelpHTML()+'</div>'
+    +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div><div class="tpcp-reg-status" style="display:none"></div>'+tpcpAlertHelpHTML()+'</div>'
     +_order.map(function(k){return _secs[k]||'';}).join('')
     +'</div>';
 
