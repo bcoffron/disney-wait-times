@@ -120,6 +120,22 @@ export function buildApnsPayload(note) {
   return payload;
 }
 
+// apns-collapse-id (Claude msg 94 (iii)): the transport identity IS the
+// dedupe identity. Every send carrying an episodeId also carries it as
+// the APNs collapse id, so APNs coalesces re-sends of the same episode
+// into one notification instead of stacking, and the delivered request
+// identifier is deterministic. A genuine re-fire carries a new episodeId
+// (the msg 88 fire-count suffix) and correctly arrives as new. APNs caps
+// the collapse id at 64 bytes; a longer episodeId (long ride names in
+// monitor IDs) collapses under a stable hash of itself instead -- still
+// deterministic per episode, never per delivery. Sends without an
+// episodeId get NO collapse header and are byte-identical to before.
+export function collapseIdForEpisode(episodeId) {
+  if (typeof episodeId !== 'string' || !episodeId) return '';
+  if (Buffer.byteLength(episodeId, 'utf8') <= 64) return episodeId;
+  return 'eph:' + crypto.createHash('sha256').update(episodeId, 'utf8').digest('hex').slice(0, 40);
+}
+
 // Send one alert payload to many device tokens over a single HTTP/2 session.
 // Resolves to [{ token, status, reason, verdict }] and never rejects.
 export async function sendApnsToDevices(tokens, note, env) {
@@ -150,7 +166,7 @@ export async function sendApnsToDevices(tokens, note, env) {
       let settled = false;
       const done = function (v) { if (!settled) { settled = true; resolve(v); } };
       try {
-        const req = client.request({
+        const reqHeaders = {
           ':method': 'POST',
           ':path': '/3/device/' + token,
           'authorization': 'bearer ' + jwt,
@@ -158,7 +174,10 @@ export async function sendApnsToDevices(tokens, note, env) {
           'apns-push-type': 'alert',
           'apns-priority': '10',
           'content-type': 'application/json'
-        });
+        };
+        const collapseId = collapseIdForEpisode(note && note.episodeId);
+        if (collapseId) reqHeaders['apns-collapse-id'] = collapseId;
+        const req = client.request(reqHeaders);
         let status = 0;
         let data = '';
         req.on('response', function (headers) { status = headers[':status'] || 0; });
