@@ -374,6 +374,12 @@ export function buildFillPrompt(skeleton, opts) {
   if (opts.ill === false) sys += '\n- This group does NOT have Individual Lightning Lane (ILL): NEVER mention ILL, Single Pass, individual ride purchases, or per-ride prices anywhere -- not in headings, notes, or ll fields. Rise of the Resistance and Radiator Springs Racers are ridden standby or not at all.';
   if (opts.llmp === false && opts.ill === false) sys += '\n- This group has NO Lightning Lane products at all: do not include ll fields and do not write Lightning Lane booking advice; tip slots give standby strategy instead.';
   else if (opts.llmp === true && opts.ill === false) sys += '\n- Lightning Lane for this group means Multi Pass ONLY.';
+  // Item 8a (Oct 7, 2026): when the group HAS Individual Lightning Lane,
+  // name the ILL rides in the prompt. The group-level product booleans
+  // alone let the model call Radiator Springs Racers a Multi Pass booking
+  // (Build 8 device pass, Day 2 7:01 AM tip) -- the per-ride product map
+  // has to reach tip composition, not just the pace/exemption machinery.
+  if (opts.ill === true) sys += '\n- Individual Lightning Lane (Single Pass) rides are ONLY these two: Star Wars: Rise of the Resistance and Radiator Springs Racers. They are NEVER booked with Lightning Lane Multi Pass: if a tip, heading, or note tells the guest to book one of these two rides, it must say Individual Lightning Lane / Single Pass, never Multi Pass. Every other Lightning Lane ride is booked with Multi Pass.';
   if (opts.closedNames && opts.closedNames.length) sys += '\n- DOWN / CLOSED right now -- do NOT place any of these in a ride slot; if your best pick is on this list, choose a different open attraction from the cache for that slot instead: ' + opts.closedNames.join('; ') + '.';
   if (opts.closedVenueNames && opts.closedVenueNames.length) sys += '\n- DOWN FOR REFURBISHMENT right now -- do NOT place any of these in a dining, quickservice, or snack slot; choose a different open venue from the verified dining list instead: ' + opts.closedVenueNames.join('; ') + '.';
   if (opts.tableVenueNames && opts.tableVenueNames.length) sys += '\n- MEALS ARE QUICK-SERVICE ONLY: these are sit-down / reservation venues -- ' + opts.tableVenueNames.join('; ') + '. NEVER place one as a meal or snack. The only exception: the guest has a confirmed reservation at that exact venue on this trip (then note it is their reservation). Otherwise pick a quick-service venue from the verified dining list.';
@@ -1762,6 +1768,34 @@ export function verifyScaffold(cards, opts) {
       nextIn.push(c);
     }
     _inputCards = nextIn;
+  }
+  // Item 8a (Oct 7, 2026): the mirror-image product error. When the group
+  // HAS Individual Lightning Lane, prose that tells them to book an ILL
+  // ride (Rise of the Resistance, Radiator Springs Racers) with "Multi
+  // Pass" names the wrong product (Build 8 device pass: the Day 2 7:01 AM
+  // tip). The fill prompt now enumerates the two ILL rides; this pass is
+  // the deterministic net behind it, shaped like the ill-scrub above --
+  // sentence-level and mutation-surfaced. A sentence already carrying the
+  // correct product words (Individual / Single Pass / ILL) is left alone,
+  // so correct mixed advice ("Multi Pass for X, Individual for RSR") is
+  // never rewritten. Runs only in the hasILL lane; the hasILL === false
+  // case above already removes ILL prose outright.
+  if (opts.hasILL !== false) {
+    const _namesIllRide = (s) => { const low = String(s || '').toLowerCase(); return low.indexOf('radiator springs') !== -1 || low.indexOf('rise of the resistance') !== -1; };
+    const _fixProductText = (s) => {
+      if (typeof s !== 'string' || !s) return s;
+      return s.split(/(?<=[.!])\s+/).map((sent) => {
+        if (!_namesIllRide(sent)) return sent;
+        if (!/multi\s*pass|\bllmp\b/i.test(sent)) return sent;
+        if (/individual|single pass|\bill\b/i.test(sent)) return sent;
+        return sent.replace(/lightning lane multi pass/gi, 'Individual Lightning Lane').replace(/multi pass/gi, 'Individual Lightning Lane').replace(/\bLLMP\b/g, 'ILL');
+      }).join(' ');
+    };
+    for (const c of _inputCards) {
+      if (!c || !c.n) continue;
+      const _fixedN = _fixProductText(c.n);
+      if (_fixedN !== c.n) { c.n = _fixedN; mutations.push({ action: 'll-product-fix', h: c.h }); }
+    }
   }
   for (const c of _inputCards) {
     const hL = String(c.h || '').toLowerCase();
