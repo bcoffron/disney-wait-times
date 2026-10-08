@@ -2279,6 +2279,7 @@ function checkLock(){
             localStorage.removeItem('tpcp_code');
             localStorage.removeItem('tpcp_role');
             localStorage.removeItem('tpcp_tripId');
+            localStorage.removeItem('tpcp_guest_code');
             localStorage.removeItem('tpcp_onboardingComplete');
             initSplash();
             var area=document.getElementById('splashCtaArea');
@@ -2294,6 +2295,7 @@ function checkLock(){
           var d=result.data;
           userRole=d.role;
           try{localStorage.setItem('disney_unlocked',d.role);}catch(e){}
+          if (d.guestCode) { try { localStorage.setItem('tpcp_guest_code', d.guestCode); } catch(e) {} try { TRIP_CONFIG.guestCode = d.guestCode; } catch(e) {} } else { try { localStorage.removeItem('tpcp_guest_code'); } catch(e) {} }
           if(d.role==='guest'){
             enterSplash(true);
           } else if(d.hasTrip){
@@ -2434,6 +2436,9 @@ function tryUnlock() {
         localStorage.setItem('tpcp_role', d.role);
         localStorage.setItem('tpcp_tripId', d.tripId || '');
         localStorage.setItem('disney_unlocked', d.role);
+        // Restoration step i: cache the pair's guest code from the validated
+        // GET response (the Share card's source until the blob stamp lands).
+        if (d.guestCode) { try { localStorage.setItem('tpcp_guest_code', d.guestCode); } catch(e) {} try { TRIP_CONFIG.guestCode = d.guestCode; } catch(e) {} } else { try { localStorage.removeItem('tpcp_guest_code'); } catch(e) {} }
         if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
       } catch(e) {}
       userRole = d.role;
@@ -3406,7 +3411,7 @@ function startBlobPoll() {
         var data = r.data;
         // Only a DEFINITIVE invalid/expired/inactive code (trip.js 403/404) ends the session.
         // Transient failures (5xx cold start, 429, offline on wake, non-JSON edge) must NOT sign the guest out.
-        if (r.status === 403 || r.status === 404) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; var _sp=document.getElementById('splashScreen'),_ma=document.getElementById('mainApp');if(_sp){_sp.style.display='flex';}if(_ma){_ma.style.display='none';}; return; }
+        if (r.status === 403 || r.status === 404) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); localStorage.removeItem('tpcp_guest_code'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; var _sp=document.getElementById('splashScreen'),_ma=document.getElementById('mainApp');if(_sp){_sp.style.display='flex';}if(_ma){_ma.style.display='none';}; return; }
         if (!data || !data.tripData) { return; }
         window._blobPollFirst = false;
         var hash = JSON.stringify(data.tripData);
@@ -5591,15 +5596,37 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
       +'</div>';
   }
 
-  // Section 1: Share -- app era (Oct 5, 2026): the group follows along in the
-  // app with the TRIP CODE. The old web link pointed at the retired web app
-  // and the guest-code field was never populated for app trips.
-  var pw=(localStorage.getItem('tpcp_code')||'').toUpperCase();
+  // Section 1: Share -- restoration step i (Oct 8, 2026): the card hands
+  // out the pair's GUEST code (view-only), never the leader's own code --
+  // the Oct 5 app-era card shared the leader code itself, which handed
+  // every member full edit/Optimize control and broke plan sync for them
+  // (the inversion). The two codes are labeled by role so they can never
+  // be confused. Guest code sources, in order: TRIP_CONFIG.guestCode
+  // (stamped into the trip blob by the server at issuance/save) and the
+  // code-entry cache of the GET /api/trip response's guestCode field.
+  var ownCode=(localStorage.getItem('tpcp_code')||'').toUpperCase();
+  var guestCode='';
+  try { guestCode=(TRIP_CONFIG.guestCode||''); } catch(e) {}
+  if (!guestCode) { try { guestCode=localStorage.getItem('tpcp_guest_code')||''; } catch(e) {} }
+  guestCode=(guestCode||'').toUpperCase();
+  var shareIsAdmin = (typeof isAdmin==='function') ? isAdmin() : false;
+  var shareCode = shareIsAdmin ? guestCode : ownCode;
+  var shareIntro = shareIsAdmin
+    ? 'Share this with your group (view-only): they can follow the plan, waits and dining -- only you can change the schedule.'
+    : 'Your group code (view-only): anyone with it can follow the plan in the app.';
+  if (shareIsAdmin && !guestCode) {
+    shareIntro = 'Your group\'s view-only code is not loaded yet. Sign out and re-enter your leader code to refresh it -- never share your leader code with the group.';
+  }
+  var shareRows = '<div class="share-info-row"><span class="share-info-label">GROUP CODE \u2014 VIEW-ONLY</span>'
+    +'<span class="share-info-value" style="font-weight:800;color:var(--color-bg-dark);">'+(shareCode||'Not loaded yet')+'</span></div>';
+  if (shareIsAdmin && ownCode) {
+    shareRows += '<div class="share-info-row"><span class="share-info-label">YOUR LEADER CODE \u2014 KEEP PRIVATE</span>'
+      +'<span class="share-info-value" style="font-weight:700;color:var(--text-muted);">'+ownCode+'</span></div>';
+  }
   var shareContent='<div class="share-body" style="padding:0 14px 14px;">'
-    +'<p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4;">Everyone in your group can follow the plan in the app. Send them the trip code:</p>'
+    +'<p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4;">'+shareIntro+'</p>'
     +'<div class="share-info-box">'
-    +'<div class="share-info-row"><span class="share-info-label">TRIP CODE</span>'
-    +'<span class="share-info-value" style="font-weight:800;color:var(--color-bg-dark);">'+pw+'</span></div>'
+    + shareRows
     +'</div>'
     +'<div style="display:flex;gap:8px;margin-top:10px;">'
     +'<button class="share-btn-primary" onclick="shareViaText()">'
@@ -6137,8 +6164,9 @@ function renderLockCountdowns(){
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
 function renderClosuresFromWaits(){if(!waits||!Object.keys(waits).length)return;var r=[],t=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);else if(w.s==='CLOSED'&&w.w===null)t.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify(t));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 
-function doShareText(){var code=(localStorage.getItem('tpcp_code')||'').toUpperCase();var msg='Hey! Here is our Disneyland trip plan in the Theme Park CP app.\n\nTrip code: '+code+'\n\nInstall Theme Park CP, choose "I have a trip code", and enter the code to follow along.';if(navigator.share){navigator.share({title:'Theme Park Co-Pilot',text:msg}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
-function doCopyLink(){var text='Theme Park Co-Pilot trip\nTrip code: '+((localStorage.getItem('tpcp_code')||'').toUpperCase())+'\nInstall the Theme Park CP app and enter the code to follow our trip.';if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
+function tpcpShareCode(){var own=(localStorage.getItem('tpcp_code')||'').toUpperCase();var gc='';try{gc=(TRIP_CONFIG.guestCode||'');}catch(e){}if(!gc){try{gc=localStorage.getItem('tpcp_guest_code')||'';}catch(e){}}gc=(gc||'').toUpperCase();return (typeof isAdmin==='function'&&isAdmin())?gc:own;}
+function doShareText(){var code=tpcpShareCode();if(!code){showToast('Your group code is not loaded yet. Re-enter your trip code to refresh it.');return;}var msg='Hey! Here is our Disneyland trip plan in the Theme Park CP app.\n\nGroup code (view-only): '+code+'\n\nInstall Theme Park CP, choose "I have a trip code", and enter the code to follow along.';if(navigator.share){navigator.share({title:'Theme Park Co-Pilot',text:msg}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
+function doCopyLink(){var _sc=tpcpShareCode();if(!_sc){showToast('Your group code is not loaded yet. Re-enter your trip code to refresh it.');return;}var text='Theme Park Co-Pilot trip\nGroup code (view-only): '+_sc+'\nInstall the Theme Park CP app and enter the code to follow our trip.';if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
 
 var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40};
 function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
@@ -6954,6 +6982,7 @@ function submitTripCode() {
           localStorage.setItem("tpcp_code", code);
           localStorage.setItem("tpcp_tripId", d.tripId);
           localStorage.setItem("tpcp_role", d.role);
+          if (d.guestCode) { try { localStorage.setItem('tpcp_guest_code', d.guestCode); } catch(e) {} try { TRIP_CONFIG.guestCode = d.guestCode; } catch(e) {} } else { try { localStorage.removeItem('tpcp_guest_code'); } catch(e) {} }
         } catch(e) {}
       if (!d.hasTrip) {
         launchOnboarding(code, d.role, d.tripId);
