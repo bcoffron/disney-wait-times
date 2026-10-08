@@ -406,6 +406,13 @@ export function buildFillPrompt(skeleton, opts) {
   // (the dining "Party of N" suffix), never by model prose. The
   // verifyScaffold group-size net is the deterministic backstop.
   sys += '\n\nGROUP SIZE RULE: never state a party or group size anywhere in your output -- no "group of 9", no "party of 4", no head-count of any kind in headings, notes, or ll advice. Write every tip generically for this trip\'s guests ("your group", "everyone", "your party") with no number attached.';
+  // Item 1b mitigation (Oct 7, 2026): the CACHE DATA below was authored
+  // around ONE sample trip (BCDIS2026) and the live blob still carries
+  // that trip's specifics -- the section-build prompts are now
+  // trip-agnostic at the source (cron-cache.js), but the blob itself
+  // cannot be rebuilt from here, so until the next rebuild (or a forced
+  // one) this override rides in every fill prompt as the mitigation.
+  sys += '\n\nSAMPLE DATA RULE: the CACHE DATA below is shared reference material originally written around a sample trip. Any party size, guest names, exact dates, or day-by-day itinerary details in it describe THAT sample only -- never carry any of them into this trip\'s plan, headings, or notes. This trip is defined solely by the skeleton and the guest preferences in this prompt.';
   // Onboarding preference context (Oct 7, 2026): the guest's stated
   // preferences reach the MODEL too, not just the deterministic paths --
   // wanted spots and thrill level are model-gated items, so the fill
