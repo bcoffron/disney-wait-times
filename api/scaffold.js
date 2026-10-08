@@ -397,6 +397,15 @@ export function buildFillPrompt(skeleton, opts) {
   // before its own dinner card). scanProseVenueFlags is the deterministic
   // tripwire behind this instruction; this is the soft half.
   sys += '\n\nNOTE PROSE RULE: a card\'s note (the "n" field) may name ONLY the venue that card itself is about. Never name a restaurant, quick-service spot, or snack stand from the ALREADY-USED list -- or one you seat in any other slot of this day -- in another card\'s note: a prose mention reads as part of the plan and quietly undoes the never-twice rule. If a note needs to point at food or drink beyond its own card, describe it generically ("a snack nearby", "your lunch stop later") without naming the place.';
+  // Item 1a (Oct 7, 2026): plan copy NEVER states a party/group size.
+  // The model's only size signal used to be BCDIS2026 prose baked into
+  // the shared cache sections ("GROUP OF 9" headers), which it parroted
+  // into tips -- the Build 8 device pass arrival tip read "For a group
+  // of 9, allow extra time..." on a party-of-2 trip. A size is rendered
+  // ONLY by deterministic card fields fed from the guest's own config
+  // (the dining "Party of N" suffix), never by model prose. The
+  // verifyScaffold group-size net is the deterministic backstop.
+  sys += '\n\nGROUP SIZE RULE: never state a party or group size anywhere in your output -- no "group of 9", no "party of 4", no head-count of any kind in headings, notes, or ll advice. Write every tip generically for this trip\'s guests ("your group", "everyone", "your party") with no number attached.';
   // Onboarding preference context (Oct 7, 2026): the guest's stated
   // preferences reach the MODEL too, not just the deterministic paths --
   // wanted spots and thrill level are model-gated items, so the fill
@@ -1893,6 +1902,59 @@ export function verifyScaffold(cards, opts) {
       if (!c || !c.n) continue;
       const _fixedN = _fixProductText(c.n);
       if (_fixedN !== c.n) { c.n = _fixedN; mutations.push({ action: 'll-product-fix', h: c.h }); }
+    }
+  }
+  // Item 1a (Oct 7, 2026): the deterministic net behind the GROUP SIZE
+  // RULE in buildFillPrompt. Model prose must never state a party/group
+  // size -- the Build 8 device pass arrival tip read "For a group of 9"
+  // on a party-of-2 trip, parroted from BCDIS2026 prose baked into the
+  // shared cache sections. Sizes live ONLY in deterministic fields, and
+  // exactly one prose-shaped instance is exempt: the trailing
+  // "Party of N." sentence code appends to dining/quickservice cards
+  // from groupProfile.size -- and only when N IS this trip's size (it is
+  // the structured field, code-rendered). Anchor cards are skipped
+  // entirely: their text is code-composed from the guest's own
+  // reservation. Every other "(group|party) of <number>" claim is
+  // neutralized in place -- the size phrase comes out and the sentence's
+  // advice stays; a sentence that is nothing but the claim is dropped
+  // (the ill-scrub pattern). Unrelated numbers (times, waits, prices)
+  // are never touched: the claim pattern requires the group/party noun.
+  // Every change surfaces as a mutation.
+  {
+    const _szWords = 'one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve';
+    const _szNum = '(?:\\d+|' + _szWords + ')';
+    const _szClaim = new RegExp('\\b(?:group|party)s?\\s+of\\s+' + _szNum + '\\b', 'i');
+    const _szLead = new RegExp('^For\\s+(?:a|the|your)\\s+(?:group|party)s?\\s+of\\s+' + _szNum + '\\b\\s*,\\s*', 'i');
+    const _szMid = new RegExp('\\s+for\\s+(?:a|the|your)\\s+(?:group|party)s?\\s+of\\s+' + _szNum + '\\b', 'i');
+    const _szBare = new RegExp('(\\b(?:group|party)s?)\\s+of\\s+' + _szNum + '\\b(?:\\s+or\\s+more)?', 'i');
+    const _neutralizeNote = (note, cardType, groupSize) => {
+      const sents = String(note).split(/(?<=[.!])\s+/);
+      const out = [];
+      let changed = false;
+      for (let i = 0; i < sents.length; i++) {
+        let s = sents[i];
+        // Deterministic dining suffix exemption (see header comment).
+        if ((cardType === 'dining' || cardType === 'quickservice') && i === sents.length - 1
+          && typeof groupSize === 'number' && groupSize > 0) {
+          const _dm = s.match(/^Party of (\d+)\.$/);
+          if (_dm && parseInt(_dm[1], 10) === groupSize) { out.push(s); continue; }
+        }
+        if (!_szClaim.test(s)) { out.push(s); continue; }
+        changed = true;
+        const _leadM = s.match(_szLead);
+        if (_leadM) { s = s.slice(_leadM[0].length); s = s.charAt(0).toUpperCase() + s.slice(1); }
+        else if (_szMid.test(s)) { s = s.replace(_szMid, ''); }
+        else { s = s.replace(_szBare, '$1'); }
+        if (_szClaim.test(s)) continue; // still claims a size -- drop the sentence
+        if (s.split(/\s+/).filter(Boolean).length < 2) continue; // degenerate stub ("Party.") -- drop
+        out.push(s);
+      }
+      return changed ? out.join(' ').replace(/\s{2,}/g, ' ').trim() : note;
+    };
+    for (const c of _inputCards) {
+      if (!c || c.anchor === true || !c.n) continue;
+      const _nn = _neutralizeNote(c.n, c.type, opts.groupSize);
+      if (_nn !== c.n) { c.n = _nn; mutations.push({ action: 'group-size-scrub', h: c.h }); }
     }
   }
   for (const c of _inputCards) {
