@@ -543,6 +543,9 @@ export function applyFills(skeleton, fills, opts) {
       // Item 4: the anchor's venue carries its intel menu highlights
       // into the card's details like any other seated venue.
       { const _add = diningDetailsFor(_diningDetails, _avk); if (_add) aCard.dining = _add; }
+      // Item 5: the venue's official Disney dining page (hub when the
+      // venue has no verified page) rides the anchor card too.
+      aCard.diningUrl = diningPageUrlFor(_avk);
       cards.push(aCard);
       used.add(aCard.h.toLowerCase());
       if (_avk) placedVenueCanon.add(_avk);
@@ -749,6 +752,8 @@ export function applyFills(skeleton, fills, opts) {
           // card structurally, beside the item-3/6a identity fields.
           const _fdd = diningDetailsFor(_diningDetails, _fillVenue.key);
           if (_fdd) card.dining = _fdd;
+          // Item 5: official Disney dining page for the seated venue.
+          card.diningUrl = diningPageUrlFor(_fillVenue.key);
         }
         if (isRideSlot && nkey) { usedRideNames.add(nkey); usedRideSquash.add(nkey.replace(/ /g, '')); todayRideNames.add(nkey); if (gkey) usedGroups.add(gkey); }
       }
@@ -1074,6 +1079,71 @@ export function diningDetailsFor(detailsMap, canonKey) {
   if (d.veganOption) out.veganOption = d.veganOption;
   if (d.gfOption) out.gfOption = d.gfOption;
   return out;
+}
+
+
+// ---------------------------------------------------------------------------
+// DISNEY DINING PAGE LINKS (Item 5, Oct 7, 2026 -- Beau's LINK-ONLY
+// decision: real details in the card + ONE link out to Disney's official
+// page; no bundled venue photos, no availability language, and this app
+// never scrapes availability). The table maps canonicalVenueKey -> the
+// venue's official disneyland.disney.go.com dining page. Every entry was
+// AUTHORED from the catalog venue list and LIVE-VERIFIED on 2026-10-07:
+// each URL returned HTTP 200 with that venue's own page title (full log:
+// workspace tpcp-debug/devicepass/build45/slug_verify_log.json). A venue
+// with no verified page -- and any venue missing from the table -- gets
+// the dining hub, NEVER a guessed URL. Re-verify the whole table before
+// editing an entry; last full verification: 2026-10-07 (40/40 venues).
+// ---------------------------------------------------------------------------
+export const DINING_PAGE_HUB = 'https://disneyland.disney.go.com/dining/';
+const DINING_PAGE_URLS = {
+  'alien pizza planet': 'https://disneyland.disney.go.com/dining/disneyland/alien-pizza-planet/',
+  'aunt cass': 'https://disneyland.disney.go.com/dining/disney-california-adventure/aunt-cass-cafe/',
+  'award wieners': 'https://disneyland.disney.go.com/dining/disney-california-adventure/award-wieners/',
+  'bengal barbecue': 'https://disneyland.disney.go.com/dining/disneyland/bengal-barbecue/',
+  'blue bayou': 'https://disneyland.disney.go.com/dining/disneyland/blue-bayou-restaurant/',
+  'boardwalk pizza pasta': 'https://disneyland.disney.go.com/dining/disney-california-adventure/boardwalk-pizza-pasta/',
+  'cafe daisy': 'https://disneyland.disney.go.com/dining/disneyland/cafe-daisy/',
+  'cafe orleans': 'https://disneyland.disney.go.com/dining/disneyland/cafe-orleans/',
+  'carnation': 'https://disneyland.disney.go.com/dining/disneyland/carnation-cafe/',
+  'carthay circle': 'https://disneyland.disney.go.com/dining/disney-california-adventure/carthay-circle-restaurant/',
+  'carthay circle lounge': 'https://disneyland.disney.go.com/dining/disney-california-adventure/carthay-circle-lounge/',
+  'cocina cucamonga mexican': 'https://disneyland.disney.go.com/dining/disney-california-adventure/cocina-cucamonga-mexican-grill/',
+  'cozy cones': 'https://disneyland.disney.go.com/dining/disney-california-adventure/cozy-cone-motel/',
+  'docking bay 7 food cargo': 'https://disneyland.disney.go.com/dining/disneyland/docking-bay-7-food-and-cargo/',
+  'fiddler fifer practical': 'https://disneyland.disney.go.com/dining/disney-california-adventure/fiddler-fifer-and-practical-cafe/',
+  'flo s v 8': 'https://disneyland.disney.go.com/dining/disney-california-adventure/flos-v8-cafe/',
+  'galactic': 'https://disneyland.disney.go.com/dining/disneyland/galactic-grill/',
+  'ghirardelli soda fountain chocolate shop': 'https://disneyland.disney.go.com/dining/disney-california-adventure/ghirardelli-soda-fountain-and-chocolate-shop/',
+  'golden horseshoe': 'https://disneyland.disney.go.com/dining/disneyland/golden-horseshoe/',
+  'harbour galley': 'https://disneyland.disney.go.com/dining/disneyland/harbour-galley/',
+  'jolly holiday': 'https://disneyland.disney.go.com/dining/disneyland/jolly-holiday-bakery-cafe/',
+  'lamplight lounge': 'https://disneyland.disney.go.com/dining/disney-california-adventure/lamplight-lounge/',
+  'lucky fortune cookery': 'https://disneyland.disney.go.com/dining/disney-california-adventure/lucky-fortune-cookery/',
+  'magic key terrace': 'https://disneyland.disney.go.com/dining/disney-california-adventure/magic-key-terrace/',
+  'mint julep': 'https://disneyland.disney.go.com/dining/disneyland/mint-julep-bar/',
+  'oga s cantina': 'https://disneyland.disney.go.com/dining/disneyland/ogas-cantina/',
+  'paradise garden': 'https://disneyland.disney.go.com/dining/disney-california-adventure/paradise-garden-grill/',
+  'plaza inn': 'https://disneyland.disney.go.com/dining/disneyland/plaza-inn/',
+  'pym test kitchen': 'https://disneyland.disney.go.com/dining/disney-california-adventure/pym-test-kitchen/',
+  'rancho del zocalo restaurante': 'https://disneyland.disney.go.com/dining/disneyland/rancho-del-zocalo-restaurante/',
+  'red rose taverne': 'https://disneyland.disney.go.com/dining/disneyland/red-rose-taverne/',
+  'river belle terrace': 'https://disneyland.disney.go.com/dining/disneyland/river-belle-terrace/',
+  'ronto roasters': 'https://disneyland.disney.go.com/dining/disneyland/ronto-roasters/',
+  'shawarma palace': 'https://disneyland.disney.go.com/dining/disney-california-adventure/shawarma-palace/',
+  'smokejumpers': 'https://disneyland.disney.go.com/dining/disney-california-adventure/smokejumpers-grill/',
+  'stage door': 'https://disneyland.disney.go.com/dining/disneyland/stage-door-cafe/',
+  'studio catering co': 'https://disneyland.disney.go.com/dining/disney-california-adventure/studio-catering-co/',
+  'tiana s palace': 'https://disneyland.disney.go.com/dining/disneyland/tianas-palace/',
+  'tropical hideaway': 'https://disneyland.disney.go.com/dining/disneyland/tropical-hideaway/',
+  'wine country trattoria': 'https://disneyland.disney.go.com/dining/disney-california-adventure/wine-country-trattoria/',
+};
+
+// The official Disney page for a seated venue (by canonical key), or the
+// dining hub when the venue has no verified page of its own.
+export function diningPageUrlFor(canonKey) {
+  if (canonKey && DINING_PAGE_URLS[canonKey]) return DINING_PAGE_URLS[canonKey];
+  return DINING_PAGE_HUB;
 }
 
 // ---------------------------------------------------------------------------
@@ -3262,6 +3332,7 @@ export function deterministicBackfill(slot, ctx) {
       const _bdd = diningDetailsFor(ctx.diningDetails, _bKey);
       const _bCard = { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '', venue: pick.name, venueService: pick.service || '', venueResPolicy: pick.reservationPolicy || '' };
       if (_bdd) _bCard.dining = _bdd;
+      _bCard.diningUrl = diningPageUrlFor(_bKey);
       return _bCard;
     }
   }
