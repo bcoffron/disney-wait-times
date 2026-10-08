@@ -69,8 +69,40 @@ const PARK_CLOSE_HOUR_PT = 24; // midnight PT (rides can run to ~midnight)
 // gate re-fires, scoped to the PT day (state resets daily). The client
 // renders a given episode at most once per session under this ID.
 // Format: ep:<tripId>:<rideKey>:<episodeType>:<ymd>
-function episodeIdFor(tripId, rideKey, episodeType, ymd) {
-  return 'ep:' + tripId + ':' + rideKey + ':' + episodeType + ':' + ymd;
+//
+// Fire-instance discriminator (Claude msg 88): "the episode ID identifies
+// one monitor fire, not one ride-type-day." The plain tuple dedupes repeated
+// TRANSPORT deliveries of one fire, but it also merges distinct fires hours
+// apart -- a post-cooldown re-fire of the same ride/type/day is a NEW event
+// and must render again. So the re-fireable threshold types (spike / drop /
+// high) carry a send-count suffix (:f<n>) sourced from THIS monitor's own
+// wait-state (rec.fireCounts below), stamped here at send time --
+// monitor-authoritative, never derived client-side (a client-derived value
+// would give transport duplicates different IDs and double-pop). down / up
+// keep the plain tuple: they are one-time state transitions per
+// closure/reopening, not recurring threshold events.
+// Format: ep:<tripId>:<rideKey>:<episodeType>:<ymd>:f<n>
+function episodeIdFor(tripId, rideKey, episodeType, ymd, fireCount) {
+  const base = 'ep:' + tripId + ':' + rideKey + ':' + episodeType + ':' + ymd;
+  return (typeof fireCount === 'number' && fireCount > 0) ? base + ':f' + fireCount : base;
+}
+
+// The instance number the NEXT fire of this episode type for this ride
+// carries: the monitor's persisted send count for the episode, + 1.
+// Computed at payload build; committed by commitFireCount ONLY after the
+// fire actually sends (r.sent > 0), the same discipline as the per-type
+// alert flags -- a failed send consumes no count, so the retry carries the
+// same instance identity as the original attempt.
+function nextFireCount(rec, episodeType) {
+  const fc = rec && rec.fireCounts;
+  const n = (fc && typeof fc[episodeType] === 'number') ? fc[episodeType] : 0;
+  return n + 1;
+}
+function commitFireCount(state, rideKey, episodeType, n) {
+  const rec = state.rides[rideKey] || {};
+  if (!rec.fireCounts || typeof rec.fireCounts !== 'object') rec.fireCounts = {};
+  rec.fireCounts[episodeType] = n;
+  state.rides[rideKey] = rec;
 }
 
 // Parse a schedule item time like "8:00 AM" into minutes since midnight; -1 if unparseable.
@@ -561,16 +593,19 @@ export default async function handler(req, res) {
         spikes.sort((a, b) => b.to - a.to);
         const worst = spikes[0];
         const more = spikes.length > 1 ? (' (+' + (spikes.length - 1) + ' more)') : '';
+        const spikeKey = normName(worst.name);
+        const spikeFire = nextFireCount(state.rides[spikeKey], 'spike');
         const payload = {
           title: 'Wait spike on your plan',
           body: worst.name + ' just jumped to ~' + worst.to + ' min' + more + '. Tap for better options.',
           url: '/app.html',
           tag: 'tpcp-wait-spike',
           class: 'ride-update',
-          episodeId: episodeIdFor(tripId, normName(worst.name), 'spike', pt.ymd)
+          episodeId: episodeIdFor(tripId, spikeKey, 'spike', pt.ymd, spikeFire)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
+        if (r.sent > 0) commitFireCount(state, spikeKey, 'spike', spikeFire);
       } else if (backUps.length) {
         const u = backUps[0];
         const more = backUps.length > 1 ? (' (+' + (backUps.length - 1) + ' more)') : '';
@@ -594,34 +629,39 @@ export default async function handler(req, res) {
       } else if (highs.length) {
         highs.sort((a, b) => b.to - a.to);
         const worst = highs[0];
+        const highFire = nextFireCount(state.rides[worst.key], 'high');
         const payload = {
           title: 'Heads up on your plan',
           body: worst.name + ' is running ~' + worst.to + ' min right now \u2014 want to rework your next move?',
           url: '/app.html',
           tag: 'tpcp-wait-high',
           class: 'ride-update',
-          episodeId: episodeIdFor(tripId, worst.key, 'high', pt.ymd)
+          episodeId: episodeIdFor(tripId, worst.key, 'high', pt.ymd, highFire)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
         if (r.sent > 0) {
           state.lastHighAlertMin = nowMin;
           if (state.rides[worst.key]) state.rides[worst.key].highAlerted = true;
+          commitFireCount(state, worst.key, 'high', highFire);
         }
       } else if (drops.length) {
         // opportunistic, gentle: pick the biggest drop (lowest current wait)
         drops.sort((a, b) => a.to - b.to);
         const best = drops[0];
+        const dropKey = normName(best.name);
+        const dropFire = nextFireCount(state.rides[dropKey], 'drop');
         const payload = {
           title: 'Short wait on your plan',
           body: best.name + ' just dropped to ~' + best.to + ' min and it\u2019s on your plan \u2014 want to grab it now?',
           url: '/app.html',
           tag: 'tpcp-wait-drop',
           class: 'ride-update',
-          episodeId: episodeIdFor(tripId, normName(best.name), 'drop', pt.ymd)
+          episodeId: episodeIdFor(tripId, dropKey, 'drop', pt.ymd, dropFire)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
+        if (r.sent > 0) commitFireCount(state, dropKey, 'drop', dropFire);
       }
 
       await writeJsonBlob(stateKey, state);
