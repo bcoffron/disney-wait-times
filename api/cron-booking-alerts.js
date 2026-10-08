@@ -532,6 +532,43 @@ async function sendApnsToTrip(tripCode, payloadObj) {
   return { sent, failed, pruned };
 }
 
+// ---- shared dual-channel fire (composed for api/push-test.js) -----------
+// configureWebPush(): idempotent VAPID setup for callers outside this
+// cron's handler. The handler keeps its own inline setup (it resets
+// _vapidConfigured each run so its kill-switch posture is unchanged);
+// this helper only fills the gap for a cold module instance.
+export function configureWebPush() {
+  if (_vapidConfigured) return true;
+  const pub = process.env.VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  const subj = process.env.VAPID_SUBJECT || 'mailto:hello@themeparkcopilot.com';
+  if (!pub || !priv) return false;
+  try { webpush.setVapidDetails(subj, pub, priv); _vapidConfigured = true; }
+  catch (e) { console.warn('[booking-alerts] VAPID config invalid: ' + e.message); }
+  return _vapidConfigured;
+}
+
+// fireTripPush(tripCode, payloadObj): THE dual-channel send path the
+// crons use, composed -- web subscriptions (sendToTrip) + native APNs
+// devices (sendApnsToTrip) for ONE trip-code bucket, with the same
+// dead-sub / dead-token pruning the crons apply. Imported by
+// api/push-test.js so the on-demand test exercises the REAL production
+// path (Claude msg 76: only the trigger differs). Writes NO dedupe
+// markers of any kind -- marker discipline belongs to the callers (the
+// crons write state.sent only after a successful send; the test
+// endpoint never writes markers at all).
+export async function fireTripPush(tripCode, payloadObj) {
+  configureWebPush();
+  const w = await sendToTrip(tripCode, payloadObj);
+  const a = await sendApnsToTrip(tripCode, payloadObj);
+  return {
+    web: w, apns: a,
+    sent: (w.sent || 0) + (a.sent || 0),
+    failed: (w.failed || 0) + (a.failed || 0),
+    pruned: (w.pruned || 0) + (a.pruned || 0)
+  };
+}
+
 export default async function handler(req, res) {
   // ---- AUTH FIRST (internal only) ----
   const secret = process.env.CRON_SECRET;
