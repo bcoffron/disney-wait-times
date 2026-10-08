@@ -4469,7 +4469,35 @@ async function getReroute(ride,land,btn){
       returnHint=' Return to '+ride+' during '+blockLabels[dropBlock]+' for shorter waits.';
     }
   }
-  dn=['Sunday Jun 28','Monday Jun 29 (VIP Tour)','Tuesday Jun 30'][curDay];
+  // Day label + group come from THIS trip's real data (Claude msg 62,
+  // ruling 6: real trip data or nothing). The old line hardcoded the June
+  // trip's day labels -- and, in the prompt below, that trip's party of
+  // nine adults-and-teens -- into every trip's live reroute prompt. Anything
+  // not actually known
+  // about this trip is omitted from the prompt, never invented.
+  var _rrDay='', _rrGroup='';
+  try{
+    var _rrDays=(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.days)||[];
+    var _rrDy=_rrDays[curDay]||null;
+    if(_rrDy&&_rrDy.date){
+      var _rrDt=new Date(_rrDy.date);
+      if(!isNaN(_rrDt.getTime())){
+        var _rrWd=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        var _rrMo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        _rrDay=_rrWd[_rrDt.getDay()]+' '+_rrMo[_rrDt.getMonth()]+' '+_rrDt.getDate()+(_rrDy.isVip?' (VIP Tour)':'');
+      }
+    }
+  }catch(e){}
+  try{
+    var _rrTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
+    var _rrGp=_rrTc.groupProfile||{};
+    var _rrSd={}; try{ _rrSd=JSON.parse(localStorage.getItem('setup_data')||'{}'); }catch(e2){}
+    var _rrSize=(typeof _rrGp.size==='number'&&_rrGp.size>0)?_rrGp.size:((typeof _rrSd.groupSize==='number'&&_rrSd.groupSize>0)?_rrSd.groupSize:((typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.party&&TRIP_CONFIG.party.length)?TRIP_CONFIG.party.length:0));
+    var _rrAges=(Array.isArray(_rrGp.ages)&&_rrGp.ages.length)?_rrGp.ages:((Array.isArray(_rrSd.ages)&&_rrSd.ages.length)?_rrSd.ages:null);
+    if(_rrSize>0) _rrGroup='Group of '+_rrSize+(_rrAges?': '+_rrAges.join(', '):'');
+  }catch(e){}
+  var _rrCtx=[_rrGroup,(_rrDay?'on '+_rrDay:'')].filter(Boolean).join(' ');
+  if(_rrCtx) _rrCtx=_rrCtx.charAt(0).toUpperCase()+_rrCtx.slice(1)+'. ';
   // Short wait - suggest riding now
   if(wait<30){
     res.innerHTML='<div class="rr-hdr">&#x26A1; WAIT CHECK \u2014 '+statusMsg.toUpperCase()+'</div>'
@@ -4485,7 +4513,7 @@ async function getReroute(ride,land,btn){
     btn.disabled=false; return;
   }
   try{
-    var prompt_txt='Disneyland expert. Group of 9 adults+teens on '+dn+'. '+ride+' in '+land+' has a LIVE wait of '+wait+' min right now. ';
+    var prompt_txt='Disneyland expert. '+_rrCtx+ride+' in '+land+' has a LIVE wait of '+wait+' min right now. ';
     if(altWaitsStr) prompt_txt+='Nearby rides right now: '+altWaitsStr+'. ';
     if(returnHint) prompt_txt+='WAIT_PATTERNS suggest: '+returnHint+' ';
     if(wait<45) prompt_txt+='Moderate wait. In 2-3 friendly sentences, advise whether to ride now or skip, naming specific alternatives by name and their actual wait times. Include a specific return time from wait patterns if available.';
@@ -4535,74 +4563,16 @@ async function reoptimize(){ if(!isAdmin()) return;
 
   var dn=(function(){try{var _td2=(TRIP_CONFIG.days||[]);var _dy2=_td2[curDay]||_td2[0];if(_dy2&&_dy2.date){var _wd2=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];var _mo2=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];var _dd2=new Date(_dy2.date);return _wd2[_dd2.getDay()]+' '+_mo2[_dd2.getMonth()]+' '+_dd2.getDate();}}catch(e){}return 'Day '+(curDay+1);})();
   data=getCurDay();
-  var summary='';
-  data.sections.forEach(function(sec){
-    summary+=sec.title+':\n';
-    sec.entries.forEach(function(e){summary+='  '+e.t+' - '+e.h+' ('+e.type+')\n';});
-  });
-
-  // Only use live wait data if we're actually at the park (Jun 28-30)
-  var today=new Date();
-  var _cfgD=(TRIP_CONFIG.days||[]);var _fd=new Date(_cfgD.length?_cfgD[0].date:Date.now());var _ld=new Date(_cfgD.length?_cfgD[_cfgD.length-1].date:Date.now());
-  var tripStart=_fd;
-  var tripEnd=new Date(_ld.getTime()+24*60*60*1000);
-  var tripStartDate=new Date(_fd.getFullYear(),_fd.getMonth(),_fd.getDate());var tripEndDate=new Date(_ld.getFullYear(),_ld.getMonth(),_ld.getDate()+1);var todayDate=new Date();todayDate.setHours(0,0,0,0);var atPark=todayDate>=tripStartDate&&todayDate<tripEndDate;
-  var preTrip=!atPark;
-
-  // Build live wait times context
-  liveWaitContext='';
-  var liveAvailable=atPark&&Object.keys(waits).length>0;
-  if(!atPark)liveWaitContext='Use historical wait time data and web search for Disneyland crowd patterns on the trip dates. ';
-  // Inject cached intel
-  var parkIntelCtx='',eventsIntelCtx='';
-  try{var pi=typeof getParkIntel==='function'?getParkIntel():null;if(pi&&pi.length>100)parkIntelCtx='\nPARK INTELLIGENCE:\n'+pi.substring(0,1500);}catch(e){}
-  try{var ei=typeof getEventsIntel==='function'?getEventsIntel():null;if(ei&&ei.length>50)eventsIntelCtx='\nSPECIAL EVENTS:\n'+ei.substring(0,400);}catch(e){}
-  var hasCache=parkIntelCtx.length>0;
-  if(liveAvailable){
-    var waitLines=[];
-    Object.values(waits).forEach(function(r){
-      if(r.s==='OPERATING'&&r.w!==null) waitLines.push(r.name+': '+r.w+' min');
-      else if(r.s!=='OPERATING') waitLines.push(r.name+': CLOSED');
-    });
-    liveWaitContext='LIVE WAIT TIMES RIGHT NOW (use these to override historical estimates where available): '+waitLines.join(', ')+'. ';
-  } else {
-    liveWaitContext='No live wait data available \u2014 relying on historical patterns only. ';
-  }
-  if(!atPark){
-    liveWaitContext='Trip is not today \u2014 optimizing based on historical wait patterns for the trip dates. Do not reference live data. ';
-  }
-
-  // All rides available at each park for potential additions
-  var dlRides='Available Disneyland rides to potentially add: Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Haunted Mansion, Indiana Jones Adventure, Tiana\u2019s Bayou Adventure, Millennium Falcon: Smugglers Run, Rise of the Resistance, Star Tours, Finding Nemo Submarine, Autopia, Roger Rabbit\u2019s Car Toon Spin, Mickey & Minnie\u2019s Runaway Railway, Peter Pan\u2019s Flight, Snow White\u2019s Enchanted Wish, Mr. Toad\u2019s Wild Ride, Dumbo, Mad Tea Party, it\u2019s a small world.';
-  var dcaRides='Available DCA rides to potentially add: Radiator Springs Racers, Guardians of the Galaxy Mission Breakout, Incredicoaster, Toy Story Midway Mania, Web Slingers, Soarin\u2019 Over California, Grizzly River Run, Luigi\u2019s Rollickin\u2019 Roadsters, Mater\u2019s Junkyard Jamboree, Monsters Inc, PhilharMagic, Pixar Pal-A-Round, Little Mermaid, Goofy\u2019s Sky School.';
-
-  var walkTimes='Walking times (minutes): Main St to Tomorrowland:5, Main St to Fantasyland:7, Main St to New Orleans Square:8, Main St to Frontierland:9, Main St to Adventureland:8, Main St to Galaxy Edge:12, Tomorrowland to Galaxy Edge:10, Galaxy Edge to New Orleans Square:8, New Orleans Square to Fantasyland:6, New Orleans Square to Frontierland:3, Frontierland to Adventureland:4, Disneyland to DCA park hop:15, DCA Avengers to Cars Land:8, DCA Avengers to Pixar Pier:10, DCA Pixar Pier to Grizzly Peak:7. Show positioning: Fantasmic needs 40min early, Paint the Night needs 30min early, World of Color needs 20min early, Fireworks needs 15min early.';
-
-  var diningWisdom='DINING TIMING RULES: Avoid 12:00-1:30 PM and 6:00-7:30 PM (peak rush). Best lunch: 11:00-11:30 AM or 2:00-3:00 PM. Best dinner: 5:00-5:30 PM or 8:00-8:30 PM. Only move dining entries that have no fixed reservation time.';
-
-  try{
-    var skipList=[];
-    var storedRefurbs=getStoredRefurbs();
-    if(storedRefurbs&&Array.isArray(storedRefurbs))storedRefurbs.forEach(function(r){if(skipList.indexOf(r)===-1)skipList.push(r);});
-    if(waits&&typeof waits==='object'){Object.values(waits).forEach(function(r){if(r&&(r.s==='CLOSED'||r.s==='REFURBISHMENT'||r.s==='DOWN')){var name=r.name||'';if(name&&skipList.indexOf(name)===-1)skipList.push(name);}});}
-    if(skipList.length>0)constraintRules+=' 6) CLOSED RIDES: NEVER suggest these rides, they are confirmed closed: '+skipList.join(', ')+'. Hard constraint.';
-  }catch(e){}
-
-  var freedomRules='OPTIMIZATION FREEDOM: '
-    +'You have full freedom to reorganize rides throughout the day to create the most efficient route. '
-    +'You MAY add new ride entries if gaps in the schedule exist and the ride makes geographic/timing sense \u2014 use the available rides lists above. '
-    +'When adding entries, use this format: {t:"TIME",h:"RIDE NAME",n:"Brief note",type:"ride",ride:"EXACT RIDE NAME",land:"LAND NAME"}. '
-    +'Balance live wait data with historical patterns: if a ride shows a short live wait right now, move it earlier in the day. If a ride shows a very long live wait, push it to evening when waits historically drop. '
-    +'If live wait data is unavailable for a specific ride, use historical patterns only for that ride.';
-
-  var prompt='You are an expert Disneyland touring planner. Optimize the FULL DAY schedule for a group of 9 adults and teens on '+dn+'. '
-    +liveWaitContext
-    +walkTimes+' '
-    +diningWisdom+' '
-    +constraintRules+' '
-    +freedomRules+' '
-    +(curDay===0?dlRides:curDay===2?dcaRides+' '+dlRides:dlRides)+' '
-    +'Respond with: 1) 3-4 sentences explaining the key changes made, which live vs historical data influenced decisions, any rides added, and dining timing changes. 2) Full updated sections array as JSON in JSONSTART[ ]JSONEND markers matching the exact structure: '+JSON.stringify(data.sections)+'. Current schedule:\n'+summary;
+  // (Oct 7, 2026 -- Claude msg 62, ruling 6) A full client-side prompt used
+  // to be built here: live-wait context, park-intel snippets, available-ride
+  // lists, walk times, dining/freedom rules -- and a hardcoded party of
+  // nine adults-and-teens from the June trip. It was DEAD: nothing ever sent it
+  // (runReoptimize posts the structured payload assembled below, and no code
+  // read the prompt or the blocks that existed only to build it, including
+  // the CLOSED RIDES append to the global constraintRules string). Deleted
+  // wholesale so a future refactor cannot revive it. The now-unreferenced
+  // global `constraintRules` definition is left in place for a separate
+  // cleanup call.
 
   var tripDays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||[];
     var currentDayConfig=tripDays[curDay]||{};
