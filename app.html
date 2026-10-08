@@ -6511,25 +6511,8 @@ async function loadKnowBeforeYouGo(){
   el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">( Generating your personalized briefing...</div>';
   var sd={};try{sd=JSON.parse(localStorage.getItem('setup_data')||'{}');}catch(e){}
   var setupDone=localStorage.getItem('setup_done')==='yes';
-  var size=sd.groupSize||4;
-  var ages=sd.ages&&sd.ages.length?sd.ages.join(', '):'adults and kids (typical family)';
-  var thrill=sd.thrill||'Mix of thrill and family rides';
-  var pace=sd.pace||'Balanced';
-  var startTime=sd.startTime||'Rope drop';
-  var ll=sd.ll||'Undecided on Lightning Lane';
-  var dining=sd.dining||'Mix of quick service and table service';
-  var mustRides=sd.mustRides&&sd.mustRides.length?sd.mustRides.join(', '):'not specified yet';
-  var skipRides=sd.skipRides&&sd.skipRides.length?sd.skipRides.join(', '):'none specified';
-  var chars=sd.wantsChars?'Yes':'No';
-  var charList='';
-  if(sd.charsDL&&sd.charsDL.length)charList+=sd.charsDL.join(', ');
-  if(sd.charsDCA&&sd.charsDCA.length)charList+=(charList?', ':'')+sd.charsDCA.join(', ');
   var _kbygRange=tpcpTripRangeLabel();
-  var groupCtx='GROUP: '+size+' people | Ages: '+ages+' | Ride style: '+thrill+' | Pace: '+pace
-    +' | Arrival: '+startTime+' | Lightning Lane: '+ll+' | Dining: '+dining
-    +' | Must-rides: '+mustRides+' | Skip list: '+skipRides
-    +' | Character meets: '+chars+(charList?' ('+charList+')':'')+'\nTRIP: Disneyland Resort'+(_kbygRange?', '+_kbygRange:'')+', Anaheim CA\n';
-  var prompt=groupCtx+'Write a Know Before You Go briefing HIGHLY SPECIFIC to this exact group. Every tip must address their group size, ages, preferences, and pace. Cover:\n\n1. **Crowd & Timing Reality** - crowds during this trip and how '+size+' people affects wait times\n2. **Morning Strategy** - exactly how to execute their arrival to hit must-rides before crowds\n3. **Group Logistics** - keeping '+size+' people together: meeting points, splitting up, communication, the group slowdown factor\n4. **Lightning Lane Strategy** - specific LL advice for their plan and group size\n5. **Energy & Pacing** - realistic pacing for their preference and dining style\n6. **The #1 Mistake Groups of '+size+' Make** - the most common error and how to avoid it\n7. **Your Group Secret Weapon** - one specific advantage their profile gives them\n\nBold all key actions and ride names. Be brutally specific - no generic advice.'
+  // KBYG sends exactly one prompt: the inline _aiProxy request below. (Msg 68 reconcile: a former rich briefing-prompt construction here was built but never sent -- dead code, deleted, not wired in.)
   try{
     var resp=await _aiProxy({model:'claude-sonnet-4-6',max_tokens:200,
         messages:[{role:'user',content:'Give 5 Disneyland tips for a family visiting Disneyland'+(_kbygRange?' ('+_kbygRange+')':'')+'. Format EXACTLY as: 1. [tip] 2. [tip] 3. [tip] 4. [tip] 5. [tip]. Each tip must be under 15 words. No intro text.'}]});
