@@ -5,6 +5,10 @@ import { put, list, del } from '@vercel/blob';
 // computation (computeTripSurfacing) in the POST handler: it reads the final
 // stored schedule and reports; it never mutates anything.
 import { buildCatalogIndex, computeTripSurfacing, parseCatalogVenues, correctVenueServices, scanTripProseForwardFlags } from './scaffold.js';
+// Plan-changed notifications (restoration step iv): this POST is the single
+// persistence seam for schedules, so the material-change diff, the schedule
+// version stamp, and the notify call all live here (see api/plan-changed.js).
+import { notePlanChange, diffScheduleDays, safeDeviceToken } from './plan-changed.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment so their fixed public
@@ -425,9 +429,18 @@ export default async function handler(req, res) {
       if (entry.role === 'admin') {
         await ensureGuestPair(registry, code);
       }
-      // Auto-stamp scheduleVersion so client caches are invalidated on every save
+      // Plan-changed (step iv): capture the pre-save stored blob and the
+      // originating device's push token (the client sends its stashed
+      // token with the write; older clients send none, which at notify
+      // time means no exclusion). The stored snapshot is what the
+      // material-change diff below compares the final, post-merge-guard
+      // schedule against. The scheduleVersion stamp itself moved below
+      // the merge guard: the version now moves ONLY on a material
+      // schedule change (see the stamp block there).
+      const _pcOriginToken = safeDeviceToken(body && body.deviceToken);
+      let _pcStored = null;
+      try { _pcStored = await readTripBlob(entry.tripId); } catch (e) { _pcStored = null; }
       if (tripData && tripData.tripConfig) {
-        tripData.tripConfig.scheduleVersion = Date.now().toString();
         if (entry.guestCode && !tripData.tripConfig.guestCode) {
           tripData.tripConfig.guestCode = entry.guestCode;
         }
@@ -475,10 +488,52 @@ export default async function handler(req, res) {
           }
         }
       } catch (e) { /* best-effort: never block a save */ }
+      // Plan-changed version stamp (step iv): computed against the FINAL
+      // schedule (post merge-guard -- exactly what is about to be
+      // stored). The version moves ONLY when a day's card sequence
+      // materially changed (membership, order, or times --
+      // diffScheduleDays in api/plan-changed.js), and it is monotonic:
+      // max(now, stored + 1). A save that leaves the schedule untouched
+      // (settings-only edits, an identical regeneration, a
+      // non-reflowing write, Optimize-then-Keep-current) keeps the
+      // stored version: no bump, and below, no push. The stamped value
+      // is the version the plan-changed payload carries and the one
+      // clients record as applied through the blob poll -- the client's
+      // foreground suppression compares the two.
+      let _pcNotify = null;
+      try {
+        const _pcStoredTc = (_pcStored && _pcStored.tripConfig) || null;
+        const _pcStoredVersion = _pcStoredTc ? (parseInt(_pcStoredTc.scheduleVersion, 10) || 0) : 0;
+        const _pcStoredDays = _pcStoredTc && _pcStoredTc.schedule && _pcStoredTc.schedule.days;
+        const _pcFinalDays = tripData && tripData.tripConfig && tripData.tripConfig.schedule && tripData.tripConfig.schedule.days;
+        const _pcDiff = diffScheduleDays(_pcStoredDays, _pcFinalDays);
+        let _pcVersion;
+        if (_pcDiff.changed) _pcVersion = Math.max(Date.now(), _pcStoredVersion + 1);
+        else _pcVersion = _pcStoredVersion > 0 ? _pcStoredVersion : Date.now();
+        if (tripData && tripData.tripConfig) tripData.tripConfig.scheduleVersion = String(_pcVersion);
+        // Notify only when a schedule someone could already be looking
+        // at changed: a first schedule landing on a stored trip (or a
+        // brand-new trip) stamps its version but sends nothing.
+        const _pcStoredHadSchedule = Array.isArray(_pcStoredDays) && _pcStoredDays.some(d => d && Array.isArray(d.items) && d.items.length);
+        if (_pcDiff.changed && _pcStoredHadSchedule) {
+          _pcNotify = { version: _pcVersion, changedDays: _pcDiff.changedDays };
+        }
+      } catch (e) { /* best-effort: versioning must never block a save */ }
       // Save to shared trip blob
       await writeTripBlob(entry.tripId, tripData);
       const _blobBodyLen = JSON.stringify(tripData).length;
       console.log('[ptFinish] trip blob write status: 200, bytes written: ' + _blobBodyLen + ', tripId: ' + entry.tripId);
+
+      // Plan-changed notify (step iv): after the write lands, record the
+      // material change -- notePlanChange sends immediately or queues
+      // behind the per-trip debounce window (api/plan-changed.js).
+      // Failure-isolated: a notify failure never affects the save.
+      if (_pcNotify) {
+        try {
+          const _pcRes = await notePlanChange({ tripId: entry.tripId, presentedCode: code, version: _pcNotify.version, changedDays: _pcNotify.changedDays, originToken: _pcOriginToken });
+          console.log('[plan-changed] trip ' + entry.tripId + ' v' + _pcNotify.version + ' days ' + _pcNotify.changedDays.join(',') + ' -> ' + JSON.stringify(_pcRes));
+        } catch (e) { console.warn('[plan-changed] notify failed (save unaffected)', e && e.message); }
+      }
 
       // Trip-level must-do surfacing (Oct 7, 2026): computed ONCE, here at
       // the save seam, against the schedule exactly as stored (post
