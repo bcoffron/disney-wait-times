@@ -856,7 +856,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tpcp-place-name{font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;color:#173A5E}
 .tpcp-place-sub{font-size:12px;color:#4A7A7C;margin:2px 0 10px}
 .tpcp-place-dir{width:100%;border:0;background:#1A6860;color:#fff;border-radius:10px;padding:11px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
-.tpcp-layer-row{position:absolute;top:10px;right:10px;z-index:900;display:flex;gap:6px}
+.tpcp-layer-row{position:absolute;top:10px;right:10px;z-index:900;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 24px)}
 .tpcp-layer-chip{border:0;background:rgba(255,255,255,.94);border-radius:999px;padding:7px 12px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#173A5E;box-shadow:0 1px 5px rgba(0,0,0,.2);cursor:pointer}
 .tpcp-layer-chip.on{background:#173A5E;color:#fff}
 .tpcp-sheet{position:fixed;inset:0;background:rgba(10,25,35,.45);z-index:2500;display:none}
@@ -8086,16 +8086,17 @@ function tpcpConfirmSwap() {
     <button class="tpcp-map-back" onclick="closeParkMap()" aria-label="Back">&#8592; Back</button>
     <div class="tpcp-map-title">Park Map</div>
     <div class="tpcp-park-toggle">
-      <button id="tpcpParkDL" onclick="switchParkMap('DL')">Disneyland</button>
-      <button id="tpcpParkDCA" onclick="switchParkMap('DCA')">California Adventure</button>
+      <button id="tpcpZoomResort" class="on" onclick="tpcpZoomMap('resort')">Resort</button>
+      <button id="tpcpZoomDL" onclick="tpcpZoomMap('DL')">Disneyland</button>
+      <button id="tpcpZoomDCA" onclick="tpcpZoomMap('DCA')">California Adventure</button>
     </div>
   </div>
   <div class="tpcp-map-body">
     <div class="tpcp-map-el" id="tpcpFullMap"></div>
     <div class="tpcp-layer-row">
       <button class="tpcp-layer-chip on" id="tpcpChipPlaces" onclick="toggleMapLayer('places')">Rides &amp; Food</button>
-      <button class="tpcp-layer-chip" id="tpcpChipRR" onclick="toggleMapLayer('restrooms')">Restrooms</button>
       <button class="tpcp-layer-chip" id="tpcpChipSvc" onclick="toggleMapLayer('services')">Services</button>
+      <button class="tpcp-layer-chip" id="tpcpChipSE" onclick="toggleMapLayer('se')">Shops &amp; Entertainment</button>
     </div>
     <div class="tpcp-place-card" id="tpcpPlaceCard">
       <div class="tpcp-place-name" id="tpcpPlaceName"></div>
@@ -8297,7 +8298,7 @@ function tpcpInitMiniMap() {
   }).catch(function () { var h = document.getElementById('tpcpMiniMap'); if (h) h.style.display = 'none'; });
 }
 // ---------- Full park map (Info tab) ----------
-var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], svcMarkers: [], showPlaces: true, showRR: false, showSvc: false, selected: null };
+var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], svcMarkers: [], seMarkers: [], showPlaces: true, showRR: false, showSvc: false, showSE: false, selected: null };
 var TPCP_SVC_COLORS = { firstaid: '#C0392B', babycare: '#8E6BC8', lockers: '#4A7A7C', guest: '#1D6FB8', atm: '#5A526E' };
 var TPCP_SVC_LABELS = { firstaid: 'First Aid', babycare: 'Baby Care', lockers: 'Lockers', guest: 'Guest Relations', atm: 'ATM' };
 var _tpcpSpots = {};
@@ -8313,13 +8314,306 @@ function tpcpPopupDir(id) {
   closeParkMap();
   tpcpOpenDirectionsTo(r.park, { name: r.spot.n, lat: r.spot.lat, lon: r.spot.lon, node: r.spot.node });
 }
+// ---------- Resort-wide pins: Downtown Disney, hotels, shops & entertainment ----------
+// Source data: the OSM pin datasets built for this map (every coordinate read
+// from the OSM element behind each row; nothing hand-entered or guessed).
+// Entry shape: [name, lat, lng, layer, zone, kind]; layer is 'places'
+// (Rides & Food), 'services', or 'se' (Shops & Entertainment); zone is
+// 'DL'/'DCA' for in-park rows, else the district/hotel name the popup shows.
+// Categorization (Claude msg 60 + the resort-wide consistency principle: a
+// toggle means the same thing in the parks, Downtown Disney, and the hotels):
+// Downtown Disney dining -> Rides & Food; restrooms -> Services everywhere;
+// shops/entertainment, the Monorail station, the three hotel landmarks and
+// every hotel venue -> Shops & Entertainment. Three dataset rows are NOT
+// pinned below: each is the same facility the DCA graph already pins at the
+// Esplanade seam (Restrooms 33.8091762,-117.9225384; Restrooms
+// 33.8084611,-117.9218602; Chase ATM 33.8090899,-117.922429 — 0 m from the
+// existing DCA pin), so a second dot would double-print one restroom/ATM.
+// Known OSM gaps stay unpinned by design (no invented coordinates):
+// lululemon, Gordon Ramsay at The Carnaby, GCH Craftsman Bar, Castle
+// Heraldry Shoppe, Parkside Market stalls.
+var TPCP_EXTRA_PINS = [
+    ['The Disneyland Hotel',33.8096741,-117.9269509,'se','Disneyland Hotel','hotel'],
+    ['Disney\'s Grand Californian Hotel &amp; Spa',33.8076504,-117.922239,'se','Grand Californian','hotel'],
+    ['Pixar Place Hotel',33.8062619,-117.9249049,'se','Pixar Place Hotel','hotel'],
+    ['Goofy\'s Kitchen',33.8086415,-117.9272985,'se','Disneyland Hotel','dining'],
+    ['Trader Sam\'s Enchanted Tiki Bar',33.8082809,-117.9265806,'se','Disneyland Hotel','bar'],
+    ['Tangaroa Terrace',33.8083929,-117.9267046,'se','Disneyland Hotel','dining'],
+    ['The Coffee House',33.8087999,-117.9272689,'se','Disneyland Hotel','dining'],
+    ['Palm Breeze Bar',33.8082508,-117.9275198,'se','Disneyland Hotel','bar'],
+    ['Broken Spell Lounge',33.808646,-117.9275104,'se','Disneyland Hotel','bar'],
+    ['Disney\'s Fantasia Shop',33.8090655,-117.9271102,'se','Disneyland Hotel','shop'],
+    ['small world Gifts &amp; Sundries',33.8090788,-117.9268839,'se','Disneyland Hotel','shop'],
+    ['Napa Rose',33.8080241,-117.9214791,'se','Grand Californian','dining'],
+    ['Storytellers Cafe',33.8078906,-117.9218592,'se','Grand Californian','dining'],
+    ['GCH Craftsman Grill',33.8074476,-117.9214125,'se','Grand Californian','dining'],
+    ['Hearthstone Lounge',33.8075878,-117.922252,'se','Grand Californian','bar'],
+    ['Acorns Gifts and Goods',33.8079466,-117.9222893,'se','Grand Californian','shop'],
+    ['Tenaya Stone Spa',33.807616,-117.9214642,'services','Grand Californian','spa'],
+    ['Great Maple Modern American Eatery',33.8065521,-117.9244226,'se','Pixar Place Hotel','dining'],
+    ['The Sketch Pad Café',33.806318,-117.9245023,'se','Pixar Place Hotel','dining'],
+    ['Small Bytes',33.8065785,-117.9248831,'se','Pixar Place Hotel','bar'],
+    ['STOR-E',33.8062393,-117.9243885,'se','Pixar Place Hotel','shop'],
+    ['Din Tai Fung',33.8085663,-117.9253745,'places','Downtown Disney','food'],
+    ['Naples Ristorante e Pizzeria',33.8088537,-117.9221035,'places','Downtown Disney','food'],
+    ['Paseo',33.8089188,-117.9227878,'places','Downtown Disney','food'],
+    ['Jazz Kitchen Coastal Grill &amp; Patio',33.8089242,-117.9236365,'places','Downtown Disney','food'],
+    ['Earl of Sandwich',33.8093816,-117.9251662,'places','Downtown Disney','food'],
+    ['Parkside Market',33.8087358,-117.9246988,'places','Downtown Disney','food'],
+    ['Black Tap Craft Burgers &amp; Shakes',33.809313,-117.9229486,'places','Downtown Disney','food'],
+    ['Tiendita',33.8088539,-117.9229642,'places','Downtown Disney','food'],
+    ['Napolini Pizzeria',33.808914,-117.922252,'places','Downtown Disney','food'],
+    ['Beignets Expressed',33.8089925,-117.9234763,'places','Downtown Disney','food'],
+    ['Salt &amp; Straw',33.8089884,-117.922435,'places','Downtown Disney','food'],
+    ['Starbucks',33.808583,-117.921867,'places','Downtown Disney','food'],
+    ['Wetzel\'s Pretzels',33.8091198,-117.922609,'places','Downtown Disney','food'],
+    ['Wetzel\'s Pretzels',33.8088377,-117.920707,'places','Downtown Disney','food'],
+    ['Clyde\'s Hot Chicken',33.8091411,-117.9242179,'places','Downtown Disney','food'],
+    ['Blue Ribbon Corn Dog',33.8091382,-117.9241018,'places','Downtown Disney','food'],
+    ['California Churro Company',33.8091376,-117.92403,'places','Downtown Disney','food'],
+    ['California Churro Company',33.808779,-117.921021,'places','Downtown Disney','food'],
+    ['Diggity Dogs',33.8088357,-117.9206598,'places','Downtown Disney','food'],
+    ['Kayla\'s Cake',33.808704,-117.921607,'places','Downtown Disney','food'],
+    ['Ballast Point',33.8092189,-117.9226588,'places','Downtown Disney','food'],
+    ['Céntrico',33.8090667,-117.922938,'places','Downtown Disney','food'],
+    ['World of Disney',33.8085605,-117.9211248,'se','Downtown Disney','shop'],
+    ['The LEGO Store',33.8087751,-117.9243813,'se','Downtown Disney','shop'],
+    ['Star Wars Trading Post',33.8092816,-117.924868,'se','Downtown Disney','shop'],
+    ['Avengers Reserve',33.8083564,-117.9246673,'se','Downtown Disney','shop'],
+    ['D-Lander',33.8085094,-117.9246708,'se','Downtown Disney','shop'],
+    ['Disney Pin Traders',33.8092108,-117.9244061,'se','Downtown Disney','shop'],
+    ['WonderGround Gallery',33.8089446,-117.922326,'se','Downtown Disney','shop'],
+    ['Disney Home',33.8090442,-117.9231659,'se','Downtown Disney','shop'],
+    ['Disney Dress Shoppe',33.8090168,-117.923279,'se','Downtown Disney','shop'],
+    ['Disney Wonderful World of Sweets',33.8087355,-117.9226781,'se','Downtown Disney','shop'],
+    ['Sephora',33.8086141,-117.922394,'se','Downtown Disney','shop'],
+    ['Curl Surf',33.8085898,-117.9220789,'se','Downtown Disney','shop'],
+    ['Lovepop',33.8089606,-117.9232195,'se','Downtown Disney','shop'],
+    ['Pandora',33.8085942,-117.922175,'se','Downtown Disney','shop'],
+    ['Sunglass Icon Flagship Store',33.8085828,-117.9219625,'se','Downtown Disney','shop'],
+    ['Sunglass Icon Kiosk',33.8091564,-117.9238821,'se','Downtown Disney','shop'],
+    ['Pelé Soccer',33.8089007,-117.923156,'se','Downtown Disney','shop'],
+    ['Nectar Life',33.808288,-117.924667,'se','Downtown Disney','shop'],
+    ['Splitsville Luxury Lanes',33.809616,-117.923011,'se','Downtown Disney','entertainment'],
+    ['Downtown Disney LIVE! Stage',33.8088399,-117.9250787,'se','Downtown Disney','entertainment'],
+    ['Downtown Disney Monorail Station',33.8094008,-117.9245408,'se','Downtown Disney','station'],
+    ['Restrooms',33.8083163,-117.9254595,'services','Downtown Disney','restrooms'],
+    ['Restrooms',33.8086893,-117.924378,'services','Downtown Disney','restrooms'],
+    ['Chase ATM',33.8086881,-117.924451,'services','Downtown Disney','atm'],
+    ['Emporium',33.8105862,-117.9191115,'se','DL','shop'],
+    ['20th Century Music Company',33.8106618,-117.9188482,'se','DL','shop'],
+    ['Main Street Magic Shop',33.8106072,-117.9188482,'se','DL','shop'],
+    ['Mad Hatter of Main Street',33.8104084,-117.9185094,'se','DL','shop'],
+    ['Disney Clothiers LTD.',33.8110448,-117.9188232,'se','DL','shop'],
+    ['Disney Showcase',33.8105576,-117.9188247,'se','DL','shop'],
+    ['Crystal Arcade',33.8107214,-117.9190771,'se','DL','shop'],
+    ['China Closet',33.8113306,-117.9188225,'se','DL','shop'],
+    ['Crystal Arts',33.8112449,-117.9188219,'se','DL','shop'],
+    ['Fortuosity Shop',33.8109286,-117.9190784,'se','DL','shop'],
+    ['New Century Jewelry Shop',33.8108562,-117.9190784,'se','DL','shop'],
+    ['Plaza Point Holiday Shoppe',33.8113981,-117.9188198,'se','DL','shop'],
+    ['Silhouette Studio',33.8112878,-117.9188212,'se','DL','shop'],
+    ['Candy Palace',33.8113269,-117.9191133,'se','DL','shop'],
+    ['Disneyana',33.8101386,-117.9184866,'se','DL','shop'],
+    ['Newsstand',33.8098163,-117.9193688,'se','DL','shop'],
+    ['Adventureland Bazaar',33.8117426,-117.91993,'se','DL','shop'],
+    ['Tropical Imports',33.8116329,-117.9200492,'se','DL','shop'],
+    ['Bonanza Outfitters',33.812049,-117.919921,'se','DL','shop'],
+    ['Pioneer Mercantile',33.8119556,-117.9199502,'se','DL','shop'],
+    ['Westward Ho Trading Co.',33.8122277,-117.9197213,'se','DL','shop'],
+    ['Silver Spurs Supplies',33.8120553,-117.9200684,'se','DL','shop'],
+    ['Crockett and Russell Hat Co.',33.8120563,-117.9201452,'se','DL','shop'],
+    ['Dry Goods',33.8120517,-117.9199974,'se','DL','shop'],
+    ['Ray\'s Berets',33.8123783,-117.92224,'se','DL','shop'],
+    ['Cristal d\'Orleans',33.8110898,-117.9213487,'se','DL','shop'],
+    ['Eudora\'s Chic Boutique',33.8110109,-117.9213795,'se','DL','shop'],
+    ['Pieces of Eight',33.8110908,-117.9211168,'se','DL','shop'],
+    ['Port Royal Curios and Curiosities',33.8112009,-117.9209965,'se','DL','shop'],
+    ['Mlle. Antoinette\'s Parfumerie',33.8111524,-117.9214412,'se','DL','shop'],
+    ['Pandora',33.8110637,-117.921509,'se','DL','shop'],
+    ['Madame Leota\'s Somewhere Beyond',33.8119579,-117.9221531,'se','DL','shop'],
+    ['Louis\' Critter Club',33.8120658,-117.9232446,'se','DL','shop'],
+    ['Pooh Corner',33.8121614,-117.9232643,'se','DL','shop'],
+    ['Bibbidi Bobbidi Boutique',33.8129422,-117.9191257,'se','DL','shop'],
+    ['Enchanted Chamber',33.8127926,-117.9190259,'se','DL','shop'],
+    ['Merlin\'s Marvelous Miscellany',33.8129306,-117.9188678,'se','DL','shop'],
+    ['Fairy Tale Treasures',33.8124546,-117.9195796,'se','DL','shop'],
+    ['Fantasy Faire Gifts',33.8142297,-117.918122,'se','DL','shop'],
+    ['Mad Hatter of Fantasyland',33.8134352,-117.9185397,'se','DL','shop'],
+    ['Le Petit Chalet',33.8136825,-117.9179036,'se','DL','shop'],
+    ['"it\'s a small world" Toy Shop',33.8144561,-117.9180665,'se','DL','shop'],
+    ['Royal Reception',33.8134668,-117.9192838,'se','DL','shop'],
+    ['Fairytale Arts',33.8133355,-117.9173584,'se','DL','shop'],
+    ['Engineear Souvenirs',33.8155927,-117.9184247,'se','DL','shop'],
+    ['Black Spire Outfitters',33.8144613,-117.9217017,'se','DL','shop'],
+    ['Creature Stall',33.8143492,-117.9217422,'se','DL','shop'],
+    ['Toydarian Toymaker',33.8144533,-117.9217796,'se','DL','shop'],
+    ['Dok-Ondar\'s Den of Antiquities',33.8146259,-117.9212114,'se','DL','shop'],
+    ['Droid Depot',33.8142776,-117.9209873,'se','DL','shop'],
+    ['Savi\'s Workshop',33.8144229,-117.9210312,'se','DL','shop'],
+    ['First Order Cargo',33.8145417,-117.9203437,'se','DL','shop'],
+    ['Resistance Supply',33.8139772,-117.9228161,'se','DL','shop'],
+    ['Jewls of Bith',33.81436,-117.9216757,'se','DL','shop'],
+    ['Star Trader',33.8118478,-117.9173952,'se','DL','shop'],
+    ['Little Green Men Store Command',33.8122415,-117.9175754,'se','DL','shop'],
+    ['Star Wars: Launch Bay Shop',33.8121098,-117.9167354,'se','DL','shop'],
+    ['Tomorrow Landing',33.8120868,-117.9170818,'se','DL','shop'],
+    ['Main Street Cinema',33.8107105,-117.9188509,'se','DL','ent'],
+    ['Main Street Opera House',33.8102633,-117.9183374,'se','DL','ent'],
+    ['Magic Eye Theater',33.8114219,-117.9172928,'se','DL','ent'],
+    ['Fantasyland Theatre',33.8144689,-117.9193324,'se','DL','ent'],
+    ['Royal Theatre',33.8124417,-117.9194315,'se','DL','ent'],
+    ['Fantasmic!',33.8118707,-117.921152,'se','DL','ent'],
+    ['Tomorrowland Terrace Stage',33.8123735,-117.9170033,'se','DL','ent'],
+    ['French Market Stage',33.8113248,-117.9217001,'se','DL','ent'],
+    ['Penny Arcade',33.811242,-117.9191358,'se','DL','ent'],
+    ['Disney Gallery',33.8101946,-117.9184302,'se','DL','ent'],
+    ['Elias &amp; Company Department Store',33.8079861,-117.918717,'se','DCA','shop'],
+    ['Los Feliz Five and Dime',33.8083512,-117.918627,'se','DCA','shop'],
+    ['Big Top Toys',33.8082224,-117.9187074,'se','DCA','shop'],
+    ['Oswald\'s Filling Station',33.8085839,-117.9187701,'se','DCA','shop'],
+    ['Kingswell Shop',33.8082663,-117.9192074,'se','DCA','shop'],
+    ['Atwater Ink &amp; Paint',33.8080813,-117.9191309,'se','DCA','shop'],
+    ['Julius Katz &amp; Sons',33.8081571,-117.9191322,'se','DCA','shop'],
+    ['Trolley Treats',33.8080123,-117.9191349,'se','DCA','shop'],
+    ['Gone Hollywood',33.8077692,-117.9183938,'se','DCA','shop'],
+    ['Off the Page',33.8075123,-117.9178607,'se','DCA','shop'],
+    ['Collector\'s Warehouse',33.8067768,-117.9168087,'se','DCA','shop'],
+    ['Super Store',33.8084613,-117.9177847,'se','DCA','shop'],
+    ['Avengers Vault',33.8064348,-117.9176104,'se','DCA','shop'],
+    ['WEB Suppliers',33.8063893,-117.9185079,'se','DCA','shop'],
+    ['Campus Supply Module',33.8066488,-117.9180177,'se','DCA','shop'],
+    ['Lubeorama',33.8052968,-117.9186207,'se','DCA','shop'],
+    ['Radiator Springs Curios',33.80574,-117.9186189,'se','DCA','shop'],
+    ['Ramone\'s House of Body Art',33.8053703,-117.9187105,'se','DCA','shop'],
+    ['Sarge\'s Surplus Hut',33.8059466,-117.9192937,'se','DCA','shop'],
+    ['Humphrey\'s Service &amp; Supplies',33.8078912,-117.920137,'se','DCA','shop'],
+    ['Maker\'s Market',33.8054839,-117.9202464,'se','DCA','shop'],
+    ['Rushin\' River Outfitters',33.8072848,-117.920903,'se','DCA','shop'],
+    ['Embarcadero Gifts',33.8062684,-117.9207858,'se','DCA','shop'],
+    ['Knick\'s Knacks',33.8052916,-117.920621,'se','DCA','shop'],
+    ['Seaside Souvenirs',33.8063008,-117.9222133,'se','DCA','shop'],
+    ['Midway Mercantile',33.8045496,-117.9214746,'se','DCA','shop'],
+    ['Bing Bong\'s Sweet Stuff',33.8049592,-117.9226204,'se','DCA','shop'],
+    ['Animation Academy',33.8074309,-117.9172966,'se','DCA','ent'],
+    ['Hyperion Theater',33.8073888,-117.9183526,'se','DCA','ent'],
+    ['Hollywood Backlot Stage',33.8077857,-117.9172583,'se','DCA','ent'],
+    ['Guardians of the Galaxy: Awesome Dance Off!',33.8069987,-117.9170521,'se','DCA','ent'],
+    ['The Sanctum',33.8062835,-117.9180547,'se','DCA','ent'],
+    ['Games of Pixar Pier',33.8047672,-117.92235,'se','DCA','ent'],
+    ['Paradise Garden Bandstand',33.8060753,-117.9232736,'se','DCA','ent'],
+    ['Pixar Promenade Band Shell',33.8048895,-117.9224435,'se','DCA','ent'],
+    ['Palisades Stage',33.8056575,-117.9214224,'se','DCA','ent'],
+    ['World of Color',33.8053662,-117.9218418,'se','DCA','ent']
+];
+// Zoom shortcuts for the single resort frame — the switcher's replacement.
+// Park views reuse the retired per-park map centers.
+var TPCP_PARK_VIEWS = { DL: { center: [33.8125, -117.9190], zoom: 16 }, DCA: { center: [33.8072, -117.9190], zoom: 16 } };
+function tpcpZoomMap(which) {
+  ['Resort', 'DL', 'DCA'].forEach(function (k) {
+    var b = document.getElementById('tpcpZoom' + k);
+    if (b) b.classList.toggle('on', (which === 'resort' && k === 'Resort') || which === k);
+  });
+  if (!_pm.map) return;
+  if (which === 'DL' || which === 'DCA') { _pm.park = which; _pm.map.setView(TPCP_PARK_VIEWS[which].center, TPCP_PARK_VIEWS[which].zoom); }
+  else _pm.map.fitBounds(TPCP_RESORT_BOUNDS);
+}
+function tpcpBindPinPopup(marker, pin, dirSpot) {
+  var zone = pin[4], kind = pin[5];
+  var zoneName = zone === 'DL' ? 'Disneyland' : (zone === 'DCA' ? 'California Adventure' : zone);
+  var sub = zoneName;
+  if (kind === 'restrooms') sub += ' \u00b7 Restrooms';
+  else if (kind === 'atm') sub += ' \u00b7 ATM';
+  else if (kind === 'spa') sub += ' \u00b7 Spa';
+  else if (kind === 'hotel') sub += ' \u00b7 Resort hotel';
+  var html = '<div class="tpcp-pop"><div class="tpcp-pop-name">' + pin[0] + '</div><div class="tpcp-pop-sub">' + sub + '</div>';
+  if (dirSpot) {
+    var id = 'sp' + Math.random().toString(36).slice(2, 10);
+    _tpcpSpots[id] = dirSpot;
+    html += '<button class="tpcp-pop-dir" onclick="tpcpPopupDir(\'' + id + '\')">Directions</button>';
+  }
+  html += '</div>';
+  marker.bindPopup(html, { closeButton: false, offset: [0, -4] });
+}
+var TPCP_SE_COLOR = '#173A5E';
+function tpcpExtraPinStyle(pin) {
+  // Downtown Disney / hotel pins carry the subtle zone treatment (Claude
+  // msg 60): the SAME colors as their in-park counterparts, slightly smaller
+  // and lighter — a different district, not a different color system. Hotel
+  // landmarks keep near-full presence: they anchor the district.
+  if (pin[5] === 'hotel') return { radius: 9, color: '#FFFFFF', weight: 2, fillOpacity: 0.92 };
+  if (pin[4] === 'DL' || pin[4] === 'DCA') return { radius: 9, color: '#FFFFFF', weight: 2, fillOpacity: 0.95 };
+  return { radius: 7.5, color: '#FFFFFF', weight: 1.5, fillOpacity: 0.85 };
+}
+function tpcpBuildResortMarkers() {
+  _pm.placeMarkers = []; _pm.rrMarkers = []; _pm.svcMarkers = []; _pm.seMarkers = [];
+  ['DL', 'DCA'].forEach(function (park) {
+    var graph = window['TPCP_GRAPH_' + park];
+    if (!graph) return;
+    (graph.places || []).forEach(function (p) {
+      if (p.lat == null) return;
+      var m = L.circleMarker([p.lat, p.lon], { radius: 9, color: '#FFFFFF', weight: 2, fillColor: p.k === 'food' ? '#D4893A' : '#1A6860', fillOpacity: 0.95 });
+      tpcpBindPopup(park, m, { n: p.n, lat: p.lat, lon: p.lon, node: p.node, land: p.land || '' });
+      _pm.placeMarkers.push(m);
+    });
+    (graph.restrooms || []).forEach(function (p) {
+      var m = L.circleMarker([p.lat, p.lon], { radius: 7.5, color: '#FFFFFF', weight: 1.8, fillColor: '#4A7A7C', fillOpacity: 0.9 });
+      var snr = window.TPCPRouter.snap(graph, p.lat, p.lon);
+      tpcpBindPopup(park, m, { n: 'Restrooms', lat: p.lat, lon: p.lon, node: snr.node, land: '' });
+      _pm.rrMarkers.push(m);
+    });
+    (graph.services || []).forEach(function (p) {
+      var m = L.circleMarker([p.lat, p.lon], { radius: 9, color: '#FFFFFF', weight: 2, fillColor: TPCP_SVC_COLORS[p.k] || '#173A5E', fillOpacity: 0.95 });
+      var sn = window.TPCPRouter.snap(graph, p.lat, p.lon);
+      tpcpBindPopup(park, m, { n: p.n, lat: p.lat, lon: p.lon, node: sn.node, land: TPCP_SVC_LABELS[p.k] || 'Park Services' });
+      _pm.svcMarkers.push(m);
+    });
+  });
+  TPCP_EXTRA_PINS.forEach(function (pin) {
+    var style = tpcpExtraPinStyle(pin);
+    var layer = pin[3], kind = pin[5], zone = pin[4];
+    if (layer === 'places') style.fillColor = '#D4893A';
+    else if (layer === 'services') style.fillColor = kind === 'restrooms' ? '#4A7A7C' : (kind === 'atm' ? (TPCP_SVC_COLORS.atm || '#5A526E') : '#173A5E');
+    else style.fillColor = TPCP_SE_COLOR;
+    var m = L.circleMarker([pin[1], pin[2]], style);
+    // Directions ride the curated in-park guest-path graphs, so only in-park
+    // pins offer them. A Downtown Disney or hotel pin has no graph node to
+    // route to; its popup honestly shows name + district only.
+    var dirSpot = null;
+    if (zone === 'DL' || zone === 'DCA') {
+      var g = window['TPCP_GRAPH_' + zone];
+      var sn2 = window.TPCPRouter.snap(g, pin[1], pin[2]);
+      dirSpot = { park: zone, spot: { n: pin[0].replace(/&amp;/g, '&'), lat: pin[1], lon: pin[2], node: sn2.node } };
+    }
+    tpcpBindPinPopup(m, pin, dirSpot);
+    if (layer === 'places') _pm.placeMarkers.push(m);
+    else if (layer === 'services') _pm.svcMarkers.push(m);
+    else _pm.seMarkers.push(m);
+  });
+}
+function tpcpShowResortMap(focus) {
+  if (!_pm.map) {
+    _pm.map = L.map('tpcpFullMap', { minZoom: 13, maxZoom: 19, maxBounds: TPCP_RESORT_MAXBOUNDS, maxBoundsViscosity: 1.0 });
+    tpcpTileLayer(null, tpcpResortTiles()).addTo(_pm.map);
+    tpcpBuildResortMarkers();
+  }
+  tpcpApplyLayers();
+  document.getElementById('tpcpPlaceCard').classList.remove('open');
+  var applyView = function () { tpcpZoomMap(focus || 'resort'); };
+  applyView();
+  setTimeout(function () { if (_pm.map) { _pm.map.invalidateSize(); applyView(); } }, 60);
+}
 function openParkMap(park, layer) {
   var view = document.getElementById('tpcpMapView');
   view.classList.add('open');
-  _pm.showRR = (layer === 'restrooms');
-  _pm.showSvc = (layer === 'services');
-  tpcpEnsurePark(park || _pm.park).then(function () {
-    switchParkMap(park || _pm.park, true);
+  // Restrooms live in the Services layer resort-wide (one toggle, one
+  // meaning), so the restrooms entry point turns Services on.
+  if (layer === 'restrooms' || layer === 'services') _pm.showSvc = true;
+  if (layer === 'se') _pm.showSE = true;
+  if (layer === 'places') _pm.showPlaces = true;
+  var focus = (park === 'DL' || park === 'DCA') ? park : null;
+  tpcpEnsureResort().then(function () {
+    tpcpShowResortMap(focus);
   }).catch(function () { tpcpToast('The park map could not be loaded.'); });
 }
 function openParkMapRestrooms() { openParkMap(null, 'restrooms'); }
@@ -8327,7 +8621,15 @@ function openParkMapServices() { openParkMap(null, 'services'); }
 function closeParkMap() {
   document.getElementById('tpcpMapView').classList.remove('open');
 }
-function switchParkMap(park, skipEnsure) {
+// ---------- DORMANT: retired per-park switcher (kept intact, not called) ----------
+// The full Park Map is one resort frame now (Claude msg 60). This per-park
+// builder is preserved pending Beau's device legibility check of the resort
+// default zoom on the 390px screen: if in-park pins are not individually
+// legible/tappable there, restore by pointing openParkMap at this function
+// and re-adding the two header buttons (ids tpcpParkDL / tpcpParkDCA) and
+// the Restrooms chip (id tpcpChipRR). The zoom chips in tpcpZoomMap ship as
+// the first-line mitigation, so restoration should not be needed.
+function tpcpLegacySwitchParkMap(park, skipEnsure) {
   _pm.park = park;
   document.getElementById('tpcpParkDL').classList.toggle('on', park === 'DL');
   document.getElementById('tpcpParkDCA').classList.toggle('on', park === 'DCA');
@@ -8365,19 +8667,23 @@ function switchParkMap(park, skipEnsure) {
   if (skipEnsure) build();
   else tpcpEnsurePark(park).then(build).catch(function () { tpcpToast('The park map could not be loaded.'); });
 }
+function tpcpChip(id, on) { var c = document.getElementById(id); if (c) c.classList.toggle('on', !!on); }
 function tpcpApplyLayers() {
   if (!_pm.map) return;
   _pm.placeMarkers.forEach(function (m) { if (_pm.showPlaces) m.addTo(_pm.map); else m.remove(); });
-  _pm.rrMarkers.forEach(function (m) { if (_pm.showRR) m.addTo(_pm.map); else m.remove(); });
+  // rrMarkers (in-park restrooms) ride the Services layer: restrooms are
+  // Services everywhere on this map — in-park, Downtown Disney, and hotels.
+  _pm.rrMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(_pm.map); else m.remove(); });
   _pm.svcMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(_pm.map); else m.remove(); });
-  document.getElementById('tpcpChipPlaces').classList.toggle('on', _pm.showPlaces);
-  document.getElementById('tpcpChipRR').classList.toggle('on', _pm.showRR);
-  document.getElementById('tpcpChipSvc').classList.toggle('on', _pm.showSvc);
+  _pm.seMarkers.forEach(function (m) { if (_pm.showSE) m.addTo(_pm.map); else m.remove(); });
+  tpcpChip('tpcpChipPlaces', _pm.showPlaces);
+  tpcpChip('tpcpChipSvc', _pm.showSvc);
+  tpcpChip('tpcpChipSE', _pm.showSE);
 }
 function toggleMapLayer(which) {
   if (which === 'places') _pm.showPlaces = !_pm.showPlaces;
-  if (which === 'restrooms') _pm.showRR = !_pm.showRR;
-  if (which === 'services') _pm.showSvc = !_pm.showSvc;
+  if (which === 'restrooms' || which === 'services') _pm.showSvc = !_pm.showSvc;
+  if (which === 'se') _pm.showSE = !_pm.showSE;
   tpcpApplyLayers();
 }
 function tpcpSelectPlace(park, p) {
