@@ -32,6 +32,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 /* Input group */
 .pt-input{width:100%;background:#fff;border:1px solid rgba(7,30,37,0.12);border-radius:10px;padding:10px 12px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;color:#071E25;outline:none;-webkit-appearance:none;}
 .pt-input:focus{border-color:#1A8880;box-shadow:0 0 0 3px rgba(26,136,128,0.10);}
+.pt-input-error{border-color:#C0392B !important;box-shadow:0 0 0 3px rgba(192,57,43,0.12);}
 .pt-input::placeholder{color:rgba(7,30,37,0.30);}
 .pt-input-row{display:flex;gap:8px;margin-bottom:10px;}
 .pt-input-row .pt-input:first-child{flex:1;}
@@ -1253,7 +1254,35 @@ function ptGetDateLabel(startVal, dayIndex) {
   return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
 }
 
+// -- Date bounds --------------------------------------------------------
+// The trip date fields are native input[type=date] elements. A native
+// date input with no value and no min opens its picker on the CURRENT
+// month -- so with a December start picked, tapping End date opened on
+// October and nearly saved a trip ending before it began. Keep the end
+// field bound to the start date:
+//   - end.min = start: the end picker opens on the start date's month
+//     and days before the start date are not selectable.
+//   - if a start change (or hydration) leaves end < start, the end date
+//     is CLEARED -- never left silently invalid -- and the field is
+//     flagged until a valid end date is picked. With no start date set,
+//     the end picker keeps its normal current-month default.
+function ptSyncDateBounds() {
+  var s = document.getElementById('tripStart');
+  var e = document.getElementById('tripEnd');
+  if (!s || !e) return;
+  var sv = s.value || '';
+  var ev = e.value || '';
+  if (sv) { e.min = sv; } else { e.removeAttribute('min'); }
+  if (sv && ev && ev < sv) {
+    e.value = '';
+    e.classList.add('pt-input-error');
+  } else if (ev || !sv) {
+    e.classList.remove('pt-input-error');
+  }
+}
+
 function ptUpdateDayCards() {
+  ptSyncDateBounds();
   var container = document.getElementById('ptDayCards');
   if (!container) return;
   var startVal = document.getElementById('tripStart') ? document.getElementById('tripStart').value : '';
