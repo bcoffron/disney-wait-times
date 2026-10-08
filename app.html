@@ -3258,14 +3258,10 @@ async function tpcpSendTestPush(btn){
       msg = 'The test did not go through \u2014 please try again.';
     }
     if(resultEl) resultEl.textContent = msg;
-    // If iOS delivers that test quietly (no foreground event -- the
-    // silent-delivery case), recover it promptly via the delivered-list
-    // sweep instead of waiting for its 5s tick.
-    if(d && d.ok && d.sent > 0){
-      setTimeout(function(){ tpcpSweepDeliveredPushes(); }, 1200);
-      setTimeout(function(){ tpcpSweepDeliveredPushes(); }, 3500);
-      setTimeout(function(){ tpcpSweepDeliveredPushes(); }, 7000);
-    }
+    // No client follow-up needed after a successful send: if the native
+    // shell does not hand the test push to the foreground listener, the
+    // server has recorded the episode and the ~10s blob poll renders it
+    // in-app via the poll backstop (foreground section, below).
   }catch(e){
     if(resultEl) resultEl.textContent = 'Could not reach the server \u2014 check your connection and try again.';
   }
@@ -3290,15 +3286,6 @@ async function tpcpEnableNativeWaitAlerts(){
       // foregrounded renders as an in-app popup (backgrounded, iOS shows
       // the banner instead -- the same episode never renders twice).
       P.addListener('pushNotificationReceived', function(n){ tpcpHandleForegroundPush(n); });
-      // Silent-delivery recovery: a push can reach the device while the
-      // app is foregrounded WITHOUT this event firing -- when iOS
-      // delivers it quietly (a Focus mode silencing this app is the
-      // observed case: banner and event both absent, the in-app panel
-      // unaffected), the notification still lands in the device's
-      // delivered list. The sweep polls that list while the app is in
-      // the foreground and feeds mid-session arrivals through the same
-      // handler, so the episode renders exactly once, here.
-      tpcpStartDeliveredSweep();
       // Tap on a notification: bring the guest to the app (Waits is one tap
       // away; the payload url is '/app.html').
       P.addListener('pushNotificationActionPerformed', function(action){
@@ -7923,79 +7910,6 @@ function tpcpHandleForegroundPush(n) {
     }
     tpcpShowPushPopup(title, body, cls);
   } catch (e) { console.warn('[push] foreground render failed', e && e.message); }
-}
-
-// ---- Silent-delivery recovery (the delivered-list sweep) --------------
-// pushNotificationReceived is the primary foreground path, but it is not
-// the only way a push can arrive: when iOS delivers a notification
-// quietly (Focus silencing this app, or the per-app "deliver quietly"
-// setting), the foreground-presentation callback that produces the event
-// is never invoked, yet the notification IS placed in the device's
-// delivered list -- getDeliveredNotifications() can see it, and the
-// plugin builds those objects with the exact same construction as the
-// event payload, so the one handler above consumes them unchanged
-// (episode dedupe + plan-changed suppression still govern).
-// Baseline discipline (one episode, one presentation): whatever is
-// already delivered when a foreground period starts -- e.g. a banner
-// that fired while the phone was locked -- is absorbed into the
-// baseline and NEVER re-presented in-app. Only notifications that
-// APPEAR in the list during a continuous foreground period are fed to
-// the handler. Returning to the foreground re-baselines, so the
-// banner-then-open sequence stays popup-free.
-var _tpcpDeliveredBaseline = null; // null until the first successful look
-var _tpcpDeliveredSeen = {};        // notification ids the sweep has considered this session
-var _tpcpSweepTimer = null;
-
-async function tpcpFetchDelivered() {
-  var P = tpcpPushPlugin();
-  if (!P || typeof P.getDeliveredNotifications !== 'function') return null;
-  try {
-    var res = await P.getDeliveredNotifications();
-    return (res && Array.isArray(res.notifications)) ? res.notifications : [];
-  } catch (e) { return null; } // e.g. the plugin's pre-registration rejection -- retry next tick
-}
-
-async function tpcpDeliveredRebaseline() {
-  var list = await tpcpFetchDelivered();
-  if (!list) return;
-  _tpcpDeliveredBaseline = {};
-  for (var i = 0; i < list.length; i++) { if (list[i] && list[i].id) _tpcpDeliveredBaseline[list[i].id] = 1; }
-}
-
-async function tpcpSweepDeliveredPushes() {
-  if (_tpcpDeliveredBaseline === null) { await tpcpDeliveredRebaseline(); return; }
-  var list = await tpcpFetchDelivered();
-  if (!list) return;
-  var P = tpcpPushPlugin();
-  for (var i = 0; i < list.length; i++) {
-    var n = list[i];
-    if (!n || !n.id) continue;
-    if (_tpcpDeliveredBaseline[n.id] || _tpcpDeliveredSeen[n.id]) continue;
-    _tpcpDeliveredSeen[n.id] = 1;
-    tpcpHandleForegroundPush(n);
-    // The popup is this delivery's one presentation; clear its
-    // notification-center copy so the episode is not presented twice.
-    try {
-      if (P && typeof P.removeDeliveredNotifications === 'function') {
-        var rp = P.removeDeliveredNotifications({ notifications: [n] });
-        if (rp && typeof rp.catch === 'function') rp.catch(function() {});
-      }
-    } catch (e) {}
-  }
-}
-
-function tpcpStartDeliveredSweep() {
-  tpcpDeliveredRebaseline();
-  if (_tpcpSweepTimer) return;
-  _tpcpSweepTimer = setInterval(function() {
-    if (typeof document !== 'undefined' && document.hidden) return;
-    tpcpSweepDeliveredPushes();
-  }, 5000);
-  if (typeof document !== 'undefined' && document.addEventListener) {
-    document.addEventListener('visibilitychange', function() {
-      if (!document.hidden) tpcpDeliveredRebaseline();
-    });
-  }
 }
 
 // Generalized popup over the wait-spike toast component: the payload's
