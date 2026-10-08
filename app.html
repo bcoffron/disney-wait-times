@@ -5287,6 +5287,15 @@ function scrollScheduleToNow(){
   }catch(e){}
 }
 
+// Drawn lightning-bolt icon (Oct 8, 2026): replaces the U+26A1 CHARACTER
+// the LL surfaces used to render. Beau's rule is no emoji in the app --
+// a bolt is welcome as an ICON drawn in the bottom tab bar's language
+// (24x24 viewBox, fill none, stroke currentColor, stroke-width 1.75,
+// round caps/joins; the Feather 'zap' polygon drawn that way).
+function tpcpBoltSVG(size){
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:block"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+}
+
 // LL booking sequence block (LL plan-side package, Oct 8, 2026): renders
 // the server-stamped per-day sequence (day.llSequence, computed by
 // api/scaffold.js computeLLSequence at generation time). Days saved
@@ -5297,7 +5306,7 @@ function renderLLSequenceBlock(dayIdx){
   var seq=sd&&sd.llSequence;
   if(!seq||!seq.bookFirst)return '';
   var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');};
-  var h='<div class="ll-seq-block"><div class="ll-seq-title">\u26A1 Lightning Lane game plan</div>';
+  var h='<div class="ll-seq-block"><div class="ll-seq-title"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane game plan</div>';
   if(seq.reason){h+='<div class="ll-seq-line">'+esc(seq.reason)+'</div>';}
   else{h+='<div class="ll-seq-line">Book first: <b>'+esc(seq.bookFirst)+'</b></div>';}
   if(seq.order&&seq.order.length>1){h+='<div class="ll-seq-line">Then: '+seq.order.slice(1).map(esc).join(' \u2192 ')+'</div>';}
@@ -5320,7 +5329,7 @@ function renderLLReceiptBlock(dayIdx){
   if(!s)return '';
   var rounded=Math.round(s.totalMin/5)*5;
   if(rounded<=0)return '';
-  return '<div class="ll-receipt-block"><span style="font-size:13px;flex-shrink:0">\u26A1</span><div><b>Estimated time saved today: ~'+rounded+' minutes</b><div style="font-size:11px;color:#1A6860;margin-top:1px;">From the Lightning Lane return'+(s.usable===1?'':'s')+' you booked and confirmed here, against the standby waits posted when you booked ('+s.usable+' counted). An estimate \u2014 no two standby lines move quite alike.</div></div></div>';
+  return '<div class="ll-receipt-block"><span style="flex-shrink:0;margin-top:1px;color:#0A4840">'+tpcpBoltSVG(16)+'</span><div><b>Estimated time saved today: ~'+rounded+' minutes</b><div style="font-size:11px;color:#1A6860;margin-top:1px;">From the Lightning Lane return'+(s.usable===1?'':'s')+' you booked and confirmed here, against the standby waits posted when you booked ('+s.usable+' counted). An estimate \u2014 no two standby lines move quite alike.</div></div></div>';
 }
 
 function renderSched(){
