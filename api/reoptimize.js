@@ -227,10 +227,50 @@ async function handler(req, res) {
   const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
     try {
-          const { scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey, ridePrefsContext } = req.body;
+          const { scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey, ridePrefsContext, heldReturns } = req.body;
           const apiKey = process.env.ANTHROPIC_API_KEY || clientKey;
           if (!apiKey) return res.status(500).json({ error: 'No API key' });
 
+
+      // ------ Held Lightning Lane returns (LL plan-side package, Oct 8, 2026) ------
+      // Booked returns the leader confirmed in the app (tripConfig.
+      // heldReturns for this day, sent by the client). Anchors in the
+      // same class as confirmed reservations: the prompt names them
+      // below, and the deterministic post-check refuses to emit a plan
+      // that drops one or moves its ride away from the booked window --
+      // such a plan is replaced by the unchanged input plus a named
+      // conflict (Claude msg 66, ruling B). Times parse with the same
+      // tolerance as the rest of this file; an unparseable held record
+      // is ignored rather than guessed at.
+      const _parseClock = (t) => { if (!t) return null; const m = String(t).match(/(\d+):(\d+)\s*(AM|PM)/i); if (!m) return null; let h = parseInt(m[1], 10); const mn = parseInt(m[2], 10) || 0; const pm = m[3].toUpperCase() === 'PM'; if (pm && h !== 12) h += 12; if (!pm && h === 12) h = 0; return h * 60 + mn; };
+      const _held = (Array.isArray(heldReturns) ? heldReturns : []).map(r => {
+            if (!r || typeof r !== 'object') return null;
+            const ride = String(r.ride || '').trim();
+            const startMin = _parseClock(r.returnStart), endMin = _parseClock(r.returnEnd);
+            if (!ride || startMin === null || endMin === null) return null;
+            return { ride, returnStart: r.returnStart, returnEnd: r.returnEnd, startMin, endMin };
+      }).filter(Boolean);
+      // Input-side anchor collisions: a held window that swallows a
+      // confirmed dining / reservation anchor's start -- or starts
+      // while that meal is underway (an hour from its time) -- is
+      // surfaced on the response, never silently resolved by moving
+      // either anchor.
+      const _heldConflicts = [];
+      if (_held.length && Array.isArray(scheduleItems)) {
+            for (const hr of _held) {
+                  for (const it of scheduleItems) {
+                        if (!it) continue;
+                        const isAnchor = it.isConfirmed === true || it.reservation === true || it.anchor === true;
+                        if (!isAnchor) continue;
+                        const dm = _parseClock(it.t);
+                        if (dm === null) continue;
+                        if ((dm >= hr.startMin && dm < hr.endMin) || (hr.startMin >= dm && hr.startMin < dm + 60)) {
+                              _heldConflicts.push({ ride: hr.ride, type: 'anchor-overlap', detail: 'Your booked ' + hr.ride + ' return (' + hr.returnStart + ' \u2013 ' + hr.returnEnd + ') overlaps ' + (it.h || 'a confirmed reservation') + ' at ' + (it.t || '') + ' \u2014 both are locked in, so nothing was moved.' });
+                              break;
+                        }
+                  }
+            }
+      }
       // ------ Build cache context from new two-cache architecture ------------------------------------------------------
       const cacheCtx = await buildCacheContext(
               ['LAND_MAP', 'WAIT_PATTERNS', 'CROWD_FLOW', 'WALKING_ROUTES'],
@@ -354,6 +394,13 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
           systemPrompt += '\nOnly reorder non-VIP items around the fixed VIP blocks.'
           systemPrompt += '\nTreat VIP items exactly like confirmed dining reservations.';
 
+          if (_held.length) {
+                systemPrompt += '\n\nHELD LIGHTNING LANE RETURNS (FIXED ANCHORS -- the same class as confirmed reservations):';
+                for (const hr of _held) {
+                      systemPrompt += '\n- ' + hr.ride + ': booked Lightning Lane return ' + hr.returnStart + ' \u2013 ' + hr.returnEnd + '. Keep this ride in the schedule at its booked return window. Never move it away from the booked return and never drop it.';
+                }
+          }
+
       // ------ Build date-specific crowd guidance ---------------------------------------------------------------------------------------------------------
       var crowdGuide = '';
           if (tripDayDate) {
@@ -460,6 +507,35 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                       const k = _norm(it.h || it.title || it.name || '');
                       if (k) _origByName[k] = (it.t || it.time || '');
               });
+              // ---- HELD-RETURN GUARD (deterministic; LL plan-side package,
+              // Oct 8, 2026): the model must not emit a plan that drops a
+              // held ride or moves it to a time that is neither its input
+              // time nor inside its booked return window. On any violation
+              // the optimized plan is NOT emitted: the response is the
+              // input schedule unchanged, plus the named conflict(s).
+              if (_held.length) {
+                    const _inByName = {};
+                    (Array.isArray(scheduleItems) ? scheduleItems : []).forEach(it => { const k = _norm(it.h || it.title || it.name || ''); if (k) _inByName[k] = (it.t || it.time || ''); });
+                    const _outByName = {};
+                    normalized.forEach(sec => (sec.entries || []).forEach(e => { const k = _norm(e.h || e.title || e.name || ''); if (k) _outByName[k] = (e.t || e.time || ''); }));
+                    const _violations = [];
+                    for (const hr of _held) {
+                          const k = _norm(hr.ride);
+                          const outT = _outByName[k];
+                          if (outT === undefined) { _violations.push({ ride: hr.ride, type: 'held-dropped', detail: 'Optimizing would have dropped ' + hr.ride + ', which has a booked Lightning Lane return (' + hr.returnStart + ' \u2013 ' + hr.returnEnd + ') \u2014 so your plan was kept unchanged.' }); continue; }
+                          const inT = _inByName[k] || '';
+                          if (outT !== inT) {
+                                const outMin = _parseClock(outT);
+                                if (outMin === null || outMin < hr.startMin || outMin > hr.endMin) {
+                                      _violations.push({ ride: hr.ride, type: 'held-moved', detail: 'Optimizing would have moved ' + hr.ride + ' to ' + outT + ', away from its booked Lightning Lane return (' + hr.returnStart + ' \u2013 ' + hr.returnEnd + ') \u2014 so your plan was kept unchanged.' });
+                                }
+                          }
+                    }
+                    if (_violations.length) {
+                          console.log('[reoptimize] held-return guard kept plan unchanged:', JSON.stringify(_violations.map(v => v.ride)));
+                          return res.status(200).json({ sections: [{ title: dayLabel || 'Schedule', entries: (Array.isArray(scheduleItems) ? scheduleItems : []) }], explanation: 'Your plan is unchanged. ' + _violations.map(v => v.detail).join(' '), changed: false, changeCount: 0, heldReturnConflicts: _heldConflicts.concat(_violations) });
+                    }
+              }
               let changeCount = 0;
               const outEntries = [];
               normalized.forEach(sec => (sec.entries || []).forEach(e => outEntries.push(e)));
@@ -472,7 +548,9 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                       if (origT === undefined || origT === '' || origT !== newT) changeCount++;
               });
               const changed = changeCount > 0;
-              return res.status(200).json({ sections: normalized, explanation: parsed.explanation || 'Schedule optimized.', changed: changed, changeCount: changeCount });
+              const _respObj = { sections: normalized, explanation: parsed.explanation || 'Schedule optimized.', changed: changed, changeCount: changeCount };
+              if (_heldConflicts.length) _respObj.heldReturnConflicts = _heldConflicts;
+              return res.status(200).json(_respObj);
       }
 
       return res.status(200).json({ error: 'Parse failed', raw: text.substring(0, 8000) });

@@ -1297,6 +1297,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .ll-individual-check.checked{background:var(--magic);border-color:var(--magic);color:#FFFFFF}
 .ll-confirm-btn{width:100%;padding:13px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#FFFFFF;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px}
 .ll-banner-got{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:99px;background:rgba(21,128,61,0.1);border:1px solid rgba(21,128,61,0.3);color:#15803D;font-size:10px;font-weight:600;cursor:pointer}
+.ll-held-pill{display:inline-block;background:#1A6860;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px;}
+.ll-conflict-line{font-size:11px;color:#B3261E;line-height:1.5;margin-top:5px;font-weight:600;}
 .ll-time-input{width:80px;padding:3px 7px;border-radius:6px;border:1.5px solid var(--border);font-size:12px;font-family:inherit;color:var(--text);background:var(--card);margin-left:4px}
 .waze-card{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;background:#FFFFFF;border:2px solid #1B2FA0;border-radius:var(--radius);box-shadow:0 8px 32px rgba(27,47,160,0.25);z-index:800;overflow:hidden;animation:slideUp .3s ease}
 @keyframes slideUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
@@ -3757,7 +3759,7 @@ function scheduleLLPrompts(){
 }
 
 //    LL banner "Got it" buttons                                             
-function llGotIt(rideKey, bannerEl){
+function llGotIt(rideKey, bannerEl, rideName){
   var timeInput=bannerEl.parentNode.querySelector('.ll-time-input');
   var returnTime=timeInput?timeInput.value.trim():'';
   if(!returnTime){timeInput&&timeInput.focus();return;}
@@ -3765,6 +3767,34 @@ function llGotIt(rideKey, bannerEl){
   loadLLState();
   llState.bookedTimes[rideKey]=returnTime;
   saveLLState();
+
+  // Trip-level held return (LL plan-side package, Oct 8, 2026): leaders
+  // also record the booking on the TRIP, where it becomes an anchor.
+  // Guests keep the device-local record above only -- recording on the
+  // trip is a leader action, and the save path is admin-gated server-
+  // side too. An unparseable time stays device-local: a window we
+  // cannot read cannot anchor anything. The standby snapshot is the
+  // live wait at confirm time (null when waits are not loaded) -- the
+  // receipt never substitutes the plan's assumption for it.
+  if(typeof isAdmin==='function'&&isAdmin()&&typeof setHeldReturn==='function'){
+    var _startMin=parseTimeMins(returnTime);
+    if(_startMin!=null){
+      var _dayItems=(window._schedData&&window._schedData.days&&window._schedData.days[curDay]&&window._schedData.days[curDay].items)||[];
+      var _dispName=rideName||'';
+      if(!_dispName){
+        var _rk=rideKey.replace(/_/g,' ');
+        for(var _ii=0;_ii<_dayItems.length;_ii++){var _e2=_dayItems[_ii];if(!_e2)continue;var _nk=llNormKey(_e2.ride||_e2.h||'');if(_nk&&(_nk===_rk||_nk.indexOf(_rk)===0)){_dispName=_e2.ride||_e2.h||'';break;}}
+      }
+      if(!_dispName)_dispName=rideKey;
+      var _w=(typeof lookupWait==='function')?lookupWait(_dispName):null;
+      var _rec={day:curDay,rideKey:llNormKey(_dispName),ride:_dispName,returnStart:fmtMins(_startMin),returnEnd:fmtMins(_startMin+60),bookedAt:new Date().toISOString(),standbyAtConfirm:(_w&&typeof _w.w==='number')?_w.w:null,conflict:''};
+      _rec.conflict=(typeof heldReturnConflict==='function')?heldReturnConflict(curDay,_startMin,_startMin+60,_dayItems):'';
+      setHeldReturn(_rec);
+      window._llEditKey=null;
+      saveHeldReturns();
+      setTimeout(function(){try{renderSched();}catch(e){}},1500);
+    }
+  }
 
   var dayData=getCurDay();
   var scheduledTime=null;
@@ -3895,6 +3925,22 @@ function llDaySavings(dayIdx){
   });
   if(!usable)return null;
   return { totalMin: total, usable: usable, held: recs.length };
+}
+
+
+// Held-return leader controls (LL plan-side package, Oct 8, 2026):
+// Change re-opens the banner's time input (confirming again REPLACES
+// the record -- a modify is a leader action); Remove clears both the
+// trip record and the device-local one, so the banner returns to its
+// unbooked state.
+function llEditHeld(rideKey){window._llEditKey=rideKey;try{renderSched();}catch(e){}}
+async function llRemoveHeld(rideKey,rideName){
+  if(!isAdmin())return;
+  removeHeldReturn(curDay,rideName||rideKey);
+  window._llEditKey=null;
+  try{loadLLState();if(llState&&llState.bookedTimes)delete llState.bookedTimes[rideKey];saveLLState();}catch(e){}
+  await saveHeldReturns();
+  try{renderSched();}catch(e){}
 }
 
 //    Magic Day fireworks                                                   
@@ -4749,7 +4795,7 @@ async function runReoptimize(){
   var txt=document.getElementById('reoptText');
   var btns=document.getElementById('reoptBtns');
   var _reoptController=new AbortController();var _reoptTimeoutId=setTimeout(function(){_reoptController.abort();},65000);
-    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{}),tripCode:localStorage.getItem('tpcp_code')||''
+    try{var r=await fetch(SYNC_BASE+'/api/reoptimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scheduleItems:schedItems,dayLabel:dn,tripDayDate:tripDayLabel||tripDayDate,isInTrip:isInTrip,currentTime:isInTrip?currentTimeStr:null,liveWaits:isInTrip?liveWaitContext.substring(0,1000):null,ridePrefsContext:buildRidePrefsContext((window._loadedTripData&&window._loadedTripData.tripConfig)||{}),heldReturns:(typeof getHeldReturnsForDay==='function'?getHeldReturnsForDay(curDay):[]),tripCode:localStorage.getItem('tpcp_code')||''
       }),signal:_reoptController.signal
     });
 
@@ -4769,6 +4815,7 @@ async function runReoptimize(){
       try{pendingReopt=JSON.parse(JSON.stringify(data));}catch(pe){pendingReopt={};}
       pendingReopt.sections=newSecs;
       var expText=explanation&&explanation.length>5?explanation:'Schedule optimized -- tap Accept to apply.';
+      if(resp.heldReturnConflicts&&resp.heldReturnConflicts.length){expText+=' '+resp.heldReturnConflicts.map(function(c){return '\u26A0 '+(c.detail||('Heads up: '+(c.ride||'a booked Lightning Lane')+' conflicts with another locked plan item. Nothing was moved.'));}).join(' ');}
       txt.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;">'+stripMd(expText)+'</div>'
         ;
       reoptCache[hash+'_v2']={explanation:expText,result:pendingReopt};
@@ -4778,6 +4825,7 @@ async function runReoptimize(){
       if(subEl)subEl.textContent=changedCount===0?'You already have the best plan':changedCount+' items reordered for better timing';
       var _titleEl=document.getElementById('reoptSummaryTitle');
       if(_titleEl)_titleEl.textContent=changedCount===0?'Your plan is already optimized':'Smoothed out your next few hours';
+      if(resp.heldReturnConflicts&&resp.heldReturnConflicts.length&&_titleEl)_titleEl.textContent='Your booked Lightning Lane stays locked in';
       var _changedLbl=document.getElementById('reoptChangedLabel');
       if(_changedLbl)_changedLbl.style.display=changedCount===0?'none':'';
       var _planHd=document.getElementById('reoptPlanHeading');
@@ -4863,18 +4911,28 @@ function renderLLBanner(e,dayIdx){
   }
   var saved='';
   try{var o=JSON.parse(localStorage.getItem('ll_state_'+dayIdx)||'{}');saved=(o.bookedTimes&&o.bookedTimes[rideKey])||'';}catch(x){}
+  var held=(typeof getHeldReturn==='function')?getHeldReturn(dayIdx,(e.ride||e.h||'')):null;
+  var editHeld=!!(held&&window._llEditKey&&window._llEditKey===rideKey);
+  var safeName=(e.ride||e.h||'').split("'").join('\u2019');
   var icon=isS?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
   var cls=isS?'lls-banner':'ll-banner';
   var tc=isS?'lls-txt':'ll-txt';
   var lbl=isS?'Single Pass':'Multi Pass';
   var out='<div class="'+cls+'"><span style="font-size:13px;flex-shrink:0">'+icon+'</span><div class="'+tc+'"><b>'+lbl+':</b> '+e.ll.a;
-  if(saved){
+  if(held&&!editHeld){
+    out+='<div style="margin-top:6px;background:#E0F0EE;border-radius:10px;padding:9px 11px;">'
+      +'<div style="font-size:12px;font-weight:700;color:#071E25;">&#10003; Booked \u2014 return '+held.returnStart+' \u2013 '+held.returnEnd+'</div>'
+      +'<div style="font-size:10px;color:#1A6860;margin-top:2px;">Locked into the plan like a reservation \u2014 optimizing plans around it and never moves it.</div>'
+      +(held.conflict?'<div class="ll-conflict-line">'+held.conflict+'</div>':'')
+      +(isAdmin()?'<div style="margin-top:6px;display:flex;gap:6px;"><button class="ll-banner-got" style="margin-left:0" onclick="llEditHeld(\''+rideKey+'\')">Change</button><button class="ll-banner-got" style="margin-left:0" onclick="llRemoveHeld(\''+rideKey+'\',\''+safeName+'\')">Remove</button></div>':'')
+      +'</div>';
+  }else if(saved&&!editHeld){
     out+=' <span class="ll-banner-got" style="background:rgba(21,128,61,0.1);color:#15803D;cursor:default">&#10003; Booked '+saved+'</span>';
   }else{
     out+='<br><div style="display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap">';
     out+='<span style="font-size:11px;color:var(--text-muted)">Return time:</span>';
-    out+='<input class="ll-time-input" placeholder="e.g. 2:30 PM"/>';
-    out+='<button class="ll-banner-got" onclick="llGotIt(\''+rideKey+'\',this)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Got it</button>';
+    out+='<input class="ll-time-input" placeholder="e.g. 2:30 PM"'+(editHeld&&held?' value="'+held.returnStart+'"':'')+'/>';
+    out+='<button class="ll-banner-got" onclick="llGotIt(\''+rideKey+'\',this,\''+safeName+'\')"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Got it</button>';
     out+='</div>';
   }
   if(backup) out+='<div style="margin-top:4px;font-size:11px;color:var(--text-dim)">If unavailable &#8594; <b style="color:var(--text)">'+backup+'</b></div>';
@@ -5247,7 +5305,7 @@ function renderSched(){
       var drag=editMode?' draggable="true" ondragstart="onDragStart(event,'+curDay+','+si+','+ei+')" ondragend="onDragEnd(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'+curDay+','+si+','+ei+')"':'';
       var tbmap={ride:'<span class="tb tb-ride">ride</span>',show:'<span class="tb tb-show">show</span>',food:'<span class="tb tb-food">dining</span>',dining:'<span class="tb tb-dining">dining</span>',quickservice:'<span class="tb tb-quickservice">quick service</span>',hop:'<span class="tb tb-hop">park hop</span>',vip:'<span class="tb tb-vip">VIP</span>',tip:'<span class="tb tb-tip">tip</span>',snack:'<span class="tb tb-snack">snack</span>',break:'<span class="tb tb-break"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><polyline points="5 12 12 8 19 12"/><line x1="12" y1="8" x2="12" y2="19"/><polyline points="8 19 12 15 16 19"/></svg></span>',photo:'<span class="tb tb-photo"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>',character:'<span class="tb tb-character">character</span>'};
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
-      var _llRideKey=e.ride||e.h;if(typeof loadLLState==='function')loadLLState();var returnTime=llState&&llState.bookedTimes&&llState.bookedTimes[_llRideKey];var llReturnPill=returnTime?'<span class="ll-return-pill">LL '+returnTime+'</span>':'';llb+=llReturnPill;
+      var _llRideKey=e.ride||e.h;if(typeof loadLLState==='function')loadLLState();var returnTime=llState&&llState.bookedTimes&&llState.bookedTimes[_llRideKey];var _heldPill=(typeof getHeldReturn==='function')?getHeldReturn(curDay,_llRideKey):null;var llReturnPill=_heldPill?'<span class="ll-held-pill">&#10003; LL '+_heldPill.returnStart+'</span>':(returnTime?'<span class="ll-return-pill">LL '+returnTime+'</span>':'');llb+=llReturnPill;
       var diningRec='';
       if(e.type==='food'&&e.h&&isAdmin()&&diningResAllowed(e)){
         var dname=e.h.replace(/^[^\u2014]*\u2014\s*/,'').replace(/Dinner \u2014 /,'').replace(/Lunch /,'').trim();
