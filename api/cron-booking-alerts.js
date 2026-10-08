@@ -310,7 +310,7 @@ export function buildBookingPayload(wishes, openYmd) {
     const link = bookingLinkFor(w.name);
     if (link && link.verified) { url = link.url; break; }
   }
-  return { title: 'Dining booking opens today', body: body, url: url, tag: 'tpcp-booking-open' };
+  return { title: 'Dining booking opens today', body: body, url: url, tag: 'tpcp-booking-open', class: 'booking' };
 }
 
 // Pure planner (unit-tested): given a tripConfig, today's Pacific YMD, and
@@ -366,7 +366,7 @@ export function buildCatchUpPayload(wishes, dayYmd) {
     const link = bookingLinkFor(w.name);
     if (link && link.verified) { url = link.url; break; }
   }
-  return { title: 'Dining booking already open', body: body, url: url, tag: 'tpcp-booking-catchup' };
+  return { title: 'Dining booking already open', body: body, url: url, tag: 'tpcp-booking-catchup', class: 'booking' };
 }
 
 // Catch-up planner (pure, unit-tested): every park day strictly inside
