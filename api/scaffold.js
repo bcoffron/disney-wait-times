@@ -1161,14 +1161,15 @@ export function diningPageUrlFor(canonKey) {
 // backfill), so card prose and photoLinks can only promise covered spots.
 // ---------------------------------------------------------------------------
 // === GENERATED PHOTO BUNDLE MANIFEST -- DO NOT HAND-EDIT ===
-// Derived from assets/photos/credits.json (sha256 f6868095d5c3def97810a82e31b0ac8722158e1d9c3b2785b36b65d3cfcd69f8)
+// Derived from assets/photos/credits.json (sha256 0d9c092e0dcf94e6f53a773935e3eb0457b0ae4ab7006bb681112348f4aec1ff)
 // plus the image files present in assets/photos/ at generation time.
-// Covered spots: 16. Regenerate: node scripts/gen-photo-manifest.mjs
+// Covered spots: 17. Regenerate: node scripts/gen-photo-manifest.mjs
 const PHOTO_BUNDLE_COVERED = {
   "avengers campus headquarters": "avengers-campus-headquarters.jpg",
   "buena vista street with carthay circle tower": "buena-vista-street-carthay-circle-tower.jpg",
   "cars land neon signs at dusk on route 66": "cars-land-neon-signs-dusk-route-66.jpg",
   "galaxy s edge rock spires": "galaxys-edge-rock-spires.jpg",
+  "it s a small world facade at night": "its-a-small-world-facade-at-night.jpg",
   "main street castle shot": "main-street-castle-shot.jpg",
   "mark twain riverboat frontierland dock": "mark-twain-riverboat-frontierland-dock.jpg",
   "millennium falcon plaza": "millennium-falcon-plaza.jpg",

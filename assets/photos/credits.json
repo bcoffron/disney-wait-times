@@ -63,7 +63,16 @@
   "spot": "\"it's a small world\" Facade at Night",
   "park": "DL",
   "land": "Fantasyland",
-  "status": "uncovered"
+  "status": "covered",
+  "file": "its-a-small-world-facade-at-night.jpg",
+  "author": "Steven Lopez 7",
+  "license": "CC0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution_required": false,
+  "attribution_text": "Photo: Steven Lopez 7 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/), via Wikimedia Commons (https://commons.wikimedia.org/wiki/File:%22it%27s_a_small_world%22_Facade_and_Entrance_Sign,_June_2025.jpg)",
+  "source_page_url": "https://commons.wikimedia.org/wiki/File:%22it%27s_a_small_world%22_Facade_and_Entrance_Sign,_June_2025.jpg",
+  "source_platform": "Wikimedia Commons",
+  "license_evidence": "Wikimedia Commons API imageinfo extmetadata LicenseShortName/LicenseUrl/AttributionRequired, retrieved 2026-10-07"
  },
  {
   "spot": "Mark Twain Riverboat Frontierland Dock",
