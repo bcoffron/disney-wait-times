@@ -18,6 +18,9 @@
 
 import webpush from 'web-push';
 import { isApnsConfigured, sendApnsToDevices, evaluateRideEpisode } from './apns.js';
+// Plan-changed debounce flusher (restoration step iv): pending
+// plan-changed notifications flush on THIS sweep (no new cron).
+import { flushPlanChanged } from './plan-changed.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment. Reads are salted-first
@@ -317,13 +320,25 @@ export default async function handler(req, res) {
   }
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
+  // ---- PLAN-CHANGED FLUSH (step iv) ----
+  // Runs on every authenticated sweep, BEFORE the park-hours guard: a
+  // leader can edit a plan at any hour, and the coalesced awareness push
+  // is due once its debounce window elapses, park hours or not. The
+  // cron schedule itself (*/5, 13:00-06:59 UTC) bounds when sweeps run.
+  // Failure-isolated: a flush failure never affects the monitor.
+  let _pcFlush = null;
+  try {
+    _pcFlush = await flushPlanChanged(Date.now());
+    if (_pcFlush.length) console.log('[push-monitor] plan-changed flush: ' + JSON.stringify(_pcFlush));
+  } catch (e) { console.warn('[push-monitor] plan-changed flush failed', e && e.message); }
+
   const now = new Date();
   const pt = pacificParts(now);
   const force = req.query && (req.query.force === '1'); // admin manual run bypasses hours guard
 
   // ---- PARK HOURS GUARD ----
   if (!force && (pt.hour < PARK_OPEN_HOUR_PT || pt.hour >= PARK_CLOSE_HOUR_PT)) {
-    return res.status(200).json({ ok: true, skipped: 'outside park hours', ptHour: pt.hour });
+    return res.status(200).json({ ok: true, skipped: 'outside park hours', ptHour: pt.hour, planChangedFlush: _pcFlush });
   }
 
   // ---- Push channel config: Web Push (VAPID) and/or native APNs ----
@@ -346,7 +361,7 @@ export default async function handler(req, res) {
     const subCodes = await listTripCodesWithSubs();
     const devCodes = await listTripCodesWithDevices();
     const tripCodes = Array.from(new Set(subCodes.concat(devCodes)));
-    if (!tripCodes.length) return res.status(200).json({ ok: true, trips: 0, note: 'no subscribed trips' });
+    if (!tripCodes.length) return res.status(200).json({ ok: true, trips: 0, note: 'no subscribed trips', planChangedFlush: _pcFlush });
 
     // ---- 2. registry: code -> tripId (salted-first, bare-fallback) ----
     const registry = await readSaltedDualBlob(registrySaltedKey(), registryBareKey()) || {};
@@ -614,7 +629,7 @@ export default async function handler(req, res) {
     }
 
     console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));
-    return res.status(200).json({ ok: true, ptHour: pt.hour, trips: tripCodes.length, summary });
+    return res.status(200).json({ ok: true, ptHour: pt.hour, trips: tripCodes.length, summary, planChangedFlush: _pcFlush });
   } catch (e) {
     console.error('[push-monitor] error', e.message);
     return res.status(500).json({ error: e.message });
