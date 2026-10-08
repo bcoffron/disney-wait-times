@@ -79,6 +79,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 
 /* ===== SECTION 6: HEADER BAR & DAY TABS ===== */
 .header{padding:calc(12px + env(safe-area-inset-top, 0px)) 16px 0;position:sticky;top:0;z-index:100;background:#071E25;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.header::before{content:"";position:absolute;left:0;right:0;top:-320px;height:320px;background:#071E25}
 .header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
 .header-title{font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;line-height:1.25}
 .header-sub{font-size:8px;color:rgba(255,255,255,0.40);margin-top:3px;letter-spacing:0.02em}.header-eyebrow{font-size:7px;font-weight:700;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px}.header button{color:rgba(255,255,255,0.70)}
