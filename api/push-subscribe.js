@@ -1,6 +1,6 @@
 // api/push-subscribe.js
 // Stores a Web Push subscription for a trip, keyed by trip code.
-// Auth: valid trip code (>=8 chars) OR admin key - matches vipnotes pattern.
+// Auth: valid trip code (>=3 chars) OR admin key - matches vipnotes pattern.
 // Storage: one blob per trip at twize/push-subs/<tripCode>.json holding an array
 // of subscriptions, de-duped by endpoint. The wait-monitor loads this to notify
 // all devices subscribed for a trip.
@@ -13,11 +13,12 @@ function blobKeyFor(tripCode) {
 	return 'twize/push-subs/' + tripCode + '.json';
 }
 
-function safeTripCode(raw) {
+export function safeTripCode(raw) {
 	if (typeof raw !== 'string') return '';
 	var t = raw.trim();
-	// allow letters, digits, dash; 8..40 chars (e.g. BCDIS2026-A)
-	if (!/^[A-Za-z0-9-]{8,40}$/.test(t)) return '';
+	// allow letters, digits, dash; 3..40 chars (e.g. BEAU01, BCDIS2026-A)
+	// 3..40 (was 8..40 -- see push-register.js)
+	if (!/^[A-Za-z0-9-]{3,40}$/.test(t)) return '';
 	return t;
 }
 
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
 		const tripCode = safeTripCode(body.tripCode || req.headers['x-trip-code'] || '');
 		const isAdmin = _adminKey.length > 0 && sentAdmin === _adminKey;
 		if (!tripCode) return res.status(400).json({ error: 'Missing or invalid trip code' });
-		if (!isAdmin && !(tripCode.length >= 8)) return res.status(401).json({ error: 'Unauthorized' });
+		if (!isAdmin && !(tripCode.length >= 3)) return res.status(401).json({ error: 'Unauthorized' });
 
 		// ---- VALIDATE SUBSCRIPTION ----
 		const sub = body.subscription;

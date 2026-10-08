@@ -76,10 +76,12 @@ function safeTripId(raw) {
   if (!/^[A-Za-z0-9_-]{3,60}$/.test(t)) return '';
   return t;
 }
-function safeTripCode(raw) {
+export function safeTripCode(raw) {
   if (typeof raw !== 'string') return '';
   const t = raw.trim();
-  if (!/^[A-Za-z0-9-]{8,40}$/.test(t)) return '';
+  // 3..40 (was 8..40 -- see push-register.js; the 8-char floor made
+  // wait-time pushes impossible for real 6-char codes like BEAU01.)
+  if (!/^[A-Za-z0-9-]{3,40}$/.test(t)) return '';
   return t;
 }
 
@@ -192,7 +194,7 @@ async function writeJsonBlob(key, obj) {
     access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json'
   });
 }
-async function listTripCodesWithSubs() {
+export async function listTripCodesWithSubs() {
   try {
     const { list } = await import('@vercel/blob');
     const { blobs } = await list({ prefix: 'twize/push-subs/' });
@@ -243,7 +245,7 @@ async function sendToTrip(tripCode, payloadObj) {
   return { sent, failed, pruned };
 }
 
-async function listTripCodesWithDevices() {
+export async function listTripCodesWithDevices() {
   try {
     const { list } = await import('@vercel/blob');
     const { blobs } = await list({ prefix: 'twize/push-devices/' });

@@ -47,11 +47,17 @@ function blobKeyFor(tripCode) {
   return 'twize/push-devices/' + tripCode + '.json';
 }
 
-function safeTripCode(raw) {
+export function safeTripCode(raw) {
   if (typeof raw !== 'string') return '';
   var t = raw.trim();
-  // allow letters, digits, dash; 8..40 chars (e.g. BCDIS2026-A)
-  if (!/^[A-Za-z0-9-]{8,40}$/.test(t)) return '';
+  // allow letters, digits, dash; 3..40 chars (e.g. BEAU01, BCDIS2026-A).
+  // The floor is 3, not 8: real trip codes are registry-minted at 6+
+  // chars (BEAU01) and registry membership below is the actual auth --
+  // an 8-char shape floor silently rejected the founder's own code
+  // (Oct 8, 2026 no-fire diagnosis). Keep in sync with the copies in
+  // cron-booking-alerts.js, cron-push-monitor.js, push-send.js and
+  // push-subscribe.js -- the push gate matrix tests all five.
+  if (!/^[A-Za-z0-9-]{3,40}$/.test(t)) return '';
   return t;
 }
 

@@ -10,10 +10,11 @@ function blobKeyFor(tripCode) {
 	return 'twize/push-subs/' + tripCode + '.json';
 }
 
-function safeTripCode(raw) {
+export function safeTripCode(raw) {
 	if (typeof raw !== 'string') return '';
 	var t = raw.trim();
-	if (!/^[A-Za-z0-9-]{8,40}$/.test(t)) return '';
+	// 3..40 (was 8..40 -- see push-register.js)
+	if (!/^[A-Za-z0-9-]{3,40}$/.test(t)) return '';
 	return t;
 }
 
