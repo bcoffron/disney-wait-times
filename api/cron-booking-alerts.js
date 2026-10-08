@@ -50,6 +50,7 @@
 
 import webpush from 'web-push';
 import { isApnsConfigured, sendApnsToDevices } from './apns.js';
+import { recordEpisode } from './push-episodes.js';
 
 // Disneyland dining reservations open 60 days before the dining date.
 export const BOOKING_WINDOW_DAYS = 60;
@@ -571,12 +572,22 @@ export async function fireTripPush(tripCode, payloadObj, opts) {
   configureWebPush();
   const w = await sendToTrip(tripCode, payloadObj, opts);
   const a = await sendApnsToTrip(tripCode, payloadObj, opts);
-  return {
+  const out = {
     web: w, apns: a,
     sent: (w.sent || 0) + (a.sent || 0),
     failed: (w.failed || 0) + (a.failed || 0),
     pruned: (w.pruned || 0) + (a.pruned || 0)
   };
+  // Poll backstop (Claude msg 94 (i)): a successfully delivered episode
+  // is also recorded for the client's ~10s foreground poll, which renders
+  // it in-app where the native shell never hands the push to the app's
+  // listener. Recording rides THIS shared path so every caller class
+  // (test sends, plan-changed) is covered by the one seam; only a real
+  // delivery records, matching the crons' marker discipline.
+  if (out.sent > 0 && payloadObj && payloadObj.episodeId) {
+    await recordEpisode(tripCode, payloadObj);
+  }
+  return out;
 }
 
 export default async function handler(req, res) {
@@ -659,10 +670,18 @@ export default async function handler(req, res) {
           continue;
         }
         // One alert per trip per opening day, both channels (monitor fire()).
+        // Episode identity (msg 94 (i)): the booking episode IS the
+        // shared marker -- one alert per park-day date in state.sent --
+        // so the id is keyed by that same date. Stamped here (not in the
+        // pure payload builders) so planner outputs stay unchanged.
+        item.payload.episodeId = 'ep:' + tripId + ':booking:' + item.date;
         const w = await sendToTrip(code, item.payload);
         const a = await sendApnsToTrip(code, item.payload);
         const sent = w.sent + a.sent;
         if (sent > 0) {
+          // Poll backstop: record the fired episode for the foreground
+          // poll alongside the marker write below.
+          await recordEpisode(code, item.payload);
           // Marker discipline is shared across both paths: the marker is
           // keyed by park-day date in state.sent and written ONLY after a
           // successful send, so a caught-up day can never later receive

@@ -9,6 +9,10 @@ import { buildCatalogIndex, computeTripSurfacing, parseCatalogVenues, correctVen
 // persistence seam for schedules, so the material-change diff, the schedule
 // version stamp, and the notify call all live here (see api/plan-changed.js).
 import { notePlanChange, diffScheduleDays, safeDeviceToken } from './plan-changed.js';
+// Poll-backstop episodes (Claude msg 94 (i)): the GET response carries the
+// trip's recorded push episodes so the client's ~10s foreground poll can
+// render any the native shell never handed to its push listener.
+import { readEpisodesForPoll } from './push-episodes.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment so their fixed public
@@ -297,6 +301,12 @@ export default async function handler(req, res) {
     let tripData = await readTripBlob(entry.tripId);
     const hasTrip = !!tripData;
 
+    // Poll-backstop episodes recorded for THIS code (msg 94 (i) + (iv)):
+    // retention-pruned, today-Pacific only. Older clients ignore the
+    // field; the current client's blob poll renders the unpresented
+    // ones through the foreground push handler.
+    const episodes = await readEpisodesForPoll(code);
+
     return res.status(200).json({
       valid: true,
       role: entry.role,
@@ -308,7 +318,8 @@ export default async function handler(req, res) {
       // code's response never names the leader code.
       guestCode: entry.role === 'admin' ? (entry.guestCode || null) : null,
       hasTrip,
-      tripData: hasTrip ? tripData : null
+      tripData: hasTrip ? tripData : null,
+      episodes: episodes
     });
   }
 

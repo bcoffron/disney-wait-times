@@ -21,6 +21,9 @@ import { isApnsConfigured, sendApnsToDevices, evaluateRideEpisode } from './apns
 // Plan-changed debounce flusher (restoration step iv): pending
 // plan-changed notifications flush on THIS sweep (no new cron).
 import { flushPlanChanged } from './plan-changed.js';
+// Poll-backstop episode recording (msg 94 (i)): fired episodes are also
+// recorded per trip code for the client's foreground poll.
+import { recordEpisode } from './push-episodes.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment. Reads are salted-first
@@ -471,7 +474,16 @@ export default async function handler(req, res) {
         const w = await sendToTrip(code, payload);
         const a = await sendApnsToTrip(code, payload);
         apnsSentTrip += a.sent;
-        return { sent: w.sent + a.sent, web: w, apns: a };
+        const sentTotal = w.sent + a.sent;
+        // Poll backstop (Claude msg 94 (i)): record every successfully
+        // fired episode for the client's ~10s foreground poll, which
+        // renders it in-app where the native shell never hands the push
+        // to the app's listener. Same delivery gate as the cooldown /
+        // fire-count commits below: a failed send records nothing.
+        if (sentTotal > 0 && payload && payload.episodeId) {
+          await recordEpisode(code, payload);
+        }
+        return { sent: sentTotal, web: w, apns: a };
       };
 
       for (const it of rideItems) {
