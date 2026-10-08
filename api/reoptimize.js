@@ -274,7 +274,7 @@ async function handler(req, res) {
 
       // ------ New system prompt (wait-first, walk-second, all-items preserved) ---------------
       var systemPrompt =
-              'You are an expert Disneyland schedule optimizer for a group of 9 guests. ' +
+              'You are an expert Disneyland schedule optimizer. ' +
               'Your job is to reorder the schedule items provided to minimize time spent ' +
               'waiting in lines (PRIORITY 1) and minimize unnecessary walking between lands ' +
               '(PRIORITY 2). ' +
