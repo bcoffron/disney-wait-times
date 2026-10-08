@@ -368,6 +368,11 @@ export function buildFillPrompt(skeleton, opts) {
   sys += '\n- The rope-drop slot MUST be the single highest-demand headliner (top E-ticket) the cache shows for this park, at park open. Spend Lightning Lane on high-wait headliners too.';
   sys += '\n- A slot marked ASSIGNED RIDE already has its ride chosen by the day strategy -- use exactly that ride for that slot, no substitutions.';
   sys += '\n- Flow through the park land by land: when more than one ride fits a slot, choose the one in or nearest the land of the previous slot. Never send the group back and forth across the park.';
+  // Item 2 (Oct 7, 2026): the snack-slot half of that flow rule, stated
+  // where the model makes the pick -- the deterministic backfill enforces
+  // the same preference when it seats a snack (geoRank), so both fill
+  // paths share one geography rule: a snack hugs the stops around it.
+  sys += '\n- For a SNACK slot, pick a stand in the same land as the stops around that slot (the previous and next slots) whenever the verified dining list offers an eligible one there. A snack is a two-minute stop on the way, not a trip across the park -- cross the park for a snack only when nothing eligible sits in or near that land.';
   sys += '\n- Never repeat a ride or venue anywhere in the day, or any venue in the ALREADY-USED list. Give exactly ONE name per slot -- never "X (or Y)" or a list of alternatives.';
   sys += '\n- Object schema: { "id":"s03", "t":"8:10 AM", "h":"Name", "type":"<the slot\'s type>", "land":"Land", "n":"tip in one or two short sentences, under 180 chars, always a complete sentence", "ride":"Exact ride name (rides/LL only)", "ll":{ "t":"multi|single", "a":"..." } }';
   sys += '\n- ll only on ride/tip slots and only if the day has Lightning Lane. ASCII only. Notes under 180 characters, complete sentences only.';
