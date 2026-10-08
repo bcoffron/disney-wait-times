@@ -1939,6 +1939,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
         mode: 'setup',
         maxTokens: 8000,
         tripCode: localStorage.getItem('tpcp_code') || '',
+        deviceToken: tpcpDeviceToken(),
         tripConfig: {
           characters: tripConfig.characters,
           minHeight: tripConfig.minHeight,
@@ -2313,6 +2314,14 @@ function ptFinish() {
   })();
 }
 
+// This device's own push token (stashed by the app.html register flow in
+// the shared localStorage). Trip writes carry it so the server can
+// exclude THIS device from the plan-changed awareness push about its own
+// edit (restoration step iv) -- regeneration runs through this page, so
+// the token has to ride these writes too. Empty when this device never
+// registered for push.
+function tpcpDeviceToken(){ try { return localStorage.getItem('tpcp_push_token') || ''; } catch(e){ return ''; } }
+
 function ptFinishAfterHours(tripConfig, d, totalDays) {
   var code = localStorage.getItem('tpcp_code') || '';
 
@@ -2327,7 +2336,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       fetch(SYNC_BASE + '/api/trip', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ code: code, tripData: { tripConfig: tripConfig } })
+        body: JSON.stringify({ code: code, deviceToken: tpcpDeviceToken(), tripData: { tripConfig: tripConfig } })
       })
       .then(function(r){ return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
       .then(function(resp){
@@ -2359,7 +2368,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       fetch(SYNC_BASE + '/api/trip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code, tripData: { tripConfig: finalConfig } }),
+        body: JSON.stringify({ code: code, deviceToken: tpcpDeviceToken(), tripData: { tripConfig: finalConfig } }),
         signal: _saveAbort.signal
       })
       .then(function(r){ clearTimeout(_saveAbortT); return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
