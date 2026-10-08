@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <!-- cache-bust: TPCP2026-phase5 2026-06-15 -->
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5.0,viewport-fit=cover">
 <title>Trip Setup &mdash; Theme Park Co-Pilot</title>
 <link rel="preconnect" href="https://fontsgoogleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -183,6 +183,12 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 .gp-segs{display:flex;gap:4px;margin:8px 0 2px;}
 .gp-segs i{height:4px;flex:1;border-radius:2px;background:rgba(7,30,37,0.12);}
 .gp-segs i.on{background:linear-gradient(90deg,#1A8880,#35B5A9);}
+/* Pinch-zoom pair (Claude msg 94): the viewport cap is now 5.0 so small
+   text can be pinched larger; with the old cap gone, WebKit would
+   focus-zoom on this page's sub-16px fields, so this 16px form floor
+   is the cap change's same-commit companion -- never ship one without
+   the other. */
+input, select, textarea { font-size: 16px !important; }
 </style>
 </head>
 <body>

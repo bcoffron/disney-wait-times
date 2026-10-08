@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Theme Park CP">
@@ -1681,6 +1681,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
 @keyframes twShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 body.tw-guest .reroute-btn{display:none!important}
 body.tw-guest .ai-opt-hero{display:none!important}
+/* Pinch-zoom pair (Claude msg 94): the viewport cap is now 5.0 so small
+   text can be pinched larger; with the old 1.0 cap gone, WebKit would
+   focus-zoom on the app's many sub-16px fields, so this 16px form floor
+   is the cap change's same-commit companion -- never ship one without
+   the other. */
+input, select, textarea { font-size: 16px !important; }
 </style>
 </style>
 
