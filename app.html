@@ -8298,7 +8298,7 @@ function tpcpInitMiniMap() {
   }).catch(function () { var h = document.getElementById('tpcpMiniMap'); if (h) h.style.display = 'none'; });
 }
 // ---------- Full park map (Info tab) ----------
-var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], svcMarkers: [], seMarkers: [], showPlaces: true, showRR: false, showSvc: false, showSE: false, selected: null };
+var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], svcMarkers: [], seMarkers: [], alwaysMarkers: [], showPlaces: true, showRR: false, showSvc: false, showSE: false, selected: null };
 var TPCP_SVC_COLORS = { firstaid: '#C0392B', babycare: '#8E6BC8', lockers: '#4A7A7C', guest: '#1D6FB8', atm: '#5A526E' };
 var TPCP_SVC_LABELS = { firstaid: 'First Aid', babycare: 'Baby Care', lockers: 'Lockers', guest: 'Guest Relations', atm: 'ATM' };
 var _tpcpSpots = {};
@@ -8318,13 +8318,17 @@ function tpcpPopupDir(id) {
 // Source data: the OSM pin datasets built for this map (every coordinate read
 // from the OSM element behind each row; nothing hand-entered or guessed).
 // Entry shape: [name, lat, lng, layer, zone, kind]; layer is 'places'
-// (Rides & Food), 'services', or 'se' (Shops & Entertainment); zone is
+// (Rides & Food), 'services', 'se' (Shops & Entertainment), or 'always'
+// (always-on pins behind no toggle); zone is
 // 'DL'/'DCA' for in-park rows, else the district/hotel name the popup shows.
 // Categorization (Claude msg 60 + the resort-wide consistency principle: a
 // toggle means the same thing in the parks, Downtown Disney, and the hotels):
-// Downtown Disney dining -> Rides & Food; restrooms -> Services everywhere;
-// shops/entertainment, the Monorail station, the three hotel landmarks and
-// every hotel venue -> Shops & Entertainment. Three dataset rows are NOT
+// Downtown Disney dining -> Rides & Food; hotel dining and bars -> Rides
+// & Food (dining is dining, wherever it sits); restrooms -> Services
+// everywhere; shops/entertainment, the Monorail station and hotel shops ->
+// Shops & Entertainment; the three hotel landmarks -> layer 'always'
+// (always-on orientation anchors behind no toggle -- Claude msg 62, which
+// also resolved the hotel allocation above). Three dataset rows are NOT
 // pinned below: each is the same facility the DCA graph already pins at the
 // Esplanade seam (Restrooms 33.8091762,-117.9225384; Restrooms
 // 33.8084611,-117.9218602; Chase ATM 33.8090899,-117.922429 — 0 m from the
@@ -8333,26 +8337,26 @@ function tpcpPopupDir(id) {
 // lululemon, Gordon Ramsay at The Carnaby, GCH Craftsman Bar, Castle
 // Heraldry Shoppe, Parkside Market stalls.
 var TPCP_EXTRA_PINS = [
-    ['The Disneyland Hotel',33.8096741,-117.9269509,'se','Disneyland Hotel','hotel'],
-    ['Disney\'s Grand Californian Hotel &amp; Spa',33.8076504,-117.922239,'se','Grand Californian','hotel'],
-    ['Pixar Place Hotel',33.8062619,-117.9249049,'se','Pixar Place Hotel','hotel'],
-    ['Goofy\'s Kitchen',33.8086415,-117.9272985,'se','Disneyland Hotel','dining'],
-    ['Trader Sam\'s Enchanted Tiki Bar',33.8082809,-117.9265806,'se','Disneyland Hotel','bar'],
-    ['Tangaroa Terrace',33.8083929,-117.9267046,'se','Disneyland Hotel','dining'],
-    ['The Coffee House',33.8087999,-117.9272689,'se','Disneyland Hotel','dining'],
-    ['Palm Breeze Bar',33.8082508,-117.9275198,'se','Disneyland Hotel','bar'],
-    ['Broken Spell Lounge',33.808646,-117.9275104,'se','Disneyland Hotel','bar'],
+    ['The Disneyland Hotel',33.8096741,-117.9269509,'always','Disneyland Hotel','hotel'],
+    ['Disney\'s Grand Californian Hotel &amp; Spa',33.8076504,-117.922239,'always','Grand Californian','hotel'],
+    ['Pixar Place Hotel',33.8062619,-117.9249049,'always','Pixar Place Hotel','hotel'],
+    ['Goofy\'s Kitchen',33.8086415,-117.9272985,'places','Disneyland Hotel','dining'],
+    ['Trader Sam\'s Enchanted Tiki Bar',33.8082809,-117.9265806,'places','Disneyland Hotel','bar'],
+    ['Tangaroa Terrace',33.8083929,-117.9267046,'places','Disneyland Hotel','dining'],
+    ['The Coffee House',33.8087999,-117.9272689,'places','Disneyland Hotel','dining'],
+    ['Palm Breeze Bar',33.8082508,-117.9275198,'places','Disneyland Hotel','bar'],
+    ['Broken Spell Lounge',33.808646,-117.9275104,'places','Disneyland Hotel','bar'],
     ['Disney\'s Fantasia Shop',33.8090655,-117.9271102,'se','Disneyland Hotel','shop'],
     ['small world Gifts &amp; Sundries',33.8090788,-117.9268839,'se','Disneyland Hotel','shop'],
-    ['Napa Rose',33.8080241,-117.9214791,'se','Grand Californian','dining'],
-    ['Storytellers Cafe',33.8078906,-117.9218592,'se','Grand Californian','dining'],
-    ['GCH Craftsman Grill',33.8074476,-117.9214125,'se','Grand Californian','dining'],
-    ['Hearthstone Lounge',33.8075878,-117.922252,'se','Grand Californian','bar'],
+    ['Napa Rose',33.8080241,-117.9214791,'places','Grand Californian','dining'],
+    ['Storytellers Cafe',33.8078906,-117.9218592,'places','Grand Californian','dining'],
+    ['GCH Craftsman Grill',33.8074476,-117.9214125,'places','Grand Californian','dining'],
+    ['Hearthstone Lounge',33.8075878,-117.922252,'places','Grand Californian','bar'],
     ['Acorns Gifts and Goods',33.8079466,-117.9222893,'se','Grand Californian','shop'],
     ['Tenaya Stone Spa',33.807616,-117.9214642,'services','Grand Californian','spa'],
-    ['Great Maple Modern American Eatery',33.8065521,-117.9244226,'se','Pixar Place Hotel','dining'],
-    ['The Sketch Pad Café',33.806318,-117.9245023,'se','Pixar Place Hotel','dining'],
-    ['Small Bytes',33.8065785,-117.9248831,'se','Pixar Place Hotel','bar'],
+    ['Great Maple Modern American Eatery',33.8065521,-117.9244226,'places','Pixar Place Hotel','dining'],
+    ['The Sketch Pad Café',33.806318,-117.9245023,'places','Pixar Place Hotel','dining'],
+    ['Small Bytes',33.8065785,-117.9248831,'places','Pixar Place Hotel','bar'],
     ['STOR-E',33.8062393,-117.9243885,'se','Pixar Place Hotel','shop'],
     ['Din Tai Fung',33.8085663,-117.9253745,'places','Downtown Disney','food'],
     ['Naples Ristorante e Pizzeria',33.8088537,-117.9221035,'places','Downtown Disney','food'],
@@ -8540,13 +8544,14 @@ function tpcpExtraPinStyle(pin) {
   // Downtown Disney / hotel pins carry the subtle zone treatment (Claude
   // msg 60): the SAME colors as their in-park counterparts, slightly smaller
   // and lighter — a different district, not a different color system. Hotel
-  // landmarks keep near-full presence: they anchor the district.
-  if (pin[5] === 'hotel') return { radius: 9, color: '#FFFFFF', weight: 2, fillOpacity: 0.92 };
+  // landmarks ride the same subtle treatment (Claude msg 62: always-on
+  // orientation anchors -- present at every layer state, never loud).
+  if (pin[5] === 'hotel') return { radius: 7.5, color: '#FFFFFF', weight: 1.5, fillOpacity: 0.85 };
   if (pin[4] === 'DL' || pin[4] === 'DCA') return { radius: 9, color: '#FFFFFF', weight: 2, fillOpacity: 0.95 };
   return { radius: 7.5, color: '#FFFFFF', weight: 1.5, fillOpacity: 0.85 };
 }
 function tpcpBuildResortMarkers() {
-  _pm.placeMarkers = []; _pm.rrMarkers = []; _pm.svcMarkers = []; _pm.seMarkers = [];
+  _pm.placeMarkers = []; _pm.rrMarkers = []; _pm.svcMarkers = []; _pm.seMarkers = []; _pm.alwaysMarkers = [];
   ['DL', 'DCA'].forEach(function (park) {
     var graph = window['TPCP_GRAPH_' + park];
     if (!graph) return;
@@ -8588,6 +8593,7 @@ function tpcpBuildResortMarkers() {
     tpcpBindPinPopup(m, pin, dirSpot);
     if (layer === 'places') _pm.placeMarkers.push(m);
     else if (layer === 'services') _pm.svcMarkers.push(m);
+    else if (layer === 'always') _pm.alwaysMarkers.push(m);
     else _pm.seMarkers.push(m);
   });
 }
@@ -8676,6 +8682,9 @@ function tpcpApplyLayers() {
   _pm.rrMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(_pm.map); else m.remove(); });
   _pm.svcMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(_pm.map); else m.remove(); });
   _pm.seMarkers.forEach(function (m) { if (_pm.showSE) m.addTo(_pm.map); else m.remove(); });
+  // alwaysMarkers (the three hotel landmarks) are orientation anchors
+  // (Claude msg 62): added at every layer state, behind no toggle.
+  _pm.alwaysMarkers.forEach(function (m) { m.addTo(_pm.map); });
   tpcpChip('tpcpChipPlaces', _pm.showPlaces);
   tpcpChip('tpcpChipSvc', _pm.showSvc);
   tpcpChip('tpcpChipSE', _pm.showSE);
