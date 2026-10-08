@@ -2069,7 +2069,7 @@ window.renderClosureAlerts = function() {
   </div>
 </div>
 
-<div id="waitSpikeToast" style="display:none; position:fixed; bottom:57px; left:0; right:0; z-index:150; background:#071E25; border:1px solid rgba(255,255,255,0.12); border-radius:14px 14px 0 0; padding:14px 16px 10px; align-items:center; gap:10px; transform:translateY(100%); transition:transform 0.3s ease;"><div style="width:32px; height:32px; border-radius:50%; background:#C86030; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1; min-width:0;"><div id="waitSpikeTitle" style="font-size:11px; font-weight:700; color:#fff; line-height:1.3;"></div><div style="font-size:9px; color:rgba(255,255,255,0.55); margin-top:2px;">Want me to find a better window?</div></div><div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;"><button onclick="handleWaitSpikeReroute()" style="background:#C86030; border:none; border-radius:6px; padding:5px 10px; font-size:9px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit;">Reroute me</button><button onclick="dismissWaitSpikeToast()" style="background:transparent; border:none; padding:5px 10px; font-size:9px; font-weight:600; color:rgba(255,255,255,0.45); cursor:pointer; font-family:inherit;">Ignore</button></div></div>
+<div id="waitSpikeToast" style="display:none; position:fixed; bottom:57px; left:0; right:0; z-index:150; background:#071E25; border:1px solid rgba(255,255,255,0.12); border-radius:14px 14px 0 0; padding:14px 16px 10px; align-items:center; gap:10px; transform:translateY(100%); transition:transform 0.3s ease;"><div style="width:32px; height:32px; border-radius:50%; background:#C86030; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1; min-width:0;"><div id="waitSpikeTitle" style="font-size:11px; font-weight:700; color:#fff; line-height:1.3;"></div><div id="waitSpikeSub" style="font-size:9px; color:rgba(255,255,255,0.55); margin-top:2px;">Want me to find a better window?</div></div><div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;"><button onclick="handleWaitSpikeReroute()" style="background:#C86030; border:none; border-radius:6px; padding:5px 10px; font-size:9px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit;">Reroute me</button><button onclick="dismissWaitSpikeToast()" style="background:transparent; border:none; padding:5px 10px; font-size:9px; font-weight:600; color:rgba(255,255,255,0.45); cursor:pointer; font-family:inherit;">Ignore</button></div></div>
 <!-- ===== SECTION 2: BOTTOM NAVIGATION BAR ===== -->
 <nav class="bottom-nav" id="bottomNav" role="navigation" aria-label="Main navigation">
 
@@ -3244,7 +3244,7 @@ async function tpcpSendTestPush(btn){
     } else if(d && d.devices === 0){
       msg = 'No devices are registered on this trip yet \u2014 turn on Wait Time Alerts on a phone first, then test again.';
     } else if(d && d.ok && d.sent > 0){
-      msg = 'Test sent \u2014 it reached ' + d.sent + ' of ' + d.devices + (d.devices === 1 ? ' device' : ' devices') + ' on this trip. Check the phones.' + '\nSent \u2014 if the app was open, lock the phone to see the banner.';
+      msg = 'Test sent \u2014 it reached ' + d.sent + ' of ' + d.devices + (d.devices === 1 ? ' device' : ' devices') + ' on this trip. Check the phones.';
     } else if(d && typeof d.sent === 'number'){
       msg = 'The test could not be delivered to any of the ' + d.devices + (d.devices === 1 ? ' device' : ' devices') + ' registered on this trip.';
     } else {
@@ -3270,9 +3270,11 @@ async function tpcpEnableNativeWaitAlerts(){
       _tpcpPushListenersBound = true;
       P.addListener('registration', function(t){ tpcpRegisterNativePushToken(t && t.value); });
       P.addListener('registrationError', function(err){ console.warn('[push] registration error', err); });
-      // Foreground arrival: the in-app wait UI already live-updates; nothing
-      // extra to render. (iOS also shows the banner per the aps payload.)
-      P.addListener('pushNotificationReceived', function(n){ /* console.log('[push] received', n && n.title); */ });
+      // Foreground arrival (Claude msg 84): the server is the single
+      // detector; a push that reaches this listener while the app is
+      // foregrounded renders as an in-app popup (backgrounded, iOS shows
+      // the banner instead -- the same episode never renders twice).
+      P.addListener('pushNotificationReceived', function(n){ tpcpHandleForegroundPush(n); });
       // Tap on a notification: bring the guest to the app (Waits is one tap
       // away; the payload url is '/app.html').
       P.addListener('pushNotificationActionPerformed', function(action){
@@ -3575,6 +3577,14 @@ function startBlobPoll() {
         var hash = JSON.stringify(data.tripData);
         if (hash === _blobPollLastHash) return;
         _blobPollLastHash = hash;
+        // Foreground suppression seam (Claude msgs 82/84): remember the
+        // newest scheduleVersion this client has actually ingested, so a
+        // plan-changed push naming an older-or-equal version can be
+        // suppressed as already-applied. Tracking only -- the apply logic
+        // below is untouched.
+        var _svRaw = data.tripData.tripConfig && data.tripData.tripConfig.scheduleVersion;
+        var _svNum = _svRaw ? parseInt(_svRaw, 10) : 0;
+        if (_svNum && _svNum > (window._tpcpAppliedSchedVersion || 0)) window._tpcpAppliedSchedVersion = _svNum;
         // Update schedule for guests: ingest the fresh schedule into _schedData +
         // rebuild customSched (via the same loadCustom path used on initial load)
         // BEFORE re-rendering. Without this, renderSched redraws stale data.
@@ -7827,62 +7837,100 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(u,500);
 })();
 
-// Wait spike alert system
-const _spikeIgnored = {}; // tracks ignored rides this session
-const _lastKnownWait = {}; // tracks last seen wait times
-let _spikeToastTimer = null;
+// ===== FOREGROUND PUSH RENDERING (Claude msg 84) =====
+// The server wait-time monitor is the SINGLE detector. When a push reaches
+// the app while it is foregrounded, iOS shows no banner -- so the push
+// renders here as an in-app popup, reusing the wait-spike toast component
+// as presentation only. (The legacy in-app spike detector is retired
+// below: its detection duplicated the server's rule set, the exact
+// twin-detector smell. The toast UI stays; only detection moved.)
+// One episode, one render: payloads carry a shared episodeId (the server
+// marker identity) and this session's presented set drops any re-delivery
+// of an episode already shown. Backgrounded, the same push banners via
+// iOS and this listener never fires. Session scope per the ruling: the
+// presented set is in-memory only -- a webview reload starts a new one.
+var _tpcpPresentedEpisodes = {};
 
-function checkForWaitSpikes() {
-  // Only run if schedule tab is active and app is visible
-  if (document.hidden) return;
-  const activeTab = document.querySelector('.nav-item.active');
-  if (!activeTab || !activeTab.textContent.includes('Schedule')) return;
+function tpcpClassFromTag(tag) {
+  var t = String(tag || '');
+  if (t.indexOf('tpcp-booking') === 0) return 'booking';
+  if (t === 'tpcp-test-alert') return 'test';
+  if (t === 'tpcp-ride-down' || t === 'tpcp-ride-up' || t.indexOf('tpcp-wait-') === 0) return 'ride-update';
+  return '';
+}
 
-  // Get current time
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+// The newest scheduleVersion this client has applied: the blob poll's
+// tracker, cross-checked against the loaded tripConfig's own stamp (every
+// schedule write stamps tripConfig.scheduleVersion = Date.now()).
+function tpcpAppliedSchedVersion() {
+  var v = (typeof window._tpcpAppliedSchedVersion === 'number') ? window._tpcpAppliedSchedVersion : 0;
+  try {
+    var tc = window._loadedTripData && window._loadedTripData.tripConfig;
+    var sv = tc && tc.scheduleVersion ? parseInt(tc.scheduleVersion, 10) : 0;
+    if (sv && sv > v) v = sv;
+  } catch (e) {}
+  return v;
+}
 
-  // Find next 2 upcoming ride cards
-  const rideCards = Array.from(document.querySelectorAll('.ride-block'))
-    .filter(card => card.querySelector('.wait-pill'))
-    .filter(card => {
-      const timeEl = card.querySelector('.ride-time');
-      if (!timeEl) return false;
-      const timeText = timeEl.textContent.trim();
-      const cardMinutes = parseTimeToMinutes(timeText);
-      return cardMinutes >= currentMinutes && cardMinutes <= currentMinutes + 120;
-    })
-    .slice(0, 2);
-
-  rideCards.forEach(card => {
-    const rideName = card.querySelector('.ride-name')?.textContent?.trim();
-    const waitEl = card.querySelector('.wait-pill');
-    if (!rideName || !waitEl) return;
-
-    const waitText = waitEl.textContent.replace(/[^0-9]/g, '');
-    const waitMins = parseInt(waitText);
-    if (isNaN(waitMins)) return;
-
-    const lastWait = _lastKnownWait[rideName] || 0;
-    _lastKnownWait[rideName] = waitMins;
-
-    // Spike detected: now >=45 min AND was <=30 min before AND not already ignored
-    if (waitMins >= 45 && lastWait <= 30 && lastWait > 0 && !_spikeIgnored[rideName]) {
-      showWaitSpikeToast(rideName, waitMins);
+function tpcpHandleForegroundPush(n) {
+  try {
+    if (!n) return;
+    var d = (n.data && typeof n.data === 'object') ? n.data : {};
+    var title = n.title || d.title || '';
+    var body = n.body || d.body || '';
+    if (!title && !body) return;
+    var cls = d.class || tpcpClassFromTag(d.tag || '');
+    // Plan-changed foreground suppression (msg 82): if the ~10s poll has
+    // already applied this change (the push's version is <= the applied
+    // one), stay silent -- the plan on screen is already the new one.
+    // No producer emits schedVersion yet; step (iv) adds the server side.
+    if (cls === 'plan-changed' && d.schedVersion != null) {
+      var pv = Number(d.schedVersion);
+      var av = tpcpAppliedSchedVersion();
+      if (!isNaN(pv) && av > 0 && pv <= av) return;
     }
-  });
+    // Shared-episode dedupe: one presentation per episode per session.
+    var ep = d.episodeId || '';
+    if (ep) {
+      if (_tpcpPresentedEpisodes[ep]) return;
+      _tpcpPresentedEpisodes[ep] = 1;
+    }
+    tpcpShowPushPopup(title, body, cls);
+  } catch (e) { console.warn('[push] foreground render failed', e && e.message); }
 }
 
-function parseTimeToMinutes(timeStr) {
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) return 0;
-  let hours = parseInt(match[1]);
-  const mins = parseInt(match[2]);
-  const period = match[3].toUpperCase();
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
-  return hours * 60 + mins;
+// Generalized popup over the wait-spike toast component: the payload's
+// title + body, awareness + dismiss only. NO action button renders in
+// this build (msg 84: no inert buttons ship) -- the legacy Reroute
+// affordance's destination is step (v)'s work, so it stays hidden on
+// every push render.
+function tpcpShowPushPopup(title, body, cls) {
+  var toast = document.getElementById('waitSpikeToast');
+  var titleEl = document.getElementById('waitSpikeTitle');
+  var subEl = document.getElementById('waitSpikeSub');
+  if (!toast || !titleEl) return;
+  titleEl.textContent = title || 'Notification';
+  if (subEl) { subEl.textContent = body || ''; subEl.style.display = body ? '' : 'none'; }
+  toast.dataset.rideName = ''; // not a spike render: dismiss must not mark a ride ignored
+  toast.dataset.pushClass = cls || '';
+  var rrBtn = toast.querySelector('[onclick*="handleWaitSpikeReroute"]');
+  if (rrBtn) rrBtn.style.display = 'none';
+  toast.style.display = 'flex';
+  requestAnimationFrame(function() { toast.style.transform = 'translateY(0)'; });
+  if (_spikeToastTimer) clearTimeout(_spikeToastTimer);
+  _spikeToastTimer = setTimeout(function() { dismissWaitSpikeToast(); }, 12000);
 }
+
+// Wait spike alert system
+// RETIRED (Claude msg 84): the in-app spike DETECTOR (checkForWaitSpikes --
+// next-2-cards / 120-min / <=30 -> >=45 client-side detection on a 5-min
+// interval) is gone. The server wait-time monitor is the single detector;
+// this toast component remains as PRESENTATION ONLY, driven by
+// tpcpHandleForegroundPush above when a server push arrives foregrounded.
+// The ~10s blob poll above is a different mechanism (schedule sync) and is
+// untouched.
+const _spikeIgnored = {}; // tracks ignored rides this session
+let _spikeToastTimer = null;
 
 function showWaitSpikeToast(rideName, waitMins) {
   const toast = document.getElementById('waitSpikeToast');
@@ -7921,10 +7969,8 @@ function handleWaitSpikeReroute() {
   tpcpReroute(rn);
 }
 
-// Check every 5 minutes
-setInterval(checkForWaitSpikes, 5 * 60 * 1000);
-// First check after 30 seconds on load (gives wait times time to load)
-setTimeout(checkForWaitSpikes, 30000);
+// (The detector's 5-min interval + 30s first-check registrations were
+// removed with checkForWaitSpikes above -- no client-side detection runs.)
 
 // ============================================================
 // WAIT-SPIKE REROUTE: SWAP CORE  (app.html integration)
