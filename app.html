@@ -4811,9 +4811,6 @@ function attachDiningListeners(){
   });
 }
 
-function diningSlotKey(dayIdx, secIdx, entryIdx){
-  return 'dslot_'+dayIdx+'_'+secIdx+'_'+entryIdx;
-}
 function parseTimeMins(t){
   if(!t) return null;
   var s=t.trim().toUpperCase().replace('.','');
@@ -4863,71 +4860,6 @@ function walkBetween(restName, nextLand){
   return 10;
 }
 
-function saveDiningSlot(dayIdx, secIdx, entryIdx){ if(!isAdmin()) return;
-  var rest=document.getElementById('ds_rest_'+dayIdx+'_'+secIdx+'_'+entryIdx);
-  var time=document.getElementById('ds_time_'+dayIdx+'_'+secIdx+'_'+entryIdx);
-  var saved=document.getElementById('ds_saved_'+dayIdx+'_'+secIdx+'_'+entryIdx);
-  if(!rest||!time) return;
-  var restName=rest.value.trim();
-  var resTime=time.value.trim();
-  var val={restaurant:restName,time:resTime};
-  try{localStorage.setItem(diningSlotKey(dayIdx,secIdx,entryIdx),JSON.stringify(val));}catch(e){}
-
-  // Auto-adjust schedule times if reservation time entered
-  if(resTime&&resTime.length>2){
-    var resMins=parseTimeMins(resTime);
-    if(resMins){
-      var day=JSON.parse(JSON.stringify(customSched[dayIdx]||getCurDay()));
-      var sec=day.sections[secIdx];
-      if(sec){
-        var entry=sec.entries[entryIdx];
-        var oldTimeMins=parseTimeMins(entry.t);
-        if(oldTimeMins&&Math.abs(resMins-oldTimeMins)>=5){
-          var diff=resMins-oldTimeMins;
-          // Move dining entry to reservation time
-          entry.t=resTime;
-          // Estimate dining duration (~60 min for table service, 30 for counter)
-          var diningDur=60;
-          var doneTime=resMins+diningDur;
-          // Adjust the next entry's time based on walk from restaurant to its land
-          if(entryIdx+1<sec.entries.length){
-            var nextEntry=sec.entries[entryIdx+1];
-            var nextLand=nextEntry.land||'';
-            var walkMins=walkBetween(restName,nextLand);
-            var newNextTime=doneTime+walkMins;
-            nextEntry.t=fmtMins(newNextTime);
-            // Cascade: shift all subsequent entries by the same delta
-            var cascade=newNextTime-parseTimeMins(sec.entries[entryIdx+1].t||fmtMins(newNextTime));
-            // cascade is 0 since we just set it, but shift further entries by diff
-            var totalDiff=diff;
-            for(var i=entryIdx+2;i<sec.entries.length;i++){
-              var em=parseTimeMins(sec.entries[i].t);
-              if(em) sec.entries[i].t=fmtMins(em+totalDiff);
-            }
-          }
-          customSched[dayIdx]=day;
-          saveCustom(dayIdx);
-          renderSched();
-          renderDayInfoBar();
-          if(saved){
-            saved.style.display='block';
-            saved.textContent='\u2713 Saved! Schedule adjusted to '+resTime;
-            setTimeout(function(){saved.style.display='none';},3000);
-          }
-          return;
-        }
-      }
-    }
-  }
-
-  if(saved){saved.classList.add('show');setTimeout(function(){saved.classList.remove('show');},2000);}
-}
-function loadDiningSlot(dayIdx, secIdx, entryIdx){
-  try{
-    var s=localStorage.getItem(diningSlotKey(dayIdx,secIdx,entryIdx));
-    return s?JSON.parse(s):null;
-  }catch(e){return null;}
-}
 function renderDayTipsCard(dayIdx){
   var tips=window._dayTipsCache&&window._dayTipsCache[dayIdx];
   if(!tips||!tips.length)return '';
@@ -4946,6 +4878,32 @@ function renderDayTipsCard(dayIdx){
   return h;
 }
 
+// Item 6a (Oct 7, 2026): the reservation panel appears only where a
+// reservation is meaningful. The gate reads the venue's catalog service
+// class + reservation policy, stamped server-side onto the card from the
+// CATALOG (card.venueService / card.venueResPolicy -- api/scaffold.js), the
+// same truth the generation-time gates enforce. A card without the stamped
+// fields (a trip saved before the stamp existed) keeps the panel: unknown
+// is not evidence a venue is walk-up.
+function diningResAllowed(e){
+  if(!e) return false;
+  if(e.isConfirmed===true) return true;
+  var svc=e.venueService;
+  if(typeof svc==='string'&&svc.length){
+    if(svc!=='table'&&svc!=='lounge') return false;
+    var pol=e.venueResPolicy||'';
+    if(pol==='walkup'||pol==='never_meal') return false;
+    return true;
+  }
+  return true;
+}
+// The panel's content is derived from the card itself at render time (the
+// venue, its land, its catalog policy, and any dining-intel picks the card
+// carries) -- stashed here because openDiningPanel is invoked with indices.
+function stashDiningPanel(dayIdx,secIdx,entryIdx,e){
+  if(!window._dpData)window._dpData={};
+  window._dpData[dayIdx+'_'+secIdx+'_'+entryIdx]={venue:e.venue||'',land:e.land||'',service:e.venueService||'',policy:e.venueResPolicy||'',topPick:(e.dining&&e.dining.topPick)||e.topPick||'',veg:(e.dining&&e.dining.vegOption)||e.veg||'',kids:(e.dining&&e.dining.kidsOption)||e.kids||''};
+}
 function openDiningPanel(dayIdx,si,ei,dname,landCtx){
   var panelId='dp_'+dayIdx+'_'+si+'_'+ei;
   var panel=document.getElementById(panelId);
@@ -4979,44 +4937,34 @@ function openDiningPanel(dayIdx,si,ei,dname,landCtx){
     ].join('');
     return;
   }
-  var dslot=loadDiningSlot(dayIdx,si,ei);
-  var dslotRest=dslot?dslot.restaurant:'';
-  var dslotTime=dslot?dslot.time:'';
-  var suggestions=[
-    {rank:1,name:'Blue Bayou Restaurant',note:'Iconic waterfront setting. Book via Disneyland app.',detail:'Reservations available \u00b7 New Orleans Square'},
-    {rank:2,name:'River Belle Terrace',note:'Walk-up friendly, great views of Rivers of America.',detail:'Walk-up \u00b7 Frontierland'},
-    {rank:3,name:'Caf\u00e9 Orl\u00e9ans',note:'Monte Cristo sandwich is a must. Walk-up counter.',detail:'Walk-up \u00b7 New Orleans Square'}
-  ];
-  var rankColors=['#1A6860','#4A7A7C','#8AACAE'];
-  var sugHtml='';
-  suggestions.forEach(function(s){
-    var n2=s.name.replace(/'/g,'\u2019');
-    sugHtml+='<div class="dp-sug-card" onclick="fillDiningFromSug('+dayIdx+','+si+','+ei+',\''+n2+'\')">'
-      +'<div class="dp-rank" style="background:'+rankColors[s.rank-1]+'">'+s.rank+'</div>'
-      +'<div class="dp-sug-body"><div class="dp-sug-name">'+s.name+(s.rank===1?'<span class="dp-top-badge">top pick</span>':'')+'</div>'
-      +'<div class="dp-sug-note">'+s.note+'</div><div class="dp-sug-detail">'+s.detail+'</div></div></div>';
-  });
-  panel.innerHTML='<div class="dp-ai-header"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C86030" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="dp-ai-lbl">AI picks for your group</span></div>'
-    +'<div class="dp-suggestion-list">'+sugHtml+'</div>'
-    +'<div class="dp-res-section"><div class="dp-res-lbl">Your Reservation</div><div class="dp-res-row">'
-    +'<input class="dp-res-input" id="dp_rest_'+dayIdx+'_'+si+'_'+ei+'" placeholder="Restaurant name" value="'+dslotRest.replace(/"/g,'&quot;')+'" autocomplete="off">'
-    +'<input class="dp-res-input-time" id="dp_time_'+dayIdx+'_'+si+'_'+ei+'" placeholder="Time" value="'+dslotTime.replace(/"/g,'&quot;')+'" autocomplete="off">'
-    +'<button class="dp-save-btn" onclick="saveDiningFromPanel('+dayIdx+','+si+','+ei+')">Save</button></div>'
-    +'<div class="dp-res-hint">Tap a suggestion above to auto-fill</div></div>';
-}
-function fillDiningFromSug(dayIdx,si,ei,name){
-  var rEl=document.getElementById('dp_rest_'+dayIdx+'_'+si+'_'+ei);
-  if(rEl)rEl.value=name;
-}
-function saveDiningFromPanel(dayIdx,si,ei){
-  var rEl=document.getElementById('dp_rest_'+dayIdx+'_'+si+'_'+ei);
-  var tEl=document.getElementById('dp_time_'+dayIdx+'_'+si+'_'+ei);
-  if(!rEl)return;
-  var rest=rEl.value.trim();
-  var time=tEl?tEl.value.trim():'';
-  if(!rest)return;
-  saveDiningSlot(dayIdx,si,ei,rest,time);
-  setTimeout(function(){renderSched();},50);
+  // Item 6a: catalog-derived panel content -- the card's own venue, its
+  // land, its catalog reservation policy, and any dining-intel picks the
+  // card carries. The old hardcoded "AI Picks for Your Group" list (the
+  // same three restaurants on every card, whatever the card's venue) and
+  // the YOUR RESERVATION form are gone: the form's saves wrote only to a
+  // client-local overlay keyed by card position and never reached the trip
+  // record -- confirmed reservations render through the anchor branch above.
+  var dp=(window._dpData&&window._dpData[dayIdx+'_'+si+'_'+ei])||null;
+  var vname=(dp&&dp.venue)||dname||'This restaurant';
+  var pol=dp?dp.policy:'';
+  var svc=dp?dp.service:'';
+  var polLine;
+  if(pol==='required') polLine='Reservations are required here -- book in the Disneyland app.';
+  else if(pol==='recommended') polLine='Reservations are recommended here -- book ahead in the Disneyland app.';
+  else if(svc==='lounge') polLine='This lounge takes reservations when available -- check the Disneyland app for openings.';
+  else polLine='This is a table-service restaurant -- check the Disneyland app for reservation availability.';
+  var picksHtml='';
+  if(dp&&(dp.topPick||dp.veg||dp.kids)){
+    picksHtml='<div class="dining-meal-list">'
+      +(dp.topPick?'<div class="dining-meal-row"><span class="dining-meal-label">Top pick:</span><span class="dining-meal-text">'+vnEsc(dp.topPick)+'</span></div>':'')
+      +(dp.veg?'<div class="dining-meal-row"><span class="dining-meal-label">Veg:</span><span class="dining-meal-text">'+vnEsc(dp.veg)+'</span></div>':'')
+      +(dp.kids?'<div class="dining-meal-row"><span class="dining-meal-label">Kids:</span><span class="dining-meal-text">'+vnEsc(dp.kids)+'</span></div>':'')
+      +'</div>';
+  }
+  panel.innerHTML='<div class="dp-confirmed"><div class="dp-conf-title">'+vnEsc(vname)+'</div>'
+    +(dp&&dp.land?'<div class="dp-conf-meta">'+vnEsc(dp.land)+'</div>':'')
+    +'<div class="dp-conf-meta">'+polLine+'</div></div>'
+    +picksHtml;
 }
 function toggleRideNote(id) {
   var wrap = document.getElementById('note-' + id);
@@ -5112,27 +5060,19 @@ function renderSched(){
       var llb=e.ll&&e.ll.t==='single'?'<span class="tb" style="background:var(--orange-bg);color:var(--orange)">LL $</span>':e.ll&&e.ll.t==='multi'?'<span class="tb tb-ll">LL</span>':'';
       var _llRideKey=e.ride||e.h;if(typeof loadLLState==='function')loadLLState();var returnTime=llState&&llState.bookedTimes&&llState.bookedTimes[_llRideKey];var llReturnPill=returnTime?'<span class="ll-return-pill">LL '+returnTime+'</span>':'';llb+=llReturnPill;
       var diningRec='';
-      if(e.type==='food'&&e.h&&isAdmin()){
+      if(e.type==='food'&&e.h&&isAdmin()&&diningResAllowed(e)){
         var dname=e.h.replace(/^[^\u2014]*\u2014\s*/,'').replace(/Dinner \u2014 /,'').replace(/Lunch /,'').trim();
         dname=dname.split(' or ')[0].trim();
         var safeDname=dname.split("'").join('\u2019');
         var dland=e.land||'';
         var safeLandCtx=(dname+(dland?' near '+dland:'')).split("'").join('\u2019');
-        var dslot=loadDiningSlot(curDay,si,ei);
-        var dslotRest=dslot?dslot.restaurant:'';
-        var dslotTime=dslot?dslot.time:'';
-        var _dslotSaved=dslot&&dslot.restaurant;
-        if(_dslotSaved){
-          diningRec='<div class="dining-saved-pill" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+safeDname+'\',\''+safeLandCtx+'\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0F6830" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:9px;font-weight:600;color:#0F6830">'+dslotRest.replace(/&quot;/g,'"')+(dslotTime?' \u00b7 '+dslotTime:'')+'</span><span style="font-size:8px;color:#1A8880;margin-left:auto">edit</span></div>';
-        }else{
-          diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+safeDname+'\',\''+safeLandCtx+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
-        }
+        stashDiningPanel(curDay,si,ei,e);
+        diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+safeDname+'\',\''+safeLandCtx+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
         diningRec+='<div class="dining-panel" id="dp_'+curDay+'_'+si+'_'+ei+'" style="display:none"></div>';
-      
       }
       // PART 2: Reservation button for confirmed dining cards (type===dining)
-      if(e.type==='dining'&&e.h&&isAdmin()){
-        var _safeH=e.h.split("'").join('\u2019');diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+_safeH+'\',\''+_safeH+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
+      if(e.type==='dining'&&e.h&&isAdmin()&&diningResAllowed(e)){
+        var _safeH=e.h.split("'").join('\u2019');stashDiningPanel(curDay,si,ei,e);diningRec='<div class="dining-chip" onclick="openDiningPanel('+curDay+','+si+','+ei+',\''+_safeH+'\',\''+_safeH+'\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#A06020" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Reservation information</span></div>';
         diningRec+='<div class="dining-panel" id="dp_'+curDay+'_'+si+'_'+ei+'" style="display:none"></div>';
       }
       // type===quickservice: no button needed (walk-up)
