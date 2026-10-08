@@ -477,6 +477,12 @@ export function applyFills(skeleton, fills, opts) {
   const _venueNameByKey = {};
   for (const _vn of _venuesArr) { if (_vn && _vn.name) { const _vk2 = canonicalVenueKey(_vn.name); if (_vk2 && !_venueNameByKey[_vk2]) _venueNameByKey[_vk2] = _vn.name; } }
   const _svcByCanon = buildVenueServiceMap(_venuesArr);
+  // Canonical key -> catalog reservationPolicy (Item 6a, Oct 7, 2026):
+  // stamped onto dining-ish cards beside the Item-3 venue field so the
+  // client's reservation surfaces read the same catalog truth (service
+  // class + reservation policy) that the fill-time gates enforce.
+  const _polByCanon = {};
+  for (const _pv of _venuesArr) { if (_pv && _pv.name && _pv.reservationPolicy) { const _pk = canonicalVenueKey(_pv.name); if (_pk && !_polByCanon[_pk]) _polByCanon[_pk] = _pv.reservationPolicy; } }
   if (opts.venueServices && typeof opts.venueServices === 'object') {
     for (const k of Object.keys(opts.venueServices)) { const ck = canonicalVenueKey(k); if (ck && !_svcByCanon[ck]) _svcByCanon[ck] = opts.venueServices[k]; }
   }
@@ -509,6 +515,11 @@ export function applyFills(skeleton, fills, opts) {
       // Structured venue field (Item 3): the anchor seats a catalog venue,
       // so the card carries it like any other seated venue.
       if (_avk && _venueNameByKey[_avk]) aCard.venue = _venueNameByKey[_avk];
+      // Item 6a: the anchor's venue service/policy ride along so the client
+      // can tell a bookable table-service venue from a walk-up one without
+      // re-deriving anything from the heading.
+      if (_avk && _svcByCanon[_avk]) aCard.venueService = _svcByCanon[_avk];
+      if (_avk && _polByCanon[_avk]) aCard.venueResPolicy = _polByCanon[_avk];
       cards.push(aCard);
       used.add(aCard.h.toLowerCase());
       if (_avk) placedVenueCanon.add(_avk);
@@ -704,7 +715,14 @@ export function applyFills(skeleton, fills, opts) {
         // card carries the canonical venue it seats, so registration, the
         // client's cross-day accumulation, and (later) the dining surfaces
         // read data instead of re-parsing the heading or the note.
-        if (_fillVenue) card.venue = _fillVenue.name;
+        if (_fillVenue) {
+          card.venue = _fillVenue.name;
+          // Item 6a: service + reservation policy from the same corrected
+          // catalog maps the fill-time gates use (buildVenueServiceMap /
+          // _polByCanon) -- one source of truth for client surfaces.
+          if (_svcByCanon[_fillVenue.key]) card.venueService = _svcByCanon[_fillVenue.key];
+          if (_polByCanon[_fillVenue.key]) card.venueResPolicy = _polByCanon[_fillVenue.key];
+        }
         if (isRideSlot && nkey) { usedRideNames.add(nkey); usedRideSquash.add(nkey.replace(/ /g, '')); todayRideNames.add(nkey); if (gkey) usedGroups.add(gkey); }
       }
     } else {
@@ -3082,7 +3100,7 @@ export function deterministicBackfill(slot, ctx) {
       // catalog, so its card carries the venue structurally, exactly like
       // an accepted fill -- the used-set and the client's cross-day
       // accumulation consume the field, never the heading alone.
-      return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '', venue: pick.name };
+      return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '', venue: pick.name, venueService: pick.service || '', venueResPolicy: pick.reservationPolicy || '' };
     }
   }
 
