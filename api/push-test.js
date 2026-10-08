@@ -217,14 +217,20 @@ async function tripDisplayName(session, presentedCode) {
   return presentedCode;
 }
 
-// The test payload: unmistakably a test, trip home on tap.
+// The test payload: unmistakably a test, trip home on tap. The class field
+// keys the client's foreground rendering (Claude msg 84), and the episodeId
+// is this send's own identity -- minted once per send, so a transport
+// re-delivery of THIS send dedupes on the client while the next deliberate
+// test (a new identity) renders again.
 export function buildTestPayload(tripName) {
   const name = (typeof tripName === 'string' && tripName.trim()) ? tripName.trim() : 'your trip';
   return {
     title: 'Test alert',
     body: 'Theme Park Co\u2726Pilot notifications are working for ' + name,
     url: '/app.html',
-    tag: 'tpcp-test-alert'
+    tag: 'tpcp-test-alert',
+    class: 'test',
+    episodeId: 'ep:test:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2, 10)
   };
 }
 
