@@ -46,6 +46,76 @@ async function writeRegistry(data) {
   });
 }
 
+// --- Code-pair issuance (restoration step i, Oct 8, 2026) -------------------
+// Every trip is a PAIR of codes from birth: a leader code (registry role
+// 'admin') and a guest code (role 'guest', view-only). The registry is the
+// source of role: the guest code exists as its own registry entry, written
+// here at issuance -- role is NEVER derived by parsing a code's suffix at
+// request time. deriveGuestCode is an ISSUANCE-time naming rule only (the
+// -G form, following the code-pair convention from the May 2026 design:
+// 'TPCPTEST01-A' -> 'TPCPTEST01-G'; a bare leader code gains '-G').
+// A leader code that itself ends in -G cannot be paired safely by rule and
+// is left unpaired (deriveGuestCode returns null).
+function deriveGuestCode(leaderCode) {
+  if (typeof leaderCode !== 'string' || !leaderCode) return null;
+  if (/-g$/i.test(leaderCode)) return null;
+  if (/-a$/i.test(leaderCode)) return leaderCode.slice(0, -1) + 'G';
+  return leaderCode + '-G';
+}
+
+// Mint (or re-sync) the guest half of a leader entry's pair, IN PLACE on the
+// registry object. Returns the guest code when the pair exists after the
+// call, null when this entry cannot be paired. Mutates the registry only
+// when something actually changed, and reports that via the return of
+// ensureGuestPair below -- callers persist with writeRegistry.
+function mintGuestPair(registry, leaderCode) {
+  const entry = registry && registry[leaderCode];
+  if (!entry || entry.role !== 'admin') return null;
+  let g = (typeof entry.guestCode === 'string' && entry.guestCode) ? entry.guestCode : deriveGuestCode(leaderCode);
+  if (!g) return null;
+  const existing = registry[g];
+  if (existing && existing.tripId !== entry.tripId) return null; // code owned by another trip -- never steal it
+  let changed = false;
+  if (entry.guestCode !== g) { entry.guestCode = g; changed = true; }
+  if (!existing) {
+    registry[g] = {
+      tripId: entry.tripId,
+      role: 'guest',
+      status: entry.status || 'active',
+      expires: entry.expires,
+      leaderCode: leaderCode,
+      pairedAt: new Date().toISOString()
+    };
+    changed = true;
+  } else {
+    // Re-sync the guest entry's lifecycle fields from the leader entry so a
+    // pair can never drift apart on status/expiry.
+    if (existing.role !== 'guest') { existing.role = 'guest'; changed = true; }
+    if (existing.leaderCode !== leaderCode) { existing.leaderCode = leaderCode; changed = true; }
+    if ((existing.status || '') !== (entry.status || '')) { existing.status = entry.status; changed = true; }
+    if ((existing.expires || '') !== (entry.expires || '')) { existing.expires = entry.expires; changed = true; }
+  }
+  return changed ? g : (existing || entry.guestCode ? g : null);
+}
+
+// ensureGuestPair(registry, code): pair a validated leader entry if it is
+// not paired yet, persisting the registry when (and only when) the mint
+// changed something. Used by (a) init_registry at trip creation -- the pair
+// is born with the trip -- and (b) the validated read/save paths as the
+// BACKFILL for pre-pair legacy trips (Claude msg 70: backfill approved;
+// this writes the REGISTRY only -- a trip's schedule blob is never touched
+// by pairing, and the tripConfig.guestCode stamp below happens only inside
+// a leader save the leader themselves initiated).
+async function ensureGuestPair(registry, leaderCode) {
+  const before = JSON.stringify(registry);
+  const g = mintGuestPair(registry, leaderCode);
+  if (!g) return null;
+  if (JSON.stringify(registry) !== before) {
+    try { await writeRegistry(registry); } catch (e) { console.warn('[trip] guest-pair registry write failed (pairing deferred):', e.message); }
+  }
+  return g;
+}
+
 function sanitizeJson(text) {
   const lastBrace = text.lastIndexOf('}}');
   if (lastBrace > -1) return text.substring(0, lastBrace + 2);
@@ -202,6 +272,7 @@ export default async function handler(req, res) {
       if (expDate < new Date()) return res.status(403).json({ error: 'Code expired', expires: entry.expires, valid: false });
     }
 
+
     // Onboarding draft read (Oct 7, 2026): GET ?code=X&draft=1 returns the
     // autosave draft for the code (registry auth above applies unchanged).
     // A tombstone payload ({ draft: null }) reads as "no draft".
@@ -228,6 +299,10 @@ export default async function handler(req, res) {
       tripId: entry.tripId,
       status: entry.status,
       expires: entry.expires,
+      // The leader's own response carries the pair's guest code (the Share
+      // card reads it from here / from TRIP_CONFIG.guestCode). A guest
+      // code's response never names the leader code.
+      guestCode: entry.role === 'admin' ? (entry.guestCode || null) : null,
       hasTrip,
       tripData: hasTrip ? tripData : null
     });
@@ -339,9 +414,23 @@ export default async function handler(req, res) {
         }
       }
 
+      // Code-pair issuance (restoration step i): new trips are paired at
+      // registration (init_registry); a pre-pair legacy trip is BACKFILLED
+      // here, on the leader's own save -- the one product write path that
+      // already rewrites this trip's blob, so pairing rides a write the
+      // leader owns (registry write + the guestCode stamp below, atomically
+      // with the save). Pairing is deliberately NOT done on reads or draft
+      // writes: reads stay pure, and draft writes must touch ONLY the
+      // draft namespace (the seam discipline the draft/guard suites lock).
+      if (entry.role === 'admin') {
+        await ensureGuestPair(registry, code);
+      }
       // Auto-stamp scheduleVersion so client caches are invalidated on every save
       if (tripData && tripData.tripConfig) {
         tripData.tripConfig.scheduleVersion = Date.now().toString();
+        if (entry.guestCode && !tripData.tripConfig.guestCode) {
+          tripData.tripConfig.guestCode = entry.guestCode;
+        }
       }
       // NO save-time schedule rewriting. Generation validates its own output
       // (the scaffold path has its verify layer; the legacy path validates inside
@@ -463,18 +552,41 @@ export default async function handler(req, res) {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
       if (body.action === 'init_registry') {
-        // Initialize or merge registry entries
+        // Initialize or merge registry entries. Code-pair issuance
+        // (restoration step i): every leader entry merged here is paired
+        // in the SAME write -- a trip is a pair of codes from birth, so a
+        // guest can resolve read-only to the trip before onboarding even
+        // starts. (Re-merging a leader entry re-syncs its guest entry.)
         const registry = await readRegistry();
         const entries = body.entries || {};
         Object.assign(registry, entries);
+        const pairs = {};
+        for (const c of Object.keys(entries)) {
+          if (registry[c] && registry[c].role === 'admin') {
+            const g = mintGuestPair(registry, c);
+            if (g) pairs[c] = g;
+          }
+        }
         await writeRegistry(registry);
-        return res.status(200).json({ ok: true, codes: Object.keys(registry) });
+        return res.status(200).json({ ok: true, codes: Object.keys(registry), pairs });
       }
 
       if (body.action === 'seed_trip') {
-        // Seed a trip's data blob directly
+        // Seed a trip's data blob directly. If a leader entry owns this
+        // tripId, the blob is born carrying the pair's guest code (same
+        // issuance stamp as the POST save path).
         const { tripId, tripData } = body;
         if (!tripId || tripData === undefined) return res.status(400).json({ error: 'Missing tripId or tripData' });
+        try {
+          const registry = await readRegistry();
+          const leaderCode = Object.keys(registry).find(c => registry[c] && registry[c].tripId === tripId && registry[c].role === 'admin');
+          if (leaderCode) {
+            const g = await ensureGuestPair(registry, leaderCode);
+            if (g && tripData && tripData.tripConfig && !tripData.tripConfig.guestCode) {
+              tripData.tripConfig.guestCode = g;
+            }
+          }
+        } catch (e) { /* best-effort: seeding must not fail on pairing */ }
         await writeTripBlob(tripId, tripData);
         return res.status(200).json({ ok: true, tripId });
       }
