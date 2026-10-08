@@ -2015,6 +2015,126 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
 }
 
 // -- Finish / final step CTA -----------------------------
+// ---- Final onboarding step: notification priming (Oct 8, 2026) ----
+// After the plan exists and is saved, BEFORE any system permission
+// dialog, the leader gets one honest screen: what notifications do for
+// THIS trip, then a choice. [Turn on notifications] fires the same
+// native permission bridge the in-app settings toggle uses (Capacitor
+// PushNotifications -- Build 8's path) and, on grant, registers this
+// device against the trip code via /api/push-register with the same
+// response-checked discipline as app.html (a rejection is recorded to
+// tpcp_push_reg_error, never silent). [Not now] -- and any completed
+// Turn-on flow -- marks the prime done on this device, so onboarding
+// never primes twice; the Settings toggles remain the later path. If
+// permission is already granted, the screen is skipped and registration
+// is quietly refreshed against the (possibly new) trip code instead.
+// If the native bridge is absent (web), the flow simply goes home.
+// No emoji anywhere in this UI (standing rule).
+function ptPushPlugin() {
+  try {
+    if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return null;
+    var P = (Capacitor.Plugins && Capacitor.Plugins.PushNotifications) ||
+            (Capacitor.registerPlugin ? Capacitor.registerPlugin('PushNotifications') : null);
+    return P || null;
+  } catch (e) { return null; }
+}
+function ptNavigateHome() { window.location.href = ptHomeUrl(); }
+function ptFinishExit() {
+  var P = ptPushPlugin();
+  var done = false;
+  try { done = localStorage.getItem('tpcp_push_prime_done') === '1'; } catch (e) {}
+  if (!P || done) { ptNavigateHome(); return; }
+  P.checkPermissions().then(function(perm) {
+    if (perm && perm.receive === 'granted') {
+      // Already granted earlier: no screen -- just make sure this
+      // device is registered against THIS trip code, then go home.
+      try { localStorage.setItem('tpcp_push_native', '1'); } catch (e) {}
+      ptRegisterNativePush(function() { ptNavigateHome(); });
+    } else {
+      ptShowPushPrime(P);
+    }
+  }).catch(function() { ptNavigateHome(); });
+}
+function ptRegisterNativePush(then) {
+  var P = ptPushPlugin();
+  var code = '';
+  try { code = localStorage.getItem('tpcp_code') || ''; } catch (e) {}
+  if (!P || !code) { if (then) then(); return; }
+  var finished = false;
+  var finish = function() { if (!finished) { finished = true; if (then) then(); } };
+  try {
+    P.addListener('registration', function(t) {
+      var tokenValue = t && t.value ? t.value : '';
+      if (!tokenValue) { finish(); return; }
+      fetch(SYNC_BASE + '/api/push-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-trip-code': code },
+        body: JSON.stringify({ tripCode: code, platform: 'ios', token: tokenValue, alertsEnabled: true })
+      }).then(function(r) {
+        if (r.ok) { try { localStorage.removeItem('tpcp_push_reg_error'); } catch (e) {} }
+        else { try { localStorage.setItem('tpcp_push_reg_error', JSON.stringify({ at: Date.now(), status: r.status })); } catch (e) {} }
+        finish();
+      }).catch(function() {
+        try { localStorage.setItem('tpcp_push_reg_error', JSON.stringify({ at: Date.now(), status: 0 })); } catch (e) {}
+        finish();
+      });
+    });
+    P.addListener('registrationError', function() { finish(); });
+    // Registration can hang on a bad network; never strand the guest at
+    // the end of onboarding -- any failure surfaces later in the app.
+    setTimeout(finish, 8000);
+    var reg = P.register();
+    if (reg && reg.catch) reg.catch(function() { finish(); });
+  } catch (e) { finish(); }
+}
+function ptPrimeBenefit(title, body) {
+  return '<div style="display:flex;gap:9px;margin-top:10px;">'
+    + '<div style="width:6px;height:6px;border-radius:50%;background:#1A6860;margin-top:5px;flex-shrink:0;"></div>'
+    + '<div style="font-family:\'Outfit\',sans-serif;font-size:13px;line-height:1.45;color:#071E25;"><b>' + title + '.</b> <span style="color:#4A7A7C;">' + body + '</span></div></div>';
+}
+function ptShowPushPrime(P) {
+  if (document.getElementById('ptPushPrime')) return;
+  var wrap = document.createElement('div');
+  wrap.id = 'ptPushPrime';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#EEF5F4;display:flex;align-items:center;justify-content:center;padding:24px;';
+  wrap.innerHTML =
+    '<div style="max-width:340px;width:100%;background:#fff;border:1px solid rgba(7,30,37,0.10);border-radius:16px;padding:24px 20px;box-shadow:0 10px 34px rgba(7,30,37,0.13);">'
+    + '<div style="font-family:\'Outfit\',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#1A6860;">One last thing</div>'
+    + '<div style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:700;color:#071E25;margin-top:6px;line-height:1.25;">Let your plan tap you on the shoulder</div>'
+    + '<div style="margin-top:6px;">'
+    + ptPrimeBenefit('Booking-day tap', 'The morning dining reservations open for your wish-list places, one tap takes you straight to the booking page.')
+    + ptPrimeBenefit('Ride alerts for your plan', 'If a ride in your plan spikes, drops, closes or comes back up, you hear about it while there is still time to pivot.')
+    + ptPrimeBenefit('Plan-changed alerts', 'If the trip leader updates the day, this phone knows about it right away.')
+    + '</div>'
+    + '<button id="ptPushPrimeOn" class="pt-cta-btn" style="margin-top:18px;">Turn on notifications</button>'
+    + '<button id="ptPushPrimeOff" style="width:100%;background:none;border:none;padding:12px;font-family:\'Outfit\',sans-serif;font-size:13px;font-weight:600;color:#4A7A7C;cursor:pointer;">Not now</button>'
+    + '</div>';
+  document.body.appendChild(wrap);
+  document.getElementById('ptPushPrimeOff').addEventListener('click', function() {
+    try { localStorage.setItem('tpcp_push_prime_done', '1'); } catch (e) {}
+    ptNavigateHome();
+  });
+  document.getElementById('ptPushPrimeOn').addEventListener('click', function() {
+    ptPrimeTurnOn(P);
+  });
+}
+function ptPrimeTurnOn(P) {
+  P.checkPermissions().then(function(perm) {
+    if (perm && perm.receive === 'granted') return perm;
+    return P.requestPermissions();
+  }).then(function(perm) {
+    if (perm && perm.receive === 'granted') {
+      try { localStorage.setItem('tpcp_push_prime_done', '1'); localStorage.setItem('tpcp_push_native', '1'); } catch (e) {}
+      ptRegisterNativePush(function() { ptNavigateHome(); });
+    } else {
+      // Denied at the system dialog: respected, and never re-primed in
+      // this flow. The Settings toggles remain the later path.
+      try { localStorage.setItem('tpcp_push_prime_done', '1'); } catch (e) {}
+      ptNavigateHome();
+    }
+  }).catch(function() { ptNavigateHome(); });
+}
+
 function ptFinish() {
   ptSaveCurrentStep();
   var d = ptCollectData();
@@ -2208,11 +2328,11 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
           _surfLines.push("Closed during your dates: " + writeResp.closedMustDos.join(', '));
         }
         if (_surfLines.length) alert(_surfLines.join('\n'));
-        window.location.href = ptHomeUrl();
+        ptFinishExit();
       })
-      .catch(function(err){ clearTimeout(_saveAbortT); console.error('[ptFinish] trip blob write network error:', err && err.message); window.location.href = ptHomeUrl(); });
+      .catch(function(err){ clearTimeout(_saveAbortT); console.error('[ptFinish] trip blob write network error:', err && err.message); ptFinishExit(); });
     } else {
-      window.location.href = ptHomeUrl();
+      ptFinishExit();
     }
     }
     var _anyEmpty = generatedDays.some(function(gd){ return !gd || !gd.items || !gd.items.length; });
