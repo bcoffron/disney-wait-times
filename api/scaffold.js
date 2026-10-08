@@ -1149,11 +1149,22 @@ export function illRideListed(key, products) {
 // mutator: the tag is computed from the ride + the day's purchased
 // products, NEVER inherited from the card it replaced. Returns null when
 // no tag applies (no product, or an ILL-only ride without ILL).
-export function deriveLLForRide(name, products) {
+// Item 8b (Oct 7, 2026): when a catalog index is available (3rd arg, or
+// products.catalog -- the enforcer's gate ctx carries one), its llKind is
+// the single source of truth: 'none' never derives a tag, 'single' derives
+// the ILL treatment even beyond the fixed ILL_ONLY_KEYS set, 'multi' is
+// the only kind that may derive a Multi Pass tag. With NO catalog entry
+// the legacy key/product logic decides, exactly as before -- the catalog
+// governs where it speaks; it does not invent ineligibility where silent.
+export function deriveLLForRide(name, products, catalog) {
   const k = normName(name);
   if (!k) return null;
   const p = products || {};
-  if (ILL_ONLY_KEYS.has(k)) return (p.ill === true && illRideListed(k, p)) ? { t: 'single', a: 'Individual Lightning Lane -- book in the app at park open.' } : null;
+  const cat = catalog || p.catalog || null;
+  const kind = (cat && cat[k] && cat[k].llKind) || '';
+  if (kind === 'none') return null;
+  if (ILL_ONLY_KEYS.has(k) || kind === 'single') return (p.ill === true && illRideListed(k, p)) ? { t: 'single', a: 'Individual Lightning Lane -- book in the app at park open.' } : null;
+  if (kind === 'multi') return p.llmp === true ? { t: 'multi', a: 'Lightning Lane Multi Pass pick -- book a return time in the app.' } : null;
   if (p.llmp === true) return { t: 'multi', a: 'Lightning Lane Multi Pass pick -- book a return time in the app.' };
   return null;
 }
@@ -1345,10 +1356,12 @@ export function revalidateCard(card, ctx) {
 }
 
 // Parse the CATALOG cache section (JSON string or object) into a lookup:
-//   normName(attraction name) -> { name, park, land, status, typicalPeakWait, ropeDropValue }
+//   normName(attraction name) -> { name, park, land, status, typicalPeakWait, ropeDropValue, llKind }
 // Rides only (venues ignored here -- see parseCatalogVenues). Fail-open: returns {} on any
 // parse failure, which makes verifyScaffold behave exactly as before (no CATALOG enforcement)
-// rather than throwing. The extra fields power deterministicBackfill's smart picks.
+// rather than throwing. The extra fields power deterministicBackfill's smart picks. llKind
+// (Item 8b, Oct 7, 2026) makes the catalog the single source of Lightning Lane truth:
+// 'multi' | 'single' | 'none' per attraction, consumed by the LL tag paths below.
 export function buildCatalogIndex(catalogRaw) {
   const idx = {};
   if (!catalogRaw) return idx;
@@ -1363,6 +1376,7 @@ export function buildCatalogIndex(catalogRaw) {
       status: String(a.status || 'operating'),
       typicalPeakWait: (typeof a.typicalPeakWait === 'number') ? a.typicalPeakWait : 0,
       ropeDropValue: a.ropeDropValue || '',
+      llKind: a.llKind || '',
       heightInches: (typeof a.heightInches === 'number') ? a.heightInches : 0 };
   }
   return idx;
@@ -1589,6 +1603,11 @@ export function normalizeLLAssignments(cards, opts, mutations) {
   // silence made that invisible in the generation response.
   const _note = (c, from, to) => { if (mutations && from !== to) mutations.push({ action: to ? 'll-tag' : 'll-untag', h: c.h, from: from || null, to: to || null }); };
   if (!llmp && !ill) { for (const c of list) if (c.ll) { _note(c, c.ll.t, null); delete c.ll; } return list; }
+  // Item 8b (Oct 7, 2026): the catalog's llKind is the single source of LL
+  // truth. '' = the catalog does not speak for this name (no entry, or an
+  // entry without the field) -- legacy key/product logic decides there,
+  // the same fail-open posture as every other catalog consumer.
+  const _kindOf = (c) => { const e = catalog[normName(c.ride || c.h)]; return (e && e.llKind) || ''; };
   for (const c of list) {
     if (c.type !== 'ride') continue;
     const k = normName(c.ride || c.h);
@@ -1598,16 +1617,36 @@ export function normalizeLLAssignments(cards, opts, mutations) {
       // ride; an unlisted ILL-only ride rides standby like any other.
       if (ill && illRideListed(k, opts)) { if (!c.ll || c.ll.t !== 'single') _note(c, c.ll && c.ll.t, 'single'); c.ll = { t: 'single', a: (c.ll && c.ll.a) || 'Individual Lightning Lane -- book in the app at park open.' }; }
       else if (c.ll && c.ll.t === 'single') { _note(c, 'single', null); delete c.ll; }
+      // An ILL-only ride NEVER carries a Multi Pass tag (its llKind is
+      // 'single'): a model-supplied 'multi' here is the tag-form of the
+      // wrong-product error, and it used to survive this pass untouched.
+      else if (c.ll && c.ll.t === 'multi') { _note(c, 'multi', null); delete c.ll; }
     }
   }
   if (llmp) {
-    const eligible = list.filter(c => c.type === 'ride' && !ILL_ONLY_KEYS.has(normName(c.ride || c.h)));
+    // Multi-eligible = a ride the catalog knows as llKind 'multi'. A known
+    // 'none' (walkthroughs, meets -- Minnie's House wore a tag on device)
+    // or 'single' ride can never be chosen; an unknown kind keeps legacy
+    // eligibility (see _kindOf note above).
+    const eligible = list.filter(c => {
+      if (c.type !== 'ride' || ILL_ONLY_KEYS.has(normName(c.ride || c.h))) return false;
+      const kind = _kindOf(c);
+      return kind === 'multi' || kind === '';
+    });
     const scored = eligible.map(c => { const e = catalog[normName(c.ride || c.h)] || {}; return { c, tagged: c.ll && c.ll.t === 'multi' ? 1 : 0, peak: e.typicalPeakWait || 0, m: parseClock(c.t) || 0 }; });
     scored.sort((a, b) => (b.tagged - a.tagged) || (b.peak - a.peak) || (a.m - b.m));
     const chosen = new Set(scored.slice(0, 8).map(x => x.c));
     for (const c of eligible) {
       if (chosen.has(c)) { if (!c.ll || c.ll.t !== 'multi') { _note(c, c.ll && c.ll.t, 'multi'); c.ll = { t: 'multi', a: 'Lightning Lane Multi Pass pick -- book a return time in the app.' }; } }
       else if (c.ll && c.ll.t === 'multi') { _note(c, 'multi', null); delete c.ll; }
+    }
+    // A pre-existing 'multi' tag on a ride the catalog knows is NOT
+    // multi-kind never reaches the chosen loop (it is not eligible):
+    // strip it here so no known-'none'/'single' ride ships a Multi tag.
+    for (const c of list) {
+      if (c.type !== 'ride' || !c.ll || c.ll.t !== 'multi') continue;
+      const kind = _kindOf(c);
+      if (kind === 'none' || kind === 'single') { _note(c, 'multi', null); delete c.ll; }
     }
   } else {
     for (const c of list) if (c.ll && c.ll.t === 'multi') { _note(c, 'multi', null); delete c.ll; }
@@ -1736,14 +1775,26 @@ export function verifyScaffold(cards, opts) {
     // Lightning Lane. A 'single' tag on anything else (e.g. Space Mountain) is a
     // model error -- downgrade it to Multi Pass and scrub the wording, so the app
     // stops presenting it as a Single Pass purchase.
+    // Item 8b (Oct 7, 2026): catalog llKind governs the correction. A ride
+    // the catalog knows as llKind 'none' has NO Lightning Lane product at
+    // all -- downgrading its bogus 'single' to 'multi' would swap one wrong
+    // tag for another, so the tag is stripped outright and any ILL wording
+    // comes out of the note (the ill-scrub sentence pattern).
     if (c.ll && c.ll.t === 'single' && (c.type === 'ride' || c.type === 'tip')) {
       const _lk = normName(c.ride || c.h);
       if (_lk && !ILL_ONLY_KEYS.has(_lk)) {
-        c.ll = Object.assign({}, c.ll, { t: 'multi' });
-        mutations.push({ action: 'll-correct', h: c.h, from: 'single', to: 'multi' });
-        const _scrub = (s) => typeof s === 'string' ? s.replace(/single pass/gi, 'Multi Pass').replace(/\bILL\b/g, 'LLMP') : s;
-        if (c.ll.a) c.ll.a = _scrub(c.ll.a);
-        c.h = _scrub(c.h); if (c.n) c.n = _scrub(c.n);
+        const _ce = catalog[_lk];
+        if (_ce && _ce.llKind === 'none') {
+          delete c.ll;
+          mutations.push({ action: 'll-correct', h: c.h, from: 'single', to: null });
+          if (c.n) { const _illRe = /\bILL\b|individual lightning|single pass/i; c.n = c.n.split(/(?<=[.!])\s+/).filter(part => !_illRe.test(part)).join(' ').trim(); }
+        } else {
+          c.ll = Object.assign({}, c.ll, { t: 'multi' });
+          mutations.push({ action: 'll-correct', h: c.h, from: 'single', to: 'multi' });
+          const _scrub = (s) => typeof s === 'string' ? s.replace(/single pass/gi, 'Multi Pass').replace(/\bILL\b/g, 'LLMP') : s;
+          if (c.ll.a) c.ll.a = _scrub(c.ll.a);
+          c.h = _scrub(c.h); if (c.n) c.n = _scrub(c.n);
+        }
       }
     }
     if (c.type === 'ride') {
@@ -3074,7 +3125,7 @@ export function enforceTripParams(cards, violations, ctx) {
       // the shipped schedule never carries a ride the catalog doesn't
       // know (and the gate judges the entry that actually exists).
       const swapName = exactCe ? v.name : ((ce && ce.name) || v.name);
-      const derivedLL = deriveLLForRide(swapName, gateCtx);
+      const derivedLL = deriveLLForRide(swapName, gateCtx, gateCtx.catalog);
       let swapped = false;
       for (const target of candidates) {
         const prospective = { type: 'ride', t: target.c.t, h: swapName, ride: swapName, land: (ce && ce.land) || target.c.land, ll: derivedLL || undefined };
