@@ -935,6 +935,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tb-snack{background:#FFF0E8;color:#903820}
 .tb-ll{background:var(--orange-bg);color:var(--orange)}
 .ll-return-pill{display:inline-block;background:#E0F0EE;color:#0A4840;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:600;margin-left:4px;}
+.ll-seq-block{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:10px 12px;margin:10px 0;}
+.ll-seq-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:5px;}
+.ll-seq-line{font-size:12px;color:var(--text);line-height:1.5;}
+.ll-seq-note{font-size:11px;color:var(--text-muted);line-height:1.5;margin-top:3px;}
 
 /* Live wait pill */
 .wait-pill{
@@ -5174,11 +5178,33 @@ function scrollScheduleToNow(){
     window.scrollTo(0, Math.max(0,y));
   }catch(e){}
 }
+
+// LL booking sequence block (LL plan-side package, Oct 8, 2026): renders
+// the server-stamped per-day sequence (day.llSequence, computed by
+// api/scaffold.js computeLLSequence at generation time). Days saved
+// before the stamp existed -- and standby-only or VIP days, which the
+// server stamps null for -- simply render nothing.
+function renderLLSequenceBlock(dayIdx){
+  var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
+  var seq=sd&&sd.llSequence;
+  if(!seq||!seq.bookFirst)return '';
+  var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');};
+  var h='<div class="ll-seq-block"><div class="ll-seq-title">\u26A1 Lightning Lane game plan</div>';
+  if(seq.reason){h+='<div class="ll-seq-line">'+esc(seq.reason)+'</div>';}
+  else{h+='<div class="ll-seq-line">Book first: <b>'+esc(seq.bookFirst)+'</b></div>';}
+  if(seq.order&&seq.order.length>1){h+='<div class="ll-seq-line">Then: '+seq.order.slice(1).map(esc).join(' \u2192 ')+'</div>';}
+  if(seq.singleSeparate&&seq.singleSeparate.length===1){h+='<div class="ll-seq-note">'+esc(seq.singleSeparate[0])+' is a separate Single Pass purchase \u2014 not part of this sequence.</div>';}
+  else if(seq.singleSeparate&&seq.singleSeparate.length>1){h+='<div class="ll-seq-note">'+seq.singleSeparate.map(esc).join(' and ')+' are separate Single Pass purchases \u2014 not part of this sequence.</div>';}
+  h+='</div>';
+  return h;
+}
+
 function renderSched(){
   // PART A: update cached banner visibility
   (function() { var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = (typeof usingCachedSchedule !== 'undefined' && usingCachedSchedule) ? '' : 'none'; })();
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
+  if(typeof renderLLSequenceBlock==='function')h+=renderLLSequenceBlock(curDay);
   if(!day||!day.sections||!day.sections.length){
     document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
     return;
@@ -6118,6 +6144,7 @@ function generateFromSetup(params, callback) {
     // Per-day unplacedMustDos is a diagnostic only (see _renderSurfacingSummary);
     // the guest summary renders from the SAVE response further below.
     if (d.unplacedMustDos && d.unplacedMustDos.length) { console.warn('[generateFromSetup] per-day unplaced must-dos (diagnostic): ' + d.unplacedMustDos.join(', ')); }
+    window._genLlSeq=window._genLlSeq||{}; window._genLlSeq[(typeof params==='number')?params:0]=(d&&d.llSequence)||null;
     try{
       var sections = (d.parsed && d.parsed.length) ? d.parsed : null;
       if (!sections) {
@@ -6135,8 +6162,8 @@ function generateFromSetup(params, callback) {
           var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
           var existingDays=(existingTc.schedule&&existingTc.schedule.days)||[];
           var dayIdx=(typeof params==='number')?params:0;
-          var newDays=existingDays.map(function(d,i){return i===dayIdx?{park:d.park||'',items:sections}:d;});
-          if(dayIdx>=newDays.length){ while(newDays.length<dayIdx)newDays.push({park:'',items:[]}); newDays.push({park:(existingTc.days&&existingTc.days[dayIdx]&&(existingTc.days[dayIdx].park||existingTc.days[dayIdx].startPark))||'',items:sections}); }
+          var newDays=existingDays.map(function(d,i){return i===dayIdx?{park:d.park||'',items:sections,llSequence:(window._genLlSeq&&window._genLlSeq[dayIdx])||undefined}:d;});
+          if(dayIdx>=newDays.length){ while(newDays.length<dayIdx)newDays.push({park:'',items:[]}); newDays.push({park:(existingTc.days&&existingTc.days[dayIdx]&&(existingTc.days[dayIdx].park||existingTc.days[dayIdx].startPark))||'',items:sections,llSequence:(window._genLlSeq&&window._genLlSeq[dayIdx])||undefined}); }
           if(!newDays.length){newDays=[{park:'Disneyland Park',items:sections}];}
           var updatedTc=Object.assign({},existingTc,{schedule:{days:newDays},scheduleVersion:Date.now().toString()});
           window._genSavePromise = fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})})
@@ -6171,7 +6198,7 @@ function generateAllDays() {
         var ltc = window._loadedTripData.tripConfig;
         if (!ltc.schedule) ltc.schedule = { days: [] };
         var park = (ltc.days && ltc.days[idx] && (ltc.days[idx].park || ltc.days[idx].startPark)) || '';
-        ltc.schedule.days[idx] = { park: park, items: sections };
+        ltc.schedule.days[idx] = { park: park, items: sections, llSequence: (window._genLlSeq&&window._genLlSeq[idx])||undefined };
         window._schedData = ltc.schedule;
         if (typeof loadCustom === 'function') loadCustom();
       } catch (e) {}

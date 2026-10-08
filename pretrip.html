@@ -1970,6 +1970,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
     if (Array.isArray(d.unplacedMustDos) && d.unplacedMustDos.length) {
       console.warn('[pretrip] Day ' + (dayIndex+1) + ' unplaced must-dos (per-day diagnostic): ' + d.unplacedMustDos.join(', '));
     }
+    window._ptLlSeq=window._ptLlSeq||{}; window._ptLlSeq[dayIndex]=(d&&d.llSequence)||null;
     try {
       // Prefer the server-VALIDATED items (validate-schedule.js corrections: snack dedup, height rider-swap,
       // Splash rename, LL fixes, character meets, etc.). Only fall back to raw text if parsed is absent.
@@ -2293,7 +2294,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
           };
           return;
         }
-        var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; generatedDays[idx] = _dayObj;
+        var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; if (window._ptLlSeq && window._ptLlSeq[idx]) _dayObj.llSequence = window._ptLlSeq[idx]; generatedDays[idx] = _dayObj;
         console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
         _proceed(items);
       });

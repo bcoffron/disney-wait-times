@@ -2031,6 +2031,55 @@ export function normalizeLLAssignments(cards, opts, mutations) {
   }
   return list;
 }
+
+// LL booking sequence (LL plan-side package, Oct 8, 2026): the day's Multi
+// Pass booking order, computed deterministically from the final cards plus
+// the catalog -- no model prose. Eligible = the day's seated rides carrying
+// a Multi Pass tag (the stamped truth after normalizeLLAssignments; the
+// catalog llKind already governed it). ILL ('single') rides are NEVER part
+// of the sequence -- a separate purchase, reported apart in singleSeparate
+// so the surface can say so. Ranking uses the one drift signal the catalog
+// honestly carries, typicalPeakWait: the ride whose standby line peaks
+// highest is the one whose return windows move fastest, so it books first.
+// When the catalog carries no peak data for any eligible ride, the order
+// falls back to plan order and reason stays null -- an order is shown,
+// never a fabricated justification. Returns null when there is nothing
+// honest to say (no Multi Pass, a VIP day -- the guide handles lines --,
+// or no eligible rides seated).
+export function computeLLSequence(cards, catalog, opts) {
+  opts = opts || {};
+  if (opts.llmp !== true) return null;
+  if (opts.isVip === true) return null;
+  const cat = catalog || {};
+  const seen = new Set();
+  const eligible = [];
+  const singleSeparate = [];
+  for (const c of (cards || [])) {
+    if (!c || c.type !== 'ride' || !c.ll) continue;
+    const name = String(c.ride || c.h || '').trim();
+    if (!name) continue;
+    const k = normName(name);
+    if (!k || seen.has(k)) continue;
+    if (c.ll.t === 'multi') {
+      seen.add(k);
+      const ce = cat[k];
+      eligible.push({ name, peak: (ce && typeof ce.typicalPeakWait === 'number') ? ce.typicalPeakWait : 0, ord: eligible.length });
+    } else if (c.ll.t === 'single') {
+      seen.add(k);
+      singleSeparate.push(name);
+    }
+  }
+  if (!eligible.length) return null;
+  const anyPeak = eligible.some(x => x.peak > 0);
+  const order = eligible.slice();
+  if (anyPeak) order.sort((a, b) => (b.peak - a.peak) || (a.ord - b.ord));
+  const first = order[0];
+  const reason = (anyPeak && first.peak > 0)
+    ? 'Book ' + first.name + ' first -- its standby line peaks around ' + first.peak + ' min, the longest of your Multi Pass rides, so its return times move fastest.'
+    : null;
+  return { bookFirst: first.name, reason, order: order.map(x => x.name), singleSeparate };
+}
+
 const ACTIVITY_TYPES = new Set(['ride', 'show', 'dining', 'quickservice', 'character', 'snack']);
 export function trimInfeasible(cards, opts) {
   const wp = opts && opts.waitPatterns;
