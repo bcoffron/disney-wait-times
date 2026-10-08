@@ -6,8 +6,7 @@ import { list } from '@vercel/blob';
 // Same salted-first/bare-fallback registry read as api/trip.js, 60s cache.
 const _AUTH_SALT = (process.env.BLOB_PATH_SALT || '').trim();
 let _authRegCache = null, _authRegCacheAt = 0;
-async function _isRegisteredTripCode(code) {
-  if (!code || typeof code !== 'string') return false;
+async function _readAuthRegistry() {
   try {
     if (!_authRegCache || Date.now() - _authRegCacheAt > 60000) {
       const _keys = _AUTH_SALT ? ['twize/' + _AUTH_SALT + '/trip_registry.json', 'twize/trip_registry.json'] : ['twize/trip_registry.json'];
@@ -20,7 +19,38 @@ async function _isRegisteredTripCode(code) {
       }
     }
   } catch (e) { /* fall through to whatever cache we have (fail closed if none) */ }
-  return !!(_authRegCache && _authRegCache[code]);
+  return _authRegCache;
+}
+
+async function _isRegisteredTripCode(code) {
+  if (!code || typeof code !== 'string') return false;
+  const _reg = await _readAuthRegistry();
+  return !!(_reg && _reg[code]);
+}
+
+// --- Validated trip session (restoration step ii, Oct 8, 2026) -------------
+// Role is resolved SERVER-SIDE from the registry entry: the registry is the
+// source of role, and the presented code is only the lookup key. The code
+// string's suffix is NEVER parsed for role, and a client-sent role is never
+// trusted. The session every endpoint enforces on is:
+// { code, tripId, role, status, expires, expired } -- null = no session.
+async function _resolveTripSession(code) {
+  if (!code || typeof code !== 'string') return null;
+  const _reg = await _readAuthRegistry();
+  const _entry = _reg && _reg[code];
+  if (!_entry) return null;
+  let _expired = false;
+  if (_entry.expires) {
+    const _exp = new Date(_entry.expires + 'T23:59:59Z');
+    if (!isNaN(_exp) && _exp < new Date()) _expired = true;
+  }
+  return { code: code, tripId: _entry.tripId, role: _entry.role || '', status: _entry.status || '', expires: _entry.expires || null, expired: _expired };
+}
+
+// Leader session: the registry's admin role on an active, unexpired entry --
+// the same test api/trip.js applies to trip saves.
+function _isLeaderSession(s) {
+  return !!s && s.role === 'admin' && s.status === 'active' && !s.expired;
 }
 
 
@@ -185,7 +215,11 @@ export default async function handler(req, res) {
       const _sentAdmin = (req.headers['x-admin-key'] || req.body && req.body.adminKey || '').toLowerCase();
       const _tripCode = (req.body && req.body.tripCode) || req.headers['x-trip-code'] || '';
       const _isAdmin = _sentAdmin === _adminKey;
-      const _isValidTrip = await _isRegisteredTripCode(_tripCode);
+      // Ask AI is read-only chat, granted to guests by the May 2026 role
+      // design -- so validity here is "a validated session exists" (leader
+      // OR guest). No role gate on this endpoint by design (step ii).
+      const _session = _isAdmin ? null : await _resolveTripSession(_tripCode);
+      const _isValidTrip = _isAdmin || !!_session;
       if (!_isAdmin && !_isValidTrip) {
                   console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
             return res.status(401).json({ error: 'Authentication required.' });
