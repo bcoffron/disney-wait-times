@@ -499,6 +499,10 @@ export function applyFills(skeleton, fills, opts) {
   // class + reservation policy) that the fill-time gates enforce.
   const _polByCanon = {};
   for (const _pv of _venuesArr) { if (_pv && _pv.name && _pv.reservationPolicy) { const _pk = canonicalVenueKey(_pv.name); if (_pk && !_polByCanon[_pk]) _polByCanon[_pk] = _pv.reservationPolicy; } }
+  // Dining details (Item 4): verified dining-intel menu highlights,
+  // parsed by the handler from the intel cache and keyed canonically
+  // like the service/policy maps above; stamped at the seating seams.
+  const _diningDetails = (opts.diningDetails && typeof opts.diningDetails === 'object') ? opts.diningDetails : {};
   if (opts.venueServices && typeof opts.venueServices === 'object') {
     for (const k of Object.keys(opts.venueServices)) { const ck = canonicalVenueKey(k); if (ck && !_svcByCanon[ck]) _svcByCanon[ck] = opts.venueServices[k]; }
   }
@@ -536,6 +540,9 @@ export function applyFills(skeleton, fills, opts) {
       // re-deriving anything from the heading.
       if (_avk && _svcByCanon[_avk]) aCard.venueService = _svcByCanon[_avk];
       if (_avk && _polByCanon[_avk]) aCard.venueResPolicy = _polByCanon[_avk];
+      // Item 4: the anchor's venue carries its intel menu highlights
+      // into the card's details like any other seated venue.
+      { const _add = diningDetailsFor(_diningDetails, _avk); if (_add) aCard.dining = _add; }
       cards.push(aCard);
       used.add(aCard.h.toLowerCase());
       if (_avk) placedVenueCanon.add(_avk);
@@ -738,6 +745,10 @@ export function applyFills(skeleton, fills, opts) {
           // _polByCanon) -- one source of truth for client surfaces.
           if (_svcByCanon[_fillVenue.key]) card.venueService = _svcByCanon[_fillVenue.key];
           if (_polByCanon[_fillVenue.key]) card.venueResPolicy = _polByCanon[_fillVenue.key];
+          // Item 4: the seated venue's intel menu highlights ride the
+          // card structurally, beside the item-3/6a identity fields.
+          const _fdd = diningDetailsFor(_diningDetails, _fillVenue.key);
+          if (_fdd) card.dining = _fdd;
         }
         if (isRideSlot && nkey) { usedRideNames.add(nkey); usedRideSquash.add(nkey.replace(/ /g, '')); todayRideNames.add(nkey); if (gkey) usedGroups.add(gkey); }
       }
@@ -985,6 +996,84 @@ export function makeVenueKeyResolver(venues) {
     for (const k of canonKeys) { if (hk.indexOf(k) !== -1 || (hk.length >= 4 && k.indexOf(hk) !== -1)) return k; }
     return 'raw:' + hk;
   };
+}
+
+
+// ---------------------------------------------------------------------------
+// DINING CARD DETAILS (Item 4, Oct 7, 2026): a seated dining-ish card
+// carries the venue's VERIFIED dining-intel menu highlights, parsed from
+// the same dining_intel_dl lines the catalog builder reads at cache-build
+// time and stamped at seating (anchor / accepted fill / deterministic
+// backfill) from opts.diningDetails / ctx.diningDetails -- the handler
+// parses the intel cache once per request. The client's meal rows and the
+// item-6a panel consume the stamped `dining` object; NOTHING here reads
+// the client's hardcoded dining guide (Claude's ruling, msg 58: never
+// source descriptions from it). The intel build prompt emits a field ONLY
+// when a specific menu item was verified, so a missing field means the
+// intel is silent about that venue -- unknown, never "no option", and
+// never filled in with invented prose.
+// ---------------------------------------------------------------------------
+
+// Parse the dining_intel_dl line format --
+//   Name [DL|DCA, Land] RESV=<policy> | top:X | kids:Y | VEG:Z VEGAN:W GF:V
+// -- into a details map keyed by canonicalVenueKey:
+//   { topPick, kidsOption, vegOption, veganOption, gfOption }
+// holding only verified, non-empty fields. Dietary tags are extracted with
+// the catalog builder's own rule (VEGAN matched before VEG so the shorter
+// tag cannot match inside it). Accepts the raw intel text or the cache's
+// {data: "..."} wrapper. Fail-open: {} on junk input.
+export function parseDiningIntelDetails(intelRaw) {
+  const out = {};
+  if (!intelRaw) return out;
+  let text = intelRaw;
+  if (typeof text !== 'string') { try { text = JSON.stringify(text); } catch (e) { return out; } }
+  if (text.trim().startsWith('{')) {
+    try { const w = JSON.parse(text); if (w && typeof w.data === 'string') text = w.data; } catch (e) { /* raw text it is */ }
+  }
+  const lineRe = /^(.+?)\s*\[(DL|DCA),\s*(.+?)\]\s*RESV=(\w+)\s*(.*)$/;
+  for (const rawLine of text.split('\n')) {
+    const line = String(rawLine || '').trim();
+    if (!line) continue;
+    const m = line.match(lineRe);
+    if (!m) continue;
+    const key = canonicalVenueKey(m[1].trim());
+    if (!key || out[key]) continue;
+    const rest = m[5] || '';
+    const d = {};
+    for (const seg of rest.split('|')) {
+      const s = seg.trim();
+      const tm = s.match(/^top\s*:\s*(.+)$/i);
+      if (tm) { const v = tm[1].trim(); if (v && v.toLowerCase() !== 'null' && !d.topPick) d.topPick = v; continue; }
+      const km = s.match(/^kids\s*:\s*(.+)$/i);
+      if (km) { const v = km[1].trim(); if (v && v.toLowerCase() !== 'null' && !d.kidsOption) d.kidsOption = v; continue; }
+    }
+    const tagRe = /(VEGAN|VEG|GF):([^|]+?)(?=\s+(?:VEGAN|VEG|GF):|\s*$)/g;
+    let tg;
+    while ((tg = tagRe.exec(rest)) !== null) {
+      const val = tg[2].trim();
+      if (!val || val.toLowerCase() === 'null') continue;
+      if (tg[1] === 'VEG' && !d.vegOption) d.vegOption = val;
+      else if (tg[1] === 'VEGAN' && !d.veganOption) d.veganOption = val;
+      else if (tg[1] === 'GF' && !d.gfOption) d.gfOption = val;
+    }
+    if (Object.keys(d).length) out[key] = d;
+  }
+  return out;
+}
+
+// The card-facing details object for one venue. The three rows the client
+// renders (Top pick / Veg / Kids) are always present as strings when the
+// object exists at all -- the card template reads them unguarded -- and
+// the object exists only when at least one of those rows has real
+// content. Vegan / GF ride along when the intel verified them.
+export function diningDetailsFor(detailsMap, canonKey) {
+  const d = (detailsMap && typeof detailsMap === 'object' && canonKey) ? detailsMap[canonKey] : null;
+  if (!d) return null;
+  const out = { topPick: d.topPick || '', vegOption: d.vegOption || '', kidsOption: d.kidsOption || '' };
+  if (!out.topPick && !out.vegOption && !out.kidsOption) return null;
+  if (d.veganOption) out.veganOption = d.veganOption;
+  if (d.gfOption) out.gfOption = d.gfOption;
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -3169,7 +3258,11 @@ export function deterministicBackfill(slot, ctx) {
       // catalog, so its card carries the venue structurally, exactly like
       // an accepted fill -- the used-set and the client's cross-day
       // accumulation consume the field, never the heading alone.
-      return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '', venue: pick.name, venueService: pick.service || '', venueResPolicy: pick.reservationPolicy || '' };
+      const _bKey = _venueKeyOfB(pick.name);
+      const _bdd = diningDetailsFor(ctx.diningDetails, _bKey);
+      const _bCard = { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '', venue: pick.name, venueService: pick.service || '', venueResPolicy: pick.reservationPolicy || '' };
+      if (_bdd) _bCard.dining = _bdd;
+      return _bCard;
     }
   }
 

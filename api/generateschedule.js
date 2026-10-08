@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, scanProseVenueFlags, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, shortestHeightInches, thrillModeFor } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, scanProseVenueFlags, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, shortestHeightInches, thrillModeFor, parseDiningIntelDetails } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -902,6 +902,10 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
           const _catList = Object.values(_catIdx);
           const _venues = correctVenueServices(parseCatalogVenues(cacheCtx.CATALOG));
+          // Dining card details (Item 4): the dining intel's verified
+          // menu highlights, parsed once per request; applyFills and
+          // the deterministic backfill stamp them onto seated cards.
+          const _diningDetails = parseDiningIntelDetails(cacheCtx.DINING_INTEL);
           // Guest-listed ILL rides (Tier 3): days[].illRides names the rides
           // the guest bought Individual Lightning Lane for. Expanded to a
           // group-aware normName key set (a listed ride covers its variant
@@ -939,7 +943,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
             priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys, encoredRideKeys: fb.encoredRideKeys, bannedKeys: fb.bannedKeys,
             closeMin: (typeof fb.closeMin === 'number') ? fb.closeMin : null, usedVenueKeys: fb.usedVenueKeys,
-            shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand,
+            shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand, diningDetails: _diningDetails,
             skipShows: showSkip, priorShows: _priorShows, wantedVenueKeys: _wantedVenues.keys,
             dietaryNeeds: _dietNeeds, groupSize: _groupSize,
             minHeightInches: _heightActive ? _minH : null, soloHeight: _soloHeight, thrillMode: _thrillMode
@@ -950,7 +954,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
           // without them), and the day's closes ride along per park so the
           // headliner window uses closeMin-90 instead of the hardcoded
           // 8:30 PM fallback in both fill layers.
-          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)), venueServices: _venueServices, reservationKeys: _reservationKeys, catalog: _catIdx, venues: _venues, closeMin: _closeMin, closeMinByPark: _closeByPark, llmp: _llmp, ill: _ill, skipShowKeys: new Set((showSkip || []).map(normName).filter(Boolean)), priorShowKeys: new Set(_priorShows.map(normName).filter(Boolean)), minHeightInches: _heightActive ? _minH : null, groupSize: _groupSize };
+          const _fillOpts = { landToPark: landToPark, closedNames: _closedS, closedVenueNames: _closedV, fallbackFor: _fallbackFor, priorRides: priorRides, mustDoNames: mustDo, shows: _showPicks, priorVenues: _priorVenues, bannedKeys: new Set((skipRides || []).map(normName).filter(Boolean)), venueServices: _venueServices, reservationKeys: _reservationKeys, catalog: _catIdx, venues: _venues, closeMin: _closeMin, closeMinByPark: _closeByPark, llmp: _llmp, ill: _ill, skipShowKeys: new Set((showSkip || []).map(normName).filter(Boolean)), priorShowKeys: new Set(_priorShows.map(normName).filter(Boolean)), minHeightInches: _heightActive ? _minH : null, groupSize: _groupSize, diningDetails: _diningDetails };
 
           let _r = await _fill(_dynSys);
           let _ap = applyFills(_sk, Array.isArray(_r.arr) ? _r.arr : [], _fillOpts);
