@@ -3557,7 +3557,12 @@ async function initPusher(){
 }
 
 // ===== VERCEL BLOB POLL \u2014 replaces Pusher real-time sync =====
-// Polls /api/trip every 10s for schedule + VIP notes updates
+// Polls /api/trip every 10s for schedule + VIP notes updates, and (msg 94
+// (i)) carries the recorded push episodes the foreground poll backstop
+// renders when the native shell never hands a push to the app listener.
+// Runs for EVERY role while foregrounded: the schedule-ingest below stays
+// guest-scoped, but episode presentation is role-neutral (the leader's
+// own test send must render on the leader's phone too).
 // To re-enable Pusher: set PUSHER_ENABLED = true above and remove this poll
 
 var _blobPollInterval = null;
@@ -3583,6 +3588,12 @@ function startBlobPoll() {
         // Only a DEFINITIVE invalid/expired/inactive code (trip.js 403/404) ends the session.
         // Transient failures (5xx cold start, 429, offline on wake, non-JSON edge) must NOT sign the guest out.
         if (r.status === 403 || r.status === 404) { window._blobPollFirst = false; stopBlobPoll(); try { localStorage.removeItem('tpcp_code'); localStorage.removeItem('tpcp_role'); localStorage.removeItem('tpcp_tripId'); localStorage.removeItem('tpcp_guest_code'); } catch(e) {} if (typeof initSplash === 'function') window._appInitialized=false; var _sp=document.getElementById('splashScreen'),_ma=document.getElementById('mainApp');if(_sp){_sp.style.display='flex';}if(_ma){_ma.style.display='none';}; return; }
+        // Poll backstop (msg 94 (i)): present any recorded episodes this
+        // session has not shown yet -- BEFORE the tripData hash check, so
+        // an episode is never skipped just because the schedule did not
+        // change. The handler applies suppression + dedupe; duplicates
+        // (event already rendered, or an earlier tick) drop silently.
+        if (data && Array.isArray(data.episodes)) tpcpPresentPolledEpisodes(data.episodes);
         if (!data || !data.tripData) { return; }
         window._blobPollFirst = false;
         var hash = JSON.stringify(data.tripData);
@@ -3649,9 +3660,9 @@ document.addEventListener('visibilitychange', function() {
   if (document.hidden) {
     stopBlobPoll();
   } else {
-    var role = localStorage.getItem('tpcp_role') || '';
-    var onDay2 = (window.curDay === 2) || (window.currentDay === 2);
-    if (role === 'guest' || onDay2) startBlobPoll();
+    // Every role restarts the poll on return: it now also carries the
+    // foreground episode backstop, not just guest schedule sync.
+    startBlobPoll();
   }
 });
 // Activity tracking for inactivity timeout
@@ -6206,18 +6217,11 @@ function setDay(d){
   var _rlDay=document.getElementById('reoptLoading');if(_rlDay&&_rlDay.getAttribute('data-reopt-day')!==String(d)){_rlDay.style.display='none';}
   if(typeof renderVipBanner==='function')renderVipBanner(d);
 
-  // Blob poll: start/stop based on role and day
-  var _spRole = localStorage.getItem('tpcp_role') || '';
-  if (_spRole === 'guest') {
-    if (typeof startBlobPoll === 'function') startBlobPoll();
-  } else {
-    // Admin: only poll on Day 2 (VIP notes day)
-    if (d === 2) {
-      if (typeof startBlobPoll === 'function') startBlobPoll();
-    } else {
-      if (typeof stopBlobPoll === 'function') stopBlobPoll();
-    }
-  }
+  // Blob poll: runs for every role on every day while foregrounded --
+  // guests ingest schedule updates from it, and every role's poll
+  // response carries the recorded push episodes for the foreground
+  // backstop (msg 94 (i)). It stops only on backgrounding / 30-min idle.
+  if (typeof startBlobPoll === 'function') startBlobPoll();
 }
 function setTab(t){
   ['tabSchedule','tabWaits','tabShows','tabChat','tabClosures','tabInfo'].forEach(function(id){
@@ -7417,12 +7421,9 @@ function enterSplash(skipAnim) {
     if (typeof scheduleWeatherCheck === 'function') scheduleWeatherCheck();
     if (typeof startNotesSync === 'function') startNotesSync();
     if (typeof initPusher === 'function') initPusher();
-    // Start blob poll on load (replaces Pusher sync while PUSHER_ENABLED = false)
-    if (typeof startBlobPoll === 'function') {
-      var _loadRole = localStorage.getItem('tpcp_role') || '';
-      var _loadDay = window.curDay || 1;
-      if (_loadRole === 'guest' || _loadDay === 2) startBlobPoll();
-    }
+    // Start blob poll on load (replaces Pusher sync while PUSHER_ENABLED = false).
+    // Every role: the poll also carries the foreground episode backstop.
+    if (typeof startBlobPoll === 'function') startBlobPoll();
     if (typeof warmCachesFromServer === 'function') warmCachesFromServer();
     if (typeof doRefreshWaits === 'function') setTimeout(doRefreshWaits, 2000);
     if (typeof startWaitRefresh === 'function') setTimeout(startWaitRefresh, 10000);
@@ -7862,6 +7863,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // of an episode already shown. Backgrounded, the same push banners via
 // iOS and this listener never fires. Session scope per the ruling: the
 // presented set is in-memory only -- a webview reload starts a new one.
+// Msg 94 (i): where the shell never fires this listener (Beau's Build 8),
+// the poll backstop below the handler presents the server-recorded
+// episode instead -- the delivered-list sweep that briefly lived here
+// was retired (msg 94 (ii)): a foreground-consumed alert never enters
+// the delivered list, so the sweep could not see the case it existed
+// for, and the poll backstop makes it redundant.
 var _tpcpPresentedEpisodes = {};
 
 function tpcpClassFromTag(tag) {
@@ -7910,6 +7917,51 @@ function tpcpHandleForegroundPush(n) {
     }
     tpcpShowPushPopup(title, body, cls);
   } catch (e) { console.warn('[push] foreground render failed', e && e.message); }
+}
+
+// ---- Poll backstop (Claude msg 94 (i) + (iv)) --------------------------
+// The event above is the fast path, but it is not guaranteed: Beau's
+// installed Build 8 shell never hands foreground alerts to the listener,
+// and a foreground-consumed alert leaves no delivered-list trace either
+// (the sweep that polled that list is retired -- it structurally could
+// not see the failing case). The guaranteed floor rides the channel this
+// app already runs: the server records every fired episode per trip
+// (api/push-episodes.js), GET /api/trip returns them on the response the
+// ~10s blob poll already fetches, and this pump feeds each unpresented
+// one through the SAME handler above -- plan-changed suppression first,
+// then the same session dedupe set, so an episode the event already
+// rendered is dropped here and an episode the event missed renders
+// within one poll cycle (~10s, accepted by the ruling). Render scope
+// (msg 94 (iv)): only episodes whose ymd is TODAY, Pacific -- the park
+// day they fired on -- and nothing older than 24h (the server enforces
+// the same bounds plus a last-20 cap before returning the list).
+function tpcpTodayYmdPT() {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date());
+  } catch (e) { return ''; }
+}
+
+function tpcpPresentPolledEpisodes(list) {
+  if (!Array.isArray(list)) return;
+  var today = tpcpTodayYmdPT();
+  for (var i = 0; i < list.length; i++) {
+    var ep = list[i];
+    if (!ep || !ep.episodeId) continue;
+    if (today && ep.ymd && ep.ymd !== today) continue; // not the park day it fired on
+    if (typeof ep.firedAt === 'number' && (Date.now() - ep.firedAt) > 24 * 60 * 60 * 1000) continue;
+    tpcpHandleForegroundPush({
+      title: ep.title || '',
+      body: ep.body || '',
+      data: {
+        'class': ep.class || '',
+        tag: ep.tag || '',
+        episodeId: ep.episodeId,
+        schedVersion: (ep.schedVersion != null ? ep.schedVersion : null)
+      }
+    });
+  }
 }
 
 // Generalized popup over the wait-spike toast component: the payload's
