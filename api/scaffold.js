@@ -649,6 +649,13 @@ export function applyFills(skeleton, fills, opts) {
       const _isHeadliner = isRideSlot && isHeadlinerKey(nkey, catalogEntry);
       const _llExempt = _isHeadliner && llWindowExempt(nkey, f && f.ll, { llmp: opts.llmp === true, ill: opts.ill === true });
       const headlinerBad = _isHeadliner && !_llExempt && !headlinerWindowOk(winStart(slot.window), _slotClose);
+      // ATTRACTION HOURS GATE (Item 10): a ride whose own hours end before
+      // the seated time is a failed fill -- a character meet after the meet
+      // has ended, or a Toontown ride inside the land's fireworks closure.
+      // Judged on the clamped time the card would actually carry (clamp.t)
+      // against the catalog entry, so an evening slot that merely STARTS
+      // legally cannot smuggle a 9:00 PM Mickey's House past the gate.
+      const hoursBad = isRideSlot && !!catalogEntry && !!attractionHoursViolation(catalogEntry, clamp.t, _slotClose);
       const retiredClosed = isRideSlot && !!nkey && RETIRED.some(r => r.to === null && nkey.indexOf(r.m) !== -1);
       // A park or land name is not a fill: the model sometimes answers a dining,
       // snack, or show slot with the place it sits in ("Disneyland", "DCA",
@@ -683,12 +690,12 @@ export function applyFills(skeleton, fills, opts) {
       const heightSoloBad = isRideSlot && !!catalogEntry && opts.groupSize === 1 &&
         heightGateHit(catalogEntry, (opts.minHeightInches != null ? opts.minHeightInches : null)) &&
         !_mustKeys.has(nkey) && !(gkey && _mustGroups.has(gkey));
-      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad || headlinerBad || showBad || heightSoloBad) {
+      if (parkBad || catalogParkBad || generic || dup || closed || retiredClosed || venueClosed || placeNamed || showWrongPark || venueDup || mealGeneric || banned || ropeBad || charBad || venueBad || venueServiceBad || breakBad || transportBad || headlinerBad || showBad || heightSoloBad || hoursBad) {
         if (parkBad || catalogParkBad) report.wrongPark++;
         if (generic) report.generic = (report.generic || 0) + 1;
         if (dup) report.dupe = (report.dupe || 0) + 1;
         if (closed || retiredClosed || venueClosed) report.closed = (report.closed || 0) + 1;
-        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : headlinerBad ? (nkey === RSR_KEY ? 'rsr-window' : 'headliner-window') : showSkipped ? 'show-skipped' : showBad ? 'show-prior-day' : heightSoloBad ? 'height-solo' : 'generic' });
+        report.dropped.push({ h: cleanH, reason: (closed || retiredClosed || venueClosed) ? 'closed' : (parkBad || catalogParkBad) ? 'wrong-park' : dup ? 'dupe' : showWrongPark ? 'wrong-park-show' : venueDup ? 'venue-dupe' : mealGeneric ? 'generic-meal' : placeNamed ? 'place-name' : banned ? 'banned' : ropeBad ? 'ropedrop-reassigned' : charBad ? 'wrong-character' : venueBad ? 'venue-unknown' : venueServiceBad ? 'venue-table-service' : breakBad ? 'break-fixed' : transportBad ? 'transport-morning' : headlinerBad ? (nkey === RSR_KEY ? 'rsr-window' : 'headliner-window') : showSkipped ? 'show-skipped' : showBad ? 'show-prior-day' : heightSoloBad ? 'height-solo' : hoursBad ? 'attraction-hours' : 'generic' });
         needsRetry.push(slot.id);
         card = mkFallback(slot);
       } else {
@@ -804,6 +811,70 @@ export function llWindowExempt(key, ll, products) {
   return false;
 }
 export const NEVER_MORNING_KEYS = new Set(['disneyland monorail', 'disneyland railroad', 'main street vehicles', 'mark twain riverboat', 'sailing ship columbia', "davy crockett's explorer canoes", 'sleeping beauty castle walkthrough'].map(normName));
+
+// ---------------------------------------------------------------------------
+// ATTRACTION HOURS GATE (Item 10, Oct 7, 2026 -- device-pass fix round).
+// The CATALOG carries no per-attraction operating hours, and every other
+// placement clock in this file derives from the PARK's close -- so a meet
+// that ends at 7:30 PM could be seated at 9:00 PM and nothing downstream
+// could tell (Build 8 device pass: Mickey's House meet at 9:00 PM,
+// Minnie's House at 11:25 PM). This block is the curated static
+// counterpart -- the RETIRED / ILL_ONLY_KEYS pattern -- for the small set
+// of attractions whose own hours end before the park's, plus the one
+// land that closes mid-evening. Deliberately NOT a general hours
+// platform: meet times are Disney day-of data, so these are the
+// published-pattern values, researched Oct 7, 2026 (sources inline), and
+// the gate errs toward refusing a seat it cannot prove legal.
+// ---------------------------------------------------------------------------
+// Per-attraction MEET end (minutes after midnight): the last time the
+// card's promise -- the MEET -- may start. The houses' walkthroughs may
+// stay open while the land is open, but the card as sold is the meet, so
+// the gate judges the meet. Keys are the exact normName() output of the
+// catalog names (the RIDE_DURATIONS_MIN convention): normName strips
+// 'and' as an article-class token and a possessive leaves a stray 's'
+// token, so 'mickey s house meet mickey mouse' and 'minnie s house' are
+// correct on purpose -- do not 'fix' them into unmatched strings.
+export const ATTRACTION_MEET_END_MIN = {
+  // Mickey's House and Meet Mickey Mouse: Disney's published hours for
+  // the attraction are 8:00 AM - 7:30 PM (place listing, Oct 7, 2026).
+  'mickey s house meet mickey mouse': 1170,
+  // Minnie's House: Minnie greets daytime / intermittently only; the
+  // house meets end by ~5:00 PM (researched Oct 7, 2026).
+  'minnie s house': 1020
+};
+// Mickey's Toontown closes at 8:00 PM on fireworks nights (fallout zone)
+// and reopens at 10:00 PM only when the park runs to 11:00 PM or later;
+// on earlier-close nights it does not reopen. Fireworks presence is not
+// among the generation inputs, so the published window is encoded as-is:
+// Toontown attractions seat before 8:00 PM, or at/after 10:00 PM when the
+// park close proves the late night (closeMin >= 11:00 PM) -- never in
+// the 8-10 PM window, and never after 8:00 PM on an earlier-close (or
+// unknown-close) night. Land identity is the catalog entry's land field:
+// the catalog is the authority, never the model's claimed land.
+export const TOONTOWN_LAND_KEY = normName("Mickey's Toontown");
+export const TOONTOWN_CLOSE_MIN = 1200;
+export const TOONTOWN_REOPEN_MIN = 1320;
+export const TOONTOWN_REOPEN_CLOSE_MIN = 1380;
+// Judge one placement against the attraction-hours data. catalogEntry is
+// a buildCatalogIndex-shaped entry ({ name, land }) -- the authoritative
+// identity; without an entry the gate fails open (null), exactly like
+// the other catalog gates: no catalog, no opinion. startMin is the time
+// the card would carry; closeMin is the close of the attraction's park
+// that day (null when unknown -- which never proves the Toontown
+// reopen). Returns null when the seat is legal, else { reason, name }
+// with reason 'meet-ended' | 'land-closed'.
+export function attractionHoursViolation(catalogEntry, startMin, closeMin) {
+  if (!catalogEntry || startMin == null || isNaN(startMin)) return null;
+  const key = normName(catalogEntry.name || '');
+  if (!key) return null;
+  const end = ATTRACTION_MEET_END_MIN[key];
+  if (end != null && startMin > end) return { reason: 'meet-ended', name: catalogEntry.name, endMin: end };
+  if (normName(catalogEntry.land || '') === TOONTOWN_LAND_KEY && startMin >= TOONTOWN_CLOSE_MIN) {
+    const reopened = startMin >= TOONTOWN_REOPEN_MIN && closeMin != null && closeMin >= TOONTOWN_REOPEN_CLOSE_MIN;
+    if (!reopened) return { reason: 'land-closed', name: catalogEntry.name };
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // CANONICAL VENUE IDENTITY (Phase 3, Oct 7, 2026). Venue names arrive with
@@ -1335,6 +1406,15 @@ export function revalidateCard(card, ctx) {
         if (!_mdKeys.has(key)) reasons.push('height-solo');
       }
       if (key && NEVER_MORNING_KEYS.has(key) && startMin != null && startMin < 720) reasons.push('transport-morning');
+      // ATTRACTION HOURS GATE (Item 10): judged here too, so a must-do
+      // swap-in can never seat a ride after its own hours end -- the
+      // meet-ended / land-closed refusal rides the same per-park close
+      // resolution as the headliner window below.
+      if (ce && startMin != null) {
+        let cmH = (ctx.closeMin != null) ? ctx.closeMin : null;
+        if (ctx.closeMinByPark && ce.park) { const vH = ctx.closeMinByPark[normParkName(ce.park)]; if (vH != null) cmH = vH; }
+        if (attractionHoursViolation(ce, startMin, cmH)) reasons.push('attraction-hours');
+      }
       if (isHeadlinerKey(key, ce) && startMin != null) {
         if (!llWindowExempt(key, card.ll, { llmp: ctx.llmp === true, ill: ctx.ill === true, illRideKeys: (ctx.illRideKeys instanceof Set) ? ctx.illRideKeys : null })) {
           let cm = (ctx.closeMin != null) ? ctx.closeMin : null;
@@ -1856,6 +1936,19 @@ export function verifyScaffold(cards, opts) {
         if (catalogLoaded && !p) { removed.push({ h: c.h, reason: 'not-at-resort' }); continue; }
         if (allowedParks.length && p && !inAllowed(p)) { removed.push({ h: c.h, reason: 'wrong-park' }); continue; }
       }
+      // 3b. ATTRACTION HOURS GATE (Item 10): a ride seated after its own
+      // operating hours -- a meet past its end, a Toontown ride inside
+      // the land's fireworks closure -- is physically impossible, so it
+      // is removed like a closed ride. A must-do removed here resurfaces
+      // through verifyTripParams as mustdo-missing and is re-seated in a
+      // legal window by the enforcer or surfaced via unplacedMustDos; it
+      // is never silently dropped, and never re-seated in dead hours,
+      // because revalidateCard refuses those targets too.
+      if (ce) {
+        let _cmH = (opts.closeMin != null) ? opts.closeMin : null;
+        if (opts.closeMinByPark && ce.park) { const _vH = opts.closeMinByPark[normParkName(ce.park)]; if (_vH != null) _cmH = _vH; }
+        if (attractionHoursViolation(ce, parseClock(c.t), _cmH)) { removed.push({ h: c.h, reason: 'attraction-hours' }); continue; }
+      }
       // 4. dupe (spaced key OR squash key -- respelled duplicates collide on squash)
       // 4b. variant dupe: the sibling variant of an attraction already placed
       // today (the other Soarin' film, the other Pal-A-Round gondola) is the
@@ -1972,6 +2065,30 @@ export function verifyScaffold(cards, opts) {
         c.n = appendNote(c.n, _note);
         mutations.push({ action: (opts.groupSize === 1 ? 'height-warning' : 'rider-swap-note'), h: c.h, at: c.t, requires: _ce.heightInches });
       }
+    }
+  }
+  // ATTRACTION HOURS GATE -- final enforcement (Item 10, Oct 7, 2026).
+  // The mutators above run after the main loop's removal pass: dezigzag
+  // swaps ride identities across times and sortAndSpace retimes, so a
+  // card judged legal on arrival can cross an attraction's closing
+  // boundary afterward. Re-judge the final cards exactly as they ship
+  // (the height gate's pattern): a violating card is REMOVED into
+  // `removed` with a surfaced mutation -- never silently dropped, and a
+  // removed must-do is picked up by verifyTripParams as mustdo-missing,
+  // so the enforcer re-seats it in a legal window or the handler surfaces
+  // it via unplacedMustDos.
+  for (let i = _finalCards.length - 1; i >= 0; i--) {
+    const c = _finalCards[i];
+    if (!c || c.type !== 'ride' || c.anchor === true) continue;
+    const _ceH = catalog[normName(c.ride || c.h)] || catalogBySquash[squash(c.ride || c.h)] || null;
+    if (!_ceH) continue;
+    let _cmH2 = (opts.closeMin != null) ? opts.closeMin : null;
+    if (opts.closeMinByPark && _ceH.park) { const _vH2 = opts.closeMinByPark[normParkName(_ceH.park)]; if (_vH2 != null) _cmH2 = _vH2; }
+    const _hv = attractionHoursViolation(_ceH, parseClock(c.t), _cmH2);
+    if (_hv) {
+      removed.push({ h: c.h, reason: 'attraction-hours' });
+      mutations.push({ action: 'attraction-hours-remove', h: c.h, at: c.t, why: _hv.reason });
+      _finalCards.splice(i, 1);
     }
   }
   // DIETARY CONFLICT SURFACING (Tier 2 floor, Oct 7, 2026): when a seated
@@ -2496,10 +2613,15 @@ export function planCoverageReservations(skeleton, opts) {
 
   const ordered = targets.filter(t => t.tier === 'headliner').concat(targets.filter(t => t.tier !== 'headliner'));
   const closeFor = (pk) => closeByPark[pk] || skeleton.closeMin || opts.closeMin || null;
-  const slotLegalFor = (t, s) => {
+  const slotLegalFor = (t, s, ignoreHours) => {
     const w = winStart(s.window);
     if (NEVER_MORNING_KEYS.has(normName(t.entry.name)) && w < 720) return false;
     if (t.tier === 'headliner' && !headlinerWindowOk(w, closeFor(t.parkKey))) return false;
+    // ATTRACTION HOURS GATE (Item 10): never reserve a must-do into a
+    // slot where its own hours have ended (meet over, or Toontown inside
+    // its fireworks closure) -- the reservation rail would force exactly
+    // the dead-hours seat the fill and verify gates exist to refuse.
+    if (!ignoreHours && attractionHoursViolation(t.entry, w, closeFor(t.parkKey))) return false;
     return true;
   };
   const unseated = [];
@@ -2534,8 +2656,17 @@ export function planCoverageReservations(skeleton, opts) {
       for (const s of seg.slots) { if (slotLegalFor(t, s)) { shapeFits = true; break; } }
       if (shapeFits) break;
     }
+    let shapeFitsNoHours = shapeFits;
+    if (!shapeFits) {
+      for (const seg of segments) {
+        if (seg.parkKey !== t.parkKey) continue;
+        for (const s of seg.slots) { if (slotLegalFor(t, s, true)) { shapeFitsNoHours = true; break; } }
+        if (shapeFitsNoHours) break;
+      }
+    }
     let reason = 'window-capacity';
     if (hopStarved(t.parkKey)) reason = 'hop-window';
+    else if (!shapeFits && shapeFitsNoHours) reason = 'attraction-hours';
     else if (!shapeFits) reason = (t.tier === 'headliner') ? 'headliner-window' : 'morning-window';
     out.unreserved.push({ name: t.name, park: t.park, reason });
     if (reason === 'hop-window') {
@@ -2800,7 +2931,13 @@ export function deterministicBackfill(slot, ctx) {
       // general pools rather than shipping a window violation (the pools
       // pick a legal ride for the slot; the assignment layer owns strategy).
       const _peBlocked = !!pe && isHeadlinerKey(normName(pe.name), pe) && !headlinerWindowOk(parseClock(t0), (ctx && ctx.closeMin != null) ? ctx.closeMin : null);
-      if (pe && !_peBlocked) {
+      // Attraction hours apply to ASSIGNED rides too (Item 10): an
+      // assignment into the ride's own dead hours (meet ended / Toontown
+      // fireworks closure) falls through to the general pools the same
+      // way -- the pools pick a legal ride for the slot; the coverage
+      // and enforcement layers own the must-do's surfacing.
+      const _peHoursBlocked = !!pe && !!attractionHoursViolation(pe, parseClock(t0), (ctx && ctx.closeMin != null) ? ctx.closeMin : null);
+      if (pe && !_peBlocked && !_peHoursBlocked) {
         usedRideKeys.add(normName(pe.name));
         usedNames.add(String(pe.name).toLowerCase());
         if (ctx.todayRideKeys instanceof Set) ctx.todayRideKeys.add(normName(pe.name));
@@ -2829,10 +2966,14 @@ export function deterministicBackfill(slot, ctx) {
     // close is the slot park's real close via ctx.closeMin (plumbed from
     // applyFills per slot park) -- no more hardcoded 8:30 PM fallback.
     const hlBlocked = (e) => isHeadlinerKey(normName(e.name), e) && !headlinerWindowOk(slotMin, (ctx && ctx.closeMin != null) ? ctx.closeMin : null);
+    // Attraction hours in every pool (Item 10): a meet past its end or a
+    // Toontown ride inside the fireworks closure is never a legal pick
+    // for this slot -- fresh, prior-day, or encore.
+    const hoursBlocked = (e) => !!attractionHoursViolation(e, slotMin, (ctx && ctx.closeMin != null) ? ctx.closeMin : null);
     const cands = catalog.filter(e =>
       e && e.name && !usedRideKeys.has(normName(e.name)) && !usedGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !_soloBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !hoursBlocked(e) && !_soloBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     // Deterministic: highest typical peak wait first (headliners earn the slot), ties by name.
     cands.sort((a, b) => (_thrillRank(a) - _thrillRank(b)) || ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
@@ -2853,7 +2994,7 @@ export function deterministicBackfill(slot, ctx) {
     const reuse = catalog.filter(e =>
       e && e.name && _priorKeys.has(normName(e.name)) && !_todayKeys.has(normName(e.name)) && !_todayGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !_soloBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !hoursBlocked(e) && !_soloBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     reuse.sort((a, b) => (_thrillRank(a) - _thrillRank(b)) || ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (reuse.length) {
@@ -2881,7 +3022,7 @@ export function deterministicBackfill(slot, ctx) {
       e && e.name && _todayKeys.has(normName(e.name)) &&
       !_encoredKeys.has(normName(e.name)) && !_encoredGroups.has(rideGroupKey(e.name)) &&
       inSlotPark(e.park) && (!e.status || e.status === 'operating') &&
-      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !_soloBlocked(e) &&
+      !closedKeys.has(normName(e.name)) && !isBannedE(e) && !hlBlocked(e) && !hoursBlocked(e) && !_soloBlocked(e) &&
       !(morningSlot && NEVER_MORNING_KEYS.has(normName(e.name))));
     sameDay.sort((a, b) => (_thrillRank(a) - _thrillRank(b)) || ((b.typicalPeakWait || 0) - (a.typicalPeakWait || 0)) || String(a.name).localeCompare(String(b.name)));
     if (sameDay.length) {
