@@ -511,7 +511,7 @@ export function applyFills(skeleton, fills, opts) {
   const placedVenueCanon = new Set();
   const placed = new Set(['ride', 'dining', 'quickservice', 'snack', 'show', 'character']); // slots that occupy a park
   const mkFallback = (slot) => {
-    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, encoredRideKeys: encoredTodayNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, closeMin: (opts.closeMinByPark && opts.closeMinByPark[normParkName(slot.park)]) || opts.closeMin || null, usedVenueKeys: placedVenueCanon, nearLand: (function () { for (let i = cards.length - 1; i >= 0; i--) { if (cards[i] && cards[i].land) return cards[i].land; } return ''; })() }) : placeholderCard(slot);
+    const c = fallbackFor ? fallbackFor(slot, { usedNames: used, usedRideKeys: usedRideNames, priorRideKeys: priorRideKeySet, todayRideKeys: todayRideNames, encoredRideKeys: encoredTodayNames, bannedKeys: (opts.bannedKeys instanceof Set) ? opts.bannedKeys : null, closeMin: (opts.closeMinByPark && opts.closeMinByPark[normParkName(slot.park)]) || opts.closeMin || null, usedVenueKeys: placedVenueCanon, nearLand: (function () { for (let i = cards.length - 1; i >= 0; i--) { if (cards[i] && cards[i].land) return cards[i].land; } return ''; })(), nextLand: (function () { const _si = skeleton.slots.indexOf(slot); if (_si < 0) return ''; for (let j = _si + 1; j < skeleton.slots.length; j++) { const _ns = skeleton.slots[j]; if (!_ns) continue; if (_ns.anchorLand) return _ns.anchorLand; if (_ns.meetLand) return _ns.meetLand; if (_ns.preferRide) { const _ce = catalogIdx[normName(_ns.preferRide)]; if (_ce && _ce.land) return _ce.land; } } return ''; })() }) : placeholderCard(slot);
     if (fallbackFor) report.fallback++;
     c.t = toClock(clampToWindow(parseClock(c.t), slot.window, slot.fixed).t); // stamp a valid in-window time
     if (!c.type) c.type = slot.type;
@@ -3369,6 +3369,31 @@ export function deterministicBackfill(slot, ctx) {
       if (!d || !(d.veg || d.vegan || d.gf)) return 1;
       return _dietSigs.every(sig => dietaryTagSatisfies(d, sig)) ? 0 : 2;
     };
+    // SNACK GEOGRAPHY (Item 2, Oct 7, 2026): a snack is a quick stop on the
+    // way, not a cross-park hike -- the Build 8 device pass seated Jolly
+    // Holiday (Main Street) between New Orleans Square / Frontierland
+    // cards while same-land stands sat unused, because equal-rank ties
+    // fell to raw catalog order. Claude's ruling (msg 58): geography is a
+    // PREFERENCE, never a gate. So it enters ONLY as a sort rank, ONLY for
+    // snack slots (meal seating order is unchanged), and BELOW want/diet:
+    // among otherwise-equal candidates, a venue in the land of an adjacent
+    // seated card wins -- the previous card's land (ctx.nearLand, plumbed
+    // by applyFills) or the next slot's skeleton-fixed land (ctx.nextLand:
+    // a reservation anchor's land, a character meet's land, or an assigned
+    // ride's catalog land). Land match is the honest granularity the data
+    // supports: venues carry lands, not coordinates, so no distance is
+    // invented. No signal = rank 0 for every candidate = legacy order,
+    // and the eligibility filter above is untouched, so a remote venue is
+    // still seated when it is the only eligible one -- nothing is dropped,
+    // nothing is trimmed, dedup and protected stops are unaffected.
+    const _snackGeo = slot.type === 'snack';
+    const _nearK = _snackGeo ? normName(ctx.nearLand || '') : '';
+    const _nextK = _snackGeo ? normName(ctx.nextLand || '') : '';
+    const geoRank = (v) => {
+      if (!_nearK && !_nextK) return 0;
+      const vl = normName(v.land || '');
+      return (vl && ((_nearK && vl === _nearK) || (_nextK && vl === _nextK))) ? 0 : 1;
+    };
     const cands = venues
       .filter(v => v && v.name && !v.exclude && inSlotPark(v.park) &&
         !usedNames.has(String(v.name).toLowerCase()) &&
@@ -3380,7 +3405,7 @@ export function deterministicBackfill(slot, ctx) {
         !closedVenueKeys.has(normName(v.name)) &&
         (v.service === 'quickservice' || v.service === 'snack' || (v.service === '' && v.reservationPolicy === 'walkup')) &&
         v.reservationPolicy !== 'never_meal' && v.reservationPolicy !== 'required')
-      .sort((a, b) => (wantRank(a) - wantRank(b)) || (dietRank(a) - dietRank(b)) || (rankResv(a.reservationPolicy) - rankResv(b.reservationPolicy)) || (rankSvc(a.service) - rankSvc(b.service)));
+      .sort((a, b) => (wantRank(a) - wantRank(b)) || (dietRank(a) - dietRank(b)) || (geoRank(a) - geoRank(b)) || (rankResv(a.reservationPolicy) - rankResv(b.reservationPolicy)) || (rankSvc(a.service) - rankSvc(b.service)));
     if (cands.length) {
       const pick = cands[0];
       usedNames.add(String(pick.name).toLowerCase());

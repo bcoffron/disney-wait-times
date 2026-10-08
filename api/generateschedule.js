@@ -947,7 +947,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
             usedRideKeys: fb.usedRideKeys, usedNames: fb.usedNames,
             priorRideKeys: fb.priorRideKeys, todayRideKeys: fb.todayRideKeys, encoredRideKeys: fb.encoredRideKeys, bannedKeys: fb.bannedKeys,
             closeMin: (typeof fb.closeMin === 'number') ? fb.closeMin : null, usedVenueKeys: fb.usedVenueKeys,
-            shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand, diningDetails: _diningDetails,
+            shows: _showPicks, wantedShows: showWant, photoSpots: _photoSpots, nearLand: fb.nearLand, nextLand: fb.nextLand, diningDetails: _diningDetails,
             skipShows: showSkip, priorShows: _priorShows, wantedVenueKeys: _wantedVenues.keys,
             dietaryNeeds: _dietNeeds, groupSize: _groupSize,
             minHeightInches: _heightActive ? _minH : null, soloHeight: _soloHeight, thrillMode: _thrillMode
