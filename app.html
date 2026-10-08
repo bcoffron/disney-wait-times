@@ -3795,6 +3795,104 @@ function llGotIt(rideKey, bannerEl){
   }
 }
 
+
+//    Held Lightning Lane returns (LL plan-side package, Oct 8, 2026)
+// A held return is a Lightning Lane the trip LEADER actually booked in
+// the Disneyland app and confirmed here. It lives on the TRIP
+// (tripConfig.heldReturns) -- not in device-local storage -- so every
+// phone on the trip sees the same booked returns, re-optimization treats
+// them as anchors, and the end-of-day receipt can total what they saved.
+// Record: { day, rideKey, ride, returnStart, returnEnd, bookedAt,
+// standbyAtConfirm, conflict }. rideKey is the scaffold normName of the
+// ride (mirrored below) so the ride keys identically everywhere. One
+// held return per ride per day: confirming the same ride again REPLACES
+// the record (a modify is a leader action; the system never moves a
+// held return on its own).
+var LL_WALKON_BASELINE_MIN = 10; // near-walk-on cost netted out of the LL receipt
+function llNormKey(s){return String(s||'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/[^a-z0-9]+/g,' ').replace(/\b(the|a|an|ride|standby|at|to|and)\b/g,' ').replace(/\s+/g,' ').trim();}
+function getHeldReturns(){
+  var tc=(window._loadedTripData&&window._loadedTripData.tripConfig)||null;
+  var arr=(tc&&Array.isArray(tc.heldReturns))?tc.heldReturns:null;
+  if(!arr&&typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG&&Array.isArray(TRIP_CONFIG.heldReturns))arr=TRIP_CONFIG.heldReturns;
+  return arr?arr.slice():[];
+}
+function getHeldReturn(dayIdx,rideName){
+  var k=llNormKey(rideName);if(!k)return null;
+  var arr=getHeldReturns();
+  for(var i=0;i<arr.length;i++){if(arr[i]&&arr[i].day===dayIdx&&arr[i].rideKey===k)return arr[i];}
+  return null;
+}
+function getHeldReturnsForDay(dayIdx){return getHeldReturns().filter(function(r){return r&&r.day===dayIdx;});}
+function _writeHeldReturns(arr){
+  if(window._loadedTripData&&window._loadedTripData.tripConfig)window._loadedTripData.tripConfig.heldReturns=arr;
+  if(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG)TRIP_CONFIG.heldReturns=arr;
+}
+function setHeldReturn(rec){
+  var arr=getHeldReturns().filter(function(r){return !(r&&r.day===rec.day&&r.rideKey===rec.rideKey);});
+  arr.push(rec);_writeHeldReturns(arr);return rec;
+}
+function removeHeldReturn(dayIdx,rideName){
+  var k=llNormKey(rideName);
+  _writeHeldReturns(getHeldReturns().filter(function(r){return !(r&&r.day===dayIdx&&r.rideKey===k);}));
+}
+// Persist held returns through the trip save path (POST /api/trip -- the
+// same endpoint, auth header, and body shape pushSchedule uses). The
+// stored tripConfig is carried exactly as-is apart from heldReturns and
+// the version stamp; the schedule is never re-serialized from the
+// editing model on this path.
+async function saveHeldReturns(){
+  if(!isAdmin())return false;
+  try{
+    var code=localStorage.getItem('tpcp_code')||'';if(!code)return false;
+    var tc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
+    var updatedTc=Object.assign({},tc,{heldReturns:getHeldReturns(),scheduleVersion:Date.now().toString()});
+    if(window._loadedTripData)window._loadedTripData.tripConfig=updatedTc;
+    if(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG)TRIP_CONFIG.heldReturns=updatedTc.heldReturns;
+    var r=await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,tripData:{tripConfig:updatedTc}})});
+    return !!(r&&r.ok);
+  }catch(e){console.warn('Save held returns:',e);return false;}
+}
+// Anchor-collision check for a candidate held return: the return window
+// swallowing a confirmed dining / reservation anchor's start -- or the
+// return starting while such an anchor is underway (a seated meal is
+// underway for the hour after its time) -- means two locked commitments
+// collide. The collision is SURFACED, never resolved by moving either
+// anchor (Claude msg 66, ruling B).
+function heldReturnConflict(dayIdx,retStartMin,retEndMin,items){
+  if(retStartMin==null||retEndMin==null)return '';
+  var list=items||null;
+  if(!list){
+    var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
+    list=(sd&&sd.items)||[];
+  }
+  for(var i=0;i<list.length;i++){
+    var e=list[i];if(!e)continue;
+    var isAnchor=(e.isConfirmed===true)||(e.reservation===true)||(e.anchor===true);
+    if(!isAnchor)continue;
+    var dm=parseTimeMins(e.t);if(dm==null)continue;
+    if((dm>=retStartMin&&dm<retEndMin)||(retStartMin>=dm&&retStartMin<dm+60)){
+      return 'Overlaps '+(e.h||'a confirmed reservation')+' at '+(e.t||'')+' \u2014 both are locked in, so nothing was moved. One of them has to give in the Disneyland app or at the host stand.';
+    }
+  }
+  return '';
+}
+// End-of-day LL receipt math (Claude msg 66, ruling D): per held return,
+// savings = the standby wait posted when the leader confirmed the booking
+// minus the near-walk-on baseline. A return confirmed without a readable
+// standby snapshot contributes NOTHING -- the plan's original standby
+// assumption is never substituted.
+function llDaySavings(dayIdx){
+  var recs=getHeldReturnsForDay(dayIdx);
+  var total=0,usable=0;
+  recs.forEach(function(r){
+    if(r&&typeof r.standbyAtConfirm==='number'&&isFinite(r.standbyAtConfirm)){
+      usable++;total+=Math.max(0,r.standbyAtConfirm-LL_WALKON_BASELINE_MIN);
+    }
+  });
+  if(!usable)return null;
+  return { totalMin: total, usable: usable, held: recs.length };
+}
+
 //    Magic Day fireworks                                                   
 var fwParticles=[], fwAnimId=null, fwLaunchTimer=null;
 
@@ -6005,7 +6103,7 @@ function generateFromSetup(params, callback) {
       dayIndex: (typeof params === 'number') ? params : 0,
       tripCode: localStorage.getItem('tpcp_code') || '',
       maxTokens: 8000,
-      tripConfig: (function(){ var src = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}); return { tripName: src.tripName || '', characters: src.characters, minHeight: src.minHeight, ridePreferences: src.ridePreferences || {}, avoidWater: src.avoidWater === true, showPreferences: src.showPreferences || { want: [], skip: [] }, _priorRides: src._priorRides || [], _priorCharacters: src._priorCharacters || [], _priorRopeDrops: src._priorRopeDrops || [], groupProfile: src.groupProfile ? { dietary: src.groupProfile.dietary } : undefined, reservations: src.reservations || [], parkHopping: src.parkHopping, dining: { reservations: (src.dining && src.dining.reservations) || [], usedVenues: (src.dining && src.dining.usedVenues) || [] }, days: (src.days || []).map(function(dd){ return { park: dd.park, date: dd.date, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP === true, hasILL: dd.hasILL === true, intent: dd.intent }; }) }; }())
+      tripConfig: (function(){ var src = Object.assign({}, TRIP_CONFIG, (_loadedTripData && _loadedTripData.tripConfig) ? _loadedTripData.tripConfig : {}); return { tripName: src.tripName || '', characters: src.characters, minHeight: src.minHeight, ridePreferences: src.ridePreferences || {}, avoidWater: src.avoidWater === true, showPreferences: src.showPreferences || { want: [], skip: [] }, _priorRides: src._priorRides || [], _priorCharacters: src._priorCharacters || [], _priorRopeDrops: src._priorRopeDrops || [], groupProfile: src.groupProfile ? { dietary: src.groupProfile.dietary } : undefined, reservations: src.reservations || [], heldReturns: src.heldReturns || [], parkHopping: src.parkHopping, dining: { reservations: (src.dining && src.dining.reservations) || [], usedVenues: (src.dining && src.dining.usedVenues) || [] }, days: (src.days || []).map(function(dd){ return { park: dd.park, date: dd.date, isVip: dd.isVip, vipStart: dd.vipStart, vipEnd: dd.vipEnd, hasLL: dd.hasLL, hasLLMP: dd.hasLLMP === true, hasILL: dd.hasILL === true, intent: dd.intent }; }) }; }())
     };
   var _genBodyStr = JSON.stringify(_genBody);
   if (_genBodyStr.length > 9000) console.warn('[generateFromSetup] payload ' + _genBodyStr.length + ' chars -- over the server request limit; generation will fail');
