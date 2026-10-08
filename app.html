@@ -5759,6 +5759,27 @@ function buildFullDiningGuide(){var restaurants=[{name:'Blue Bayou Restaurant',a
 function openEditTripModal(){window.location.href='/pretrip.html?edit=true';}
 function confirmRegenerateSchedule(){if(confirm('Rebuild schedule from your preferences?')){window.location.href='/pretrip.html?rebuild=true';}}
 function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u00C2[\x80-\xBF])+/g,"").trim();}
+function tpcpBundleLabel(){
+// Bundle vintage (Claude msg 98): scripts/build-capacitor-www.mjs stamps
+// window.__TPCP_BUNDLE__ = {sha, builtAt} into the bundle's index.html at
+// cap:www time, from the git HEAD being bundled. The repo app.html is
+// never stamped, so unstamped contexts (this source file, a bundle built
+// without git) honestly read 'unstamped' -- never a fabricated value.
+// This is the INSTALLED bundle's client vintage; the splash 'v...' and
+// the Info footer's 'Server:' line are the server's live sha -- the two
+// are different things and are labeled so they can never be confused.
+  var b = (typeof window !== 'undefined') ? window.__TPCP_BUNDLE__ : null;
+  if (!b || !b.sha) return 'unstamped';
+  var s = String(b.sha).substring(0, 7);
+  if (b.builtAt) {
+    var d = new Date(b.builtAt);
+    if (!isNaN(d.getTime())) {
+      s += ' \u00B7 built ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+         + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+  }
+  return s;
+}
   function renderInfoTab(){
   var container=document.getElementById('tabInfo');
   if(!container) return;
@@ -6035,6 +6056,16 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var closuresHtml=closureEntries.length?closureEntries.map(function(c){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider)"><div><div style="font-weight:600;color:var(--text)">'+c.n+'</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">'+c.d+'</div></div></div>';}).join('')+'<div style="font-size:12px;color:var(--text-muted);margin-top:12px">Always check the Disneyland app the morning of your visit for any additional same-day closures.</div>':'<div style="color:var(--text-muted);padding:12px 0">No current closures on record.</div>';
   var mapSectionHtml='<div style="padding:0 14px 14px"><div id="tpcpMiniMap" style="height:190px;border-radius:12px;overflow:hidden;margin-bottom:10px;background:#DCE9E2;position:relative;z-index:0"></div><p style="font-size:12px;color:var(--color-teal-mid);margin:0 0 10px;line-height:1.4">Every ride, restaurant, and restroom on one zoomable map, plus walking directions between stops on your plan.</p><button class="tpcp-place-dir" onclick="openParkMap()">Open the park map</button></div>';
   var restroomMapBtn='<button class="tpcp-place-dir" style="margin-top:10px" onclick="openParkMapRestrooms()">See restrooms on the map</button>';
+  // Bundle vintage readout (Claude msg 98): the installed bundle's client
+  // stamp vs the server's live sha, side by side at the foot of the Info
+  // tab so staleness is visible at test time. The bundle value renders
+  // synchronously from the build-time stamp; the server value is filled
+  // in after render from /api/version (the splash's source).
+  var versionsHtml='<div id="tpcpVersionFooter" style="margin:2px 14px 16px;font-size:11px;color:var(--text-muted);font-family:\'Outfit\',sans-serif;line-height:1.7;text-align:center;">'
+    +'<div>App bundle: <span id="tpcpBundleVersion" style="font-weight:700;color:#1A6860;">'+tpcpBundleLabel()+'</span></div>'
+    +'<div>Server: <span id="tpcpServerVersion" style="font-weight:700;">checking\u2026</span></div>'
+    +'</div>';
+
   // Build the full HTML
   var _secs={
     parkmap: buildInfoSectionStatic('parkmap','Park Map',pinIcon,mapSectionHtml),
@@ -6066,9 +6097,28 @@ function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u0
   var html='<div class="info-tab-wrap">'
     +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div><div class="tpcp-reg-status" style="display:none"></div><div class=\"tpcp-push-test-panel\" style=\"display:none;margin-top:10px;border-top:1px solid rgba(7,30,37,0.08);padding-top:10px;\"><div class=\"tpcp-pt-readout\" style=\"font-size:11px;font-weight:600;color:#1A6860;font-family:\'Outfit\',sans-serif;line-height:1.45;\"></div><div style=\"font-size:11px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;line-height:1.5;margin-top:6px;\">Leader test: this sends a test alert to every device on this trip — your phone and your group&rsquo;s phones — so notifications can be checked any time, not just when a real alert fires.</div><button type=\"button\" class=\"tpcp-pt-btn\" onclick=\"tpcpSendTestPush(this)\" style=\"background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;margin-top:8px;\">Send test alert</button><div class=\"tpcp-pt-result\" style=\"white-space:pre-line;font-size:11px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;line-height:1.45;margin-top:8px;\"></div></div>'+tpcpAlertHelpHTML()+'</div>'
     +_order.map(function(k){return _secs[k]||'';}).join('')
+    +versionsHtml
     +'</div>';
 
   container.innerHTML=sanitizeText(html);
+
+  // Fill the server half of the vintage footer from /api/version (same
+  // source as the splash version). Any failure reads 'unavailable' --
+  // never a guessed sha.
+  try {
+    if (typeof fetch === 'function') {
+      fetch('https://app.themeparkcopilot.com/api/version').then(function(r){return r.json();}).then(function(d){
+        var sv=document.getElementById('tpcpServerVersion');
+        if (sv) sv.textContent=(d && d.sha) ? ('v'+String(d.sha).substring(0,7)) : 'unavailable';
+      }).catch(function(){
+        var sv=document.getElementById('tpcpServerVersion');
+        if (sv) sv.textContent='unavailable';
+      });
+    } else {
+      var sv0=document.getElementById('tpcpServerVersion');
+      if (sv0) sv0.textContent='unavailable';
+    }
+  } catch(e) {}
 
   // Open sections 1-4 by default (deferred to ensure DOM is painted)
   setTimeout(function(){
