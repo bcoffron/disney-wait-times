@@ -100,11 +100,11 @@ const EXPIRY_DAYS = {
 };
 
 const LEGACY_PROMPTS = {
-  park_intel:{system:'Disneyland expert. 2024-2026 only.',user:'Search TouringPlans AllEars MiceChat 2025-2026 for current Disneyland rope drop strategy, Lightning Lane Multi Pass order, late June crowds, top 10 tips, best times per land. Dense actionable guide.',maxTokens:1500},
+  park_intel:{system:'Disneyland expert. 2024-2026 only.',user:'Search TouringPlans AllEars MiceChat 2025-2026 for current Disneyland rope drop strategy, Lightning Lane Multi Pass order, peak-season crowds, top 10 tips, best times per land. Dense actionable guide.',maxTokens:1500},
   dining_intel:{system:'Disneyland dining expert. 2024-2026 only.',user:'Search Disney Food Blog AllEars 2024-2026. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Circle Lamplight Lounge Flos V8 (DCA). Rating must-orders reservation tips each.',maxTokens:1500},
   dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe). After any searches, your FINAL message must contain ONLY the JSON object inside a fenced code block: ```json{...}``` -- no commentary before or after the fence.',maxTokens:8000},
-  events_intel:{system:'Disneyland events expert.',user:'Special events Disneyland June 25 - July 5 2026: ticketed events, closures, July 4th, shows, fireworks. Specific dates.',maxTokens:800},
-  park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours June 25 to July 5 2026. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 11 dates.',maxTokens:1000},
+  events_intel:{system:'Disneyland events expert.',user:'Special events at Disneyland over the next 30 days starting from today: ticketed events, closures, holidays in that window, shows, fireworks. Use the current date as the anchor and give specific dates.',maxTokens:800},
+  park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours for the next 14 days starting from today. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 14 dates, keyed by the actual calendar dates.',maxTokens:1000},
   character_intel:{system:'Disneyland Resort character meet-and-greet expert. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search AllEars, MiceChat, DisneyTouristBlog, and the official Disneyland site (2025-2026) for current Disneyland Resort character meet-and-greet info. Return JSON: {"characters":[{"name":"...","category":"...","park":"DL or DCA","location":"land or spot","notes":"timing/tips"}]}. The category field MUST be EXACTLY one of these six lowercase values: princess, classic, star_wars, pixar, marvel, villain. You MUST include real, currently-appearing meets for ALL SIX categories: princess (e.g. princesses at Royal Hall/Fantasy Faire); classic (Mickey, Minnie, Donald, Daisy, Goofy, Pluto, Chip and Dale -- Toontown, Main Street); star_wars (characters in Star Wars Galaxy Edge -- e.g. Chewbacca, Vi Moradi, Kylo Ren, Rey, stormtroopers); pixar (Woody/Buzz/Jessie, Pixar Pier characters, Edna/Incredibles at Avengers-adjacent areas, characters at DCA Pixar Pier); marvel (Avengers Campus at DCA -- Spider-Man, Captain America, Black Panther, Black Widow, Doctor Strange, etc.); villain (seasonal/where they appear -- e.g. villains during Halloween/Oogie Boogie Bash, or year-round meets if any). Only include characters that genuinely appear at the Disneyland Resort right now. If a category has limited or seasonal availability, still include its real entries and note the seasonality. Use only current 2025-2026 information. Keep every notes field to ONE short sentence (20 words max) and include at most 6 characters per category (about 24-30 total) -- a complete roster matters more than long notes.',maxTokens:9000},
   photo_ops:{system:'Disneyland Resort guest photography expert -- the iconic photo spots visitors plan for. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search DisneyTouristBlog, AllEars, MiceChat and Disney Parks sources (2025-2026) for the BEST guest photo spots at Disneyland Park and Disney California Adventure. Return JSON: {"spots":[{"name":"...","park":"DL or DCA","land":"...","shot":"...","bestTime":"...","short":"...","sampleUrl":"..."}]}. The shot field is ONE guest-facing sentence describing the specific photo: where to stand and what landmark fills the background (example: "Stand in the middle of Main Street, U.S.A. facing the castle -- Sleeping Beauty Castle fills the background behind your group."). Include 16-20 spots, roughly half in each park, covering at least: the Main Street castle shot, the Partners statue, Sleeping Beauty Castle from the front, the Millennium Falcon in Star Wars: Galaxy\'s Edge, the Galaxy\'s Edge rock spires, Cars Land neon signs at dusk on Route 66, the Radiator Springs Ornament Valley mountain backdrop, Pixar Pier with the Incredicoaster and Pixar Pal-A-Round behind you at sunset, Buena Vista Street with the Carthay Circle tower, Grizzly Peak and its waterfall, the Mark Twain riverfront in Frontierland, the "it\'s a small world" facade lit up at night, Avengers Campus headquarters, Snow White\'s wishing well grotto, and the New Orleans Square riverfront. bestTime is exactly one of: any, morning, golden hour, sunset, night. The short field is a phrase of at most 11 words naming the standpoint and the backdrop, with NO ending period, starting lowercase unless it opens with a place name (example: "the Haunted Mansion gates with the manor behind you"). The sampleUrl field must link to ONE SINGLE PHOTO of this exact spot -- never a blog post, article, or listicle page (guests tap it expecting to see just the photo). Acceptable: a direct image file URL ending .jpg, .jpeg, .png, or .webp; a single Instagram post (instagram.com/p/...); a single Flickr photo page (flickr.com/photos/...); or a Wikimedia Commons file page (commons.wikimedia.org/wiki/File:...). Use only a real URL taken from your search results --  NEVER invent, shorten, or guess a URL; if you cannot find a real page for a spot, omit sampleUrl for that spot. Only real, current photo locations -- no invented backdrops.',maxTokens:9000}
 };
@@ -262,7 +262,7 @@ Return ONLY this JSON array (raw, no fences):
     "park": "DL",
     "status": "closed_for_refurbishment",
     "closeDate": "2026-05-04",
-    "reopenDate": "2026-06-26",
+    "reopenDate": "2026-07-26",
     "reopenConfidence": "rumored",
     "note": "Short human-readable detail (source + why)."
   }
@@ -290,7 +290,7 @@ Return ONLY this JSON array (raw, no fences):
     "park": "MK",
     "status": "closed_for_refurbishment",
     "closeDate": "2026-05-04",
-    "reopenDate": "2026-06-26",
+    "reopenDate": "2026-07-26",
     "reopenConfidence": "rumored",
     "note": "Short human-readable detail (source + why)."
   }
@@ -366,32 +366,31 @@ Only include venues that are actually closed/affected; do NOT list operating res
     maxTokens:2000
   },
   SPECIAL_EVENTS:{
-    system:'You are a Disneyland special events expert. Focus specifically on June 28-30 2026.',
-    user:`Search Disneyland official site, AllEars, and MiceChat for special events hard ticket events seasonal overlays or entertainment changes at Disneyland Resort during or surrounding June 28-30 2026. Investigate: Disneyland 70th Anniversary the park opens July 17 2026 (opened July 17 1955) are there summer 2026 anniversary celebrations starting before July 17 what special entertainment decorations or experiences happening in late June; Summer 2026 events any summer-specific entertainment special dining events or unique experiences; 4th of July proximity June 28-30 is just before July 4th week are there any early celebrations starting that weekend any extra fireworks or patriotic overlays; Hard ticket events any separately ticketed evening events that would affect park access on June 28-30; Entertainment changes any shows or parades recently added changed or removed for summer 2026. Be specific with dates. Note if something was announced but not yet confirmed.`,
+    system:'You are a Disneyland special events expert. Focus on the current season at Disneyland Resort.',
+    user:`Search Disneyland official site, AllEars, and MiceChat for special events, hard ticket events, seasonal overlays, or entertainment changes at Disneyland Resort in the current season. Investigate: any anniversary or seasonal celebrations currently running, with their dates; seasonal events, special dining events, or unique experiences tied to the current season; proximity to any major holiday and any related celebrations, overlays, or extra fireworks; hard ticket events -- any separately ticketed evening events that would affect park access; entertainment changes -- any shows or parades recently added, changed, or removed. Be specific with dates when sources give them. Note if something was announced but not yet confirmed.`,
     maxTokens:1500
   },
   CURRENT_LL_PRICING:{
     system:'You are a Disneyland Lightning Lane pricing expert. Current 2025-2026 pricing only. Never use Genie+ terminology.',
-    user:`Search AllEars, TouringPlans, and official Disneyland sources for current Lightning Lane pricing at Disneyland Resort 2025-2026. Provide: Individual Lightning Lane ILL which specific attractions are ILL at Disneyland not LLMP with current price range per person for each and for a group of 9 the total cost, price range for a peak summer day late June early July. Lightning Lane Multi Pass LLMP: current per-person price range for Disneyland LLMP in late June 2026, current per-person price range for DCA LLMP, combined price if purchasing for both parks. Recent changes: any changes to LL system in 2025-2026, new attractions added or removed from LL, any pricing changes from previous year. Booking tips: when prices are lowest vs highest within a day, whether to buy LLMP at park open or wait, multi-day ticket LL discounts if any. Use only Lightning Lane Multi Pass LLMP and Individual Lightning Lane ILL terminology throughout.`,
+    user:`Search AllEars, TouringPlans, and official Disneyland sources for current Lightning Lane pricing at Disneyland Resort 2025-2026. Provide: Individual Lightning Lane ILL -- which specific attractions are ILL at Disneyland, not LLMP -- with current price range per person for each, and the price range for a peak summer day. Lightning Lane Multi Pass LLMP: current per-person price range for Disneyland LLMP on a peak-season day, current per-person price range for DCA LLMP, combined price if purchasing for both parks. Recent changes: any changes to LL system in 2025-2026, new attractions added or removed from LL, any pricing changes from previous year. Booking tips: when prices are lowest vs highest within a day, whether to buy LLMP at park open or wait, multi-day ticket LL discounts if any. Use only Lightning Lane Multi Pass LLMP and Individual Lightning Lane ILL terminology throughout.`,
     maxTokens:1200
   },
   TRIP_CONTEXT:{
-    system:'You are a brilliant specific Disneyland trip advisor writing for a specific group: 9 guests, June 28-30 2026, Disneyland plus DCA, park hopping, Day 2 June 29 is a VIP tour. Write in warm specific confident voice like a knowledgeable friend who has been dozens of times. No generic advice. Be specific to these exact dates this group size and this itinerary.',
-    user:`Search for Disneyland crowd predictions, historical patterns, and any known events for June 28-30 2026. Write a personalized trip context for 9 guests with June 28 Sunday at Disneyland, June 29 Monday at Disneyland with VIP Tour, June 30 Tuesday at Disney California Adventure.
+    system:'You are a brilliant, specific Disneyland trip advisor writing shared reference guidance for guests planning a Disneyland plus DCA trip, often with park hopping and sometimes a VIP tour day. Write in a warm, specific, confident voice like a knowledgeable friend who has been dozens of times. No generic advice. Never assume a party size, specific dates, or a fixed itinerary -- write for the patterns that hold across trips.',
+    user:`Search for Disneyland crowd predictions and historical patterns by day of week and season. Write trip-context briefings guests can apply to their own dates:
 
-Write three day-specific briefings in warm brilliant-friend voice:
+WEEKEND DAY AT DISNEYLAND: Crowd level assessment explaining why weekend days are typically the most crowded, with specific reasons (weekend travel, locals, seasonal events). Give a specific rope drop strategy naming exactly which rides to target first, second, third. Warn about specific pain points for a heavy crowd day. Give 2-3 specific insider tips for surviving one.
 
-DAY 1 JUNE 28 SUNDAY: Crowd level assessment explaining Sunday June 28 will be your most crowded day with specific reasons (weekend, pre-4th week, summer). Give a specific rope drop strategy for a group of 9 naming exactly which rides to target first second third. Warn about specific pain points for this day. Give 2-3 specific insider tips for surviving a heavy crowd Sunday.
+VIP TOUR DAY: Explain what a VIP tour changes about the day. Realistic expectations: the guide handles all queuing and routing; the guests' job is to show up and have fun. Note how much less crowds matter on a tour day. Tips for working with the VIP guide.
 
-DAY 2 JUNE 29 MONDAY VIP TOUR: Explain what the VIP tour changes about the day. Realistic expectations your guide handles all queuing and routing your job is to show up and have fun. Note the crowd difference between Sunday and Monday. Tips for working with the VIP guide.
+WEEKDAY AT DCA: Crowd level assessment explaining why weekdays are reliably less crowded. Specific DCA rope drop strategy naming exactly which rides to target in order. Specific DCA dining recommendations. Best World of Color viewing strategy. What time to consider park hopping back to DL.
 
-DAY 3 JUNE 30 TUESDAY DCA: Crowd level assessment explaining Tuesday is reliably one of the least crowded days of summer. Specific DCA rope drop strategy for a group of 9 naming exactly which rides to target in order. Specific DCA dining recommendations for a group of 9. Best World of Color viewing strategy. What time to consider park hopping back to DL if they want.
+GROUP NOTES: best quick service restaurants that can seat a large party together, rider swap strategy for height-restricted rides, meeting point strategy in each park, app tips for managing a group.
 
-GROUP NOTES for 9 guests: best quick service restaurants that can seat 9 together, rider swap strategy for height-restricted rides, meeting point strategy in each park, app tips for managing a group of 9.
-
-End with one sentence that captures the whole trip and gets them excited.`,
+End with one sentence that captures the trip and gets them excited.`,
     maxTokens:3000
   }
+
 };
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
@@ -884,7 +883,14 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
   // 9" arrival tip on a party-of-2 trip). The per-section prompt asks
   // are scrubbed of the sample specifics; this rule governs all stable
   // section builds, present and future.
-  if (isStable) _augUser += '\n\nTRIP-AGNOSTIC RULE: this section is SHARED reference content served to every trip. Write it for a generic guest: NEVER assume or state a party or group size, never use a specific trip\'s dates, guest names, or itinerary, and never write a group-size claim of the form "group of <number>" for any number. Where group logistics matter, use generic phrasing ("your group", "guests", "a large party"). Cover seasonal variation generically instead of writing for one trip\'s month.';
+  // Grep-zero extension (Oct 2026, msg 66 ruling E): DYNAMIC sections are
+  // shared the same way (one blob per resort, served to every trip), so the
+  // rule now governs ALL section builds. The dynamic prompts (TRIP_CONTEXT,
+  // SPECIAL_EVENTS, CURRENT_LL_PRICING) were rewritten trip-agnostic in the
+  // same pass; the stored dynamic blob still carries the old sample text
+  // until its next scheduled rebuild, and consumers keep their sample-data
+  // guards until then.
+  _augUser += '\n\nTRIP-AGNOSTIC RULE: this section is SHARED reference content served to every trip. Write it for a generic guest: NEVER assume or state a party or group size, never use a specific trip\'s dates, guest names, or itinerary, and never write a group-size claim of the form "group of <number>" for any number. Where group logistics matter, use generic phrasing ("your group", "guests", "a large party"). Cover seasonal variation generically instead of writing for one trip\'s month.';
   const augmentedPrompt = Object.assign({}, prompt, {user: _augUser});
   const text = (sectionName === 'CATALOG') ? '' : await callClaude(augmentedPrompt, apiKey);
 
