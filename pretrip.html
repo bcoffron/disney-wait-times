@@ -2232,7 +2232,12 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       _priorShows: (priorShowsSoFar || []).slice()
     });
     function _proceed(items) {
-      var _dayVenues = (items || []).filter(function(x){ return x && (x.type === 'dining' || x.type === 'quickservice' || x.type === 'snack') && x.h; }).map(function(x){ return x.h; });
+      // Item 3 (Oct 7, 2026): prefer the card's structured venue field --
+      // a generic-headed snack card ("Morning Snack") seats its venue in
+      // the field, not the heading, and the heading-only accumulation let
+      // that venue be seated again on a later day. Heading is the
+      // fallback for cards that carry no venue.
+      var _dayVenues = (items || []).filter(function(x){ return x && (x.type === 'dining' || x.type === 'quickservice' || x.type === 'snack') && x.h; }).map(function(x){ return x.venue || x.h; });
       var _dayRides = (items || []).filter(function(x){ return x && x.type === 'ride'; }).map(function(x){ return x.ride || x.h; }).filter(Boolean);
       var _dayChars = (items || []).filter(function(x){ return x && x.type === 'character'; }).map(function(x){ return x.h; }).filter(Boolean);
       var _dayShows = (items || []).filter(function(x){ return x && x.type === 'show'; }).map(function(x){ return x.h; }).filter(Boolean);

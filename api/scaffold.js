@@ -466,6 +466,10 @@ export function applyFills(skeleton, fills, opts) {
   // to be invisible to dedup, which let one cafe appear 3x in a trip.
   const _venuesArr = Array.isArray(opts.venues) ? opts.venues : [];
   const _venueKeyOf = makeVenueKeyResolver(_venuesArr);
+  // Canonical key -> catalog display name, for stamping the structured
+  // venue field (Item 3) with the venue's real name rather than its key.
+  const _venueNameByKey = {};
+  for (const _vn of _venuesArr) { if (_vn && _vn.name) { const _vk2 = canonicalVenueKey(_vn.name); if (_vk2 && !_venueNameByKey[_vk2]) _venueNameByKey[_vk2] = _vn.name; } }
   const _svcByCanon = buildVenueServiceMap(_venuesArr);
   if (opts.venueServices && typeof opts.venueServices === 'object') {
     for (const k of Object.keys(opts.venueServices)) { const ck = canonicalVenueKey(k); if (ck && !_svcByCanon[ck]) _svcByCanon[ck] = opts.venueServices[k]; }
@@ -495,9 +499,12 @@ export function applyFills(skeleton, fills, opts) {
       // meal, so no other slot today (and no later day, via the client's
       // usedVenues accumulation) seats the same restaurant again.
       const aCard = { t: toClock(typeof slot.fixed === 'number' ? slot.fixed : winStart(slot.window)), h: slot.anchorName || 'Confirmed Reservation', type: 'dining', n: 'Your confirmed reservation -- the rest of the day is built around it.' + ((typeof slot.partySize === 'number' && slot.partySize > 0) ? ' Party of ' + slot.partySize + '.' : ''), land: slot.anchorLand || '', anchor: true, reservation: true };
+      const _avk = _venueKeyOf(aCard.h);
+      // Structured venue field (Item 3): the anchor seats a catalog venue,
+      // so the card carries it like any other seated venue.
+      if (_avk && _venueNameByKey[_avk]) aCard.venue = _venueNameByKey[_avk];
       cards.push(aCard);
       used.add(aCard.h.toLowerCase());
-      const _avk = _venueKeyOf(aCard.h);
       if (_avk) placedVenueCanon.add(_avk);
       continue;
     }
@@ -554,7 +561,13 @@ export function applyFills(skeleton, fills, opts) {
       // A restaurant repeated from an earlier day (or twice in one day) is a
       // failed fill -- the backfill has the full venue catalog to pick from.
       const _canonVk = isDiningSlot ? _venueKeyOf(cleanH) : '';
-      const venueDup = isDiningSlot && ((_canonVk && (priorVenueCanon.has(_canonVk) || placedVenueCanon.has(_canonVk))) || priorVenueKeys.has(normName(cleanH)) || used.has(hL));
+      // Structured venue (Item 3): the venue this fill seats, derived at
+      // acceptance (heading, else the venue its own note names). A fill
+      // whose venue is already used -- today or on a prior day -- is a
+      // dupe even when its heading is generic and the heading-only checks
+      // above can see nothing.
+      const _fillVenue = isDiningSlot ? deriveFillVenue(cleanH, f.n, _venuesArr) : null;
+      const venueDup = isDiningSlot && ((_canonVk && (priorVenueCanon.has(_canonVk) || placedVenueCanon.has(_canonVk))) || (_fillVenue && (priorVenueCanon.has(_fillVenue.key) || placedVenueCanon.has(_fillVenue.key))) || priorVenueKeys.has(normName(cleanH)) || used.has(hL));
       const mealGeneric = (slot.type === 'dining' || slot.type === 'quickservice') && GENERIC_MEAL_KEYS.has(normName(cleanH));
       // A dining/quickservice heading that names no venue from the verified
       // catalog list is an invented restaurant -- a failed fill, so the
@@ -674,6 +687,11 @@ export function applyFills(skeleton, fills, opts) {
         card = mkFallback(slot);
       } else {
         card = buildCard(slot, Object.assign({}, f, { h: showMatch ? showMatch.name : cleanH }), clamp.t);
+        // Structured venue field (Item 3): an accepted dining-ish fill's
+        // card carries the canonical venue it seats, so registration, the
+        // client's cross-day accumulation, and (later) the dining surfaces
+        // read data instead of re-parsing the heading or the note.
+        if (_fillVenue) card.venue = _fillVenue.name;
         if (isRideSlot && nkey) { usedRideNames.add(nkey); usedRideSquash.add(nkey.replace(/ /g, '')); todayRideNames.add(nkey); if (gkey) usedGroups.add(gkey); }
       }
     } else {
@@ -697,7 +715,12 @@ export function applyFills(skeleton, fills, opts) {
       // and a snack use now counts against the trip used-set exactly like
       // a meal (the Fiddler Fifer 3x repeat rode on snack invisibility).
       if (slot.type === 'dining' || slot.type === 'quickservice' || slot.type === 'snack') {
-        const _cvk = _venueKeyOf(card.h || '');
+        // The structured venue field wins when the card carries one
+        // (Item 3): a generic-headed snack card's heading resolves to a
+        // meaningless raw key, while card.venue is the catalog venue it
+        // actually seated. Heading remains the fallback for cards
+        // without a venue (uncatalogued fills, placeholders).
+        const _cvk = _venueKeyOf(card.venue || card.h || '');
         if (_cvk) placedVenueCanon.add(_cvk);
       }
       cards.push(card);
@@ -851,6 +874,81 @@ export function makeVenueKeyResolver(venues) {
     for (const k of canonKeys) { if (hk.indexOf(k) !== -1 || (hk.length >= 4 && k.indexOf(hk) !== -1)) return k; }
     return 'raw:' + hk;
   };
+}
+
+// ---------------------------------------------------------------------------
+// STRUCTURED VENUE IDENTITY (Item 3, Oct 7, 2026 -- Claude's device-pass
+// ruling: snack fills carry a STRUCTURED VENUE FIELD; registering venues
+// from the prose scan was explicitly NOT chosen -- prose stays a tripwire,
+// never a data source). The blind spot this closes: venue registration
+// trusted the card HEADING, but snack fills are allowed generic headings
+// ("Morning Snack") with the venue named only in the note, so the venue
+// never entered the used-set and a later slot (same day, or a later day via
+// the client's heading-based accumulation) could seat it again -- Jolly
+// Holiday appeared as a 9:30 AM snack AND the 11:00 AM lunch on Beau's
+// Build 8 device pass.
+//
+// Mechanism: a dining-ish fill's venue is derived ONCE, server-side, at
+// fill acceptance, and stamped on the card as `venue` (the catalog display
+// name). The heading resolves first, through the same canonical resolver
+// every venue comparison uses; only when the heading names no catalog
+// venue is the fill's own note matched against the catalog (the prose
+// scanner's token machinery, longest-match-wins) and the single venue it
+// names becomes the fill's venue. From that moment the card's identity is
+// structural data: placedVenueCanon registration reads the field, the
+// fill-time dupe check reads it, the deterministic backfill stamps it on
+// its own picks, and the client's cross-day accumulation forwards the
+// field (venue names) instead of headings. scanProseVenueFlags is
+// untouched and stays flags-only. The model contract does not change --
+// derivation is server-side so a fill that seats a venue attaches it
+// whether the model titled the card or not.
+// ---------------------------------------------------------------------------
+export function deriveFillVenue(heading, note, venues) {
+  const list = Array.isArray(venues) ? venues : [];
+  if (!list.length) return null;
+  const resolver = makeVenueKeyResolver(list);
+  const nameByKey = {};
+  for (const v of list) {
+    if (!v || !v.name) continue;
+    const k = canonicalVenueKey(v.name);
+    if (k && !nameByKey[k]) nameByKey[k] = v.name;
+  }
+  // Heading first: a catalog-resolved heading IS the card's venue.
+  const hk = resolver(heading);
+  if (hk && hk.indexOf('raw:') !== 0 && nameByKey[hk]) return { key: hk, name: nameByKey[hk] };
+  // Generic heading: the fill's own note names the venue it seats. Match
+  // with the prose scanner's tokenization (diacritic-insensitive, venue
+  // suffix forms stripped, longest match wins, first match in the note
+  // wins) so 'Jolly Holiday Bakery Café' in prose resolves to the same
+  // catalog entry the heading path would have found.
+  const noteToks = proseTokens(note);
+  if (!noteToks.length) return null;
+  const entries = [];
+  const seenKeys = new Set();
+  for (const v of list) {
+    if (!v || !v.name) continue;
+    const k = resolver(v.name);
+    if (!k || k.indexOf('raw:') === 0 || seenKeys.has(k)) continue;
+    const tokens = venueSearchTokens(v.name);
+    if (tokens.length < 2) continue;
+    seenKeys.add(k);
+    entries.push({ key: k, name: nameByKey[k] || v.name, tokens });
+  }
+  let i = 0;
+  while (i < noteToks.length) {
+    let best = null;
+    for (const e of entries) {
+      const L = e.tokens.length;
+      if (L > noteToks.length - i) continue;
+      if (best && L <= best.tokens.length) continue;
+      let ok = true;
+      for (let j = 0; j < L; j++) { if (noteToks[i + j] !== e.tokens[j]) { ok = false; break; } }
+      if (ok) best = e;
+    }
+    if (best) return { key: best.key, name: best.name };
+    i++;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -2754,7 +2852,11 @@ export function deterministicBackfill(slot, ctx) {
       // Group size (Claude's checklist, Oct 7, 2026): state the party size
       // where the card carries it.
       if (typeof ctx.groupSize === 'number' && ctx.groupSize > 0) note += ' Party of ' + ctx.groupSize + '.';
-      return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '' };
+      // Structured venue field (Item 3): the backfill picks from the
+      // catalog, so its card carries the venue structurally, exactly like
+      // an accepted fill -- the used-set and the client's cross-day
+      // accumulation consume the field, never the heading alone.
+      return { t: t0, h: pick.name, type: slot.type, n: note, land: pick.land || '', venue: pick.name };
     }
   }
 
