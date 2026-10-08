@@ -110,6 +110,13 @@ export function buildApnsPayload(note) {
   // the app's notification listeners as the notification data.
   if (note.url) payload.url = note.url;
   if (note.tag) payload.tag = note.tag;
+  // Foreground-rendering keys (Claude msg 84): the payload class keys the
+  // in-app popup, the episodeId is the shared dedupe identity across the
+  // banner/popup presentations, and schedVersion feeds the plan-changed
+  // foreground suppression. Same passthrough discipline as url/tag.
+  if (note.class) payload.class = note.class;
+  if (note.episodeId) payload.episodeId = note.episodeId;
+  if (note.schedVersion != null) payload.schedVersion = note.schedVersion;
   return payload;
 }
 
