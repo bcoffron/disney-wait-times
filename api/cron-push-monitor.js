@@ -58,6 +58,18 @@ const DOWN_STATUSES = { DOWN: 1, REFURBISHMENT: 1 }; // ThemeParks.wiki statuses
 const PARK_OPEN_HOUR_PT = 6;   // 6 AM PT (allow early-entry pre-open ride-down / refurb alerts)
 const PARK_CLOSE_HOUR_PT = 24; // midnight PT (rides can run to ~midnight)
 
+// Shared episode identity (Claude msg 84): one detector (this monitor), one
+// dedupe namespace, two presentations (iOS banner when backgrounded, in-app
+// popup when foregrounded). The episode ID IS this monitor's own marker
+// identity: the per-trip daily wait-state record keyed by rideKey, whose
+// per-type flags (downAlerted / lastAlertMin / lastDropMin / highAlerted)
+// gate re-fires, scoped to the PT day (state resets daily). The client
+// renders a given episode at most once per session under this ID.
+// Format: ep:<tripId>:<rideKey>:<episodeType>:<ymd>
+function episodeIdFor(tripId, rideKey, episodeType, ymd) {
+  return 'ep:' + tripId + ':' + rideKey + ':' + episodeType + ':' + ymd;
+}
+
 // Parse a schedule item time like "8:00 AM" into minutes since midnight; -1 if unparseable.
 function hmToMin(t) {
   if (!t) return -1;
@@ -491,7 +503,9 @@ export default async function handler(req, res) {
           title: 'Planned ride is down',
           body: body,
           url: '/app.html',
-          tag: 'tpcp-ride-down'
+          tag: 'tpcp-ride-down',
+          class: 'ride-update',
+          episodeId: episodeIdFor(tripId, d.key, 'down', pt.ymd)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
@@ -514,7 +528,9 @@ export default async function handler(req, res) {
           title: 'Planned ride is down',
           body: body,
           url: '/app.html',
-          tag: 'tpcp-ride-down'
+          tag: 'tpcp-ride-down',
+          class: 'ride-update',
+          episodeId: episodeIdFor(tripId, d.key, 'down', pt.ymd)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
@@ -534,7 +550,9 @@ export default async function handler(req, res) {
           title: 'Wait spike on your plan',
           body: worst.name + ' just jumped to ~' + worst.to + ' min' + more + '. Tap for better options.',
           url: '/app.html',
-          tag: 'tpcp-wait-spike'
+          tag: 'tpcp-wait-spike',
+          class: 'ride-update',
+          episodeId: episodeIdFor(tripId, normName(worst.name), 'spike', pt.ymd)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
@@ -545,7 +563,9 @@ export default async function handler(req, res) {
           title: 'Good news \u2014 ride is back',
           body: u.name + ' is operating again' + more + ' \u2014 it\u2019s on your plan if you want to swing back.',
           url: '/app.html',
-          tag: 'tpcp-ride-up'
+          tag: 'tpcp-ride-up',
+          class: 'ride-update',
+          episodeId: episodeIdFor(tripId, u.key, 'up', pt.ymd)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
@@ -563,7 +583,9 @@ export default async function handler(req, res) {
           title: 'Heads up on your plan',
           body: worst.name + ' is running ~' + worst.to + ' min right now \u2014 want to rework your next move?',
           url: '/app.html',
-          tag: 'tpcp-wait-high'
+          tag: 'tpcp-wait-high',
+          class: 'ride-update',
+          episodeId: episodeIdFor(tripId, worst.key, 'high', pt.ymd)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
@@ -579,7 +601,9 @@ export default async function handler(req, res) {
           title: 'Short wait on your plan',
           body: best.name + ' just dropped to ~' + best.to + ' min and it\u2019s on your plan \u2014 want to grab it now?',
           url: '/app.html',
-          tag: 'tpcp-wait-drop'
+          tag: 'tpcp-wait-drop',
+          class: 'ride-update',
+          episodeId: episodeIdFor(tripId, normName(best.name), 'drop', pt.ymd)
         };
         const r = await fire(payload);
         firedThisTrip = r.sent;
