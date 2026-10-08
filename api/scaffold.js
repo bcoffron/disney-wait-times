@@ -1147,6 +1147,72 @@ export function diningPageUrlFor(canonKey) {
 }
 
 // ---------------------------------------------------------------------------
+// PHOTO BUNDLE COVERAGE (Item 9, Oct 7, 2026 -- Claude msg 58: the photo
+// coverage manifest is server-side truth DERIVED FROM THE BUNDLE).
+// The authoritative surface for which photo-op spots have a bundled photo
+// is the app bundle itself: assets/photos/credits.json (the license
+// manifest) plus the image files under assets/photos/. A spot is covered
+// iff credits.json names a file for it AND that file ships. The block
+// between the markers below is GENERATED from those two sources by
+// scripts/gen-photo-manifest.mjs -- never hand-edit it, and never
+// maintain a second coverage list anywhere: regenerate after any bundle
+// change (photo added/removed, credits entry added). Generation consults
+// PHOTO_BUNDLE_COVERED when composing photo-op cards (deterministic
+// backfill), so card prose and photoLinks can only promise covered spots.
+// ---------------------------------------------------------------------------
+// === GENERATED PHOTO BUNDLE MANIFEST -- DO NOT HAND-EDIT ===
+// Derived from assets/photos/credits.json (sha256 f6868095d5c3def97810a82e31b0ac8722158e1d9c3b2785b36b65d3cfcd69f8)
+// plus the image files present in assets/photos/ at generation time.
+// Covered spots: 16. Regenerate: node scripts/gen-photo-manifest.mjs
+const PHOTO_BUNDLE_COVERED = {
+  "avengers campus headquarters": "avengers-campus-headquarters.jpg",
+  "buena vista street with carthay circle tower": "buena-vista-street-carthay-circle-tower.jpg",
+  "cars land neon signs at dusk on route 66": "cars-land-neon-signs-dusk-route-66.jpg",
+  "galaxy s edge rock spires": "galaxys-edge-rock-spires.jpg",
+  "main street castle shot": "main-street-castle-shot.jpg",
+  "mark twain riverboat frontierland dock": "mark-twain-riverboat-frontierland-dock.jpg",
+  "millennium falcon plaza": "millennium-falcon-plaza.jpg",
+  "new orleans square riverfront": "new-orleans-square-riverfront.jpg",
+  "partners statue": "partners-statue.jpg",
+  "pixar pal a round from little mermaid side": "pixar-pal-a-round-little-mermaid-side.jpg",
+  "pixar pier sunset shot": "pixar-pier-sunset-shot.jpg",
+  "radiator springs ornament valley mountain backdrop": "radiator-springs-ornament-valley-backdrop.jpg",
+  "sleeping beauty castle at night": "sleeping-beauty-castle-at-night.jpg",
+  "sleeping beauty castle front": "sleeping-beauty-castle-front.jpg",
+  "snow white s wishing well grotto": "snow-whites-wishing-well-grotto.jpg",
+  "storytellers statue on buena vista street": "storytellers-statue-buena-vista-street.jpg",
+};
+// === END GENERATED PHOTO BUNDLE MANIFEST ===
+
+// The join key both sides of the photo system share: the client renders a
+// bundled photo by looking the card's photoLinks label up under this exact
+// normalization (photoNorm in app.html). Byte-equivalent by construction;
+// scripts/gen-photo-manifest.mjs carries the third copy and the whole set
+// is cross-checked in the item-9 unit tests.
+export function photoSpotKey(name) {
+  return String(name || '').toLowerCase().replace(/[\u2018\u2019\u201C\u201D]/g, '"').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// Guest-facing prose corrections for photo spots, applied where the
+// photo-ops cache enters generation (getPhotoOpsIntel in
+// generateschedule.js) so a correction survives cache rebuilds -- the
+// cache is rebuilt weekly from sources we do not control.
+// -- "it's a small world" Facade at Night: the cache describes this spot's
+//    facade as lit/glowing for the evening, but the bundled example photo
+//    is a DAYTIME shot (the CC0 facade + entrance-sign photo Beau approved
+//    Oct 7, 2026). Prose must not promise an evening-lit facade over a
+//    daytime example, so the phrase and the shot description below speak
+//    of the facade itself with no light claim. The spot remains a night
+//    spot in person (bestTime untouched); only the prose is corrected.
+export function correctPhotoSpotProse(spot) {
+  if (!spot || photoSpotKey(spot.name) !== 'it s a small world facade at night') return spot;
+  return Object.assign({}, spot, {
+    short: '"it\'s a small world" facade with clock tower behind',
+    shot: 'Stand on the walkway directly in front of the attraction and face the facade -- the white-and-gold storybook facade with its giant clock and animated figures fills the background behind your group.'
+  });
+}
+
+// ---------------------------------------------------------------------------
 // STRUCTURED VENUE IDENTITY (Item 3, Oct 7, 2026 -- Claude's device-pass
 // ruling: snack fills carry a STRUCTURED VENUE FIELD; registering venues
 // from the prose scan was explicitly NOT chosen -- prose stays a tripwire,
@@ -3376,7 +3442,20 @@ export function deterministicBackfill(slot, ctx) {
       const midday = slot.block === 'photoMidday';
       const spots = Array.isArray(ctx.photoSpots) ? ctx.photoSpots : [];
       const inPark = spots.filter(s => s && s.shot && sameParkName(s.park, slot.park));
-      if (inPark.length) {
+      // Coverage reconciliation (Item 9): photo cards compose ONLY from
+      // spots the bundle covers (PHOTO_BUNDLE_COVERED above). The prose
+      // lead, the second phrase and photoLinks all draw from this one
+      // covered pool, so the prose can never lead with a spot whose photo
+      // is not on the card -- the incident shape (prose led with the
+      // small world facade; the card carried the Grotto photo, because
+      // the client silently skips unbundled labels) is impossible by
+      // construction. An uncovered spot rejoins the pool the moment the
+      // bundle covers it, because the manifest follows the bundle. With
+      // no covered spot in the park, the card falls back to the generic
+      // no-spot notes below: a photo stop that names no spot promises
+      // no photo.
+      const coveredPool = inPark.filter(s => PHOTO_BUNDLE_COVERED[photoSpotKey(s.name)]);
+      if (coveredPool.length) {
         const near = normName(ctx.nearLand || '');
         const score = (s) => {
           const bt = String(s.bestTime || '').toLowerCase();
@@ -3385,7 +3464,7 @@ export function deterministicBackfill(slot, ctx) {
             : (/golden|sunset|evening|night|dusk/.test(bt) ? 1 : 0);
           return ((near && normName(s.land || '') === near) ? 2 : 0) + ts;
         };
-        const picks = inPark.slice().sort((a, b) => score(b) - score(a)).slice(0, 2);
+        const picks = coveredPool.slice().sort((a, b) => score(b) - score(a)).slice(0, 2);
         // Short pattern (Beau picked ~28 words, Oct 6, 2026): a lead-in plus
         // one <=11-word phrase per spot. Falls back to compressing the long
         // shot sentence when a spot has no short phrase yet.

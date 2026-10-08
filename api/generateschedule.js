@@ -26,7 +26,7 @@ async function _isRegisteredTripCode(code) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, scanProseVenueFlags, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, shortestHeightInches, thrillModeFor, parseDiningIntelDetails } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, scanProseVenueFlags, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, shortestHeightInches, thrillModeFor, parseDiningIntelDetails, correctPhotoSpotProse } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -154,7 +154,11 @@ async function getPhotoOpsIntel() {
           let spots = Array.isArray(dataObj && dataObj.spots) ? dataObj.spots : [];
           if (!spots.length && Array.isArray(dataObj)) spots = dataObj;
           if (!spots.length && dataObj && typeof dataObj === 'object' && dataObj.name && dataObj.shot) spots = [dataObj];
-          return spots.filter(s => s && s.name && s.shot).map(s => ({
+          // Photo prose corrections ride at ingestion (Item 9): a cached
+          // phrase that contradicts the bundled example photo is corrected
+          // here, so the fix survives weekly cache rebuilds. See
+          // correctPhotoSpotProse in scaffold.js.
+          return spots.filter(s => s && s.name && s.shot).map(s => correctPhotoSpotProse({
             name: String(s.name), park: String(s.park || ''), land: String(s.land || ''),
             shot: String(s.shot), bestTime: String(s.bestTime || ''),
             short: String(s.short || ''), sampleUrl: String(s.sampleUrl || '')
