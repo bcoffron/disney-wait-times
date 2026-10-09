@@ -9313,6 +9313,18 @@ function tpcpTileLayer(park, tilesOverride) {
       var img = document.createElement('img');
       var _tz = coords.z + (this.options && this.options.zoomOffset ? this.options.zoomOffset : 0);
       var d = tiles[_tz + '/' + coords.x + '/' + coords.y];
+      if (!d) {
+        // Ancestor substitution (Claude msg 124, B): on a pack miss,
+        // paint the nearest packed ancestor (z-1, then z-2) -- Leaflet
+        // stretches it over this cell, a softer version of the right
+        // geography instead of the beige 1x1. The walk is bounded at
+        // two levels; a key absent at every level keeps the fallback.
+        var _az = _tz, _ax = coords.x, _ay = coords.y;
+        for (var _up = 0; _up < 2 && !d && _az > 0; _up++) {
+          _az--; _ax = Math.floor(_ax / 2); _ay = Math.floor(_ay / 2);
+          d = tiles[_az + '/' + _ax + '/' + _ay];
+        }
+      }
       img.src = d ? ('data:image/png;base64,' + d) : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAwMCAO+ip1sAAAAASUVORK5CYII=';
       img.style.background = '#EFEDE7';
       img.alt = '';
@@ -9812,7 +9824,7 @@ function tpcpVerifyOpen(reason) {
 // counts computed from the loaded data, never hard-coded numbers.
 function tpcpMeasureMap() {
   var out = { problems: [], sizes: { viewClient: null, hostClient: null, window: null, visualViewport: null, map: null, svg: null },
-    zoom: null, center: null, bounds: null, counts: null, expected: null, total: 0, expectedTotal: 0, tiles: 0,
+    zoom: null, center: null, bounds: null, counts: null, expected: null, total: 0, expectedTotal: 0, tiles: 0, fallbackTiles: 0,
     loaded: false, buildComplete: false };
   try {
     var host = tpcpMapContainer();
@@ -9861,6 +9873,23 @@ function tpcpMeasureMap() {
     } catch (e) { out.problems.push('view read failed: ' + (e && e.message)); }
     out.tiles = host ? host.querySelectorAll('.leaflet-tile-pane img').length : 0;
     if (!(out.tiles > 0)) out.problems.push('no tile images');
+    // Non-exact tiles at settle (Claude msg 124, C): live tiles whose
+    // shipped key is absent from the merged pack -- each resolved to
+    // the 1x1 fallback or an ancestor substitution in createTile.
+    // Counted from dict membership, so it sees coverage holes the
+    // zoom watchdog's guard structurally cannot.
+    try {
+      var _tl = _pm.tileLayer;
+      if (_tl && _tl._tiles) {
+        var _dict = tpcpResortTiles();
+        var _zo = _tl.options && _tl.options.zoomOffset ? _tl.options.zoomOffset : 0;
+        for (var _tk in _tl._tiles) {
+          var _tt = _tl._tiles[_tk];
+          if (!_tt || !_tt.current || !_tt.coords) continue;
+          if (!_dict[(_tt.coords.z + _zo) + '/' + _tt.coords.x + '/' + _tt.coords.y]) out.fallbackTiles++;
+        }
+      }
+    } catch (e) {}
     for (var j = 0; j < ks.length; j++) { if (out.counts[ks[j]] !== out.expected[ks[j]]) out.problems.push(ks[j] + ' markers ' + out.counts[ks[j]] + ' != expected ' + out.expected[ks[j]]); }
     out.buildComplete = out.loaded && out.total === out.expectedTotal;
   } catch (e) {
@@ -10063,6 +10092,7 @@ function tpcpSettleOpen(ctx, outcome, err, v) {
       sizes: m.sizes,
       view: { zoom: m.zoom, center: m.center, bounds: m.bounds },
       counts: { places: c.places, rr: c.rr, svc: c.svc, se: c.se, always: c.always, total: m.total, expected: m.expectedTotal, tiles: m.tiles },
+      fallbackTiles: (typeof m.fallbackTiles === 'number') ? m.fallbackTiles : 0,
       flags: { routerPresent: !!window.TPCPRouter, leafletPresent: !!window.L, loaded: !!m.loaded, buildComplete: !!m.buildComplete }
     };
     tpcpMapBeacon(evt);
@@ -10097,6 +10127,13 @@ function tpcpRenderMapDiagLine() {
 // by design, so the exists-in-dict guard means this can never fire
 // on the by-design beige margins. Runs on zoomend, moveend, and
 // open completion; hygiene only -- the size repair is F1-F3.
+// Scope (Claude msg 124): the watchdog catches only
+// unpainted-but-PRESENT tiles -- a tile whose key is absent from
+// the pack can never trip the exists-in-dict guard, by
+// construction. Absent tiles are the open beacon's job: its
+// fallbackTiles count (msg 124, C) reports every non-exact tile
+// regardless of dict membership. The two instruments are
+// complementary, not redundant.
 var TPCP_TILE_FALLBACK_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAwMCAO+ip1sAAAAASUVORK5CYII=';
 function tpcpMapZoomWatchdog(source) {
   var src = (typeof source === 'string') ? source : 'zoomend';

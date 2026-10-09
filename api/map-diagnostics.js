@@ -171,6 +171,11 @@ export function sanitizeDiagEvent(raw, nowMs) {
     places: _count(ct.places), rr: _count(ct.rr), svc: _count(ct.svc), se: _count(ct.se),
     always: _count(ct.always), total: _count(ct.total), expected: _count(ct.expected), tiles: _count(ct.tiles)
   };
+  // Non-exact tiles at settle (Claude msg 124, C): tiles that resolved
+  // to the 1x1 fallback or an ancestor substitution because their key
+  // is absent from the merged pack. One flat whitelisted count -- the
+  // zoom watchdog's guard cannot see absent keys; this field can.
+  e.fallbackTiles = _count(raw.fallbackTiles);
   const fl = (raw.flags && typeof raw.flags === 'object' && !Array.isArray(raw.flags)) ? raw.flags : {};
   e.flags = {
     routerPresent: !!fl.routerPresent,
