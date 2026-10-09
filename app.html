@@ -6083,6 +6083,7 @@ function tpcpBundleLabel(){
   // in after render from /api/version (the splash's source).
   var versionsHtml='<div id="tpcpVersionFooter" style="margin:2px 14px 16px;font-size:11px;color:var(--text-muted);font-family:\'Outfit\',sans-serif;line-height:1.7;text-align:center;">'
     +'<div>App bundle: <span id="tpcpBundleVersion" style="font-weight:700;color:#1A6860;">'+tpcpBundleLabel()+'</span></div>'
+    +'<div>Map: <span id="tpcpMapDiag" style="font-weight:700;">'+(typeof tpcpMapDiagLabel === 'function' ? tpcpMapDiagLabel() : 'unavailable')+'</span></div>'
     +'<div>Server: <span id="tpcpServerVersion" style="font-weight:700;">checking\u2026</span></div>'
     +'</div>';
 
@@ -9224,6 +9225,13 @@ function tpcpResortTiles() {
 function tpcpEnsureResort() {
   var jobs = [];
   if (!window.L) jobs.push(tpcpLoadScript('map-leaflet.js'));
+  // Router in the resort load list (Claude msg 120, item 1): the
+  // marker build dereferences window.TPCPRouter.snap, but this list
+  // never loaded map-router.js -- in any session where Directions
+  // had not run first, the first build threw mid-build and poisoned
+  // the session's map (round 3 root cause).
+  // Marker: router in ensure (msg 120)
+  if (!window.TPCPRouter) jobs.push(tpcpLoadScript('map-router.js'));
   if (!window.TPCP_GRAPH_DL) jobs.push(tpcpLoadScript('park-graph-dl.js'));
   if (!window.TPCP_GRAPH_DCA) jobs.push(tpcpLoadScript('park-graph-dca.js'));
   if (!window.TPCP_TILES_DL) jobs.push(tpcpLoadScript('park-tiles-dl.js'));
@@ -9299,7 +9307,7 @@ function tpcpInitMiniMap() {
   }).catch(function () { var h = document.getElementById('tpcpMiniMap'); if (h) h.style.display = 'none'; });
 }
 // ---------- Full park map (Info tab) ----------
-var _pm = { park: 'DL', map: null, placeMarkers: [], rrMarkers: [], svcMarkers: [], seMarkers: [], alwaysMarkers: [], showPlaces: true, showRR: false, showSvc: false, showSE: false, selected: null };
+var _pm = { park: 'DL', map: null, tileLayer: null, placeMarkers: [], rrMarkers: [], svcMarkers: [], seMarkers: [], alwaysMarkers: [], showPlaces: true, showRR: false, showSvc: false, showSE: false, selected: null };
 var TPCP_SVC_COLORS = { firstaid: '#C0392B', babycare: '#8E6BC8', lockers: '#4A7A7C', guest: '#1D6FB8', atm: '#5A526E' };
 var TPCP_SVC_LABELS = { firstaid: 'First Aid', babycare: 'Baby Care', lockers: 'Lockers', guest: 'Guest Relations', atm: 'ATM' };
 var _tpcpSpots = {};
@@ -9520,35 +9528,31 @@ function tpcpFrameMap() {
   if (!_pm.map) return;
   _pm.map.fitBounds(TPCP_RESORT_BOUNDS);
 }
-// Refresh discipline for the session-persistent map (Claude msg 106):
-// created once, measured on open (rAF / +60 ms / +350 ms in
-// tpcpShowResortMap), and re-measured on resize / orientation change
-// and on return to foreground while it is open.
-function tpcpMapRefreshSize() {
-  if (!_pm.map) return;
-  var view = document.getElementById('tpcpMapView');
-  if (view && view.classList.contains('open')) _pm.map.invalidateSize();
-}
-function tpcpMapForeground() {
-  if (document.hidden) return;
-  tpcpMapRefreshSize();
-}
-// Size-driven repair (Claude msg 116, F1-F3). The round-1 refresh
-// ladder measured on a guessed schedule (rAF / +60 ms / +350 ms) and
-// is a no-op whenever size and view are unchanged, so a map created
-// against unsettled layout stayed stale until a pan/zoom changed a
-// pane transform. Repair is now driven by OBSERVED size: a
-// ResizeObserver on the container fires when layout actually
-// settles, creation is deferred while the container reports a
-// degenerate size, and every open self-checks the map's measured
-// size and the overlay SVG box against the container.
+// Per-open lifecycle (Claude msg 120): the full map is NOT a
+// session-persistent singleton anymore. Every open destroys any
+// existing map and creates a fresh one, transactionally, against
+// the already-laid-out container; creation is all-or-nothing, and
+// the result is verified against independent truth (window-derived
+// sizes, data-derived marker counts) before the open counts as
+// done. The msg-116 repair machinery (repair-in-place, the
+// self-check against the map's own measurements, the rAF/+60/+350
+// ladder) is retired: ResizeObserver survives only as a
+// verification trigger, and a failed verification routes into one
+// recreate -- never a repair.
 var _pmObserver = null;
 var _pmPendingOpen = false;
+var _pmWired = false;
+var _pmVerifyQueued = false;
+var _pmSessionId = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+var _pmOpenSeq = 0;
+var _pmOpenCtx = null;
+var _pmDiagLast = null;
 function tpcpMapContainer() { return document.getElementById('tpcpFullMap'); }
-// Degenerate-size guard (msg 116, F2): no layout box at all, or a
-// height that is only a small fraction of the map view's own height
-// (a laid-out container fills the view below its header), means
-// layout has not settled and any size measured now would be stale.
+// Degenerate-size guard (msg 116, F2 -- retained as the layout GATE
+// only): no layout box at all, or a height that is only a small
+// fraction of the map view's own height (a laid-out container fills
+// the view below its header), means layout has not settled and
+// creation must wait for a true size rather than measure stale.
 function tpcpMapSizeDegenerate(el) {
   if (!el) return true;
   var w = el.clientWidth, h = el.clientHeight;
@@ -9558,61 +9562,399 @@ function tpcpMapSizeDegenerate(el) {
   if (vh > 0 && h < vh * 0.25) return true;
   return false;
 }
-// The repair (msg 116, F1): re-measure, reframe, then the repaint
-// nudge -- pan out and back within the same frame. The end-state
-// view is identical to the start-state view, but the pane transform
-// changes, which is what forces WKWebView to re-rasterize the tile
-// and overlay layers -- mechanically what Beau's healing pan did.
-function tpcpMapRepairSize(reason) {
-  if (!_pm.map) return;
-  var el = _pm.map.getContainer();
-  _pm.map.invalidateSize();
-  tpcpFrameMap();
-  _pm.map.panBy([0, 1], { animate: false });
-  _pm.map.panBy([0, -1], { animate: false });
-  var ms = _pm.map.getSize();
-  try { console.log('[map] size repair (' + reason + '): map size now ' + ms.x + 'x' + ms.y + ', container ' + el.clientWidth + 'x' + el.clientHeight); } catch (e) {}
+function tpcpInstallMapOnce() {
+  if (_pmWired) return;
+  _pmWired = true;
+  tpcpMapObserveSizes();
+  window.addEventListener('resize', tpcpMapSizeSignal);
+  window.addEventListener('orientationchange', tpcpMapSizeSignal);
+  document.addEventListener('visibilitychange', tpcpMapSizeSignal);
 }
-// Open-time self-check (msg 116, F3): the map's measured size must
-// equal the container's client size and the overlay SVG box must
-// cover the map size (paths outside it are clipped and never
-// paint). A mismatch -- including a half-created map inherited
-// behind the creation guard from a failed earlier open -- runs the
-// F1 repair and logs one flags-only [map] line. A match is silent.
-function tpcpMapSelfCheck() {
-  if (!_pm.map) return;
-  var el = _pm.map.getContainer();
-  if (tpcpMapSizeDegenerate(el)) return;
-  var ms = _pm.map.getSize();
-  var bad = (ms.x !== el.clientWidth || ms.y !== el.clientHeight);
-  if (!bad) {
-    var svg = el.querySelector('.leaflet-overlay-pane svg');
-    if (svg) {
-      var sw = parseFloat(svg.getAttribute('width')), sh = parseFloat(svg.getAttribute('height'));
-      if (!(sw >= ms.x && sh >= ms.y)) bad = true;
-    }
-  }
-  if (bad) tpcpMapRepairSize('self-check');
+function tpcpMapSizeSignal() {
+  try {
+    if (document.hidden) return;
+    var view = document.getElementById('tpcpMapView');
+    if (!view || !view.classList.contains('open')) return;
+    if (_pm.map) tpcpScheduleVerify('resize');
+  } catch (e) {}
 }
 function tpcpMapObserveSizes() {
   if (_pmObserver || typeof ResizeObserver === 'undefined') return;
   var el = tpcpMapContainer();
   if (!el) return;
   _pmObserver = new ResizeObserver(function () {
-    var host = tpcpMapContainer();
-    if (!host || tpcpMapSizeDegenerate(host)) return;
-    if (!_pm.map) {
-      // F2 deferred creation: the observer's first true size creates.
-      if (_pmPendingOpen) {
-        _pmPendingOpen = false;
-        try { tpcpShowResortMap(); } catch (e) { try { console.error('[map] deferred map creation failed:', e); } catch (err) {} tpcpToast('The park map could not be loaded.'); }
+    // Fully guarded in EVERY branch (Claude msg 120): an exception
+    // escaping this callback would silently disable size handling
+    // for the whole session -- the round-3 unguarded-branch hole.
+    try {
+      var host = tpcpMapContainer();
+      if (!host) return;
+      var view = document.getElementById('tpcpMapView');
+      if (!view || !view.classList.contains('open')) return;
+      if (tpcpMapSizeDegenerate(host)) return;
+      if (!_pm.map) {
+        // Deferred creation: the observer's first true size runs
+        // the open routine, which creates (or settles the open).
+        if (_pmPendingOpen) tpcpShowResortMap();
+        return;
       }
-      return;
-    }
-    var ms = _pm.map.getSize();
-    if (ms.x !== host.clientWidth || ms.y !== host.clientHeight) tpcpMapRepairSize('observer');
+      tpcpScheduleVerify('resize');
+    } catch (e) { try { console.error('[map] size observer failed:', e); } catch (err) {} }
   });
   _pmObserver.observe(el);
+}
+// Post-open task boundary: verification runs after the open's own
+// work and first frame (double rAF, with a timeout fallback for
+// engines that starve rAF) -- a task boundary, not a guessed
+// layout delay.
+function tpcpScheduleVerify(reason) {
+  if (_pmVerifyQueued) return;
+  _pmVerifyQueued = true;
+  var run = function () {
+    if (!_pmVerifyQueued) return;
+    _pmVerifyQueued = false;
+    try { tpcpVerifyOpen(reason); } catch (e) { try { console.error('[map] verify failed to run:', e); } catch (err) {} }
+  };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { requestAnimationFrame(run); });
+  setTimeout(run, 60);
+}
+function tpcpVerifyOpen(reason) {
+  var v = tpcpMeasureMap();
+  var ctx = _pmOpenCtx;
+  if (ctx && ctx.verifying && !ctx.settled) {
+    if (!v.problems.length) {
+      ctx.phases.push('verify-ok');
+      ctx.verifying = false;
+      tpcpMapZoomWatchdog('open');
+      tpcpSettleOpen(ctx, 'ok', null, v);
+    } else if (!ctx.retried) {
+      // One recreate (Claude msg 120, item 4): destroy the failed
+      // build and create once more; a second failure fails visibly.
+      ctx.retried = true;
+      ctx.phases.push('verify-fail');
+      ctx.phases.push('recreate');
+      ctx.verifying = false;
+      tpcpDestroyResortMap();
+      tpcpAttemptCreate(ctx);
+    } else {
+      ctx.phases.push('verify-fail');
+      ctx.verifying = false;
+      var ve = new Error('map verify failed: ' + v.problems.join('; '));
+      ve.name = 'MapVerifyFailed';
+      tpcpDestroyResortMap();
+      tpcpSettleOpen(ctx, 'fail', ve, v);
+      try { console.error('[map] park map verify failed:', v.problems.join('; ')); } catch (e) {}
+      tpcpToast('The park map could not be loaded.');
+    }
+    return;
+  }
+  if (reason === 'verify-final') {
+    if (v.problems.length) {
+      tpcpDestroyResortMap();
+      try { console.error('[map] park map verify failed after recreate:', v.problems.join('; ')); } catch (e) {}
+      tpcpToast('The park map could not be loaded.');
+    }
+    return;
+  }
+  // Size-change recheck of an already-settled open: a failure
+  // routes into the same one-recreate path. No beacon fires here --
+  // the per-open beacon already reported this open (msg 120: one
+  // event per open); a later open reports its own outcome.
+  if (_pm.map && v.problems.length) {
+    tpcpDestroyResortMap();
+    try {
+      tpcpCreateResortMap();
+      tpcpScheduleVerify('verify-final');
+    } catch (e) {
+      try { console.error('[map] resize recreate failed:', e); } catch (err) {}
+      tpcpToast('The park map could not be loaded.');
+    }
+  }
+}
+// Verification against independent truth (Claude msg 120, item 4):
+// sizes come from three different layout sources (the window, the
+// view element, the host element against its header), NOT from the
+// map's own cached measurements -- a poisoned map reports its own
+// sizes confidently and wrongly -- and content is checked against
+// counts computed from the loaded data, never hard-coded numbers.
+function tpcpMeasureMap() {
+  var out = { problems: [], sizes: { viewClient: null, hostClient: null, window: null, visualViewport: null, map: null, svg: null },
+    zoom: null, center: null, bounds: null, counts: null, expected: null, total: 0, expectedTotal: 0, tiles: 0,
+    loaded: false, buildComplete: false };
+  try {
+    var host = tpcpMapContainer();
+    var view = document.getElementById('tpcpMapView');
+    var head = view ? view.querySelector('.tpcp-map-head') : null;
+    out.sizes.window = [window.innerWidth, window.innerHeight];
+    if (window.visualViewport) out.sizes.visualViewport = [Math.round(window.visualViewport.width), Math.round(window.visualViewport.height), window.visualViewport.scale];
+    if (view) out.sizes.viewClient = [view.clientWidth, view.clientHeight];
+    if (host) out.sizes.hostClient = [host.clientWidth, host.clientHeight];
+    if (host && out.sizes.window[0] && host.clientWidth !== out.sizes.window[0]) out.problems.push('host width ' + host.clientWidth + ' != window ' + out.sizes.window[0]);
+    if (view && out.sizes.window[1] && view.clientHeight !== out.sizes.window[1]) out.problems.push('view height ' + view.clientHeight + ' != window ' + out.sizes.window[1]);
+    if (host && view && head && view.clientHeight) {
+      var wantH = view.clientHeight - head.offsetHeight;
+      if (host.clientHeight !== wantH) out.problems.push('host height ' + host.clientHeight + ' != view-head ' + wantH);
+    }
+    out.counts = tpcpMarkerCounts();
+    out.expected = tpcpExpectedMarkerCounts();
+    var ks = ['places', 'rr', 'svc', 'se', 'always'];
+    for (var i = 0; i < ks.length; i++) { out.total += out.counts[ks[i]]; out.expectedTotal += out.expected[ks[i]]; }
+    var map = _pm.map;
+    if (!map) { out.problems.push('no map'); return out; }
+    var ms = map.getSize();
+    out.sizes.map = [ms.x, ms.y];
+    if (host && (ms.x !== host.clientWidth || ms.y !== host.clientHeight)) out.problems.push('map size ' + ms.x + 'x' + ms.y + ' != host ' + host.clientWidth + 'x' + host.clientHeight);
+    var svg = host ? host.querySelector('.leaflet-overlay-pane svg') : null;
+    if (!svg) out.problems.push('overlay svg missing');
+    else {
+      out.sizes.svg = [parseFloat(svg.getAttribute('width')), parseFloat(svg.getAttribute('height'))];
+      var vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(function (n) { return parseFloat(n); });
+      if (vb.length === 4 && isFinite(vb[0]) && isFinite(vb[2])) {
+        if (!(vb[0] <= 0 && vb[1] <= 0 && vb[0] + vb[2] >= ms.x && vb[1] + vb[3] >= ms.y)) out.problems.push('svg viewBox does not cover map size');
+      } else if (!(out.sizes.svg[0] >= ms.x && out.sizes.svg[1] >= ms.y)) out.problems.push('svg box smaller than map size');
+    }
+    out.loaded = !!map._loaded;
+    if (!out.loaded) out.problems.push('map not loaded');
+    try {
+      out.zoom = map.getZoom();
+      var bz = map.getBoundsZoom(TPCP_RESORT_BOUNDS);
+      if (Math.abs(out.zoom - bz) > 0.001) out.problems.push('zoom ' + out.zoom + ' != bounds zoom ' + bz);
+      var c = map.getCenter();
+      out.center = [+c.lat.toFixed(5), +c.lng.toFixed(5)];
+      var bc = L.latLngBounds(TPCP_RESORT_BOUNDS).getCenter();
+      if (Math.abs(c.lat - bc.lat) > 0.0005 || Math.abs(c.lng - bc.lng) > 0.0005) out.problems.push('center off resort center');
+      var b = map.getBounds();
+      out.bounds = [[+b.getSouth().toFixed(5), +b.getWest().toFixed(5)], [+b.getNorth().toFixed(5), +b.getEast().toFixed(5)]];
+    } catch (e) { out.problems.push('view read failed: ' + (e && e.message)); }
+    out.tiles = host ? host.querySelectorAll('.leaflet-tile-pane img').length : 0;
+    if (!(out.tiles > 0)) out.problems.push('no tile images');
+    for (var j = 0; j < ks.length; j++) { if (out.counts[ks[j]] !== out.expected[ks[j]]) out.problems.push(ks[j] + ' markers ' + out.counts[ks[j]] + ' != expected ' + out.expected[ks[j]]); }
+    out.buildComplete = out.loaded && out.total === out.expectedTotal;
+  } catch (e) {
+    out.problems.push('measure failed: ' + (e && e.message));
+  }
+  return out;
+}
+// Expected marker counts, computed from the LOADED DATA with the
+// build's own rules (Claude msg 120, item 2): graph places with a
+// latitude, all graph restrooms and services, and the extra pins by
+// their layer field. Never a hard-coded total -- pin data changes.
+function tpcpExpectedMarkerCounts() {
+  var exp = { places: 0, rr: 0, svc: 0, se: 0, always: 0 };
+  ['DL', 'DCA'].forEach(function (park) {
+    var g = window['TPCP_GRAPH_' + park];
+    if (!g) return;
+    (g.places || []).forEach(function (p) { if (p.lat != null) exp.places++; });
+    exp.rr += (g.restrooms || []).length;
+    exp.svc += (g.services || []).length;
+  });
+  TPCP_EXTRA_PINS.forEach(function (pin) {
+    if (pin[3] === 'places') exp.places++;
+    else if (pin[3] === 'services') exp.svc++;
+    else if (pin[3] === 'always') exp.always++;
+    else exp.se++;
+  });
+  return exp;
+}
+function tpcpMarkerCounts() {
+  return { places: _pm.placeMarkers.length, rr: _pm.rrMarkers.length, svc: _pm.svcMarkers.length, se: _pm.seMarkers.length, always: _pm.alwaysMarkers.length };
+}
+// Marker-construction state lives outside the map object (the five
+// layer arrays + the popup spot registry). A build registers ~275
+// popup spots; resetting is what bounds that growth across the
+// per-open recreations (Claude msg 120, item 2).
+function tpcpResetMarkerState() {
+  _pm.placeMarkers = []; _pm.rrMarkers = []; _pm.svcMarkers = []; _pm.seMarkers = []; _pm.alwaysMarkers = [];
+  _tpcpSpots = {};
+  _pm.selected = null;
+}
+// Marker: destroy on close (msg 120)
+function tpcpDestroyResortMap() {
+  if (_pm.map) {
+    try { _pm.map.closePopup(); } catch (e) {}
+    try { _pm.map.remove(); } catch (e) {}
+  }
+  _pm.map = null;
+  _pm.tileLayer = null;
+  _pmPendingOpen = false;
+  tpcpResetMarkerState();
+}
+// Transactional creation (Claude msg 120, item 2): build into a
+// LOCAL map object; _pm.map is assigned only after every step
+// succeeds AND the build-completeness check passes. On any throw
+// the local map is removed, all marker state is reset, and the
+// error rethrows to the open's failure path -- a failed open leaves
+// NO map behind to inherit.
+// Marker: transactional create (msg 120)
+function tpcpCreateResortMap() {
+  // Pre-creation asset assertion (Claude msg 120, item 1): every
+  // dependency the build dereferences must be present BEFORE
+  // anything is created, so a missing one fails loudly and labeled
+  // here -- never as a mid-build TypeError after state committed.
+  var missing = [];
+  if (!window.L) missing.push('leaflet');
+  if (!window.TPCPRouter) missing.push('router');
+  if (!window.TPCP_GRAPH_DL) missing.push('graph-dl');
+  if (!window.TPCP_GRAPH_DCA) missing.push('graph-dca');
+  if (!window.TPCP_TILES_DL) missing.push('tiles-dl');
+  if (!window.TPCP_TILES_DCA) missing.push('tiles-dca');
+  if (!window.TPCP_TILES_RESORT) missing.push('tiles-resort');
+  if (missing.length) {
+    var ae = new Error('map assets incomplete: ' + missing.join(', '));
+    ae.name = 'MapAssetsIncomplete';
+    throw ae;
+  }
+  var expected = tpcpExpectedMarkerCounts();
+  tpcpResetMarkerState();
+  var map = null, tileLayer = null, counts = null;
+  try {
+    map = L.map('tpcpFullMap', { minZoom: 13, maxZoom: 19, maxBounds: TPCP_RESORT_MAXBOUNDS, maxBoundsViscosity: 1.0 });
+    tileLayer = tpcpTileLayer(null, tpcpResortTiles());
+    tileLayer.addTo(map);
+    tpcpBuildResortMarkers();
+    tpcpApplyLayers(map);
+    var pc = document.getElementById('tpcpPlaceCard');
+    if (pc) pc.classList.remove('open');
+    map.fitBounds(TPCP_RESORT_BOUNDS);
+    counts = tpcpMarkerCounts();
+    var bad = [];
+    ['places', 'rr', 'svc', 'se', 'always'].forEach(function (k) { if (counts[k] !== expected[k]) bad.push(k + ' ' + counts[k] + ' != ' + expected[k]); });
+    if (!map._loaded) bad.push('map not loaded');
+    if (bad.length) {
+      var ce = new Error('map build incomplete: ' + bad.join('; '));
+      ce.name = 'MapBuildIncomplete';
+      throw ce;
+    }
+  } catch (e) {
+    if (map) { try { map.remove(); } catch (err) {} }
+    tpcpResetMarkerState();
+    throw e;
+  }
+  // Commit point: only a complete build becomes the session's map.
+  _pm.map = map;
+  _pm.tileLayer = tileLayer;
+  map.on('zoomend', tpcpMapZoomWatchdog);
+  map.on('moveend', function () { tpcpMapZoomWatchdog('moveend'); });
+  return { counts: counts, expected: expected };
+}
+// ---- Map diagnostics beacon (Claude msg 120, item 5) ----
+// The device-side evidence channel: exactly one fire-and-forget
+// event per open, fired with the open's FINAL outcome (after any
+// recreate retry) -- never from inside the retry loop, so a
+// retrying open cannot amplify writes (msg 120, condition ii).
+// Fields are whitelisted telemetry only: sizes, counts, flags, and
+// a redacted error. No schedule content, no tokens, no payload
+// data. The whole beacon is wrapped so it can never break the map
+// or the app; when the POST fails the event lands in a localStorage
+// ring (last 20) instead.
+// Marker: beacon client (msg 120)
+function tpcpMapStamp() {
+  try { var b = window.__TPCP_BUNDLE__; return (b && b.sha) ? String(b.sha).substring(0, 7) : 'unstamped'; } catch (e) { return 'unstamped'; }
+}
+function tpcpMapRedact(s) {
+  // Msg 120 condition (i): an error string must not carry trip data
+  // into the store -- strip URL query strings wholesale, blank any
+  // code= value, and blank this client's own trip code wherever it
+  // appears. Stack frames carry file URLs, not trip data, once the
+  // query string is gone.
+  try {
+    var out = String(s == null ? '' : s);
+    out = out.replace(/([?&]code=)[^&\s'")]+/gi, '$1[redacted]');
+    out = out.replace(/(https?:\/\/[^\s?'")]+)\?[^\s'")]+/g, '$1');
+    var code = '';
+    try { code = localStorage.getItem('tpcp_code') || ''; } catch (e) {}
+    if (code) out = out.split(code).join('[code]');
+    return out;
+  } catch (e) { return ''; }
+}
+function tpcpMapErrorInfo(err) {
+  if (!err) return null;
+  var stack = '';
+  try { stack = err.stack ? String(err.stack).split('\n').slice(0, 3).join('\n') : ''; } catch (e) {}
+  return {
+    name: tpcpMapRedact(err.name || 'Error').slice(0, 80),
+    message: tpcpMapRedact(err.message || String(err)).slice(0, 300),
+    stackTop: tpcpMapRedact(stack).slice(0, 500)
+  };
+}
+function tpcpMapBeaconRing(evt) {
+  try {
+    var ring = [];
+    try { ring = JSON.parse(localStorage.getItem('tpcpMapDiagRingV1') || '[]'); } catch (e) { ring = []; }
+    if (!Array.isArray(ring)) ring = [];
+    ring.push(evt);
+    while (ring.length > 20) ring.shift();
+    localStorage.setItem('tpcpMapDiagRingV1', JSON.stringify(ring));
+  } catch (e) {}
+}
+function tpcpMapBeacon(evt) {
+  try {
+    _pmDiagLast = evt;
+    try { localStorage.setItem('tpcpMapDiagLastV1', JSON.stringify(evt)); } catch (e) {}
+    tpcpRenderMapDiagLine();
+    var code = '';
+    try { code = localStorage.getItem('tpcp_code') || ''; } catch (e) {}
+    if (!code || typeof fetch === 'undefined' || typeof SYNC_BASE === 'undefined') { tpcpMapBeaconRing(evt); return; }
+    fetch(SYNC_BASE + '/api/map-diagnostics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tripCode: code, event: evt }),
+      keepalive: true
+    }).then(function (r) { if (!r || !r.ok) tpcpMapBeaconRing(evt); })
+      .catch(function () { tpcpMapBeaconRing(evt); });
+  } catch (e) { /* the beacon must never break the app */ }
+}
+function tpcpSettleOpen(ctx, outcome, err, v) {
+  if (!ctx || ctx.settled) return;
+  ctx.settled = true;
+  ctx.verifying = false;
+  if (ctx.beaconFired) return;
+  ctx.beaconFired = true;
+  // Marker: beacon fire (msg 120) -- the ONLY beacon call site for
+  // an open; it runs once, at settle, with the final outcome.
+  try {
+    var m = v || tpcpMeasureMap();
+    var c = m.counts || { places: 0, rr: 0, svc: 0, se: 0, always: 0 };
+    var evt = {
+      v: 1,
+      type: 'map-open',
+      eventId: 'mo-' + _pmSessionId + '-' + ctx.seq,
+      ts: Date.now(),
+      bundle: tpcpMapStamp(),
+      sessionId: _pmSessionId,
+      openSeq: ctx.seq,
+      outcome: outcome,
+      phases: ctx.phases.slice(),
+      error: tpcpMapErrorInfo(err),
+      sizes: m.sizes,
+      view: { zoom: m.zoom, center: m.center, bounds: m.bounds },
+      counts: { places: c.places, rr: c.rr, svc: c.svc, se: c.se, always: c.always, total: m.total, expected: m.expectedTotal, tiles: m.tiles },
+      flags: { routerPresent: !!window.TPCPRouter, leafletPresent: !!window.L, loaded: !!m.loaded, buildComplete: !!m.buildComplete }
+    };
+    tpcpMapBeacon(evt);
+  } catch (e) {}
+}
+function tpcpMapDiagLabel() {
+  try {
+    var evt = _pmDiagLast;
+    if (!evt) { try { evt = JSON.parse(localStorage.getItem('tpcpMapDiagLastV1') || 'null'); } catch (e) { evt = null; } }
+    if (!evt) return 'no opens yet';
+    var when = '';
+    var d = new Date(evt.ts);
+    if (!isNaN(d.getTime())) when = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    var c = evt.counts || {};
+    var line = (evt.outcome === 'ok' ? 'last open OK' : 'last open FAILED') + (when ? ' \u00b7 ' + when : '')
+      + ' \u00b7 markers ' + (c.total != null ? c.total : '?') + '/' + (c.expected != null ? c.expected : '?');
+    if (evt.sizes && evt.sizes.map) line += ' \u00b7 map ' + evt.sizes.map[0] + '\u00d7' + evt.sizes.map[1];
+    if (evt.outcome !== 'ok' && evt.error && evt.error.message) line += ' \u00b7 ' + String(evt.error.message).split('\n')[0].slice(0, 80);
+    return line;
+  } catch (e) { return 'unavailable'; }
+}
+function tpcpRenderMapDiagLine() {
+  try {
+    var el = document.getElementById('tpcpMapDiag');
+    if (el) el.textContent = tpcpMapDiagLabel();
+  } catch (e) {}
 }
 // Tile watchdog (Claude msg 106; wiring extended msg 116, F5): a
 // tile still showing the fallback image whose key EXISTS in the
@@ -9716,41 +10058,46 @@ function tpcpBuildResortMarkers() {
   });
 }
 function tpcpShowResortMap() {
-  tpcpMapObserveSizes();
-  if (!_pm.map) {
-    if (typeof ResizeObserver !== 'undefined' && tpcpMapSizeDegenerate(tpcpMapContainer())) {
-      // F2 (Claude msg 116): never create against a degenerate size
-      // -- a map measured now would keep a stale size, a clipped
-      // overlay SVG, and stale tile rows for the whole session.
-      // The ResizeObserver creates it on the first true size.
-      _pmPendingOpen = true;
-      return;
-    }
-    _pmPendingOpen = false;
-    _pm.map = L.map('tpcpFullMap', { minZoom: 13, maxZoom: 19, maxBounds: TPCP_RESORT_MAXBOUNDS, maxBoundsViscosity: 1.0 });
-    _pm.tileLayer = tpcpTileLayer(null, tpcpResortTiles());
-    _pm.tileLayer.addTo(_pm.map);
-    tpcpBuildResortMarkers();
-    _pm.map.on('zoomend', tpcpMapZoomWatchdog);
-    _pm.map.on('moveend', function () { tpcpMapZoomWatchdog('moveend'); });
-    window.addEventListener('resize', tpcpMapRefreshSize);
-    window.addEventListener('orientationchange', tpcpMapRefreshSize);
-    document.addEventListener('visibilitychange', tpcpMapForeground);
+  var ctx = _pmOpenCtx;
+  if (!ctx || ctx.settled) {
+    // Direct call without a live open context (defensive): run under
+    // an ad-hoc context so the open still settles and reports once.
+    ctx = _pmOpenCtx = { seq: ++_pmOpenSeq, phases: ['open-start'], retried: false, settled: false, beaconFired: false, verifying: false };
   }
-  tpcpApplyLayers();
-  document.getElementById('tpcpPlaceCard').classList.remove('open');
-  var applyView = function () { tpcpFrameMap(); };
-  applyView();
-  requestAnimationFrame(function () { if (_pm.map) _pm.map.invalidateSize(); });
-  setTimeout(function () { if (_pm.map) { _pm.map.invalidateSize(); applyView(); } }, 60);
-  setTimeout(function () { if (_pm.map) _pm.map.invalidateSize(); }, 350);
-  // F3 (Claude msg 116): open-time self-check -- catches a stale
-  // size, a clipped overlay, or a half-created map inherited from a
-  // failed earlier open. Silent when the map matches its container.
-  tpcpMapSelfCheck();
-  // F5 (Claude msg 116): the tile watchdog also runs at open
-  // completion (hygiene only; the repair above is F1-F3).
-  tpcpMapZoomWatchdog('open');
+  tpcpInstallMapOnce();
+  // Per-open destroy + recreate (Claude msg 120, item 3): discard
+  // any existing map wholesale, so no state from a failed or stale
+  // creation can be inherited by this open.
+  // Marker: destroy and recreate (msg 120)
+  tpcpDestroyResortMap();
+  var pc = document.getElementById('tpcpPlaceCard');
+  if (pc) pc.classList.remove('open');
+  if (tpcpMapSizeDegenerate(tpcpMapContainer())) {
+    // Layout gate only: creation waits for the ResizeObserver's
+    // first true size, which re-invokes this routine. The open is
+    // not settled -- and its beacon not fired -- until then.
+    _pmPendingOpen = true;
+    if (ctx.phases[ctx.phases.length - 1] !== 'deferred') ctx.phases.push('deferred');
+    return;
+  }
+  _pmPendingOpen = false;
+  tpcpAttemptCreate(ctx);
+}
+function tpcpAttemptCreate(ctx) {
+  var built;
+  try {
+    built = tpcpCreateResortMap();
+  } catch (e) {
+    ctx.phases.push('create-fail');
+    tpcpSettleOpen(ctx, 'fail', e, null);
+    try { console.error('[map] park map load failed:', e); } catch (err) {}
+    tpcpToast('The park map could not be loaded.');
+    return;
+  }
+  ctx.phases.push('create-ok');
+  ctx.built = built;
+  ctx.verifying = true;
+  tpcpScheduleVerify('open');
 }
 function openParkMap(park, layer) {
   var view = document.getElementById('tpcpMapView');
@@ -9762,14 +10109,25 @@ function openParkMap(park, layer) {
   if (layer === 'places') _pm.showPlaces = true;
   // The park argument no longer frames the map (Claude msg 106: every
   // open frames the full resort, including opens from the mini-map).
+  var ctx = _pmOpenCtx = { seq: ++_pmOpenSeq, phases: ['open-start'], retried: false, settled: false, beaconFired: false, verifying: false };
   tpcpEnsureResort().then(function () {
+    ctx.phases.push('ensure-ok');
     tpcpShowResortMap();
-  }).catch(function (err) { try { console.error('[map] park map load failed:', err); } catch (e) {} tpcpToast('The park map could not be loaded.'); });
+  }).catch(function (err) {
+    ctx.phases.push('ensure-fail');
+    tpcpSettleOpen(ctx, 'fail', err, null);
+    try { console.error('[map] park map load failed:', err); } catch (e) {}
+    tpcpToast('The park map could not be loaded.');
+  });
 }
 function openParkMapRestrooms() { openParkMap(null, 'restrooms'); }
 function openParkMapServices() { openParkMap(null, 'services'); }
 function closeParkMap() {
   document.getElementById('tpcpMapView').classList.remove('open');
+  // Destroy on close (Claude msg 120, item 3): the map does not
+  // persist across opens, so nothing stale can be inherited by the
+  // next one.
+  tpcpDestroyResortMap();
 }
 // ---------- DORMANT: retired per-park switcher (kept intact, not called) ----------
 // The full Park Map is one resort frame now (Claude msg 60). This per-park
@@ -9818,17 +10176,18 @@ function tpcpLegacySwitchParkMap(park, skipEnsure) {
   else tpcpEnsurePark(park).then(build).catch(function () { tpcpToast('The park map could not be loaded.'); });
 }
 function tpcpChip(id, on) { var c = document.getElementById(id); if (c) c.classList.toggle('on', !!on); }
-function tpcpApplyLayers() {
-  if (!_pm.map) return;
-  _pm.placeMarkers.forEach(function (m) { if (_pm.showPlaces) m.addTo(_pm.map); else m.remove(); });
+function tpcpApplyLayers(mapArg) {
+  var map = mapArg || _pm.map;
+  if (!map) return;
+  _pm.placeMarkers.forEach(function (m) { if (_pm.showPlaces) m.addTo(map); else m.remove(); });
   // rrMarkers (in-park restrooms) ride the Services layer: restrooms are
   // Services everywhere on this map — in-park, Downtown Disney, and hotels.
-  _pm.rrMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(_pm.map); else m.remove(); });
-  _pm.svcMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(_pm.map); else m.remove(); });
-  _pm.seMarkers.forEach(function (m) { if (_pm.showSE) m.addTo(_pm.map); else m.remove(); });
+  _pm.rrMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(map); else m.remove(); });
+  _pm.svcMarkers.forEach(function (m) { if (_pm.showSvc) m.addTo(map); else m.remove(); });
+  _pm.seMarkers.forEach(function (m) { if (_pm.showSE) m.addTo(map); else m.remove(); });
   // alwaysMarkers (the three hotel landmarks) are orientation anchors
   // (Claude msg 62): added at every layer state, behind no toggle.
-  _pm.alwaysMarkers.forEach(function (m) { m.addTo(_pm.map); });
+  _pm.alwaysMarkers.forEach(function (m) { m.addTo(map); });
   tpcpChip('tpcpChipPlaces', _pm.showPlaces);
   tpcpChip('tpcpChipSvc', _pm.showSvc);
   tpcpChip('tpcpChipSE', _pm.showSE);
