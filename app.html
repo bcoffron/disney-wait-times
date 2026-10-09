@@ -9364,6 +9364,9 @@ function tpcpEnsureResort() {
   if (!window.TPCPRouter) jobs.push(tpcpLoadScript('map-router.js'));
   if (!window.TPCP_GRAPH_DL) jobs.push(tpcpLoadScript('park-graph-dl.js'));
   if (!window.TPCP_GRAPH_DCA) jobs.push(tpcpLoadScript('park-graph-dca.js'));
+  // Downtown Disney graph in the resort load list (Claude msg 122):
+  // the marker build snaps Downtown Disney + hotel pins to it.
+  if (!window.TPCP_GRAPH_DTD) jobs.push(tpcpLoadScript('park-graph-dtd.js'));
   if (!window.TPCP_TILES_DL) jobs.push(tpcpLoadScript('park-tiles-dl.js'));
   if (!window.TPCP_TILES_DCA) jobs.push(tpcpLoadScript('park-tiles-dca.js'));
   if (!window.TPCP_TILES_RESORT) jobs.push(tpcpLoadScript('park-tiles-resort.js'));
@@ -9926,6 +9929,7 @@ function tpcpCreateResortMap() {
   if (!window.TPCPRouter) missing.push('router');
   if (!window.TPCP_GRAPH_DL) missing.push('graph-dl');
   if (!window.TPCP_GRAPH_DCA) missing.push('graph-dca');
+  if (!window.TPCP_GRAPH_DTD) missing.push('graph-dtd');
   if (!window.TPCP_TILES_DL) missing.push('tiles-dl');
   if (!window.TPCP_TILES_DCA) missing.push('tiles-dca');
   if (!window.TPCP_TILES_RESORT) missing.push('tiles-resort');
@@ -10171,14 +10175,20 @@ function tpcpBuildResortMarkers() {
     else if (layer === 'services') style.fillColor = kind === 'restrooms' ? '#4A7A7C' : (kind === 'atm' ? (TPCP_SVC_COLORS.atm || '#5A526E') : '#173A5E');
     else style.fillColor = TPCP_SE_COLOR;
     var m = L.circleMarker([pin[1], pin[2]], style);
-    // Directions ride the curated in-park guest-path graphs, so only in-park
-    // pins offer them. A Downtown Disney or hotel pin has no graph node to
-    // route to; its popup honestly shows name + district only.
+    // Directions ride the curated guest-path graphs. In-park pins snap
+    // to their own park's graph; Downtown Disney pins and the hotel
+    // landmarks snap to the Downtown Disney graph, whose spine joins
+    // both park graphs at the Esplanade -- one connected resort graph,
+    // so their routes run continuously into either park (msg 122).
+    // Marker: dtd dirspot (msg 122)
     var dirSpot = null;
     if (zone === 'DL' || zone === 'DCA') {
       var g = window['TPCP_GRAPH_' + zone];
       var sn2 = window.TPCPRouter.snap(g, pin[1], pin[2]);
       dirSpot = { park: zone, spot: { n: pin[0].replace(/&amp;/g, '&'), lat: pin[1], lon: pin[2], node: sn2.node } };
+    } else if (zone === 'Downtown Disney' || kind === 'hotel') {
+      var sn3 = window.TPCPRouter.snap(window.TPCP_GRAPH_DTD, pin[1], pin[2]);
+      dirSpot = { park: kind === 'hotel' ? 'HOTEL' : 'DTD', spot: { n: pin[0].replace(/&amp;/g, '&'), lat: pin[1], lon: pin[2], node: sn3.node } };
     }
     tpcpBindPinPopup(m, pin, dirSpot);
     if (layer === 'places') _pm.placeMarkers.push(m);
@@ -10404,7 +10414,71 @@ function openDirections(dayIdx, si, ei) {
     tpcpComputeRoute();
   }).catch(function () { tpcpToast('Directions could not be loaded.'); });
 }
+// ---------- One connected resort graph (Claude msg 122) ----------
+// A runtime union of the three authored graphs (DL + DCA + Downtown
+// Disney): node indices are offset per graph, adjacency and places are
+// remapped, and the Downtown Disney spine's Esplanade node is joined
+// by real edges to each park graph's gate node (the node the shipped
+// TPCP_GATES coordinates snap to). Routes can therefore run from any
+// pin to any pin -- Downtown Disney pin -> gate -> in-park stop, hotel
+// -> spine -> onward, and the reverse. The authored graphs are never
+// mutated, and routes computed on a single park graph (both endpoints
+// in that park) are exactly what they were before this union existed.
+// Marker: resort union graph (msg 122)
+var _tpcpUnion = null;
+function tpcpResortRouteGraph() {
+  if (_tpcpUnion) return _tpcpUnion;
+  var DL = window.TPCP_GRAPH_DL, DCA = window.TPCP_GRAPH_DCA, DTD = window.TPCP_GRAPH_DTD;
+  if (!DL || !DCA || !DTD || !window.TPCPRouter) return null;
+  var R = window.TPCPRouter;
+  var offsets = { DL: 0, DCA: DL.nodes.length, DTD: DL.nodes.length + DCA.nodes.length };
+  var nodes = [], adj = {}, places = [];
+  [['DL', DL], ['DCA', DCA], ['DTD', DTD]].forEach(function (pair) {
+    var off = offsets[pair[0]], g = pair[1];
+    g.nodes.forEach(function (nd) { nodes.push(nd); });
+    Object.keys(g.adj || {}).forEach(function (k) {
+      var list = (adj[+k + off] = adj[+k + off] || []);
+      g.adj[k].forEach(function (e) { list.push([e[0] + off, e[1]]); });
+    });
+    (g.places || []).forEach(function (p) {
+      var q = {};
+      for (var key in p) q[key] = p[key];
+      if (p.node != null) q.node = p.node + off;
+      places.push(q);
+    });
+  });
+  function junction(a, b) {
+    var w = Math.round(R.havFt(nodes[a], nodes[b]));
+    (adj[a] = adj[a] || []).push([b, w]);
+    (adj[b] = adj[b] || []).push([a, w]);
+  }
+  var espIdx = (DTD.junctions && typeof DTD.junctions.esplanade === 'number') ? DTD.junctions.esplanade : 0;
+  var esp = offsets.DTD + espIdx;
+  var dlGate = offsets.DL + R.snap(DL, TPCP_GATES.DL.lat, TPCP_GATES.DL.lon).node;
+  var dcaGate = offsets.DCA + R.snap(DCA, TPCP_GATES.DCA.lat, TPCP_GATES.DCA.lon).node;
+  junction(esp, dlGate);
+  junction(esp, dcaGate);
+  var graph = { v: 1, park: 'RESORT', nodes: nodes, adj: adj, places: places };
+  _tpcpUnion = { graph: graph, offsets: offsets, esplanade: esp, dlGate: dlGate, dcaGate: dcaGate };
+  return _tpcpUnion;
+}
 function tpcpOpenDirectionsTo(park, destSpot) {
+  if (park === 'DTD' || park === 'HOTEL') {
+    // Resort destination (Claude msg 122): route over the union graph
+    // and tile the directions map with the merged resort pack; the
+    // "park entrance" origin is the Esplanade junction where the
+    // Downtown Disney spine joins the two gates.
+    tpcpEnsureResort().then(function () {
+      var U = tpcpResortRouteGraph();
+      if (!U) { tpcpToast('Directions could not be loaded.'); return; }
+      var espCoord = U.graph.nodes[U.esplanade];
+      _dir = { park: park, graph: U.graph, dest: { name: destSpot.name, lat: destSpot.lat, lon: destSpot.lon, node: U.offsets.DTD + destSpot.node }, prev: null, gate: { name: 'Park Entrance', lat: espCoord[0], lon: espCoord[1], node: U.esplanade }, origin: 'me', tiles: tpcpResortTiles() };
+      document.getElementById('tpcpDirSheet').classList.add('open');
+      tpcpStartGps();
+      tpcpComputeRoute();
+    }).catch(function () { tpcpToast('Directions could not be loaded.'); });
+    return;
+  }
   tpcpEnsurePark(park).then(function () {
     var graph = window['TPCP_GRAPH_' + park];
     var gate = TPCP_GATES[park];
@@ -10441,12 +10515,33 @@ function tpcpComputeRoute() {
       if (!_gps.pos) return;
     }
   }
+  var routeGraph = graph, destNode = _dir.dest.node;
+  if (!fromSpot && _gps.pos && (_dir.park === 'DL' || _dir.park === 'DCA')) {
+    // Cross-zone origin (Claude msg 122): the guest is standing
+    // outside the destination park's graph -- in Downtown Disney, at
+    // a hotel, in the other park -- where that graph has no node
+    // within snap range, so the park-only snap above found nothing.
+    // Retry over the connected resort graph and route continuously
+    // through the gate. An in-park origin never reaches this branch
+    // (its snap already produced a spot), so in-park routes are
+    // computed exactly as before.
+    // Marker: cross-zone origin (msg 122)
+    var U2 = tpcpResortRouteGraph();
+    if (U2) {
+      var su = R.snap(U2.graph, _gps.pos.lat, _gps.pos.lon);
+      if (su.distFt <= 600) {
+        fromSpot = { name: 'My location', lat: _gps.pos.lat, lon: _gps.pos.lon, node: su.node };
+        routeGraph = U2.graph;
+        destNode = U2.offsets[_dir.park] + _dir.dest.node;
+      }
+    }
+  }
   if (!fromSpot) return;
-  var route = R.route(graph, fromSpot.node, _dir.dest.node);
+  var route = R.route(routeGraph, fromSpot.node, destNode);
   if (!route) { document.getElementById('tpcpDirMeta').textContent = 'No walking route found between those spots.'; return; }
   _dir.from = fromSpot;
   _dir.route = route;
-  _dir.steps = R.stepsFor(graph, route, fromSpot.name, _dir.dest.name);
+  _dir.steps = R.stepsFor(routeGraph, route, fromSpot.name, _dir.dest.name);
   _dir.idx = 0;
   _dir.cum = [0];
   for (var i = 1; i < route.coords.length; i++) _dir.cum.push(_dir.cum[i - 1] + R.havFt(route.coords[i - 1], route.coords[i]));
@@ -10456,7 +10551,7 @@ function tpcpComputeRoute() {
   if (_dir.map) { _dir.map.remove(); _dir.map = null; }
   _gps.dot = null;
   _dir.map = L.map('tpcpDirMap', { minZoom: 15, maxZoom: 19, zoomControl: false, maxBounds: [[33.8008, -117.9290], [33.8212, -117.9095]], maxBoundsViscosity: 1.0 });
-  tpcpTileLayer(_dir.park).addTo(_dir.map);
+  tpcpTileLayer(_dir.park, _dir.tiles || null).addTo(_dir.map);
   var ll = route.coords.map(function (c) { return [c[0], c[1]]; });
   L.polyline(ll, { color: '#FFFFFF', weight: 9, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }).addTo(_dir.map);
   L.polyline(ll, { color: '#D43D2A', weight: 5, lineCap: 'round', lineJoin: 'round' }).addTo(_dir.map);
