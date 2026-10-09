@@ -9138,14 +9138,20 @@ function tpcpConfirmSwap() {
 var _tpcpAssets = {};
 function tpcpLoadScript(src) {
   if (_tpcpAssets[src]) return _tpcpAssets[src];
-  _tpcpAssets[src] = new Promise(function (res, rej) {
+  var p = new Promise(function (res, rej) {
     var s = document.createElement('script');
     s.src = src + '?v=20261006';
     s.onload = res;
     s.onerror = function () { rej(new Error('load failed: ' + src)); };
     document.head.appendChild(s);
   });
-  return _tpcpAssets[src];
+  _tpcpAssets[src] = p;
+  // Evict rejections (Claude msg 116, F4): a cached rejected promise
+  // makes one transient load failure a session-permanent outage.
+  // Deleting it on rejection makes the next call a real retry.
+  // Marker: rejection eviction (msg 116)
+  p.catch(function () { if (_tpcpAssets[src] === p) delete _tpcpAssets[src]; });
+  return p;
 }
 function tpcpToast(msg) {
   var t = document.getElementById('tpcpToast');
@@ -9267,7 +9273,7 @@ function tpcpInitMiniMap() {
   // The resort supplement pack is part of this map’s load list
   // (Claude msg 106): tpcpResortTiles() needs it for the complete
   // merge. The shared ensure below loads it too; loads dedupe by name.
-  if (!window.TPCP_TILES_RESORT) tpcpLoadScript('park-tiles-resort.js');
+  if (!window.TPCP_TILES_RESORT) tpcpLoadScript('park-tiles-resort.js').catch(function (e) { try { console.error('[map] mini-map resort pack preload failed:', e); } catch (err) {} });
   tpcpEnsureResort().then(function () {
     var host = document.getElementById('tpcpMiniMap');
     if (!host) return;
@@ -9527,14 +9533,97 @@ function tpcpMapForeground() {
   if (document.hidden) return;
   tpcpMapRefreshSize();
 }
-// Zoom-end tile watchdog (Claude msg 106): a tile still showing the
-// fallback image whose key EXISTS in the merged pack is a stale-view
-// artifact (the Oct 8 device banding) -- redraw the layer once.
-// Out-of-frame tiles have no packed key by design, so the
-// exists-in-dict guard means this can never fire on the by-design
-// beige margins.
+// Size-driven repair (Claude msg 116, F1-F3). The round-1 refresh
+// ladder measured on a guessed schedule (rAF / +60 ms / +350 ms) and
+// is a no-op whenever size and view are unchanged, so a map created
+// against unsettled layout stayed stale until a pan/zoom changed a
+// pane transform. Repair is now driven by OBSERVED size: a
+// ResizeObserver on the container fires when layout actually
+// settles, creation is deferred while the container reports a
+// degenerate size, and every open self-checks the map's measured
+// size and the overlay SVG box against the container.
+var _pmObserver = null;
+var _pmPendingOpen = false;
+function tpcpMapContainer() { return document.getElementById('tpcpFullMap'); }
+// Degenerate-size guard (msg 116, F2): no layout box at all, or a
+// height that is only a small fraction of the map view's own height
+// (a laid-out container fills the view below its header), means
+// layout has not settled and any size measured now would be stale.
+function tpcpMapSizeDegenerate(el) {
+  if (!el) return true;
+  var w = el.clientWidth, h = el.clientHeight;
+  if (!w || !h) return true;
+  var view = document.getElementById('tpcpMapView');
+  var vh = view ? view.clientHeight : 0;
+  if (vh > 0 && h < vh * 0.25) return true;
+  return false;
+}
+// The repair (msg 116, F1): re-measure, reframe, then the repaint
+// nudge -- pan out and back within the same frame. The end-state
+// view is identical to the start-state view, but the pane transform
+// changes, which is what forces WKWebView to re-rasterize the tile
+// and overlay layers -- mechanically what Beau's healing pan did.
+function tpcpMapRepairSize(reason) {
+  if (!_pm.map) return;
+  var el = _pm.map.getContainer();
+  _pm.map.invalidateSize();
+  tpcpFrameMap();
+  _pm.map.panBy([0, 1], { animate: false });
+  _pm.map.panBy([0, -1], { animate: false });
+  var ms = _pm.map.getSize();
+  try { console.log('[map] size repair (' + reason + '): map size now ' + ms.x + 'x' + ms.y + ', container ' + el.clientWidth + 'x' + el.clientHeight); } catch (e) {}
+}
+// Open-time self-check (msg 116, F3): the map's measured size must
+// equal the container's client size and the overlay SVG box must
+// cover the map size (paths outside it are clipped and never
+// paint). A mismatch -- including a half-created map inherited
+// behind the creation guard from a failed earlier open -- runs the
+// F1 repair and logs one flags-only [map] line. A match is silent.
+function tpcpMapSelfCheck() {
+  if (!_pm.map) return;
+  var el = _pm.map.getContainer();
+  if (tpcpMapSizeDegenerate(el)) return;
+  var ms = _pm.map.getSize();
+  var bad = (ms.x !== el.clientWidth || ms.y !== el.clientHeight);
+  if (!bad) {
+    var svg = el.querySelector('.leaflet-overlay-pane svg');
+    if (svg) {
+      var sw = parseFloat(svg.getAttribute('width')), sh = parseFloat(svg.getAttribute('height'));
+      if (!(sw >= ms.x && sh >= ms.y)) bad = true;
+    }
+  }
+  if (bad) tpcpMapRepairSize('self-check');
+}
+function tpcpMapObserveSizes() {
+  if (_pmObserver || typeof ResizeObserver === 'undefined') return;
+  var el = tpcpMapContainer();
+  if (!el) return;
+  _pmObserver = new ResizeObserver(function () {
+    var host = tpcpMapContainer();
+    if (!host || tpcpMapSizeDegenerate(host)) return;
+    if (!_pm.map) {
+      // F2 deferred creation: the observer's first true size creates.
+      if (_pmPendingOpen) {
+        _pmPendingOpen = false;
+        try { tpcpShowResortMap(); } catch (e) { try { console.error('[map] deferred map creation failed:', e); } catch (err) {} tpcpToast('The park map could not be loaded.'); }
+      }
+      return;
+    }
+    var ms = _pm.map.getSize();
+    if (ms.x !== host.clientWidth || ms.y !== host.clientHeight) tpcpMapRepairSize('observer');
+  });
+  _pmObserver.observe(el);
+}
+// Tile watchdog (Claude msg 106; wiring extended msg 116, F5): a
+// tile still showing the fallback image whose key EXISTS in the
+// merged pack is a stale-view artifact (the Oct 8 device banding)
+// -- redraw the layer once. Out-of-frame tiles have no packed key
+// by design, so the exists-in-dict guard means this can never fire
+// on the by-design beige margins. Runs on zoomend, moveend, and
+// open completion; hygiene only -- the size repair is F1-F3.
 var TPCP_TILE_FALLBACK_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAwMCAO+ip1sAAAAASUVORK5CYII=';
-function tpcpMapZoomWatchdog() {
+function tpcpMapZoomWatchdog(source) {
+  var src = (typeof source === 'string') ? source : 'zoomend';
   var layer = _pm.tileLayer;
   if (!layer || !layer._tiles || !_pm.map) return;
   var dict = tpcpResortTiles();
@@ -9548,7 +9637,7 @@ function tpcpMapZoomWatchdog() {
   }
   if (bad > 0) {
     layer.redraw();
-    try { console.log('[map] zoomend watchdog redraw: ' + bad + ' in-view fallback tile(s) had packed keys'); } catch (e) {}
+    try { console.log('[map] ' + src + ' watchdog redraw: ' + bad + ' in-view fallback tile(s) had packed keys'); } catch (e) {}
   }
 }
 function tpcpBindPinPopup(marker, pin, dirSpot) {
@@ -9627,12 +9716,23 @@ function tpcpBuildResortMarkers() {
   });
 }
 function tpcpShowResortMap() {
+  tpcpMapObserveSizes();
   if (!_pm.map) {
+    if (typeof ResizeObserver !== 'undefined' && tpcpMapSizeDegenerate(tpcpMapContainer())) {
+      // F2 (Claude msg 116): never create against a degenerate size
+      // -- a map measured now would keep a stale size, a clipped
+      // overlay SVG, and stale tile rows for the whole session.
+      // The ResizeObserver creates it on the first true size.
+      _pmPendingOpen = true;
+      return;
+    }
+    _pmPendingOpen = false;
     _pm.map = L.map('tpcpFullMap', { minZoom: 13, maxZoom: 19, maxBounds: TPCP_RESORT_MAXBOUNDS, maxBoundsViscosity: 1.0 });
     _pm.tileLayer = tpcpTileLayer(null, tpcpResortTiles());
     _pm.tileLayer.addTo(_pm.map);
     tpcpBuildResortMarkers();
     _pm.map.on('zoomend', tpcpMapZoomWatchdog);
+    _pm.map.on('moveend', function () { tpcpMapZoomWatchdog('moveend'); });
     window.addEventListener('resize', tpcpMapRefreshSize);
     window.addEventListener('orientationchange', tpcpMapRefreshSize);
     document.addEventListener('visibilitychange', tpcpMapForeground);
@@ -9644,6 +9744,13 @@ function tpcpShowResortMap() {
   requestAnimationFrame(function () { if (_pm.map) _pm.map.invalidateSize(); });
   setTimeout(function () { if (_pm.map) { _pm.map.invalidateSize(); applyView(); } }, 60);
   setTimeout(function () { if (_pm.map) _pm.map.invalidateSize(); }, 350);
+  // F3 (Claude msg 116): open-time self-check -- catches a stale
+  // size, a clipped overlay, or a half-created map inherited from a
+  // failed earlier open. Silent when the map matches its container.
+  tpcpMapSelfCheck();
+  // F5 (Claude msg 116): the tile watchdog also runs at open
+  // completion (hygiene only; the repair above is F1-F3).
+  tpcpMapZoomWatchdog('open');
 }
 function openParkMap(park, layer) {
   var view = document.getElementById('tpcpMapView');
@@ -9657,7 +9764,7 @@ function openParkMap(park, layer) {
   // open frames the full resort, including opens from the mini-map).
   tpcpEnsureResort().then(function () {
     tpcpShowResortMap();
-  }).catch(function () { tpcpToast('The park map could not be loaded.'); });
+  }).catch(function (err) { try { console.error('[map] park map load failed:', err); } catch (e) {} tpcpToast('The park map could not be loaded.'); });
 }
 function openParkMapRestrooms() { openParkMap(null, 'restrooms'); }
 function openParkMapServices() { openParkMap(null, 'services'); }
