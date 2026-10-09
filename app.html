@@ -8053,6 +8053,7 @@ function tpcpPresentPolledEpisodes(list) {
         'class': ep.class || '',
         tag: ep.tag || '',
         episodeId: ep.episodeId,
+        url: ep.url || '',
         ymd: ep.ymd || '',
         schedVersion: (ep.schedVersion != null ? ep.schedVersion : null)
       }
@@ -8355,6 +8356,8 @@ function showWaitSpikeToast(rideName, waitMins) {
 
   title.textContent = rideName + ' is spiking \u2014 ' + waitMins + ' min wait';
   toast.dataset.rideName = rideName;
+  toast.dataset.pushClass = ''; // a local spike render is not a booking: no push tap target
+  toast.dataset.pushUrl = '';
 
   // Show toast with slide-up animation
   toast.style.display = 'flex';
@@ -8374,6 +8377,8 @@ function dismissWaitSpikeToast() {
   if (!toast) return;
   const rideName = toast.dataset.rideName;
   if (rideName) _spikeIgnored[rideName] = true;
+  toast.dataset.pushClass = '';
+  toast.dataset.pushUrl = '';
   toast.style.transform = 'translateY(100%)';
   setTimeout(() => { toast.style.display = 'none'; }, 300);
   if (_spikeToastTimer) clearTimeout(_spikeToastTimer);
