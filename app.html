@@ -2077,6 +2077,18 @@ window.renderClosureAlerts = function() {
 </div>
 
 <div id="waitSpikeToast" style="display:none; position:fixed; bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px); left:0; right:0; z-index:150; background:#071E25; border:1px solid rgba(255,255,255,0.12); border-radius:14px 14px 0 0; padding:14px 16px 10px; align-items:center; gap:10px; transform:translateY(100%); transition:transform 0.3s ease;"><div style="width:32px; height:32px; border-radius:50%; background:#C86030; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1; min-width:0;"><div id="waitSpikeTitle" style="font-size:11px; font-weight:700; color:#fff; line-height:1.3;"></div><div id="waitSpikeSub" style="font-size:9px; color:rgba(255,255,255,0.55); margin-top:2px;">Want me to find a better window?</div></div><div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;"><button onclick="handleWaitSpikeReroute()" style="background:#C86030; border:none; border-radius:6px; padding:5px 10px; font-size:9px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit;">Reroute me</button><button onclick="dismissWaitSpikeToast()" style="background:transparent; border:none; padding:5px 10px; font-size:9px; font-weight:600; color:rgba(255,255,255,0.45); cursor:pointer; font-family:inherit;">Ignore</button></div></div>
+<div id="tpcpAlertModal" style="display:none; position:fixed; inset:0; z-index:9800; background:rgba(4,20,25,0.58); align-items:center; justify-content:center; padding:24px;">
+  <div style="background:#071E25; border:1px solid rgba(255,255,255,0.14); border-radius:16px; width:100%; max-width:340px; padding:20px 18px 16px; box-shadow:0 18px 50px rgba(0,0,0,0.45); text-align:center;">
+    <div id="tpcpAlertKicker" style="font-size:9px; font-weight:800; letter-spacing:0.14em; color:#E8A840; text-transform:uppercase;"></div>
+    <div id="tpcpAlertTitle" style="font-size:16px; font-weight:800; color:#fff; line-height:1.3; margin-top:6px;"></div>
+    <div id="tpcpAlertBody" style="font-size:12.5px; color:rgba(255,255,255,0.72); line-height:1.45; margin-top:6px;"></div>
+    <div id="tpcpAlertConfirm" style="display:none; font-size:12.5px; color:#fff; line-height:1.45; margin-top:10px; background:rgba(255,255,255,0.07); border-radius:10px; padding:10px 12px;"></div>
+    <div style="display:flex; gap:8px; margin-top:16px;">
+      <button id="tpcpAlertPrimary" onclick="tpcpAlertPrimaryAction()" style="flex:1; background:#C86030; border:none; border-radius:9px; padding:11px 10px; font-size:13px; font-weight:800; color:#fff; cursor:pointer; font-family:inherit;"></button>
+      <button id="tpcpAlertSecondary" onclick="tpcpAlertSecondaryAction()" style="flex:1; background:transparent; border:1.5px solid rgba(255,255,255,0.25); border-radius:9px; padding:11px 10px; font-size:13px; font-weight:700; color:rgba(255,255,255,0.8); cursor:pointer; font-family:inherit;"></button>
+    </div>
+  </div>
+</div>
 <!-- ===== SECTION 2: BOTTOM NAVIGATION BAR ===== -->
 <nav class="bottom-nav" id="bottomNav" role="navigation" aria-label="Main navigation">
 
@@ -7925,6 +7937,15 @@ document.addEventListener('DOMContentLoaded', function() {
 // was retired (msg 94 (ii)): a foreground-consumed alert never enters
 // the delivered list, so the sweep could not see the case it existed
 // for, and the poll backstop makes it redundant.
+// Msg 102: presentation is a CLASS-SWITCHED renderer behind this same
+// handler (decision vs awareness): a reroute decision (test today, an
+// offer-carrying ride payload at step (v)) is a centered modal that
+// persists until answered; plan-changed and bare ride updates are
+// centered awareness modals with a single Acknowledge and a longer
+// auto-dismiss; booking keeps the light bottom toast above the tab
+// bar, tappable to its deep link. Presentations run through ONE queue
+// and the presented mark is set when a presentation OPENS
+// (mark-on-present), never when it is merely handled or queued.
 var _tpcpPresentedEpisodes = {};
 
 function tpcpClassFromTag(tag) {
@@ -7948,6 +7969,17 @@ function tpcpAppliedSchedVersion() {
   return v;
 }
 
+// A payload carries a reroute OFFER when the producer attaches one
+// (step (v)): an object under `reroute` (or `offer`). No live producer
+// emits one yet -- the monitor's payloads carry none -- so the decision
+// shape is exercised live only by the test class this round.
+function tpcpOfferFromData(d) {
+  if (!d || typeof d !== 'object') return null;
+  if (d.reroute && typeof d.reroute === 'object') return d.reroute;
+  if (d.offer && typeof d.offer === 'object') return d.offer;
+  return null;
+}
+
 function tpcpHandleForegroundPush(n) {
   try {
     if (!n) return;
@@ -7966,12 +7998,19 @@ function tpcpHandleForegroundPush(n) {
       if (!isNaN(pv) && av > 0 && pv <= av) return;
     }
     // Shared-episode dedupe: one presentation per episode per session.
+    // The presented mark is set by the presenter when a presentation
+    // OPENS (msg 102 mark-on-present): an episode queued behind another
+    // presentation is not yet marked, and the presenter drops its
+    // re-deliveries without rendering anything new.
     var ep = d.episodeId || '';
-    if (ep) {
-      if (_tpcpPresentedEpisodes[ep]) return;
-      _tpcpPresentedEpisodes[ep] = 1;
-    }
-    tpcpShowPushPopup(title, body, cls);
+    if (ep && _tpcpPresentedEpisodes[ep]) return;
+    tpcpShowPushPopup(title, body, cls, {
+      episodeId: ep,
+      tag: d.tag || '',
+      url: d.url || '',
+      ymd: d.ymd || '',
+      offer: tpcpOfferFromData(d)
+    });
   } catch (e) { console.warn('[push] foreground render failed', e && e.message); }
 }
 
@@ -8014,33 +8053,289 @@ function tpcpPresentPolledEpisodes(list) {
         'class': ep.class || '',
         tag: ep.tag || '',
         episodeId: ep.episodeId,
+        ymd: ep.ymd || '',
         schedVersion: (ep.schedVersion != null ? ep.schedVersion : null)
       }
     });
   }
 }
 
-// Generalized popup over the wait-spike toast component: the payload's
-// title + body, awareness + dismiss only. NO action button renders in
-// this build (msg 84: no inert buttons ship) -- the legacy Reroute
-// affordance's destination is step (v)'s work, so it stays hidden on
-// every push render.
-function tpcpShowPushPopup(title, body, cls) {
+// ===== CLASS-SWITCHED ALERT RENDERER (Claude msg 102) =====
+// Presentation layer ONLY, behind the handler above: decision vs
+// awareness. A reroute DECISION (the test class today; an
+// offer-carrying ride payload when step (v) attaches offers) renders
+// as a centered modal that PERSISTS until Accept or Deny. Plan-changed
+// and bare ride updates (down/up, and spike/drop/high carrying no
+// offer) render as a centered awareness modal: single Acknowledge,
+// auto-dismiss after TPCP_ALERT_AWARE_MS. Booking renders on the LIGHT
+// surface -- the wait-spike toast component, bottom-anchored ABOVE the
+// tab bar via the nav's own height vars (the f8871a53 derivation:
+// calc(var(--nav-h) + var(--safe-bottom) + 12px)) -- auto-dismissing
+// after the standard toast interval.
+// ONE presentation queue serves every class: while a presentation is
+// up, new episodes queue (never stack, never replace); the next
+// presents when the current is answered or dismissed. Queue cap is
+// TPCP_ALERT_QUEUE_MAX; on overflow the oldest AWARENESS presentation
+// is dropped first and a decision presentation is NEVER dropped.
+// Within the same ride, a newer queued episode replaces its queued
+// predecessor (collapse by ride identity -- the episodeId's rideKey
+// structure segment; the :fN fire-count suffix stays opaque, msg 88).
+var TPCP_ALERT_AWARE_MS = 12000;   // awareness auto-dismiss: longer than a toast glance, ~12s per the ruling
+var TPCP_ALERT_BOOKING_MS = 12000; // booking light surface: the standard toast interval
+var TPCP_ALERT_QUEUE_MAX = 3;
+var _tpcpAlertCurrent = null;      // the item on screen now (modal or booking light)
+var _tpcpAlertQueue = [];          // items waiting their turn
+var _tpcpAlertTimer = null;        // auto-dismiss timer for the current item only
+var _tpcpPendingEpisodes = {};     // episodeIds presented-open or queued (not yet marked)
+var _tpcpAlertLatestByGroup = {};  // ride group -> newest episodeId seen (supersede check)
+
+function tpcpOpenExternalUrl(url) {
+  if (!url) return;
+  try {
+    var B = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) || null;
+    if (B && B.open) { B.open({ url: url }); return; }
+  } catch (e) {}
+  try { window.open(url, '_system'); } catch (e2) {}
+}
+
+function tpcpAlertKicker(item) {
+  if (item.cls === 'test') return 'Test alert';
+  if (item.cls === 'plan-changed') return 'Plan changed';
+  var type = item.type || '';
+  if (type === 'down' || item.tag === 'tpcp-ride-down') return 'Ride down';
+  if (type === 'up' || item.tag === 'tpcp-ride-up') return 'Ride back up';
+  if (type === 'spike' || item.tag === 'tpcp-wait-spike') return 'Wait spike';
+  if (type === 'drop' || item.tag === 'tpcp-wait-drop') return 'Wait dropped';
+  if (type === 'high' || item.tag === 'tpcp-wait-high') return 'Long wait';
+  if (item.kind === 'decision') return 'Reroute suggestion';
+  return 'Ride update';
+}
+
+// The class switch. Signature grew a meta bag (episodeId / tag / url /
+// ymd / offer) in this build; the handler is the only caller.
+function tpcpShowPushPopup(title, body, cls, meta) {
+  meta = meta || {};
+  var item = {
+    episodeId: meta.episodeId || '',
+    cls: cls || '',
+    tag: meta.tag || '',
+    type: '',
+    title: title || 'Notification',
+    body: body || '',
+    url: meta.url || '',
+    ymd: meta.ymd || '',
+    offer: meta.offer || null,
+    kind: 'awareness',
+    group: '',
+    state: ''
+  };
+  if (item.cls === 'booking') item.kind = 'booking';
+  else if (item.cls === 'test' || item.offer) item.kind = 'decision';
+  // Ride identity from the episodeId's structure (ep:trip:ride:type:
+  // day[:fN]): the rideKey segment groups the queue collapse, the type
+  // segment labels the modal. The :fN suffix is never read (msg 88).
+  var idStr = String(item.episodeId || '');
+  var seg = idStr.split(':');
+  if (seg.length >= 5 && seg[0] === 'ep' && seg[2] !== 'booking') {
+    item.group = 'ride:' + seg[2];
+    item.type = seg[3] || '';
+    if (!item.ymd) item.ymd = seg[4] || '';
+  }
+  tpcpAlertRoute(item);
+}
+
+function tpcpAlertRoute(item) {
+  if (item.episodeId) {
+    // Already on screen or already queued: a re-delivery (the poll
+    // re-offers every unmarked episode each tick) renders nothing new.
+    if (_tpcpPresentedEpisodes[item.episodeId] || _tpcpPendingEpisodes[item.episodeId]) return;
+    _tpcpPendingEpisodes[item.episodeId] = 1;
+  }
+  if (item.group) _tpcpAlertLatestByGroup[item.group] = item.episodeId;
+  if (_tpcpAlertCurrent) { tpcpAlertEnqueue(item); return; }
+  tpcpAlertOpen(item);
+}
+
+function tpcpAlertForget(item) {
+  if (item && item.episodeId) delete _tpcpPendingEpisodes[item.episodeId];
+}
+
+function tpcpAlertEnqueue(item) {
+  // Collapse by ride identity: a newer queued episode for the same
+  // ride replaces its queued predecessor.
+  if (item.group) {
+    for (var i = 0; i < _tpcpAlertQueue.length; i++) {
+      if (_tpcpAlertQueue[i].group === item.group) {
+        tpcpAlertForget(_tpcpAlertQueue[i]);
+        _tpcpAlertQueue.splice(i, 1);
+        break;
+      }
+    }
+  }
+  if (_tpcpAlertQueue.length >= TPCP_ALERT_QUEUE_MAX) {
+    // Overflow: drop the OLDEST awareness-tier presentation (booking
+    // light or awareness modal). A decision is never dropped; if the
+    // queue is all decisions, the incoming item waits for a later
+    // re-delivery instead (it stays unmarked and unpending).
+    var dropIdx = -1;
+    for (var j = 0; j < _tpcpAlertQueue.length; j++) {
+      if (_tpcpAlertQueue[j].kind !== 'decision') { dropIdx = j; break; }
+    }
+    if (dropIdx === -1) { tpcpAlertForget(item); return; }
+    tpcpAlertForget(_tpcpAlertQueue[dropIdx]);
+    _tpcpAlertQueue.splice(dropIdx, 1);
+  }
+  _tpcpAlertQueue.push(item);
+}
+
+function tpcpAlertOpen(item) {
+  _tpcpAlertCurrent = item;
+  // MARK-ON-PRESENT: the presented mark sets as the presentation
+  // opens -- an unanswered persistent modal is never re-presented by
+  // the poll, and an episode dropped from the queue unshown stays
+  // unmarked, so a later re-delivery can still present it.
+  if (item.episodeId) _tpcpPresentedEpisodes[item.episodeId] = 1;
+  if (item.kind === 'booking') tpcpAlertShowBooking(item);
+  else tpcpAlertShowModal(item);
+  if (item.kind !== 'decision') {
+    var ms = (item.kind === 'booking') ? TPCP_ALERT_BOOKING_MS : TPCP_ALERT_AWARE_MS;
+    _tpcpAlertTimer = setTimeout(function() {
+      // Identity-checked: a stale timer can never dismiss a later
+      // presentation or leak into the queue's next item.
+      if (_tpcpAlertCurrent === item) tpcpDismissAlert();
+    }, ms);
+  }
+}
+
+function tpcpAlertShowModal(item) {
+  var m = document.getElementById('tpcpAlertModal');
+  if (!m) return;
+  m.dataset.pushClass = item.cls || '';
+  m.dataset.episodeId = item.episodeId || '';
+  document.getElementById('tpcpAlertKicker').textContent = tpcpAlertKicker(item);
+  document.getElementById('tpcpAlertTitle').textContent = item.title;
+  var bodyEl = document.getElementById('tpcpAlertBody');
+  bodyEl.textContent = item.body;
+  bodyEl.style.display = item.body ? '' : 'none';
+  var conf = document.getElementById('tpcpAlertConfirm');
+  conf.style.display = 'none';
+  conf.textContent = '';
+  var pri = document.getElementById('tpcpAlertPrimary');
+  var sec = document.getElementById('tpcpAlertSecondary');
+  if (item.kind === 'decision') {
+    pri.textContent = (item.cls === 'test') ? 'Accept (test)' : 'Accept';
+    sec.textContent = (item.cls === 'test') ? 'Deny (test)' : 'Deny';
+    sec.style.display = '';
+  } else {
+    pri.textContent = 'Got it';
+    sec.style.display = 'none';
+  }
+  m.style.display = 'flex';
+}
+
+function tpcpAlertShowBooking(item) {
   var toast = document.getElementById('waitSpikeToast');
   var titleEl = document.getElementById('waitSpikeTitle');
   var subEl = document.getElementById('waitSpikeSub');
   if (!toast || !titleEl) return;
-  titleEl.textContent = title || 'Notification';
-  if (subEl) { subEl.textContent = body || ''; subEl.style.display = body ? '' : 'none'; }
+  titleEl.textContent = item.title;
+  if (subEl) { subEl.textContent = item.body || ''; subEl.style.display = item.body ? '' : 'none'; }
   toast.dataset.rideName = ''; // not a spike render: dismiss must not mark a ride ignored
-  toast.dataset.pushClass = cls || '';
+  toast.dataset.pushClass = 'booking';
+  toast.dataset.pushUrl = item.url || '';
   var rrBtn = toast.querySelector('[onclick*="handleWaitSpikeReroute"]');
-  if (rrBtn) rrBtn.style.display = 'none';
+  if (rrBtn) rrBtn.style.display = 'none'; // no inert buttons: the toast body itself is the tap target
   toast.style.display = 'flex';
   requestAnimationFrame(function() { toast.style.transform = 'translateY(0)'; });
-  if (_spikeToastTimer) clearTimeout(_spikeToastTimer);
-  _spikeToastTimer = setTimeout(function() { dismissWaitSpikeToast(); }, 12000);
 }
+
+function tpcpDismissAlert() {
+  var item = _tpcpAlertCurrent;
+  if (!item) return;
+  if (_tpcpAlertTimer) { clearTimeout(_tpcpAlertTimer); _tpcpAlertTimer = null; }
+  _tpcpAlertCurrent = null;
+  if (item.kind === 'booking') {
+    var toast = document.getElementById('waitSpikeToast');
+    if (toast) {
+      toast.style.transform = 'translateY(100%)';
+      setTimeout(function() {
+        // A queued booking may have re-opened the same surface since.
+        if (!_tpcpAlertCurrent) { toast.style.display = 'none'; toast.dataset.pushUrl = ''; toast.dataset.pushClass = ''; }
+      }, 300);
+    }
+  } else {
+    var m = document.getElementById('tpcpAlertModal');
+    if (m) m.style.display = 'none';
+  }
+  var next = _tpcpAlertQueue.shift();
+  if (next) tpcpAlertOpen(next);
+}
+
+function tpcpAlertPrimaryAction() {
+  var item = _tpcpAlertCurrent;
+  if (!item) return;
+  if (item.state === 'confirm') { tpcpDismissAlert(); return; }
+  if (item.kind === 'decision') {
+    if (item.cls === 'test') {
+      // Honest test confirmation: Accept executed nothing. On a real
+      // alert this button runs the reroute; the test proves the shape.
+      item.state = 'confirm';
+      var conf = document.getElementById('tpcpAlertConfirm');
+      conf.textContent = 'This is a test \u2014 no reroute ran and nothing in your plan changed. On a real alert, Accept runs the reroute right here.';
+      conf.style.display = '';
+      document.getElementById('tpcpAlertPrimary').textContent = 'Close';
+      document.getElementById('tpcpAlertSecondary').style.display = 'none';
+      return;
+    }
+    // Step-(v) seam: the live reroute executor registers
+    // window.tpcpExecuteRerouteOffer(offer, item). Until (v) lands no
+    // producer attaches an offer, so this branch is not live; Deny and
+    // Acknowledge are the honest actions today.
+    if (typeof window.tpcpExecuteRerouteOffer === 'function') {
+      try { window.tpcpExecuteRerouteOffer(item.offer, item); } catch (e) {}
+    }
+    tpcpDismissAlert();
+    return;
+  }
+  tpcpDismissAlert(); // awareness "Got it"
+}
+
+function tpcpAlertSecondaryAction() {
+  // Deny (decision) -- the only secondary action; awareness modals
+  // hide the button entirely.
+  tpcpDismissAlert();
+}
+
+// Booking tap-through + decision-modal survival on foreground return.
+(function() {
+  function attach() {
+    var toast = document.getElementById('waitSpikeToast');
+    if (toast && !toast.dataset.tpcpBookingTap) {
+      toast.dataset.tpcpBookingTap = '1';
+      toast.addEventListener('click', function(e) {
+        if (!toast.dataset || toast.dataset.pushClass !== 'booking' || !toast.dataset.pushUrl) return;
+        if (e.target && e.target.closest && e.target.closest('button')) return; // the toast's own buttons keep their actions
+        tpcpOpenExternalUrl(toast.dataset.pushUrl);
+        if (_tpcpAlertCurrent && _tpcpAlertCurrent.kind === 'booking') tpcpDismissAlert();
+      });
+    }
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) return;
+      var item = _tpcpAlertCurrent;
+      if (!item || item.kind !== 'decision') return;
+      // An unanswered decision modal survives background/lock return
+      // while its episode is still today's and still the newest for
+      // its ride; a stale or superseded one quietly dismisses itself
+      // instead of asking about a moment that has passed.
+      var stale = false;
+      if (item.ymd && item.ymd !== tpcpTodayYmdPT()) stale = true;
+      if (item.group && _tpcpAlertLatestByGroup[item.group] && _tpcpAlertLatestByGroup[item.group] !== item.episodeId) stale = true;
+      if (stale) tpcpDismissAlert();
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();
 
 // Wait spike alert system
 // RETIRED (Claude msg 84): the in-app spike DETECTOR (checkForWaitSpikes --
