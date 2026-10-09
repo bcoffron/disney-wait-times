@@ -1039,6 +1039,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .gp-segs{display:flex;gap:4px;margin:10px 0 2px}
 .gp-segs i{height:4px;flex:1;border-radius:2px;background:rgba(7,30,37,0.12)}
 .gp-segs i.on{background:linear-gradient(90deg,#1A8880,#35B5A9)}
+/* Working sweep (Claude msg 112): while a day's generation request is in
+   flight, its segment carries .act and a highlight sweeps it -- a CSS
+   animation bound to the class, which the render sync sets ONLY from the
+   real 'building' state at the dispatch/return seams. No timers and no
+   progress claims: the class exists only while a request is genuinely in
+   flight, and the segment settles to the real fill (or failed) on return. */
+.gp-segs i.act{position:relative;overflow:hidden}
+.gp-segs i.act::after{content:'';position:absolute;top:0;bottom:0;left:0;width:45%;background:linear-gradient(90deg,rgba(26,136,128,0),rgba(26,136,128,.45) 45%,rgba(53,181,169,.8) 55%,rgba(26,136,128,0));animation:gpSweep 1.4s linear infinite}
+@keyframes gpSweep{from{transform:translateX(-110%)}to{transform:translateX(330%)}}
+@media (prefers-reduced-motion: reduce){.gp-segs i.act{background:rgba(26,136,128,.35)}.gp-segs i.act::after{display:none}}
 .gp-note{font-size:12px;color:#B0552F;line-height:1.45;padding-top:8px}
 .pt-gen-line{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:8px 0;border-top:1px solid var(--border,rgba(7,30,37,0.08));color:#8AA5A2}
 .pt-gen-line.building{color:var(--text,#071E25);font-weight:600}
@@ -1509,6 +1519,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .app { background:#FFF8F0 !important; }
   .ride-block, .show-card, .info-card, .api-setup { background:#FFFFFF !important; }
   input, select, textarea { background:#FFFFFF !important; color:#1A1235 !important; }
+  .gp-segs i.act::after{background:linear-gradient(90deg,rgba(53,181,169,0),rgba(53,181,169,.55) 45%,rgba(110,224,210,.9) 55%,rgba(53,181,169,0))}
 }
 
 /* Magic Day celebration screen */
@@ -6615,7 +6626,7 @@ function gpSync() {
   labelEl.textContent = gpLabelText(total, states);
   var segHtml = '', dayHtml = '', failedIdx = -1;
   for (var i = 0; i < total; i++) {
-    segHtml += '<i class="' + (states[i] === 'done' ? 'on' : '') + '"></i>';
+    segHtml += '<i class="' + (states[i] === 'done' ? 'on' : states[i] === 'building' ? 'act' : '') + '"></i>';
     dayHtml += '<div class="pt-gen-line ' + states[i] + '">' + gpLineHTML(i, states[i]) + '</div>';
     if (states[i] === 'failed' && failedIdx === -1) failedIdx = i;
   }

@@ -183,6 +183,17 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 .gp-segs{display:flex;gap:4px;margin:8px 0 2px;}
 .gp-segs i{height:4px;flex:1;border-radius:2px;background:rgba(7,30,37,0.12);}
 .gp-segs i.on{background:linear-gradient(90deg,#1A8880,#35B5A9);}
+/* Working sweep (Claude msg 112): while a day's generation request is in
+   flight, its segment carries .act and a highlight sweeps it -- a CSS
+   animation bound to the class, which the render sync sets ONLY from the
+   real 'building' state at the dispatch/return seams. No timers and no
+   progress claims: the class exists only while a request is genuinely in
+   flight, and the segment settles to the real fill (or failed) on return. */
+.gp-segs i.act{position:relative;overflow:hidden}
+.gp-segs i.act::after{content:'';position:absolute;top:0;bottom:0;left:0;width:45%;background:linear-gradient(90deg,rgba(26,136,128,0),rgba(26,136,128,.45) 45%,rgba(53,181,169,.8) 55%,rgba(26,136,128,0));animation:gpSweep 1.4s linear infinite}
+@keyframes gpSweep{from{transform:translateX(-110%)}to{transform:translateX(330%)}}
+@media (prefers-color-scheme: dark){.gp-segs i.act::after{background:linear-gradient(90deg,rgba(53,181,169,0),rgba(53,181,169,.55) 45%,rgba(110,224,210,.9) 55%,rgba(53,181,169,0))}}
+@media (prefers-reduced-motion: reduce){.gp-segs i.act{background:rgba(26,136,128,.35)}.gp-segs i.act::after{display:none}}
 /* Pinch-zoom pair (Claude msg 94): the viewport cap is now 5.0 so small
    text can be pinched larger; with the old cap gone, WebKit would
    focus-zoom on this page's sub-16px fields, so this 16px form floor
@@ -1861,7 +1872,7 @@ function ptSyncGenProgress() {
     states.push(cl.contains('done') ? 'done' : cl.contains('building') ? 'building' : cl.contains('failed') ? 'failed' : 'waiting');
   }
   var html = '';
-  for (var j = 0; j < states.length; j++) html += '<i class="' + (states[j] === 'done' ? 'on' : '') + '"></i>';
+  for (var j = 0; j < states.length; j++) html += '<i class="' + (states[j] === 'done' ? 'on' : states[j] === 'building' ? 'act' : '') + '"></i>';
   segsEl.innerHTML = html;
   labelEl.textContent = gpLabelText(states.length, states);
 }
