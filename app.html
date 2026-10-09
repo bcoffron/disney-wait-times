@@ -843,9 +843,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tpcp-map-head{display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 14px 12px;background:#fff;border-bottom:1px solid #E7E1D0}
 .tpcp-map-back{border:0;background:#173A5E;border-radius:99px;height:36px;padding:0 14px;font-size:14px;font-weight:700;cursor:pointer;color:#FFFFFF}
 .tpcp-map-title{font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;color:#173A5E;flex:1}
-.tpcp-park-toggle{display:flex;background:#F0EDE4;border-radius:9px;padding:3px}
-.tpcp-park-toggle button{border:0;background:transparent;padding:6px 10px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#5A6B72;cursor:pointer}
-.tpcp-park-toggle button.on{background:#173A5E;color:#fff}
 .tpcp-map-body{flex:1;position:relative}
 .tpcp-map-el{position:absolute;inset:0;background:#EFEDE7}
 .tpcp-pop{min-width:150px;text-align:left}
@@ -9064,11 +9061,6 @@ function tpcpConfirmSwap() {
   <div class="tpcp-map-head">
     <button class="tpcp-map-back" onclick="closeParkMap()" aria-label="Back">&#8592; Back</button>
     <div class="tpcp-map-title">Park Map</div>
-    <div class="tpcp-park-toggle">
-      <button id="tpcpZoomResort" class="on" onclick="tpcpZoomMap('resort')">Resort</button>
-      <button id="tpcpZoomDL" onclick="tpcpZoomMap('DL')">Disneyland</button>
-      <button id="tpcpZoomDCA" onclick="tpcpZoomMap('DCA')">California Adventure</button>
-    </div>
   </div>
   <div class="tpcp-map-body">
     <div class="tpcp-map-el" id="tpcpFullMap"></div>
@@ -9199,7 +9191,14 @@ function tpcpResortTiles() {
     });
     var supp = window.TPCP_TILES_RESORT || {};
     for (var k2 in supp) merged[k2] = supp[k2];
-    window.TPCP_TILES_RESORT_ALL = merged;
+    // Cache only a complete merge (Claude msg 106): without the resort
+    // supplement the merge lacks the western tile column and the
+    // low-zoom parents, and caching it would poison every map for the
+    // session. An incomplete merge is returned uncached and rebuilt
+    // on the next call, so the complete merge caches once the
+    // supplement has loaded.
+    if (window.TPCP_TILES_RESORT) window.TPCP_TILES_RESORT_ALL = merged;
+    return merged;
   }
   return window.TPCP_TILES_RESORT_ALL;
 }
@@ -9252,6 +9251,10 @@ function tpcpMiniPark() {
 function tpcpInitMiniMap() {
   var el = document.getElementById('tpcpMiniMap');
   if (!el) return;
+  // The resort supplement pack is part of this map’s load list
+  // (Claude msg 106): tpcpResortTiles() needs it for the complete
+  // merge. The shared ensure below loads it too; loads dedupe by name.
+  if (!window.TPCP_TILES_RESORT) tpcpLoadScript('park-tiles-resort.js');
   tpcpEnsureResort().then(function () {
     var host = document.getElementById('tpcpMiniMap');
     if (!host) return;
@@ -9489,17 +9492,51 @@ var TPCP_EXTRA_PINS = [
     ['Palisades Stage',33.8056575,-117.9214224,'se','DCA','ent'],
     ['World of Color',33.8053662,-117.9218418,'se','DCA','ent']
 ];
-// Zoom shortcuts for the single resort frame — the switcher's replacement.
-// Park views reuse the retired per-park map centers.
+// The single resort frame (Claude msgs 60/106): there is no per-park
+// switcher -- every open frames the whole resort via tpcpFrameMap.
+// TPCP_PARK_VIEWS is retained for the dormant per-park restoration
+// path; live code does not read it.
 var TPCP_PARK_VIEWS = { DL: { center: [33.8125, -117.9190], zoom: 16 }, DCA: { center: [33.8072, -117.9190], zoom: 16 } };
-function tpcpZoomMap(which) {
-  ['Resort', 'DL', 'DCA'].forEach(function (k) {
-    var b = document.getElementById('tpcpZoom' + k);
-    if (b) b.classList.toggle('on', (which === 'resort' && k === 'Resort') || which === k);
-  });
+function tpcpFrameMap() {
   if (!_pm.map) return;
-  if (which === 'DL' || which === 'DCA') { _pm.park = which; _pm.map.setView(TPCP_PARK_VIEWS[which].center, TPCP_PARK_VIEWS[which].zoom); }
-  else _pm.map.fitBounds(TPCP_RESORT_BOUNDS);
+  _pm.map.fitBounds(TPCP_RESORT_BOUNDS);
+}
+// Refresh discipline for the session-persistent map (Claude msg 106):
+// created once, measured on open (rAF / +60 ms / +350 ms in
+// tpcpShowResortMap), and re-measured on resize / orientation change
+// and on return to foreground while it is open.
+function tpcpMapRefreshSize() {
+  if (!_pm.map) return;
+  var view = document.getElementById('tpcpMapView');
+  if (view && view.classList.contains('open')) _pm.map.invalidateSize();
+}
+function tpcpMapForeground() {
+  if (document.hidden) return;
+  tpcpMapRefreshSize();
+}
+// Zoom-end tile watchdog (Claude msg 106): a tile still showing the
+// fallback image whose key EXISTS in the merged pack is a stale-view
+// artifact (the Oct 8 device banding) -- redraw the layer once.
+// Out-of-frame tiles have no packed key by design, so the
+// exists-in-dict guard means this can never fire on the by-design
+// beige margins.
+var TPCP_TILE_FALLBACK_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+function tpcpMapZoomWatchdog() {
+  var layer = _pm.tileLayer;
+  if (!layer || !layer._tiles || !_pm.map) return;
+  var dict = tpcpResortTiles();
+  var zo = layer.options && layer.options.zoomOffset ? layer.options.zoomOffset : 0;
+  var bad = 0;
+  for (var k in layer._tiles) {
+    var t = layer._tiles[k];
+    if (!t || !t.current || !t.el || !t.coords) continue;
+    if ((t.el.src || '') !== TPCP_TILE_FALLBACK_SRC) continue;
+    if (dict[(t.coords.z + zo) + '/' + t.coords.x + '/' + t.coords.y]) bad++;
+  }
+  if (bad > 0) {
+    layer.redraw();
+    try { console.log('[map] zoomend watchdog redraw: ' + bad + ' in-view fallback tile(s) had packed keys'); } catch (e) {}
+  }
 }
 function tpcpBindPinPopup(marker, pin, dirSpot) {
   var zone = pin[4], kind = pin[5];
@@ -9576,17 +9613,24 @@ function tpcpBuildResortMarkers() {
     else _pm.seMarkers.push(m);
   });
 }
-function tpcpShowResortMap(focus) {
+function tpcpShowResortMap() {
   if (!_pm.map) {
     _pm.map = L.map('tpcpFullMap', { minZoom: 13, maxZoom: 19, maxBounds: TPCP_RESORT_MAXBOUNDS, maxBoundsViscosity: 1.0 });
-    tpcpTileLayer(null, tpcpResortTiles()).addTo(_pm.map);
+    _pm.tileLayer = tpcpTileLayer(null, tpcpResortTiles());
+    _pm.tileLayer.addTo(_pm.map);
     tpcpBuildResortMarkers();
+    _pm.map.on('zoomend', tpcpMapZoomWatchdog);
+    window.addEventListener('resize', tpcpMapRefreshSize);
+    window.addEventListener('orientationchange', tpcpMapRefreshSize);
+    document.addEventListener('visibilitychange', tpcpMapForeground);
   }
   tpcpApplyLayers();
   document.getElementById('tpcpPlaceCard').classList.remove('open');
-  var applyView = function () { tpcpZoomMap(focus || 'resort'); };
+  var applyView = function () { tpcpFrameMap(); };
   applyView();
+  requestAnimationFrame(function () { if (_pm.map) _pm.map.invalidateSize(); });
   setTimeout(function () { if (_pm.map) { _pm.map.invalidateSize(); applyView(); } }, 60);
+  setTimeout(function () { if (_pm.map) _pm.map.invalidateSize(); }, 350);
 }
 function openParkMap(park, layer) {
   var view = document.getElementById('tpcpMapView');
@@ -9596,9 +9640,10 @@ function openParkMap(park, layer) {
   if (layer === 'restrooms' || layer === 'services') _pm.showSvc = true;
   if (layer === 'se') _pm.showSE = true;
   if (layer === 'places') _pm.showPlaces = true;
-  var focus = (park === 'DL' || park === 'DCA') ? park : null;
+  // The park argument no longer frames the map (Claude msg 106: every
+  // open frames the full resort, including opens from the mini-map).
   tpcpEnsureResort().then(function () {
-    tpcpShowResortMap(focus);
+    tpcpShowResortMap();
   }).catch(function () { tpcpToast('The park map could not be loaded.'); });
 }
 function openParkMapRestrooms() { openParkMap(null, 'restrooms'); }
@@ -9612,8 +9657,8 @@ function closeParkMap() {
 // default zoom on the 390px screen: if in-park pins are not individually
 // legible/tappable there, restore by pointing openParkMap at this function
 // and re-adding the two header buttons (ids tpcpParkDL / tpcpParkDCA) and
-// the Restrooms chip (id tpcpChipRR). The zoom chips in tpcpZoomMap ship as
-// the first-line mitigation, so restoration should not be needed.
+// the Restrooms chip (id tpcpChipRR). The fitted resort frame is the
+// first-line mitigation, so restoration should not be needed.
 function tpcpLegacySwitchParkMap(park, skipEnsure) {
   _pm.park = park;
   document.getElementById('tpcpParkDL').classList.toggle('on', park === 'DL');
