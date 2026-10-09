@@ -2084,7 +2084,7 @@ window.renderClosureAlerts = function() {
   </div>
 </div>
 
-<div id="waitSpikeToast" style="display:none; position:fixed; bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px); left:0; right:0; z-index:150; background:#071E25; border:1px solid rgba(255,255,255,0.12); border-radius:14px 14px 0 0; padding:14px 16px 10px; align-items:center; gap:10px; transform:translateY(100%); transition:transform 0.3s ease;"><div style="width:32px; height:32px; border-radius:50%; background:#C86030; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1; min-width:0;"><div id="waitSpikeTitle" style="font-size:11px; font-weight:700; color:#fff; line-height:1.3;"></div><div id="waitSpikeSub" style="font-size:9px; color:rgba(255,255,255,0.55); margin-top:2px;">Want me to find a better window?</div></div><div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;"><button onclick="handleWaitSpikeReroute()" style="background:#C86030; border:none; border-radius:6px; padding:5px 10px; font-size:9px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit;">Reroute me</button><button onclick="dismissWaitSpikeToast()" style="background:transparent; border:none; padding:5px 10px; font-size:9px; font-weight:600; color:rgba(255,255,255,0.45); cursor:pointer; font-family:inherit;">Ignore</button></div></div>
+<div id="waitSpikeToast" style="display:none; position:fixed; bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px); left:0; right:0; z-index:150; background:#071E25; border:1px solid rgba(255,255,255,0.12); border-radius:14px 14px 0 0; padding:14px 16px 10px; align-items:center; gap:10px; transform:translateY(100%); transition:transform 0.3s ease;"><div style="width:32px; height:32px; border-radius:50%; background:#C86030; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1; min-width:0;"><div id="waitSpikeTitle" style="font-size:11px; font-weight:700; color:#fff; line-height:1.3;"></div><div id="waitSpikeSub" style="font-size:9px; color:rgba(255,255,255,0.55); margin-top:2px;">Want me to find a better window?</div></div><div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;"><button onclick="handleWaitSpikeReroute()" style="background:#C86030; border:none; border-radius:6px; padding:5px 10px; font-size:9px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit;">Reroute me</button><button onclick="tpcpDismissAlert()" style="background:transparent; border:none; padding:5px 10px; font-size:9px; font-weight:600; color:rgba(255,255,255,0.45); cursor:pointer; font-family:inherit;">Ignore</button></div></div>
 <div id="tpcpAlertModal" style="display:none; position:fixed; inset:0; z-index:9800; background:rgba(4,20,25,0.58); align-items:center; justify-content:center; padding:24px;">
   <div style="background:#071E25; border:1px solid rgba(255,255,255,0.14); border-radius:16px; width:100%; max-width:340px; padding:20px 18px 16px; box-shadow:0 18px 50px rgba(0,0,0,0.45); text-align:center;">
     <div id="tpcpAlertKicker" style="font-size:9px; font-weight:800; letter-spacing:0.14em; color:#E8A840; text-transform:uppercase;"></div>
@@ -8266,10 +8266,24 @@ function tpcpDismissAlert() {
   if (item.kind === 'booking') {
     var toast = document.getElementById('waitSpikeToast');
     if (toast) {
+      var dismissedEpisodeId = item.episodeId || '';
       toast.style.transform = 'translateY(100%)';
       setTimeout(function() {
-        // A queued booking may have re-opened the same surface since.
-        if (!_tpcpAlertCurrent) { toast.style.display = 'none'; toast.dataset.pushUrl = ''; toast.dataset.pushClass = ''; }
+        // EpisodeId-tagged teardown (msg 114): hide this booking's
+        // surface unless the toast has been re-owned by a booking
+        // presentation or the dismissed item is somehow current again.
+        // A queued MODAL (or an empty queue) must not strand the
+        // element at translateY(100%) -- the old guard tested whether
+        // ANY presentation was current, so a modal behind the booking
+        // vetoed the hide forever.
+        var current = _tpcpAlertCurrent;
+        var toastReopened = !!(current && current.kind === 'booking' && current.episodeId !== dismissedEpisodeId);
+        var dismissedStillCurrent = !!(current && current.episodeId === dismissedEpisodeId);
+        if (!toastReopened && !dismissedStillCurrent) {
+          toast.style.display = 'none';
+          toast.dataset.pushUrl = '';
+          toast.dataset.pushClass = '';
+        }
       }, 300);
     }
   } else {
@@ -8377,19 +8391,7 @@ function showWaitSpikeToast(rideName, waitMins) {
 
   // Auto-dismiss after 12 seconds
   if (_spikeToastTimer) clearTimeout(_spikeToastTimer);
-  _spikeToastTimer = setTimeout(() => dismissWaitSpikeToast(), 12000);
-}
-
-function dismissWaitSpikeToast() {
-  const toast = document.getElementById('waitSpikeToast');
-  if (!toast) return;
-  const rideName = toast.dataset.rideName;
-  if (rideName) _spikeIgnored[rideName] = true;
-  toast.dataset.pushClass = '';
-  toast.dataset.pushUrl = '';
-  toast.style.transform = 'translateY(100%)';
-  setTimeout(() => { toast.style.display = 'none'; }, 300);
-  if (_spikeToastTimer) clearTimeout(_spikeToastTimer);
+  _spikeToastTimer = setTimeout(() => tpcpDismissAlert(), 12000);
 }
 
 function handleWaitSpikeReroute() {
@@ -8612,8 +8614,8 @@ var _tpcpPendingSwap = null;
 // --- Main reroute (admin-only) ---
 
 async function tpcpReroute(rideName) {
-  if (!isAdmin()) { dismissWaitSpikeToast(); return; }
-  dismissWaitSpikeToast();
+  if (!isAdmin()) { tpcpDismissAlert(); return; }
+  tpcpDismissAlert();
   await tpcpEnsureCoords();
   var items = tpcpFlatItems();
   var spikedIdx = -1;
