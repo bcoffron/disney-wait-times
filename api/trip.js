@@ -12,7 +12,7 @@ import { notePlanChange, diffScheduleDays, safeDeviceToken } from './plan-change
 // Poll-backstop episodes (Claude msg 94 (i)): the GET response carries the
 // trip's recorded push episodes so the client's ~10s foreground poll can
 // render any the native shell never handed to its push listener.
-import { readEpisodesForPoll } from './push-episodes.js';
+import { readEpisodesForPoll, readBookingDone } from './push-episodes.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment so their fixed public
@@ -306,6 +306,17 @@ export default async function handler(req, res) {
     // field; the current client's blob poll renders the unpresented
     // ones through the foreground push handler.
     const episodes = await readEpisodesForPoll(code);
+
+    // Booking done flags (Claude msg 118): "I made my reservation" is
+    // a fact about the TRIP, stored per tripId (api/push-episodes.js),
+    // so it merges here -- keyed by the resolved trip, it reaches both
+    // the leader's and the guest's poll on this existing read, and a
+    // device that has never seen the episode learns it is done before
+    // ever presenting it.
+    if (episodes.length) {
+      const bookingDone = await readBookingDone(entry.tripId);
+      for (const ep of episodes) { if (bookingDone[ep.episodeId]) ep.done = true; }
+    }
 
     return res.status(200).json({
       valid: true,

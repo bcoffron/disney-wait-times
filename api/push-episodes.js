@@ -141,3 +141,98 @@ export async function readEpisodesForPoll(tripCode, nowMs) {
     return pruneEpisodes(cur && cur.episodes, now).filter(function (e) { return e.ymd === today; });
   } catch (e) { return []; }
 }
+
+// ---- Booking done flags (Claude msg 118, Oct 9, 2026) -------------------
+// Beau's booking-reminder design: the reminder is a nudge-until-done
+// with two stop conditions -- the trip marks it done, or a device's own
+// showing budget (3) runs out. The DONE fact is the TRIP's (one booking
+// serves the whole party), so it lives server-side, keyed by tripId in
+// its own blob -- never inside the per-code episodes record above
+// (recordEpisode rewrites that record wholesale; a done map inside it
+// would be wiped by the next recorded episode) and never in the
+// trip/schedule blob. The per-device count is the client's local
+// courtesy (localStorage) and the server never sees it. Governing
+// rule: present iff (not server-done) AND (local count < 3). The flag
+// records a USER ASSERTION ("I made my reservation"), not a verified
+// booking; nothing here checks Disney, by design.
+// Storage: twize/booking-done/<tripId>.json =
+//   { tripId, done: { <episodeId>: { at, by } }, updated }
+
+export const BOOKING_DONE_MAX = 50;
+
+// tripIds are slug-shaped ('beau-test-1'). The done key is built from
+// the registry-resolved tripId, never from a client-sent value.
+export function safeBookingTripId(v) {
+  return typeof v === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(v) ? v : null;
+}
+
+// Booking episodeIds are stamped ep:<tripId>:booking:<date> by the
+// booking handler. The done write accepts only that shape, so the
+// store can only ever name booking-class episodes.
+export function safeBookingEpisodeId(v) {
+  return typeof v === 'string' && /^ep:[A-Za-z0-9_-]+:booking:[A-Za-z0-9-]+$/.test(v) ? v : null;
+}
+
+function bookingDoneKey(tripId) { return 'twize/booking-done/' + tripId + '.json'; }
+
+// Validate + bound a stored done map: keep only well-formed entries,
+// newest BOOKING_DONE_MAX by `at`. Done entries for episodes past
+// their retention are inert (the poll never offers those episodes
+// again), so the write-side cap is the only bound the store needs.
+export function pruneBookingDone(map) {
+  const out = {};
+  if (!map || typeof map !== 'object' || Array.isArray(map)) return out;
+  const entries = [];
+  for (const k of Object.keys(map)) {
+    const e = map[k];
+    if (!safeBookingEpisodeId(k)) continue;
+    if (!e || typeof e.at !== 'number') continue;
+    entries.push([k, { at: e.at, by: typeof e.by === 'string' ? e.by.slice(0, 20) : '' }]);
+  }
+  entries.sort(function (a, b) { return a[1].at - b[1].at; });
+  const keep = entries.slice(-BOOKING_DONE_MAX);
+  for (const pair of keep) out[pair[0]] = pair[1];
+  return out;
+}
+
+// Pure merge: set one episode's done flag on a bounded copy of the map.
+export function mergeBookingDone(map, episodeId, atMs, byRole) {
+  const base = pruneBookingDone(map);
+  if (!safeBookingEpisodeId(episodeId)) return base;
+  base[episodeId] = {
+    at: typeof atMs === 'number' ? atMs : Date.now(),
+    by: typeof byRole === 'string' ? byRole.slice(0, 20) : ''
+  };
+  return pruneBookingDone(base);
+}
+
+// Mark one booking episode done for the trip. Never throws: the write
+// rides behind a user tap whose dismiss must proceed regardless.
+// Returns true when the flag was stored.
+export async function markBookingDone(tripId, episodeId, byRole, nowMs) {
+  try {
+    const tid = safeBookingTripId(tripId);
+    if (!tid || !safeBookingEpisodeId(episodeId)) return false;
+    const now = typeof nowMs === 'number' ? nowMs : Date.now();
+    const key = bookingDoneKey(tid);
+    const cur = await readBlobJson(key);
+    const done = mergeBookingDone(cur && cur.done, episodeId, now, byRole);
+    await writeJsonBlob(key, { tripId: tid, done: done, updated: new Date(now).toISOString() });
+    return true;
+  } catch (e) {
+    console.warn('[push-episodes] booking done write failed', e && e.message);
+    return false;
+  }
+}
+
+// Read the trip's done map. Never throws; any failure reads as "not
+// done" ({}), so the reminder still presents and the user can act on
+// it -- the flag silences a nudge, it never gates the action.
+export async function readBookingDone(tripId, nowMs) {
+  try {
+    const tid = safeBookingTripId(tripId);
+    if (!tid) return {};
+    const cur = await readBlobJson(bookingDoneKey(tid));
+    return pruneBookingDone(cur && cur.done);
+  } catch (e) { return {}; }
+}
