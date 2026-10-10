@@ -129,6 +129,19 @@ final class SpikeTiledView: UIView {
     private let imageCache = NSCache<NSString, UIImage>()
     private let countLock = NSLock()
     private(set) var drawnExact: Int = 0
+    private(set) var drawCalls: Int = 0
+    private var paintedCells = Set<Int>()
+
+    private func cellKey(level: Int, x: Int, y: Int) -> Int {
+        (level << 40) | (y << 20) | x
+    }
+    func wasPainted(level: Int, x: Int, y: Int) -> Bool {
+        countLock.lock(); defer { countLock.unlock() }
+        return paintedCells.contains(cellKey(level: level, x: x, y: y))
+    }
+    private func markPainted(level: Int, x: Int, y: Int) {
+        paintedCells.insert(cellKey(level: level, x: x, y: y))
+    }
 
     /// The web layer's fallback background (app.html createTile:
     /// img.style.background = '#EFEDE7'). Genuinely out-of-coverage
@@ -192,6 +205,7 @@ final class SpikeTiledView: UIView {
 
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
+        countLock.lock(); drawCalls += 1; countLock.unlock()
         let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - level))
         let gx0 = Double(rect.minX) + Double(originGlobal.x)
         let gy0 = Double(rect.minY) + Double(originGlobal.y)
@@ -208,7 +222,8 @@ final class SpikeTiledView: UIView {
                     width: CGFloat(span), height: CGFloat(span))
                 if let img = tileImage(z: level - 1, x: tx, y: ty) {
                     img.draw(in: foot)
-                    countLock.lock(); drawnExact += 1; countLock.unlock()
+                    countLock.lock(); drawnExact += 1
+                    markPainted(level: level, x: tx, y: ty); countLock.unlock()
                     continue
                 }
                 // Ancestor substitution (web createTile, msg 124 B):
@@ -233,6 +248,9 @@ final class SpikeTiledView: UIView {
                         ctx.clip(to: foot)
                         img.draw(in: aFoot)
                         ctx.restoreGState()
+                        countLock.lock()
+                        markPainted(level: level, x: tx, y: ty)
+                        countLock.unlock()
                         painted = true
                         break
                     }
@@ -255,11 +273,13 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private let titleLabel = UILabel()
     private let doneButton = UIButton(type: .system)
 
-    private var didFit = false
+    private var lastFitSize: CGSize = .zero
+    private var userInteracted = false
+    private var applyingFit = false
     private(set) var fitZoom: Int = 0
     private var tilesStatus: String = "ok"
     private var packTileCount: Int = 0
-    private var census: (inView: Int, exact: Int, substituted: Int, missing: Int) = (0, 0, 0, 0)
+    private var census: (inView: Int, exact: Int, substituted: Int, missing: Int, unpainted: Int) = (0, 0, 0, 0, 0)
 
     var onClose: (() -> Void)?
 
@@ -278,6 +298,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         tiledView.frame = CGRect(x: 0, y: 0, width: se.x - nw.x, height: se.y - nw.y)
 
         scrollView.delegate = self
+        scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.contentSize = tiledView.frame.size
         scrollView.backgroundColor = SpikeTiledView.beige
         scrollView.showsHorizontalScrollIndicator = false
@@ -343,6 +364,11 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        tiledView.setNeedsDisplay()
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         scrollView.frame = view.bounds
@@ -352,11 +378,16 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         doneButton.frame = CGRect(x: view.bounds.width - safe.right - db.width - 10,
                                   y: safe.top + 8, width: db.width, height: 24)
         diagLabel.frame = CGRect(x: safe.left + 10,
-                                 y: view.bounds.height - safe.bottom - 64,
+                                 y: view.bounds.height - safe.bottom - 76,
                                  width: view.bounds.width - safe.left - safe.right - 20,
-                                 height: 56)
-        if !didFit {
-            didFit = true
+                                 height: 68)
+        // The first layout pass can run at a transient size during the
+        // modal presentation; the 982e06a build latched its fit there
+        // and opened mis-framed. Re-fit whenever the size changes until
+        // the user takes over the map.
+        if !userInteracted && scrollView.bounds.size != lastFitSize
+            && scrollView.bounds.width > 0 && scrollView.bounds.height > 0 {
+            lastFitSize = scrollView.bounds.size
             applyFit()
         }
     }
@@ -368,7 +399,9 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         scrollView.maximumZoomScale = 1.0
         tiledView.level = fitZoom
         let scale = CGFloat(pow(2.0, Double(fitZoom - SpikeGeom.refZoom)))
+        applyingFit = true
         scrollView.zoomScale = scale
+        applyingFit = false
         centerOnResortBounds(scale: scale)
         refreshDiagnostics()
         // Tiles paint asynchronously; re-read once they have landed so
@@ -402,23 +435,39 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
 
     // MARK: UIScrollViewDelegate
 
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        userInteracted = true
+    }
+
+    func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+        userInteracted = true
+    }
+
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return tiledView
     }
     func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        if !applyingFit { userInteracted = true }
         let z = 19.0 + log2(Double(scrollView.zoomScale))
         let l = Int(min(Double(SpikeGeom.maxMapZoom),
                         max(Double(SpikeGeom.minMapZoom), z.rounded())))
         if l != tiledView.level { tiledView.level = l }
     }
-    func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+    private func settleRepaint() {
+        tiledView.setNeedsDisplay()
         refreshDiagnostics()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+            self?.refreshDiagnostics()
+        }
+    }
+    func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+        settleRepaint()
     }
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        if !decelerate { refreshDiagnostics() }
+        if !decelerate { settleRepaint() }
     }
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        refreshDiagnostics()
+        settleRepaint()
     }
 
     // MARK: diagnostics (msg 142: in-process readout, from the start)
@@ -431,7 +480,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                          width: Double(scrollView.bounds.width) / s,
                          height: Double(scrollView.bounds.height) / s)
         vis = vis.intersection(tiledView.bounds)
-        var inView = 0, exact = 0, subst = 0, missing = 0
+        var inView = 0, exact = 0, subst = 0, missing = 0, unpainted = 0
         if !vis.isNull && !vis.isEmpty {
             let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - tiledView.level))
             let gx0 = vis.minX + Double(tiledView.originGlobal.x)
@@ -444,23 +493,31 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                 for ty in ty0...ty1 {
                     for tx in tx0...tx1 {
                         inView += 1
-                        switch tiledView.resolution(z: tiledView.level - 1, x: tx, y: ty) {
+                        let res = tiledView.resolution(z: tiledView.level - 1, x: tx, y: ty)
+                        switch res {
                         case 0: exact += 1
                         case 1: subst += 1
                         default: missing += 1
+                        }
+                        if res != 2 && !tiledView.wasPainted(level: tiledView.level, x: tx, y: ty) {
+                            unpainted += 1
                         }
                     }
                 }
             }
         }
-        census = (inView, exact, subst, missing)
+        census = (inView, exact, subst, missing, unpainted)
         let zoomNow = 19.0 + log2(s)
+        let bo = scrollView.bounds.size
+        let of = scrollView.contentOffset
+        let ci = scrollView.contentInset
         diagLabel.text = String(
-            format: " fit zoom %d · zoom %.2f · drawn %d\n tiles in view %d — exact %d · substituted %d · missing %d\n pack %@ · %@",
+            format: " fit zoom %d · zoom %.2f · drawn %d\n tiles in view %d — exact %d · substituted %d · missing %d\n pack %@ · %@\n sv %.0fx%.0f · off (%.0f,%.0f) · inset t%.0f l%.0f b%.0f r%.0f",
             fitZoom, zoomNow, tiledView.drawnExact,
             inView, exact, subst, missing,
             packTileCount > 0 ? "\(packTileCount) tiles" : "size unknown",
-            tilesStatus)
+            tilesStatus + (unpainted > 0 ? " · unpainted \(unpainted)" : ""),
+            bo.width, bo.height, of.x, of.y, ci.top, ci.left, ci.bottom, ci.right)
     }
 
     func diagnosticsSnapshot() -> [String: Any] {
@@ -473,8 +530,13 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             "tilesSubstituted": census.substituted,
             "missingTiles": census.missing,
             "tilesDrawn": tiledView.drawnExact,
+            "drawCalls": tiledView.drawCalls,
+            "tilesUnpainted": census.unpainted,
             "packTileCount": packTileCount,
             "tilesStatus": tilesStatus,
+            "svBounds": String(format: "%.0fx%.0f", scrollView.bounds.width, scrollView.bounds.height),
+            "contentOffset": String(format: "(%.1f,%.1f)", scrollView.contentOffset.x, scrollView.contentOffset.y),
+            "contentInset": String(format: "(%.0f,%.0f,%.0f,%.0f)", scrollView.contentInset.top, scrollView.contentInset.left, scrollView.contentInset.bottom, scrollView.contentInset.right),
         ]
     }
 
