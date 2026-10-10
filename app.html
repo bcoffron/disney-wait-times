@@ -10187,7 +10187,7 @@ async function tpcpOpenNativeMapSpike() {
   try {
     var d = await plugin.present();
     if (d) {
-      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : ''));
+      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : ''));
     } else { show('Native map spike: closed (no readout returned).'); }
   } catch (e) { show('Native map spike error: ' + ((e && e.message) ? e.message : e)); }
 }
