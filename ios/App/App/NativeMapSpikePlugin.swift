@@ -584,6 +584,53 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         }
     }
 
+    /// Step-2 item 3, device half: for each parity-table viewport,
+    /// evaluate the shipped fit (SpikeGeom.leafletFitZoom, plus the
+    /// inset/offset arithmetic mirrored from centerOnResortBounds)
+    /// and the census's cell-range math (mirrored from
+    /// refreshDiagnostics) -- without touching the live scroll view.
+    /// Keep the mirrored lines in step with their originals. Built-in
+    /// cross-check: the row for the device's own viewport must equal
+    /// the same open's live overlay readings.
+    private func paritySweep() -> [String] {
+        let sizes: [(Double, Double)] = [(402, 874), (402, 751), (430, 932), (390, 844),
+                                         (375, 667), (320, 568), (768, 1024), (820, 1180)]
+        let cLat = (SpikeGeom.boundsSW.lat + SpikeGeom.boundsNE.lat) / 2.0
+        let cLng = (SpikeGeom.boundsSW.lng + SpikeGeom.boundsNE.lng) / 2.0
+        let c = SpikeGeom.globalPx(lat: cLat, lng: cLng)
+        let localX = Double(c.x - tiledView.originGlobal.x)
+        let localY = Double(c.y - tiledView.originGlobal.y)
+        var lines: [String] = []
+        for (w, h) in sizes {
+            let zoom = SpikeGeom.leafletFitZoom(viewport: CGSize(width: w, height: h))
+            let s = pow(2.0, Double(zoom - SpikeGeom.refZoom))
+            let cw = Double(contentUnits.width) * s
+            let ch = Double(contentUnits.height) * s
+            let ix = max(0.0, (w - cw) / 2.0)
+            let iy = max(0.0, (h - ch) / 2.0)
+            var ox = localX * s - w / 2.0
+            var oy = localY * s - h / 2.0
+            ox = min(max(ox, -ix), cw - w + ix)
+            oy = min(max(oy, -iy), ch - h + iy)
+            var vis = CGRect(x: ox / s, y: oy / s, width: w / s, height: h / s)
+            vis = vis.intersection(CGRect(origin: .zero, size: contentUnits))
+            var cells = 0
+            if !vis.isNull && !vis.isEmpty {
+                let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - zoom))
+                let gx0 = vis.minX + Double(tiledView.originGlobal.x)
+                let gy0 = vis.minY + Double(tiledView.originGlobal.y)
+                let tx0 = Int(floor(gx0 / span))
+                let ty0 = Int(floor(gy0 / span))
+                let tx1 = Int(floor((gx0 + Double(vis.width) - 0.001) / span))
+                let ty1 = Int(floor((gy0 + Double(vis.height) - 0.001) / span))
+                if tx1 >= tx0 && ty1 >= ty0 { cells = (tx1 - tx0 + 1) * (ty1 - ty0 + 1) }
+            }
+            lines.append(String(format: "%.0fx%.0f fit %d inset t%.0f l%.0f off (%.0f,%.0f) cells %d",
+                                w, h, zoom, iy, ix, ox, oy, cells))
+        }
+        return lines
+    }
+
     func diagnosticsSnapshot() -> [String: Any] {
         refreshDiagnostics()
         return [
@@ -602,6 +649,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             "contentOffset": String(format: "(%.1f,%.1f)", scrollView.contentOffset.x, scrollView.contentOffset.y),
             "contentInset": String(format: "(%.0f,%.0f,%.0f,%.0f)", scrollView.contentInset.top, scrollView.contentInset.left, scrollView.contentInset.bottom, scrollView.contentInset.right),
             "fitTrace": fitTrace,
+            "parity": paritySweep(),
         ]
     }
 
