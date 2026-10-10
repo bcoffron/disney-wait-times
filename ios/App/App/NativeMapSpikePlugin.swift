@@ -276,6 +276,20 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private var lastFitSize: CGSize = .zero
     private var userInteracted = false
     private var applyingFit = false
+    // Step-2 fit trace (Claude msg 148: resolve the inset-geometry
+    // discrepancy first). Records every layout size, every fit's
+    // inputs and outputs, and every contentInset change (via KVO),
+    // so one untouched open shows exactly which layout state the fit
+    // consumed when it wrote the insets the device reports.
+    private var fitTrace: [String] = []
+    private var lastLayoutSize: CGSize = .zero
+    private var lastTracedInset: UIEdgeInsets? = nil
+    private var insetObservation: NSKeyValueObservation? = nil
+
+    private func trace(_ s: String) {
+        fitTrace.append(s)
+        if fitTrace.count > 16 { fitTrace.removeFirst(fitTrace.count - 16) }
+    }
     private(set) var fitZoom: Int = 0
     private var tilesStatus: String = "ok"
     private var packTileCount: Int = 0
@@ -305,6 +319,14 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         scrollView.showsVerticalScrollIndicator = false
         scrollView.addSubview(tiledView)
         view.addSubview(scrollView)
+        insetObservation = scrollView.observe(\.contentInset, options: [.new]) { [weak self] sv, change in
+            guard let self = self, let nv = change.newValue else { return }
+            if let last = self.lastTracedInset, last == nv { return }
+            self.lastTracedInset = nv
+            self.trace(String(format: "INSET -> t%.0f l%.0f b%.0f r%.0f",
+                              nv.top, nv.left, nv.bottom, nv.right))
+            _ = sv
+        }
 
         titleLabel.text = "Native map spike (dev)"
         titleLabel.font = UIFont.boldSystemFont(ofSize: 13)
@@ -372,15 +394,22 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         scrollView.frame = view.bounds
+        if scrollView.bounds.size != lastLayoutSize {
+            lastLayoutSize = scrollView.bounds.size
+            trace(String(format: "LAYOUT sv %.0fx%.0f view %.0fx%.0f inter %d",
+                         scrollView.bounds.width, scrollView.bounds.height,
+                         view.bounds.width, view.bounds.height,
+                         userInteracted ? 1 : 0))
+        }
         let safe = view.safeAreaInsets
         titleLabel.frame = CGRect(x: safe.left + 10, y: safe.top + 8, width: 168, height: 24)
         let db = doneButton.intrinsicContentSize
         doneButton.frame = CGRect(x: view.bounds.width - safe.right - db.width - 10,
                                   y: safe.top + 8, width: db.width, height: 24)
         diagLabel.frame = CGRect(x: safe.left + 10,
-                                 y: view.bounds.height - safe.bottom - 76,
+                                 y: view.bounds.height - safe.bottom - 92,
                                  width: view.bounds.width - safe.left - safe.right - 20,
-                                 height: 68)
+                                 height: 84)
         // The first layout pass can run at a transient size during the
         // modal presentation; the 982e06a build latched its fit there
         // and opened mis-framed. Re-fit whenever the size changes until
@@ -403,6 +432,11 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         scrollView.zoomScale = scale
         applyingFit = false
         centerOnResortBounds(scale: scale)
+        trace(String(format: "FIT vp %.0fx%.0f fz %d sc %.4f cs %.0fx%.0f -> in t%.0f l%.0f off (%.0f,%.0f)",
+                     size.width, size.height, fitZoom, Double(scale),
+                     scrollView.contentSize.width, scrollView.contentSize.height,
+                     scrollView.contentInset.top, scrollView.contentInset.left,
+                     scrollView.contentOffset.x, scrollView.contentOffset.y))
         refreshDiagnostics()
         // Tiles paint asynchronously; re-read once they have landed so
         // the "drawn" figure reflects the settled first paint.
@@ -518,6 +552,9 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             packTileCount > 0 ? "\(packTileCount) tiles" : "size unknown",
             tilesStatus + (unpainted > 0 ? " · unpainted \(unpainted)" : ""),
             bo.width, bo.height, of.x, of.y, ci.top, ci.left, ci.bottom, ci.right)
+        if let last = fitTrace.last {
+            diagLabel.text = (diagLabel.text ?? "") + "\n " + last
+        }
     }
 
     func diagnosticsSnapshot() -> [String: Any] {
@@ -537,6 +574,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             "svBounds": String(format: "%.0fx%.0f", scrollView.bounds.width, scrollView.bounds.height),
             "contentOffset": String(format: "(%.1f,%.1f)", scrollView.contentOffset.x, scrollView.contentOffset.y),
             "contentInset": String(format: "(%.0f,%.0f,%.0f,%.0f)", scrollView.contentInset.top, scrollView.contentInset.left, scrollView.contentInset.bottom, scrollView.contentInset.right),
+            "fitTrace": fitTrace,
         ]
     }
 
