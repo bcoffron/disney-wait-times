@@ -10737,6 +10737,14 @@ function closeDirections() {
   tpcpStopGps();
   if (_dir && _dir.map) { _dir.map.remove(); _dir.map = null; }
   _gps.dot = null;
+  // Beau (Oct 10, 2026): closing directions lands on the large park
+  // map, not back on whichever tab the sheet was opened from. When
+  // directions were launched from a pin inside the large map, that
+  // map is already open underneath and the sheet closing reveals it,
+  // so only open it when it is not already open.
+  if (!document.getElementById('tpcpMapView').classList.contains('open')) {
+    openParkMap();
+  }
 }
 
 </script>
