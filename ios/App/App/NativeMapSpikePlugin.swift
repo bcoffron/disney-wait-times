@@ -10,15 +10,24 @@
 //  no chips, no directions (those are steps 3–5, gated on this spike's
 //  device verdict).
 //
-//  Registration: Capacitor 8 (package-lock pins @capacitor/ios 8.5.2)
-//  auto-discovers app-target classes conforming to CAPBridgedPlugin via
-//  the Objective-C runtime. No capacitor.config / plist / AppDelegate
-//  changes are needed; the @objc name below is what makes the class
-//  visible to that scan. JS reaches it as Capacitor.Plugins.NativeMapSpike.
+//  Registration (CORRECTED Oct 10, 2026): Capacitor does NOT
+//  auto-discover plugins that live in the app target -- the bridge only
+//  loads its built-ins plus the packageClassList cap sync writes from
+//  npm packages. The first device build proved it: the class compiled
+//  and linked, and the Info tab honestly reported the plugin as not
+//  registered in this build. Registration is therefore EXPLICIT:
+//  NativeMapSpikeBridgeViewController (bottom of this file) registers
+//  an instance in capacitorDidLoad(), and SceneDelegate + the Main
+//  storyboard both instantiate that subclass as the bridge host.
+//  JS reaches it as Capacitor.Plugins.NativeMapSpike.
 //
-//  Tiles: the app bundle must contain the extracted pack as a FOLDER
-//  REFERENCE named "tiles" (repo path tiles/resort/<z>/<x>/<y>.png +
+//  Tiles: the app bundle must contain the extracted pack as a folder
+//  named "tiles" (repo path tiles/resort/<z>/<x>/<y>.png +
 //  tiles/manifest.json, produced by scripts/extract-resort-tiles.py).
+//  It lands there via the "Copy Tiles Folder" script phase in the
+//  Xcode project (an rsync of the repo tiles/ tree into the .app) --
+//  Xcode 27's Add Files "Create folders" is a synchronized folder, not
+//  a folder reference, and flattens every PNG into the bundle root.
 //  If the folder is absent the view still opens (all beige) and the
 //  readout says so — an honest failure, never a silent one.
 //
@@ -502,5 +511,18 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
             }
             host.present(vc, animated: true)
         }
+    }
+}
+
+// MARK: - Bridge host (explicit plugin registration)
+
+/// The bridge view controller for the whole app. Capacitor only
+/// auto-registers plugins from npm packages, so this app-target plugin
+/// is registered by hand here. SceneDelegate instantiates this class
+/// in code, and Main.storyboard names it as its custom class, so the
+/// registration happens on whichever path creates the bridge.
+public final class NativeMapSpikeBridgeViewController: CAPBridgeViewController {
+    public override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(NativeMapSpikePlugin())
     }
 }
