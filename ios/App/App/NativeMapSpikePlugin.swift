@@ -274,6 +274,11 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private let doneButton = UIButton(type: .system)
 
     private var lastFitSize: CGSize = .zero
+    /// Unzoomed content size (the MAXBOUNDS rect in zoom-19 px),
+    /// captured in viewDidLoad before any zoom is applied. The fit
+    /// math must use this, never scrollView.contentSize -- see
+    /// centerOnResortBounds.
+    private var contentUnits: CGSize = .zero
     private var userInteracted = false
     private var applyingFit = false
     // Step-2 fit trace (Claude msg 148: resolve the inset-geometry
@@ -310,6 +315,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         let se = SpikeGeom.globalPx(lat: SpikeGeom.maxSW.lat, lng: SpikeGeom.maxNE.lng)
         tiledView.originGlobal = nw
         tiledView.frame = CGRect(x: 0, y: 0, width: se.x - nw.x, height: se.y - nw.y)
+        contentUnits = tiledView.frame.size
 
         scrollView.delegate = self
         scrollView.contentInsetAdjustmentBehavior = .never
@@ -462,8 +468,19 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         let localX = Double(c.x - tiledView.originGlobal.x)
         let localY = Double(c.y - tiledView.originGlobal.y)
         let vp = scrollView.bounds.size
-        let cw = Double(scrollView.contentSize.width) * Double(scale)
-        let ch = Double(scrollView.contentSize.height) * Double(scale)
+        // Displayed content size = unzoomed size x scale, from the
+        // stored contentUnits. Do NOT read scrollView.contentSize
+        // here: assigning zoomScale (in applyFit, just before this
+        // call) makes UIScrollView rewrite contentSize to the ZOOMED
+        // size (6785x7897 -> 424x494 at the fit scale) -- the step-2
+        // fit trace (build 61811dc) caught exactly that between
+        // applyFit's entry (csStart 6785x7897) and this read (cs
+        // 424x494). The original code multiplied the rewritten value
+        // by scale a second time, computed a 26x30 pt content, and
+        // produced the corner-clamped insets (t422 l188) and offset
+        // (-188,-422) present since the spike's first build.
+        let cw = Double(contentUnits.width) * Double(scale)
+        let ch = Double(contentUnits.height) * Double(scale)
         // When the clamped content is smaller than the viewport on an
         // axis, center it with insets (fitBounds centers the same way).
         let ix = max(0.0, (Double(vp.width) - cw) / 2.0)
