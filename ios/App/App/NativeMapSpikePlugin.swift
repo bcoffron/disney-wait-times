@@ -314,6 +314,9 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         scrollView.delegate = self
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.contentSize = tiledView.frame.size
+        trace(String(format: "LOAD cs %.0fx%.0f tiledFrame %.0fx%.0f",
+                     scrollView.contentSize.width, scrollView.contentSize.height,
+                     tiledView.frame.width, tiledView.frame.height))
         scrollView.backgroundColor = SpikeTiledView.beige
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.showsVerticalScrollIndicator = false
@@ -388,6 +391,11 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        trace(String(format: "APPEAR cs %.0fx%.0f in t%.0f l%.0f off (%.0f,%.0f) sv %.0fx%.0f",
+                     scrollView.contentSize.width, scrollView.contentSize.height,
+                     scrollView.contentInset.top, scrollView.contentInset.left,
+                     scrollView.contentOffset.x, scrollView.contentOffset.y,
+                     scrollView.bounds.width, scrollView.bounds.height))
         tiledView.setNeedsDisplay()
     }
 
@@ -423,6 +431,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
 
     private func applyFit() {
         let size = scrollView.bounds.size
+        let csStart = scrollView.contentSize
         fitZoom = SpikeGeom.leafletFitZoom(viewport: size)
         scrollView.minimumZoomScale = CGFloat(pow(2.0, Double(SpikeGeom.minMapZoom - SpikeGeom.refZoom)))
         scrollView.maximumZoomScale = 1.0
@@ -432,8 +441,9 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         scrollView.zoomScale = scale
         applyingFit = false
         centerOnResortBounds(scale: scale)
-        trace(String(format: "FIT vp %.0fx%.0f fz %d sc %.4f cs %.0fx%.0f -> in t%.0f l%.0f off (%.0f,%.0f)",
+        trace(String(format: "FIT vp %.0fx%.0f fz %d sc %.4f csStart %.0fx%.0f cs %.0fx%.0f -> in t%.0f l%.0f off (%.0f,%.0f)",
                      size.width, size.height, fitZoom, Double(scale),
+                     csStart.width, csStart.height,
                      scrollView.contentSize.width, scrollView.contentSize.height,
                      scrollView.contentInset.top, scrollView.contentInset.left,
                      scrollView.contentOffset.x, scrollView.contentOffset.y))
