@@ -6087,6 +6087,14 @@ function tpcpBundleLabel(){
     +'<div>Server: <span id="tpcpServerVersion" style="font-weight:700;">checking\u2026</span></div>'
     +'</div>';
 
+  // Native map spike (Claude msg 142 step 1): dev-only entry point to
+  // the bare native CATiledLayer view (Capacitor plugin NativeMapSpike),
+  // admin-gated like the push-test panel above. Additive only -- the web
+  // map remains the default surface everywhere.
+  var nativeSpikeHtml = isAdmin() ? '<div id="tpcpNativeSpikeRow" style="margin:0 14px 16px;">'
+    + '<button type="button" onclick="tpcpOpenNativeMapSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;">Native map spike (dev)</button>'
+    + '<div id="tpcpNativeSpikeReadout" style="font-size:11px;color:#4A7A7C;font-family:Outfit,sans-serif;line-height:1.45;margin-top:8px;white-space:pre-line;text-align:center;"></div></div>' : '';
+
   // Build the full HTML
   var _secs={
     parkmap: buildInfoSectionStatic('parkmap','Park Map',pinIcon,mapSectionHtml),
@@ -6119,6 +6127,7 @@ function tpcpBundleLabel(){
     +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div><div class="tpcp-reg-status" style="display:none"></div><div class=\"tpcp-push-test-panel\" style=\"display:none;margin-top:10px;border-top:1px solid rgba(7,30,37,0.08);padding-top:10px;\"><div class=\"tpcp-pt-readout\" style=\"font-size:11px;font-weight:600;color:#1A6860;font-family:\'Outfit\',sans-serif;line-height:1.45;\"></div><div style=\"font-size:11px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;line-height:1.5;margin-top:6px;\">Leader test: this sends a test alert to every device on this trip — your phone and your group&rsquo;s phones — so notifications can be checked any time, not just when a real alert fires.</div><button type=\"button\" class=\"tpcp-pt-btn\" onclick=\"tpcpSendTestPush(this)\" style=\"background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;margin-top:8px;\">Send test alert</button><div class=\"tpcp-pt-result\" style=\"white-space:pre-line;font-size:11px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;line-height:1.45;margin-top:8px;\"></div></div>'+tpcpAlertHelpHTML()+'</div>'
     +_order.map(function(k){return _secs[k]||'';}).join('')
     +versionsHtml
+    +nativeSpikeHtml
     +'</div>';
 
   container.innerHTML=sanitizeText(html);
@@ -10160,6 +10169,27 @@ function tpcpSettleZoomend() {
     if (ctx && !ctx.settled) return;
     tpcpSettleBeacon('zoomend');
   } catch (e) {}
+}
+
+// Native map spike (Claude msg 142 step 1): present the bare native
+// CATiledLayer spike view via the NativeMapSpike plugin and render its
+// in-process diagnostic readout here when it closes. This path never
+// touches the web map; if the plugin is not registered in this build
+// (e.g. a plain web surface) the readout says so instead of failing
+// silently.
+async function tpcpOpenNativeMapSpike() {
+  var out = document.getElementById('tpcpNativeSpikeReadout');
+  function show(t) { if (out) out.textContent = t; }
+  var plugin = null;
+  try { plugin = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeMapSpike) || null; } catch (e) { plugin = null; }
+  if (!plugin || typeof plugin.present !== 'function') { show('Native map spike: plugin unavailable on this surface (not registered in this build).'); return; }
+  show('Native map spike: opening...');
+  try {
+    var d = await plugin.present();
+    if (d) {
+      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : ''));
+    } else { show('Native map spike: closed (no readout returned).'); }
+  } catch (e) { show('Native map spike error: ' + ((e && e.message) ? e.message : e)); }
 }
 
 function tpcpMapDiagLabel() {
