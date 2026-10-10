@@ -3,7 +3,7 @@
  "keyCount": 1480,
  "keying": "park-tiles-resort.js dict keys verbatim: z/x/y where z = web layer coords.z + zoomOffset(-1) at tileSize 256 (Claude msg 136 re-key); ancestor ladder walks z-1/z-2 with x,y halved (floor) per step, as in createTile.",
  "layout": "tiles/resort/<z>/<x>/<y>.png",
- "packJsBytes": 20003548,
+ "packJsBytes": 20641508,
  "perZoom": {
   "11": {
    "bytes": 130613,
@@ -22,23 +22,23 @@
    "count": 64
   },
   "15": {
-   "bytes": 484779,
+   "bytes": 574670,
    "count": 36
   },
   "16": {
-   "bytes": 1179757,
+   "bytes": 1373902,
    "count": 80
   },
   "17": {
-   "bytes": 3115899,
+   "bytes": 3197438,
    "count": 288
   },
   "18": {
-   "bytes": 6215655,
+   "bytes": 6328513,
    "count": 952
   }
  },
  "pixelProof": "all 1480 extracted PNGs re-decoded and verified pixel-identical (mode, size, palette, index bytes) to the pack values they came from",
- "sourceFile": "park-tiles-resort_head.js",
- "totalPngBytes": 14978249
+ "sourceFile": "park-tiles-resort.js",
+ "totalPngBytes": 15456682
 }
