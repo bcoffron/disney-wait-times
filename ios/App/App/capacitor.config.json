@@ -2,5 +2,10 @@
 	"appId": "com.lunchboxdad.themeparkcp",
 	"appName": "Theme Park CP",
 	"webDir": "www",
-	"packageClassList": []
+	"ios": {
+		"zoomEnabled": true
+	},
+	"packageClassList": [
+		"PushNotificationsPlugin"
+	]
 }
