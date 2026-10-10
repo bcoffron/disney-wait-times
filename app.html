@@ -10287,9 +10287,10 @@ function tpcpBuildResortMarkers() {
       var g = window['TPCP_GRAPH_' + zone];
       var sn2 = window.TPCPRouter.snap(g, pin[1], pin[2]);
       dirSpot = { park: zone, spot: { n: pin[0].replace(/&amp;/g, '&'), lat: pin[1], lon: pin[2], node: sn2.node } };
-    } else if (zone === 'Downtown Disney' || kind === 'hotel') {
+    } else if (zone === 'Downtown Disney' || kind === 'hotel' ||
+               zone === 'Disneyland Hotel' || zone === 'Grand Californian' || zone === 'Pixar Place Hotel') {
       var sn3 = window.TPCPRouter.snap(window.TPCP_GRAPH_DTD, pin[1], pin[2]);
-      dirSpot = { park: kind === 'hotel' ? 'HOTEL' : 'DTD', spot: { n: pin[0].replace(/&amp;/g, '&'), lat: pin[1], lon: pin[2], node: sn3.node } };
+      dirSpot = { park: zone === 'Downtown Disney' ? 'DTD' : 'HOTEL', spot: { n: pin[0].replace(/&amp;/g, '&'), lat: pin[1], lon: pin[2], node: sn3.node } };
     }
     tpcpBindPinPopup(m, pin, dirSpot);
     if (layer === 'places') _pm.placeMarkers.push(m);
