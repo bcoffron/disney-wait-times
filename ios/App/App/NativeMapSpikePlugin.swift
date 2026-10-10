@@ -103,8 +103,17 @@ private enum SpikeGeom {
 
 // MARK: - Tiled view (CATiledLayer)
 
+/// CATiledLayer with the new-tile fade disabled. fadeDuration is a
+/// class-level member of CATiledLayer (there is no instance setter --
+/// the first Xcode compile of this file proved that), and the spike
+/// verdict must see first paint exactly as composited, so this
+/// subclass pins the fade to zero.
+final class SpikeTiledLayer: CATiledLayer {
+    override class func fadeDuration() -> CFTimeInterval { return 0 }
+}
+
 final class SpikeTiledView: UIView {
-    override class var layerClass: AnyClass { return CATiledLayer.self }
+    override class var layerClass: AnyClass { return SpikeTiledLayer.self }
     private var tiledLayer: CATiledLayer { return layer as! CATiledLayer }
 
     /// .../tiles/resort inside the app bundle (nil if the folder is absent).
@@ -143,7 +152,7 @@ final class SpikeTiledView: UIView {
         // tiles under the zoom transform — Core Animation does the
         // compositing, which is precisely the premise under test.
         tiledLayer.levelsOfDetail = 1
-        tiledLayer.fadeDuration = 0   // verdict must see first paint as-is
+        // tile fade is disabled via SpikeTiledLayer (above)
         contentScaleFactor = UIScreen.main.scale
         backgroundColor = SpikeTiledView.beige
         imageCache.countLimit = 512
