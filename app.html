@@ -9306,7 +9306,7 @@ function tpcpEnsurePark(park) {
   if (!window['TPCP_TILES_' + park]) jobs.push(tpcpLoadScript('park-tiles-' + park.toLowerCase() + '.js'));
   return Promise.all(jobs).then(function () { return window['TPCP_GRAPH_' + park]; });
 }
-function tpcpTileLayer(park, tilesOverride) {
+function tpcpTileLayer(park, tilesOverride, resortTiles) {
   var tiles = tilesOverride || window['TPCP_TILES_' + park] || {};
   var Layer = L.GridLayer.extend({
     createTile: function (coords) {
@@ -9330,7 +9330,14 @@ function tpcpTileLayer(park, tilesOverride) {
       img.alt = '';
       return img;
     },
-    options: { maxNativeZoom: 18, tileSize: 512, zoomOffset: -1, attribution: '&copy; OpenStreetMap contributors' }
+    // Layer size (Claude msg 136): layers serving the merged resort
+    // dict run tileSize 256 over its double-resolution re-keying
+    // (zoomOffset -1 kept, so resolution is unchanged -- the raster
+    // unit halves); per-park layers keep tileSize 512 on their own
+    // packs, untouched. createTile's key expression and ancestor
+    // walk are shared: the walk's z-1/z-2 halving lands on the
+    // correctly remapped ancestor in either keyspace.
+    options: { maxNativeZoom: 18, tileSize: resortTiles ? 256 : 512, zoomOffset: -1, attribution: '&copy; OpenStreetMap contributors' }
   });
   return new Layer();
 }
@@ -9339,28 +9346,31 @@ function tpcpTileLayer(park, tilesOverride) {
 // Esplanade + Downtown Disney. Bounds derived from the OSM park polygons
 // (DL 33.8026-33.8166 / -117.9243--117.9166, DCA to 33.8026 S) extended west
 // over the Downtown Disney district (to ~-117.9294) plus a small pad.
-// Tiles: the two per-park packs share the global XYZ grid; TPCP_TILES_RESORT
-// is a supplement pack carrying every tile the per-park packs lack or hold
-// only partially over this frame (DTD strip, frame edges, deep-zoom parents).
+// Tiles: TPCP_TILES_RESORT ships the COMPLETE merged resort dict
+// (per-park packs + supplement merged at build time) over this
+// frame, re-keyed at double resolution for the tileSize-256 resort
+// layer (Claude msg 136); the per-park packs stay the per-park
+// layers' own assets, in their original keyspace.
 var TPCP_RESORT_BOUNDS = [[33.8020, -117.9300], [33.8172, -117.9142]];
 var TPCP_RESORT_MAXBOUNDS = [[33.8008, -117.9312], [33.8184, -117.9130]];
 function tpcpResortTiles() {
+  // The merged resort dict (Claude msg 136): park-tiles-resort.js
+  // ships it complete -- the build-time merge of the DL pack, the
+  // DCA pack and the old supplement, in that precedence -- with
+  // every tile re-keyed at double resolution (each 512 tile cut
+  // into its four 256 quadrants at doubled key coordinates; the
+  // native-256 z18 tiles into their four 128 quadrants, the same
+  // effective resolution they present at today). No runtime merge
+  // happens here any more, and the per-park packs are never read
+  // on this path. Cache discipline (Claude msg 106) carries over:
+  // the dict caches only once the pack has actually loaded;
+  // before that an empty dict is returned uncached, so a
+  // not-yet-loaded pack can never poison the session's maps.
   if (!window.TPCP_TILES_RESORT_ALL) {
-    var merged = {};
-    ['DL', 'DCA'].forEach(function (p) {
-      var d = window['TPCP_TILES_' + p] || {};
-      for (var k in d) merged[k] = d[k];
-    });
-    var supp = window.TPCP_TILES_RESORT || {};
-    for (var k2 in supp) merged[k2] = supp[k2];
-    // Cache only a complete merge (Claude msg 106): without the resort
-    // supplement the merge lacks the western tile column and the
-    // low-zoom parents, and caching it would poison every map for the
-    // session. An incomplete merge is returned uncached and rebuilt
-    // on the next call, so the complete merge caches once the
-    // supplement has loaded.
-    if (window.TPCP_TILES_RESORT) window.TPCP_TILES_RESORT_ALL = merged;
-    return merged;
+    var d = window.TPCP_TILES_RESORT || null;
+    if (!d) return {};
+    window.TPCP_TILES_RESORT_ALL = d;
+    return d;
   }
   return window.TPCP_TILES_RESORT_ALL;
 }
@@ -9433,7 +9443,7 @@ function tpcpInitMiniMap() {
     if (_miniMap) { _miniMap.remove(); _miniMap = null; }
     _miniMap = L.map('tpcpMiniMap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, attributionControl: false, minZoom: 13, maxZoom: 19, maxBounds: TPCP_RESORT_MAXBOUNDS, maxBoundsViscosity: 1.0 });
     _miniMap.fitBounds(TPCP_RESORT_BOUNDS);
-    tpcpTileLayer(null, tpcpResortTiles()).addTo(_miniMap);
+    tpcpTileLayer(null, tpcpResortTiles(), true).addTo(_miniMap);
     var svcColors = (typeof TPCP_SVC_COLORS !== 'undefined') ? TPCP_SVC_COLORS : {};
     ['DL', 'DCA'].forEach(function (pk) {
       var graph = window['TPCP_GRAPH_' + pk];
@@ -9693,7 +9703,6 @@ var _pmOpenSeq = 0;
 var _pmOpenCtx = null;
 var _pmDiagLast = null;
 var _pmSettleSeq = 0;
-var _pmNudge = { armed: true };
 function tpcpMapContainer() { return document.getElementById('tpcpFullMap'); }
 // Degenerate-size guard (msg 116, F2 -- retained as the layout GATE
 // only): no layout box at all, or a height that is only a small
@@ -9974,7 +9983,7 @@ function tpcpCreateResortMap() {
   var map = null, tileLayer = null, counts = null;
   try {
     map = L.map('tpcpFullMap', { minZoom: 13, maxZoom: 19, maxBounds: TPCP_RESORT_MAXBOUNDS, maxBoundsViscosity: 1.0 });
-    tileLayer = tpcpTileLayer(null, tpcpResortTiles());
+    tileLayer = tpcpTileLayer(null, tpcpResortTiles(), true);
     tileLayer.addTo(map);
     tpcpBuildResortMarkers();
     tpcpApplyLayers(map);
@@ -10000,10 +10009,10 @@ function tpcpCreateResortMap() {
   _pm.tileLayer = tileLayer;
   map.on('zoomend', tpcpMapZoomWatchdog);
   map.on('moveend', function () { tpcpMapZoomWatchdog('moveend'); });
-  // Band lever (Claude msg 130): a zoom beginning re-arms the fit
-  // nudge; a zoom ending runs the fit settle (nudge + settle beacon).
-  map.on('zoomstart', function () { _pmNudge.armed = true; });
-  map.on('zoomend', tpcpFitSettleZoomend);
+  // Settle beacon (Claude msg 136): a zoom ending files one settle
+  // event at the arrival zoom, so the beacon's fallbackTiles count
+  // is instrumented per-zoom for the tileSize-256 verdict.
+  map.on('zoomend', tpcpSettleZoomend);
   return { counts: counts, expected: expected };
 }
 // ---- Map diagnostics beacon (Claude msg 120, item 5) ----
@@ -10083,10 +10092,6 @@ function tpcpSettleOpen(ctx, outcome, err, v) {
   // an open; it runs once, at settle, with the final outcome.
   try {
     var m = v || tpcpMeasureMap();
-    // Band lever (msg 130): the open settle is a fit arrival, so it
-    // runs the tile-pane nudge before the event is built -- the
-    // event reports whether THIS settle nudged.
-    var nudged = tpcpFitNudge('open');
     var c = m.counts || { places: 0, rr: 0, svc: 0, se: 0, always: 0 };
     var evt = {
       v: 1,
@@ -10103,87 +10108,24 @@ function tpcpSettleOpen(ctx, outcome, err, v) {
       view: { zoom: m.zoom, center: m.center, bounds: m.bounds },
       counts: { places: c.places, rr: c.rr, svc: c.svc, se: c.se, always: c.always, total: m.total, expected: m.expectedTotal, tiles: m.tiles },
       fallbackTiles: (typeof m.fallbackTiles === 'number') ? m.fallbackTiles : 0,
-      // Marker: nudgeFired (msg 130)
-      nudgeFired: !!nudged,
       flags: { routerPresent: !!window.TPCPRouter, leafletPresent: !!window.L, loaded: !!m.loaded, buildComplete: !!m.buildComplete }
     };
     tpcpMapBeacon(evt);
   } catch (e) {}
 }
-// ---- Band lever (Claude msg 130): the tile-pane transform toggle --
-// The mid-map band is a WKWebView tile-pane raster artifact over a
-// complete tile stack (msgs 124-129: fallbackTiles=0 on device with
-// the band present). WKWebView re-rasterizes a pane when its CSS
-// transform changes, and the band has always healed on pan/zoom --
-// the transform IS the lever. At every settle while at the FIT zoom,
-// the tile pane's transform is touched by a small amount
-// (TPCP_NUDGE_DELTA_PX) and restored within the same turn:
-// out-and-back in one frame, never a
-// painted displaced frame (the ruling's mechanism -- the pane, not
-// panBy, not resize/reflow). The fit is the COMPUTED fit -- the
-// bounds zoom the shipped framing produces for TPCP_RESORT_BOUNDS in
-// the current container, the same value tpcpMeasureMap checks the
-// open against -- never a hardcoded zoom: fit is device-metric
-// dependent. The toggle is cheap and harmless on a clean open (a
-// no-op re-raster), so it over-fires by design: no band-presence
-// detection, no skip-when-clean. One nudge per settle arrival.
-function tpcpFitZoom() {
-  var map = _pm.map;
-  if (!map) return null;
-  try { return map.getBoundsZoom(TPCP_RESORT_BOUNDS); } catch (e) { return null; }
-}
-// Marker: tile-pane nudge (msg 130)
-// Nudge delta in CSS px (Claude msg 132, branch 3): the single
-// tuning point for the lever. The msg-130 build's 0.5 px delta
-// FIRED on device (nudgeFired=true, fallbackTiles=0, full stack)
-// yet the band persisted -- ruled below WKWebView's re-raster
-// threshold. Branch 3's intermediate lever, tried before
-// tileSize-256, is a LARGER out-and-back delta in the ruled 1-2 px
-// range; 2 px is the top of the range (about 0.67 pt at DPR 3,
-// still sub-point) so the threshold question resolves in one
-// device round. If a visible twitch ever appears at 2 px, branch
-// 2 tunes DOWN from this one constant.
-var TPCP_NUDGE_DELTA_PX = 2;
-function tpcpTilePaneNudge() {
-  var host = tpcpMapContainer();
-  var pane = host ? host.querySelector('.leaflet-tile-pane') : null;
-  if (!pane) return false;
-  var orig = pane.style.transform || '';
-  try {
-    // Compose the nudge delta WITH Leaflet's own transform
-    // value on the pane (appended, never replaced), force the
-    // style to apply inside this turn (a style flush -- no frame
-    // can paint mid-toggle), then restore the EXACT original
-    // inline value, leaving zero residual.
-    pane.style.transform = orig ? (orig + ' translate(' + TPCP_NUDGE_DELTA_PX + 'px, 0px)') : 'translate(' + TPCP_NUDGE_DELTA_PX + 'px, 0px)';
-    void pane.offsetWidth;
-    pane.style.transform = orig;
-    void pane.offsetWidth;
-    return true;
-  } catch (e) {
-    try { pane.style.transform = orig; } catch (err) {}
-    return false;
-  }
-}
-function tpcpFitNudge(source) {
-  try {
-    if (source === 'open') _pmNudge.armed = true;
-    var map = _pm.map;
-    if (!map) return false;
-    var fit = tpcpFitZoom();
-    if (fit === null) return false;
-    if (Math.abs(map.getZoom() - fit) > 0.001) return false;
-    if (!_pmNudge.armed) return false;
-    _pmNudge.armed = false;
-    return tpcpTilePaneNudge();
-  } catch (e) { return false; }
-}
-// Settle beacon for zoomend arrivals at the fit (Claude msg 130):
-// the open beacon's whitelisted shape, one event per settle
-// arrival, carrying nudgeFired so the verdict (nudgeFired=true +
-// fallbackTiles=0 + band-gone) is instrumented for zoom arrivals
-// exactly as it is for opens. The stored type stays 'map-open'
-// (the server whitelist's shape); phases carry the settle source.
+// ---- Settle beacon for zoomend arrivals (Claude msg 136) ----
+// The open beacon's whitelisted shape, one event per zoomend
+// arrival at whatever zoom the map settled at, so fallbackTiles
+// is instrumented per-zoom: the tileSize-256 verdict reads the
+// count at the fit AND at spot-checked zooms. The stored type
+// stays 'map-open' (the server whitelist's shape); phases carry
+// the settle source.
+// RETIRED with this build (Claude msg 136): the tile-pane
+// transform lever (msgs 130/132) and its beacon field. It was
+// device-proven insufficient at both ruled deltas -- the settle
+// events fired over complete, fallback-free stacks and the band
+// was unchanged -- and it stays out whether or not the 256
+// re-keying closes the band: no combined-lever residuals.
 function tpcpSettleBeacon(source) {
   try {
     var m = tpcpMeasureMap();
@@ -10203,28 +10145,23 @@ function tpcpSettleBeacon(source) {
       view: { zoom: m.zoom, center: m.center, bounds: m.bounds },
       counts: { places: c.places, rr: c.rr, svc: c.svc, se: c.se, always: c.always, total: m.total, expected: m.expectedTotal, tiles: m.tiles },
       fallbackTiles: (typeof m.fallbackTiles === 'number') ? m.fallbackTiles : 0,
-      nudgeFired: true,
       flags: { routerPresent: !!window.TPCPRouter, leafletPresent: !!window.L, loaded: !!m.loaded, buildComplete: !!m.buildComplete }
     };
     tpcpMapBeacon(evt);
   } catch (e) {}
 }
-function tpcpFitSettleZoomend() {
+function tpcpSettleZoomend() {
   try {
     if (!_pm.map) return;
     // While an open is still settling, the open's own settle owns
     // this arrival (its fitBounds zoomend races this handler); the
-    // open settle nudges once and reports on the open event.
+    // open event reports that settle, so no second event files.
     var ctx = _pmOpenCtx;
     if (ctx && !ctx.settled) return;
-    if (tpcpFitNudge('zoomend')) { tpcpSettleBeacon('zoomend'); return; }
-    // A zoomend away from the fit ends the previous arrival:
-    // re-arm so the next arrival at the fit can nudge (a zoom
-    // beginning re-arms too).
-    var fit = tpcpFitZoom();
-    if (fit !== null && Math.abs(_pm.map.getZoom() - fit) > 0.001) _pmNudge.armed = true;
+    tpcpSettleBeacon('zoomend');
   } catch (e) {}
 }
+
 function tpcpMapDiagLabel() {
   try {
     var evt = _pmDiagLast;
@@ -10715,7 +10652,7 @@ function tpcpComputeRoute() {
   if (_dir.map) { _dir.map.remove(); _dir.map = null; }
   _gps.dot = null;
   _dir.map = L.map('tpcpDirMap', { minZoom: 15, maxZoom: 19, zoomControl: false, maxBounds: [[33.8008, -117.9290], [33.8212, -117.9095]], maxBoundsViscosity: 1.0 });
-  tpcpTileLayer(_dir.park, _dir.tiles || null).addTo(_dir.map);
+  tpcpTileLayer(_dir.park, _dir.tiles || null, !!_dir.tiles).addTo(_dir.map);
   var ll = route.coords.map(function (c) { return [c[0], c[1]]; });
   L.polyline(ll, { color: '#FFFFFF', weight: 9, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }).addTo(_dir.map);
   L.polyline(ll, { color: '#D43D2A', weight: 5, lineCap: 'round', lineJoin: 'round' }).addTo(_dir.map);
