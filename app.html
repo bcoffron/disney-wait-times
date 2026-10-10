@@ -10116,8 +10116,9 @@ function tpcpSettleOpen(ctx, outcome, err, v) {
 // the band present). WKWebView re-rasterizes a pane when its CSS
 // transform changes, and the band has always healed on pan/zoom --
 // the transform IS the lever. At every settle while at the FIT zoom,
-// the tile pane's transform is touched by a sub-pixel amount and
-// restored within the same turn: out-and-back in one frame, never a
+// the tile pane's transform is touched by a small amount
+// (TPCP_NUDGE_DELTA_PX) and restored within the same turn:
+// out-and-back in one frame, never a
 // painted displaced frame (the ruling's mechanism -- the pane, not
 // panBy, not resize/reflow). The fit is the COMPUTED fit -- the
 // bounds zoom the shipped framing produces for TPCP_RESORT_BOUNDS in
@@ -10132,18 +10133,29 @@ function tpcpFitZoom() {
   try { return map.getBoundsZoom(TPCP_RESORT_BOUNDS); } catch (e) { return null; }
 }
 // Marker: tile-pane nudge (msg 130)
+// Nudge delta in CSS px (Claude msg 132, branch 3): the single
+// tuning point for the lever. The msg-130 build's 0.5 px delta
+// FIRED on device (nudgeFired=true, fallbackTiles=0, full stack)
+// yet the band persisted -- ruled below WKWebView's re-raster
+// threshold. Branch 3's intermediate lever, tried before
+// tileSize-256, is a LARGER out-and-back delta in the ruled 1-2 px
+// range; 2 px is the top of the range (about 0.67 pt at DPR 3,
+// still sub-point) so the threshold question resolves in one
+// device round. If a visible twitch ever appears at 2 px, branch
+// 2 tunes DOWN from this one constant.
+var TPCP_NUDGE_DELTA_PX = 2;
 function tpcpTilePaneNudge() {
   var host = tpcpMapContainer();
   var pane = host ? host.querySelector('.leaflet-tile-pane') : null;
   if (!pane) return false;
   var orig = pane.style.transform || '';
   try {
-    // Compose the sub-pixel delta WITH Leaflet's own transform
+    // Compose the nudge delta WITH Leaflet's own transform
     // value on the pane (appended, never replaced), force the
     // style to apply inside this turn (a style flush -- no frame
     // can paint mid-toggle), then restore the EXACT original
     // inline value, leaving zero residual.
-    pane.style.transform = orig ? (orig + ' translate(0.5px, 0px)') : 'translate(0.5px, 0px)';
+    pane.style.transform = orig ? (orig + ' translate(' + TPCP_NUDGE_DELTA_PX + 'px, 0px)') : 'translate(' + TPCP_NUDGE_DELTA_PX + 'px, 0px)';
     void pane.offsetWidth;
     pane.style.transform = orig;
     void pane.offsetWidth;
