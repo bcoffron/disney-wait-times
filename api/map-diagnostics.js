@@ -176,6 +176,12 @@ export function sanitizeDiagEvent(raw, nowMs) {
   // is absent from the merged pack. One flat whitelisted count -- the
   // zoom watchdog's guard cannot see absent keys; this field can.
   e.fallbackTiles = _count(raw.fallbackTiles);
+  // Band lever (Claude msg 130): whether this settle ran the
+  // tile-pane transform nudge. Strict boolean -- only a literal
+  // true survives; anything else reads as not-fired, so the verdict
+  // (nudgeFired=true + fallbackTiles=0 + band-gone) cannot be
+  // faked by a truthy value of another type.
+  e.nudgeFired = raw.nudgeFired === true;
   const fl = (raw.flags && typeof raw.flags === 'object' && !Array.isArray(raw.flags)) ? raw.flags : {};
   e.flags = {
     routerPresent: !!fl.routerPresent,
