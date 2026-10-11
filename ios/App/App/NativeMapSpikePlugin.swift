@@ -99,6 +99,17 @@ private enum SpikeGeom {
         z = floor(z)                       // zoomSnap 1, fit is "inside=false"
         return Int(min(Double(maxMapZoom), max(Double(minMapZoom), z)))
     }
+
+    // TPCPRouter.havFt transcribed (R 6371000 m, 3.28084 ft/m): the
+    // step-4 transit check -- native re-derives the route's coordFt
+    // from the received lat/lons before projecting them.
+    static func havFt(lat1: Double, lon1: Double, lat2: Double, lon2: Double) -> Double {
+        let r = 6371000.0
+        let p1 = lat1 * Double.pi / 180.0, p2 = lat2 * Double.pi / 180.0
+        let dp = (lat2 - lat1) * Double.pi / 180.0, dl = (lon2 - lon1) * Double.pi / 180.0
+        let h = sin(dp / 2.0) * sin(dp / 2.0) + cos(p1) * cos(p2) * sin(dl / 2.0) * sin(dl / 2.0)
+        return 2.0 * r * asin(sqrt(h)) * 3.28084
+    }
 }
 
 // MARK: - Tiled view (CATiledLayer)
@@ -296,6 +307,20 @@ struct SpikePin {
     let alpha: CGFloat
 }
 
+/// One acceptance-suite route (step 4): the web computed it with the
+/// shipped router; native only draws it. points are content-space
+/// (zoom-19 px relative to the tiled view's origin, like the pins);
+/// coordFtNative is re-derived from the received lat/lons in Swift.
+struct SpikeRoute {
+    let id: String
+    let label: String
+    let points: [CGPoint]
+    let nodesWeb: Int
+    let distFt: Int
+    let coordFtWeb: Int
+    let coordFtNative: Int
+}
+
 /// Draws the layer-enabled pins at their current screen positions.
 /// Lives ABOVE the scroll view (not inside the zoomed content) so the
 /// circles keep their screen-point radii at every zoom, exactly like
@@ -304,8 +329,41 @@ struct SpikePin {
 final class SpikePinOverlayView: UIView {
     var pins: [SpikePin] = []
     var screenPoint: (SpikePin) -> CGPoint = { _ in .zero }
+    // Step 4: the current route as content-space points (empty = no
+    // route shown), projected through the same transform as the pins
+    // and drawn UNDER them.
+    var routePoints: [CGPoint] = []
+    var contentToScreen: (CGPoint) -> CGPoint = { $0 }
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
+        if routePoints.count > 1 {
+            // The web map's polyline, verbatim (tpcpComputeRoute):
+            // white casing 9pt at 0.85 opacity, core #D43D2A 5pt,
+            // round caps/joins; start dot r7 fill #1A6860, end dot
+            // r7 fill #D43D2A, both white stroke 2.
+            let pts = routePoints.map { contentToScreen($0) }
+            func strokeRoute(_ width: CGFloat, _ color: UIColor) {
+                let path = UIBezierPath()
+                path.move(to: pts[0])
+                for p in pts.dropFirst() { path.addLine(to: p) }
+                path.lineWidth = width
+                path.lineCapStyle = .round
+                path.lineJoinStyle = .round
+                color.setStroke()
+                path.stroke()
+            }
+            strokeRoute(9, UIColor.white.withAlphaComponent(0.85))
+            strokeRoute(5, UIColor(spikeHex: "#D43D2A"))
+            for (pt, fill) in [(pts[0], UIColor(spikeHex: "#1A6860")),
+                               (pts[pts.count - 1], UIColor(spikeHex: "#D43D2A"))] {
+                let circle = CGRect(x: pt.x - 7, y: pt.y - 7, width: 14, height: 14)
+                ctx.setFillColor(fill.cgColor)
+                ctx.fillEllipse(in: circle)
+                ctx.setStrokeColor(UIColor.white.cgColor)
+                ctx.setLineWidth(2)
+                ctx.strokeEllipse(in: circle.insetBy(dx: 1, dy: 1))
+            }
+        }
         for pin in pins {
             let c = screenPoint(pin)
             if c.x < -24 || c.y < -24 || c.x > rect.width + 24 || c.y > rect.height + 24 { continue }
@@ -375,7 +433,12 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private let popupSub = UILabel()
     private let popupDirButton = UIButton(type: .system)
     private var popupPinId: String? = nil
-    private var lastTapName = ""
+        // Step 4 state: the acceptance suite (assigned by the plugin
+    // before presentation) and the route currently drawn.
+    var routes: [SpikeRoute] = []
+    private var currentRoute: SpikeRoute? = nil
+    private let routesButton = UIButton(type: .system)
+    private var lastTapName = 
     private var lastPopupName = ""
     private var lastZoomEnd = Date.distantPast
 
@@ -446,7 +509,21 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         pinOverlay.screenPoint = { [weak self] pin in
             self?.pinScreenPoint(pin) ?? .zero
         }
+        pinOverlay.contentToScreen = { [weak self] p in
+            self?.contentPointToScreen(p) ?? .zero
+        }
         view.addSubview(pinOverlay)
+
+        // Step 4 harness chrome: the Routes suite picker (hidden
+        // when no route data was passed).
+        routesButton.setTitle("Routes", for: .normal)
+        routesButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 14)
+        routesButton.setTitleColor(.white, for: .normal)
+        routesButton.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        routesButton.layer.cornerRadius = 6
+        routesButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
+        routesButton.addTarget(self, action: #selector(routesTapped), for: .touchUpInside)
+        view.addSubview(routesButton)
 
         for (i, t) in ["Rides & Food", "Services", "Shops & Entertainment"].enumerated() {
             let b = UIButton(type: .system)
@@ -562,6 +639,9 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                                  width: view.bounds.width - safe.left - safe.right - 20,
                                  height: diagH)
         pinOverlay.frame = view.bounds
+        let rb = routesButton.intrinsicContentSize
+        routesButton.frame = CGRect(x: safe.left + 10, y: safe.top + 74, width: rb.width, height: 24)
+        routesButton.isHidden = routes.isEmpty
         if !chipButtons.isEmpty {
             for b in chipButtons { b.isHidden = pins.isEmpty }
             if !pins.isEmpty {
@@ -687,6 +767,67 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         settleRepaint()
     }
 
+    // MARK: step 4 — route suite picker, camera fit
+
+    @objc private func routesTapped() {
+        let ac = UIAlertController(title: "Routes (step 4 suite)",
+                                   message: currentRoute.map { "Showing: \($0.label)" },
+                                   preferredStyle: .actionSheet)
+        for r in routes {
+            ac.addAction(UIAlertAction(title: "\(r.label) · \(r.distFt) ft", style: .default) { [weak self] _ in
+                self?.showRoute(r)
+            })
+        }
+        if currentRoute != nil {
+            ac.addAction(UIAlertAction(title: "Clear route", style: .destructive) { [weak self] _ in
+                self?.clearRoute()
+            })
+        }
+        ac.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        ac.popoverPresentationController?.sourceView = routesButton
+        present(ac, animated: true)
+    }
+
+    private func showRoute(_ r: SpikeRoute) {
+        currentRoute = r
+        pinOverlay.routePoints = r.points
+        pinOverlay.setNeedsDisplay()
+        fitRoute(r)
+        refreshDiagnostics()
+    }
+
+    private func clearRoute() {
+        currentRoute = nil
+        pinOverlay.routePoints = []
+        pinOverlay.setNeedsDisplay()
+        refreshDiagnostics()
+    }
+
+    /// Leaflet fitBounds(bounds, padding 24) analog for the route:
+    /// the largest clamped scale that fits the route's bbox with
+    /// 24pt padding, centered on the bbox.
+    private func fitRoute(_ r: SpikeRoute) {
+        guard let first = r.points.first else { return }
+        var b = CGRect(x: first.x, y: first.y, width: 0, height: 0)
+        for p in r.points { b = b.union(CGRect(x: p.x, y: p.y, width: 0, height: 0)) }
+        let vp = scrollView.bounds.size
+        guard vp.width > 0, vp.height > 0 else { return }
+        let pad: CGFloat = 24
+        let bw = max(b.width, 1), bh = max(b.height, 1)
+        var scale = min((vp.width - pad * 2) / bw, (vp.height - pad * 2) / bh)
+        scale = min(max(scale, scrollView.minimumZoomScale), scrollView.maximumZoomScale)
+        applyingFit = true
+        scrollView.setZoomScale(scale, animated: false)
+        let ox = b.midX * scale - vp.width / 2
+        let oy = b.midY * scale - vp.height / 2
+        scrollView.setContentOffset(CGPoint(x: ox, y: oy), animated: false)
+        applyingFit = false
+        // The route fit owns the camera now; the open-fit must not
+        // stomp it on a later layout pass.
+        userInteracted = true
+        pinOverlay.setNeedsDisplay()
+    }
+
     // MARK: step 3 — layers, hit-testing, popup card
 
     private func layerShown(_ layer: String) -> Bool {
@@ -737,10 +878,13 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     }
 
     private func pinScreenPoint(_ pin: SpikePin) -> CGPoint {
+        return contentPointToScreen(pin.contentPoint)
+    }
+
+    private func contentPointToScreen(_ p: CGPoint) -> CGPoint {
         let s = scrollView.zoomScale
         let off = scrollView.contentOffset
-        return CGPoint(x: pin.contentPoint.x * s - off.x,
-                       y: pin.contentPoint.y * s - off.y)
+        return CGPoint(x: p.x * s - off.x, y: p.y * s - off.y)
     }
 
     @objc private func mapTapped(_ gr: UITapGestureRecognizer) {
@@ -888,6 +1032,11 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                 classCount("se"), classCount("always"),
                 lastTapName.isEmpty ? "-" : lastTapName)
         }
+        if let r = currentRoute {
+            diagLabel.text = (diagLabel.text ?? "") + String(
+                format: "\n route %@ · %d nodes · %d ft · coordFt web %d / native %d",
+                r.label, r.points.count, r.distFt, r.coordFtWeb, r.coordFtNative)
+        }
     }
 
     /// Step-2 item 3, device half: for each parity-table viewport,
@@ -964,6 +1113,12 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             "pinsVisible": visiblePinCount(),
             "lastTap": lastTapName,
             "lastPopup": lastPopupName,
+            "routeName": currentRoute?.label ?? "",
+            "routeNodes": currentRoute?.nodesWeb ?? 0,
+            "routeNodesDrawn": currentRoute?.points.count ?? 0,
+            "routeDistFt": currentRoute?.distFt ?? 0,
+            "routeCoordFtWeb": currentRoute?.coordFtWeb ?? 0,
+            "routeCoordFtNative": currentRoute?.coordFtNative ?? 0,
         ]
     }
 
@@ -1025,6 +1180,45 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
                         weight: CGFloat((o["weight"] as? NSNumber)?.doubleValue ?? 2),
                         fill: UIColor(spikeHex: (o["fill"] as? String) ?? "#173A5E"),
                         alpha: CGFloat((o["alpha"] as? NSNumber)?.doubleValue ?? 0.95))
+                }
+            }
+            // Step 4: the acceptance route suite (same JSON-string
+            // discipline as the pins). coordFt is re-derived here
+            // from the received lat/lons; the points are projected
+            // through the same globalPx-origin path as the pins.
+            if let json = call.getString("routesJson"),
+               let data = json.data(using: .utf8),
+               let arr = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] {
+                let origin = SpikeGeom.globalPx(lat: SpikeGeom.maxNE.lat,
+                                                lng: SpikeGeom.maxSW.lng)
+                vc.routes = arr.compactMap { o in
+                    guard let id = o["id"] as? String,
+                          let label = o["label"] as? String,
+                          let raw = o["coords"] as? [[Any]]
+                    else { return nil }
+                    var pts: [CGPoint] = []
+                    var coordFt = 0.0
+                    var prev: (Double, Double)? = nil
+                    for c in raw {
+                        guard c.count == 2,
+                              let latN = c[0] as? NSNumber,
+                              let lonN = c[1] as? NSNumber
+                        else { continue }
+                        let lat = latN.doubleValue, lon = lonN.doubleValue
+                        if let p = prev {
+                            coordFt += SpikeGeom.havFt(lat1: p.0, lon1: p.1, lat2: lat, lon2: lon)
+                        }
+                        prev = (lat, lon)
+                        let gp = SpikeGeom.globalPx(lat: lat, lng: lon)
+                        pts.append(CGPoint(x: gp.x - origin.x, y: gp.y - origin.y))
+                    }
+                    guard pts.count > 1 else { return nil }
+                    return SpikeRoute(
+                        id: id, label: label, points: pts,
+                        nodesWeb: (o["nodes"] as? NSNumber)?.intValue ?? pts.count,
+                        distFt: (o["distFt"] as? NSNumber)?.intValue ?? 0,
+                        coordFtWeb: (o["coordFt"] as? NSNumber)?.intValue ?? 0,
+                        coordFtNative: Int(coordFt.rounded()))
                 }
             }
             vc.initialLayers = (places: call.getBool("layerPlaces") ?? true,

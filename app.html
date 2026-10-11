@@ -10254,6 +10254,42 @@ function tpcpBuildNativePinData() {
   return { pins: pins, spots: spots };
 }
 
+function tpcpBuildNativeRouteSuite() {
+  // Step 4 (msg 156): the acceptance route suite, computed with the
+  // SHIPPED router over the SHIPPED graphs -- park graphs for the
+  // in-park routes, tpcpResortRouteGraph()'s union for the resort
+  // routes -- the same code paths tpcpComputeRoute uses. Native only
+  // draws the polyline; computation stays here. DTD places resolve
+  // through the union's place map (built fresh at runtime): the
+  // shipped DTD file carries an empty _placeBySquash, so
+  // TPCPRouter.place() cannot look up on the raw DTD graph.
+  var R = window.TPCPRouter;
+  if (!R || !window.TPCP_GRAPH_DL || !window.TPCP_GRAPH_DCA || !window.TPCP_GRAPH_DTD) return [];
+  var U = tpcpResortRouteGraph();
+  if (!U) return [];
+  function coordFt(coords) { var s = 0; for (var i = 1; i < coords.length; i++) s += R.havFt(coords[i - 1], coords[i]); return Math.round(s); }
+  function placeIn(graph, name) { var p = R.place(graph, name); if (!p) throw new Error('suite place: ' + name); return p; }
+  function run(id, label, graph, fromNode, toNode) {
+    var r = R.route(graph, fromNode, toNode);
+    if (!r) throw new Error('suite route: ' + id);
+    return { id: id, label: label, nodes: r.path.length, distFt: Math.round(r.distFt), coordFt: coordFt(r.coords), coords: r.coords };
+  }
+  var DL = window.TPCP_GRAPH_DL, DCA = window.TPCP_GRAPH_DCA;
+  var dlGate = R.snap(DL, TPCP_GATES.DL.lat, TPCP_GATES.DL.lon).node;
+  var dcaGate = R.snap(DCA, TPCP_GATES.DCA.lat, TPCP_GATES.DCA.lon).node;
+  return [
+    run('dl-rise', 'Park Entrance \u2192 Star Wars: Rise of the Resistance', DL, dlGate, placeIn(DL, 'Star Wars: Rise of the Resistance').node),
+    run('dca-rsr', 'Park Entrance \u2192 Radiator Springs Racers', DCA, dcaGate, placeIn(DCA, 'Radiator Springs Racers').node),
+    run('cross-park', 'Disneyland Entrance \u2192 Guardians of the Galaxy - Mission: BREAKOUT!', U.graph, U.dlGate, placeIn(U.graph, 'Guardians of the Galaxy - Mission: BREAKOUT!').node),
+    run('dtd-earl', 'Park Entrance \u2192 Earl of Sandwich', U.graph, U.esplanade, placeIn(U.graph, 'Earl of Sandwich').node),
+    run('dtd-live', 'Park Entrance \u2192 Downtown Disney LIVE! Stage', U.graph, U.esplanade, placeIn(U.graph, 'Downtown Disney LIVE! Stage').node),
+    run('gc', "Park Entrance \u2192 Disney's Grand Californian Hotel & Spa", U.graph, U.esplanade, placeIn(U.graph, "Disney's Grand Californian Hotel & Spa").node),
+    run('trader-sams', "Park Entrance \u2192 Trader Sam's Enchanted Tiki Bar", U.graph, U.esplanade, placeIn(U.graph, "Trader Sam's Enchanted Tiki Bar").node),
+    run('hotel', 'Park Entrance \u2192 The Disneyland Hotel', U.graph, U.esplanade, placeIn(U.graph, 'The Disneyland Hotel').node),
+    run('reverse', 'World of Disney \u2192 Space Mountain', U.graph, placeIn(U.graph, 'World of Disney').node, placeIn(U.graph, 'Space Mountain').node)
+  ];
+}
+
 // CATiledLayer spike view via the NativeMapSpike plugin and render its
 // in-process diagnostic readout here when it closes. This path never
 // touches the web map; if the plugin is not registered in this build
@@ -10274,6 +10310,10 @@ async function tpcpOpenNativeMapSpike() {
     var built = tpcpBuildNativePinData();
     pins = built.pins; spots = built.spots;
   } catch (e) { pins = []; spots = {}; }
+  // Step 4: the route suite for the native polyline (same fallback:
+  // no routes -> the steps 1-3 view).
+  var routes = [];
+  try { routes = tpcpBuildNativeRouteSuite(); } catch (e) { routes = []; }
   _spikePins = {};
   pins.forEach(function (p) { _spikePins[p.id] = { name: p.name, sub: p.sub, hasDir: !!spots[p.id], dir: spots[p.id] || null }; });
   var tapHandle = null, dirHandle = null, pendingDir = null;
@@ -10294,9 +10334,9 @@ async function tpcpOpenNativeMapSpike() {
   } catch (e) {}
   try {
     var wire = pins.map(function (p) { return { id: p.id, name: p.name, lat: p.lat, lon: p.lon, layer: p.layer, fill: p.fill, radius: p.radius, weight: p.weight, alpha: p.alpha }; });
-    var d = await plugin.present({ pinsJson: JSON.stringify(wire), layerPlaces: true, layerSvc: false, layerSe: false });
+    var d = await plugin.present({ pinsJson: JSON.stringify(wire), routesJson: JSON.stringify(routes), layerPlaces: true, layerSvc: false, layerSe: false });
     if (d) {
-      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + (typeof d.pinsTotal === 'number' ? ' | pins ' + d.pinsTotal + ' (' + d.pinsByClass + ') | pins visible on close ' + d.pinsVisible : '') + (d.lastTap ? ' | last tap ' + d.lastTap : '') + (d.lastPopup ? ' | last popup ' + d.lastPopup : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
+      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + (typeof d.pinsTotal === 'number' ? ' | pins ' + d.pinsTotal + ' (' + d.pinsByClass + ') | pins visible on close ' + d.pinsVisible : '') + (d.lastTap ? ' | last tap ' + d.lastTap : '') + (d.lastPopup ? ' | last popup ' + d.lastPopup : '') + (d.routeName ? ' | route ' + d.routeName + ' | nodes drawn ' + d.routeNodesDrawn + '/' + d.routeNodes + ' | dist ' + d.routeDistFt + ' ft | coordFt web ' + d.routeCoordFtWeb + ' / native ' + d.routeCoordFtNative : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
     } else { show('Native map spike: closed (no readout returned).'); }
   } catch (e) { show('Native map spike error: ' + ((e && e.message) ? e.message : e)); }
   try { if (tapHandle && tapHandle.remove) tapHandle.remove(); } catch (e) {}
