@@ -6094,6 +6094,7 @@ function tpcpBundleLabel(){
   var nativeSpikeHtml = isAdmin() ? '<div id="tpcpNativeSpikeRow" style="margin:0 14px 16px;">'
     + '<button type="button" onclick="tpcpOpenNativeMapSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;">Native map spike (dev)</button>'
     + '<button type="button" id="tpcpNativeMapToggle" onclick="tpcpToggleNativeMap()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">' + tpcpNativeMapToggleLabel() + '</button>'
+    + '<button type="button" onclick="tpcpOpenLayerSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">Layer spike (dev)</button>'
     + '<div id="tpcpNativeSpikeReadout" style="font-size:11px;color:#4A7A7C;font-family:Outfit,sans-serif;line-height:1.45;margin-top:8px;white-space:pre-line;text-align:center;"></div></div>' : '';
 
   // Build the full HTML
@@ -10421,6 +10422,27 @@ async function tpcpOpenNativeMapSpike(opts) {
     // then open directions to the registered spot.
     setTimeout(function () { tpcpOpenDirectionsTo(r.park, { name: r.spot.n, lat: r.spot.lat, lon: r.spot.lon, node: r.spot.node }); }, 350);
   }
+}
+
+// Step 5P (msg 160) micro-spike: the bare CALayer-composited tile
+// view via the NativeMapSpike plugin (presentLayerSpike), and its
+// MEASURED readout here when it closes -- open-to-painted ms, fit
+// composites, per-gesture settle composites, tile draw calls. The
+// settle segment prints unconditionally: in step 5 the >= 0 gate
+// on lastSettleDraws hid a never-fired instrument (msg 159/160).
+async function tpcpOpenLayerSpike() {
+  var out = document.getElementById('tpcpNativeSpikeReadout');
+  function show(t) { if (out) out.textContent = t; }
+  var plugin = null;
+  try { plugin = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeMapSpike) || null; } catch (e) { plugin = null; }
+  if (!plugin || typeof plugin.presentLayerSpike !== 'function') { show('Layer spike: plugin unavailable on this surface (not registered in this build).'); return; }
+  show('Layer spike: opening...');
+  try {
+    var d = await plugin.presentLayerSpike({});
+    if (d) {
+      show('Layer spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | unpainted ' + d.tilesUnpainted + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.layerOpenMs === 'number' && d.layerOpenMs >= 0 ? ' | open to painted ' + d.layerOpenMs + ' ms' : ' | open to painted NOT MEASURED') + ' | fit composites ' + d.fitComposites + ' | composites total ' + d.compositesTotal + ' | last settle composites ' + d.lastSettleComposites + ' | tile draw calls ' + d.tileDrawCalls + ' (source ' + d.sourceDrawCalls + ') | layers visible ' + d.visibleLayers + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : ''));
+    } else { show('Layer spike: closed (no readout returned).'); }
+  } catch (e) { show('Layer spike error: ' + ((e && e.message) ? e.message : e)); }
 }
 
 function tpcpMapDiagLabel() {
