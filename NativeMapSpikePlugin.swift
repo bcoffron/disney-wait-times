@@ -501,6 +501,12 @@ final class SpikePinOverlayView: UIView {
 final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private let scrollView = UIScrollView()
     private let tiledView = SpikeTiledView()
+    // Step 6 (msg 162): the zoomed content -- a plain UIView with
+    // NO draw(_:) override; the tiles are CALayer contents
+    // composited into it (syncVisibleTiles). tiledView is no
+    // longer displayed: it is the tile source (tileImage / NSCache
+    // / resolution / layerTile), the role the micro-spike proved.
+    private let contentView = UIView()
     private let diagLabel = UILabel()
     private let titleLabel = UILabel()
     private let doneButton = UIButton(type: .system)
@@ -555,8 +561,22 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     // the present call) and the settle-coalescing instrument.
     var production = false
     private var settlePending = false
-    private var settleStartDrawn = 0
-    private(set) var lastSettleDraws = -1
+    private var settleStartComposites = 0
+    private(set) var lastSettleComposites = -1
+    // Step 6 (msg 162): the layer tile engine's state on this, the
+    // full surface -- the micro-spike's model promoted per the
+    // ruling. Tile layers are composited into contentView, keyed
+    // (level << 40) | (ty << 20) | tx exactly as the painted-cell
+    // census keyed them; `level` is the VC's own now (the tile-
+    // source instance's level no longer drives anything here).
+    private var level: Int = 15
+    private var tileLayers: [Int: CALayer] = [:]
+    private var lastSyncSignature = ""
+    private(set) var compositesTotal = 0
+    private(set) var fitComposites = -1
+    private var hasAppeared = false
+    private var openStart: CFTimeInterval? = nil
+    private(set) var openMs = -1
         // Step 4 state: the acceptance suite (assigned by the plugin
     // before presentation) and the route currently drawn.
     var routes: [SpikeRoute] = []
@@ -578,19 +598,20 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         let nw = SpikeGeom.globalPx(lat: SpikeGeom.maxNE.lat, lng: SpikeGeom.maxSW.lng)
         let se = SpikeGeom.globalPx(lat: SpikeGeom.maxSW.lat, lng: SpikeGeom.maxNE.lng)
         tiledView.originGlobal = nw
-        tiledView.frame = CGRect(x: 0, y: 0, width: se.x - nw.x, height: se.y - nw.y)
-        contentUnits = tiledView.frame.size
+        contentView.frame = CGRect(x: 0, y: 0, width: se.x - nw.x, height: se.y - nw.y)
+        contentView.backgroundColor = SpikeTiledView.beige
+        contentUnits = contentView.frame.size
 
         scrollView.delegate = self
         scrollView.contentInsetAdjustmentBehavior = .never
-        scrollView.contentSize = tiledView.frame.size
+        scrollView.contentSize = contentView.frame.size
         trace(String(format: "LOAD cs %.0fx%.0f tiledFrame %.0fx%.0f",
                      scrollView.contentSize.width, scrollView.contentSize.height,
-                     tiledView.frame.width, tiledView.frame.height))
+                     contentView.frame.width, contentView.frame.height))
         scrollView.backgroundColor = SpikeTiledView.beige
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.showsVerticalScrollIndicator = false
-        scrollView.addSubview(tiledView)
+        scrollView.addSubview(contentView)
         view.addSubview(scrollView)
         insetObservation = scrollView.observe(\.contentInset, options: [.new]) { [weak self] sv, change in
             guard let self = self, let nv = change.newValue else { return }
@@ -740,7 +761,14 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                      scrollView.contentInset.top, scrollView.contentInset.left,
                      scrollView.contentOffset.x, scrollView.contentOffset.y,
                      scrollView.bounds.width, scrollView.bounds.height))
-        tiledView.setNeedsDisplay()
+        // Step 6 (msg 162): the open-to-painted clock starts here,
+        // with the view on screen at its final bounds and the fit
+        // already applied -- it measures the rendering surface
+        // (tiles + pins + chrome), not the modal presentation or
+        // the bridge (design section 4).
+        hasAppeared = true
+        if openStart == nil { openStart = CACurrentMediaTime() }
+        performOpenSyncIfNeeded()
     }
 
     override func viewDidLayoutSubviews() {
@@ -758,7 +786,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         let db = doneButton.intrinsicContentSize
         doneButton.frame = CGRect(x: view.bounds.width - safe.right - db.width - 10,
                                   y: safe.top + 8, width: db.width, height: 24)
-        let diagH: CGFloat = pins.isEmpty ? 84 : 100
+        let diagH: CGFloat = pins.isEmpty ? 84 : 116
         diagLabel.frame = CGRect(x: safe.left + 10,
                                  y: view.bounds.height - safe.bottom - diagH - 8,
                                  width: view.bounds.width - safe.left - safe.right - 20,
@@ -796,7 +824,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         fitZoom = SpikeGeom.leafletFitZoom(viewport: size)
         scrollView.minimumZoomScale = CGFloat(pow(2.0, Double(SpikeGeom.minMapZoom - SpikeGeom.refZoom)))
         scrollView.maximumZoomScale = 1.0
-        tiledView.level = fitZoom
+        level = fitZoom
         let scale = CGFloat(pow(2.0, Double(fitZoom - SpikeGeom.refZoom)))
         applyingFit = true
         scrollView.zoomScale = scale
@@ -809,8 +837,10 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                      scrollView.contentInset.top, scrollView.contentInset.left,
                      scrollView.contentOffset.x, scrollView.contentOffset.y))
         refreshDiagnostics()
-        // Tiles paint asynchronously; re-read once they have landed so
-        // the "drawn" figure reflects the settled first paint.
+        if hasAppeared { performOpenSyncIfNeeded() }
+        // Re-read once the first composite has landed so the census
+        // reflects the settled first paint (with compositing the
+        // sync is synchronous; the re-read now just confirms it).
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.refreshDiagnostics()
         }
@@ -860,53 +890,56 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     }
 
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
-        return tiledView
+        return contentView
     }
     func scrollViewDidZoom(_ scrollView: UIScrollView) {
         if !applyingFit { userInteracted = true }
         let z = 19.0 + log2(Double(scrollView.zoomScale))
         let l = Int(min(Double(SpikeGeom.maxMapZoom),
                         max(Double(SpikeGeom.minMapZoom), z.rounded())))
-        if l != tiledView.level { tiledView.level = l }
+        if l != level {
+            level = l
+            if hasAppeared { syncVisibleTiles(); refreshDiagnostics() }
+        }
         pinOverlay.setNeedsDisplay()
     }
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if hasAppeared { syncVisibleTiles() }
         pinOverlay.setNeedsDisplay()
     }
-    private func settleRepaint() {
+    // Step 6 (msg 162): the settle measurement from the layer
+    // spike, replacing step 5's settle repaint + settle-draws
+    // instrument. Same end-hooks and 60 ms coalescing window
+    // (drag-end, deceleration-end, and zoom-end can all fire for a
+    // single flick; the first arms the window and the rest fold
+    // into it), but the value is assigned SYNCHRONOUSLY after the
+    // settle sync -- layer contents assignments have no
+    // asynchronous paint tail, so the number is final in the same
+    // turn and cannot be stranded by a quick Done.
+    private func settleCompositeSync() {
         pinOverlay.setNeedsDisplay()
         refreshDiagnostics()
-        // Step-5 repaint port (step-2 item 2, directive 2): coalesce
-        // settle repaints -- ONE tiled repaint per gesture settle,
-        // not one per end-hook. Drag-end, deceleration-end, and
-        // zoom-end can all fire for a single flick; the first arms a
-        // 60 ms window and the rest fold into it. The repaint's draw
-        // count is measured into lastSettleDraws at +0.8 s (the
-        // bounded-repaint acceptance number).
         if settlePending { return }
         settlePending = true
-        settleStartDrawn = tiledView.drawnExact
+        settleStartComposites = compositesTotal
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
             guard let self = self else { return }
             self.settlePending = false
-            self.tiledView.setNeedsDisplay()
+            self.syncVisibleTiles()
+            self.lastSettleComposites = self.compositesTotal - self.settleStartComposites
             self.pinOverlay.setNeedsDisplay()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
-                guard let self = self else { return }
-                self.lastSettleDraws = self.tiledView.drawnExact - self.settleStartDrawn
-                self.refreshDiagnostics()
-            }
+            self.refreshDiagnostics()
         }
     }
     func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
         lastZoomEnd = Date()
-        settleRepaint()
+        settleCompositeSync()
     }
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        if !decelerate { settleRepaint() }
+        if !decelerate { settleCompositeSync() }
     }
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        settleRepaint()
+        settleCompositeSync()
     }
 
     // MARK: step 4 — route suite picker, camera fit
@@ -1115,6 +1148,112 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         hidePopupCard()
     }
 
+    // MARK: step 6 -- layer tile engine (msg 162)
+
+    /// The visible cell range at the current level, computed with
+    /// the census math from refreshDiagnostics. Sync and census
+    /// share this one function (they cannot drift).
+    private func visibleCellRange() -> (tx0: Int, ty0: Int, tx1: Int, ty1: Int, span: Double)? {
+        let s = Double(scrollView.zoomScale)
+        guard s > 0 else { return nil }
+        var vis = CGRect(x: Double(scrollView.contentOffset.x) / s,
+                         y: Double(scrollView.contentOffset.y) / s,
+                         width: Double(scrollView.bounds.width) / s,
+                         height: Double(scrollView.bounds.height) / s)
+        vis = vis.intersection(contentView.bounds)
+        if vis.isNull || vis.isEmpty { return nil }
+        let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - level))
+        let gx0 = vis.minX + Double(tiledView.originGlobal.x)
+        let gy0 = vis.minY + Double(tiledView.originGlobal.y)
+        let tx0 = Int(floor(gx0 / span))
+        let ty0 = Int(floor(gy0 / span))
+        let tx1 = Int(floor((gx0 + Double(vis.width) - 0.001) / span))
+        let ty1 = Int(floor((gy0 + Double(vis.height) - 0.001) / span))
+        if tx1 < tx0 || ty1 < ty0 { return nil }
+        return (tx0, ty0, tx1, ty1, span)
+    }
+
+    /// Reconcile the tile layers with the visible set: create a
+    /// layer for each newly visible resolvable cell (ONE contents
+    /// assignment = ONE composite), prune layers that left the set.
+    /// The pack is static, so an unchanged (level, range) signature
+    /// makes the call a no-op -- most pan ticks cost one range
+    /// computation and one comparison.
+    private func syncVisibleTiles() {
+        guard let r = visibleCellRange() else { return }
+        let signature = "\(level)/\(r.tx0)/\(r.ty0)/\(r.tx1)/\(r.ty1)"
+        if signature == lastSyncSignature { return }
+        lastSyncSignature = signature
+        var desired = Set<Int>()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for ty in r.ty0...r.ty1 {
+            for tx in r.tx0...r.tx1 {
+                let key = (level << 40) | (ty << 20) | tx
+                let t = tiledView.layerTile(level: level, tx: tx, ty: ty)
+                guard let img = t.image else { continue }
+                desired.insert(key)
+                if tileLayers[key] != nil { continue }
+                let layer = CALayer()
+                layer.frame = CGRect(
+                    x: CGFloat(Double(tx) * r.span - Double(tiledView.originGlobal.x)),
+                    y: CGFloat(Double(ty) * r.span - Double(tiledView.originGlobal.y)),
+                    width: CGFloat(r.span), height: CGFloat(r.span))
+                if t.isSubstitute {
+                    // The ancestor's sub-quadrant for this cell:
+                    // same source image, same geographic sub-region
+                    // paintCells clips to.
+                    let n = 1 << t.step
+                    let qx = tx - t.ax * n
+                    let qy = ty - t.ay * n
+                    layer.contentsRect = CGRect(x: CGFloat(qx) / CGFloat(n),
+                                                y: CGFloat(qy) / CGFloat(n),
+                                                width: 1.0 / CGFloat(n),
+                                                height: 1.0 / CGFloat(n))
+                }
+                layer.contents = img.cgImage
+                compositesTotal += 1
+                contentView.layer.addSublayer(layer)
+                tileLayers[key] = layer
+            }
+        }
+        let stale = tileLayers.keys.filter { !desired.contains($0) }
+        for key in stale {
+            tileLayers[key]?.removeFromSuperlayer()
+            tileLayers.removeValue(forKey: key)
+        }
+        CATransaction.commit()
+    }
+
+    /// The first sync after appear runs inside an explicit
+    /// transaction whose completion block timestamps the moment the
+    /// render server presents the frame carrying the last tile
+    /// contents -- the open-to-fully-painted measurement (design
+    /// section 4). The pin overlay's first display is requested
+    /// inside the same transaction: its draw is main-thread
+    /// synchronous work performed during the commit, so the
+    /// presented frame the completion block timestamps carries the
+    /// tiles AND the pins/chrome above them (msg 162 carry-in 3).
+    /// Later calls are plain syncs.
+    private func performOpenSyncIfNeeded() {
+        if openMs >= 0 { syncVisibleTiles(); return }
+        if openStart == nil { openStart = CACurrentMediaTime() }
+        let start = openStart ?? CACurrentMediaTime()
+        let before = compositesTotal
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { [weak self] in
+            guard let self = self else { return }
+            if self.openMs < 0 {
+                self.openMs = Int(((CACurrentMediaTime() - start) * 1000.0).rounded())
+            }
+            self.refreshDiagnostics()
+        }
+        syncVisibleTiles()
+        pinOverlay.setNeedsDisplay()
+        CATransaction.commit()
+        if fitComposites < 0 { fitComposites = compositesTotal - before }
+    }
+
     // MARK: diagnostics (msg 142: in-process readout, from the start)
 
     private func refreshDiagnostics() {
@@ -1124,10 +1263,10 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                          y: Double(scrollView.contentOffset.y) / s,
                          width: Double(scrollView.bounds.width) / s,
                          height: Double(scrollView.bounds.height) / s)
-        vis = vis.intersection(tiledView.bounds)
+        vis = vis.intersection(contentView.bounds)
         var inView = 0, exact = 0, subst = 0, missing = 0, unpainted = 0
         if !vis.isNull && !vis.isEmpty {
-            let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - tiledView.level))
+            let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - level))
             let gx0 = vis.minX + Double(tiledView.originGlobal.x)
             let gy0 = vis.minY + Double(tiledView.originGlobal.y)
             let tx0 = Int(floor(gx0 / span))
@@ -1138,13 +1277,13 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                 for ty in ty0...ty1 {
                     for tx in tx0...tx1 {
                         inView += 1
-                        let res = tiledView.resolution(z: tiledView.level - 1, x: tx, y: ty)
+                        let res = tiledView.resolution(z: level - 1, x: tx, y: ty)
                         switch res {
                         case 0: exact += 1
                         case 1: subst += 1
                         default: missing += 1
                         }
-                        if res != 2 && !tiledView.wasPainted(level: tiledView.level, x: tx, y: ty) {
+                        if res != 2 && tileLayers[(level << 40) | (ty << 20) | tx] == nil {
                             unpainted += 1
                         }
                     }
@@ -1157,12 +1296,15 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         let of = scrollView.contentOffset
         let ci = scrollView.contentInset
         diagLabel.text = String(
-            format: " fit zoom %d · zoom %.2f · drawn %d\n tiles in view %d — exact %d · substituted %d · missing %d\n pack %@ · %@\n sv %.0fx%.0f · off (%.0f,%.0f) · inset t%.0f l%.0f b%.0f r%.0f",
-            fitZoom, zoomNow, tiledView.drawnExact,
-            inView, exact, subst, missing,
+            format: " fit zoom %d · zoom %.2f · layers %d · engine layer\n tiles in view %d — exact %d · substituted %d · missing %d · unpainted %d\n pack %@ · %@\n sv %.0fx%.0f · off (%.0f,%.0f) · inset t%.0f l%.0f b%.0f r%.0f",
+            fitZoom, zoomNow, tileLayers.count,
+            inView, exact, subst, missing, unpainted,
             packTileCount > 0 ? "\(packTileCount) tiles" : "size unknown",
-            tilesStatus + (unpainted > 0 ? " · unpainted \(unpainted)" : ""),
+            tilesStatus,
             bo.width, bo.height, of.x, of.y, ci.top, ci.left, ci.bottom, ci.right)
+        diagLabel.text = (diagLabel.text ?? "") + String(
+            format: "\n open %d ms · fit comp %d · comp %d · settle comp %d · tile draws %d",
+            openMs, fitComposites, compositesTotal, lastSettleComposites, tiledView.drawCalls)
         if let last = fitTrace.last {
             diagLabel.text = (diagLabel.text ?? "") + "\n " + last
         }
@@ -1256,7 +1398,12 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             "lastTap": lastTapName,
             "lastPopup": lastPopupName,
             "routeName": currentRoute?.label ?? "",
-            "lastSettleDraws": lastSettleDraws,
+            "lastSettleComposites": lastSettleComposites,
+            "tileEngine": "layer",
+            "openMs": openMs,
+            "fitComposites": fitComposites,
+            "compositesTotal": compositesTotal,
+            "visibleLayers": tileLayers.count,
             "production": production ? 1 : 0,
             "routeNodes": currentRoute?.nodesWeb ?? 0,
             "routeNodesDrawn": currentRoute?.points.count ?? 0,
@@ -1912,7 +2059,7 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("NativeMapSpike: mini-map render failed")
                 return
             }
-            call.resolve(["image": png.base64EncodedString()])
+            call.resolve(["image": png.base64EncodedString(), "renderer": "native"])
         }
     }
 

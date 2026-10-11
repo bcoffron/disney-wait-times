@@ -6095,7 +6095,7 @@ function tpcpBundleLabel(){
     + '<button type="button" onclick="tpcpOpenNativeMapSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;">Native map spike (dev)</button>'
     + '<button type="button" id="tpcpNativeMapToggle" onclick="tpcpToggleNativeMap()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">' + tpcpNativeMapToggleLabel() + '</button>'
     + '<button type="button" onclick="tpcpOpenLayerSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">Layer spike (dev)</button>'
-    + '<div id="tpcpNativeSpikeReadout" style="font-size:11px;color:#4A7A7C;font-family:Outfit,sans-serif;line-height:1.45;margin-top:8px;white-space:pre-line;text-align:center;"></div></div>' : '';
+    + '<div id="tpcpNativeSpikeReadout" style="font-size:11px;color:#4A7A7C;font-family:Outfit,sans-serif;line-height:1.45;margin-top:8px;white-space:pre-line;text-align:center;">' + tpcpMiniRenderLine() + '</div></div>' : '';
 
   // Build the full HTML
   var _secs={
@@ -9441,6 +9441,24 @@ function tpcpMiniPark() {
   } catch (e) {}
   return 'DL';
 }
+// Step 6 (msg 162 carry-in 2): the mini-map's renderer is
+// attributable. Every dispatcher outcome records which surface
+// actually rendered -- the native plugin's own renderer token,
+// 'no-token' if the binary that answered predates the token,
+// 'web' for the Leaflet fallback -- with the time. The record
+// seeds the Info native readout area (and live-fills it while
+// empty), so a screenshot proves which engine rendered the mini;
+// the fallback itself is unchanged, it just stops being silent.
+var _tpcpMiniRender = null;
+function tpcpMiniRenderLine() {
+  if (!_tpcpMiniRender) return '';
+  return 'Mini-map last render: ' + _tpcpMiniRender.renderer + ' · ' + _tpcpMiniRender.at;
+}
+function tpcpRecordMiniRender(renderer) {
+  _tpcpMiniRender = { renderer: renderer, at: new Date().toLocaleTimeString() };
+  var out = document.getElementById('tpcpNativeSpikeReadout');
+  if (out && !out.textContent) out.textContent = tpcpMiniRenderLine();
+}
 function tpcpInitMiniMap() {
   var el = document.getElementById('tpcpMiniMap');
   if (!el) return;
@@ -9464,6 +9482,7 @@ function tpcpInitMiniMap() {
       return plugin.miniMap({ width: el.clientWidth, height: el.clientHeight, pinsJson: JSON.stringify(wire) });
     }).then(function (res) {
       if (!res || !res.image) throw new Error('mini render empty');
+      tpcpRecordMiniRender(res.renderer ? String(res.renderer) : 'no-token');
       el.innerHTML = '';
       var img = document.createElement('img');
       img.src = 'data:image/png;base64,' + res.image;
@@ -9479,6 +9498,7 @@ function tpcpInitMiniMap() {
 function tpcpInitMiniMapLeaflet() {
   var el = document.getElementById('tpcpMiniMap');
   if (!el) return;
+  tpcpRecordMiniRender('web');
   // The resort supplement pack is part of this map’s load list
   // (Claude msg 106): tpcpResortTiles() needs it for the complete
   // merge. The shared ensure below loads it too; loads dedupe by name.
@@ -10411,7 +10431,7 @@ async function tpcpOpenNativeMapSpike(opts) {
     var wire = pins.map(function (p) { return { id: p.id, name: p.name, lat: p.lat, lon: p.lon, layer: p.layer, fill: p.fill, radius: p.radius, weight: p.weight, alpha: p.alpha }; });
     var d = await plugin.present({ pinsJson: JSON.stringify(wire), routesJson: JSON.stringify(routes), layerPlaces: initLayers.places, layerSvc: initLayers.svc, layerSe: initLayers.se, production: production });
     if (d) {
-      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + (typeof d.lastSettleDraws === 'number' && d.lastSettleDraws >= 0 ? ' | last settle draws ' + d.lastSettleDraws : '') + (typeof d.pinsTotal === 'number' ? ' | pins ' + d.pinsTotal + ' (' + d.pinsByClass + ') | pins visible on close ' + d.pinsVisible : '') + (d.lastTap ? ' | last tap ' + d.lastTap : '') + (d.lastPopup ? ' | last popup ' + d.lastPopup : '') + (d.routeName ? ' | route ' + d.routeName + ' | nodes drawn ' + d.routeNodesDrawn + '/' + d.routeNodes + ' | dist ' + d.routeDistFt + ' ft | coordFt web ' + d.routeCoordFtWeb + ' / native ' + d.routeCoordFtNative : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
+      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + (d.tileEngine ? ' | engine ' + d.tileEngine : '') + (typeof d.openMs === 'number' && d.openMs >= 0 ? ' | open to painted ' + d.openMs + ' ms' : ' | open to painted NOT MEASURED') + ' | fit composites ' + d.fitComposites + ' | last settle composites ' + d.lastSettleComposites + (typeof d.pinsTotal === 'number' ? ' | pins ' + d.pinsTotal + ' (' + d.pinsByClass + ') | pins visible on close ' + d.pinsVisible : '') + (d.lastTap ? ' | last tap ' + d.lastTap : '') + (d.lastPopup ? ' | last popup ' + d.lastPopup : '') + (d.routeName ? ' | route ' + d.routeName + ' | nodes drawn ' + d.routeNodesDrawn + '/' + d.routeNodes + ' | dist ' + d.routeDistFt + ' ft | coordFt web ' + d.routeCoordFtWeb + ' / native ' + d.routeCoordFtNative : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
     } else { show('Native map spike: closed (no readout returned).'); }
   } catch (e) { show('Native map spike error: ' + ((e && e.message) ? e.message : e)); }
   try { if (tapHandle && tapHandle.remove) tapHandle.remove(); } catch (e) {}
