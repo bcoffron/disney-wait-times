@@ -552,6 +552,16 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private var showSE = false
     private let pinOverlay = SpikePinOverlayView()
     private var chipButtons: [UIButton] = []
+    // Step 7 (msg 164, item E): production chrome -- a designed
+    // header block (solid white bar: navy Back pill + "Park Map"
+    // title, mirroring the web map's .tpcp-map-head) with the
+    // layer chips in a bar under it, replacing the floating
+    // translucent pills on the production present only. The dev
+    // entry (production == false) keeps its floating pills and
+    // full-screen map exactly as before.
+    private let headerBar = UIView()
+    private let chipBar = UIView()
+    private let chromeHairline = UIView()
     private let popupCard = UIView()
     private let popupName = UILabel()
     private let popupSub = UILabel()
@@ -588,7 +598,12 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = SpikeTiledView.beige
+        // Step 7: in production the root view sits behind the
+        // white chrome block, so it is white; the map's own ground
+        // (#EFEDE7 -- the web map element's background, app.html
+        // .tpcp-map-el) belongs to the scroll view and the content
+        // view, which keep it in both modes.
+        view.backgroundColor = production ? .white : SpikeTiledView.beige
 
         locateTiles()
 
@@ -613,6 +628,18 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         scrollView.showsVerticalScrollIndicator = false
         scrollView.addSubview(contentView)
         view.addSubview(scrollView)
+        // Step 7 chrome bars: added before the pin overlay, chips,
+        // and popup so all of those stay above them; hidden unless
+        // this is the production present.
+        headerBar.backgroundColor = .white
+        headerBar.isHidden = !production
+        view.addSubview(headerBar)
+        chipBar.backgroundColor = .white
+        chipBar.isHidden = !production
+        view.addSubview(chipBar)
+        chromeHairline.backgroundColor = UIColor(spikeHex: "#E7E1D0")
+        chromeHairline.isHidden = !production
+        view.addSubview(chromeHairline)
         insetObservation = scrollView.observe(\.contentInset, options: [.new]) { [weak self] sv, change in
             guard let self = self, let nv = change.newValue else { return }
             if let last = self.lastTracedInset, last == nv { return }
@@ -639,6 +666,25 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         doneButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
         doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
         view.addSubview(doneButton)
+
+        if production {
+            // Step 7: the web map's header treatment with its own
+            // values (.tpcp-map-back / .tpcp-map-title in
+            // app.html): Back is a navy #173A5E capsule, 36 pt
+            // tall, 14 pt side padding, label with arrow; the
+            // title is #173A5E at 16 pt, weight 800, left-aligned
+            // beside it on the white bar. (Bold system font
+            // stands in for Outfit, as everywhere in this file.)
+            titleLabel.font = UIFont.boldSystemFont(ofSize: 16)
+            titleLabel.textColor = UIColor(spikeHex: "#173A5E")
+            titleLabel.backgroundColor = .clear
+            titleLabel.textAlignment = .left
+            titleLabel.layer.cornerRadius = 0
+            doneButton.setTitle("← Back", for: .normal)
+            doneButton.backgroundColor = UIColor(spikeHex: "#173A5E")
+            doneButton.layer.cornerRadius = 18
+            doneButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 14, bottom: 0, right: 14)
+        }
 
         diagLabel.font = UIFont.monospacedSystemFont(ofSize: 10, weight: .regular)
         diagLabel.textColor = .white
@@ -679,6 +725,15 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             b.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
             b.tag = i
             b.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
+            if production {
+                // On the white chip bar, the off state's white
+                // fill needs the header hairline as its edge (the
+                // web chip floats over tiles and carries a shadow
+                // instead; on a bar the border is the designed
+                // equivalent). State colors stay applyLayerState's.
+                b.layer.borderWidth = 1
+                b.layer.borderColor = UIColor(spikeHex: "#E7E1D0").cgColor
+            }
             chipButtons.append(b)
             view.addSubview(b)
         }
@@ -773,7 +828,20 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        scrollView.frame = view.bounds
+        // Step 7: production frames the map under the chrome
+        // block (header bar + chip bar + the hairline under
+        // them); the dev entry keeps the full-screen map.
+        let chromeTop = chromeMapTop()
+        if production {
+            let headH = view.safeAreaInsets.top + 60
+            headerBar.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: headH)
+            chipBar.frame = CGRect(x: 0, y: headH, width: view.bounds.width, height: 46)
+            chromeHairline.frame = CGRect(x: 0, y: chromeTop - 1, width: view.bounds.width, height: 1)
+            scrollView.frame = CGRect(x: 0, y: chromeTop, width: view.bounds.width,
+                                      height: view.bounds.height - chromeTop)
+        } else {
+            scrollView.frame = view.bounds
+        }
         if scrollView.bounds.size != lastLayoutSize {
             lastLayoutSize = scrollView.bounds.size
             trace(String(format: "LAYOUT sv %.0fx%.0f view %.0fx%.0f inter %d",
@@ -782,27 +850,53 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
                          userInteracted ? 1 : 0))
         }
         let safe = view.safeAreaInsets
-        titleLabel.frame = CGRect(x: safe.left + 10, y: safe.top + 8, width: 168, height: 24)
-        let db = doneButton.intrinsicContentSize
-        doneButton.frame = CGRect(x: view.bounds.width - safe.right - db.width - 10,
-                                  y: safe.top + 8, width: db.width, height: 24)
+        if production {
+            // The web head's row: 14 pt side padding, starts 12 pt
+            // below the safe area, 36 pt tall; Back pill first,
+            // title beside it (flex:1 in the web row).
+            let db = doneButton.intrinsicContentSize
+            doneButton.frame = CGRect(x: 14, y: safe.top + 12, width: db.width, height: 36)
+            titleLabel.frame = CGRect(x: 14 + db.width + 8, y: safe.top + 12,
+                                      width: view.bounds.width - 14 - db.width - 8 - 14,
+                                      height: 36)
+        } else {
+            titleLabel.frame = CGRect(x: safe.left + 10, y: safe.top + 8, width: 168, height: 24)
+            let db = doneButton.intrinsicContentSize
+            doneButton.frame = CGRect(x: view.bounds.width - safe.right - db.width - 10,
+                                      y: safe.top + 8, width: db.width, height: 24)
+        }
         let diagH: CGFloat = pins.isEmpty ? 84 : 116
         diagLabel.frame = CGRect(x: safe.left + 10,
                                  y: view.bounds.height - safe.bottom - diagH - 8,
                                  width: view.bounds.width - safe.left - safe.right - 20,
                                  height: diagH)
-        pinOverlay.frame = view.bounds
+        // The overlay's projection is scroll-view space
+        // (contentPointToScreen), so the overlay takes the scroll
+        // view's frame exactly -- view.bounds on the dev entry,
+        // the framed viewport in production.
+        pinOverlay.frame = scrollView.frame
         let rb = routesButton.intrinsicContentSize
         routesButton.frame = CGRect(x: safe.left + 10, y: safe.top + 74, width: rb.width, height: 24)
         routesButton.isHidden = production || routes.isEmpty
         if !chipButtons.isEmpty {
             for b in chipButtons { b.isHidden = pins.isEmpty }
             if !pins.isEmpty {
-                var x = safe.left + 10
-                for b in chipButtons {
-                    let w = b.intrinsicContentSize.width + 4
-                    b.frame = CGRect(x: x, y: safe.top + 40, width: w, height: 26)
-                    x += w + 8
+                if production {
+                    // In the chip bar: 14 pt left padding (the web
+                    // head's), chips 10 pt below the bar's top.
+                    var x: CGFloat = 14
+                    for b in chipButtons {
+                        let w = b.intrinsicContentSize.width + 4
+                        b.frame = CGRect(x: x, y: chromeTop - 46 + 10, width: w, height: 26)
+                        x += w + 8
+                    }
+                } else {
+                    var x = safe.left + 10
+                    for b in chipButtons {
+                        let w = b.intrinsicContentSize.width + 4
+                        b.frame = CGRect(x: x, y: safe.top + 40, width: w, height: 26)
+                        x += w + 8
+                    }
                 }
             }
         }
@@ -844,6 +938,14 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.refreshDiagnostics()
         }
+    }
+
+    /// Step 7: the production chrome block's height -- the header
+    /// bar (safe-area top + the web head's 12 + 36 + 12) plus the
+    /// 46 pt chip bar (26 pt chips with 10 pt padding). The map
+    /// viewport starts at this y in production; 0 on the dev entry.
+    private func chromeMapTop() -> CGFloat {
+        return production ? view.safeAreaInsets.top + 60 + 46 : 0
     }
 
     private func centerOnResortBounds(scale: CGFloat) {
@@ -1067,7 +1169,10 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         // A pinch's trailing touch can read as a tap; ignore taps
         // that land immediately after a zoom settles.
         if Date().timeIntervalSince(lastZoomEnd) < 0.25 { return }
-        let loc = gr.location(in: view)
+        // Hit-testing compares against pinScreenPoint, which is
+        // scroll-view space; identical to view space on the
+        // full-screen dev entry.
+        let loc = gr.location(in: scrollView)
         var best: SpikePin? = nil
         var bestD = Double.greatestFiniteMagnitude
         for pin in pins where layerShown(pin.layer) {
@@ -1120,9 +1225,15 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         if dirH > 0 { h += 10 + dirH }
         h += pad
         let sp = pinScreenPoint(pin)
+        // The card is framed in view coordinates; the pin's
+        // screen point is scroll-view space. The two differ only
+        // by the scroll view's y origin -- the chrome block's
+        // height in production, 0 on the dev entry.
+        let yOff = scrollView.frame.minY
         let x = min(max(sp.x - w / 2, 10), view.bounds.width - w - 10)
-        var y = sp.y - h - pin.radius - 10
-        if y < view.safeAreaInsets.top + 74 { y = sp.y + pin.radius + 10 }
+        var y = sp.y + yOff - h - pin.radius - 10
+        let topLimit = production ? yOff + 10 : view.safeAreaInsets.top + 74
+        if y < topLimit { y = sp.y + yOff + pin.radius + 10 }
         popupCard.frame = CGRect(x: x, y: y, width: w, height: h)
         var cy = pad
         popupName.frame = CGRect(x: pad, y: cy, width: innerW, height: nameH)
@@ -1332,8 +1443,21 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     /// cross-check: the row for the device's own viewport must equal
     /// the same open's live overlay readings.
     private func paritySweep() -> [String] {
-        let sizes: [(Double, Double)] = [(402, 874), (402, 751), (430, 932), (390, 844),
+        var sizes: [(Double, Double)] = [(402, 874), (402, 751), (430, 932), (390, 844),
                                          (375, 667), (320, 568), (768, 1024), (820, 1180)]
+        // Step 7: the production viewport (the framed area under
+        // the chrome block) is none of the tabulated screen sizes,
+        // so the sweep's built-in cross-check -- the row for the
+        // viewport in use equals the same open's live readings --
+        // would silently stop covering the production open.
+        // Prepend the live bounds when they are not tabulated. On
+        // the full-screen dev entry they always are, and the
+        // table is unchanged.
+        let liveW = Double(scrollView.bounds.width.rounded())
+        let liveH = Double(scrollView.bounds.height.rounded())
+        if liveW > 0 && !sizes.contains(where: { $0.0 == liveW && $0.1 == liveH }) {
+            sizes.insert((liveW, liveH), at: 0)
+        }
         let cLat = (SpikeGeom.boundsSW.lat + SpikeGeom.boundsNE.lat) / 2.0
         let cLng = (SpikeGeom.boundsSW.lng + SpikeGeom.boundsNE.lng) / 2.0
         let c = SpikeGeom.globalPx(lat: cLat, lng: cLng)
