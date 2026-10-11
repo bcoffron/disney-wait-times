@@ -134,7 +134,20 @@ final class SpikeTiledView: UIView {
     var originGlobal: CGPoint = .zero
     /// Map zoom whose tiles are currently being drawn (13...19).
     var level: Int = 15 {
-        didSet { if level != oldValue { layer.setNeedsDisplay() } }
+        didSet {
+            if level != oldValue {
+                // Step-5 repaint port (step-2 item 2, directive 1):
+                // align the layer's tile grid to the cell grid --
+                // tileSize = the cell span at this level (4096pt at
+                // L15 ... 256pt at L19), so one layer draw call
+                // paints exactly one cell. The pre-port grid was a
+                // fixed 256pt in zoom-19 space: ~256 chunk draws
+                // per cell at the fit, ~850 per fit paint.
+                let span = CGFloat(256.0 * pow(2.0, Double(SpikeGeom.refZoom - level)))
+                tiledLayer.tileSize = CGSize(width: span, height: span)
+                layer.setNeedsDisplay()
+            }
+        }
     }
 
     private let imageCache = NSCache<NSString, UIImage>()
@@ -169,7 +182,9 @@ final class SpikeTiledView: UIView {
         commonInit()
     }
     private func commonInit() {
-        tiledLayer.tileSize = CGSize(width: 256, height: 256)
+        // Cell span at the initial level (15); level's didSet keeps
+        // it aligned from there (step-5 repaint port).
+        tiledLayer.tileSize = CGSize(width: 4096, height: 4096)
         // Level selection is driven deterministically from the scroll
         // view's zoom scale (see SpikeViewController.scrollViewDidZoom),
         // so the layer keeps a single detail level and re-renders its
@@ -180,6 +195,72 @@ final class SpikeTiledView: UIView {
         contentScaleFactor = UIScreen.main.scale
         backgroundColor = SpikeTiledView.beige
         imageCache.countLimit = 512
+    }
+
+    /// Bundle lookup for tiles/resort (the VC's locateTiles keeps
+    /// its own status-reporting variant; the mini render needs only
+    /// the URL).
+    static func locateResortTiles() -> URL? {
+        var tilesURL = Bundle.main.url(forResource: "tiles", withExtension: nil)
+        if tilesURL == nil, let res = Bundle.main.resourceURL {
+            let candidate = res.appendingPathComponent("tiles")
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                tilesURL = candidate
+            }
+        }
+        guard let base = tilesURL else { return nil }
+        let resort = base.appendingPathComponent("resort")
+        return FileManager.default.fileExists(atPath: resort.path) ? resort : nil
+    }
+
+    /// Step 5: the Co-Pilot mini-map, rendered natively -- a
+    /// synchronous pass of this view's own cell painter at the mini
+    /// viewport's fit level, in a context pre-scaled so the
+    /// painter's zoom-19 coordinates land in points: the same
+    /// tiles, ladder, and geometry as the live view. (A live
+    /// CATiledLayer rasterizes asynchronously and cannot be
+    /// snapshotted deterministically.) The pins are the web
+    /// mini-map's marker set (graph places + services) in its
+    /// styles, passed in by the web.
+    static func renderMiniMap(size: CGSize,
+                              pins: [(lat: Double, lon: Double, fill: UIColor, radius: CGFloat, weight: CGFloat)]) -> UIImage? {
+        guard size.width > 0, size.height > 0,
+              let root = locateResortTiles() else { return nil }
+        let level = SpikeGeom.leafletFitZoom(viewport: size)
+        let s = pow(2.0, Double(level - SpikeGeom.refZoom))
+        let cLat = (SpikeGeom.boundsSW.lat + SpikeGeom.boundsNE.lat) / 2.0
+        let cLng = (SpikeGeom.boundsSW.lng + SpikeGeom.boundsNE.lng) / 2.0
+        let c = SpikeGeom.globalPx(lat: cLat, lng: cLng)
+        let visW = Double(size.width) / s, visH = Double(size.height) / s
+        let origin = CGPoint(x: c.x - CGFloat(visW / 2.0), y: c.y - CGFloat(visH / 2.0))
+        let view = SpikeTiledView(frame: CGRect(origin: .zero, size: size))
+        view.tilesRoot = root
+        view.originGlobal = origin
+        view.level = level
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { rc in
+            let ctx = rc.cgContext
+            SpikeTiledView.beige.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            ctx.saveGState()
+            ctx.scaleBy(x: CGFloat(s), y: CGFloat(s))
+            view.paintCells(in: CGRect(x: 0, y: 0, width: CGFloat(visW), height: CGFloat(visH)),
+                            ctx: ctx, count: false)
+            ctx.restoreGState()
+            for p in pins {
+                let gp = SpikeGeom.globalPx(lat: p.lat, lng: p.lon)
+                let cx = (Double(gp.x) - Double(origin.x)) * s
+                let cy = (Double(gp.y) - Double(origin.y)) * s
+                let r = Double(p.radius)
+                let circle = CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2)
+                ctx.setFillColor(p.fill.withAlphaComponent(0.95).cgColor)
+                ctx.fillEllipse(in: circle)
+                ctx.setStrokeColor(UIColor.white.cgColor)
+                ctx.setLineWidth(p.weight)
+                ctx.strokeEllipse(in: circle.insetBy(dx: Double(p.weight) / 2.0,
+                                                     dy: Double(p.weight) / 2.0))
+            }
+        }
     }
 
     // MARK: tile lookup — the web createTile ladder, keys identical
@@ -214,9 +295,46 @@ final class SpikeTiledView: UIView {
         return 2
     }
 
+    /// Step 5P (msg 160): tile-source access for the layer spike.
+    /// The same createTile ladder walk paintCells performs (exact
+    /// z = level-1, then ancestors z-1 and z-2 with coordinates
+    /// halved per step), but returning the decoded image plus, for a
+    /// substitute, the ancestor step (1 or 2) and the ancestor tile
+    /// coordinates -- the inputs a CALayer contentsRect sub-quadrant
+    /// needs. Decoding and caching are this view's own tileImage /
+    /// NSCache path, unchanged. A nil image means missing at every
+    /// step of the ladder.
+    func layerTile(level: Int, tx: Int, ty: Int)
+        -> (image: UIImage?, isSubstitute: Bool, step: Int, ax: Int, ay: Int) {
+        if let img = tileImage(z: level - 1, x: tx, y: ty) {
+            return (img, false, 0, tx, ty)
+        }
+        var az = level - 1, ax = tx, ay = ty
+        for step in 1...2 {
+            az -= 1; ax /= 2; ay /= 2
+            if az < 0 { break }
+            if let img = tileImage(z: az, x: ax, y: ay) {
+                return (img, true, step, ax, ay)
+            }
+        }
+        return (nil, false, 0, tx, ty)
+    }
+
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
-        countLock.lock(); drawCalls += 1; countLock.unlock()
+        paintCells(in: rect, ctx: ctx, count: true)
+    }
+
+    /// The cell painter: every cell overlapped by rect (view-local
+    /// coordinates; originGlobal maps view-local to global zoom-19
+    /// px) resolved through the web createTile ladder and drawn at
+    /// its footprint. Shared by draw() (the live CATiledLayer) and
+    /// renderMiniMap (a synchronous pass in a pre-scaled context).
+    /// `count` gates the draw-call counter (live view only; cell
+    /// paints and the painted-cell census are per-instance either
+    /// way -- the mini render uses a throwaway instance).
+    func paintCells(in rect: CGRect, ctx: CGContext, count: Bool) {
+        if count { countLock.lock(); drawCalls += 1; countLock.unlock() }
         let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - level))
         let gx0 = Double(rect.minX) + Double(originGlobal.x)
         let gy0 = Double(rect.minY) + Double(originGlobal.y)
@@ -433,6 +551,12 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private let popupSub = UILabel()
     private let popupDirButton = UIButton(type: .system)
     private var popupPinId: String? = nil
+    // Step 5 state: production presentation (set by the plugin from
+    // the present call) and the settle-coalescing instrument.
+    var production = false
+    private var settlePending = false
+    private var settleStartDrawn = 0
+    private(set) var lastSettleDraws = -1
         // Step 4 state: the acceptance suite (assigned by the plugin
     // before presentation) and the route currently drawn.
     var routes: [SpikeRoute] = []
@@ -477,7 +601,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             _ = sv
         }
 
-        titleLabel.text = "Native map spike (dev)"
+        titleLabel.text = production ? "Park Map" : "Native map spike (dev)"
         titleLabel.font = UIFont.boldSystemFont(ofSize: 13)
         titleLabel.textColor = .white
         titleLabel.backgroundColor = UIColor.black.withAlphaComponent(0.55)
@@ -486,7 +610,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         titleLabel.layer.masksToBounds = true
         view.addSubview(titleLabel)
 
-        doneButton.setTitle("Done", for: .normal)
+        doneButton.setTitle(production ? "Back" : "Done", for: .normal)
         doneButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 14)
         doneButton.setTitleColor(.white, for: .normal)
         doneButton.backgroundColor = UIColor.black.withAlphaComponent(0.55)
@@ -501,6 +625,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         diagLabel.numberOfLines = 0
         diagLabel.layer.cornerRadius = 6
         diagLabel.layer.masksToBounds = true
+        diagLabel.isHidden = production
         view.addSubview(diagLabel)
 
         // Step 3 UI (hidden/inert when no pin data was passed).
@@ -641,7 +766,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         pinOverlay.frame = view.bounds
         let rb = routesButton.intrinsicContentSize
         routesButton.frame = CGRect(x: safe.left + 10, y: safe.top + 74, width: rb.width, height: 24)
-        routesButton.isHidden = routes.isEmpty
+        routesButton.isHidden = production || routes.isEmpty
         if !chipButtons.isEmpty {
             for b in chipButtons { b.isHidden = pins.isEmpty }
             if !pins.isEmpty {
@@ -749,11 +874,28 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         pinOverlay.setNeedsDisplay()
     }
     private func settleRepaint() {
-        tiledView.setNeedsDisplay()
         pinOverlay.setNeedsDisplay()
         refreshDiagnostics()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
-            self?.refreshDiagnostics()
+        // Step-5 repaint port (step-2 item 2, directive 2): coalesce
+        // settle repaints -- ONE tiled repaint per gesture settle,
+        // not one per end-hook. Drag-end, deceleration-end, and
+        // zoom-end can all fire for a single flick; the first arms a
+        // 60 ms window and the rest fold into it. The repaint's draw
+        // count is measured into lastSettleDraws at +0.8 s (the
+        // bounded-repaint acceptance number).
+        if settlePending { return }
+        settlePending = true
+        settleStartDrawn = tiledView.drawnExact
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+            guard let self = self else { return }
+            self.settlePending = false
+            self.tiledView.setNeedsDisplay()
+            self.pinOverlay.setNeedsDisplay()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                guard let self = self else { return }
+                self.lastSettleDraws = self.tiledView.drawnExact - self.settleStartDrawn
+                self.refreshDiagnostics()
+            }
         }
     }
     func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
@@ -1114,11 +1256,481 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             "lastTap": lastTapName,
             "lastPopup": lastPopupName,
             "routeName": currentRoute?.label ?? "",
+            "lastSettleDraws": lastSettleDraws,
+            "production": production ? 1 : 0,
             "routeNodes": currentRoute?.nodesWeb ?? 0,
             "routeNodesDrawn": currentRoute?.points.count ?? 0,
             "routeDistFt": currentRoute?.distFt ?? 0,
             "routeCoordFtWeb": currentRoute?.coordFtWeb ?? 0,
             "routeCoordFtNative": currentRoute?.coordFtNative ?? 0,
+        ]
+    }
+
+    @objc private func doneTapped() {
+        onClose?()
+    }
+}
+
+// MARK: - Step 5P micro-spike (Claude msg 160): layer-composited tiles
+//
+// Premise gate for Option A: composite the pre-decoded tile PNGs as
+// plain CALayer contents -- one layer per visible cell, positioned by
+// the proven SpikeGeom geometry inside the same scroll/zoom machinery
+// -- instead of asking CATiledLayer to rasterize them through draw().
+// BARE view by design: resort at fit, pan + pinch, instruments. No
+// pins, chips, routes, or popups (they port only if this passes).
+// The CATiledLayer surface above is untouched and stays reachable.
+
+final class LayerSpikeViewController: UIViewController, UIScrollViewDelegate {
+    private let scrollView = UIScrollView()
+    // The compositing surface: a plain UIView with NO draw(_:)
+    // override -- tiles are sublayer contents, never drawn. (An
+    // overridden draw on a 6785x7897 pt view would invite a
+    // full-content backing store: the failure being escaped.)
+    private let contentView = UIView()
+    // Tile source: a SpikeTiledView that is never added to a view
+    // hierarchy, so its CATiledLayer never displays and its draw()
+    // never runs (its drawCalls counter in the snapshot proves it).
+    // It exists to reuse the shipped tile ladder + NSCache decode
+    // path (layerTile / resolution) instead of duplicating them.
+    private let tileSource = SpikeTiledView(frame: .zero)
+    private let diagLabel = UILabel()
+    private let titleLabel = UILabel()
+    private let doneButton = UIButton(type: .system)
+
+    private var lastFitSize: CGSize = .zero
+    private var contentUnits: CGSize = .zero
+    private var userInteracted = false
+    private var applyingFit = false
+    private var fitTrace: [String] = []
+    private var lastLayoutSize: CGSize = .zero
+    private(set) var fitZoom: Int = 0
+    private var tilesStatus: String = "ok"
+    private var packTileCount: Int = 0
+    private var census: (inView: Int, exact: Int, substituted: Int, missing: Int, unpainted: Int) = (0, 0, 0, 0, 0)
+
+    var onClose: (() -> Void)?
+
+    // Layer model state. Keys reuse the painted-cell encoding:
+    // (level << 40) | (ty << 20) | tx.
+    private var level: Int = 15
+    private var tileLayers: [Int: CALayer] = [:]
+    private var lastSyncSignature = ""
+    // Instruments (design_20261011.md section 4).
+    private(set) var compositesTotal = 0
+    private(set) var fitComposites = -1
+    private(set) var lastSettleComposites = -1
+    private var settlePending = false
+    private var settleStartComposites = 0
+    private var hasAppeared = false
+    private var openStart: CFTimeInterval? = nil
+    private(set) var layerOpenMs = -1
+
+    private func trace(_ s: String) {
+        fitTrace.append(s)
+        if fitTrace.count > 16 { fitTrace.removeFirst(fitTrace.count - 16) }
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = SpikeTiledView.beige
+
+        locateTiles()
+
+        // Content = TPCP_RESORT_MAXBOUNDS in zoom-19 px, the same
+        // frame the CATiledLayer spike uses.
+        let nw = SpikeGeom.globalPx(lat: SpikeGeom.maxNE.lat, lng: SpikeGeom.maxSW.lng)
+        let se = SpikeGeom.globalPx(lat: SpikeGeom.maxSW.lat, lng: SpikeGeom.maxNE.lng)
+        tileSource.originGlobal = nw
+        contentView.frame = CGRect(x: 0, y: 0, width: se.x - nw.x, height: se.y - nw.y)
+        contentUnits = contentView.frame.size
+        contentView.backgroundColor = SpikeTiledView.beige
+
+        scrollView.delegate = self
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.contentSize = contentView.frame.size
+        trace(String(format: "LOAD cs %.0fx%.0f layerFrame %.0fx%.0f",
+                     scrollView.contentSize.width, scrollView.contentSize.height,
+                     contentView.frame.width, contentView.frame.height))
+        scrollView.backgroundColor = SpikeTiledView.beige
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.addSubview(contentView)
+        view.addSubview(scrollView)
+
+        titleLabel.text = "Layer spike (dev)"
+        titleLabel.font = UIFont.boldSystemFont(ofSize: 13)
+        titleLabel.textColor = .white
+        titleLabel.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        titleLabel.textAlignment = .center
+        titleLabel.layer.cornerRadius = 6
+        titleLabel.layer.masksToBounds = true
+        view.addSubview(titleLabel)
+
+        doneButton.setTitle("Done", for: .normal)
+        doneButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 14)
+        doneButton.setTitleColor(.white, for: .normal)
+        doneButton.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        doneButton.layer.cornerRadius = 6
+        doneButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
+        doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
+        view.addSubview(doneButton)
+
+        diagLabel.font = UIFont.monospacedSystemFont(ofSize: 10, weight: .regular)
+        diagLabel.textColor = .white
+        diagLabel.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        diagLabel.numberOfLines = 0
+        diagLabel.layer.cornerRadius = 6
+        diagLabel.layer.masksToBounds = true
+        view.addSubview(diagLabel)
+    }
+
+    // Same bundle lookup + manifest read as
+    // SpikeViewController.locateTiles, writing to the tile source.
+    private func locateTiles() {
+        var tilesURL = Bundle.main.url(forResource: "tiles", withExtension: nil)
+        if tilesURL == nil, let res = Bundle.main.resourceURL {
+            let candidate = res.appendingPathComponent("tiles")
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                tilesURL = candidate
+            }
+        }
+        guard let base = tilesURL else {
+            tilesStatus = "tiles folder MISSING from app bundle (Xcode Add Files step not done)"
+            return
+        }
+        let resort = base.appendingPathComponent("resort")
+        if FileManager.default.fileExists(atPath: resort.path) {
+            tileSource.tilesRoot = resort
+        } else {
+            tilesStatus = "tiles/resort MISSING from app bundle"
+            return
+        }
+        let manifest = base.appendingPathComponent("manifest.json")
+        if let data = try? Data(contentsOf: manifest),
+           let obj = try? JSONSerialization.jsonObject(with: data),
+           let dict = obj as? [String: Any],
+           let n = dict["keyCount"] as? Int {
+            packTileCount = n
+        }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        hasAppeared = true
+        trace(String(format: "APPEAR cs %.0fx%.0f in t%.0f l%.0f off (%.0f,%.0f) sv %.0fx%.0f",
+                     scrollView.contentSize.width, scrollView.contentSize.height,
+                     scrollView.contentInset.top, scrollView.contentInset.left,
+                     scrollView.contentOffset.x, scrollView.contentOffset.y,
+                     scrollView.bounds.width, scrollView.bounds.height))
+        // The open-to-painted clock starts here, with the view on
+        // screen at its final bounds and the fit already applied:
+        // it measures the rendering approach, not the modal
+        // presentation or the bridge (design section 4.1).
+        if openStart == nil { openStart = CACurrentMediaTime() }
+        performOpenSyncIfNeeded()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        scrollView.frame = view.bounds
+        if scrollView.bounds.size != lastLayoutSize {
+            lastLayoutSize = scrollView.bounds.size
+            trace(String(format: "LAYOUT sv %.0fx%.0f view %.0fx%.0f inter %d",
+                         scrollView.bounds.width, scrollView.bounds.height,
+                         view.bounds.width, view.bounds.height,
+                         userInteracted ? 1 : 0))
+        }
+        let safe = view.safeAreaInsets
+        titleLabel.frame = CGRect(x: safe.left + 10, y: safe.top + 8, width: 168, height: 24)
+        let db = doneButton.intrinsicContentSize
+        doneButton.frame = CGRect(x: view.bounds.width - safe.right - db.width - 10,
+                                  y: safe.top + 8, width: db.width, height: 24)
+        diagLabel.frame = CGRect(x: safe.left + 10,
+                                 y: view.bounds.height - safe.bottom - 100 - 8,
+                                 width: view.bounds.width - safe.left - safe.right - 20,
+                                 height: 100)
+        // Re-fit on size change until the user takes over (same
+        // discipline as the CATiledLayer spike: the first layout
+        // pass can run at a transient presentation size).
+        if !userInteracted && scrollView.bounds.size != lastFitSize
+            && scrollView.bounds.width > 0 && scrollView.bounds.height > 0 {
+            lastFitSize = scrollView.bounds.size
+            applyFit()
+        }
+    }
+
+    private func applyFit() {
+        let size = scrollView.bounds.size
+        let csStart = scrollView.contentSize
+        fitZoom = SpikeGeom.leafletFitZoom(viewport: size)
+        scrollView.minimumZoomScale = CGFloat(pow(2.0, Double(SpikeGeom.minMapZoom - SpikeGeom.refZoom)))
+        scrollView.maximumZoomScale = 1.0
+        level = fitZoom
+        let scale = CGFloat(pow(2.0, Double(fitZoom - SpikeGeom.refZoom)))
+        applyingFit = true
+        scrollView.zoomScale = scale
+        applyingFit = false
+        centerOnResortBounds(scale: scale)
+        trace(String(format: "FIT vp %.0fx%.0f fz %d sc %.4f csStart %.0fx%.0f cs %.0fx%.0f -> in t%.0f l%.0f off (%.0f,%.0f)",
+                     size.width, size.height, fitZoom, Double(scale),
+                     csStart.width, csStart.height,
+                     scrollView.contentSize.width, scrollView.contentSize.height,
+                     scrollView.contentInset.top, scrollView.contentInset.left,
+                     scrollView.contentOffset.x, scrollView.contentOffset.y))
+        refreshDiagnostics()
+        if hasAppeared { performOpenSyncIfNeeded() }
+    }
+
+    // Mirrored from SpikeViewController.centerOnResortBounds --
+    // keep in step with the original. Displayed size comes from the
+    // stored contentUnits, never scrollView.contentSize.
+    private func centerOnResortBounds(scale: CGFloat) {
+        let cLat = (SpikeGeom.boundsSW.lat + SpikeGeom.boundsNE.lat) / 2.0
+        let cLng = (SpikeGeom.boundsSW.lng + SpikeGeom.boundsNE.lng) / 2.0
+        let c = SpikeGeom.globalPx(lat: cLat, lng: cLng)
+        let localX = Double(c.x - tileSource.originGlobal.x)
+        let localY = Double(c.y - tileSource.originGlobal.y)
+        let vp = scrollView.bounds.size
+        let cw = Double(contentUnits.width) * Double(scale)
+        let ch = Double(contentUnits.height) * Double(scale)
+        let ix = max(0.0, (Double(vp.width) - cw) / 2.0)
+        let iy = max(0.0, (Double(vp.height) - ch) / 2.0)
+        scrollView.contentInset = UIEdgeInsets(top: CGFloat(iy), left: CGFloat(ix),
+                                               bottom: CGFloat(iy), right: CGFloat(ix))
+        var ox = localX * Double(scale) - Double(vp.width) / 2.0
+        var oy = localY * Double(scale) - Double(vp.height) / 2.0
+        ox = min(max(ox, -ix), cw - Double(vp.width) + ix)
+        oy = min(max(oy, -iy), ch - Double(vp.height) + iy)
+        scrollView.contentOffset = CGPoint(x: ox, y: oy)
+    }
+
+    // MARK: UIScrollViewDelegate
+
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        userInteracted = true
+    }
+
+    func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+        userInteracted = true
+    }
+
+    func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+        return contentView
+    }
+
+    func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        if !applyingFit { userInteracted = true }
+        // Level selection mirrors SpikeViewController.scrollViewDidZoom
+        // exactly: rounded map zoom from the scale, clamped 13...19.
+        let z = 19.0 + log2(Double(scrollView.zoomScale))
+        let l = Int(min(Double(SpikeGeom.maxMapZoom),
+                        max(Double(SpikeGeom.minMapZoom), z.rounded())))
+        if l != level {
+            level = l
+            if hasAppeared { syncVisibleTiles(); refreshDiagnostics() }
+        }
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if hasAppeared { syncVisibleTiles() }
+    }
+
+    // Gesture settle: same end-hooks and 60 ms coalescing shape as
+    // the step-5 settleRepaint, but the measurement is taken
+    // SYNCHRONOUSLY after the settle sync -- layer contents
+    // assignments have no asynchronous paint tail, so the value is
+    // final in the same turn and cannot be stranded by a quick Done
+    // (the step-5 instrument gap, design section 4.0).
+    private func settleCompositeSync() {
+        refreshDiagnostics()
+        if settlePending { return }
+        settlePending = true
+        settleStartComposites = compositesTotal
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+            guard let self = self else { return }
+            self.settlePending = false
+            self.syncVisibleTiles()
+            self.lastSettleComposites = self.compositesTotal - self.settleStartComposites
+            self.refreshDiagnostics()
+        }
+    }
+
+    func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+        settleCompositeSync()
+    }
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate { settleCompositeSync() }
+    }
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        settleCompositeSync()
+    }
+
+    // MARK: layer sync
+
+    /// The visible cell range at the current level, computed with
+    /// the census math from SpikeViewController.refreshDiagnostics.
+    /// Sync and census share this one function (they cannot drift).
+    private func visibleCellRange() -> (tx0: Int, ty0: Int, tx1: Int, ty1: Int, span: Double)? {
+        let s = Double(scrollView.zoomScale)
+        guard s > 0 else { return nil }
+        var vis = CGRect(x: Double(scrollView.contentOffset.x) / s,
+                         y: Double(scrollView.contentOffset.y) / s,
+                         width: Double(scrollView.bounds.width) / s,
+                         height: Double(scrollView.bounds.height) / s)
+        vis = vis.intersection(contentView.bounds)
+        if vis.isNull || vis.isEmpty { return nil }
+        let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - level))
+        let gx0 = vis.minX + Double(tileSource.originGlobal.x)
+        let gy0 = vis.minY + Double(tileSource.originGlobal.y)
+        let tx0 = Int(floor(gx0 / span))
+        let ty0 = Int(floor(gy0 / span))
+        let tx1 = Int(floor((gx0 + Double(vis.width) - 0.001) / span))
+        let ty1 = Int(floor((gy0 + Double(vis.height) - 0.001) / span))
+        if tx1 < tx0 || ty1 < ty0 { return nil }
+        return (tx0, ty0, tx1, ty1, span)
+    }
+
+    /// Reconcile the tile layers with the visible set: create a
+    /// layer for each newly visible resolvable cell (ONE contents
+    /// assignment = ONE composite), prune layers that left the set.
+    /// The pack is static, so an unchanged (level, range) signature
+    /// makes the call a no-op -- most pan ticks cost one range
+    /// computation and one comparison.
+    private func syncVisibleTiles() {
+        guard let r = visibleCellRange() else { return }
+        let signature = "\(level)/\(r.tx0)/\(r.ty0)/\(r.tx1)/\(r.ty1)"
+        if signature == lastSyncSignature { return }
+        lastSyncSignature = signature
+        var desired = Set<Int>()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for ty in r.ty0...r.ty1 {
+            for tx in r.tx0...r.tx1 {
+                let key = (level << 40) | (ty << 20) | tx
+                let t = tileSource.layerTile(level: level, tx: tx, ty: ty)
+                guard let img = t.image else { continue }
+                desired.insert(key)
+                if tileLayers[key] != nil { continue }
+                let layer = CALayer()
+                layer.frame = CGRect(
+                    x: CGFloat(Double(tx) * r.span - Double(tileSource.originGlobal.x)),
+                    y: CGFloat(Double(ty) * r.span - Double(tileSource.originGlobal.y)),
+                    width: CGFloat(r.span), height: CGFloat(r.span))
+                if t.isSubstitute {
+                    // The ancestor's sub-quadrant for this cell
+                    // (design section 2.5): same source image, same
+                    // geographic sub-region paintCells clips to.
+                    let n = 1 << t.step
+                    let qx = tx - t.ax * n
+                    let qy = ty - t.ay * n
+                    layer.contentsRect = CGRect(x: CGFloat(qx) / CGFloat(n),
+                                                y: CGFloat(qy) / CGFloat(n),
+                                                width: 1.0 / CGFloat(n),
+                                                height: 1.0 / CGFloat(n))
+                }
+                layer.contents = img.cgImage
+                compositesTotal += 1
+                contentView.layer.addSublayer(layer)
+                tileLayers[key] = layer
+            }
+        }
+        let stale = tileLayers.keys.filter { !desired.contains($0) }
+        for key in stale {
+            tileLayers[key]?.removeFromSuperlayer()
+            tileLayers.removeValue(forKey: key)
+        }
+        CATransaction.commit()
+    }
+
+    /// The first sync after appear runs inside an explicit
+    /// transaction whose completion block timestamps the moment the
+    /// render server presents the frame carrying the last tile
+    /// contents -- the open-to-fully-painted measurement (design
+    /// section 4.1). Later calls are plain syncs.
+    private func performOpenSyncIfNeeded() {
+        if layerOpenMs >= 0 { syncVisibleTiles(); return }
+        if openStart == nil { openStart = CACurrentMediaTime() }
+        let start = openStart ?? CACurrentMediaTime()
+        let before = compositesTotal
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { [weak self] in
+            guard let self = self else { return }
+            if self.layerOpenMs < 0 {
+                self.layerOpenMs = Int(((CACurrentMediaTime() - start) * 1000.0).rounded())
+            }
+            self.refreshDiagnostics()
+        }
+        syncVisibleTiles()
+        CATransaction.commit()
+        if fitComposites < 0 { fitComposites = compositesTotal - before }
+    }
+
+    // MARK: diagnostics
+
+    private func refreshDiagnostics() {
+        let s = Double(scrollView.zoomScale)
+        guard s > 0 else { return }
+        var inView = 0, exact = 0, subst = 0, missing = 0, unpainted = 0
+        if let r = visibleCellRange() {
+            for ty in r.ty0...r.ty1 {
+                for tx in r.tx0...r.tx1 {
+                    inView += 1
+                    let res = tileSource.resolution(z: level - 1, x: tx, y: ty)
+                    switch res {
+                    case 0: exact += 1
+                    case 1: subst += 1
+                    default: missing += 1
+                    }
+                    let key = (level << 40) | (ty << 20) | tx
+                    if res != 2 && tileLayers[key] == nil { unpainted += 1 }
+                }
+            }
+        }
+        census = (inView, exact, subst, missing, unpainted)
+        let zoomNow = 19.0 + log2(s)
+        let bo = scrollView.bounds.size
+        let of = scrollView.contentOffset
+        let ci = scrollView.contentInset
+        diagLabel.text = String(
+            format: " fit zoom %d · zoom %.2f · layers %d\n tiles in view %d — exact %d · substituted %d · missing %d · unpainted %d\n pack %@ · %@\n sv %.0fx%.0f · off (%.0f,%.0f) · inset t%.0f l%.0f b%.0f r%.0f",
+            fitZoom, zoomNow, tileLayers.count,
+            inView, exact, subst, missing, unpainted,
+            packTileCount > 0 ? "\(packTileCount) tiles" : "size unknown",
+            tilesStatus,
+            bo.width, bo.height, of.x, of.y, ci.top, ci.left, ci.bottom, ci.right)
+        diagLabel.text = (diagLabel.text ?? "") + String(
+            format: "\n open %d ms · fit comp %d · comp %d · settle comp %d · tile draws %d",
+            layerOpenMs, fitComposites, compositesTotal, lastSettleComposites, tileSource.drawCalls)
+        if let last = fitTrace.last {
+            diagLabel.text = (diagLabel.text ?? "") + "\n " + last
+        }
+    }
+
+    func diagnosticsSnapshot() -> [String: Any] {
+        refreshDiagnostics()
+        return [
+            "layerSpike": 1,
+            "fitZoom": fitZoom,
+            "currentZoom": ((19.0 + log2(Double(scrollView.zoomScale))) * 100).rounded() / 100,
+            "tilesInView": census.inView,
+            "tilesExact": census.exact,
+            "tilesSubstituted": census.substituted,
+            "missingTiles": census.missing,
+            "tilesUnpainted": census.unpainted,
+            "packTileCount": packTileCount,
+            "tilesStatus": tilesStatus,
+            "svBounds": String(format: "%.0fx%.0f", scrollView.bounds.width, scrollView.bounds.height),
+            "contentOffset": String(format: "(%.1f,%.1f)", scrollView.contentOffset.x, scrollView.contentOffset.y),
+            "contentInset": String(format: "(%.0f,%.0f,%.0f,%.0f)", scrollView.contentInset.top, scrollView.contentInset.left, scrollView.contentInset.bottom, scrollView.contentInset.right),
+            "fitTrace": fitTrace,
+            "layerOpenMs": layerOpenMs,
+            "fitComposites": fitComposites,
+            "compositesTotal": compositesTotal,
+            "lastSettleComposites": lastSettleComposites,
+            "tileDrawCalls": tileSource.drawCalls,
+            "sourceDrawCalls": tileSource.drawCalls,
+            "visibleLayers": tileLayers.count,
         ]
     }
 
@@ -1135,6 +1747,8 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "NativeMapSpike"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "present", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "miniMap", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "presentLayerSpike", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "showPinPopup", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setLayers", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "closeSpike", returnType: CAPPluginReturnPromise)
@@ -1142,6 +1756,8 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
 
     private var spikeVC: SpikeViewController?
     private var pendingCall: CAPPluginCall?
+    private var layerVC: LayerSpikeViewController?
+    private var layerPendingCall: CAPPluginCall?
 
     @objc func present(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
@@ -1154,6 +1770,7 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             let vc = SpikeViewController()
+            vc.production = call.getBool("production") ?? false
             // Step 3: pin data + initial layer state from the web
             // (tpcpBuildNativePinData in app.html), as a JSON string
             // (parsed with the same JSONSerialization the tile
@@ -1242,6 +1859,60 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
                 vc.dismiss(animated: true)
             }
             host.present(vc, animated: true)
+        }
+    }
+
+    @objc func presentLayerSpike(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let host = self.bridge?.viewController else {
+                call.reject("NativeMapSpike: no host view controller")
+                return
+            }
+            if self.spikeVC != nil || self.layerVC != nil {
+                call.reject("NativeMapSpike: a spike is already open")
+                return
+            }
+            let vc = LayerSpikeViewController()
+            vc.modalPresentationStyle = .fullScreen
+            self.layerVC = vc
+            self.layerPendingCall = call
+            vc.onClose = { [weak self, weak vc] in
+                guard let self = self, let vc = vc else { return }
+                let snapshot = vc.diagnosticsSnapshot()
+                self.layerPendingCall?.resolve(snapshot)
+                self.layerPendingCall = nil
+                self.layerVC = nil
+                vc.dismiss(animated: true)
+            }
+            host.present(vc, animated: true)
+        }
+    }
+
+    @objc func miniMap(_ call: CAPPluginCall) {
+        let w = call.getDouble("width") ?? 0
+        let h = call.getDouble("height") ?? 0
+        var pins: [(lat: Double, lon: Double, fill: UIColor, radius: CGFloat, weight: CGFloat)] = []
+        if let json = call.getString("pinsJson"),
+           let data = json.data(using: .utf8),
+           let arr = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] {
+            pins = arr.compactMap { o in
+                guard let lat = (o["lat"] as? NSNumber)?.doubleValue,
+                      let lon = (o["lon"] as? NSNumber)?.doubleValue
+                else { return nil }
+                return (lat: lat, lon: lon,
+                        fill: UIColor(spikeHex: (o["fill"] as? String) ?? "#1A6860"),
+                        radius: CGFloat((o["radius"] as? NSNumber)?.doubleValue ?? 5),
+                        weight: CGFloat((o["weight"] as? NSNumber)?.doubleValue ?? 1.4))
+            }
+        }
+        DispatchQueue.main.async {
+            guard let img = SpikeTiledView.renderMiniMap(
+                    size: CGSize(width: w, height: h), pins: pins),
+                  let png = img.pngData() else {
+                call.reject("NativeMapSpike: mini-map render failed")
+                return
+            }
+            call.resolve(["image": png.base64EncodedString()])
         }
     }
 
