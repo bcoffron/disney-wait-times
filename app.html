@@ -10172,6 +10172,88 @@ function tpcpSettleZoomend() {
 }
 
 // Native map spike (Claude msg 142 step 1): present the bare native
+// ---------- Step 3: native pin data (Claude msg 154) ----------
+// Builds the native spike's pin array from the SAME sources and rules
+// as the web map's own marker build (tpcpBuildResortMarkers): graph
+// places/restrooms/services for DL + DCA, plus TPCP_EXTRA_PINS, with
+// the shipped styles (tpcpExtraPinStyle / the circleMarker literals),
+// the shipped popup fields (tpcpBindPopup / tpcpBindPinPopup), and
+// Directions spots snapped by the shipped router exactly where the
+// builders snap them. The web keeps owning this data and the popup
+// content; the native side renders + hit-tests only.
+var _spikePins = {};
+function tpcpEnsureSpikePinData() {
+  var jobs = [];
+  if (!window.TPCPRouter) jobs.push(tpcpLoadScript('map-router.js'));
+  if (!window.TPCP_GRAPH_DL) jobs.push(tpcpLoadScript('park-graph-dl.js'));
+  if (!window.TPCP_GRAPH_DCA) jobs.push(tpcpLoadScript('park-graph-dca.js'));
+  if (!window.TPCP_GRAPH_DTD) jobs.push(tpcpLoadScript('park-graph-dtd.js'));
+  return Promise.all(jobs);
+}
+function tpcpBuildNativePinData() {
+  var pins = [], spots = {};
+  var parkName = { DL: 'Disneyland', DCA: 'California Adventure' };
+  ['DL', 'DCA'].forEach(function (park) {
+    var graph = window['TPCP_GRAPH_' + park];
+    if (!graph) return;
+    (graph.places || []).forEach(function (p, i) {
+      if (p.lat == null) return;
+      var id = 'g' + park + 'p' + i;
+      pins.push({ id: id, name: p.n, lat: p.lat, lon: p.lon, layer: 'places',
+        fill: p.k === 'food' ? '#D4893A' : '#1A6860', radius: 9, weight: 2, alpha: 0.95,
+        sub: p.land ? p.land + ' \u00b7 ' + parkName[park] : '' });
+      spots[id] = { park: park, spot: { n: p.n, lat: p.lat, lon: p.lon, node: p.node } };
+    });
+    (graph.restrooms || []).forEach(function (p, i) {
+      var id = 'g' + park + 'r' + i;
+      var sn = window.TPCPRouter.snap(graph, p.lat, p.lon);
+      pins.push({ id: id, name: p.n, lat: p.lat, lon: p.lon, layer: 'rr',
+        fill: '#4A7A7C', radius: 7.5, weight: 1.8, alpha: 0.9, sub: '' });
+      spots[id] = { park: park, spot: { n: p.n, lat: p.lat, lon: p.lon, node: sn.node } };
+    });
+    (graph.services || []).forEach(function (p, i) {
+      var id = 'g' + park + 's' + i;
+      var sn2 = window.TPCPRouter.snap(graph, p.lat, p.lon);
+      var land = TPCP_SVC_LABELS[p.k] || 'Park Services';
+      pins.push({ id: id, name: p.n, lat: p.lat, lon: p.lon, layer: 'svc',
+        fill: TPCP_SVC_COLORS[p.k] || '#173A5E', radius: 9, weight: 2, alpha: 0.95,
+        sub: land + ' \u00b7 ' + parkName[park] });
+      spots[id] = { park: park, spot: { n: p.n, lat: p.lat, lon: p.lon, node: sn2.node } };
+    });
+  });
+  TPCP_EXTRA_PINS.forEach(function (pin, i) {
+    var id = 'x' + i;
+    var style = tpcpExtraPinStyle(pin);
+    var layerField = pin[3], kind = pin[5], zone = pin[4];
+    var layer = layerField === 'places' ? 'places' : (layerField === 'services' ? 'svc' : (layerField === 'always' ? 'always' : 'se'));
+    var fill;
+    if (layerField === 'places') fill = '#D4893A';
+    else if (layerField === 'services') fill = kind === 'restrooms' ? '#4A7A7C' : (kind === 'atm' ? (TPCP_SVC_COLORS.atm || '#5A526E') : '#173A5E');
+    else fill = TPCP_SE_COLOR;
+    var zoneName = zone === 'DL' ? 'Disneyland' : (zone === 'DCA' ? 'California Adventure' : zone);
+    var sub = zoneName;
+    if (kind === 'restrooms') sub += ' \u00b7 Restrooms';
+    else if (kind === 'atm') sub += ' \u00b7 ATM';
+    else if (kind === 'spa') sub += ' \u00b7 Spa';
+    else if (kind === 'hotel') sub += ' \u00b7 Resort hotel';
+    var name = pin[0].replace(/&amp;/g, '&');
+    pins.push({ id: id, name: name, lat: pin[1], lon: pin[2], layer: layer,
+      fill: fill, radius: style.radius, weight: style.weight, alpha: style.fillOpacity, sub: sub });
+    var dirSpot = null;
+    if (zone === 'DL' || zone === 'DCA') {
+      var g = window['TPCP_GRAPH_' + zone];
+      var sn3 = window.TPCPRouter.snap(g, pin[1], pin[2]);
+      dirSpot = { park: zone, spot: { n: name, lat: pin[1], lon: pin[2], node: sn3.node } };
+    } else if (zone === 'Downtown Disney' || kind === 'hotel' ||
+               zone === 'Disneyland Hotel' || zone === 'Grand Californian' || zone === 'Pixar Place Hotel') {
+      var sn4 = window.TPCPRouter.snap(window.TPCP_GRAPH_DTD, pin[1], pin[2]);
+      dirSpot = { park: zone === 'Downtown Disney' ? 'DTD' : 'HOTEL', spot: { n: name, lat: pin[1], lon: pin[2], node: sn4.node } };
+    }
+    if (dirSpot) spots[id] = dirSpot;
+  });
+  return { pins: pins, spots: spots };
+}
+
 // CATiledLayer spike view via the NativeMapSpike plugin and render its
 // in-process diagnostic readout here when it closes. This path never
 // touches the web map; if the plugin is not registered in this build
@@ -10184,12 +10266,47 @@ async function tpcpOpenNativeMapSpike() {
   try { plugin = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeMapSpike) || null; } catch (e) { plugin = null; }
   if (!plugin || typeof plugin.present !== 'function') { show('Native map spike: plugin unavailable on this surface (not registered in this build).'); return; }
   show('Native map spike: opening...');
+  // Step 3: build the pin set from the shipped data (falls back to the
+  // bare steps 1-2 view if the data cannot load).
+  var pins = [], spots = {};
   try {
-    var d = await plugin.present();
+    await tpcpEnsureSpikePinData();
+    var built = tpcpBuildNativePinData();
+    pins = built.pins; spots = built.spots;
+  } catch (e) { pins = []; spots = {}; }
+  _spikePins = {};
+  pins.forEach(function (p) { _spikePins[p.id] = { name: p.name, sub: p.sub, hasDir: !!spots[p.id], dir: spots[p.id] || null }; });
+  var tapHandle = null, dirHandle = null, pendingDir = null;
+  try {
+    if (typeof plugin.addListener === 'function') {
+      tapHandle = await plugin.addListener('pinTap', function (ev) {
+        var rec = ev && _spikePins[ev.id];
+        if (!rec) return;
+        try { plugin.showPinPopup({ name: rec.name, sub: rec.sub, hasDir: rec.hasDir, pinId: ev.id }); } catch (e) {}
+      });
+      dirHandle = await plugin.addListener('pinDirections', function (ev) {
+        var rec = ev && _spikePins[ev.id];
+        if (!rec || !rec.dir) return;
+        pendingDir = rec.dir;
+        try { plugin.closeSpike(); } catch (e) {}
+      });
+    }
+  } catch (e) {}
+  try {
+    var wire = pins.map(function (p) { return { id: p.id, name: p.name, lat: p.lat, lon: p.lon, layer: p.layer, fill: p.fill, radius: p.radius, weight: p.weight, alpha: p.alpha }; });
+    var d = await plugin.present({ pinsJson: JSON.stringify(wire), layerPlaces: true, layerSvc: false, layerSe: false });
     if (d) {
-      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
+      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + (typeof d.pinsTotal === 'number' ? ' | pins ' + d.pinsTotal + ' (' + d.pinsByClass + ') | pins visible on close ' + d.pinsVisible : '') + (d.lastTap ? ' | last tap ' + d.lastTap : '') + (d.lastPopup ? ' | last popup ' + d.lastPopup : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
     } else { show('Native map spike: closed (no readout returned).'); }
   } catch (e) { show('Native map spike error: ' + ((e && e.message) ? e.message : e)); }
+  try { if (tapHandle && tapHandle.remove) tapHandle.remove(); } catch (e) {}
+  try { if (dirHandle && dirHandle.remove) dirHandle.remove(); } catch (e) {}
+  if (pendingDir) {
+    var r = pendingDir;
+    // The shipped popup-Directions flow (tpcpPopupDir): leave the map,
+    // then open directions to the registered spot.
+    setTimeout(function () { tpcpOpenDirectionsTo(r.park, { name: r.spot.n, lat: r.spot.lat, lon: r.spot.lon, node: r.spot.node }); }, 350);
+  }
 }
 
 function tpcpMapDiagLabel() {

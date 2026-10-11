@@ -264,6 +264,62 @@ final class SpikeTiledView: UIView {
     }
 }
 
+// MARK: - Step-3 pins (Claude msg 154 dispatch: pins + chips + popups)
+//
+// Pin DATA arrives from the web, built by tpcpBuildNativePinData in
+// app.html from the same sources and rules as the web map's own
+// marker build (graph places/restrooms/services + TPCP_EXTRA_PINS,
+// the shipped styles, the shipped popup fields). The native side
+// owns only rendering and tap hit-testing; popup content is computed
+// by the web and handed back via showPinPopup.
+
+extension UIColor {
+    convenience init(spikeHex hex: String) {
+        var v = hex
+        if v.hasPrefix("#") { v.removeFirst() }
+        var rgb: UInt64 = 0
+        Scanner(string: v).scanHexInt64(&rgb)
+        self.init(red: CGFloat((rgb >> 16) & 0xFF) / 255.0,
+                  green: CGFloat((rgb >> 8) & 0xFF) / 255.0,
+                  blue: CGFloat(rgb & 0xFF) / 255.0, alpha: 1.0)
+    }
+}
+
+struct SpikePin {
+    let id: String
+    let name: String
+    let layer: String          // places | rr | svc | se | always
+    let contentPoint: CGPoint  // zoom-19 px, tiled-view coordinate space
+    let radius: CGFloat        // screen pt (Leaflet circleMarker radii
+    let weight: CGFloat        // are zoom-independent screen units)
+    let fill: UIColor
+    let alpha: CGFloat
+}
+
+/// Draws the layer-enabled pins at their current screen positions.
+/// Lives ABOVE the scroll view (not inside the zoomed content) so the
+/// circles keep their screen-point radii at every zoom, exactly like
+/// Leaflet circleMarkers. Positions come from the view controller's
+/// proven geometry: screen = content x zoomScale - contentOffset.
+final class SpikePinOverlayView: UIView {
+    var pins: [SpikePin] = []
+    var screenPoint: (SpikePin) -> CGPoint = { _ in .zero }
+    override func draw(_ rect: CGRect) {
+        guard let ctx = UIGraphicsGetCurrentContext() else { return }
+        for pin in pins {
+            let c = screenPoint(pin)
+            if c.x < -24 || c.y < -24 || c.x > rect.width + 24 || c.y > rect.height + 24 { continue }
+            let r = pin.radius
+            let circle = CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)
+            ctx.setFillColor(pin.fill.withAlphaComponent(pin.alpha).cgColor)
+            ctx.fillEllipse(in: circle)
+            ctx.setStrokeColor(UIColor.white.cgColor)
+            ctx.setLineWidth(pin.weight)
+            ctx.strokeEllipse(in: circle.insetBy(dx: pin.weight / 2, dy: pin.weight / 2))
+        }
+    }
+}
+
 // MARK: - Spike view controller
 
 final class SpikeViewController: UIViewController, UIScrollViewDelegate {
@@ -301,6 +357,27 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private var census: (inView: Int, exact: Int, substituted: Int, missing: Int, unpainted: Int) = (0, 0, 0, 0, 0)
 
     var onClose: (() -> Void)?
+
+    // Step 3 state (see the pin types above). pins/initialLayers are
+    // assigned by the plugin before presentation; empty pins = the
+    // steps 1-2 bare view, unchanged.
+    var pins: [SpikePin] = []
+    var initialLayers: (places: Bool, svc: Bool, se: Bool) = (true, false, false)
+    var onPinTap: ((String) -> Void)?
+    var onPinDirections: ((String) -> Void)?
+    private var showPlaces = true
+    private var showSvc = false
+    private var showSE = false
+    private let pinOverlay = SpikePinOverlayView()
+    private var chipButtons: [UIButton] = []
+    private let popupCard = UIView()
+    private let popupName = UILabel()
+    private let popupSub = UILabel()
+    private let popupDirButton = UIButton(type: .system)
+    private var popupPinId: String? = nil
+    private var lastTapName = ""
+    private var lastPopupName = ""
+    private var lastZoomEnd = Date.distantPast
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -362,6 +439,65 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         diagLabel.layer.cornerRadius = 6
         diagLabel.layer.masksToBounds = true
         view.addSubview(diagLabel)
+
+        // Step 3 UI (hidden/inert when no pin data was passed).
+        pinOverlay.backgroundColor = .clear
+        pinOverlay.isUserInteractionEnabled = false
+        pinOverlay.screenPoint = { [weak self] pin in
+            self?.pinScreenPoint(pin) ?? .zero
+        }
+        view.addSubview(pinOverlay)
+
+        for (i, t) in ["Rides & Food", "Services", "Shops & Entertainment"].enumerated() {
+            let b = UIButton(type: .system)
+            b.setTitle(t, for: .normal)
+            b.titleLabel?.font = UIFont.boldSystemFont(ofSize: 12)
+            b.layer.cornerRadius = 13
+            b.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
+            b.tag = i
+            b.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
+            chipButtons.append(b)
+            view.addSubview(b)
+        }
+
+        // Popup card: a pixel-faithful rendering of the web's
+        // .tpcp-pop (white card, #173A5E name, #5A7263 sub, #1A6860
+        // Directions). The CONTENT (name/sub/Directions eligibility)
+        // is computed by the web and arrives via showPinPopup; this
+        // card is the spike harness's display surface for it.
+        popupCard.backgroundColor = .white
+        popupCard.layer.cornerRadius = 12
+        popupCard.layer.shadowColor = UIColor.black.cgColor
+        popupCard.layer.shadowOpacity = 0.25
+        popupCard.layer.shadowRadius = 10
+        popupCard.layer.shadowOffset = CGSize(width: 0, height: 3)
+        popupCard.isHidden = true
+        view.addSubview(popupCard)
+        popupName.font = UIFont.boldSystemFont(ofSize: 14)
+        popupName.textColor = UIColor(spikeHex: "#173A5E")
+        popupName.numberOfLines = 0
+        popupCard.addSubview(popupName)
+        popupSub.font = UIFont.systemFont(ofSize: 11.5)
+        popupSub.textColor = UIColor(spikeHex: "#5A7263")
+        popupSub.numberOfLines = 0
+        popupCard.addSubview(popupSub)
+        popupDirButton.setTitle("Directions", for: .normal)
+        popupDirButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 13)
+        popupDirButton.setTitleColor(.white, for: .normal)
+        popupDirButton.backgroundColor = UIColor(spikeHex: "#1A6860")
+        popupDirButton.layer.cornerRadius = 8
+        popupDirButton.addTarget(self, action: #selector(popupDirectionsTapped), for: .touchUpInside)
+        popupCard.addSubview(popupDirButton)
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(mapTapped(_:)))
+        tap.numberOfTouchesRequired = 1
+        tap.cancelsTouchesInView = false
+        scrollView.addGestureRecognizer(tap)
+
+        showPlaces = initialLayers.places
+        showSvc = initialLayers.svc
+        showSE = initialLayers.se
+        applyLayerState()
     }
 
     private func locateTiles() {
@@ -420,10 +556,24 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         let db = doneButton.intrinsicContentSize
         doneButton.frame = CGRect(x: view.bounds.width - safe.right - db.width - 10,
                                   y: safe.top + 8, width: db.width, height: 24)
+        let diagH: CGFloat = pins.isEmpty ? 84 : 100
         diagLabel.frame = CGRect(x: safe.left + 10,
-                                 y: view.bounds.height - safe.bottom - 92,
+                                 y: view.bounds.height - safe.bottom - diagH - 8,
                                  width: view.bounds.width - safe.left - safe.right - 20,
-                                 height: 84)
+                                 height: diagH)
+        pinOverlay.frame = view.bounds
+        if !chipButtons.isEmpty {
+            for b in chipButtons { b.isHidden = pins.isEmpty }
+            if !pins.isEmpty {
+                var x = safe.left + 10
+                for b in chipButtons {
+                    let w = b.intrinsicContentSize.width + 4
+                    b.frame = CGRect(x: x, y: safe.top + 40, width: w, height: 26)
+                    x += w + 8
+                }
+            }
+        }
+        if !popupCard.isHidden { layoutPopupCard() }
         // The first layout pass can run at a transient size during the
         // modal presentation; the 982e06a build latched its fit there
         // and opened mis-framed. Re-fit whenever the size changes until
@@ -513,15 +663,21 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         let l = Int(min(Double(SpikeGeom.maxMapZoom),
                         max(Double(SpikeGeom.minMapZoom), z.rounded())))
         if l != tiledView.level { tiledView.level = l }
+        pinOverlay.setNeedsDisplay()
+    }
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        pinOverlay.setNeedsDisplay()
     }
     private func settleRepaint() {
         tiledView.setNeedsDisplay()
+        pinOverlay.setNeedsDisplay()
         refreshDiagnostics()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.refreshDiagnostics()
         }
     }
     func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+        lastZoomEnd = Date()
         settleRepaint()
     }
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
@@ -529,6 +685,148 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     }
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         settleRepaint()
+    }
+
+    // MARK: step 3 — layers, hit-testing, popup card
+
+    private func layerShown(_ layer: String) -> Bool {
+        switch layer {
+        case "places": return showPlaces
+        case "rr", "svc": return showSvc   // restrooms ride Services,
+        case "se": return showSE           // as on the web map
+        default: return true               // "always": behind no toggle
+        }
+    }
+
+    private func classCount(_ layer: String) -> Int {
+        return pins.filter { $0.layer == layer }.count
+    }
+
+    private func visiblePinCount() -> Int {
+        return pins.filter { layerShown($0.layer) }.count
+    }
+
+    private func applyLayerState() {
+        let navy = UIColor(spikeHex: "#173A5E")
+        for (i, b) in chipButtons.enumerated() {
+            let on = i == 0 ? showPlaces : (i == 1 ? showSvc : showSE)
+            b.backgroundColor = on ? navy : UIColor.white.withAlphaComponent(0.94)
+            b.setTitleColor(on ? .white : navy, for: .normal)
+        }
+        pinOverlay.pins = pins.filter { layerShown($0.layer) }
+        pinOverlay.setNeedsDisplay()
+    }
+
+    @objc private func chipTapped(_ b: UIButton) {
+        if b.tag == 0 { showPlaces.toggle() }
+        if b.tag == 1 { showSvc.toggle() }
+        if b.tag == 2 { showSE.toggle() }
+        applyLayerState()
+        refreshDiagnostics()
+    }
+
+    /// The same state change, driven from JS (the end-state chips are
+    /// web DOM calling this through the plugin; the harness's native
+    /// chip row calls the identical path via chipTapped).
+    func setLayers(places: Bool, svc: Bool, se: Bool) {
+        showPlaces = places
+        showSvc = svc
+        showSE = se
+        applyLayerState()
+        refreshDiagnostics()
+    }
+
+    private func pinScreenPoint(_ pin: SpikePin) -> CGPoint {
+        let s = scrollView.zoomScale
+        let off = scrollView.contentOffset
+        return CGPoint(x: pin.contentPoint.x * s - off.x,
+                       y: pin.contentPoint.y * s - off.y)
+    }
+
+    @objc private func mapTapped(_ gr: UITapGestureRecognizer) {
+        guard !pins.isEmpty else { return }
+        // A pinch's trailing touch can read as a tap; ignore taps
+        // that land immediately after a zoom settles.
+        if Date().timeIntervalSince(lastZoomEnd) < 0.25 { return }
+        let loc = gr.location(in: view)
+        var best: SpikePin? = nil
+        var bestD = Double.greatestFiniteMagnitude
+        for pin in pins where layerShown(pin.layer) {
+            let sp = pinScreenPoint(pin)
+            let d = hypot(Double(loc.x - sp.x), Double(loc.y - sp.y))
+            if d <= Double(pin.radius) + 8.0 && d < bestD {
+                bestD = d
+                best = pin
+            }
+        }
+        if let pin = best {
+            lastTapName = pin.name
+            hidePopupCard()
+            refreshDiagnostics()
+            onPinTap?(pin.id)
+        } else {
+            hidePopupCard()
+        }
+    }
+
+    /// Popup content arrives from the web (the popup's owner): this
+    /// only displays it, anchored above the tapped pin like the
+    /// Leaflet popup it mirrors.
+    func showPinPopup(name: String, sub: String, hasDir: Bool, pinId: String) {
+        guard pins.first(where: { $0.id == pinId }) != nil else { return }
+        popupPinId = pinId
+        lastPopupName = name
+        popupName.text = name
+        popupSub.text = sub
+        popupSub.isHidden = sub.isEmpty
+        popupDirButton.isHidden = !hasDir
+        popupCard.isHidden = false
+        layoutPopupCard()
+        refreshDiagnostics()
+    }
+
+    private func layoutPopupCard() {
+        guard let id = popupPinId,
+              let pin = pins.first(where: { $0.id == id }) else { return }
+        let w: CGFloat = 216
+        let pad: CGFloat = 14
+        let innerW = w - pad * 2
+        let nameH = ceil(popupName.sizeThatFits(
+            CGSize(width: innerW, height: .greatestFiniteMagnitude)).height)
+        let subH = popupSub.isHidden ? 0 : ceil(popupSub.sizeThatFits(
+            CGSize(width: innerW, height: .greatestFiniteMagnitude)).height)
+        let dirH: CGFloat = popupDirButton.isHidden ? 0 : 33
+        var h = pad + nameH
+        if subH > 0 { h += 4 + subH }
+        if dirH > 0 { h += 10 + dirH }
+        h += pad
+        let sp = pinScreenPoint(pin)
+        let x = min(max(sp.x - w / 2, 10), view.bounds.width - w - 10)
+        var y = sp.y - h - pin.radius - 10
+        if y < view.safeAreaInsets.top + 74 { y = sp.y + pin.radius + 10 }
+        popupCard.frame = CGRect(x: x, y: y, width: w, height: h)
+        var cy = pad
+        popupName.frame = CGRect(x: pad, y: cy, width: innerW, height: nameH)
+        cy += nameH
+        if subH > 0 {
+            cy += 4
+            popupSub.frame = CGRect(x: pad, y: cy, width: innerW, height: subH)
+            cy += subH
+        }
+        if dirH > 0 {
+            cy += 10
+            popupDirButton.frame = CGRect(x: pad, y: cy, width: innerW, height: dirH)
+        }
+    }
+
+    private func hidePopupCard() {
+        popupCard.isHidden = true
+        popupPinId = nil
+    }
+
+    @objc private func popupDirectionsTapped() {
+        if let id = popupPinId { onPinDirections?(id) }
+        hidePopupCard()
     }
 
     // MARK: diagnostics (msg 142: in-process readout, from the start)
@@ -581,6 +879,14 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             bo.width, bo.height, of.x, of.y, ci.top, ci.left, ci.bottom, ci.right)
         if let last = fitTrace.last {
             diagLabel.text = (diagLabel.text ?? "") + "\n " + last
+        }
+        if !pins.isEmpty {
+            diagLabel.text = (diagLabel.text ?? "") + String(
+                format: "\n pins %d/%d shown · places %d rr %d svc %d se %d always %d · tap %@",
+                visiblePinCount(), pins.count,
+                classCount("places"), classCount("rr"), classCount("svc"),
+                classCount("se"), classCount("always"),
+                lastTapName.isEmpty ? "-" : lastTapName)
         }
     }
 
@@ -650,6 +956,14 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             "contentInset": String(format: "(%.0f,%.0f,%.0f,%.0f)", scrollView.contentInset.top, scrollView.contentInset.left, scrollView.contentInset.bottom, scrollView.contentInset.right),
             "fitTrace": fitTrace,
             "parity": paritySweep(),
+            "pinsTotal": pins.count,
+            "pinsByClass": pins.isEmpty ? "" : String(
+                format: "places %d · rr %d · svc %d · se %d · always %d",
+                classCount("places"), classCount("rr"), classCount("svc"),
+                classCount("se"), classCount("always")),
+            "pinsVisible": visiblePinCount(),
+            "lastTap": lastTapName,
+            "lastPopup": lastPopupName,
         ]
     }
 
@@ -665,7 +979,10 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "NativeMapSpikePlugin"
     public let jsName = "NativeMapSpike"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "present", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "present", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "showPinPopup", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setLayers", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "closeSpike", returnType: CAPPluginReturnPromise)
     ]
 
     private var spikeVC: SpikeViewController?
@@ -682,6 +999,43 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             let vc = SpikeViewController()
+            // Step 3: pin data + initial layer state from the web
+            // (tpcpBuildNativePinData in app.html), as a JSON string
+            // (parsed with the same JSONSerialization the tile
+            // manifest read uses). Absent -> no pins (steps 1-2 view).
+            if let json = call.getString("pinsJson"),
+               let data = json.data(using: .utf8),
+               let arr = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] {
+                let origin = SpikeGeom.globalPx(lat: SpikeGeom.maxNE.lat,
+                                                lng: SpikeGeom.maxSW.lng)
+                vc.pins = arr.compactMap { o in
+                    guard let id = o["id"] as? String,
+                          let layer = o["layer"] as? String,
+                          let lat = (o["lat"] as? NSNumber)?.doubleValue,
+                          let lon = (o["lon"] as? NSNumber)?.doubleValue
+                    else { return nil }
+                    let gp = SpikeGeom.globalPx(lat: lat, lng: lon)
+                    return SpikePin(
+                        id: id,
+                        name: (o["name"] as? String) ?? "",
+                        layer: layer,
+                        contentPoint: CGPoint(x: gp.x - origin.x,
+                                              y: gp.y - origin.y),
+                        radius: CGFloat((o["radius"] as? NSNumber)?.doubleValue ?? 9),
+                        weight: CGFloat((o["weight"] as? NSNumber)?.doubleValue ?? 2),
+                        fill: UIColor(spikeHex: (o["fill"] as? String) ?? "#173A5E"),
+                        alpha: CGFloat((o["alpha"] as? NSNumber)?.doubleValue ?? 0.95))
+                }
+            }
+            vc.initialLayers = (places: call.getBool("layerPlaces") ?? true,
+                                svc: call.getBool("layerSvc") ?? false,
+                                se: call.getBool("layerSe") ?? false)
+            vc.onPinTap = { [weak self] id in
+                self?.notifyListeners("pinTap", data: ["id": id])
+            }
+            vc.onPinDirections = { [weak self] id in
+                self?.notifyListeners("pinDirections", data: ["id": id])
+            }
             vc.modalPresentationStyle = .fullScreen
             self.spikeVC = vc
             self.pendingCall = call
@@ -694,6 +1048,35 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
                 vc.dismiss(animated: true)
             }
             host.present(vc, animated: true)
+        }
+    }
+
+    @objc func showPinPopup(_ call: CAPPluginCall) {
+        let name = call.getString("name") ?? ""
+        let sub = call.getString("sub") ?? ""
+        let hasDir = call.getBool("hasDir") ?? false
+        let pinId = call.getString("pinId") ?? ""
+        DispatchQueue.main.async {
+            self.spikeVC?.showPinPopup(name: name, sub: sub,
+                                       hasDir: hasDir, pinId: pinId)
+            call.resolve()
+        }
+    }
+
+    @objc func setLayers(_ call: CAPPluginCall) {
+        let places = call.getBool("places") ?? true
+        let svc = call.getBool("svc") ?? false
+        let se = call.getBool("se") ?? false
+        DispatchQueue.main.async {
+            self.spikeVC?.setLayers(places: places, svc: svc, se: se)
+            call.resolve()
+        }
+    }
+
+    @objc func closeSpike(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            self.spikeVC?.onClose?()
+            call.resolve()
         }
     }
 }
