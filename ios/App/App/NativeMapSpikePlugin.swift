@@ -438,7 +438,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     var routes: [SpikeRoute] = []
     private var currentRoute: SpikeRoute? = nil
     private let routesButton = UIButton(type: .system)
-    private var lastTapName = 
+    private var lastTapName = ""
     private var lastPopupName = ""
     private var lastZoomEnd = Date.distantPast
 
