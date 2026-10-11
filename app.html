@@ -6095,6 +6095,7 @@ function tpcpBundleLabel(){
     + '<button type="button" onclick="tpcpOpenNativeMapSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;">Native map spike (dev)</button>'
     + '<button type="button" id="tpcpNativeMapToggle" onclick="tpcpToggleNativeMap()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">' + tpcpNativeMapToggleLabel() + '</button>'
     + '<button type="button" onclick="tpcpOpenLayerSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">Layer spike (dev)</button>'
+    + '<button type="button" id="tpcpProdReadoutToggle" onclick="tpcpToggleProdReadout()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">' + tpcpProdReadoutToggleLabel() + '</button>'
     + '<div id="tpcpNativeSpikeReadout" style="font-size:11px;color:#4A7A7C;font-family:Outfit,sans-serif;line-height:1.45;margin-top:8px;white-space:pre-line;text-align:center;">' + tpcpMiniRenderLine() + '</div></div>' : '';
 
   // Build the full HTML
@@ -10371,6 +10372,28 @@ function tpcpToggleNativeMap() {
   if (b) b.textContent = tpcpNativeMapToggleLabel();
   if (typeof tpcpToast === 'function') tpcpToast(tpcpNativeMapEnabled() ? 'Native map is the map surface.' : 'Web map (fallback) is the map surface.');
 }
+// Msg 166: one-time framed-viewport capture. The production readout
+// stays suppressed by default (show() below); an admin can lift the
+// suppression for a single measurement session via this Info toggle
+// (localStorage 'tpcpProdReadoutV1' = 'on'). Default off = production
+// writes nothing, exactly as before. The toggle renders only in the
+// admin Info block, so the flag cannot be set from a user path.
+function tpcpProdReadoutLifted() {
+  try { return localStorage.getItem('tpcpProdReadoutV1') === 'on'; } catch (e) { return false; }
+}
+function tpcpProdReadoutToggleLabel() {
+  return tpcpProdReadoutLifted() ? 'Production readout: On (tap to suppress)' : 'Production readout: Off (tap to enable capture)';
+}
+function tpcpToggleProdReadout() {
+  try {
+    if (tpcpProdReadoutLifted()) localStorage.removeItem('tpcpProdReadoutV1');
+    else localStorage.setItem('tpcpProdReadoutV1', 'on');
+  } catch (e) {}
+  var b = document.getElementById('tpcpProdReadoutToggle');
+  if (b) b.textContent = tpcpProdReadoutToggleLabel();
+  if (typeof tpcpToast === 'function') tpcpToast(tpcpProdReadoutLifted() ? 'Production readout will be written on close.' : 'Production readout suppressed.');
+}
+
 // Production entry: the full map opened from the app's own entry
 // points (openParkMap, the mini-map tap, the map section button)
 // when the flag is on. Layer arguments map to the native initial
@@ -10392,7 +10415,7 @@ async function tpcpOpenNativeMapSpike(opts) {
   var production = !!opts.production;
   var initLayers = opts.layers || { places: true, svc: false, se: false };
   var out = document.getElementById('tpcpNativeSpikeReadout');
-  function show(t) { if (!production && out) out.textContent = t; }
+  function show(t) { if (out && (!production || tpcpProdReadoutLifted())) out.textContent = t; }
   var plugin = null;
   try { plugin = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeMapSpike) || null; } catch (e) { plugin = null; }
   if (!plugin || typeof plugin.present !== 'function') { show('Native map spike: plugin unavailable on this surface (not registered in this build).'); return; }
