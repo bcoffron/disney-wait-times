@@ -112,60 +112,41 @@ private enum SpikeGeom {
     }
 }
 
-// MARK: - Tiled view (CATiledLayer)
-
-/// CATiledLayer with the new-tile fade disabled. fadeDuration is a
-/// class-level member of CATiledLayer (there is no instance setter --
-/// the first Xcode compile of this file proved that), and the spike
-/// verdict must see first paint exactly as composited, so this
-/// subclass pins the fade to zero.
-final class SpikeTiledLayer: CATiledLayer {
-    override class func fadeDuration() -> CFTimeInterval { return 0 }
-}
+// MARK: - Tile source (step 7 cleanup: the CATiledLayer display
+// path that used to be configured here -- SpikeTiledLayer, the
+// tileSize grid port, draw() -- is retired; the design doc's
+// keep/delete map is the proof. What remains is the tile ladder +
+// decode cache the layer engine and the mini-map render consume.
+// This class is never displayed.)
 
 final class SpikeTiledView: UIView {
-    override class var layerClass: AnyClass { return SpikeTiledLayer.self }
-    private var tiledLayer: CATiledLayer { return layer as! CATiledLayer }
 
     /// .../tiles/resort inside the app bundle (nil if the folder is absent).
     var tilesRoot: URL?
     /// Global zoom-19 px coordinates of this view's top-left corner
     /// (the MAXBOUNDS north-west corner). View-local + origin = global.
     var originGlobal: CGPoint = .zero
-    /// Map zoom whose tiles are currently being drawn (13...19).
-    var level: Int = 15 {
-        didSet {
-            if level != oldValue {
-                // Step-5 repaint port (step-2 item 2, directive 1):
-                // align the layer's tile grid to the cell grid --
-                // tileSize = the cell span at this level (4096pt at
-                // L15 ... 256pt at L19), so one layer draw call
-                // paints exactly one cell. The pre-port grid was a
-                // fixed 256pt in zoom-19 space: ~256 chunk draws
-                // per cell at the fit, ~850 per fit paint.
-                let span = CGFloat(256.0 * pow(2.0, Double(SpikeGeom.refZoom - level)))
-                tiledLayer.tileSize = CGSize(width: span, height: span)
-                layer.setNeedsDisplay()
-            }
-        }
-    }
+    /// Map zoom the cell painter (paintCells) resolves at
+    /// (13...19). Only renderMiniMap sets it now -- the layer
+    /// engine takes its level as a parameter (layerTile /
+    /// resolution). The step-5 tileSize grid alignment that used
+    /// to hang off this property's didSet was display machinery
+    /// for the retired CATiledLayer path (step 7 cleanup).
+    var level: Int = 15
 
     private let imageCache = NSCache<NSString, UIImage>()
     private let countLock = NSLock()
+    // Draw counters of the retired display path. paintCells is
+    // their only writer, and it now runs only inside
+    // renderMiniMap (throwaway instance, count: false), so on
+    // every live instance these read exactly 0 forever -- both
+    // view controllers' instruments keep reading them as the
+    // standing proof that no tile is rasterized for display.
+    // The painted-cell set that used to sit here (paintedCells /
+    // wasPainted / markPainted) lost its last reader when step 6
+    // moved the census to the layer dict; step 7 deletes it.
     private(set) var drawnExact: Int = 0
     private(set) var drawCalls: Int = 0
-    private var paintedCells = Set<Int>()
-
-    private func cellKey(level: Int, x: Int, y: Int) -> Int {
-        (level << 40) | (y << 20) | x
-    }
-    func wasPainted(level: Int, x: Int, y: Int) -> Bool {
-        countLock.lock(); defer { countLock.unlock() }
-        return paintedCells.contains(cellKey(level: level, x: x, y: y))
-    }
-    private func markPainted(level: Int, x: Int, y: Int) {
-        paintedCells.insert(cellKey(level: level, x: x, y: y))
-    }
 
     /// The web layer's fallback background (app.html createTile:
     /// img.style.background = '#EFEDE7'). Genuinely out-of-coverage
@@ -182,16 +163,10 @@ final class SpikeTiledView: UIView {
         commonInit()
     }
     private func commonInit() {
-        // Cell span at the initial level (15); level's didSet keeps
-        // it aligned from there (step-5 repaint port).
-        tiledLayer.tileSize = CGSize(width: 4096, height: 4096)
-        // Level selection is driven deterministically from the scroll
-        // view's zoom scale (see SpikeViewController.scrollViewDidZoom),
-        // so the layer keeps a single detail level and re-renders its
-        // tiles under the zoom transform — Core Animation does the
-        // compositing, which is precisely the premise under test.
-        tiledLayer.levelsOfDetail = 1
-        // tile fade is disabled via SpikeTiledLayer (above)
+        // Step 7 cleanup: the CATiledLayer configuration that
+        // used to live here (tileSize grid alignment,
+        // levelsOfDetail, the fade subclass) configured a display
+        // layer this class no longer has -- it is never displayed.
         contentScaleFactor = UIScreen.main.scale
         backgroundColor = SpikeTiledView.beige
         imageCache.countLimit = 512
@@ -320,19 +295,15 @@ final class SpikeTiledView: UIView {
         return (nil, false, 0, tx, ty)
     }
 
-    override func draw(_ rect: CGRect) {
-        guard let ctx = UIGraphicsGetCurrentContext() else { return }
-        paintCells(in: rect, ctx: ctx, count: true)
-    }
-
     /// The cell painter: every cell overlapped by rect (view-local
     /// coordinates; originGlobal maps view-local to global zoom-19
     /// px) resolved through the web createTile ladder and drawn at
-    /// its footprint. Shared by draw() (the live CATiledLayer) and
-    /// renderMiniMap (a synchronous pass in a pre-scaled context).
-    /// `count` gates the draw-call counter (live view only; cell
-    /// paints and the painted-cell census are per-instance either
-    /// way -- the mini render uses a throwaway instance).
+    /// its footprint. Its only remaining caller is renderMiniMap
+    /// (a synchronous pass in a pre-scaled context); the draw()
+    /// override that once fed it to the CATiledLayer display was
+    /// deleted in the step-7 cleanup. `count` gates the draw-call
+    /// counter (the mini render passes false; the counter stays
+    /// as the instruments' no-rasterization proof).
     func paintCells(in rect: CGRect, ctx: CGContext, count: Bool) {
         if count { countLock.lock(); drawCalls += 1; countLock.unlock() }
         let span = 256.0 * pow(2.0, Double(SpikeGeom.refZoom - level))
@@ -351,8 +322,7 @@ final class SpikeTiledView: UIView {
                     width: CGFloat(span), height: CGFloat(span))
                 if let img = tileImage(z: level - 1, x: tx, y: ty) {
                     img.draw(in: foot)
-                    countLock.lock(); drawnExact += 1
-                    markPainted(level: level, x: tx, y: ty); countLock.unlock()
+                    countLock.lock(); drawnExact += 1; countLock.unlock()
                     continue
                 }
                 // Ancestor substitution (web createTile, msg 124 B):
@@ -377,9 +347,6 @@ final class SpikeTiledView: UIView {
                         ctx.clip(to: foot)
                         img.draw(in: aFoot)
                         ctx.restoreGState()
-                        countLock.lock()
-                        markPainted(level: level, x: tx, y: ty)
-                        countLock.unlock()
                         painted = true
                         break
                     }
@@ -1550,7 +1517,11 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
 // -- instead of asking CATiledLayer to rasterize them through draw().
 // BARE view by design: resort at fit, pan + pinch, instruments. No
 // pins, chips, routes, or popups (they port only if this passes).
-// The CATiledLayer surface above is untouched and stays reachable.
+// (The CATiledLayer surface this spike was gated against was
+// retired by the step-6 port and deleted in the step-7 cleanup;
+// this surface and the full map now share the one compositing
+// path, and the mini-map render is the tile source's other
+// consumer.)
 
 final class LayerSpikeViewController: UIViewController, UIScrollViewDelegate {
     private let scrollView = UIScrollView()
@@ -1560,10 +1531,10 @@ final class LayerSpikeViewController: UIViewController, UIScrollViewDelegate {
     // full-content backing store: the failure being escaped.)
     private let contentView = UIView()
     // Tile source: a SpikeTiledView that is never added to a view
-    // hierarchy, so its CATiledLayer never displays and its draw()
-    // never runs (its drawCalls counter in the snapshot proves it).
-    // It exists to reuse the shipped tile ladder + NSCache decode
-    // path (layerTile / resolution) instead of duplicating them.
+    // hierarchy, so nothing ever paints through it (its drawCalls
+    // counter in the snapshot proves it). It exists to reuse the
+    // shipped tile ladder + NSCache decode path (layerTile /
+    // resolution) instead of duplicating them.
     private let tileSource = SpikeTiledView(frame: .zero)
     private let diagLabel = UILabel()
     private let titleLabel = UILabel()
