@@ -6095,7 +6095,6 @@ function tpcpBundleLabel(){
     + '<button type="button" onclick="tpcpOpenNativeMapSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;">Native map spike (dev)</button>'
     + '<button type="button" id="tpcpNativeMapToggle" onclick="tpcpToggleNativeMap()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">' + tpcpNativeMapToggleLabel() + '</button>'
     + '<button type="button" onclick="tpcpOpenLayerSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">Layer spike (dev)</button>'
-    + '<button type="button" id="tpcpProdReadoutToggle" onclick="tpcpToggleProdReadout()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">' + tpcpProdReadoutToggleLabel() + '</button>'
     + '<div id="tpcpNativeSpikeReadout" style="font-size:11px;color:#4A7A7C;font-family:Outfit,sans-serif;line-height:1.45;margin-top:8px;white-space:pre-line;text-align:center;">' + tpcpMiniRenderLine() + '</div></div>' : '';
 
   // Build the full HTML
@@ -10400,28 +10399,6 @@ function tpcpToggleNativeMap() {
   if (b) b.textContent = tpcpNativeMapToggleLabel();
   if (typeof tpcpToast === 'function') tpcpToast(tpcpNativeMapEnabled() ? 'Native map is the map surface.' : 'Web map (fallback) is the map surface.');
 }
-// Msg 166: one-time framed-viewport capture. The production readout
-// stays suppressed by default (show() below); an admin can lift the
-// suppression for a single measurement session via this Info toggle
-// (localStorage 'tpcpProdReadoutV1' = 'on'). Default off = production
-// writes nothing, exactly as before. The toggle renders only in the
-// admin Info block, so the flag cannot be set from a user path.
-function tpcpProdReadoutLifted() {
-  try { return localStorage.getItem('tpcpProdReadoutV1') === 'on'; } catch (e) { return false; }
-}
-function tpcpProdReadoutToggleLabel() {
-  return tpcpProdReadoutLifted() ? 'Production readout: On (tap to suppress)' : 'Production readout: Off (tap to enable capture)';
-}
-function tpcpToggleProdReadout() {
-  try {
-    if (tpcpProdReadoutLifted()) localStorage.removeItem('tpcpProdReadoutV1');
-    else localStorage.setItem('tpcpProdReadoutV1', 'on');
-  } catch (e) {}
-  var b = document.getElementById('tpcpProdReadoutToggle');
-  if (b) b.textContent = tpcpProdReadoutToggleLabel();
-  if (typeof tpcpToast === 'function') tpcpToast(tpcpProdReadoutLifted() ? 'Production readout will be written on close.' : 'Production readout suppressed.');
-}
-
 // Production entry: the full map opened from the app's own entry
 // points (openParkMap, the mini-map tap, the map section button)
 // when the flag is on. Layer arguments map to the native initial
@@ -10445,11 +10422,10 @@ function tpcpOpenNativeParkMap(layer) {
 var _tpcpNativePayloadCache = null;
 async function tpcpOpenNativeMapSpike(opts) {
   opts = opts || {};
-  var tapWall = Date.now();
   var production = !!opts.production;
   var initLayers = opts.layers || { places: true, svc: false, se: false };
   var out = document.getElementById('tpcpNativeSpikeReadout');
-  function show(t) { if (out && (!production || tpcpProdReadoutLifted())) out.textContent = t; }
+  function show(t) { if (!production && out) out.textContent = t; }
   var plugin = null;
   try { plugin = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeMapSpike) || null; } catch (e) { plugin = null; }
   if (!plugin || typeof plugin.present !== 'function') { show('Native map spike: plugin unavailable on this surface (not registered in this build).'); return; }
@@ -10501,25 +10477,22 @@ async function tpcpOpenNativeMapSpike(opts) {
   try {
     // Step 11: present the memoized strings. On a hit they are read
     // straight from the cache; on a miss they are serialized exactly
-    // as before (prepWall keeps its pre-serialization position, so
-    // the cold segment accounting is unchanged) and stored -- only
-    // when the pin build produced pins, so a fallback open never
-    // poisons the cache.
+    // as before and stored -- only when the pin build produced pins,
+    // so a fallback open never poisons the cache.
     var pinsJson = null, routesJson = null;
     if (_tpcpNativePayloadCache) {
       pinsJson = _tpcpNativePayloadCache.pinsJson;
       routesJson = _tpcpNativePayloadCache.routesJson;
     }
-    var prepWall = Date.now();
     if (pinsJson === null) {
       var wire = pins.map(function (p) { return { id: p.id, name: p.name, lat: p.lat, lon: p.lon, layer: p.layer, fill: p.fill, radius: p.radius, weight: p.weight, alpha: p.alpha }; });
       pinsJson = JSON.stringify(wire);
       routesJson = JSON.stringify(routes);
       if (pins.length) _tpcpNativePayloadCache = { pins: pins, spots: spots, routes: routes, pinsJson: pinsJson, routesJson: routesJson };
     }
-    var d = await plugin.present({ pinsJson: pinsJson, routesJson: routesJson, layerPlaces: initLayers.places, layerSvc: initLayers.svc, layerSe: initLayers.se, production: production, tapWallMs: tapWall, prepWallMs: prepWall });
+    var d = await plugin.present({ pinsJson: pinsJson, routesJson: routesJson, layerPlaces: initLayers.places, layerSvc: initLayers.svc, layerSe: initLayers.se, production: production });
     if (d) {
-      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + (d.tileEngine ? ' | engine ' + d.tileEngine : '') + (typeof d.openMs === 'number' && d.openMs >= 0 ? ' | open to painted ' + d.openMs + ' ms' : ' | open to painted NOT MEASURED') + ' | fit composites ' + d.fitComposites + ' | last settle composites ' + d.lastSettleComposites + (typeof d.pinsTotal === 'number' ? ' | pins ' + d.pinsTotal + ' (' + d.pinsByClass + ') | pins visible on close ' + d.pinsVisible : '') + (d.lastTap ? ' | last tap ' + d.lastTap : '') + (d.lastPopup ? ' | last popup ' + d.lastPopup : '') + (d.routeName ? ' | route ' + d.routeName + ' | nodes drawn ' + d.routeNodesDrawn + '/' + d.routeNodes + ' | dist ' + d.routeDistFt + ' ft | coordFt web ' + d.routeCoordFtWeb + ' / native ' + d.routeCoordFtNative : '') + (typeof d.coldTotalMs === 'number' ? ' | cold total ' + d.coldTotalMs + ' ms (prep ' + d.coldJsPrepMs + ' · bridge ' + d.coldBridgeMs + ' · parse ' + d.coldParseMs + ' · load ' + d.coldLoadMs + ' · present ' + d.coldPresentMs + ' · paint ' + d.coldPaintMs + ')' : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
+      show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + (d.tileEngine ? ' | engine ' + d.tileEngine : '') + (typeof d.openMs === 'number' && d.openMs >= 0 ? ' | open to painted ' + d.openMs + ' ms' : ' | open to painted NOT MEASURED') + ' | fit composites ' + d.fitComposites + ' | last settle composites ' + d.lastSettleComposites + (typeof d.pinsTotal === 'number' ? ' | pins ' + d.pinsTotal + ' (' + d.pinsByClass + ') | pins visible on close ' + d.pinsVisible : '') + (d.lastTap ? ' | last tap ' + d.lastTap : '') + (d.lastPopup ? ' | last popup ' + d.lastPopup : '') + (d.routeName ? ' | route ' + d.routeName + ' | nodes drawn ' + d.routeNodesDrawn + '/' + d.routeNodes + ' | dist ' + d.routeDistFt + ' ft | coordFt web ' + d.routeCoordFtWeb + ' / native ' + d.routeCoordFtNative : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
     } else { show('Native map spike: closed (no readout returned).'); }
   } catch (e) { show('Native map spike error: ' + ((e && e.message) ? e.message : e)); }
   try { if (tapHandle && tapHandle.remove) tapHandle.remove(); } catch (e) {}
