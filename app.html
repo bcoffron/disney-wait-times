@@ -6095,7 +6095,6 @@ function tpcpBundleLabel(){
     + '<button type="button" onclick="tpcpOpenNativeMapSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;">Native map spike (dev)</button>'
     + '<button type="button" id="tpcpNativeMapToggle" onclick="tpcpToggleNativeMap()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">' + tpcpNativeMapToggleLabel() + '</button>'
     + '<button type="button" onclick="tpcpOpenLayerSpike()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">Layer spike (dev)</button>'
-    + '<button type="button" id="tpcpProdReadoutToggle" onclick="tpcpToggleProdReadout()" style="background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:Outfit,sans-serif;cursor:pointer;width:100%;margin-top:8px;">' + tpcpProdReadoutToggleLabel() + '</button>'
     + '<div id="tpcpNativeSpikeReadout" style="font-size:11px;color:#4A7A7C;font-family:Outfit,sans-serif;line-height:1.45;margin-top:8px;white-space:pre-line;text-align:center;">' + tpcpMiniRenderLine() + '</div></div>' : '';
 
   // Build the full HTML
@@ -10348,19 +10347,47 @@ function tpcpBuildNativeRouteSuite() {
   ];
 }
 
-// ===== Step 5 (msg 158): the switchover flag =====
-// One flag makes the native map the surface the app opens (full
-// map + Co-Pilot mini-map). Default ON when the NativeMapSpike
-// plugin is present; localStorage 'tpcpNativeMapV1' = 'off' is the
-// web fallback (per-device rollback lever, toggled in Info). The
-// web paths are byte-unchanged when the flag is off.
+// ===== Msg 166 flip: the server kill switch =====
+// /api/mapflag returns { nativeDefault: bool }. The client caches
+// the last-known value (localStorage 'tpcpMapFlagV1': 'web' forces
+// web); absent or unreachable = native stays the default. The flag
+// can only switch native OFF fleet-wide, never gate it on: a fetch
+// failure keeps the last-known value, so a network outage cannot
+// kill the fleet's maps. Refreshed at load and on foreground; the
+// open paths never block on the network.
+function tpcpServerNativeDefault() {
+  try { return localStorage.getItem('tpcpMapFlagV1') !== 'web'; } catch (e) { return true; }
+}
+function tpcpRefreshMapFlag() {
+  try {
+    if (typeof fetch !== 'function') return;
+    fetch('https://app.themeparkcopilot.com/api/mapflag?t=' + Date.now()).then(function(r){ return r.json(); }).then(function(d){
+      if (!d || typeof d.nativeDefault !== 'boolean') return;
+      try { localStorage.setItem('tpcpMapFlagV1', d.nativeDefault ? 'native' : 'web'); } catch (e) {}
+      var b = document.getElementById('tpcpNativeMapToggle');
+      if (b) b.textContent = tpcpNativeMapToggleLabel();
+    }).catch(function(){});
+  } catch (e) {}
+}
+tpcpRefreshMapFlag();
+try { document.addEventListener('visibilitychange', function(){ if (!document.hidden) tpcpRefreshMapFlag(); }); } catch (e) {}
+
+// ===== Step 5 (msg 158) + msg 166: the switchover flag =====
+// The native map is the surface the app opens (full map + Co-Pilot
+// mini-map) when all three hold: the NativeMapSpike plugin is
+// present, the per-device lever (localStorage 'tpcpNativeMapV1' =
+// 'off', toggled in Info) is not set, and the server kill switch
+// above has not forced web. The web paths are byte-unchanged when
+// the surface is web.
 function tpcpNativeMapEnabled() {
   try {
     if (localStorage.getItem('tpcpNativeMapV1') === 'off') return false;
+    if (!tpcpServerNativeDefault()) return false;
     return !!((window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeMapSpike) || null);
   } catch (e) { return false; }
 }
 function tpcpNativeMapToggleLabel() {
+  if (!tpcpServerNativeDefault()) return 'Map surface: Web fallback (server rollback active)';
   return tpcpNativeMapEnabled() ? 'Map surface: Native (tap to use web fallback)' : 'Map surface: Web fallback (tap to use native)';
 }
 function tpcpToggleNativeMap() {
@@ -10372,28 +10399,6 @@ function tpcpToggleNativeMap() {
   if (b) b.textContent = tpcpNativeMapToggleLabel();
   if (typeof tpcpToast === 'function') tpcpToast(tpcpNativeMapEnabled() ? 'Native map is the map surface.' : 'Web map (fallback) is the map surface.');
 }
-// Msg 166: one-time framed-viewport capture. The production readout
-// stays suppressed by default (show() below); an admin can lift the
-// suppression for a single measurement session via this Info toggle
-// (localStorage 'tpcpProdReadoutV1' = 'on'). Default off = production
-// writes nothing, exactly as before. The toggle renders only in the
-// admin Info block, so the flag cannot be set from a user path.
-function tpcpProdReadoutLifted() {
-  try { return localStorage.getItem('tpcpProdReadoutV1') === 'on'; } catch (e) { return false; }
-}
-function tpcpProdReadoutToggleLabel() {
-  return tpcpProdReadoutLifted() ? 'Production readout: On (tap to suppress)' : 'Production readout: Off (tap to enable capture)';
-}
-function tpcpToggleProdReadout() {
-  try {
-    if (tpcpProdReadoutLifted()) localStorage.removeItem('tpcpProdReadoutV1');
-    else localStorage.setItem('tpcpProdReadoutV1', 'on');
-  } catch (e) {}
-  var b = document.getElementById('tpcpProdReadoutToggle');
-  if (b) b.textContent = tpcpProdReadoutToggleLabel();
-  if (typeof tpcpToast === 'function') tpcpToast(tpcpProdReadoutLifted() ? 'Production readout will be written on close.' : 'Production readout suppressed.');
-}
-
 // Production entry: the full map opened from the app's own entry
 // points (openParkMap, the mini-map tap, the map section button)
 // when the flag is on. Layer arguments map to the native initial
@@ -10415,7 +10420,7 @@ async function tpcpOpenNativeMapSpike(opts) {
   var production = !!opts.production;
   var initLayers = opts.layers || { places: true, svc: false, se: false };
   var out = document.getElementById('tpcpNativeSpikeReadout');
-  function show(t) { if (out && (!production || tpcpProdReadoutLifted())) out.textContent = t; }
+  function show(t) { if (!production && out) out.textContent = t; }
   var plugin = null;
   try { plugin = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeMapSpike) || null; } catch (e) { plugin = null; }
   if (!plugin || typeof plugin.present !== 'function') { show('Native map spike: plugin unavailable on this surface (not registered in this build).'); return; }
