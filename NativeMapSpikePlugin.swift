@@ -1160,9 +1160,13 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         // that land immediately after a zoom settles.
         if Date().timeIntervalSince(lastZoomEnd) < 0.25 { return }
         // Hit-testing compares against pinScreenPoint, which is
-        // scroll-view space; identical to view space on the
-        // full-screen dev entry.
-        let loc = gr.location(in: scrollView)
+        // pin-overlay space: the overlay's frame is the scroll
+        // view's frame and its bounds origin is zero, in both the
+        // framed and full-screen entries. (Step 7 compared in
+        // scroll-view space -- bounds space, whose origin is the
+        // contentOffset -- shifting every test by the offset and
+        // killing pin taps; diagnosed + fixed per msg 170.)
+        let loc = gr.location(in: pinOverlay)
         var best: SpikePin? = nil
         var bestD = Double.greatestFiniteMagnitude
         for pin in pins where layerShown(pin.layer) {
