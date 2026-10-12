@@ -4,7 +4,7 @@
 // device falls back at its next flag refresh. Clients treat any
 // absent/unreachable/invalid value as true: this flag can only ever
 // switch native OFF, never gate it on.
-const NATIVE_MAP_DEFAULT = false;
+const NATIVE_MAP_DEFAULT = true;
 export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
