@@ -167,7 +167,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .pv-x{position:absolute;top:calc(8px + env(safe-area-inset-top));right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(23,58,94,.55);color:#fff;font-size:24px;line-height:1;cursor:pointer;z-index:2}
 .pv-credit{position:absolute;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom));text-align:center;font-size:11px;color:#F3D9A4;font-family:'Outfit',sans-serif}
 .pv-credit a{color:#F3D9A4}
-.tpcp-sheet-x{position:absolute;top:calc(10px + env(safe-area-inset-top));right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(23,58,94,.55);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:5}
+.tpcp-sheet-x{position:absolute;top:10px;right:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(23,58,94,.55);color:#fff;font-size:22px;line-height:1;cursor:pointer;z-index:5}
 .tpcp-sheet-title{padding-right:56px}
 .photo-credit-row{padding:8px 0;border-bottom:1px solid var(--divider)}
 .photo-credit-row:last-child{border-bottom:none}
@@ -10878,7 +10878,7 @@ function openDirections(dayIdx, si, ei) {
     var gate = TPCP_GATES[dest.park];
     var gs = window.TPCPRouter.snap(graph, gate.lat, gate.lon);
     var gateSpot = { name: gate.name, lat: gate.lat, lon: gate.lon, node: gs.node };
-    _dir = { park: dest.park, graph: graph, dest: dest.spot, prev: prevSpot, gate: gateSpot, origin: prevSpot ? 'prev' : 'gate' };
+    _dir = { park: dest.park, graph: graph, dest: dest.spot, prev: prevSpot, gate: gateSpot, origin: prevSpot ? 'prev' : 'gate', fromMap: false };
     document.getElementById('tpcpDirSheet').classList.add('open');
     tpcpStartGps();
     tpcpComputeRoute();
@@ -10942,7 +10942,7 @@ function tpcpOpenDirectionsTo(park, destSpot) {
       var U = tpcpResortRouteGraph();
       if (!U) { tpcpToast('Directions could not be loaded.'); return; }
       var espCoord = U.graph.nodes[U.esplanade];
-      _dir = { park: park, graph: U.graph, dest: { name: destSpot.name, lat: destSpot.lat, lon: destSpot.lon, node: U.offsets.DTD + destSpot.node }, prev: null, gate: { name: 'Park Entrance', lat: espCoord[0], lon: espCoord[1], node: U.esplanade }, origin: 'me', tiles: tpcpResortTiles() };
+      _dir = { park: park, graph: U.graph, dest: { name: destSpot.name, lat: destSpot.lat, lon: destSpot.lon, node: U.offsets.DTD + destSpot.node }, prev: null, gate: { name: 'Park Entrance', lat: espCoord[0], lon: espCoord[1], node: U.esplanade }, origin: 'me', fromMap: true, tiles: tpcpResortTiles() };
       document.getElementById('tpcpDirSheet').classList.add('open');
       tpcpStartGps();
       tpcpComputeRoute();
@@ -10953,7 +10953,7 @@ function tpcpOpenDirectionsTo(park, destSpot) {
     var graph = window['TPCP_GRAPH_' + park];
     var gate = TPCP_GATES[park];
     var gs = window.TPCPRouter.snap(graph, gate.lat, gate.lon);
-    _dir = { park: park, graph: graph, dest: destSpot, prev: null, gate: { name: gate.name, lat: gate.lat, lon: gate.lon, node: gs.node }, origin: 'me' };
+    _dir = { park: park, graph: graph, dest: destSpot, prev: null, gate: { name: gate.name, lat: gate.lat, lon: gate.lon, node: gs.node }, origin: 'me', fromMap: true };
     document.getElementById('tpcpDirSheet').classList.add('open');
     tpcpStartGps();
     tpcpComputeRoute();
@@ -11075,12 +11075,16 @@ function closeDirections() {
   tpcpStopGps();
   if (_dir && _dir.map) { _dir.map.remove(); _dir.map = null; }
   _gps.dot = null;
-  // Beau (Oct 10, 2026): closing directions lands on the large park
-  // map, not back on whichever tab the sheet was opened from. When
-  // directions were launched from a pin inside the large map, that
-  // map is already open underneath and the sheet closing reveals it,
-  // so only open it when it is not already open.
-  if (!document.getElementById('tpcpMapView').classList.contains('open')) {
+  // Origin-aware landing (Beau, Oct 12, 2026; refines his Oct 10 rule,
+  // which landed EVERY close on the large park map): directions launched
+  // from a pin inside the large map (fromMap) return to it -- that map
+  // is already open underneath in web mode and the sheet closing reveals
+  // it, so only open it when it is not already open; in native mode the
+  // re-open re-presents the native map. Directions launched from a
+  // schedule card close back to the schedule they were opened from.
+  // _dir is a fresh literal on every launch, so fromMap is never stale,
+  // and the strict-true gate defaults any unset path to staying put.
+  if (_dir && _dir.fromMap === true && !document.getElementById('tpcpMapView').classList.contains('open')) {
     openParkMap();
   }
 }
