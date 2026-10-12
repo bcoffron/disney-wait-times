@@ -36,6 +36,14 @@ import UIKit
 import Capacitor
 import QuartzCore
 
+/// Step 10 (msg 168): wall-clock milliseconds for the
+/// first-open cold instrument. The JS side stamps tap/prep
+/// with Date.now(), so both sides read the same device
+/// wall clock.
+private func spikeWallMsNow() -> Double {
+    Date().timeIntervalSince1970 * 1000.0
+}
+
 // MARK: - Geometry ported from the web map (app.html)
 //
 // Web sources (repo app.html @ the msg-142 build):
@@ -554,6 +562,19 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     private var hasAppeared = false
     private var openStart: CFTimeInterval? = nil
     private(set) var openMs = -1
+    // Step 10 (msg 168): first-open cold stamps (wall-clock
+    // ms). tap/prep originate in JS (tapWallMs/prepWallMs on
+    // the present call); call/parsed are stamped by the
+    // plugin; didLoad/appear/painted in this controller.
+    // Zero = not stamped, which suppresses the cold keys in
+    // the snapshot entirely.
+    var coldTapWall: Double = 0
+    var coldPrepWall: Double = 0
+    var coldCallWall: Double = 0
+    var coldParsedWall: Double = 0
+    private var coldDidLoadWall: Double = 0
+    private var coldAppearWall: Double = 0
+    private var coldPaintedWall: Double = 0
         // Step 4 state: the acceptance suite (assigned by the plugin
     // before presentation) and the route currently drawn.
     var routes: [SpikeRoute] = []
@@ -743,6 +764,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
         showSvc = initialLayers.svc
         showSE = initialLayers.se
         applyLayerState()
+        coldDidLoadWall = spikeWallMsNow()
     }
 
     private func locateTiles() {
@@ -777,6 +799,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
     }
 
     override func viewDidAppear(_ animated: Bool) {
+        coldAppearWall = spikeWallMsNow()
         super.viewDidAppear(animated)
         trace(String(format: "APPEAR cs %.0fx%.0f in t%.0f l%.0f off (%.0f,%.0f) sv %.0fx%.0f",
                      scrollView.contentSize.width, scrollView.contentSize.height,
@@ -1323,6 +1346,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             guard let self = self else { return }
             if self.openMs < 0 {
                 self.openMs = Int(((CACurrentMediaTime() - start) * 1000.0).rounded())
+                self.coldPaintedWall = spikeWallMsNow()
             }
             self.refreshDiagnostics()
         }
@@ -1463,7 +1487,7 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
 
     func diagnosticsSnapshot() -> [String: Any] {
         refreshDiagnostics()
-        return [
+        var snap: [String: Any] = [
             "fitZoom": fitZoom,
             "currentZoom": ((19.0 + log2(Double(scrollView.zoomScale))) * 100).rounded() / 100,
             "tilesInView": census.inView,
@@ -1502,6 +1526,22 @@ final class SpikeViewController: UIViewController, UIScrollViewDelegate {
             "routeCoordFtWeb": currentRoute?.coordFtWeb ?? 0,
             "routeCoordFtNative": currentRoute?.coordFtNative ?? 0,
         ]
+        // Step 10 (msg 168): the cold segment keys, added only
+        // when every stamp landed (the present path); omitted
+        // entirely otherwise, so the key set is otherwise
+        // exactly the pre-instrument set.
+        if coldTapWall > 0 && coldPrepWall > 0 && coldCallWall > 0
+            && coldParsedWall > 0 && coldDidLoadWall > 0
+            && coldAppearWall > 0 && coldPaintedWall > 0 {
+            snap["coldTotalMs"] = Int((coldPaintedWall - coldTapWall).rounded())
+            snap["coldJsPrepMs"] = Int((coldPrepWall - coldTapWall).rounded())
+            snap["coldBridgeMs"] = Int((coldCallWall - coldPrepWall).rounded())
+            snap["coldParseMs"] = Int((coldParsedWall - coldCallWall).rounded())
+            snap["coldLoadMs"] = Int((coldDidLoadWall - coldParsedWall).rounded())
+            snap["coldPresentMs"] = Int((coldAppearWall - coldDidLoadWall).rounded())
+            snap["coldPaintMs"] = Int((coldPaintedWall - coldAppearWall).rounded())
+        }
+        return snap
     }
 
     @objc private func doneTapped() {
@@ -2002,6 +2042,13 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
     private var layerPendingCall: CAPPluginCall?
 
     @objc func present(_ call: CAPPluginCall) {
+        // Step 10 (msg 168): the received stamp and the JS
+        // stamps are read at entry, before the main-queue hop,
+        // so coldBridge ends here (stringify + marshalling +
+        // dispatch) and coldParse absorbs the queue wait.
+        let callReceivedWall = spikeWallMsNow()
+        let tapWallMs = call.getDouble("tapWallMs") ?? 0
+        let prepWallMs = call.getDouble("prepWallMs") ?? 0
         DispatchQueue.main.async {
             guard let host = self.bridge?.viewController else {
                 call.reject("NativeMapSpike: no host view controller")
@@ -2013,6 +2060,9 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
             }
             let vc = SpikeViewController()
             vc.production = call.getBool("production") ?? false
+            vc.coldTapWall = tapWallMs
+            vc.coldPrepWall = prepWallMs
+            vc.coldCallWall = callReceivedWall
             // Step 3: pin data + initial layer state from the web
             // (tpcpBuildNativePinData in app.html), as a JSON string
             // (parsed with the same JSONSerialization the tile
@@ -2080,6 +2130,7 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
                         coordFtNative: Int(coordFt.rounded()))
                 }
             }
+            vc.coldParsedWall = spikeWallMsNow()
             vc.initialLayers = (places: call.getBool("layerPlaces") ?? true,
                                 svc: call.getBool("layerSvc") ?? false,
                                 se: call.getBool("layerSe") ?? false)
