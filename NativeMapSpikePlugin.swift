@@ -2151,7 +2151,12 @@ public class NativeMapSpikePlugin: CAPPlugin, CAPBridgedPlugin {
                 self.spikeVC = nil
                 vc.dismiss(animated: true)
             }
-            host.present(vc, animated: true)
+            // Step 11 (msg 168 follow-up): the animated modal
+            // transition measured ~510 ms of the ~655 ms cold
+            // open (step-10 cold instrument), so present
+            // unanimated -- that is the halving lever. Dismissal
+            // stays animated (in onClose, above).
+            host.present(vc, animated: false)
         }
     }
 

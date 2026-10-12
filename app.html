@@ -10438,6 +10438,11 @@ function tpcpOpenNativeParkMap(layer) {
 // touches the web map; if the plugin is not registered in this build
 // (e.g. a plain web surface) the readout says so instead of failing
 // silently.
+// Step 11 (msg 168 follow-up): memoized native-map payload for
+// tpcpOpenNativeMapSpike -- the built pin/route objects and
+// their JSON strings, filled by the first successful build of
+// the session and reused by every later open (see below).
+var _tpcpNativePayloadCache = null;
 async function tpcpOpenNativeMapSpike(opts) {
   opts = opts || {};
   var tapWall = Date.now();
@@ -10451,16 +10456,30 @@ async function tpcpOpenNativeMapSpike(opts) {
   show('Native map spike: opening...');
   // Step 3: build the pin set from the shipped data (falls back to the
   // bare steps 1-2 view if the data cannot load).
+  // Step 11 (msg 168 follow-up): the payloads are static once the park
+  // graphs load, and rebuilding them measured ~80 ms of JS prep on every
+  // open, so a successful build is memoized in _tpcpNativePayloadCache
+  // (objects + JSON strings, filled at the present site below) and later
+  // opens reuse it. A failed or empty build is never cached -- the
+  // bare-view fallback retries on the next open, exactly as before. The
+  // _spikePins registration below still runs on every open: it is cheap,
+  // and the pin popup / Directions hop read it.
   var pins = [], spots = {};
-  try {
-    await tpcpEnsureSpikePinData();
-    var built = tpcpBuildNativePinData();
-    pins = built.pins; spots = built.spots;
-  } catch (e) { pins = []; spots = {}; }
-  // Step 4: the route suite for the native polyline (same fallback:
-  // no routes -> the steps 1-3 view).
   var routes = [];
-  try { routes = tpcpBuildNativeRouteSuite(); } catch (e) { routes = []; }
+  if (_tpcpNativePayloadCache) {
+    pins = _tpcpNativePayloadCache.pins;
+    spots = _tpcpNativePayloadCache.spots;
+    routes = _tpcpNativePayloadCache.routes;
+  } else {
+    try {
+      await tpcpEnsureSpikePinData();
+      var built = tpcpBuildNativePinData();
+      pins = built.pins; spots = built.spots;
+    } catch (e) { pins = []; spots = {}; }
+    // Step 4: the route suite for the native polyline (same fallback:
+    // no routes -> the steps 1-3 view).
+    try { routes = tpcpBuildNativeRouteSuite(); } catch (e) { routes = []; }
+  }
   _spikePins = {};
   pins.forEach(function (p) { _spikePins[p.id] = { name: p.name, sub: p.sub, hasDir: !!spots[p.id], dir: spots[p.id] || null }; });
   var tapHandle = null, dirHandle = null, pendingDir = null;
@@ -10480,9 +10499,25 @@ async function tpcpOpenNativeMapSpike(opts) {
     }
   } catch (e) {}
   try {
-    var wire = pins.map(function (p) { return { id: p.id, name: p.name, lat: p.lat, lon: p.lon, layer: p.layer, fill: p.fill, radius: p.radius, weight: p.weight, alpha: p.alpha }; });
+    // Step 11: present the memoized strings. On a hit they are read
+    // straight from the cache; on a miss they are serialized exactly
+    // as before (prepWall keeps its pre-serialization position, so
+    // the cold segment accounting is unchanged) and stored -- only
+    // when the pin build produced pins, so a fallback open never
+    // poisons the cache.
+    var pinsJson = null, routesJson = null;
+    if (_tpcpNativePayloadCache) {
+      pinsJson = _tpcpNativePayloadCache.pinsJson;
+      routesJson = _tpcpNativePayloadCache.routesJson;
+    }
     var prepWall = Date.now();
-    var d = await plugin.present({ pinsJson: JSON.stringify(wire), routesJson: JSON.stringify(routes), layerPlaces: initLayers.places, layerSvc: initLayers.svc, layerSe: initLayers.se, production: production, tapWallMs: tapWall, prepWallMs: prepWall });
+    if (pinsJson === null) {
+      var wire = pins.map(function (p) { return { id: p.id, name: p.name, lat: p.lat, lon: p.lon, layer: p.layer, fill: p.fill, radius: p.radius, weight: p.weight, alpha: p.alpha }; });
+      pinsJson = JSON.stringify(wire);
+      routesJson = JSON.stringify(routes);
+      if (pins.length) _tpcpNativePayloadCache = { pins: pins, spots: spots, routes: routes, pinsJson: pinsJson, routesJson: routesJson };
+    }
+    var d = await plugin.present({ pinsJson: pinsJson, routesJson: routesJson, layerPlaces: initLayers.places, layerSvc: initLayers.svc, layerSe: initLayers.se, production: production, tapWallMs: tapWall, prepWallMs: prepWall });
     if (d) {
       show('Native spike readout: fit zoom ' + d.fitZoom + ' | zoom on close ' + d.currentZoom + ' | tiles in view ' + d.tilesInView + ' (exact ' + d.tilesExact + ', substituted ' + d.tilesSubstituted + ', missing ' + d.missingTiles + ') | drawn ' + d.tilesDrawn + ' | pack tiles ' + d.packTileCount + (d.tilesStatus ? ' | ' + d.tilesStatus : '') + (typeof d.tilesUnpainted === 'number' ? ' | unpainted ' + d.tilesUnpainted : '') + (typeof d.drawCalls === 'number' ? ' | draw calls ' + d.drawCalls : '') + (d.tileEngine ? ' | engine ' + d.tileEngine : '') + (typeof d.openMs === 'number' && d.openMs >= 0 ? ' | open to painted ' + d.openMs + ' ms' : ' | open to painted NOT MEASURED') + ' | fit composites ' + d.fitComposites + ' | last settle composites ' + d.lastSettleComposites + (typeof d.pinsTotal === 'number' ? ' | pins ' + d.pinsTotal + ' (' + d.pinsByClass + ') | pins visible on close ' + d.pinsVisible : '') + (d.lastTap ? ' | last tap ' + d.lastTap : '') + (d.lastPopup ? ' | last popup ' + d.lastPopup : '') + (d.routeName ? ' | route ' + d.routeName + ' | nodes drawn ' + d.routeNodesDrawn + '/' + d.routeNodes + ' | dist ' + d.routeDistFt + ' ft | coordFt web ' + d.routeCoordFtWeb + ' / native ' + d.routeCoordFtNative : '') + (typeof d.coldTotalMs === 'number' ? ' | cold total ' + d.coldTotalMs + ' ms (prep ' + d.coldJsPrepMs + ' · bridge ' + d.coldBridgeMs + ' · parse ' + d.coldParseMs + ' · load ' + d.coldLoadMs + ' · present ' + d.coldPresentMs + ' · paint ' + d.coldPaintMs + ')' : '') + ((d.fitTrace && d.fitTrace.length) ? '\nfit trace:\n' + d.fitTrace.join('\n') : '') + ((d.parity && d.parity.length) ? '\nparity (native counter):\n' + d.parity.join('\n') : ''));
     } else { show('Native map spike: closed (no readout returned).'); }
