@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { put, list } from '@vercel/blob';
+import { put } from '@vercel/blob';
+import { updateBlobJson } from './lib/blob.js';
 
 const rateLimit = new Map();
 
@@ -17,16 +18,6 @@ function checkRateLimit(ip, max, windowMs) {
   if (record.count >= max) return false;
   record.count++;
   return true;
-}
-
-async function readBlob(pathname) {
-  const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
-  const matches = (blobs || []).filter(b => b.pathname === pathname)
-    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  if (!matches.length) return null;
-  const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
-  if (!r.ok) return null;
-  return r.text().then(t => JSON.parse(t));
 }
 
 export default async function handler(req, res) {
@@ -73,23 +64,28 @@ export default async function handler(req, res) {
   try {
     await put('blog/posts/' + post.slug, JSON.stringify(post), { access: 'public', allowOverwrite: true });
 
-    let currentIndex = (await readBlob('blog/posts/index')) || [];
-    const existingEntry = currentIndex.find(p => p.slug === post.slug);
-    const meta = {
-      slug: post.slug, title: post.title, park: post.park,
-      category: post.category, tagLabel: post.tagLabel,
-      heroImage: post.heroImage, heroAlt: post.heroAlt,
-      intro: post.intro, readTime: post.readTime,
-      publishedAt: existingEntry && existingEntry.publishedAt
-        ? existingEntry.publishedAt
-        : post.publishedAt, updatedAt: post.updatedAt,
-      published: post.published,
-      tags: post.tags || [],
-      bodySnippet: (post.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000)
-    };
-    const idx = currentIndex.findIndex(p => p.slug === post.slug);
-    if (idx >= 0) currentIndex[idx] = meta; else currentIndex.push(meta);
-    await put('blog/posts/index', JSON.stringify(currentIndex), { access: 'public', allowOverwrite: true, token: process.env.BLOB_READ_WRITE_TOKEN });
+    // Index upsert via the race-safe helper (api/lib/blob.js): if the
+    // index changed since the read, the upsert is re-applied to the
+    // fresh state instead of discarding the competing change.
+    await updateBlobJson('blog/posts/index', 'blog-save', (entries) => {
+      const currentIndex = Array.isArray(entries) ? entries : [];
+      const existingEntry = currentIndex.find(p => p.slug === post.slug);
+      const meta = {
+        slug: post.slug, title: post.title, park: post.park,
+        category: post.category, tagLabel: post.tagLabel,
+        heroImage: post.heroImage, heroAlt: post.heroAlt,
+        intro: post.intro, readTime: post.readTime,
+        publishedAt: existingEntry && existingEntry.publishedAt
+          ? existingEntry.publishedAt
+          : post.publishedAt, updatedAt: post.updatedAt,
+        published: post.published,
+        tags: post.tags || [],
+        bodySnippet: (post.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000)
+      };
+      const idx = currentIndex.findIndex(p => p.slug === post.slug);
+      if (idx >= 0) currentIndex[idx] = meta; else currentIndex.push(meta);
+      return currentIndex;
+    });
 
     return res.status(200).json({ success: true, slug: post.slug, updatedAt: post.updatedAt });
   } catch (err) {
