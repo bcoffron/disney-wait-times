@@ -64,6 +64,14 @@ export async function readBlobText(key, caller, opts) {
   return r.text();
 }
 
+// The index entry's bodySnippet, computed exactly as blog-save computes
+// it. Extracted (reindex Deliverable 2) so the save path and the rebuild
+// produce the identical field from the identical code - the rebuild's
+// output shape must match the save path's field for field.
+export function computeBodySnippet(body) {
+  return (body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000);
+}
+
 // --- Race-safe read-modify-write for shared JSON blobs (write-path fix) ---
 //
 // The posts index is written by several endpoints as read-modify-write:

@@ -25,51 +25,9 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Rebuild index from all blog/posts/ blobs
-  if (req.method === 'GET' && req.query.action === 'rebuild-index') {
-    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-    const now = Date.now();
-    if (!rl[ip] || now - rl[ip].start > 60000) rl[ip] = { count: 0, start: now };
-    rl[ip].count++;
-    if (rl[ip].count > 20) return res.status(429).json({ error: 'Rate limit exceeded' });
-    try {
-      // List all blog/posts/ blobs, paginated
-      let allBlobs = [], cursor;
-      do {
-        const result = await list({ prefix: 'blog/posts/', cursor, limit: 100 });
-        allBlobs = allBlobs.concat(result.blobs);
-        cursor = result.cursor;
-      } while (cursor);
-      
-      // Deduplicate: keep most recent blob per exact pathname
-      const byPathname = {};
-      for (const blob of allBlobs) {
-        if (blob.pathname === 'blog/posts/index') continue;
-        if (blob.pathname.startsWith('blog/posts/') && blob.pathname !== 'blog/posts/index') {
-          if (!byPathname[blob.pathname] || new Date(blob.uploadedAt) > new Date(byPathname[blob.pathname].uploadedAt)) {
-            byPathname[blob.pathname] = blob;
-          }
-        }
-      }
-      
-      const index = [];
-      for (const blob of Object.values(byPathname)) {
-        try {
-          const r = await fetch(blob.url);
-          if (!r.ok) continue;
-          const post = await r.json();
-          if (!post || !post.slug) continue;
-          index.push({ slug: post.slug, title: post.title, park: post.park, category: post.category, tagLabel: post.tagLabel, heroImage: post.heroImage, heroAlt: post.heroAlt, intro: post.intro, readTime: post.readTime, publishedAt: post.publishedAt, updatedAt: post.updatedAt, published: post.published });
-        } catch(e) { /* skip */ }
-      }
-      
-      await put('blog/posts/index', JSON.stringify(index), { access: 'public', allowOverwrite: true });
-      return res.status(200).json({ success: true, count: index.length, slugs: index.map(p => p.slug).sort() });
-    } catch(err) {
-      console.error('rebuild-index error:', err.message);
-      return res.status(500).json({ error: 'Internal server error: ' + err.message });
-    }
-  }
+  // The rebuild-index action was RETIRED (reindex Deliverable 2):
+  // blog-reindex is the only rebuild producer - one producer, one code
+  // path. This endpoint keeps only its one-time migrate POST below.
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';

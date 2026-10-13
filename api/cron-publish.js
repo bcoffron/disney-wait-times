@@ -95,16 +95,12 @@ export default async function handler(req, res) {
         throw e;
       }
     }
-    if (published > 0) {
-      try {
-        await fetch('https://disney-wait-times-lupt.vercel.app/api/blog-reindex', {
-          headers: { 'x-reindex-secret': process.env.CRON_SECRET }
-        });
-        console.log('[cron-publish] Reindex triggered');
-      } catch(e) {
-        console.log('[cron-publish] Reindex failed:', e.message);
-      }
-    }
+    // The reindex trigger is DISCONNECTED (reindex Deliverable 2): the
+    // rebuild's write path is a reviewed, human-gated operation and an
+    // unattended caller must not be able to reach it. Reconnect only
+    // once the rebuild is proven, as a dry-run report - never as a
+    // commit. (Previously this fetched /api/blog-reindex after
+    // publishing, when that endpoint still wrote in the same request.)
 
     return res.status(200).json({
       success: true,
