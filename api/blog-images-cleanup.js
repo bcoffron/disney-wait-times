@@ -22,39 +22,12 @@
 //  5. CAP: at most MAX_URLS entries per request.
 import jwt from 'jsonwebtoken';
 import { list, del } from '@vercel/blob';
+import { readBlobJson } from './lib/blob.js';
 
 const rl = {};
 const MAX_URLS = 100;
 const MAX_BODY_BYTES = 256 * 1024;
 
-function matchesKey(pathname, key) {
-  // INVARIANT (OBSERVED, NOT guaranteed by @vercel/blob):
-  // With addRandomSuffix, the server appends '-' + an alphanumeric-only suffix
-  // (no '-' or '_'). Verified across 654 live blobs (all 30-char [A-Za-z0-9]).
-  // The client lib only sends a boolean flag; the suffix is minted server-side,
-  // so this format is NOT a documented contract. The regex below DEPENDS on it to
-  // tell "key + random-suffix" apart from "key + '-' + a longer sibling slug".
-  // If this invariant ever breaks, the empty-match guard in readPostBlob will log it.
-  // (Mirrored from api/blog-post.js, where this matcher is proven in production.)
-  if (pathname === key) return true;
-  if (!pathname.startsWith(key + '-')) return false;
-  return /^[A-Za-z0-9]+$/.test(pathname.slice(key.length + 1));
-}
-
-async function readPostBlob(pathname) {
-  const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
-  const matches = (blobs || []).filter(function(b) { return matchesKey(b.pathname, pathname); })
-    .sort(function(a, b) { return new Date(b.uploadedAt) - new Date(a.uploadedAt); });
-  if (!matches.length) {
-    if ((blobs || []).length > 0) {
-      console.error('[SECURITY] readPostBlob matched 0 of ' + blobs.length + ' listed blobs for key "' + pathname + '" - possible suffix-format drift.');
-    }
-    return null;
-  }
-  const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
-  if (!r.ok) return null;
-  return r.text().then(function(t) { return JSON.parse(t); });
-}
 
 function stripQuery(url) {
   try { return url.split('?')[0]; } catch (e) { return url; }
@@ -64,7 +37,7 @@ async function buildUsageMap() {
   const usageMap = new Map();
   let allPosts;
   try {
-    allPosts = await readPostBlob('blog/posts/index');
+    allPosts = await readBlobJson('blog/posts/index', 'blog-images-cleanup.readPostBlob');
   } catch (e) {
     allPosts = null;
   }
@@ -72,7 +45,7 @@ async function buildUsageMap() {
 
   const postBodies = await Promise.all(
     allPosts.map(function(p) {
-      return readPostBlob('blog/posts/' + p.slug).catch(function() { return null; });
+      return readBlobJson('blog/posts/' + p.slug, 'blog-images-cleanup.readPostBlob').catch(function() { return null; });
     })
   );
 

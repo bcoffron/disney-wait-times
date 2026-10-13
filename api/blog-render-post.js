@@ -1,37 +1,11 @@
 // api/blog-render-post.js
-import { list } from '@vercel/blob';
+import { readBlobJson } from './lib/blob.js';
 const readRateLimit = new Map();
 
-function matchesKey(pathname, key) {
-  // INVARIANT (OBSERVED, NOT guaranteed by @vercel/blob):
-  // With addRandomSuffix, the server appends '-' + an alphanumeric-only suffix
-  // (no '-' or '_'). Verified across 654 live blobs (all 30-char [A-Za-z0-9]).
-  // The client lib only sends a boolean flag; the suffix is minted server-side,
-  // so this format is NOT a documented contract. The regex below DEPENDS on it to
-  // tell "key + random-suffix" apart from "key + '-' + a longer sibling slug".
-  // If this invariant ever breaks, the empty-match guard in readBlob will log it.
-  if (pathname === key) return true;
-  if (!pathname.startsWith(key + '-')) return false;
-  return /^[A-Za-z0-9]+$/.test(pathname.slice(key.length + 1));
-}
-
-async function readBlob(pathname)  {
-  const { blobs } = await list({ prefix: pathname, limit: 1000 , token: process.env.BLOB_READ_WRITE_TOKEN });
-  const matches = (blobs || []).filter(b => matchesKey(b.pathname, pathname)).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  if (!matches.length) {
-    if ((blobs || []).length > 0) {
-      console.error('[SECURITY] readBlob matched 0 of ' + blobs.length + ' listed blobs for key "' + pathname + '" - possible suffix-format drift.');
-    }
-    return null;
-  }
-  const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
-  if (!r.ok) return null
-  return r.json();
-}
 
 async function readSettings() {
   try {
-    const s = await readBlob('blog:settings');
+    const s = await readBlobJson('blog:settings', 'blog-render-post.readBlob');
     return { byline: 'By the Theme Park Co-Pilot Team', readTimeMode: 'auto', postsPerPage: 30, ...(s || {}) };
   } catch(e) {
     return { byline: 'By the Theme Park Co-Pilot Team', readTimeMode: 'auto', postsPerPage: 30 };
@@ -151,7 +125,7 @@ var slug = req.query.slug || '';
   }
 
 var post = null;
-  try { post = await readBlob('blog/posts/' + slug); } catch(e) { post = null; }
+  try { post = await readBlobJson('blog/posts/' + slug, 'blog-render-post.readBlob'); } catch(e) { post = null; }
   if (!post) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(404).send(not404Html());
