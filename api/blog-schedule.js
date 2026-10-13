@@ -1,15 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { put, list } from '@vercel/blob';
-
-async function readBlob(pathname) {
-  const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
-  const matches = (blobs || []).filter(b => b.pathname === pathname)
-    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  if (!matches.length) return null;
-  const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
-  if (!r.ok) return null;
-  return r.text().then(t => JSON.parse(t));
-}
+import { put } from '@vercel/blob';
+import { readBlobJson, updateBlobJson } from './lib/blob.js';
 
 // POST /api/blog-schedule
 // Body: { slug, scheduledAt } — scheduledAt can be ISO string or null to cancel
@@ -37,7 +28,7 @@ export default async function handler(req, res) {
   if (!slug || !/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ error: 'Invalid or missing slug' });
 
   try {
-    const post = await readBlob('blog/posts/' + slug);
+    const post = await readBlobJson('blog/posts/' + slug, 'blog-schedule', { expected: true });
     if (!post) return res.status(404).json({ error: 'Post not found: ' + slug });
 
     if (scheduledAt === null || scheduledAt === undefined || scheduledAt === '') {
@@ -53,16 +44,19 @@ export default async function handler(req, res) {
       token: process.env.BLOB_READ_WRITE_TOKEN
     });
 
-    let index = (await readBlob('blog/posts/index')) || [];
-    const idx = index.findIndex(p => p.slug === slug);
-    if (idx >= 0) {
-      index[idx].scheduledAt = post.scheduledAt || null;
-      index[idx].updatedAt = post.updatedAt;
-    }
-    await put('blog/posts/index', JSON.stringify(index), {
-      access: 'public',
-      allowOverwrite: true,
-      token: process.env.BLOB_READ_WRITE_TOKEN
+    // Index update via the race-safe helper (api/lib/blob.js). Two
+    // properties matter here: a failed index read THROWS instead of
+    // looking like an empty index (the old code defaulted a failed
+    // read to [] and unconditionally wrote it back - one transient
+    // fetch failure would have emptied the whole index), and when the
+    // entry is absent the mutator changes nothing, so no write occurs.
+    await updateBlobJson('blog/posts/index', 'blog-schedule', (entries) => {
+      if (!Array.isArray(entries)) return entries;
+      const idx = entries.findIndex(p => p.slug === slug);
+      if (idx < 0) return entries;
+      entries[idx].scheduledAt = post.scheduledAt || null;
+      entries[idx].updatedAt = post.updatedAt;
+      return entries;
     });
 
     return res.status(200).json({ success: true, slug, scheduledAt: post.scheduledAt || null });
