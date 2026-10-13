@@ -116,3 +116,102 @@ test('DELETE stays suffix-tolerant: a query-suffixed URL of an in-use image stil
   assert.equal(res.statusCode, 409);
   assert.deepEqual(globalThis.__blobState.delCalls, []);
 });
+
+// ---------------------------------------------------------------------------
+// Suffixed-store fixtures: the production blob store's real shape.
+// Post blobs are stored at RANDOM-SUFFIXED pathnames (put + addRandomSuffix),
+// e.g. 'blog/posts/what-to-wear-to-disney-NtXoccyfza3EGgKrjBWjxin0vhX'.
+// The handler's reader must still find them (bare key OR key + '-' +
+// alphanumeric suffix, newest by uploadedAt). These tests FAIL against the
+// old exact-pathname reader — that failure is what let an in-use hero be
+// deleted in production on Oct 12, 2026.
+// ---------------------------------------------------------------------------
+
+const SUFFIX_A = 'a1B2c3D4e5F6g7H8i9J0kLmNoPqRsT';
+const SUFFIX_B = 'Z9y8X7w6V5u4T3s2R1q0P9o8N7m6L5';
+
+function seedSuffixed(posts, opts) {
+  opts = opts || {};
+  const st = (globalThis.__blobState = { blobs: new Map(), delCalls: [] });
+  const add = function (pathname, json, uploadedAt) {
+    st.blobs.set(pathname, {
+      pathname,
+      url: 'https://blob.test/' + pathname,
+      downloadUrl: 'stub://blob/' + pathname,
+      uploadedAt: uploadedAt || new Date().toISOString(),
+      json
+    });
+  };
+  const indexPath = 'blog/posts/index' + (opts.suffixIndex ? '-' + SUFFIX_A : '');
+  add(indexPath, posts.map(function (p) { return { slug: p.slug }; }), '2026-10-01T00:00:00.000Z');
+  for (const p of posts) {
+    add('blog/posts/' + p.slug + '-' + (p._suffix || SUFFIX_A), p, p._uploadedAt || '2026-10-02T00:00:00.000Z');
+  }
+
+  globalThis.fetch = async function (u) {
+    const key = String(u).replace('stub://blob/', '');
+    const b = globalThis.__blobState.blobs.get(key);
+    if (!b) return new Response('not found', { status: 404 });
+    return new Response(JSON.stringify(b.json), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    });
+  };
+}
+
+test('SUFFIXED store: DELETE a hero-referenced image returns 409 and does not call del (the Oct 12 prod failure)', async function () {
+  seedSuffixed([POST_WITH_HERO, POST_WITH_BODY_IMAGE]);
+  const res = await callDelete(HERO_URL);
+  assert.equal(res.statusCode, 409);
+  assert.equal(res.body.error, 'Image is in use and cannot be deleted');
+  assert.equal(res.body.usedBy[0].slug, 'post-with-hero');
+  assert.deepEqual(globalThis.__blobState.delCalls, []);
+});
+
+test('SUFFIXED store: DELETE a body-referenced image returns 409 and does not call del', async function () {
+  seedSuffixed([POST_WITH_HERO, POST_WITH_BODY_IMAGE]);
+  const res = await callDelete(BODY_URL);
+  assert.equal(res.statusCode, 409);
+  assert.equal(res.body.usedBy[0].slug, 'post-with-body-image');
+  assert.deepEqual(globalThis.__blobState.delCalls, []);
+});
+
+test('SUFFIXED store: DELETE an unreferenced image still returns 200 and deletes', async function () {
+  seedSuffixed([POST_WITH_HERO, POST_WITH_BODY_IMAGE]);
+  const res = await callDelete(FREE_URL);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(globalThis.__blobState.delCalls, [FREE_URL]);
+});
+
+test('SUFFIXED store + suffixed index blob: hero delete still returns 409', async function () {
+  seedSuffixed([POST_WITH_HERO, POST_WITH_BODY_IMAGE], { suffixIndex: true });
+  const res = await callDelete(HERO_URL);
+  assert.equal(res.statusCode, 409);
+  assert.deepEqual(globalThis.__blobState.delCalls, []);
+});
+
+test('Sibling slugs: a prefix-sibling post is not absorbed (hyphen rejection in the suffix matcher)', async function () {
+  const RIDES_URL = 'https://blob.test/blog-images/rides-hero.jpg';
+  const RANKED_URL = 'https://blob.test/blog-images/ranked-hero.jpg';
+  const rides = {
+    slug: 'disneyland-rides', title: 'Rides', published: true,
+    heroImage: RIDES_URL, body: '<p>x</p>',
+    _suffix: SUFFIX_A, _uploadedAt: '2026-10-02T00:00:00.000Z'
+  };
+  const ranked = {
+    slug: 'disneyland-rides-ranked', title: 'Rides Ranked', published: true,
+    heroImage: RANKED_URL, body: '<p>x</p>',
+    _suffix: SUFFIX_B, _uploadedAt: '2026-10-03T00:00:00.000Z'
+  };
+  seedSuffixed([rides, ranked]);
+  // The ranked post's blob is NEWER and shares the rides prefix; reading
+  // 'disneyland-rides' must reject it ('ranked-...' continues with a hyphen),
+  // and each hero must be attributed to its own post.
+  const resRanked = await callDelete(RANKED_URL);
+  assert.equal(resRanked.statusCode, 409);
+  assert.equal(resRanked.body.usedBy[0].slug, 'disneyland-rides-ranked');
+  const resRides = await callDelete(RIDES_URL);
+  assert.equal(resRides.statusCode, 409);
+  assert.equal(resRides.body.usedBy[0].slug, 'disneyland-rides');
+  assert.deepEqual(globalThis.__blobState.delCalls, []);
+});
