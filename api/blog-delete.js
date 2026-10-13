@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { del, put, list } from '@vercel/blob';
-import { matchesKey, readBlobJson } from './lib/blob.js';
+import { del, list } from '@vercel/blob';
+import { matchesKey, updateBlobJson } from './lib/blob.js';
 
 // Reserved names under blog/posts/ that are not posts. A delete aimed at one
 // of these would match its blob family: matchesKey confines matches to the
@@ -87,9 +87,15 @@ export default async function handler(req, res) {
 
     for (const b of matches) await del(b.url);
 
-    let index = (await readBlobJson('blog/posts/index', 'blog-delete.readBlob', { expected: true })) || [];
-    index = index.filter(p => p.slug !== slug);
-    await put('blog/posts/index', JSON.stringify(index), { access: 'public', allowOverwrite: true, token: process.env.BLOB_READ_WRITE_TOKEN });
+    // Index entry removal via the race-safe helper (api/lib/blob.js):
+    // a failed index read throws instead of looking like an empty
+    // index (which the old read-then-put would have written back,
+    // removing every entry), and a concurrent save's change is merged,
+    // never discarded.
+    await updateBlobJson('blog/posts/index', 'blog-delete', (entries) => {
+      if (!Array.isArray(entries)) return entries;
+      return entries.filter(p => p.slug !== slug);
+    });
 
     return res.status(200).json({ success: true, deleted: matches.map(b => b.pathname), skipped, count: matches.length });
   } catch (err) {
