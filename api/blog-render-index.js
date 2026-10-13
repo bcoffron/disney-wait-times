@@ -5,7 +5,7 @@ const readRateLimit = new Map();
 
 async function readSettings() {
 try {
-const s = await readBlobJson('blog:settings', 'blog-render-index.readBlob');
+const s = await readBlobJson('blog:settings', 'blog-render-index.readBlob', { expected: true });
 return { byline: 'By the Theme Park Co-Pilot Team', readTimeMode: 'auto', postsPerPage: 30, ...(s || {}) };
 } catch(e) {
 return { byline: 'By the Theme Park Co-Pilot Team', readTimeMode: 'auto', postsPerPage: 30 };
@@ -101,7 +101,7 @@ record.count++;
 
 try {
 var posts = [];
-try { posts = (await readBlobJson('blog/posts/index', 'blog-render-index.readBlob')) || []; } catch(e) { posts = []; }
+try { posts = (await readBlobJson('blog/posts/index', 'blog-render-index.readBlob', { expected: true })) || []; } catch(e) { posts = []; }
 posts = toPublicIndex(posts);
 posts = sortPosts(posts);
 var settings = await readSettings();
@@ -109,7 +109,7 @@ var postsPerPage = settings.postsPerPage || 30;
 posts = posts.slice(0, postsPerPage);
 try {
 var bodyFetches = posts.map(function(p) {
-return readBlobJson('blog/posts/' + p.slug, 'blog-render-index.readBlob').then(function(full) {
+return readBlobJson('blog/posts/' + p.slug, 'blog-render-index.readBlob', { expected: true }).then(function(full) {
 if (full && full.body) {
 p.bodySnippet = (full.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000);
 } else {
@@ -128,7 +128,7 @@ pinnedSlugs = pinsData.pins || [];
 } catch(e) { pinnedSlugs = []; }
 var featuredSlug = null;
 try {
-var _ft = await readBlobText('blog:featured', 'blog-render-index.featured');
+var _ft = await readBlobText('blog:featured', 'blog-render-index.featured', { expected: true });
 featuredSlug = _ft ? (_ft.trim() || null) : null;
 } catch(e) { featuredSlug = null; }
 var featuredPost = null;

@@ -5,7 +5,7 @@ const readRateLimit = new Map();
 
 async function readSettings() {
   try {
-    const s = await readBlobJson('blog:settings', 'blog-render-post.readBlob');
+    const s = await readBlobJson('blog:settings', 'blog-render-post.readBlob', { expected: true });
     return { byline: 'By the Theme Park Co-Pilot Team', readTimeMode: 'auto', postsPerPage: 30, ...(s || {}) };
   } catch(e) {
     return { byline: 'By the Theme Park Co-Pilot Team', readTimeMode: 'auto', postsPerPage: 30 };

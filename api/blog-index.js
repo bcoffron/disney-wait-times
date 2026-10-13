@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     rl[ip].count++;
     if (rl[ip].count > 20) return res.status(429).json({ error: 'Rate limit exceeded' });
     try {
-          const index = await readBlobJson('blog/posts/index', 'blog-index.readBlob');
+          const index = await readBlobJson('blog/posts/index', 'blog-index.readBlob', { expected: true });
           res.setHeader('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=10');
           return res.status(200).json(toPublicIndex(index || []));
     } catch (err) {
