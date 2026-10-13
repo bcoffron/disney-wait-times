@@ -16,5 +16,9 @@ export async function list({ prefix } = {}) {
 }
 
 export async function del(url) {
-  state().delCalls.push(url);
+  const st = state();
+  st.delCalls.push(url);
+  for (const [k, b] of st.blobs) {
+    if (b.url === url) st.blobs.delete(k);
+  }
 }

@@ -255,6 +255,9 @@
     "api/blog-images.js": {
       "maxDuration": 60
     },
+    "api/blog-images-cleanup.js": {
+      "maxDuration": 120
+    },
     "api/blog-upload-image.js": {
       "maxDuration": 30
     },
