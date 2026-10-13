@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { put } from '@vercel/blob';
-import { updateBlobJson } from './lib/blob.js';
+import { updateBlobJson, computeBodySnippet } from './lib/blob.js';
 
 const rateLimit = new Map();
 
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
           : post.publishedAt, updatedAt: post.updatedAt,
         published: post.published,
         tags: post.tags || [],
-        bodySnippet: (post.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000)
+        bodySnippet: computeBodySnippet(post.body)
       };
       const idx = currentIndex.findIndex(p => p.slug === post.slug);
       if (idx >= 0) currentIndex[idx] = meta; else currentIndex.push(meta);
