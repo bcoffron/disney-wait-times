@@ -156,13 +156,46 @@ export default async function handler(req, res) {
       access: 'public', allowOverwrite: true, addRandomSuffix: false,
       contentType: 'application/json', token: process.env.BLOB_READ_WRITE_TOKEN
     });
-    const verify = await readBlobText(INDEX_KEY, 'blog-reindex', { expected: true });
-    if (verify === null || sha256(verify) !== candidateSha) {
-      console.error('[SECURITY] blog-reindex: post-commit verification FAILED - restore from ' + backupKey);
-      return res.status(500).json({ error: 'Post-commit verification failed - restore from the pre-commit backup', backupKey });
+
+    // Post-write verification MUST tolerate the blob store's
+    // visibility lag (measured 30-120s): a read-after-write inside
+    // one request is unreliable in this store, so poll with backoff
+    // across ~3 minutes before concluding anything. Three outcomes:
+    //  - a poll matches the candidate hash: verified success.
+    //  - reads show content that is NEITHER the candidate NOR the
+    //    pre-write index: a genuinely wrong state - the only case
+    //    where restore advice is appropriate.
+    //  - the window expires with only pre-write content visible:
+    //    INCONCLUSIVE. Lag and a lost write are indistinguishable
+    //    here, and the write may well have landed - do NOT advise
+    //    restore; the stored bytes must be re-checked directly
+    //    after the lag window. (The first production commit hit
+    //    exactly this: a perfect write reported as a failure with
+    //    restore advice attached.)
+    const preWriteSha = sha256(currentText);
+    const verifyBudgetMs = parseInt(process.env.BLOG_REINDEX_VERIFY_BUDGET_MS || '170000', 10);
+    const verifyStart = Date.now();
+    let verifyDelay = 2000, lastSeenSha = null, sawForeign = false;
+    while (true) {
+      const seen = await readBlobText(INDEX_KEY, 'blog-reindex', { expected: true });
+      if (seen !== null) {
+        lastSeenSha = sha256(seen);
+        if (lastSeenSha === candidateSha) {
+          console.log('[blog-reindex] committed rebuilt index: ' + index.length + ' entries, sha256 ' + candidateSha + ', verified after ' + (Date.now() - verifyStart) + 'ms, pre-commit backup ' + backupKey);
+          return res.status(200).json({ success: true, committed: true, count: index.length, sha256: candidateSha, backupKey, verifiedAfterMs: Date.now() - verifyStart });
+        }
+        if (lastSeenSha !== preWriteSha) sawForeign = true;
+      }
+      if (Date.now() - verifyStart >= verifyBudgetMs) break;
+      await new Promise(r => setTimeout(r, verifyDelay));
+      verifyDelay = Math.min(Math.round(verifyDelay * 1.6), 20000);
     }
-    console.log('[blog-reindex] committed rebuilt index: ' + index.length + ' entries, sha256 ' + candidateSha + ', pre-commit backup ' + backupKey);
-    return res.status(200).json({ success: true, committed: true, count: index.length, sha256: candidateSha, backupKey });
+    if (sawForeign) {
+      console.error('[SECURITY] blog-reindex: post-commit verification FAILED - stored index matches neither the candidate nor the pre-write state; restore from ' + backupKey);
+      return res.status(500).json({ success: false, committed: true, verification: 'failed', error: 'Post-commit verification failed: the stored index matches neither the committed candidate nor the pre-write index. Restore from the pre-commit backup.', backupKey, sha256: candidateSha });
+    }
+    console.error('[SECURITY] blog-reindex: post-commit verification INCONCLUSIVE after ' + verifyBudgetMs + 'ms (last seen sha ' + lastSeenSha + '); backup for reference: ' + backupKey);
+    return res.status(202).json({ success: false, committed: true, verification: 'inconclusive', error: 'The commit was written but is not yet visible to readers (store visibility lag). Do NOT restore. Re-check the stored index bytes directly after the lag window; the pre-commit backup key is provided for reference only.', backupKey, sha256: candidateSha });
   } catch (err) {
     console.error('blog-reindex error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });

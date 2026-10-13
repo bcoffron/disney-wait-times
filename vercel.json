@@ -296,6 +296,9 @@
     },
     "api/trip-closure-scan.js": {
       "maxDuration": 60
+    },
+    "api/blog-reindex.js": {
+      "maxDuration": 300
     }
   },
   "crons": [
