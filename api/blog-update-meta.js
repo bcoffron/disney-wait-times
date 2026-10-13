@@ -1,5 +1,6 @@
-import { put, list } from '@vercel/blob';
+import { put } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
+import { readBlobJson, updateBlobJson } from './lib/blob.js';
 
 export default async function handler(req, res) {
   // Fix 5: JWT verification FIRST before any data processing
@@ -22,14 +23,8 @@ export default async function handler(req, res) {
   if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ error: 'Invalid slug format' });
 
   try {
-    const { blobs } = await list({ prefix: 'blog/posts/' + slug, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
-    const matches = (blobs || []).filter(b => b.pathname === 'blog/posts/' + slug)
-      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    if (!matches.length) return res.status(404).json({ error: 'Post not found' });
-
-    const postRes = await fetch(matches[0].downloadUrl + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!postRes.ok) return res.status(500).json({ error: 'Failed to fetch post' });
-    const post = await postRes.json();
+    const post = await readBlobJson('blog/posts/' + slug, 'blog-update-meta', { expected: true });
+    if (!post) return res.status(404).json({ error: 'Post not found' });
 
     if (publishedAt) post.publishedAt = publishedAt;
     if (updatedAt) post.updatedAt = updatedAt;
@@ -41,37 +36,20 @@ export default async function handler(req, res) {
       token: process.env.BLOB_READ_WRITE_TOKEN
     });
 
-    console.log('Fetching index...');
-    const { blobs: indexBlobs } = await list({ prefix: 'blog/posts/index', limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
-    const indexMatches = (indexBlobs || []).filter(b => b.pathname === 'blog/posts/index')
-      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    console.log('Index blobs found:', indexMatches.length);
-    if (indexMatches.length) {
-      const indexRes = await fetch(indexMatches[0].downloadUrl + '?t=' + Date.now(), { cache: 'no-store' });
-      if (indexRes.ok) {
-        const index = await indexRes.json();
-        console.log('Index entries:', index.length);
-        const entry = index.find(p => p.slug === slug);
-        console.log('Found entry:', !!entry);
-        if (entry) {
-          if (publishedAt) entry.publishedAt = publishedAt;
-          if (updatedAt) entry.updatedAt = updatedAt;
-          await put('blog/posts/index', JSON.stringify(index), {
-            access: 'public',
-            allowOverwrite: true,
-            contentType: 'application/json',
-            token: process.env.BLOB_READ_WRITE_TOKEN
-          });
-          console.log('Index updated successfully');
-        } else {
-          console.log('Entry not found in index for slug:', slug);
-        }
-      } else {
-        console.log('Index fetch failed:', indexRes.status);
-      }
-    } else {
-      console.log('No index blob found');
-    }
+    // Index entry update via the race-safe helper (api/lib/blob.js): if
+    // the index changed since the read, the update is re-applied to the
+    // fresh state instead of discarding the competing change.
+    let entryFound = false;
+    await updateBlobJson('blog/posts/index', 'blog-update-meta', (entries) => {
+      if (!Array.isArray(entries)) return entries;
+      const entry = entries.find(p => p.slug === slug);
+      entryFound = !!entry;
+      if (!entry) return entries;
+      if (publishedAt) entry.publishedAt = publishedAt;
+      if (updatedAt) entry.updatedAt = updatedAt;
+      return entries;
+    });
+    console.log(entryFound ? 'Index updated successfully' : 'Entry not found in index for slug: ' + slug);
 
     return res.status(200).json({ success: true, slug, publishedAt, updatedAt });
   } catch(e) {
