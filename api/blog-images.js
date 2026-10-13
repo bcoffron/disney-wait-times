@@ -108,29 +108,10 @@ export default async function handler(req, res) {
     const cleanTarget = stripQuery(url);
 
     try {
-      let allPosts;
-      try {
-        allPosts = await readPostBlob('blog/posts/index');
-      } catch (e) {
-        allPosts = null;
-      }
-      if (Array.isArray(allPosts) && allPosts.length) {
-        for (const p of allPosts) {
-          let post;
-          try {
-            post = await readPostBlob('blog/posts/' + p.slug);
-          } catch (e) {
-            continue;
-          }
-          if (!post) continue;
-          const heroMatch = post.heroImage && stripQuery(post.heroImage) === cleanTarget;
-          const bodyMatch = post.body && post.body.includes(cleanTarget);
-          if (heroMatch || bodyMatch) {
-            return res.status(409).json({
-              error: 'Image is still in use by "' + (post.title || post.slug) + '" (' + (post.published ? 'published' : 'draft') + '). Remove it from the post before deleting.'
-            });
-          }
-        }
+      const usageMap = await buildUsageMap();
+      const usedBy = usageMap.get(cleanTarget) || usageMap.get(url);
+      if (usedBy && usedBy.length) {
+        return res.status(409).json({ error: 'Image is in use and cannot be deleted', usedBy });
       }
     } catch (guardErr) {
       console.error('blog-images DELETE guard error:', guardErr);
