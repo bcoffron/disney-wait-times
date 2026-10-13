@@ -1,15 +1,6 @@
 // api/sitemap.js
-import { list } from '@vercel/blob';
+import { readBlobJson } from './lib/blob.js';
 const rl = {};
-
-async function readBlob(pathname) {
-  const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
-  const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  if (!matches.length) return null;
-  const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
-  if (!r.ok) return null;
-  return r.json();
-}
 
 function toYMD(iso) {
   if (!iso) return '';
@@ -25,8 +16,21 @@ export default async function handler(req, res) {
 
   try {
     let posts = [];
-    try { posts = (await readBlob('blog/posts/index')) || []; } catch(e) { posts = []; }
+    try { posts = (await readBlobJson('blog/posts/index', 'sitemap', { expected: true })) || []; } catch(e) { posts = []; }
     posts = posts.filter(p => p.published !== false);
+    // Dedupe by slug, newest wins - the same rule the feed path
+    // (blog-index.js toPublicIndex) applies. Without this, a bloated
+    // index produced one URL per stored copy (435 URLs, ~386 of them
+    // duplicates, on the pre-repair index); the sitemap must not
+    // depend on the index happening to be clean.
+    const bySlug = {};
+    for (const p of posts) {
+      if (!p || !p.slug) continue;
+      const t = new Date(p.updatedAt || p.publishedAt || 0).getTime();
+      const cur = bySlug[p.slug];
+      if (!cur || t >= cur._t) { p._t = t; bySlug[p.slug] = p; }
+    }
+    posts = Object.keys(bySlug).map(k => { const p = bySlug[k]; delete p._t; return p; });
 
     const postUrls = posts.map(p => {
       const lastmod = toYMD(p.updatedAt || p.publishedAt);
