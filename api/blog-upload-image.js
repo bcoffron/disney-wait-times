@@ -102,9 +102,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid file type. JPEG, PNG, WebP, GIF only.' });
   }
 
-  // Fix 1: Rate limiting — 20 uploads per IP per hour
+  // Fix 1: Rate limiting — per-IP ceiling for AUTHENTICATED admin uploads.
+  // JWT verification runs first (above), so every request that reaches this
+  // check already carries a valid admin token; unauthenticated traffic is
+  // rejected with 401 before it can consume any budget, and the Vercel edge
+  // rate-limit rule remains the anonymous-abuse defense. The old 20/hour cap
+  // treated a legitimate bulk upload (30–50 photos) as an attack and 429'd
+  // the admin mid-batch. The in-code limiter stays in place as a backstop
+  // against a compromised-token flood, sized so normal bulk uploads fit
+  // comfortably: 600 uploads per IP per hour.
+  const ADMIN_UPLOAD_LIMIT = 600;
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
-  if (!checkRateLimit(ip, 20, 60 * 60 * 1000)) {
+  if (!checkRateLimit(ip, ADMIN_UPLOAD_LIMIT, 60 * 60 * 1000)) {
     console.warn('[SECURITY] Rate limit exceeded:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', time: new Date().toISOString() });
     return res.status(429).json({ error: 'Too many requests' });
   }
