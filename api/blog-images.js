@@ -13,7 +13,7 @@ async function buildUsageMap() {
   const usageMap = new Map();
   let allPosts;
   try {
-    allPosts = await readBlobJson('blog/posts/index', 'blog-images.readPostBlob');
+    allPosts = await readBlobJson('blog/posts/index', 'blog-images.readPostBlob', { expected: true });
   } catch (e) {
     allPosts = null;
   }
@@ -21,7 +21,7 @@ async function buildUsageMap() {
 
   const postBodies = await Promise.all(
     allPosts.map(function(p) {
-      return readBlobJson('blog/posts/' + p.slug, 'blog-images.readPostBlob').catch(function() { return null; });
+      return readBlobJson('blog/posts/' + p.slug, 'blog-images.readPostBlob', { expected: true }).catch(function() { return null; });
     })
   );
       
