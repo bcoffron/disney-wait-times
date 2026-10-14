@@ -3,7 +3,7 @@
 // POST (JWT-protected): { slug } to feature, { slug: null } to unfeature
 import { put } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
-import { readBlobText } from './lib/blob.js';
+import { readBlobText, normalizeFeaturedSlug, UNFEATURED_SENTINEL } from './lib/blob.js';
 
 export default async function handler(req, res) {
     const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const featuredSlug = await readBlobText('blog:featured', 'blog-feature', { expected: true });
-      return res.status(200).json({ featuredSlug: featuredSlug || null });
+      return res.status(200).json({ featuredSlug: normalizeFeaturedSlug(featuredSlug) });
     } catch(e) {
       return res.status(200).json({ featuredSlug: null });
     }
@@ -47,7 +47,11 @@ export default async function handler(req, res) {
           token: process.env.BLOB_READ_WRITE_TOKEN
         });
       } else {
-        await put('blog:featured', '', {
+        // Unfeature: store the sentinel, not ''. The blob SDK rejects
+        // empty content, so the old '' write threw on every call - the
+        // branch was unreachable from the UI until PR #48 and had never
+        // executed successfully.
+        await put('blog:featured', UNFEATURED_SENTINEL, {
           access: 'public',
           allowOverwrite: true,
           contentType: 'text/plain',
