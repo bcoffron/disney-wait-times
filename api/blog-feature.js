@@ -1,17 +1,9 @@
 // api/blog-feature.js
 // GET: returns { featuredSlug }
 // POST (JWT-protected): { slug } to feature, { slug: null } to unfeature
-import { list, put } from '@vercel/blob';
+import { put } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
-
-async function readBlob(pathname) {
-  const { blobs } = await list({ prefix: pathname, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
-  const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  if (!matches.length) return null;
-  const r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
-  if (!r.ok) return null;
-  return r.text();
-}
+import { readBlobText } from './lib/blob.js';
 
 export default async function handler(req, res) {
     const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
@@ -22,7 +14,7 @@ export default async function handler(req, res) {
   // GET: return current featured slug (public)
   if (req.method === 'GET') {
     try {
-      const featuredSlug = await readBlob('blog:featured');
+      const featuredSlug = await readBlobText('blog:featured', 'blog-feature', { expected: true });
       return res.status(200).json({ featuredSlug: featuredSlug || null });
     } catch(e) {
       return res.status(200).json({ featuredSlug: null });

@@ -3,20 +3,21 @@
 // POST (protected) — body: { pins: ["slug1", "slug2", ...] }
 // Stores pinned post order in Vercel Blob under key: blog:pins
 
-import { list, put } from '@vercel/blob';
+import { put } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
+import { readBlobJson } from './lib/blob.js';
 
 const BLOB_KEY = 'blog:pins';
 
+// Suffix-tolerant via the shared reader (expected-class: the key is
+// deliberately set and the admin displays it, so a zero-match is
+// drift and logs [SECURITY]). The old exact-match read silently
+// served the bare copy forever, ignoring any newer suffixed copy.
+// Failures still degrade to an empty list, as before.
 async function readPins() {
   try {
-    const { blobs } = await list({ prefix: BLOB_KEY, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
-    const match = (blobs || []).filter(b => b.pathname === BLOB_KEY).sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    if (!match.length) return [];
-    const r = await fetch(match[0].downloadUrl + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) return [];
-    const data = await r.json();
-    return Array.isArray(data.pins) ? data.pins : [];
+    const data = await readBlobJson(BLOB_KEY, 'blog-pins', { expected: true });
+    return data && Array.isArray(data.pins) ? data.pins : [];
   } catch(e) {
     return [];
   }
