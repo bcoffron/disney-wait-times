@@ -299,6 +299,9 @@
     },
     "api/blog-reindex.js": {
       "maxDuration": 300
+    },
+    "api/blog-reconcile.js": {
+      "maxDuration": 300
     }
   },
   "crons": [
@@ -385,6 +388,10 @@
     {
       "path": "/api/cron-booking-alerts",
       "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/blog-reconcile",
+      "schedule": "0 9 * * *"
     }
   ],
   "redirects": [
