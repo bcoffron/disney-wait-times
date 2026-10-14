@@ -1,5 +1,5 @@
 // api/blog-render-index.js
-import { readBlobJson, readBlobText } from './lib/blob.js';
+import { readBlobJson, readBlobText, normalizeFeaturedSlug } from './lib/blob.js';
 const readRateLimit = new Map();
 
 
@@ -129,7 +129,7 @@ pinnedSlugs = pinsData.pins || [];
 var featuredSlug = null;
 try {
 var _ft = await readBlobText('blog:featured', 'blog-render-index.featured', { expected: true });
-featuredSlug = _ft ? (_ft.trim() || null) : null;
+featuredSlug = normalizeFeaturedSlug(_ft);
 } catch(e) { featuredSlug = null; }
 var featuredPost = null;
 if (featuredSlug && typeof featuredSlug === 'string') {

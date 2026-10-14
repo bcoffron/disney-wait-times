@@ -47,6 +47,20 @@ async function selectBlob(key, caller, opts) {
   return matches[0];
 }
 
+// Featured-post sentinel: the blob SDK rejects empty content, so "nothing
+// featured" is stored as an explicit sentinel rather than ''. The sentinel
+// can never be a real slug (slugs are [a-z0-9-]; this contains underscores).
+// normalizeFeaturedSlug maps the sentinel, empty, and whitespace-only raw
+// values - any of which may exist in older copies - to null, so every reader
+// of the featured key agrees on what "unfeatured" means.
+export const UNFEATURED_SENTINEL = '__unfeatured__';
+export function normalizeFeaturedSlug(raw) {
+  if (raw === null || raw === undefined) return null;
+  const v = String(raw).trim();
+  if (v === '' || v === UNFEATURED_SENTINEL) return null;
+  return v;
+}
+
 export async function readBlobJson(key, caller, opts) {
   const chosen = await selectBlob(key, caller, opts);
   if (!chosen) return null;
