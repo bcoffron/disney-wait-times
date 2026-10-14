@@ -591,7 +591,7 @@ window._allDrafts = allPosts.filter(p => !p.published);
 
 async function publishDraft(slug) {
 try {
-const r = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(slug));
+const r = await fetch(API_BASE + '/api/blog-admin-post?slug=' + encodeURIComponent(slug), { headers: { 'x-admin-key': token } });
 if (!r.ok) { showToast('Could not load draft', 'error'); return; }
 const post = await r.json();
 post.published = true;
@@ -730,7 +730,7 @@ d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 }
 async function openPost(slug) {
 try {
-const r = await fetch(API_BASE + '/api/blog-post?slug=' + encodeURIComponent(slug));
+const r = await fetch(API_BASE + '/api/blog-admin-post?slug=' + encodeURIComponent(slug), { headers: { 'x-admin-key': token } });
 if (!r.ok) { showToast('Could not load post', 'error'); return; }
 const post = await r.json();
 currentPost = post;
