@@ -606,7 +606,7 @@ if (saveR.ok && data.success) {
 showToast('Published \u2713', 'success');
 await loadPosts();
 renderDraftsList();
-} else { showToast('Publish failed', 'error'); }
+} else { showToast(data.error || 'Publish failed', 'error'); }
 } catch(e) { showToast('Publish failed', 'error'); }
 }
 
@@ -979,7 +979,7 @@ if (post.published) document.getElementById('btn-schedule').style.display = 'non
 showToast(post.published ? 'Published &#10003;' : 'Saved &#10003;', 'success');
 await loadPosts();
       if (post.published && document.getElementById('images-view') && document.getElementById('images-view').style.display !== 'none') { loadImagesInline(); }
-} else { showToast('Save failed &mdash; try again', 'error'); }
+} else { showToast(data.error || 'Save failed &mdash; try again', 'error'); }
 } catch(e) { showToast('Save failed &mdash; try again', 'error'); }
 finally { if (btn) { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; } }
 }
@@ -1836,7 +1836,7 @@ body: JSON.stringify(post)
 });
 const data = await r.json();
 if (r.ok && data.success) { saved++; results.push({ slug: post.slug, status: 'ok', msg: post.title || post.slug }); }
-else { failed++; results.push({ slug: post.slug, status: 'err', msg: 'Save failed: ' + (post.title || post.slug) }); }
+else { failed++; results.push({ slug: post.slug, status: 'err', msg: 'Save failed: ' + (data.error || post.title || post.slug) }); }
 } catch(e) { failed++; results.push({ slug: post.slug, status: 'err', msg: 'Error saving: ' + (post.title || post.slug) }); }
 }
 // Show completion
