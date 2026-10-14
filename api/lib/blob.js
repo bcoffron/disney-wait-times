@@ -155,6 +155,9 @@ export function computeBodySnippet(body) {
 // and separate instances. It is a partial guard, not a lock; the daily
 // reconciliation check remains the detector for everything it misses.
 const LAST_WRITE_MEMO_MS = 5 * 60 * 1000;
+// 1s, not 0: a bare > comparison lets sub-second clock/stamp drift
+// bypass the memo in exactly the stale case it exists to catch
+// (fixture-proven) - do not simplify this back to a bare comparison.
 const MEMO_POSTDATE_MARGIN_MS = 1000;
 const lastWriteMemo = new Map();
 
