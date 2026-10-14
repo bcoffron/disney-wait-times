@@ -71,7 +71,7 @@ async function readBlobJson(pathname) {
   try { return await readBlobJsonShared(pathname, 'plan-changed'); } catch (e) { return null; }
 }
 async function writeJsonBlob(pathname, obj) {
-  await put(pathname, JSON.stringify(obj), { access: 'public', addRandomSuffix: false });
+  await put(pathname, JSON.stringify(obj), { access: 'public', addRandomSuffix: false, allowOverwrite: true });
 }
 
 // ---------------------------------------------------------------------------

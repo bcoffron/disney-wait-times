@@ -5,6 +5,8 @@
 // of subscriptions, de-duped by endpoint. The wait-monitor loads this to notify
 // all devices subscribed for a trip.
 
+import { readBlobJson as sharedReadBlobJson } from './lib/blob.js';
+
 const MAX_BODY = 50 * 1024; // 50KB - a push subscription is tiny
 const MAX_SUBS_PER_TRIP = 50;
 
@@ -22,15 +24,13 @@ export function safeTripCode(raw) {
 	return t;
 }
 
+// Read via the shared suffix-tolerant reader (api/lib/blob.js), probe class:
+// a trip with no subscribers legitimately has no blob. The wrapper preserves
+// this helper's contract — the parsed subscriptions array, [] on any failure.
 async function readSubs(tripCode) {
 	try {
-		const { list } = await import('@vercel/blob');
-		const { blobs } = await list({ prefix: blobKeyFor(tripCode) });
-		if (!blobs || blobs.length === 0) return [];
-		const resp = await fetch(blobs[0].url, { cache: 'no-store' });
-		if (!resp.ok) return [];
-		const data = await resp.json();
-		return Array.isArray(data.subscriptions) ? data.subscriptions : [];
+		const data = await sharedReadBlobJson(blobKeyFor(tripCode), 'push-subscribe');
+		return data && Array.isArray(data.subscriptions) ? data.subscriptions : [];
 	} catch (e) {
 		console.error('[push-subscribe] read error', e.message);
 		return [];
@@ -43,6 +43,7 @@ async function writeSubs(tripCode, subs) {
 	await put(blobKeyFor(tripCode), payload, {
 		access: 'public',
 		addRandomSuffix: false,
+		allowOverwrite: true,
 		contentType: 'application/json'
 	});
 }
