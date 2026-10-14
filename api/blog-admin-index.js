@@ -54,8 +54,10 @@ export default async function handler(req, res) {
     try {
           const index = await readBlobJson('blog/posts/index', 'blog-admin-index.readBlob', { expected: true });
           // Authenticated read of unpublished content: never let a
-          // shared cache hold it (blog-index's public s-maxage would
-          // be wrong here).
+          // shared cache hold it. This deliberately differs from
+          // blog-index.js (public, s-maxage) - do not harmonize the
+          // two: caching this response like the public feed would
+          // leak drafts through shared caches.
           res.setHeader('Cache-Control', 'private, no-store');
           return res.status(200).json(toAdminIndex(index || []));
     } catch (err) {
