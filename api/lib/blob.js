@@ -111,9 +111,59 @@ export function computeBodySnippet(body) {
 // write time is merged, never discarded, and persistent visible
 // contention fails loudly instead of losing data silently. The complete
 // fix (append-only index format) is scoped to the reindex lane.
+// --- Last-write memo (batch/memo track) ---
+//
+// updateBlobJson's fingerprint check compares two reads of the store,
+// but the store can report a fresh uploadedAt in list() while fetch
+// still serves pre-write bytes (observed in PR #40's verification), so
+// both reads can agree on state that predates a write this process
+// itself just made - the guard is structurally blind to that case, and
+// two saves seconds apart dropped an index entry silently because of
+// it (fixture-proven, Oct 14, 2026).
+//
+// The writer knows one thing the store can't be trusted to show it:
+// what it just wrote. This memo records, per blob key, the SHA-256 of
+// the exact bytes the last successful updateBlobJson put wrote, in
+// module scope. On the next update of that key, if the freshly read
+// bytes do NOT hash to the memo while the memo is recent, the read is
+// provably stale (or a write from elsewhere has landed over ours) -
+// either way, mutating from that base could discard a write, so the
+// update refuses with INDEX_CONFLICT instead of writing.
+//
+// One refinement: if the read state's own uploadedAt POSTDATES our
+// memo write, a later write is visible in the base we read - mutating
+// on top of it discards nothing of ours that isn't already superseded,
+// so the update proceeds (that later writer's own staleness, if any,
+// is the reconciliation check's to catch). Without this, any visible
+// foreign write within the memo window would false-refuse a perfectly
+// fresh read. The postdate test demands a margin (1s) rather than any
+// positive gap: the store's clock and this instance's clock are
+// independent, and our own write's stamp can sit a few ms either side
+// of the moment we record the memo - only a gap beyond plausible clock
+// skew proves the base genuinely postdates our write.
+//
+// Recency bound: 5 minutes - long enough to cover the measured
+// 30-120s visibility window with margin, short enough that an
+// unrelated write hours later is never refused over an ancient memo.
+// When in doubt this prefers refusing: a loud failure on a save is
+// recoverable (retry once the store settles), a silent drop is not.
+//
+// LIMITATION, stated plainly: the memo is per-instance (module scope).
+// It catches successive writes that land on the same warm instance -
+// which is the pattern that actually bites (a sequential batch, a
+// human saving twice in a minute) - and it is blind across cold starts
+// and separate instances. It is a partial guard, not a lock; the daily
+// reconciliation check remains the detector for everything it misses.
+const LAST_WRITE_MEMO_MS = 5 * 60 * 1000;
+// 1s, not 0: a bare > comparison lets sub-second clock/stamp drift
+// bypass the memo in exactly the stale case it exists to catch
+// (fixture-proven) - do not simplify this back to a bare comparison.
+const MEMO_POSTDATE_MARGIN_MS = 1000;
+const lastWriteMemo = new Map();
+
 async function readRawWithFingerprint(key, caller) {
   const chosen = await selectBlob(key, caller, { expected: true });
-  if (!chosen) return { value: null, fingerprint: null };
+  if (!chosen) return { value: null, fingerprint: null, textSha: null, uploadedAt: null };
   const r = await fetch(chosen.downloadUrl, { cache: 'no-store' });
   if (!r.ok) {
     const err = new Error('fetch failed (' + r.status + ') reading "' + key + '" for update');
@@ -121,8 +171,9 @@ async function readRawWithFingerprint(key, caller) {
     throw err;
   }
   const text = await r.text();
-  const fingerprint = chosen.pathname + '|' + chosen.uploadedAt + '|' + createHash('sha256').update(text).digest('hex');
-  return { value: JSON.parse(text), fingerprint };
+  const textSha = createHash('sha256').update(text).digest('hex');
+  const fingerprint = chosen.pathname + '|' + chosen.uploadedAt + '|' + textSha;
+  return { value: JSON.parse(text), fingerprint, textSha, uploadedAt: chosen.uploadedAt };
 }
 
 export async function updateBlobJson(key, caller, mutator, opts = {}) {
@@ -130,7 +181,21 @@ export async function updateBlobJson(key, caller, mutator, opts = {}) {
   const budgetMs = opts.budgetMs || 5000;
   const started = Date.now();
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const { value, fingerprint } = await readRawWithFingerprint(key, caller);
+    const { value, fingerprint, textSha, uploadedAt } = await readRawWithFingerprint(key, caller);
+    // Last-write memo check (see the memo comment above): only on the
+    // first attempt's starting read - the retry loop's later reads are
+    // the designed recovery from a VISIBLE change and may legitimately
+    // differ from what this instance last wrote.
+    if (attempt === 1 && fingerprint !== null) {
+      const memo = lastWriteMemo.get(key);
+      const postdatesMemo = uploadedAt && memo && new Date(uploadedAt).getTime() > memo.at + MEMO_POSTDATE_MARGIN_MS;
+      if (memo && Date.now() - memo.at <= LAST_WRITE_MEMO_MS && memo.textSha !== textSha && !postdatesMemo) {
+        console.error('[SECURITY] ' + (caller || 'updateBlobJson') + ': stale read of "' + key + '" detected by last-write memo (this instance wrote different bytes ' + Math.round((Date.now() - memo.at) / 1000) + 's ago; the store is not showing them) - refusing to update from stale state.');
+        const err = new Error('Stale read of "' + key + '": the store is not showing this process\'s most recent write; refusing to overwrite from stale state.');
+        err.code = 'INDEX_CONFLICT';
+        throw err;
+      }
+    }
     const draft = value === null ? null : JSON.parse(JSON.stringify(value));
     const next = await mutator(draft);
     if (JSON.stringify(next) === JSON.stringify(value)) {
@@ -138,13 +203,15 @@ export async function updateBlobJson(key, caller, mutator, opts = {}) {
     }
     const check = await readRawWithFingerprint(key, caller);
     if (check.fingerprint === fingerprint) {
-      await put(key, JSON.stringify(next), {
+      const outText = JSON.stringify(next);
+      await put(key, outText, {
         access: 'public',
         allowOverwrite: true,
         addRandomSuffix: false,
         contentType: 'application/json',
         token: process.env.BLOB_READ_WRITE_TOKEN
       });
+      lastWriteMemo.set(key, { textSha: createHash('sha256').update(outText).digest('hex'), at: Date.now() });
       return { changed: true, conflicted: attempt > 1, attempts: attempt };
     }
     console.error('[SECURITY] ' + (caller || 'updateBlobJson') + ': "' + key + '" changed during update (attempt ' + attempt + ' of ' + maxAttempts + ') - re-applying on fresh state.');
