@@ -131,6 +131,22 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, slug: post.slug, updatedAt: post.updatedAt });
   } catch (err) {
+    // A refused index update (api/lib/blob.js INDEX_CONFLICT) is a
+    // distinct, retryable state, not a server error: the post blob
+    // above was already written, only the index entry was not
+    // updated. Name the state so the operator (and the admin client,
+    // which displays error) knows a retry is the remedy instead of
+    // guessing at a bare 500.
+    if (err && err.code === 'INDEX_CONFLICT') {
+      console.error('blog-save: index update refused for "' + post.slug + '":', err.message);
+      return res.status(409).json({
+        error: 'Index update refused (concurrent write could not be verified). The post file was saved; retry in a moment.',
+        code: 'INDEX_CONFLICT',
+        retryable: true,
+        state: 'blob_written_index_not_updated',
+        slug: post.slug
+      });
+    }
     console.error('blog-save error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
