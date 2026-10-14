@@ -1802,18 +1802,20 @@ filenameUrlMap[filename] = data.url; }
 else { results.push({ slug: relPath, status: 'warn', msg: 'Image upload failed: ' + relPath }); }
 } catch(e) { results.push({ slug: relPath, status: 'warn', msg: 'Image error: ' + relPath }); }
 }
-// Phase 2: Save posts
-if (progressFill) progressFill.style.width = '50%';
-let saved = 0, failed = 0;
-for (let i = 0; i < batchPosts.length; i++) {
-const post = { ...batchPosts[i] };
+// Phase 2: Save posts - ONE call to the batch endpoint, which writes
+// every post blob first and updates the index exactly once. (The old
+// per-post /api/blog-save loop ran an index read-modify-write per post;
+// saves seconds apart inside the blob store's visibility lag could
+// silently drop earlier posts' index entries.)
 if (progressLabel) progressLabel.textContent = 'Saving posts...';
-if (progressDetail) progressDetail.textContent = (i + 1) + ' of ' + batchPosts.length;
-if (progressFill) progressFill.style.width = (50 + Math.round(((i + 1) / batchPosts.length) * 50)) + '%';
+if (progressDetail) progressDetail.textContent = batchPosts.length + ' posts';
+if (progressFill) progressFill.style.width = '75%';
+const preparedPosts = batchPosts.map(function(raw) {
+const post = { ...raw };
 // Replace image paths with CDN URLs
 if (post.heroImage && imageUrlMap[post.heroImage]) post.heroImage = imageUrlMap[post.heroImage];
 if (post.body) {
-post.body = post.body.replace(new RegExp('src="(images\/[^"]+)"', 'g'), (m, p1) => {
+post.body = post.body.replace(new RegExp('src="(images\\/[^"]+)"', 'g'), (m, p1) => {
 return 'src="' + (imageUrlMap[p1] || p1) + '"';
 });
 }
@@ -1828,16 +1830,32 @@ const parkLabels = { dl: 'Disneyland', wdw: 'Walt Disney World', both: 'Both Res
 if (!post.category) post.category = (parkLabels[post.park] || 'Guide') + ' &middot; Guide';
 if (!post.tagLabel) post.tagLabel = parkLabels[post.park] || post.park;
 if (!post.cta) post.cta = { type: post.park || 'dl', text: 'Get the Theme Park Co-Pilot app.', buttonText: 'Try free for 7 days &#8594;', buttonUrl: 'https://themeparkcopilot.com' };
+return post;
+});
+let saved = 0, failed = 0;
 try {
-const r = await fetch(API_BASE + '/api/blog-save', {
+const r = await fetch(API_BASE + '/api/blog-batch-save', {
 method: 'POST',
 headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-body: JSON.stringify(post)
+body: JSON.stringify({ posts: preparedPosts })
 });
 const data = await r.json();
-if (r.ok && data.success) { saved++; results.push({ slug: post.slug, status: 'ok', msg: post.title || post.slug }); }
-else { failed++; results.push({ slug: post.slug, status: 'err', msg: 'Save failed: ' + (data.error || post.title || post.slug) }); }
-} catch(e) { failed++; results.push({ slug: post.slug, status: 'err', msg: 'Error saving: ' + (post.title || post.slug) }); }
+if (r.ok && data.success && Array.isArray(data.results)) {
+data.results.forEach(function(item) {
+const src = preparedPosts.find(p => p.slug === item.slug);
+if (item.status === 'ok') { saved++; results.push({ slug: item.slug, status: 'ok', msg: (src && src.title) || item.slug }); }
+else { failed++; results.push({ slug: item.slug, status: 'err', msg: 'Save failed: ' + (item.error || item.slug) }); }
+});
+if (data.indexUpdated === false) {
+results.push({ slug: '(index)', status: 'warn', msg: 'Posts saved, but the index update was refused (' + (data.indexError || 'conflict') + '). Re-run the import or ask for a reindex repair - the daily check will also flag it.' });
+}
+} else {
+failed = batchPosts.length;
+results.push({ slug: '(batch)', status: 'err', msg: 'Batch save failed: ' + ((data && data.error) || ('HTTP ' + r.status)) });
+}
+} catch(e) {
+failed = batchPosts.length;
+results.push({ slug: '(batch)', status: 'err', msg: 'Error saving batch: ' + e.message });
 }
 // Show completion
 if (progressFill) progressFill.style.width = '100%';
