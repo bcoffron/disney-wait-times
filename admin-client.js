@@ -408,12 +408,118 @@ if (vm.cb) vm.cb();
 // POSTS LIST
 // ============================================================
 var cachedPosts = [];
+// ============================================================
+// OPTIMISTIC LIST OVERLAY (guardrails: Claude msgs #444/#448)
+// The blob store's reads lag its writes (up to ~2 min), so a list
+// re-fetch right after a confirmed mutation can serve pre-action
+// state and make the admin contradict an action it just confirmed.
+// This session-only overlay records ONLY the outcomes that
+// confirmed mutation responses name; list loads apply it over the
+// fetched data. Reconciliation is by CONTENT, never by refresh:
+// an upsert retires only when a fetch shows the same published
+// state at the same or a newer updatedAt, a remove retires only
+// when a fetch omits the slug - and every record retires when it
+// ages past the TTL (just beyond the store's visibility window),
+// whatever the fetch says. A fresh page load starts with an empty
+// overlay (pure store data). Never persisted (no web storage).
+// ============================================================
+const OPTIMISTIC_TTL_MS = 150000;
+const optimisticOverlay = new Map();
+
+function optimisticUpsert(slug, entry) {
+  if (!slug || !entry) return;
+  optimisticOverlay.set(slug, { kind: 'upsert', entry: entry, recordedAt: Date.now() });
+}
+function optimisticRemove(slug) {
+  if (!slug) return;
+  optimisticOverlay.set(slug, { kind: 'remove', recordedAt: Date.now() });
+}
+function isOptimistic(slug) {
+  return optimisticOverlay.has(slug);
+}
+// Subtle marker for rows currently backed by the overlay: the
+// write is confirmed, the store read has not caught up yet. One
+// small muted dot per row, however many rows are pending.
+function optimisticMark(slug) {
+  return isOptimistic(slug) ? '<span title="Just saved - catching up" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#B8C4C6;margin-right:6px;vertical-align:middle"></span>' : '';
+}
+// Actions container for a row: a pending-remove row's buttons are
+// rendered inert - the row stays visible, its actions do not work.
+function postActionsOpen(post, stopProp) {
+  const open = '<div class="post-actions"' + (stopProp ? ' onclick="event.stopPropagation()"' : '');
+  return (post && post._pendingRemove) ? open + ' style="pointer-events:none;opacity:.55">' : open + '>';
+}
+// Index-shaped entry built from the post data the client already
+// holds (the field set blog-save writes into the index), merged
+// over the post's current list entry so store-only fields the
+// client does not carry (e.g. bodySnippet) survive the overlay.
+function toOptimisticEntry(post, existing) {
+  const base = existing || {};
+  return {
+    ...base,
+    slug: post.slug,
+    title: post.title,
+    park: post.park,
+    category: post.category,
+    tagLabel: post.tagLabel,
+    heroImage: post.heroImage,
+    heroAlt: post.heroAlt,
+    intro: post.intro,
+    readTime: post.readTime,
+    publishedAt: post.publishedAt,
+    updatedAt: post.updatedAt,
+    published: post.published,
+    scheduledAt: post.scheduledAt || null,
+    tags: post.tags || []
+  };
+}
+// Apply the overlay to a freshly fetched list. Pure apart from
+// retiring overlay records per the rules above: returns a new
+// array; the store's data is used verbatim for every slug the
+// overlay does not name. `now` is injectable for tests.
+function applyOptimisticOverlay(fetchedEntries, overlay, now) {
+  const fetched = Array.isArray(fetchedEntries) ? fetchedEntries : [];
+  if (!overlay || overlay.size === 0) return fetched.slice();
+  const t = (typeof now === 'number') ? now : Date.now();
+  const bySlug = new Map();
+  fetched.forEach(function(e) { if (e && e.slug) bySlug.set(e.slug, e); });
+  const result = fetched.slice();
+  overlay.forEach(function(rec, slug) {
+    // Aged out: the optimistic belief had its window; the store's
+    // version is the truth now, whatever it says.
+    if (t - (rec.recordedAt || 0) > OPTIMISTIC_TTL_MS) { overlay.delete(slug); return; }
+    const storeEntry = bySlug.get(slug);
+    if (rec.kind === 'remove') {
+      // Confirmed once the fetch omits the slug.
+      if (!storeEntry) { overlay.delete(slug); return; }
+      // Unconfirmed: keep the row VISIBLE but flagged pending-
+      // remove (renderers grey it, strike the title, inert the
+      // actions) - hiding a post whose delete secretly failed
+      // would leave the operator unable to notice.
+      const rIdx = result.findIndex(function(e) { return e.slug === slug; });
+      if (rIdx >= 0) result[rIdx] = Object.assign({}, storeEntry, { _pendingRemove: true });
+      return;
+    }
+    // kind === 'upsert': retires only on a content match (same
+    // published state, store updatedAt at or past the confirmed
+    // write) - never merely because a refresh happened.
+    if (storeEntry && storeEntry.published === rec.entry.published &&
+        String(storeEntry.updatedAt || '') >= String(rec.entry.updatedAt || '')) {
+      overlay.delete(slug);
+      return;
+    }
+    const uIdx = result.findIndex(function(e) { return e.slug === slug; });
+    if (uIdx >= 0) result[uIdx] = rec.entry; else result.push(rec.entry);
+  });
+  return result;
+}
+
 async function loadPosts() {
   try {
     const r = await fetch(API_BASE + '/api/blog-admin-index', { headers: { 'x-admin-key': token } });
-    allPosts = await r.json();
+    const fetchedPosts = await r.json();
+    allPosts = Array.isArray(fetchedPosts) ? applyOptimisticOverlay(fetchedPosts, optimisticOverlay) : [];
     cachedPosts = allPosts;
-    if (!Array.isArray(allPosts)) allPosts = [];
     try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; featuredKnown = true; } else { featuredKnown = false; } } catch(e) { featuredKnown = false; }
   try {
     const pr = await fetch(API_BASE + '/api/blog-pins');
@@ -462,13 +568,13 @@ const fpDate = fp.publishedAt ? new Date(fp.publishedAt).toLocaleDateString('en-
 featuredSection = '<div style="background:#FFF8E8;border-radius:10px 10px 0 0;padding:12px 16px;margin-bottom:2px">' +
 '<span style="font-weight:700;color:#92400E;font-size:14px">Featured Post</span>' +
 '</div>' +
-'<div class="post-row" onclick="openPost(' + q + fp.slug + q + ')" style="background:#FFFBF0;border-left:3px solid #ECA050">' +
+'<div class="post-row"' + (fp._pendingRemove ? ' style="background:#FFFBF0;border-left:3px solid #ECA050;opacity:.55">' : ' onclick="openPost(' + q + fp.slug + q + ')" style="background:#FFFBF0;border-left:3px solid #ECA050">') +
 '<img class="post-thumb" src="' + (fp.heroImage||'') + '" alt="">' +
-'<span class="post-title-cell">' + escHtml(fp.title||'Untitled') + '</span>' +
+'<span class="post-title-cell">' + optimisticMark(fp.slug) + (fp._pendingRemove ? '<span style="text-decoration:line-through">' : '') + escHtml(fp.title||'Untitled') + (fp._pendingRemove ? '</span>' : '') + '</span>' +
 '<span class="park-pill ' + fpParkCls + '">' + fpParkLabel + '</span>' +
 '<span class="post-date">' + fpDate + '</span>' +
 '<span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:4px">FEATURED</span>' +
-'<div class="post-actions" onclick="event.stopPropagation()">' +
+postActionsOpen(fp, true) +
 '<button type="button" class="btn-edit" onclick="featurePost(' + q + fp.slug + q + ')">Unfeature</button>' +
 '<button type="button" class="btn-edit" onclick="openPost(' + q + fp.slug + q + ')">Edit</button>' +
 '<button type="button" class="btn-del" onclick="quickDelete(' + q + fp.slug + q + ')">Delete</button>' +
@@ -492,12 +598,12 @@ const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'B
 const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
 const isFirst = pinIdx === 0;
 const isLast = pinIdx === pinnedPosts.length - 1;
-return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')" style="border-left:3px solid #1A6860">' +
+return '<div class="post-row"' + (p._pendingRemove ? ' style="border-left:3px solid #1A6860;opacity:.55">' : ' onclick="openPost(' + q + p.slug + q + ')" style="border-left:3px solid #1A6860">') +
 '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
-'<span class="post-title-cell">' + escHtml(p.title||'Untitled') + ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">&#128204;</span></span>' +
+'<span class="post-title-cell">' + optimisticMark(p.slug) + (p._pendingRemove ? '<span style="text-decoration:line-through">' : '') + escHtml(p.title||'Untitled') + (p._pendingRemove ? '</span>' : '') + ' <span style="font-size:11px;color:#F59E0B" title="Pinned #' + (pinIdx+1) + '">&#128204;</span></span>' +
 '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
 '<span class="post-date">' + date + '</span>' +
-'<div class="post-actions" onclick="event.stopPropagation()">' +
+postActionsOpen(p, true) +
 '<button type="button" class="btn-edit btn-pin-move" title="Move up" onclick="event.stopPropagation();movePinUp(' + q + p.slug + q + ')" ' + (isFirst ? 'disabled style="opacity:0.3"' : '') + '>&#9650;</button>' +
 '<button type="button" class="btn-edit btn-pin-move" title="Move down" onclick="event.stopPropagation();movePinDown(' + q + p.slug + q + ')" ' + (isLast ? 'disabled style="opacity:0.3"' : '') + '>&#9660;</button>' +
 '<button type="button" class="btn-edit" style="color:#F59E0B;font-weight:bold" title="Unpin this post" onclick="togglePin(' + q + p.slug + q + ')">Unpin</button>' +
@@ -525,13 +631,13 @@ else if (p.scheduledAt) { statusCls = 'status-scheduled'; statusLabel = 'Schedul
 else { statusCls = 'status-draft'; statusLabel = 'Draft'; }
 const date = p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
 const pinDisabled = atLimit ? 'disabled title="Maximum pins reached ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ unpin a post above first" style="opacity:0.4;cursor:not-allowed"' : 'title="Pin to top of blog"';
-return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
+return '<div class="post-row"' + (p._pendingRemove ? ' style="opacity:.55">' : ' onclick="openPost(' + q + p.slug + q + ')">') +
 '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
-'<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
+'<span class="post-title-cell">' + optimisticMark(p.slug) + (p._pendingRemove ? '<span style="text-decoration:line-through">' : '') + escHtml(p.title||'Untitled') + (p._pendingRemove ? '</span>' : '') + '</span>' +
 '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
 '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
 '<span class="post-date">' + date + '</span>' +
-'<div class="post-actions" onclick="event.stopPropagation()">' +
+postActionsOpen(p, true) +
 '<button type="button" class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
 '<button type="button" class="btn-feat" onclick="featurePost(' + q + p.slug + q + ')">' + (featuredSlug === p.slug ? '&#128204;' : 'Feature') + '</button>' +
 '<button type="button" class="btn-edit" ' + pinDisabled + ' onclick="togglePin(' + q + p.slug + q + ')">&#128204; Pin</button>' +
@@ -563,13 +669,13 @@ const parkLabel = p.park === 'dl' ? 'Disneyland' : p.park === 'wdw' ? 'WDW' : 'B
 const statusCls = p.scheduledAt ? 'status-scheduled' : 'status-draft';
 const statusLabel = p.scheduledAt ? 'Scheduled' : 'Draft';
 const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-return '<div class="post-row">' +
+return '<div class="post-row"' + (p._pendingRemove ? ' style="opacity:.55">' : '>') +
 '<img class="post-thumb" src="' + (p.heroImage||'') + '" alt="" loading="lazy" onerror="this.src=' + q + q + '">' +
-'<span class="post-title-cell">' + escHtml(p.title||'Untitled') + '</span>' +
+'<span class="post-title-cell">' + optimisticMark(p.slug) + (p._pendingRemove ? '<span style="text-decoration:line-through">' : '') + escHtml(p.title||'Untitled') + (p._pendingRemove ? '</span>' : '') + '</span>' +
 '<span class="park-pill ' + parkCls + '">' + parkLabel + '</span>' +
 '<span class="status-pill ' + statusCls + '">' + statusLabel + '</span>' +
 '<span class="post-date">' + date + '</span>' +
-'<div class="post-actions">' +
+postActionsOpen(p, false) +
 '<button type="button" class="btn-edit" onclick="openPost(' + q + p.slug + q + ')">Edit</button>' +
 '<button type="button" class="btn-edit" style="color:#22A855" onclick="publishDraft(' + q + p.slug + q + ')">Publish</button>' +
 '<button type="button" class="btn-edit" style="color:#D97706" onclick="openPost(' + q + p.slug + q + ');setTimeout(openScheduleModal,400)">Schedule</button>' +
@@ -595,6 +701,7 @@ const r = await fetch(API_BASE + '/api/blog-admin-post?slug=' + encodeURICompone
 if (!r.ok) { showToast('Could not load draft', 'error'); return; }
 const post = await r.json();
 post.published = true;
+if (!post.publishedAt) post.publishedAt = new Date().toISOString();
 post.updatedAt = new Date().toISOString();
 const saveR = await fetch(API_BASE + '/api/blog-save', {
 method: 'POST',
@@ -603,6 +710,7 @@ body: JSON.stringify(post)
 });
 const data = await saveR.json();
 if (saveR.ok && data.success) {
+optimisticUpsert(data.slug || slug, toOptimisticEntry(post, allPosts.find(function(p) { return p.slug === slug; })));
 showToast('Published \u2713', 'success');
 await loadPosts();
 renderDraftsList();
@@ -968,6 +1076,7 @@ body: JSON.stringify(post)
 });
 const data = await r.json();
 if (r.ok && data.success) {
+if (data.slug) optimisticUpsert(data.slug, toOptimisticEntry(post, allPosts.find(function(p) { return p.slug === post.slug; })));
 currentPost = post;
 isDirty = false;
 document.getElementById('f-readtime').value = post.readTime;
@@ -1024,6 +1133,7 @@ body: JSON.stringify({ slug })
 });
 const data = await r.json();
 if (r.ok && data.success) {
+optimisticRemove(slug);
 closeModal('delete-modal');
 showToast('Post deleted', 'success');
 currentPost = null; isDirty = false;
@@ -1848,6 +1958,14 @@ else { failed++; results.push({ slug: item.slug, status: 'err', msg: 'Save faile
 });
 if (data.indexUpdated === false) {
 results.push({ slug: '(index)', status: 'warn', msg: 'Posts saved, but the index update was refused (' + (data.indexError || 'conflict') + '). Re-run the import or ask for a reindex repair - the daily check will also flag it.' });
+}
+if (data.indexUpdated !== false) {
+data.results.forEach(function(item) {
+if (item.status === 'ok') {
+const srcPost = preparedPosts.find(p => p.slug === item.slug);
+if (srcPost) optimisticUpsert(item.slug, toOptimisticEntry(srcPost, allPosts.find(function(p) { return p.slug === item.slug; })));
+}
+});
 }
 } else {
 failed = batchPosts.length;
