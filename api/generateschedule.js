@@ -937,6 +937,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system: _system, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
             });
             const d = await r.json();
+            console.log('[scaffold] fill usage: input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' cache_creation=' + ((d.usage && d.usage.cache_creation_input_tokens) ?? 0) + ' cache_read=' + ((d.usage && d.usage.cache_read_input_tokens) ?? 0));
             if (d.error) throw new Error(d.error.message);
             let t = ''; for (const b of (d.content || [])) if (b.type === 'text') t += b.text;
             return { arr: extractJSON(t), model: d.model, text: t };

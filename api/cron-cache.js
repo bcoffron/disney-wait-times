@@ -545,6 +545,7 @@ async function callClaude(prompt, apiKey) {
     body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:prompt.maxTokens,system:prompt.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt.user}]})
   });
   const d = await resp.json();
+  console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
   if(d.error) throw new Error(d.error.message);
   const blocks = d.content || [];
   // With web_search, the response interleaves the model's narration with tool-use and
@@ -1052,6 +1053,7 @@ async function buildDiningDL(key, apiKey) {
     body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:augUser}]})
   });
   const d = await resp.json();
+  console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
   if(d.error) throw new Error(d.error.message);
   const blocks = d.content || [];
   let lastToolIdx = -1;
@@ -1098,6 +1100,7 @@ async function buildLegacy(key, apiKey) {
     body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:p.user}]})
   });
   const d = await resp.json();
+  console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
   if(d.error) throw new Error(d.error.message);
   const blocks = d.content || [];
   let lastToolIdx = -1;
