@@ -1,5 +1,6 @@
 // api/wait-ticker.js
-import { put, list } from '@vercel/blob';
+import { put } from '@vercel/blob';
+import { readBlobJson as readBlobJsonShared } from './lib/blob.js';
 
 const TICKER_CACHE_KEY = 'twize/wait_ticker_cache.json';
 const TICKER_PREV_KEY = 'twize/wait_ticker_previous.json';
@@ -48,18 +49,14 @@ async function fetchWithTimeout(url, timeoutMs) {
     }
 }
 
+// Suffix-tolerant via the shared reader (probe-class: the ticker
+// cache is legitimately absent on a cold start - absence is the
+// rebuild trigger, not an error - and the previous generation
+// does not exist on first run; so no [SECURITY] guard). The
+// wrapper preserves this helper's historical contract - null on
+// any failure.
 async function readBlobJson(key) {
-    try {
-          var result = await list({ prefix: key, limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN });
-          var matches = (result.blobs || []).filter(function(b) { return b.pathname === key; })
-            .sort(function(a, b) { return new Date(b.uploadedAt) - new Date(a.uploadedAt); });
-          if (!matches.length) return null;
-          var r = await fetch(matches[0].downloadUrl, { cache: 'no-store' });
-          if (!r.ok) return null;
-          return await r.json();
-    } catch (e) {
-          return null;
-    }
+    try { return await readBlobJsonShared(key, 'wait-ticker'); } catch (e) { return null; }
 }
 
 async function writeBlobJson(key, data) {

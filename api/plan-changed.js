@@ -37,6 +37,7 @@
 
 import { list, put } from '@vercel/blob';
 import { fireTripPush } from './cron-booking-alerts.js';
+import { readBlobJson as readBlobJsonShared } from './lib/blob.js';
 import { isApnsConfigured } from './apns.js';
 
 export const PLAN_CHANGED_WINDOW_MS = 3 * 60 * 1000;
@@ -59,15 +60,15 @@ export function safeDeviceToken(v) {
 // ---------------------------------------------------------------------------
 // Blob helpers (mirror of the cron-push-monitor / push-test pattern)
 // ---------------------------------------------------------------------------
+// Suffix-tolerant via the shared reader (probe-class: per-trip
+// push-devices / push-subs / plan-state keys are legitimately
+// absent before their first writes, so no [SECURITY] guard). The
+// wrapper preserves this helper's historical contract - null on
+// any failure. NOTE: the WRITE side of the push keys is separately
+// tracked (B2/B3/B4) and still throws on a second write under
+// @vercel/blob 2.x - hardening this read does not fix that.
 async function readBlobJson(pathname) {
-  try {
-    const { blobs } = await list({ prefix: pathname });
-    const hit = blobs.find(b => b.pathname === pathname);
-    if (!hit) return null;
-    const res = await fetch(hit.url);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) { return null; }
+  try { return await readBlobJsonShared(pathname, 'plan-changed'); } catch (e) { return null; }
 }
 async function writeJsonBlob(pathname, obj) {
   await put(pathname, JSON.stringify(obj), { access: 'public', addRandomSuffix: false });

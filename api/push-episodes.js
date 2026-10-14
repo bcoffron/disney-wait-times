@@ -26,7 +26,8 @@
 // (sent > 0), so a failed send leaves no phantom episode for the poll
 // to present, and a retry records the episode once, at its real fire.
 
-import { list, put } from '@vercel/blob';
+import { put } from '@vercel/blob';
+import { readBlobJson as readBlobJsonShared } from './lib/blob.js';
 
 export const EPISODE_TTL_MS = 24 * 60 * 60 * 1000;
 export const EPISODE_MAX_PER_TRIP = 20;
@@ -90,15 +91,12 @@ export function mergeEpisode(list, rec, nowMs) {
 
 function episodesKey(tripCode) { return 'twize/push-episodes/' + tripCode + '.json'; }
 
+// Suffix-tolerant via the shared reader (probe-class: per-trip
+// episode keys are legitimately absent before their first write,
+// so no [SECURITY] guard). The wrapper preserves this helper's
+// historical contract - null on any failure.
 async function readBlobJson(pathname) {
-  try {
-    const { blobs } = await list({ prefix: pathname });
-    const hit = (blobs || []).find(b => b.pathname === pathname);
-    if (!hit) return null;
-    const res = await fetch(hit.url + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) { return null; }
+  try { return await readBlobJsonShared(pathname, 'push-episodes'); } catch (e) { return null; }
 }
 async function writeJsonBlob(pathname, obj) {
   await put(pathname, JSON.stringify(obj), {
