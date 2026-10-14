@@ -28,10 +28,15 @@
 // (admin-session callers - the dry run and commit are operated by a
 // human through the admin session; the commit additionally requires
 // the confirm string and the reviewed hash).
-import { list, put } from '@vercel/blob';
+//
+// The candidate builder lives in api/lib/reindex-candidate.js, shared
+// with api/blog-reconcile.js (the daily detect-and-alert check) so the
+// checker runs the same code the repair runs.
+import { put } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
 import { createHash } from 'node:crypto';
-import { matchesKey, readBlobText, computeBodySnippet } from './lib/blob.js';
+import { readBlobText } from './lib/blob.js';
+import { buildCandidate } from './lib/reindex-candidate.js';
 
 const INDEX_KEY = 'blog/posts/index';
 const BACKUP_PREFIX = 'blog/index-backups/';
@@ -46,55 +51,6 @@ function authorized(req) {
   const token = req.headers['x-admin-key'] || '';
   if (!token) return false;
   try { jwt.verify(token, process.env.JWT_SECRET); return true; } catch (e) { return false; }
-}
-
-async function buildCandidate() {
-  let allBlobs = [], cursor;
-  do {
-    const result = await list({ prefix: 'blog/posts/', cursor, limit: 100, token: process.env.BLOB_READ_WRITE_TOKEN });
-    allBlobs = allBlobs.concat(result.blobs || []);
-    cursor = result.cursor;
-  } while (cursor);
-
-  const bySlug = new Map();
-  const errors = [];
-  for (const blob of allBlobs) {
-    if (matchesKey(blob.pathname, INDEX_KEY)) continue; // the index family is not a post
-    try {
-      const r = await fetch(blob.downloadUrl || blob.url, { cache: 'no-store' });
-      if (!r.ok) { errors.push(blob.pathname + ': HTTP ' + r.status); continue; }
-      const post = await r.json();
-      if (!post || !post.slug) { errors.push(blob.pathname + ': no slug'); continue; }
-      const prev = bySlug.get(post.slug);
-      const wins = !prev
-        || new Date(post.updatedAt || 0) > new Date(prev.post.updatedAt || 0)
-        || (new Date(post.updatedAt || 0).getTime() === new Date(prev.post.updatedAt || 0).getTime()
-            && new Date(blob.uploadedAt) > new Date(prev.uploadedAt));
-      if (wins) bySlug.set(post.slug, { post, uploadedAt: blob.uploadedAt });
-    } catch (e) {
-      errors.push(blob.pathname + ': ' + e.message);
-    }
-  }
-
-  const index = [...bySlug.values()].map(({ post }) => ({
-    slug: post.slug,
-    title: post.title,
-    park: post.park,
-    category: post.category,
-    tagLabel: post.tagLabel,
-    heroImage: post.heroImage,
-    heroAlt: post.heroAlt,
-    intro: post.intro,
-    readTime: post.readTime,
-    publishedAt: post.publishedAt,
-    updatedAt: post.updatedAt,
-    published: post.published,
-    scheduledAt: post.scheduledAt || null,
-    tags: post.tags || [],
-    bodySnippet: computeBodySnippet(post.body)
-  }));
-  index.sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));
-  return { index, errors };
 }
 
 export default async function handler(req, res) {
