@@ -469,7 +469,6 @@ featuredSection = '<div style="background:#FFF8E8;border-radius:10px 10px 0 0;pa
 '<span class="post-date">' + fpDate + '</span>' +
 '<span style="background:#F59E0B;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:4px">FEATURED</span>' +
 '<div class="post-actions" onclick="event.stopPropagation()">' +
-'<button type="button" class="btn-edit" onclick="featurePost(' + q + fp.slug + q + ')">Unfeature</button>' +
 '<button type="button" class="btn-edit" onclick="openPost(' + q + fp.slug + q + ')">Edit</button>' +
 '<button type="button" class="btn-del" onclick="quickDelete(' + q + fp.slug + q + ')">Delete</button>' +
 '</div></div>';
@@ -606,7 +605,7 @@ if (saveR.ok && data.success) {
 showToast('Published \u2713', 'success');
 await loadPosts();
 renderDraftsList();
-} else { showToast('Publish failed', 'error'); }
+} else { showToast(data.error || 'Publish failed', 'error'); }
 } catch(e) { showToast('Publish failed', 'error'); }
 }
 
@@ -979,7 +978,7 @@ if (post.published) document.getElementById('btn-schedule').style.display = 'non
 showToast(post.published ? 'Published &#10003;' : 'Saved &#10003;', 'success');
 await loadPosts();
       if (post.published && document.getElementById('images-view') && document.getElementById('images-view').style.display !== 'none') { loadImagesInline(); }
-} else { showToast('Save failed &mdash; try again', 'error'); }
+} else { showToast(data.error || 'Save failed &mdash; try again', 'error'); }
 } catch(e) { showToast('Save failed &mdash; try again', 'error'); }
 finally { if (btn) { btn.textContent = origText; btn.classList.remove('btn-loading'); btn.disabled = false; } }
 }
@@ -1836,7 +1835,7 @@ body: JSON.stringify(post)
 });
 const data = await r.json();
 if (r.ok && data.success) { saved++; results.push({ slug: post.slug, status: 'ok', msg: post.title || post.slug }); }
-else { failed++; results.push({ slug: post.slug, status: 'err', msg: 'Save failed: ' + (post.title || post.slug) }); }
+else { failed++; results.push({ slug: post.slug, status: 'err', msg: 'Save failed: ' + (data.error || post.title || post.slug) }); }
 } catch(e) { failed++; results.push({ slug: post.slug, status: 'err', msg: 'Error saving: ' + (post.title || post.slug) }); }
 }
 // Show completion

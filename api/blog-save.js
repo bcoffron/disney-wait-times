@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { put } from '@vercel/blob';
-import { updateBlobJson, computeBodySnippet } from './lib/blob.js';
+import { updateBlobJson, computeBodySnippet, readBlobJson } from './lib/blob.js';
 
 const rateLimit = new Map();
 
@@ -51,6 +51,48 @@ export default async function handler(req, res) {
   const post = body;
   if (!post || !post.slug) return res.status(400).json({ error: 'slug required' });
   if (!/^[a-z0-9-]+$/.test(post.slug)) return res.status(400).json({ error: 'Invalid slug format' });
+
+  // Slug-creation guards (prevention, PR: slug guard). Post blobs live at
+  // blog/posts/<slug> with no file extension, so the shared reader's suffix
+  // rule cannot tell a post's own suffixed copies from a different post
+  // whose slug extends it by exactly one dash-word: reading the shorter
+  // slug would list both families and pick the newest. Two refusals,
+  // checked against the index BEFORE any write - a refused save must
+  // write nothing:
+  //   1. 'index' is reserved: its blob key IS the index key, so a post
+  //      with that slug would overwrite the index with a post body
+  //      (blog-delete has refused it since PR #35; save never did).
+  //   2. A NEW slug that differs from an existing slug by exactly one
+  //      dash-word, in either direction. Multi-word differences are
+  //      safe: the remainder contains a dash and the suffix rule
+  //      rejects it. Updates to an existing slug are exempt.
+  // The check is read-first, so two simultaneous creations of a
+  // colliding pair could both pass it - the same advisory posture as
+  // updateBlobJson, accepted for a single-operator admin.
+  if (post.slug === 'index') {
+    return res.status(400).json({ error: "Slug 'index' is reserved - it names the blog index itself. Choose another slug." });
+  }
+  let guardIndex = null;
+  try { guardIndex = await readBlobJson('blog/posts/index', 'blog-save.slug-guard', { expected: true }); } catch (e) { guardIndex = null; }
+  if (!Array.isArray(guardIndex)) {
+    // The guard reads a key that must exist; if it cannot be read, refuse
+    // rather than save unchecked (updateBlobJson below would fail the
+    // same way). Nothing has been written yet.
+    return res.status(500).json({ error: 'Slug check failed - the blog index could not be read. Nothing was saved; try again.' });
+  }
+  const existingSlugs = guardIndex.map(p => p && p.slug).filter(Boolean);
+  if (!existingSlugs.includes(post.slug)) {
+    const oneWordDiff = (a, b) => {
+      // true when a === b + '-' + a single dash-free word
+      if (!a.startsWith(b + '-')) return false;
+      const rest = a.slice(b.length + 1);
+      return rest.length > 0 && !rest.includes('-');
+    };
+    const conflict = existingSlugs.find(s => oneWordDiff(post.slug, s) || oneWordDiff(s, post.slug));
+    if (conflict) {
+      return res.status(400).json({ error: "Cannot save: a post with slug '" + conflict + "' already exists, and '" + post.slug + "' differs from it by a single word. Slugs one word apart cannot be stored separately in this system - choose a more distinct slug." });
+    }
+  }
 
   post.updatedAt = new Date().toISOString();
 
