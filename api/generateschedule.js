@@ -971,90 +971,11 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
         }
       }
 
-      // ============================================================
-      // LEGACY GENERATOR -- RETIRED Oct 7, 2026: UNREACHABLE.
-      // The scaffold block above returns on success (200) and on error
-      // (502 safe failure), so control never reaches this code. Kept
-      // in-file for a later cleanup commit. Also noted for that cleanup:
-      // the legacy prompt assembly ABOVE the scaffold block (system /
-      // park-intel context building) still executes per request; its
-      // outputs now feed nothing but this dead block.
-      // ============================================================
-      // -- B: Model is hardcoded --- never use req.body.model or any client value
-      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-              signal: controller.signal,
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 8000) }] })
-      });
+      // LEGACY GENERATOR BODY REMOVED (Oct 14, 2026): it was unreachable
+      // since the Oct 7, 2026 retirement -- the scaffold block above returns
+      // on success (200) and on error (502) -- and its prompt assembly was
+      // removed in the same cleanup. The scaffold is the only generator.
 
-      const data = await anthropicRes.json();
-          if (data.error) return res.status(500).json({ error: data.error.message });
-
-      let text = '';
-          for (const block of (data.content || [])) {
-                  if (block.type === 'text') text += block.text;
-          }
-
-      if (!text) return res.status(200).json({ error: 'Empty response', stop_reason: data.stop_reason });
-
-      const parsed = extractJSON(text);
-
-      if (parsed && Array.isArray(parsed)) {
-              try {
-                        const safeConfig = tripConfig || {};
-                        const _day0 = (safeConfig.days && safeConfig.days[0]) || {};
-                        const _dayPark = _day0.park || 'Disneyland';
-                        // Parse close times from PARK_HOURS cache text (generic, any trip). Returns minutes-since-midnight.
-                        const _toMin = (h, mm, mer) => { let hh = parseInt(h, 10); const pm = /pm/i.test(mer); if (pm && hh !== 12) hh += 12; if (!pm && hh === 12) hh = 0; return hh * 60 + (mm ? parseInt(mm, 10) : 0); };
-                        const _hoursTxt = (cacheCtx.PARK_HOURS || '');
-                        function _closeFor(parkRe) {
-                          // find a line mentioning the park, take its closing time. Handle 'midnight' word and 12:00 AM (=end-of-day 1440).
-                          const lines = _hoursTxt.split(/\n/);
-                          for (const ln of lines) {
-                            if (!parkRe.test(ln)) continue;
-                            if (/midnight/i.test(ln)) return 24 * 60;
-                            const times = [...ln.matchAll(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM|noon)/gi)];
-                            if (times.length) {
-                              const t = times[times.length - 1];
-                              if (/noon/i.test(t[3])) return 12 * 60;
-                              let mins = _toMin(t[1], t[2], t[3]);
-                              if (mins === 0) mins = 24 * 60; // 12:00 AM as a CLOSING time = end-of-day midnight
-                              return mins;
-                            }
-                          }
-                          return null;
-                        }
-                        const _dlClose = _closeFor(/disneyland|\bDL\b/i);
-                        const _dcaClose = _closeFor(/california adventure|\bDCA\b/i);
-                        const _isDca = /california|dca|adventure/i.test(_dayPark);
-                        const _myClose = _isDca ? _dcaClose : _dlClose;
-                        const _bothMax = [_dlClose, _dcaClose].filter(x => typeof x === 'number');
-                        const _latest = _bothMax.length ? Math.max(..._bothMax) : null;
-                        const _dayObj = { items: parsed, park: _dayPark };
-                        if (typeof _myClose === 'number') _dayObj.closeMin = _myClose;
-                        // latestCloseMin only matters for hoppers (late second hop to later-closing park)
-                        if (safeConfig.parkHopping && typeof _latest === 'number') _dayObj.latestCloseMin = _latest;
-                        if (typeof _dlClose === 'number' && _dlClose > 0) _dayObj.dlCloseMin = _dlClose;
-                        if (typeof _dcaClose === 'number' && _dcaClose > 0) _dayObj.dcaCloseMin = _dcaClose;
-                        console.log('[generateschedule] close times -> DL:', _dlClose, 'DCA:', _dcaClose, 'dayPark:', _dayPark, 'closeMin:', _dayObj.closeMin, 'latestCloseMin:', _dayObj.latestCloseMin);
-                        const singleDaySchedule = { days: [_dayObj] };
-                        const closedFromCache = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
-                        console.log('[generateschedule] closed from cache:', JSON.stringify(closedFromCache));
-                        const valResult = validateSchedule(singleDaySchedule, safeConfig, closedFromCache, allUsedDining);
-                        const validatedItems = valResult.schedule.days[0].items;
-                        if (valResult.corrections && valResult.corrections.length > 0) {
-                                    console.log('[generateschedule] validator corrections:', JSON.stringify(valResult.corrections));
-                        }
-                        if (valResult.hardViolations && valResult.hardViolations.length > 0) {
-                                    console.warn('[generateschedule] validator hard violations:', JSON.stringify(valResult.hardViolations));
-                        }
-                        return res.status(200).json({ ok: true, text, parsed: validatedItems, model: data.model });
-              } catch (valErr) {
-                        console.error('[generateschedule] validator error:', valErr.message);
-              }
-      }
-          return res.status(200).json({ ok: true, text, parsed, model: data.model });
 
     } catch (e) {
           if (e.name === 'AbortError') {
