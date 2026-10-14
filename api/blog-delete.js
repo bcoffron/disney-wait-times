@@ -99,6 +99,22 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, deleted: matches.map(b => b.pathname), skipped, count: matches.length });
   } catch (err) {
+    // A refused index update (api/lib/blob.js INDEX_CONFLICT) is a
+    // distinct, retryable state, not a server error: the post blobs
+    // above were already deleted, only the index entry was not
+    // removed. Name the state so the operator (and the admin client,
+    // which displays error) knows a retry is the remedy instead of
+    // guessing at a bare 500.
+    if (err && err.code === 'INDEX_CONFLICT') {
+      console.error('blog-delete: index update refused for "' + slug + '":', err.message);
+      return res.status(409).json({
+        error: 'Index update refused (concurrent write could not be verified). The post files were deleted; retry in a moment.',
+        code: 'INDEX_CONFLICT',
+        retryable: true,
+        state: 'blobs_deleted_index_not_updated',
+        slug
+      });
+    }
     console.error('blog-delete error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }

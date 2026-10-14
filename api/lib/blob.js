@@ -154,6 +154,43 @@ export function computeBodySnippet(body) {
 // human saving twice in a minute) - and it is blind across cold starts
 // and separate instances. It is a partial guard, not a lock; the daily
 // reconciliation check remains the detector for everything it misses.
+//
+// --- Self-collision recovery (Claude msg #442) ---
+//
+// The refusal above protected the batch case, but production showed
+// the "successive writes on one instance" pattern is not an edge -
+// it is the core admin loop (save a draft, then publish it; delete
+// several posts in a row), and a guard that fires on the main path
+// is a defect in the operation it guards. So the memo now RECOVERS
+// the provable self-collision instead of refusing it.
+//
+// The memo retains, alongside the hash of the bytes written, the
+// parsed value of those bytes (the post-image) and the hash of the
+// base they were computed from (the pre-image). If the next update's
+// read hashes exactly to the pre-image, the store is serving the
+// very state this instance's own last write superseded: the
+// staleness is ours to correct from memory, the true current state
+// is the memoized post-image, and the mutator is applied to that
+// instead of to the stale read. No unknown writer's work is
+// discarded - the write is based on the true latest state, and the
+// fingerprint re-read still guards the put (a foreign write that
+// becomes visible mid-update fails the fingerprint comparison and
+// the update retries on the fresh state, as before). A read that
+// matches NEITHER image and does not postdate the memo is still
+// unexplained state and still refuses loudly; a read visibly
+// postdating the memo still proceeds on the read base.
+//
+// The memo keeps exactly one generation: its pre-image advances on
+// every successful write, so a lagging read that catches up one
+// write at a time keeps classifying as self-collision, but a read
+// two writes behind matches neither image and refuses. Visibility
+// lag that deep with two same-instance writes inside it is outside
+// the measured window, and the reconciliation check remains the
+// detector for it. The classification runs on every attempt of the
+// update loop, not just the first: a verification re-read can trip
+// the fingerprint guard on a list()-only change while fetch still
+// serves the pre-image, and the retried read must not then mutate
+// from that stale state (see updateBlobJson).
 const LAST_WRITE_MEMO_MS = 5 * 60 * 1000;
 // 1s, not 0: a bare > comparison lets sub-second clock/stamp drift
 // bypass the memo in exactly the stale case it exists to catch
@@ -182,24 +219,59 @@ export async function updateBlobJson(key, caller, mutator, opts = {}) {
   const started = Date.now();
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const { value, fingerprint, textSha, uploadedAt } = await readRawWithFingerprint(key, caller);
-    // Last-write memo check (see the memo comment above): only on the
-    // first attempt's starting read - the retry loop's later reads are
-    // the designed recovery from a VISIBLE change and may legitimately
-    // differ from what this instance last wrote.
-    if (attempt === 1 && fingerprint !== null) {
+    // Last-write memo classification (see the memo comments above).
+    // baseValue/baseSha name the state the mutator is applied to: the
+    // read state on the normal path, the memoized post-image on the
+    // self-collision path. baseSha is what the next write's memo
+    // records as its pre-image, so chained self-collisions classify.
+    //
+    // The self-collision recovery is evaluated on EVERY attempt, not
+    // just the first: if attempt 1's verification re-read trips the
+    // fingerprint guard (e.g. list() catches up to our write while
+    // fetch still serves the pre-image), attempt 2's starting read
+    // can present the same provably-ours stale state, and mutating
+    // from it there would silently discard our own write - the exact
+    // drop the memo exists to prevent. A hash-exact match against
+    // the memo's pre-image cannot misfire on a foreign state, so
+    // recovering wherever it appears weakens no refusal. The
+    // unexplained-mismatch refusal, by contrast, stays first-attempt
+    // only: later attempts are the designed recovery from a VISIBLE
+    // change, and their mismatches resolve through the fingerprint
+    // guard and the retry loop (which still throws after maxAttempts
+    // if the contention persists).
+    let baseValue = value;
+    let baseSha = textSha;
+    let selfCollision = false;
+    if (fingerprint !== null) {
       const memo = lastWriteMemo.get(key);
-      const postdatesMemo = uploadedAt && memo && new Date(uploadedAt).getTime() > memo.at + MEMO_POSTDATE_MARGIN_MS;
-      if (memo && Date.now() - memo.at <= LAST_WRITE_MEMO_MS && memo.textSha !== textSha && !postdatesMemo) {
-        console.error('[SECURITY] ' + (caller || 'updateBlobJson') + ': stale read of "' + key + '" detected by last-write memo (this instance wrote different bytes ' + Math.round((Date.now() - memo.at) / 1000) + 's ago; the store is not showing them) - refusing to update from stale state.');
-        const err = new Error('Stale read of "' + key + '": the store is not showing this process\'s most recent write; refusing to overwrite from stale state.');
-        err.code = 'INDEX_CONFLICT';
-        throw err;
+      if (memo && Date.now() - memo.at <= LAST_WRITE_MEMO_MS && memo.textSha !== textSha) {
+        const postdatesMemo = uploadedAt && new Date(uploadedAt).getTime() > memo.at + MEMO_POSTDATE_MARGIN_MS;
+        if (typeof memo.baseSha === 'string' && memo.baseSha === textSha && memo.value !== undefined) {
+          // SELF-COLLISION: the read is serving exactly the state
+          // this instance's last write superseded (hash-equal to the
+          // memo's pre-image), so the store's staleness is this
+          // instance's OWN write not yet visible - correctable from
+          // memory, not an unknown writer's state. Apply the update
+          // to the memoized post-image instead of the stale read.
+          selfCollision = true;
+          baseValue = memo.value;
+          baseSha = memo.textSha;
+          console.warn('[blob] ' + (caller || 'updateBlobJson') + ': read of "' + key + '" is serving the pre-write state of this instance\'s own write ' + Math.round((Date.now() - memo.at) / 1000) + 's ago - applying the update to the memoized post-write state (self-collision recovery).');
+        } else if (!postdatesMemo && attempt === 1) {
+          console.error('[SECURITY] ' + (caller || 'updateBlobJson') + ': stale read of "' + key + '" detected by last-write memo (this instance wrote different bytes ' + Math.round((Date.now() - memo.at) / 1000) + 's ago; the store is not showing them) - refusing to update from stale state.');
+          const err = new Error('Stale read of "' + key + '": the store is not showing this process\'s most recent write; refusing to overwrite from stale state.');
+          err.code = 'INDEX_CONFLICT';
+          throw err;
+        }
+        // postdatesMemo: the read state's uploadedAt proves a later
+        // write is visible in the base - fall through and mutate on
+        // top of the read state, discarding nothing of ours.
       }
     }
-    const draft = value === null ? null : JSON.parse(JSON.stringify(value));
+    const draft = baseValue === null ? null : JSON.parse(JSON.stringify(baseValue));
     const next = await mutator(draft);
-    if (JSON.stringify(next) === JSON.stringify(value)) {
-      return { changed: false, conflicted: attempt > 1, attempts: attempt };
+    if (JSON.stringify(next) === JSON.stringify(baseValue)) {
+      return { changed: false, conflicted: attempt > 1, attempts: attempt, recovered: selfCollision };
     }
     const check = await readRawWithFingerprint(key, caller);
     if (check.fingerprint === fingerprint) {
@@ -211,8 +283,13 @@ export async function updateBlobJson(key, caller, mutator, opts = {}) {
         contentType: 'application/json',
         token: process.env.BLOB_READ_WRITE_TOKEN
       });
-      lastWriteMemo.set(key, { textSha: createHash('sha256').update(outText).digest('hex'), at: Date.now() });
-      return { changed: true, conflicted: attempt > 1, attempts: attempt };
+      lastWriteMemo.set(key, {
+        textSha: createHash('sha256').update(outText).digest('hex'),
+        baseSha,
+        value: JSON.parse(outText),
+        at: Date.now()
+      });
+      return { changed: true, conflicted: attempt > 1, attempts: attempt, recovered: selfCollision };
     }
     console.error('[SECURITY] ' + (caller || 'updateBlobJson') + ': "' + key + '" changed during update (attempt ' + attempt + ' of ' + maxAttempts + ') - re-applying on fresh state.');
     if (Date.now() - started > budgetMs) break;
