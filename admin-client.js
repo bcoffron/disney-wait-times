@@ -7,6 +7,11 @@ const API_BASE = '';
 let token = sessionStorage.getItem('tpcp_admin_token') || '';
 let allPosts = [];
 let featuredSlug = null;
+// Whether featuredSlug currently reflects the server's state. A failed load
+// marks the state UNKNOWN (last-known value kept for display) instead of
+// resetting it to null — null means "known to be unfeatured," a different
+// fact, and the unfeature write is refused while the state is unknown.
+let featuredKnown = false;
 let currentPost = null
 let imgManagerContext = 'hero'
 let quill = null;
@@ -409,7 +414,7 @@ async function loadPosts() {
     allPosts = await r.json();
     cachedPosts = allPosts;
     if (!Array.isArray(allPosts)) allPosts = [];
-    try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; } } catch(e) { featuredSlug = null; }
+    try { const fr = await fetch(API_BASE + '/api/blog-feature'); if (fr.ok) { const fd = await fr.json(); featuredSlug = fd.featuredSlug || null; featuredKnown = true; } else { featuredKnown = false; } } catch(e) { featuredKnown = false; }
   try {
     const pr = await fetch(API_BASE + '/api/blog-pins');
     if (pr.ok) {
@@ -535,7 +540,7 @@ return '<div class="post-row" onclick="openPost(' + q + p.slug + q + ')">' +
 }
 
 
-table.innerHTML = featuredSection + pinnedHeader + pinnedRows + allPostsHeader + allRows;
+table.innerHTML = (featuredKnown ? '' : '<div style="background:#FDECEC;border-radius:10px;padding:12px 16px;margin-bottom:10px;color:#7A1F1F">Featured status could not be loaded — unfeaturing is disabled until the list reloads successfully.</div>') + featuredSection + pinnedHeader + pinnedRows + allPostsHeader + allRows;
 }
 function renderDraftsList() {
 const table = document.getElementById('drafts-table');
@@ -614,8 +619,44 @@ renderPostList(allPosts.filter(p => p.published === true && ((p.title||'').toLow
 // ============================================================
 async function featurePost(slug) {
   try {
+    // Revalidate before writing: the toggle must be computed from the
+    // server's CURRENT featured slug, not this page's possibly-stale belief.
+    // The accident this prevents: on a stale page (another tab changed the
+    // featured post), clicking to unfeature X used to send slug:null and
+    // unfeature whatever was actually featured. Revalidation closes the
+    // wide staleness window; the blob store's read-after-write lag means a
+    // change only seconds old may still be invisible — the same residual
+    // the server-side index updater carries.
+    let current = null;
+    let revalidated = false;
+    try {
+      const fr = await fetch(API_BASE + '/api/blog-feature');
+      if (fr.ok) { const fd = await fr.json(); current = fd.featuredSlug || null; revalidated = true; }
+    } catch(e) { /* revalidation failed: state is unknown, handled below */ }
+    if (revalidated) {
+      if (current !== featuredSlug) {
+        await loadPosts();
+        showToast('Featured post was changed elsewhere — list refreshed, your click was not applied.', 'error');
+        return;
+      }
+      featuredKnown = true;
+    } else {
+      featuredKnown = false;
+      if (featuredSlug === slug) {
+        // The click intends an unfeature, but the current state can't be
+        // verified — refuse the null write rather than guess.
+        showToast('Could not verify the current featured post — unfeature cancelled. Reload the page and try again.', 'error');
+        return;
+      }
+      // Featuring a slug while unknown is safe (worst case it sets what is
+      // already set); only the null write is refused. Fall through.
+    }
     const isCurrentlyFeatured = featuredSlug === slug;
     const newSlug = isCurrentlyFeatured ? null : slug;
+    if (newSlug === null && !featuredKnown) {
+      showToast('Could not verify the current featured post — unfeature cancelled. Reload the page and try again.', 'error');
+      return;
+    }
     const res = await fetch(API_BASE + '/api/blog-feature', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
@@ -624,6 +665,7 @@ async function featurePost(slug) {
     const data = await res.json();
     if (data.success) {
       featuredSlug = newSlug;
+      featuredKnown = true;
       showToast(newSlug ? 'Featured post updated' : 'Post unfeatured', 'success');
       await loadPosts();
     } else {
