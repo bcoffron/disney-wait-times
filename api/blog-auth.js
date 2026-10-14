@@ -33,12 +33,24 @@ function checkRateLimit(ip, max, windowMs) {
   return true;
 }
 
+// Deliberately EXACT-MATCH, unlike the content reads that use the shared
+// suffix-tolerant helper (api/lib/blob.js). That helper's matchesKey accepts
+// a family of keys, which is right for content — missing data is the failure.
+// A credential read inverts that: accepting the wrong blob is far worse than
+// failing to find the right one, so this read accepts this one key and
+// nothing else. The only writer of this key (blog-reset-confirm) writes bare
+// with addRandomSuffix: false + allowOverwrite: true, so a suffixed copy can
+// never be a legitimate credential source. Do not "fix" this in a consistency
+// sweep — see GitHub #5.
 async function getPasswordHash() {
   try {
-    const { blobs } = await list({ prefix: BLOB_KEY, limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN });
+    const { blobs } = await list({ prefix: BLOB_KEY, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
     const match = blobs.filter(b => b.pathname === BLOB_KEY)
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    if (!match.length) return null;
+    if (!match.length) {
+      console.error('[SECURITY] expected blob missing: key=' + BLOB_KEY + ' caller=blog-auth — possible data loss or key drift');
+      return null;
+    }
     const res = await fetch(match[0].downloadUrl + '?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();

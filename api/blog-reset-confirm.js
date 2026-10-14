@@ -5,12 +5,24 @@ import bcrypt from 'bcryptjs';
 const PASSWORD_KEY = 'blog:admin:password';
 const RESET_TOKEN_KEY = 'blog:admin:reset-token';
 
+// Deliberately EXACT-MATCH, unlike the content reads that use the shared
+// suffix-tolerant helper (api/lib/blob.js). That helper's matchesKey accepts
+// a family of keys, which is right for content — missing data is the failure.
+// This read gates a password reset, so it inverts: accepting the wrong blob
+// is far worse than failing to find the right one, and this accepts one key
+// only. The only writer of the reset-token key (blog-reset-request) writes
+// bare with addRandomSuffix: false + allowOverwrite: true, so a suffixed copy
+// can never be a legitimate token source. Do not "fix" this in a consistency
+// sweep — see GitHub #5.
 async function getBlob(key) {
   try {
-    const { blobs } = await list({ prefix: key, limit: 10, token: process.env.BLOB_READ_WRITE_TOKEN });
+    const { blobs } = await list({ prefix: key, limit: 1000, token: process.env.BLOB_READ_WRITE_TOKEN });
     const match = blobs.filter(b => b.pathname === key)
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    if (!match.length) return null;
+    if (!match.length) {
+      console.error('[SECURITY] expected blob missing: key=' + key + ' caller=blog-reset-confirm — possible data loss or key drift');
+      return null;
+    }
     const res = await fetch(match[0].downloadUrl + '?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) return null;
     return await res.json();
