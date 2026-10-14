@@ -410,71 +410,14 @@ const diningIntel = (cacheCtx.DINING_INTEL || '').substring(0, 6000);
           const charContext = buildCharacterContext(charIntel, tripConfig, 4000);
           const charPriority = (tripConfig && tripConfig.characters && tripConfig.characters.priority) || 'niceToHave';
 
-      let system = 'You are the genius best friend who knows Disneyland and Disney California Adventure inside out -- thinking ahead so this family does not have to. Your one rule: EVERY decision (ride order, timing, the hop, dining, character stops, Lightning Lane) must come from the CACHE DATA below -- wait-time patterns, rope-drop and hop strategy, crowd flow, park hours, the verified dining and character lists. Do NOT invent wait times, best windows, hop times, ride names, or venues. If the cache does not support a claim, do not make it. Give the best move the DATA shows, never a guess that merely sounds good. Output valid JSON only -- no markdown, just JSON.';
+      // LEGACY PROMPT ASSEMBLY REMOVED (Oct 14, 2026): the retired legacy
+      // generator's `system` string was still built here on every request and
+      // fed nothing -- the scaffold path below is the only generator (legacy
+      // retired Oct 7, 2026). Data prep the scaffold consumes (dietary needs,
+      // reservation parsing, cross-day used dining) remains below.
 
-      system += '\n\n=== CURRENT PARK INTELLIGENCE (use this --- do not search the web) ===\n' + parkIntelContext;
-
-      // === CHARACTER MEETS: inject the cache data + scheduling instruction (was computed but never injected) ===
-      if (charContext && charContext.trim()) {
-        system += '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext;
-        if (charPriority === 'mustDo') {
-          system += '\n\nCHARACTER SCHEDULING (MUST-DO): The group has marked character meets as a MUST-DO priority. You MUST schedule at least one character meet card on each day from the CHARACTER MEETS list above, matching the family\'s selected categories, in the correct park for that day. Use type: "character". Place each meet at a sensible time/land based on the cache windows (e.g. Galaxy\'s Edge for Star Wars, Town Square/Toontown for classic). NEVER invent a character or location not in the cache. Card schema: { t: "11:00 AM", h: "Meet [Character]", type: "character", n: "[where/tip from cache, under 180 chars]", land: "[Land]" }.';
-        } else {
-          system += '\n\nCHARACTER SCHEDULING (nice-to-have): Character meets are optional for this group. You MAY include one if it fits naturally near where the group already is, using type: "character" and only characters/locations from the cache above. Do not force it.';
-        }
-      }
-
-// Issue 1: Inject dining intel with RESV= enforcement, dietary guard, retired blocklist
-      let _diParsed = null;
-      if (diningIntel && diningIntel.length > 20) {
-        try { _diParsed = JSON.parse(diningIntel); } catch(e2) { _diParsed = null; }
-      }
-      const _diRetired = (_diParsed && _diParsed._retired) ? _diParsed._retired : [];
-      const _diRules = (_diParsed && _diParsed._meta && _diParsed._meta.rules) ? _diParsed._meta.rules : [];
-      const _diData = (_diParsed && _diParsed.data) ? _diParsed.data : diningIntel;
-system += '\n\n=== VERIFIED DINING VENUES (AUTHORITATIVE SOURCE) ===';
-      if (_diData && _diData.length > 20) {
-system += '\nThe following is the ONLY authoritative list of dining venues. Use ONLY these names:';
-system += '\n' + _diData;
-      }
-      if (_diRetired.length > 0) {
-system += '\n\n=== RETIRED/CLOSED VENUES - NEVER MENTION ===';
-system += '\nDo NOT suggest, name, or reference any of these venues: ' + _diRetired.join(', ');
-      }
-      if (_diRules.length > 0) {
-system += '\n\n=== DINING RULES (MUST FOLLOW) ===';
-      system += '\nMeals must be IN-PARK venues from the cache. Do not place hotel or Downtown Disney restaurants unless the trip config has a confirmed reservation there.';
-system += '\n' + _diRules.join('\n');
-      } else {
-system += '\n\nRESV= ENFORCEMENT RULES:';
-system += '\n- RESV=walkup: walk up any time. ONLY these venues fill a standard meal slot by default.';
-system += '\n- RESV=required: NEVER schedule as default meal. Only include if trip config has a CONFIRMED reservation. Otherwise optional suggestion: reservation required, book ~60 days out on Disneyland app.';
-system += '\n- RESV=recommended: may fill a meal slot but card must note wait risk and suggest booking ahead.';
-system += '\n- RESV=never_meal: NEVER place in any meal slot. Only as optional experience if group already booked it.';
-system += '\n- CACHE IS SINGLE SOURCE OF TRUTH: never name a venue or dish from training data, only from this file.';
-      }
       const _hasDiet = tripConfig && tripConfig.groupProfile && tripConfig.groupProfile.dietary;
       const _dietNeeds = _hasDiet ? (Array.isArray(tripConfig.groupProfile.dietary) ? tripConfig.groupProfile.dietary : [tripConfig.groupProfile.dietary]) : [];
-      if (_dietNeeds.length > 0) {
-system += '\n\nDIETARY: Show VEG/VEGAN/GF ONLY for group needs: ' + _dietNeeds.join(', ') + '. Only show if venue cache entry explicitly has that field.';
-      } else {
-system += '\n\nDo NOT show dietary tags (VEG/VEGAN/GF) unless the group selected that dietary need.';
-      }
-
-
-      const _mh = (tripConfig && tripConfig.minHeight) || 'over48';
-      if (_mh && _mh !== 'over48') {
-        const _lbl = _mh === 'under40' ? 'under 40 inches' : (_mh === '40to46' ? '40-46 inches' : '46-48 inches');
-        system += '\nGROUP HEIGHT CONSTRAINT: The shortest person in the group is ' + _lbl + '. For any attraction whose height requirement exceeds that, do NOT schedule it as a whole-group stop -- either skip it or schedule it as a rider swap and say so in the card note (n field). Never send the whole group to a ride the shortest member cannot board.';
-      }
-
-            // WDW contamination guard: rides/attractions/shows must be real Disneyland Resort ones (parallels dining governance)
-      system += '\n\n=== ATTRACTION GOVERNANCE (MUST FOLLOW) ===';
-      system += '\nEvery ride, attraction, and show you schedule MUST be a REAL, currently-operating Disneyland Resort attraction --- located in Disneyland Park or Disney California Adventure ONLY.';
-      system += '\nNEVER schedule a Walt Disney World / Florida attraction or any attraction that does not exist at the Disneyland Resort. Do NOT invent attractions.';
-      system += '\nSchedule ONLY attractions in the cache LAND MAP / WAIT PATTERNS. No Walt Disney World rides, no invented rides. Current names only (Tiana\'s Bayou Adventure, never Splash Mountain); never list the same ride twice.';
-      system += '\nNEVER type a restaurant as a ride. A name like "Cinderella Royal Table", "Be Our Guest", "Blue Bayou", "Cafe Orleans" is DINING, never type:"ride". If it is a place to eat, it is a dining/quickservice/snack card, never a ride.';
-      system += '\nThe LAND MAP and WAIT PATTERNS in the PARK INTELLIGENCE section above are the authoritative list of valid Disneyland Resort attractions. If an attraction is not consistent with that intelligence, do NOT schedule it.';
 
       // Part C: Parse flat reservation strings from tripConfig.reservations
       // Merges with tripConfig.dining.reservations if structured objects exist
@@ -508,109 +451,9 @@ const usedVenues = (tripConfig && tripConfig.dining && tripConfig.dining.usedVen
 const allUsedDining = Array.from(new Set([...usedQS, ...usedVenues]));
 console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringify(allUsedDining));
 
-      system += '\n\n=== DINING SYSTEM RULES --- NEVER VIOLATE ===';
-          system += '\n\nCONFIRMED RESERVATIONS --- FIXED ANCHORS:';
-          const _resDetails = _allReservations.map(function(r) {
-            if (!r || !r.name) return null;
-            let d = r.name;
-            if (r.time) d += ' at ' + r.time;
-            if (r.day) d += ' (Day ' + r.day + ')';
-            return d;
-          }).filter(Boolean);
-          system += '\nConfirmed: ' + (_resDetails.join('; ') || 'none');
-          system += '\n\nCONFIRMED RESERVATION BLACKOUT RULE: When a confirmed dining reservation exists, that reservation IS the meal for that window. NEVER schedule any other restaurant, quick-service meal, or dining suggestion within ~2.5 hours of that reservation time. Do not offer alternatives for that meal slot. Example: if Cafe Orleans is confirmed at 7:00 PM, nothing else may be scheduled from 4:30 PM to 9:30 PM that day.';
-          system += '\n\nQUICK SERVICE SUGGESTIONS (type: "quickservice"):';
-          system += '\nAll AI-generated dining slots must use quick service restaurants ONLY.';
-          system += '\nRULES:';
-          system += '\n1. Never use the same restaurant more than once across the entire trip';
-          system += '\n2. Never use any restaurant in the confirmed list above';
-          system += '\n3. Never use table service restaurants as primary recommendations';
-          system += '\n4. Always pick from venues in the VERIFIED DINING VENUES section above (from cache)';
-          system += '\n5. You MAY mention a table service restaurant once per trip in a note line only --- one sentence maximum';
-          system += '\n6. Already used dining venues this trip (DO NOT REPEAT ANY): ' + (allUsedDining.join(', ') || 'none');
-          system += "\n7. PARK-SPECIFIC RULE: Only suggest restaurants physically located in the park the guest is currently in.";
-          system += '\n8. NO REPEAT RULE (ABSOLUTE): Never use the same restaurant or snack location more than once across the ENTIRE trip.';
-system += '\n9. CROSS-DAY CHECK: The already-used list in rule 6 contains venues from prior days. Never use any of them.';
-          system += '\n\nQUICK SERVICE CARD SCHEMA: { t: "12:00 PM", h: "Rancho del Zocalo Restaurante", type: "quickservice", n: "Counter service Mexican food in Frontierland.", topPick: "Carne Asada Platter", veg: "Cheese Enchiladas", kids: "Kids Cheese Quesadilla", land: "Frontierland" }';
-          system += '\n\nSNACK STOPS (type: "snack"):';
-          system += '\nSNACK FREQUENCY RULES (ABSOLUTE):\n- Maximum ONE snack stop in the morning (before noon) per day\n- Maximum ONE snack stop in the afternoon (after noon) per day\n- NEVER place two snack cards consecutively with less than 2 hours between them';
-          system += '\nSame no-repeat rule --- never the same snack location twice per trip.';
-          system += '\nSNACK CARD SCHEMA: { t: "2:30 PM", h: "Afternoon Snack: Dole Whip", type: "snack", n: "Pineapple Dole Whip at the Tiki Juice Bar near the Enchanted Tiki Room.", land: "Adventureland" }';
-          system += '\nCRITICAL: Snack cards MUST NOT include topPick, veg, or kids fields.';
-          system += '\n\nAFTERNOON BREAK CARDS (type: "break"):';
-          system += '\nAfternoon break notes should mention that this is also a good time for shopping.';
-
-      system += '\n\n=== PARK ARRIVAL RULE ===';
-          system += '\nArrival: 1 hour before park open (use PARK HOURS cache for exact open time).'; system += '\nPRE-OPEN HOUR IS POSITIONING ONLY: arrival, bag check/security, walk to rope-drop land, waiting at the rope. These are type: tip cards. NEVER schedule type: ride before park opens.'; system += '\nFIRST RIDE RULE (ABSOLUTE - DAYS OFTEN START TOO LATE): The first type:ride card MUST be at open-time + 5 minutes (e.g. 8:00 AM open -> first ride at 8:05 AM). Read actual open time from PARK HOURS cache. Never assume 8:00 AM. The first ride must NOT be an hour (or even 30 min) after open -- rope drop is the single most valuable low-wait window of the day and must not be wasted. After the first ride at open+5, continue rides every 15-30 min. Never place a ride before or at arrival time.'; system += '\nROPE-DROP VARIETY ACROSS DAYS (IMPORTANT): Do NOT make every day\'s rope-drop the same ride or the same strategy text. Vary the first ride by day based on the cache and which park you are in: e.g. one Disneyland day may rope-drop Rise of the Resistance, another may rope-drop Peter Pan\'s Flight or Space Mountain; a DCA day ropes Radiator Springs Racers. Each day\'s rope-drop tip must be specific to THAT day\'s park and priorities, not a copy of the previous day. If two days are in the same park, choose a different first ride or note why the same one repeats.';
-          system += '\nROPE-DROP MUST BE A HEADLINER (DATA-DRIVEN): The rope-drop ride is the single most valuable low-wait window of the day -- spend it on a HIGH-DEMAND, high-wait headliner the WAIT PATTERNS cache shows builds long lines later (e.g. Rise of the Resistance, Space Mountain, Indiana Jones, Big Thunder, Radiator Springs Racers, Web Slingers, Guardians). NEVER waste rope drop on a low-wait ride like It\'s a Small World, Peter Pan can be an exception only if the cache shows it spikes early. Pick the rope-drop ride by the wait the cache reports, and make each day a DIFFERENT headliner from the prior day in that park.';
-          system += '\nROPE-DROP BY PARK (EXPLICIT): On a DISNEY CALIFORNIA ADVENTURE (DCA) day, the rope-drop ride MUST be Radiator Springs Racers -- it is the single highest-demand ride at DCA and the rope-drop window saves the most time there. Do NOT rope-drop Incredicoaster or a lower-demand DCA ride. On a DISNEYLAND PARK day, the rope-drop ride should be Star Wars: Rise of the Resistance; if Rise was already the rope-drop on a prior Disneyland day, use the next-highest-demand headliner the cache shows (e.g. Space Mountain or Indiana Jones) -- not the same ride twice and not a low-wait ride.';
-
-      system += '\n\n=== MORNING RHYTHM RULES --- REQUIRED ON ALL DAYS ===';
-          system += '\nEvery day must include: (1) Arrival tip 60 min before open, (2) Rope drop / Lightning Lane tip, (3) First 2-3 rides, (4) MORNING SNACK between 9:00 AM and 10:30 AM, (5) RESTROOM BREAK (type: "break") before 10:30 AM, (6) Continue mid-morning rides.';
-          system += '\nEXCEPTION (VIP DAY): The morning snack and restroom break are NOT required on a VIP day. If the VIP tour starts at or before 10:30 AM, DO NOT schedule a morning snack OR a restroom break at all -- they would land in the tour window, which is forbidden. Skip them entirely. Only schedule pre-tour rides/tips that fully complete BEFORE vipStart.';
-
-      system += '\n\n=== VIP TOUR HOURS RULE (ABSOLUTE - OVERRIDES MORNING RHYTHM AND NO-GAPS RULES) ===';
-          system += '\nOn a VIP day, the guide handles EVERYTHING from vipStart to vipEnd (read the exact times from the day config).';
-          system += '\nDURING THE TOUR WINDOW (vipStart to vipEnd): schedule ABSOLUTELY NOTHING -- no rides, no meals, no snacks, no restroom breaks, no tips. The morning-rhythm rule and the no-gaps rule DO NOT APPLY inside this window. A large gap here is CORRECT and REQUIRED.';
-          system += '\nInsert EXACTLY ONE card for the entire tour: { t: vipStart, h: "VIP Tour", type: "vip", n: "Your private guide handles all skip-the-line access from " + vipStart + " to " + vipEnd + ".", land: "" }. The start and end times go in the note.';
-          system += '\nSTRUCTURAL RULE (self-check before returning): Across the ENTIRE day, the number of cards whose title (h) contains the word "Tour", "VIP", "Regroup", "Check-in", "Check-In", "Meet your guide", "Wrap", "Begins", "Ends", or "Complete" must be EXACTLY ONE -- the single "VIP Tour" card. If you count two or more, DELETE the extras. There is no regroup card, no check-in card, no completion card, no meet-the-guide card -- by ANY name or synonym. The tour is represented by ONE card, period.';
-          system += '\nThe card at time vipEnd (or the first card after it) MUST be a real activity with type "ride", "dining", "quickservice", "snack", or "show" -- e.g. dinner or a ride. It must NOT be a tip/break/regroup card and must NOT mention the tour. Same for the card just before vipStart: a real pre-tour ride or arrival tip, not a tour-related card.';
-          system += '\nBEFORE vipStart: schedule normally (arrival, rope drop, morning rides/snack) only if the park opens before the tour starts -- fit rides into that pre-tour window.';
-          system += '\nAFTER vipEnd (CRITICAL - VIP DAYS UNDERFILL THE EVENING): The tour ending is NOT the end of the day. Resume FULL normal scheduling from vipEnd onward -- dinner, multiple evening rides, nighttime show, and MORE rides after the show. The SCHEDULE COMPLETENESS RULE below applies in full: the last activity must be within 30 min of actual park close. A VIP day that ends at 5 or 6 PM is WRONG -- the guest still has the whole evening in the park. Fill vipEnd-to-close exactly as densely as a normal day evening.';
-          system += '\nThe single VIP card is the ONLY entry between vipStart and vipEnd. Never label meals or snacks as occurring during the VIP tour.';
-          system += '\nNO CARD may have a time t that is >= vipStart AND < vipEnd, except the single VIP Tour card itself. This includes restroom breaks, snacks, hydration, regroup, and tips. A restroom break at 10:15 when the tour starts at 10:00 is a VIOLATION. The next card after the VIP Tour card must be at or after vipEnd.';
-
-      system += '\n\n=== SCHEDULE COMPLETENESS RULE - STRICTLY ENFORCED ===';
-system += '\nEvery day MUST have schedule entries from arrival time through ACTUAL PARK CLOSING TIME.';
-system += '\nCheck PARK_HOURS in the TRIP CONTEXT section for the actual closing time.';
-system += '\nDisneyland summer hours are typically 11:00 PM or midnight. DCA is typically 10:00 PM or 11:00 PM.';
-system += '\nThe LAST scheduled activity must be within 30 minutes of park closing time.';
-system += '\nAfter any nighttime show (fireworks, Fantasmic!, World of Color, Paint the Night):';
-system += '\n  ALWAYS schedule 3-5 additional rides from show end until 30 min before close.';
-system += '\n  NEVER end the schedule with a park exit or departure prep card while park is open 45+ more minutes.';
-system += '\n  For 11 PM close: last activity must be 10:30 PM or later.';
-system += '\n  For midnight close: last activity must be 11:30 PM or later.';
-system += '\n  For 10 PM close: last activity must be 9:30 PM or later.';
-system += '\nNEVER end a day at 8:50 PM or 9:00 PM unless that is confirmed park closing time from cache.';
-          system += '\nEvery day MUST have schedule entries from arrival time through actual park closing time.';
-          system += '\nNOTE LENGTH RULE (ABSOLUTE): Keep all note fields (n) under 180 characters — one or two concise sentences, and always finish the sentence (never cut off mid-word or mid-thought).';
-          system += '\nCHARACTER ENCODING RULE: NEVER use special symbols, emoji, checkmarks, bullets, stars, or any non-ASCII characters in card titles (h field) or notes (n field). Use plain ASCII only.';
-
-      // === PARK PRESENCE MODEL (ABSOLUTE - overrides Lightning Lane and ride/dining selection) ===
-      system += '\n\n=== PARK PRESENCE MODEL (ABSOLUTE) ===';
-      system += '\nAt every moment of the day the group is physically in EXACTLY ONE park (Disneyland Park OR Disney California Adventure). The guest cannot be in two parks at once and cannot bounce between parks for a single ride. Track the CURRENT PARK as the day progresses.';
-      system += '\nEVERY ride, show, snack, dining, character meet, AND Lightning Lane booking you schedule at a given time MUST be located in the CURRENT PARK at that time. Never schedule an attraction or LL in the park the group is not currently in. Use the LAND MAP / cache to know which park each attraction and venue belongs to (e.g. Cozy Cone, Incredicoaster, Pixar Pier, Avengers Campus, Cars Land, San Fransokyo, Grizzly Peak = DCA; New Orleans Square, Fantasyland, Tomorrowland, Galaxy\'s Edge, Adventureland, Frontierland, Toontown, Main Street = Disneyland Park).';
-      system += '\nLIGHTNING LANE IS SUBORDINATE TO PARK PRESENCE: only book an LL for a ride in the park the group is in (or will be in) at the LL return window. Never book an LL that would require being in the other park while the schedule has the group in this one. Park location decides the plan; LL fits around it, never the reverse.';
-
-      if (tripConfig && tripConfig.parkHopping) {
-              system += '\n\n=== PARK HOPPING (HOPPER TICKETS - CACHE-DRIVEN) ===';
-              system += '\nThis group HAS park hopper tickets. Plan at least ONE hop. START at startPark and rope drop there.';
-              system += '\nFIRST HOP TIMING IS DATA-DRIVEN: use the PARK HOP STRATEGY / crowd-flow cache to choose the hop window (typically when the first park\'s priority rides are done and the second park\'s waits/value are better). Do NOT invent an arbitrary time or hop on a feeling. If the cache gives no specific guidance, hop after the morning priorities (late morning / early afternoon) and say so plainly.';
-              system += '\nAfter the hop, all rides/dining/LL must be in the SECOND park (per the PARK PRESENCE MODEL) until the next hop or end of day.';
-              system += '\nLATE SECOND HOP (IMPORTANT): If the two parks have DIFFERENT closing times, do NOT end the night when the earlier-closing park closes. If the group is in the earlier-closing park and the OTHER park is still open 1-2 hours longer, hop back to the later-closing park and keep riding until ~30 min before ITS close. Leaving one park at night does NOT mean going home -- use the extra open hours in the other park. Use the PARK HOURS cache for both parks\' close times. This applies even if it means a second hop late in the evening.';
-              system += '\nSchedule the final activity within ~30 min of the LATEST park close available to the group that day (whichever park is open latest).';
-      } else {
-              system += '\n\n=== SINGLE PARK (NO HOPPER) ===';
-              system += '\nThis group does NOT have park hopper tickets for this day. The ENTIRE day is in startPark ONLY. Do NOT schedule any ride, show, snack, dining, character meet, or LL in the other park at any point. There is no hop. Every item from arrival to close is in startPark.';
-      }
           console.log('[generateschedule] mode:', mode || 'default', 'char_priority:', charPriority);
 
-      system += '\n\n=== NO GAPS RULE (ABSOLUTE) ===';
-          system += '\nNever leave a gap longer than 45 minutes between consecutive schedule items.';
 
-      system += '\n\n=== DINING PEAK HOURS RULE (ABSOLUTE) ===';
-system += '\nNever schedule any QS meal or sit-down dining between 12:00 PM and 1:30 PM (peak lunch rush).';
-system += '\nNever schedule any QS meal or sit-down dining between 5:30 PM and 7:30 PM (peak dinner rush).';
-system += '\nLUNCH windows: 11:00 AM-11:45 AM (early) OR 1:30 PM-2:30 PM (late).';
-system += '\nDINNER windows: 4:30 PM-5:30 PM (early) OR 7:30 PM-9:00 PM (late).';
-      system += '\n\nMeal titles name the venue: "Dinner: Cafe Orleans", never a bare "Dinner" or "Early Dinner".';
-system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree. If the note says to avoid the 6-7 PM rush, the card time MUST be before 5:30 PM or after 7:30 PM. Never schedule a meal at 6:15 PM with a note warning about 6 PM crowds.';
-          system += '\nTIME BOUNDS RULE (ABSOLUTE):\nNever schedule any item before 7:00 AM or after park close.\n\nLIGHTNING LANE REMINDER CARDS (REQUIRED):\nEvery schedule must include Lightning Lane reminder tip cards throughout the day. Include:\n1. Opening LL tip (7:00-7:30 AM)\n2. Second booking reminder (~10:00 AM)\n3. Afternoon check (~1:30-2:00 PM)\n4. Final window (~4:00 PM)';
-          system += '\n\nLIGHTNING LANE CARD SCHEMA (REQUIRED): Every LL booking tip card MUST include the ll field. Use this schema: { "t": "9:00 AM", "h": "Book [Ride Name] via Lightning Lane", "type": "tip", "land": "[Land Name]", "n": "Book now - return window typically X:XX PM", "ll": { "t": "multi", "a": "Book [Ride] LLMP now - return ~X:XX PM" }, "ride": "[Exact Ride Name]" }';
-          system += '\nFor paid Individual Lightning Lane: use ll.t = "single". For LLMP: use ll.t = "multi".';
-          system += '\nLL PRIORITY (DATA-DRIVEN): Spend Lightning Lane on the HIGHEST-WAIT, highest-demand rides the WAIT PATTERNS cache shows -- the headliners where LL saves the most time (e.g. the big coasters, Rise of the Resistance, Radiator Springs Racers, Indiana Jones, Web Slingers). Do NOT spend an LL on a low-wait ride the cache shows is usually a short standby (e.g. Jungle Cruise, small Fantasyland dark rides) -- those are better as walk-ons or short standby waits. Choose each LL by the actual wait the cache reports, never at random. Do not book an LL for a ride you already rope-dropped.';
-          system += '\nRise of the Resistance and Radiator Springs Racers are Single Pass (ll.t="single"); every other LL ride is Multi Pass (ll.t="multi").';
-          system += '\nIf tripConfig shows hasLL: false or no Lightning Lane for this day, do NOT generate LL cards and do NOT include ll fields on any item.';
 
       // ============================================================
       // SCAFFOLD PATH -- the ONLY generator (LEGACY RETIRED Oct 7, 2026,
@@ -937,6 +780,7 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
               body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system: _system, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
             });
             const d = await r.json();
+            console.log('[scaffold] fill usage: input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' cache_creation=' + ((d.usage && d.usage.cache_creation_input_tokens) ?? 0) + ' cache_read=' + ((d.usage && d.usage.cache_read_input_tokens) ?? 0));
             if (d.error) throw new Error(d.error.message);
             let t = ''; for (const b of (d.content || [])) if (b.type === 'text') t += b.text;
             return { arr: extractJSON(t), model: d.model, text: t };
@@ -1127,90 +971,11 @@ system += '\nCONSISTENCY RULE (ABSOLUTE): The meal time and meal note MUST agree
         }
       }
 
-      // ============================================================
-      // LEGACY GENERATOR -- RETIRED Oct 7, 2026: UNREACHABLE.
-      // The scaffold block above returns on success (200) and on error
-      // (502 safe failure), so control never reaches this code. Kept
-      // in-file for a later cleanup commit. Also noted for that cleanup:
-      // the legacy prompt assembly ABOVE the scaffold block (system /
-      // park-intel context building) still executes per request; its
-      // outputs now feed nothing but this dead block.
-      // ============================================================
-      // -- B: Model is hardcoded --- never use req.body.model or any client value
-      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-              signal: controller.signal,
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 8000) }] })
-      });
+      // LEGACY GENERATOR BODY REMOVED (Oct 14, 2026): it was unreachable
+      // since the Oct 7, 2026 retirement -- the scaffold block above returns
+      // on success (200) and on error (502) -- and its prompt assembly was
+      // removed in the same cleanup. The scaffold is the only generator.
 
-      const data = await anthropicRes.json();
-          if (data.error) return res.status(500).json({ error: data.error.message });
-
-      let text = '';
-          for (const block of (data.content || [])) {
-                  if (block.type === 'text') text += block.text;
-          }
-
-      if (!text) return res.status(200).json({ error: 'Empty response', stop_reason: data.stop_reason });
-
-      const parsed = extractJSON(text);
-
-      if (parsed && Array.isArray(parsed)) {
-              try {
-                        const safeConfig = tripConfig || {};
-                        const _day0 = (safeConfig.days && safeConfig.days[0]) || {};
-                        const _dayPark = _day0.park || 'Disneyland';
-                        // Parse close times from PARK_HOURS cache text (generic, any trip). Returns minutes-since-midnight.
-                        const _toMin = (h, mm, mer) => { let hh = parseInt(h, 10); const pm = /pm/i.test(mer); if (pm && hh !== 12) hh += 12; if (!pm && hh === 12) hh = 0; return hh * 60 + (mm ? parseInt(mm, 10) : 0); };
-                        const _hoursTxt = (cacheCtx.PARK_HOURS || '');
-                        function _closeFor(parkRe) {
-                          // find a line mentioning the park, take its closing time. Handle 'midnight' word and 12:00 AM (=end-of-day 1440).
-                          const lines = _hoursTxt.split(/\n/);
-                          for (const ln of lines) {
-                            if (!parkRe.test(ln)) continue;
-                            if (/midnight/i.test(ln)) return 24 * 60;
-                            const times = [...ln.matchAll(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM|noon)/gi)];
-                            if (times.length) {
-                              const t = times[times.length - 1];
-                              if (/noon/i.test(t[3])) return 12 * 60;
-                              let mins = _toMin(t[1], t[2], t[3]);
-                              if (mins === 0) mins = 24 * 60; // 12:00 AM as a CLOSING time = end-of-day midnight
-                              return mins;
-                            }
-                          }
-                          return null;
-                        }
-                        const _dlClose = _closeFor(/disneyland|\bDL\b/i);
-                        const _dcaClose = _closeFor(/california adventure|\bDCA\b/i);
-                        const _isDca = /california|dca|adventure/i.test(_dayPark);
-                        const _myClose = _isDca ? _dcaClose : _dlClose;
-                        const _bothMax = [_dlClose, _dcaClose].filter(x => typeof x === 'number');
-                        const _latest = _bothMax.length ? Math.max(..._bothMax) : null;
-                        const _dayObj = { items: parsed, park: _dayPark };
-                        if (typeof _myClose === 'number') _dayObj.closeMin = _myClose;
-                        // latestCloseMin only matters for hoppers (late second hop to later-closing park)
-                        if (safeConfig.parkHopping && typeof _latest === 'number') _dayObj.latestCloseMin = _latest;
-                        if (typeof _dlClose === 'number' && _dlClose > 0) _dayObj.dlCloseMin = _dlClose;
-                        if (typeof _dcaClose === 'number' && _dcaClose > 0) _dayObj.dcaCloseMin = _dcaClose;
-                        console.log('[generateschedule] close times -> DL:', _dlClose, 'DCA:', _dcaClose, 'dayPark:', _dayPark, 'closeMin:', _dayObj.closeMin, 'latestCloseMin:', _dayObj.latestCloseMin);
-                        const singleDaySchedule = { days: [_dayObj] };
-                        const closedFromCache = parseClosedFromCache(cacheCtx.CURRENT_CLOSURES || '');
-                        console.log('[generateschedule] closed from cache:', JSON.stringify(closedFromCache));
-                        const valResult = validateSchedule(singleDaySchedule, safeConfig, closedFromCache, allUsedDining);
-                        const validatedItems = valResult.schedule.days[0].items;
-                        if (valResult.corrections && valResult.corrections.length > 0) {
-                                    console.log('[generateschedule] validator corrections:', JSON.stringify(valResult.corrections));
-                        }
-                        if (valResult.hardViolations && valResult.hardViolations.length > 0) {
-                                    console.warn('[generateschedule] validator hard violations:', JSON.stringify(valResult.hardViolations));
-                        }
-                        return res.status(200).json({ ok: true, text, parsed: validatedItems, model: data.model });
-              } catch (valErr) {
-                        console.error('[generateschedule] validator error:', valErr.message);
-              }
-      }
-          return res.status(200).json({ ok: true, text, parsed, model: data.model });
 
     } catch (e) {
           if (e.name === 'AbortError') {

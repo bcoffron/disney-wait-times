@@ -284,6 +284,13 @@ export default async function handler(req, res) {
   const ridePrefsHeader = (context || '').startsWith('GUEST RIDE PREFERENCES:')
         ? (context || '').split('\n\n')[0] + '\n\n' : '';
 
+  // PROMPT CACHING: deliberately OFF here (measured Oct 14, 2026).
+  // Haiku 4.5 silently ignores cache_control on prefixes under 4,096
+  // tokens; this prompt's stable prefix measures ~2,153 tokens (full
+  // system ~2,568), so a breakpoint would be decorative. Do not add
+  // cache_control until the stable prefix crosses 4,096. The usage log
+  // at the API call keeps cache_creation/cache_read on record (zeros
+  // today -- that is the signal). See cache-measure-harness notes.
   // ------ Build system prompt --- inject cache context ---------------------------------------------------------------------------------------
   let systemPrompt = system || 'You are a helpful Disneyland trip planning assistant with deep knowledge of wait times, crowd patterns, rope drop strategy, Lightning Lane, dining, and all aspects of a Disneyland Resort visit. You speak like a brilliant knowledgeable friend --- specific, warm, and actionable.';
       systemPrompt += '\n\nCRITICAL RULE \u2014 NEVER hedge or say information is unavailable:\nYou have complete park intelligence including park hours, live wait data, current closures, and trip-specific context.\nNEVER say: "I cannot retrieve", "wasn\'t available", "check the website", "I don\'t have that information", or any similar hedge.\nLIVE WAITS: The LIVE STANDBY WAITS section holds real-time standby times fetched just now. When asked "what\'s the wait right now" for a ride, READ ITS NUMBER FROM THAT SECTION and give it directly. If the ride is listed under CURRENTLY DOWN / NOT OPERATING, say it is currently down right now (do NOT invent a wait number for it), then add what the typical wait is when it is running. ONLY if a ride is not in the LIVE STANDBY WAITS section at all should you estimate from the historical WAIT PATTERNS, and when you do, say the number is a typical-pattern estimate, not a live reading. If the LIVE STANDBY WAITS section says it is unavailable, estimate from WAIT PATTERNS and say so.\nPARK HOURS: Always read from the PARK HOURS section in your context. That is the authoritative source.\nROPE DROP STRATEGY: Use the ROPE DROP STRATEGY section in your context \u2014 it is the authoritative, verified source and is updated regularly. Do NOT recite a fixed ride order from memory; the best rope-drop pick varies by park and conditions, so read it from the context.\nCLOSURES: Use the CURRENT CLOSURES section in your context as the authoritative, weekly-updated source for what is closed. Do NOT state any specific ride is closed from memory \u2014 a ride is only closed if the CURRENT CLOSURES context says so, and a ride with a reopening date on or before the trip is OPEN. If a ride is not mentioned as closed in your context, treat it as operating.\nYou are a brilliant knowledgeable friend. Answer every question directly and confidently using the data in your context.';
@@ -328,6 +335,7 @@ export default async function handler(req, res) {
         });
 
         const data = await resp.json();
+        console.log('[ai] usage: input=' + ((data.usage && data.usage.input_tokens) ?? '?') + ' output=' + ((data.usage && data.usage.output_tokens) ?? '?') + ' cache_creation=' + ((data.usage && data.usage.cache_creation_input_tokens) ?? 0) + ' cache_read=' + ((data.usage && data.usage.cache_read_input_tokens) ?? 0));
               if (data.error) return res.status(500).json({ error: data.error.message });
 
         let text = '';

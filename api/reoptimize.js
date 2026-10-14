@@ -353,6 +353,12 @@ async function handler(req, res) {
 
       console.log('[reoptimize] scheduleItems received:', scheduleItems ? scheduleItems.length : 'null', '| dayLabel:', dayLabel || 'none', '| tripDayDate:', tripDayDate || 'none', '| isInTrip:', isInTrip, '| existingSections:', existingSections ? 'built' : 'null');
 
+      // PROMPT CACHING: deliberately OFF here (measured Oct 14, 2026).
+      // Haiku 4.5 silently ignores cache_control on prefixes under 4,096
+      // tokens; this prompt's stable prefix measures ~3,033 tokens, so a
+      // breakpoint would be decorative. Do not add cache_control until
+      // the stable prefix crosses 4,096. The usage log at the API call
+      // keeps cache_creation/cache_read on record (zeros today).
       // ------ New system prompt (wait-first, walk-second, all-items preserved) ---------------
       var systemPrompt =
               'You are an expert Disneyland schedule optimizer. ' +
@@ -498,6 +504,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                   body: JSON.stringify({ model: MODEL, temperature: 0, max_tokens: 8000, system: systemPrompt, messages: [{ role: 'user', content: cappedMessage }] })
           });
           const data = await anthropicRes.json();
+          console.log('[reoptimize] usage: input=' + ((data.usage && data.usage.input_tokens) ?? '?') + ' output=' + ((data.usage && data.usage.output_tokens) ?? '?') + ' cache_creation=' + ((data.usage && data.usage.cache_creation_input_tokens) ?? 0) + ' cache_read=' + ((data.usage && data.usage.cache_read_input_tokens) ?? 0));
 
       const rawText = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
           const stopReason = data.stop_reason || '';
