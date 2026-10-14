@@ -1,5 +1,6 @@
 // api/trip.js - Trip code registry handler
 import { put, list, del } from '@vercel/blob';
+import { matchesKey } from './lib/blob.js';
 // validateSchedule is intentionally NOT imported here: saves must not rewrite schedules (see note in the POST handler).
 // scaffold.js IS imported, but only for the read-only trip-level surfacing
 // computation (computeTripSurfacing) in the POST handler: it reads the final
@@ -669,18 +670,50 @@ export default async function handler(req, res) {
       }
 
       if (body.action === 'delete_blob') {
-        const { blobKey } = body;
-        if (!blobKey || typeof blobKey !== 'string') return res.status(400).json({ error: 'Missing blobKey' });
-        // Safety: only allow deleting trip_ blobs to prevent accidents
-        if (!blobKey.startsWith('twize/trip_') && !blobKey.startsWith('twize/current_schedule')) {
-          return res.status(400).json({ error: 'Only trip_ and current_schedule blobs may be deleted' });
+        // C5 narrowed contract: the caller names a TARGET, never a raw blob
+        // prefix. The old shape took a caller-supplied blobKey and deleted
+        // every blob listed under that prefix string, so a delete aimed at
+        // twize/trip_ann also swept trip_anna and trip_annette (prefix
+        // sharing), with no family check, cap, or dry run. Targets now
+        // resolve server-side to an exact key family — the key itself plus
+        // its random-suffix variants, the lib's matchesKey rule — so a
+        // delete can only ever reach its own family. dryRun follows the C1
+        // pattern: report { listed, matched, count }, delete nothing.
+        const dryRun = body.dryRun === true;
+        let familyKeys = null;
+        let targetLabel = null;
+        if (typeof body.tripId === 'string' && body.tripId) {
+          if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(body.tripId)) {
+            return res.status(400).json({ error: 'Invalid tripId' });
+          }
+          // The salted key (when a salt is set) plus the legacy bare key,
+          // always: a trip's blob may live under either across the salt
+          // transition, and the resolution must not depend on the salt
+          // staying set.
+          familyKeys = [...new Set([tripSaltedKey(body.tripId), tripBareKey(body.tripId)])];
+          targetLabel = 'trip:' + body.tripId;
+        } else if (body.target === 'current_schedule') {
+          familyKeys = ['twize/current_schedule.json']; // schedule.js SCHEDULE_BLOB_KEY
+          targetLabel = 'current_schedule';
+        } else {
+          return res.status(400).json({ error: 'delete_blob requires { tripId } or { target: "current_schedule" }; caller-supplied blobKey prefixes are no longer accepted' });
         }
         try {
-          const { blobs } = await list({ prefix: blobKey });
-          if (!blobs || blobs.length === 0) return res.status(200).json({ ok: true, deleted: 0 });
-          await del(blobs.map(b => b.url));
-          console.log('[trip] deleted blob(s):', blobKey, 'count:', blobs.length);
-          return res.status(200).json({ ok: true, deleted: blobs.length, key: blobKey });
+          const listed = [];
+          const matched = [];
+          for (const key of familyKeys) {
+            const { blobs } = await list({ prefix: key, limit: 1000 });
+            for (const b of (blobs || [])) {
+              listed.push(b.pathname);
+              if (matchesKey(b.pathname, key)) matched.push(b);
+            }
+          }
+          if (dryRun) {
+            return res.status(200).json({ ok: true, dryRun: true, target: targetLabel, listed: listed.length, matched: matched.map(b => b.pathname), count: matched.length });
+          }
+          if (matched.length) await del(matched.map(b => b.url));
+          console.log('[trip] deleted blob(s):', targetLabel, 'count:', matched.length);
+          return res.status(200).json({ ok: true, target: targetLabel, deleted: matched.length, pathnames: matched.map(b => b.pathname) });
         } catch(e) {
           return res.status(500).json({ error: e.message });
         }
