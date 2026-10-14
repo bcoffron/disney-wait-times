@@ -31,6 +31,7 @@
 
 import { list, put } from '@vercel/blob';
 import { safeTripCode } from './cron-booking-alerts.js';
+import { readBlobJson as readBlobJsonShared } from './lib/blob.js';
 
 export { safeTripCode };
 
@@ -98,15 +99,12 @@ async function tripCodesFor(session, presentedCode) {
 
 // ---- blob helpers (the push-episodes shapes) ------------------------------
 function diagKey(code) { return 'twize/map-diagnostics/' + code + '.json'; }
+// Suffix-tolerant via the shared reader (probe-class: a per-trip
+// diagnostics key is legitimately absent before its first write,
+// so no [SECURITY] guard). The wrapper preserves this helper's
+// historical contract - null on any failure.
 async function readBlobJson(pathname) {
-  try {
-    const { blobs } = await list({ prefix: pathname });
-    const hit = (blobs || []).find(b => b.pathname === pathname);
-    if (!hit) return null;
-    const res = await fetch(hit.url + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) { return null; }
+  try { return await readBlobJsonShared(pathname, 'map-diagnostics'); } catch (e) { return null; }
 }
 async function writeJsonBlob(pathname, obj) {
   await put(pathname, JSON.stringify(obj), {
