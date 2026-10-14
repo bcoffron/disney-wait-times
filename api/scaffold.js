@@ -1193,23 +1193,22 @@ export function diningPageUrlFor(canonKey) {
 // backfill), so card prose and photoLinks can only promise covered spots.
 // ---------------------------------------------------------------------------
 // === GENERATED PHOTO BUNDLE MANIFEST -- DO NOT HAND-EDIT ===
-// Derived from assets/photos/credits.json (sha256 0d9c092e0dcf94e6f53a773935e3eb0457b0ae4ab7006bb681112348f4aec1ff)
+// Derived from assets/photos/credits.json (sha256 669bf5a93af2aa2998933b28889b22b35917770f60af83e80d632a8febac511d)
 // plus the image files present in assets/photos/ at generation time.
-// Covered spots: 17. Regenerate: node scripts/gen-photo-manifest.mjs
+// Covered spots: 16. Regenerate: node scripts/gen-photo-manifest.mjs
 const PHOTO_BUNDLE_COVERED = {
   "avengers campus headquarters": "avengers-campus-headquarters.jpg",
   "buena vista street with carthay circle tower": "buena-vista-street-carthay-circle-tower.jpg",
-  "cars land neon signs at dusk on route 66": "cars-land-neon-signs-dusk-route-66.jpg",
-  "galaxy s edge rock spires": "galaxys-edge-rock-spires.jpg",
+  "cars land neon signs at dusk on route 66": "cars-land-neon-signs-tpcp.jpg",
+  "galaxy s edge rock spires": "millennium-falcon-plaza-tpcp.jpg",
   "it s a small world facade at night": "its-a-small-world-facade-at-night.jpg",
-  "main street castle shot": "main-street-castle-shot.jpg",
+  "main street castle shot": "main-street-castle-shot-tpcp.jpg",
   "mark twain riverboat frontierland dock": "mark-twain-riverboat-frontierland-dock.jpg",
-  "millennium falcon plaza": "millennium-falcon-plaza.jpg",
-  "new orleans square riverfront": "new-orleans-square-riverfront.jpg",
+  "millennium falcon plaza": "millennium-falcon-plaza-tpcp.jpg",
   "partners statue": "partners-statue.jpg",
   "pixar pal a round from little mermaid side": "pixar-pal-a-round-little-mermaid-side.jpg",
-  "pixar pier sunset shot": "pixar-pier-sunset-shot.jpg",
-  "radiator springs ornament valley mountain backdrop": "radiator-springs-ornament-valley-backdrop.jpg",
+  "pixar pier sunset shot": "pixar-pier-sunset-tpcp.jpg",
+  "radiator springs ornament valley mountain backdrop": "radiator-springs-ornament-valley-tpcp.jpg",
   "sleeping beauty castle at night": "sleeping-beauty-castle-at-night.jpg",
   "sleeping beauty castle front": "sleeping-beauty-castle-front.jpg",
   "snow white s wishing well grotto": "snow-whites-wishing-well-grotto.jpg",
