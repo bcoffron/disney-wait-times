@@ -410,7 +410,7 @@ if (vm.cb) vm.cb();
 var cachedPosts = [];
 async function loadPosts() {
   try {
-    const r = await fetch(API_BASE + '/api/blog-index');
+    const r = await fetch(API_BASE + '/api/blog-admin-index', { headers: { 'x-admin-key': token } });
     allPosts = await r.json();
     cachedPosts = allPosts;
     if (!Array.isArray(allPosts)) allPosts = [];

@@ -228,6 +228,9 @@
     "api/blog-index.js": {
       "maxDuration": 10
     },
+    "api/blog-admin-index.js": {
+      "maxDuration": 10
+    },
     "api/blog-save.js": {
       "maxDuration": 15
     },
