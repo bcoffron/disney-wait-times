@@ -1,17 +1,7 @@
 // api/blog-migrate.js - POST /api/blog-migrate - protected, one-time use
-// GET /api/blog-migrate?action=rebuild-index - rebuild index from blob store
-import { put, list } from '@vercel/blob';
+import { put } from '@vercel/blob';
+import { readBlobJson } from './lib/blob.js';
 const rl = {};
-
-async function readBlob(pathname) {
-  const { blobs } = await list({ prefix: pathname, limit: 10 });
-  // Sort by uploadedAt desc to get most recent, and match exact pathname
-  const matches = (blobs || []).filter(b => b.pathname === pathname).sort((a,b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  if (!matches.length) return null;
-  const r = await fetch(matches[0].url);
-  if (!r.ok) return null;
-  return r.json();
-}
 
 export default async function handler(req, res) {
   const sentToken = req.headers['x-admin-key'] || '';
@@ -35,9 +25,11 @@ export default async function handler(req, res) {
   if (!rl[ip] || now - rl[ip].start > 60000) rl[ip] = { count: 0, start: now };
   rl[ip].count++;
   if (rl[ip].count > 20) return res.status(429).json({ error: 'Rate limit exceeded' });
-  // One-time use lock check
+  // One-time use lock check. The lock key is probe-class: it is
+  // legitimately absent until the migration has run, so no
+  // expected-class guard on this read.
   try {
-    const lock = await readBlob('blog/migrate/lock');
+    const lock = await readBlobJson('blog/migrate/lock', 'blog-migrate');
     if (lock && lock.done) return res.status(410).json({ error: 'Gone: migration already completed' });
   } catch(e) { /* no lock = ok */ }
   let body = req.body;
@@ -45,7 +37,16 @@ export default async function handler(req, res) {
   const posts = Array.isArray(body) ? body : (body && Array.isArray(body.posts) ? body.posts : null);
   if (!posts) return res.status(400).json({ error: 'Body must be an array of post objects' });
   const results = { saved: [], failed: [] };
-  let index = (await readBlob('blog/posts/index')) || [];
+  // The index is expected-class: it must exist. A failed fetch now
+  // throws (the shared reader) instead of returning null - abort
+  // loudly rather than rebuilding from an empty array and writing
+  // that back over the real index.
+  let index;
+  try {
+    index = (await readBlobJson('blog/posts/index', 'blog-migrate', { expected: true })) || [];
+  } catch(e) {
+    return res.status(500).json({ error: 'Index read failed - migration aborted, nothing written' });
+  }
   for (const post of posts) {
     if (!post.slug || !/^[a-z0-9-]+$/.test(post.slug)) {
       results.failed.push({ slug: post.slug || '?', error: 'invalid slug' }); continue;
