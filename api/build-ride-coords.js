@@ -53,7 +53,7 @@ export default async function handler(req, res) {
 
 		const { put } = await import('@vercel/blob');
 		await put(COORDS_KEY, JSON.stringify(payload), {
-			access: 'public', addRandomSuffix: false, contentType: 'application/json'
+			access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json'
 		});
 
 		console.log('[ride-coords] stored ' + rides.length + ' rides (DL ' + dl.length + ', DCA ' + dca.length + ')');
