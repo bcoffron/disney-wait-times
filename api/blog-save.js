@@ -96,6 +96,18 @@ export default async function handler(req, res) {
 
   post.updatedAt = new Date().toISOString();
 
+  // Invariant: a published post has a publishedAt. A client publish
+  // path has forgotten to stamp it before (one-click publish from
+  // Drafts shipped a post with publishedAt: null, which sorted
+  // dateless to the bottom of every publishedAt-ordered list), so
+  // the invariant is enforced here - upstream of both the blob
+  // write and the index entry below, which each read
+  // post.publishedAt. An existing publishedAt is never overwritten,
+  // and drafts are never stamped.
+  if (post.published === true && !post.publishedAt) {
+    post.publishedAt = new Date().toISOString();
+  }
+
   if (post.body && typeof post.body === 'string') {
     post.body = post.body.replace(/<img([^>]*?)>/gi, function(match, attrs) {
       attrs = attrs.replace(/\s*(width|height|style)=["'][^"']*["']/gi, '');

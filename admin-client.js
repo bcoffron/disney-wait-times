@@ -701,6 +701,7 @@ const r = await fetch(API_BASE + '/api/blog-admin-post?slug=' + encodeURICompone
 if (!r.ok) { showToast('Could not load draft', 'error'); return; }
 const post = await r.json();
 post.published = true;
+if (!post.publishedAt) post.publishedAt = new Date().toISOString();
 post.updatedAt = new Date().toISOString();
 const saveR = await fetch(API_BASE + '/api/blog-save', {
 method: 'POST',
