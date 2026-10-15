@@ -2,38 +2,79 @@
 > AI-powered Disney theme park planning. Personalized daily schedules, live wait time awareness, and proactive re-routing so families spend less time waiting and more time making memories.
 
 ## About
-Theme Park Co-Pilot is an AI-powered progressive web app for planning and navigating Disney theme park days. It generates personalized schedules, monitors live wait times, and proactively re-routes guests around crowds — like a brilliant friend who knows every wait time, shortcut, and secret.
+Theme Park Co-Pilot is an iPhone app for planning and navigating Disney theme park days — currently in private beta testing, with a live web version. It generates a personalized schedule before the trip, then works as an in-park copilot: monitoring live wait times, watching Lightning Lane return windows, and proactively suggesting re-routes around crowds and closures — like a brilliant friend who knows every wait time, shortcut, and secret. Trip leaders plan and optimize; everyone in the party follows along with a shared view of the day.
 
 ## Product
 - App: https://app.themeparkcopilot.com/app.html
 - Landing page: https://themeparkcopilot.com
-- Currently supports: Disneyland and Disney California Adventure
-- Planned: Walt Disney World, Universal Studios
+- Platform: iPhone
+- Availability: private beta testing (TestFlight); the web version is live now
+- Planning support now: Disneyland and Disney California Adventure
+- In development: Walt Disney World, then Universal Orlando — the blog already publishes full Walt Disney World guides (below)
 
 ## Blog
-The Theme Park Co-Pilot blog publishes expert guides for Disney theme park planning. All content is written by Disney planning specialists with deep knowledge of wait time patterns, crowd behavior, Lightning Lane strategy, dining, and park navigation.
+The Theme Park Co-Pilot blog publishes expert guides for Disney theme park planning, checked against Disney's official sources and updated when Disney changes prices, policies, or procedures. Topics: Disneyland, Walt Disney World, Lightning Lane, rope drop strategy, dining, hotels, trip planning, character meets, height requirements, and crowd patterns.
 
 - Blog index: https://themeparkcopilot.com/blog
 - Sitemap: https://themeparkcopilot.com/sitemap.xml
-- Topics: Disneyland, Walt Disney World, Lightning Lane, rope drop strategy, dining, hotels, trip planning, character meets, height requirements, crowd calendars
 
-## Key guides
-- https://themeparkcopilot.com/blog/disneyland-rope-drop-strategy
-- https://themeparkcopilot.com/blog/how-to-use-lightning-lane-disneyland
-- https://themeparkcopilot.com/blog/how-to-plan-a-disneyland-trip
-- https://themeparkcopilot.com/blog/walt-disney-world-rope-drop-strategy
-- https://themeparkcopilot.com/blog/how-to-use-lightning-lane-walt-disney-world
-- https://themeparkcopilot.com/blog/how-to-plan-a-walt-disney-world-trip
-- https://themeparkcopilot.com/blog/magic-kingdom-guide
-- https://themeparkcopilot.com/blog/epcot-guide
-- https://themeparkcopilot.com/blog/hollywood-studios-guide
-- https://themeparkcopilot.com/blog/animal-kingdom-guide
-- https://themeparkcopilot.com/blog/disneyland-vs-disney-world
-- https://themeparkcopilot.com/blog/best-time-to-visit-disneyland
-- https://themeparkcopilot.com/blog/best-time-to-visit-walt-disney-world
+### Disneyland Resort guides
+- [Best Restaurants at Disneyland Resort: Where to Actually Eat](https://themeparkcopilot.com/blog/best-restaurants-disneyland): Disneyland Resort's best restaurants range from the iconic Blue Bayou to Lamplight Lounge, and this guide covers where to actually eat across both parks.
+- [Best Snacks at Disneyland: The Ones Worth the Detour](https://themeparkcopilot.com/blog/best-snacks-disneyland): Disneyland's best snacks are worth planning a detour for, from the Dole Whip to corn dogs and churros — here's where to find each one in the parks.
+- [Best Time to Visit Disneyland: Crowds, Prices, and What Nobody Tells You](https://themeparkcopilot.com/blog/best-time-to-visit-disneyland): The best time to visit Disneyland is mid-September through early October, or January through mid-February. Those are the quietest stretches of the year ...
+- [Disney California Adventure: The Complete Guide to the Resort's Most Underrated Park](https://themeparkcopilot.com/blog/disney-california-adventure-guide): Complete guide to Disney California Adventure in 2026 — rides, lands, what's new, morning strategy, and why DCA deserves more than a half-day.
+- [Disneyland On-Site vs. Off-Site Hotels: The Real Tradeoffs](https://themeparkcopilot.com/blog/disneyland-on-site-vs-off-site-hotels): Disneyland on-site and off-site hotels come with real tradeoffs — this guide weighs walking distance and resort perks against what you pay to stay close.
+- [Disneyland Rides Ranked: The Best Attractions and What's Actually Worth Your Time](https://themeparkcopilot.com/blog/disneyland-rides-ranked): Disneyland rides ranked from best to skip — honest assessments of every major attraction at Disneyland Park and Disney California Adventure in 2026.
+- [Disneyland Rope Drop Strategy: How to Make the Most of Your Morning](https://themeparkcopilot.com/blog/disneyland-rope-drop-strategy): The single most effective thing you can do at Disneyland costs nothing and requires no app, no reservation, and no special pass. You just have to show u...
+- [Disneyland Tips for First Timers: Everything You Need to Know Before You Go](https://themeparkcopilot.com/blog/disneyland-tips-first-timers): There is a version of a first Disneyland trip that is everything you imagined — magical, unhurried, full of moments your kids will talk about for years....
+- [Disneyland With Kids: Age-by-Age Guide to Getting the Most Out of Every Visit](https://themeparkcopilot.com/blog/disneyland-with-kids): Disneyland with kids changes by age, so this guide shows what works for toddlers, young kids, and tweens, and how to build the day around your group.
+- [Disneyland vs. Disney California Adventure: Which Park Should You Prioritize?](https://themeparkcopilot.com/blog/disneyland-vs-disney-california-adventure): Disneyland and Disney California Adventure each shine, but first-timers should prioritize Disneyland Park — here's when DCA deserves the day instead.
+- [How to Plan a Disneyland Trip Without Getting Overwhelmed](https://themeparkcopilot.com/blog/how-to-plan-a-disneyland-trip): The feeling usually sets in about 20 minutes into your research. You open one tab about tickets, click a link to another tab about Lightning Lane, find ...
+- [How to Use Lightning Lane at Disneyland (And Actually Get It Right)](https://themeparkcopilot.com/blog/how-to-use-lightning-lane-disneyland): Lightning Lane at Disneyland sounds simple until you use it, so this guide explains Multi Pass, Single Pass, when to book, and the moves that save hours.
+- [Star Wars: Galaxy's Edge at Disneyland — Everything You Need to Know Before You Go](https://themeparkcopilot.com/blog/galaxy-edge-guide-disneyland): Complete guide to Star Wars: Galaxy's Edge at Disneyland — Rise of the Resistance tips, Millennium Falcon strategy, Oga's Cantina, and how to experience Batuu properly.
+
+### Walt Disney World guides
+- [A 7-Day Walt Disney World Itinerary: How to Plan the Perfect Trip Day by Day](https://themeparkcopilot.com/blog/disney-world-itinerary-7-days): Seven days at Walt Disney World is the right amount of time to see all four parks without rushing, revisit favorites, catch what you missed, and still h...
+- [Animal Kingdom: The Complete Guide to Disney's Most Underestimated Park](https://themeparkcopilot.com/blog/animal-kingdom-guide): Animal Kingdom is the most underestimated park at Walt Disney World — and the one guests most frequently plan wrong. The half-day misconception is real,...
+- [Best Restaurants at Walt Disney World: Where to Eat at Every Budget](https://themeparkcopilot.com/blog/best-restaurants-disney-world): Walt Disney World's best restaurants span quick-service counters to signature dining, and this guide picks where to eat well at every budget in every park.
+- [Best Time to Visit Walt Disney World: Crowds, Prices, and What Nobody Tells You](https://themeparkcopilot.com/blog/best-time-to-visit-walt-disney-world): The best time to visit Walt Disney World is September — specifically, the two to three weeks after Labor Day through the end of the month. It is the qui...
+- [Disney World Annual Pass: Is It Worth It and Which Tier Should You Get](https://themeparkcopilot.com/blog/disney-world-annual-pass-guide): Disney World Annual Pass guide 2026 — all four tiers explained, who should buy one, and how to calculate if it saves money.
+- [Disney World Character Dining: Which Experiences Are Actually Worth It](https://themeparkcopilot.com/blog/disney-world-character-dining-guide): Disney World character dining ranked by value — this guide covers which experiences are worth it, what you'll pay, and how to book the ones that fit.
+- [Disney World Dining Reservations: How the System Works and Which Restaurants Are Worth Booking](https://themeparkcopilot.com/blog/disney-world-dining-reservations-guide): How to make Disney World dining reservations in 2026 — when to book, which restaurants fill first, mobile ordering tips, and which dining experiences are worth the cost.
+- [Disney World Height Requirements: Every Ride, Every Park, All in One Place](https://themeparkcopilot.com/blog/disney-world-height-requirements): Complete Disney World height requirements for all four parks in 2026 — every ride organized by park and height threshold so you can plan before you arrive.
+- [Disney World On-Site vs. Off-Site Hotels: An Honest Comparison](https://themeparkcopilot.com/blog/disney-world-on-site-vs-off-site-hotels): Disney World on-site and off-site hotels each win in different ways — this honest comparison weighs resort perks against the space and savings off-site.
+- [Disney World Resort Hotels: Which Category Is Right for Your Family](https://themeparkcopilot.com/blog/disney-world-resort-hotels-guide): Disney World resort hotels explained — value, moderate, and deluxe resorts compared, plus which specific hotels are worth it and how to choose for your trip in 2026.
+- [Disney World Stroller Guide: Rules, Rentals, and What to Bring](https://themeparkcopilot.com/blog/disney-world-stroller-guide): Disney World stroller guide for 2026 — size rules, rental costs, best strollers to bring, parking strategies, and how to manage strollers across all four parks.
+- [Disney World Tickets Explained: How the System Works and How to Buy Smart](https://themeparkcopilot.com/blog/disney-world-tickets-guide): How Disney World tickets work in 2026 — date-based pricing, multi-day savings, Park Hopper, park reservations, and where to buy tickets for the best price.
+- [Disney World Transportation Guide: How to Get Around the Resort Without a Car](https://themeparkcopilot.com/blog/disney-world-transportation-guide): Complete Disney World transportation guide — monorail, Skyliner, buses, boats, and how to get from MCO airport to Disney World without a rental car in 2026.
+- [Disney World Water Parks: Typhoon Lagoon vs. Blizzard Beach — Which Is Worth Adding to Your Trip](https://themeparkcopilot.com/blog/disney-world-water-parks-guide): Disney World water parks compared — Typhoon Lagoon vs. Blizzard Beach in 2026, what's included, the H2O Glow event, and whether to add a water park day.
+- [EPCOT Food Guide: What to Eat at Every World Showcase Pavilion](https://themeparkcopilot.com/blog/epcot-world-showcase-food-guide): EPCOT is the easiest Disney park to overeat, overspend, and still feel like you missed the best stuff. The trick is not eating something in every countr...
+- [EPCOT: A Complete Guide to Both Halves of Disney's Most Unique Park](https://themeparkcopilot.com/blog/epcot-guide): EPCOT is the hardest Disney park to explain and the one that surprises guests the most — in both directions. First-timers expecting a standard theme par...
+- [Hollywood Studios: Everything You Need to Know Before You Go](https://themeparkcopilot.com/blog/hollywood-studios-guide): The most important thing to know about Hollywood Studios before you go: it has fewer total ride attractions than Magic Kingdom or EPCOT, but it contains...
+- [How to Do Walt Disney World on a Budget: Where to Save and What's Worth Spending On](https://themeparkcopilot.com/blog/disney-world-budget-tips): Doing Walt Disney World on a budget is possible — this guide shows where to save on tickets, hotels, and dining, and which splurges are worth the money.
+- [How to Plan a Walt Disney World Trip Without Getting Overwhelmed](https://themeparkcopilot.com/blog/how-to-plan-a-walt-disney-world-trip): Walt Disney World has a way of making reasonable people feel unreasonable. You sit down to plan a vacation and somehow end up 45 minutes deep in a forum...
+- [How to Use Lightning Lane at Walt Disney World (And Actually Get It Right)](https://themeparkcopilot.com/blog/how-to-use-lightning-lane-walt-disney-world): Most families either over-invest in Lightning Lane or under-use it. They either buy the most expensive pass and still feel like they waited a lot, or th...
+- [Is the Disney World Dining Plan Worth It? A Straight Answer for 2026](https://themeparkcopilot.com/blog/disney-world-dining-plan-worth-it): Is the Disney World Dining Plan worth it in 2026? A straight answer on when it saves money, when you overpay, and how to tell which side you fall on.
+- [Magic Kingdom: Tips, Rides, and How to Make the Most of the Most Visited Park on Earth](https://themeparkcopilot.com/blog/magic-kingdom-guide): Magic Kingdom is the most visited theme park in the world — and for good reason!
+- [Mickey's Not-So-Scary Halloween Party: Is It Worth It and How to Plan Your Night](https://themeparkcopilot.com/blog/mickeys-not-so-scary-halloween-party-guide): Mickey's Not-So-Scary Halloween Party 2026 guide — dates, ticket prices, what's included, best nights to go, and whether it's actually worth the cost.
+- [Mickey's Very Merry Christmas Party: Is It Worth It and How to Plan Your Night](https://themeparkcopilot.com/blog/mickeys-very-merry-christmas-party-guide): Mickey's Very Merry Christmas Party guide — what's included, whether it's worth the ticket price, best nights to go, and how to plan your evening at Magic Kingdom.
+- [Monstropolis at Hollywood Studios: Everything We Know So Far](https://themeparkcopilot.com/blog/monstropolis-hollywood-studios-everything-we-know): Everything Disney has revealed about Monstropolis at Hollywood Studios — the H.U.M.A.N. Day storyline, suspended roller coaster, Harryhausen's restaurant, concept art, and opening timeline.
+- [Universal Orlando vs. Walt Disney World: How to Decide and Whether to Do Both](https://themeparkcopilot.com/blog/universal-orlando-vs-disney-world): Universal Orlando vs. Walt Disney World: how to choose, or do both. With Epic Universe open since 2025, Universal now has three full theme parks.
+- [Walt Disney World Rides Ranked: The Best Attractions Across All Four Parks](https://themeparkcopilot.com/blog/disney-world-rides-ranked): Walt Disney World rides ranked across all four parks — honest assessments of the best attractions, what's overrated, and what to skip in 2026.
+- [Walt Disney World Rope Drop Strategy: How to Make the Most of Your Morning](https://themeparkcopilot.com/blog/walt-disney-world-rope-drop-strategy): Walt Disney World rope drop strategy: the first hour is your most valuable asset, so here's how to use it park by park before the midday crowds build.
+- [Walt Disney World Tips for First Timers: Everything You Need to Know Before You Go](https://themeparkcopilot.com/blog/walt-disney-world-tips-first-timers): Walt Disney World is one of the most visited destinations on earth, and also one of the most genuinely difficult to do well on a first visit. Not becaus...
+- [Walt Disney World With Teenagers: How to Plan a Trip They'll Actually Enjoy](https://themeparkcopilot.com/blog/disney-world-with-teenagers): Planning Walt Disney World with teenagers? Here's what actually works — best rides, how to give them independence, and how to plan a trip the whole family enjoys.
+- [Walt Disney World With Toddlers: What Works, What Doesn't, and How to Plan a Trip They'll Actually Remember](https://themeparkcopilot.com/blog/disney-world-with-toddlers): Walt Disney World with toddlers is a different trip — slower and more unpredictable, but magical when it works. What to plan for and what to skip.
+- [Which Walt Disney World Park Should You Visit First?](https://themeparkcopilot.com/blog/which-disney-world-park-should-you-visit-first): Which Walt Disney World park to visit first? For most families it's Magic Kingdom — the highest concentration of must-dos — plus when to start elsewhere.
+
+### Comparisons and trip planning
+- [Disney Pin Trading: How It Works, How to Start, and How to Find Good Pins](https://themeparkcopilot.com/blog/disney-pin-trading-guide): Complete Disney pin trading guide for Disneyland and Walt Disney World — how the system works, where to trade, what pins are worth collecting, and current Disney pin trading rules.
+- [Disneyland vs. Walt Disney World: Which Resort Is Right for Your Family?](https://themeparkcopilot.com/blog/disneyland-vs-disney-world): Disneyland vs. Walt Disney World: which resort fits your family. Younger kids and 3-4 days lean Disneyland; older kids and longer trips lean Disney World.
+- [The Ultimate Disney Parks Packing List: Everything You Need for Disneyland and Walt Disney World](https://themeparkcopilot.com/blog/disney-parks-packing-list): Complete Disney parks packing list for 2026 — what to bring to Disneyland and Walt Disney World, what to leave home, and what's different between the two resorts.
+- [What to Wear to Disney: A Practical Guide for Disneyland and Walt Disney World](https://themeparkcopilot.com/blog/what-to-wear-to-disney): What to wear to Disney parks in 2026 — practical outfit advice by season for both Disneyland and Walt Disney World, plus what to avoid and costume rules.
 
 ## Company
-- Company: Co-Pilot Labs, LLC
+- Company: Lunchbox Dad, LLC
 - Contact: hello@themeparkcopilot.com
 - Location: United States
 
