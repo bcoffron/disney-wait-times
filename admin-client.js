@@ -880,6 +880,7 @@ document.getElementById('related-list').innerHTML = '';
 const tagsEl = document.getElementById('f-tags');
 if (tagsEl) tagsEl.value = '';
 if (quill) quill.setContents([]);
+resetPhotoPanel();
 setFocal('center');
 applyReadTimeModeToField();
 updatePreviews();
@@ -925,6 +926,7 @@ if (quill) {
 if (post.body) { quill.root.innerHTML = post.body; }
 else { quill.setContents([]); }
 }
+initPhotoPanel();
 const faqList = document.getElementById('faq-list');
 faqList.innerHTML = '';
 (post.faqs || []).forEach(faq => addFaqItem(faq.q, faq.a));
@@ -936,6 +938,332 @@ applyReadTimeModeToField();
 onMetaChange();
 updatePreviews();
 }
+
+// === PHOTO PANEL START ===
+// Photo reorder panel (PR: photo-move). Design approved by Claude (security
+// thread, Oct 14, 2026): a photo moves ONLY as a whole <p> whose sole content
+// is one <img> (strict separability) — image+text paragraphs and photos in
+// figure/div wrappers are LOCKED and hold their position. Normalization
+// (collapse empty-paragraph runs to one) happens ONLY on this panel's save,
+// never on ordinary editor saves. Saves send the FULL post object; a 409
+// INDEX_CONFLICT means the post blob was written and only the index lagged.
+// Invariants refuse the save loudly, naming the specific violation.
+var ppState = null; // { originalBody, lastKnownBody, blocks: [html], dirty, unsupported }
+
+function ppParseRoot(bodyHtml) {
+const doc = new DOMParser().parseFromString('<div id="pp-root">' + (bodyHtml || '') + '</div>', 'text/html');
+return doc.getElementById('pp-root');
+}
+function ppBlocksFromBody(bodyHtml) {
+const root = ppParseRoot(bodyHtml);
+let stray = false;
+root.childNodes.forEach(n => { if (n.nodeType === 3 && n.textContent.trim() !== '') stray = true; });
+const blocks = [];
+[...root.children].forEach(el => blocks.push(el.outerHTML));
+return { blocks, stray };
+}
+function ppBlockEl(blockHtml) {
+const d = document.createElement('div');
+d.innerHTML = blockHtml;
+return d.firstElementChild;
+}
+function ppIsSpacerEl(el) {
+return !!el && el.tagName === 'P' && el.textContent.trim() === '' && !el.querySelector('img,iframe,video,table');
+}
+// kind: 'movable' (a <p> whose ONLY element child is one <img>, no text),
+// 'locked' (contains an <img> but not strictly separable), 'other'.
+function ppBlockInfo(blockHtml) {
+const el = ppBlockEl(blockHtml);
+if (!el) return { kind: 'other', src: null, spacer: false };
+const spacer = ppIsSpacerEl(el);
+const imgs = el.querySelectorAll('img');
+if (imgs.length === 0) return { kind: 'other', src: null, spacer };
+const src = imgs[0].getAttribute('src') || '';
+let movable = false;
+if (el.tagName === 'P' && imgs.length === 1 && el.children.length === 1 && el.children[0].tagName === 'IMG' && el.textContent.trim() === '') movable = true;
+return { kind: movable ? 'movable' : 'locked', src, spacer: false, alt: imgs[0].getAttribute('alt') || '' };
+}
+function ppHardText(html) {
+const d = document.createElement('div');
+d.innerHTML = html || '';
+return d.textContent.replace(/\s+/g, '');
+}
+function ppImgList(html) {
+const d = document.createElement('div');
+d.innerHTML = html || '';
+return [...d.querySelectorAll('img')].map(i => i.getAttribute('src') || '');
+}
+function ppCountEmpties(blocks) {
+return blocks.reduce((n, b) => n + (ppBlockInfo(b).spacer ? 1 : 0), 0);
+}
+// Nearest index from idx in direction dir holding a NON-spacer, NON-image
+// block (a text/heading/list anchor a photo can trade places with), or -1.
+function ppAnchorIndex(blocks, idx, dir) {
+for (let j = idx + dir; j >= 0 && j < blocks.length; j += dir) {
+const info = ppBlockInfo(blocks[j]);
+if (!info.spacer && info.kind === 'other') return j;
+}
+return -1;
+}
+function ppSwapWithAnchor(blocks, idx, dir) {
+const j = ppAnchorIndex(blocks, idx, dir);
+if (j < 0) return false;
+const t = blocks[idx]; blocks[idx] = blocks[j]; blocks[j] = t;
+return true;
+}
+function ppMoveToPhoto(blocks, fromIdx, targetIdx, after) {
+if (fromIdx === targetIdx) return false;
+const item = blocks.splice(fromIdx, 1)[0];
+let ins = targetIdx;
+if (fromIdx < targetIdx) ins = targetIdx - 1;
+if (after) ins += 1;
+blocks.splice(ins, 0, item);
+return true;
+}
+function ppNormalize(blocks) {
+const out = [];
+let prevSpacer = false;
+for (const b of blocks) {
+const sp = ppBlockInfo(b).spacer;
+if (sp && prevSpacer) continue;
+out.push(b);
+prevSpacer = sp;
+}
+return out;
+}
+// Returns a list of named violations (empty = pass). Text is compared with
+// ALL whitespace stripped: spacer paragraphs and img-paragraph padding carry
+// whitespace that is not visible text (proven in the Oct 15 cleanup snippets).
+function ppCheckInvariants(oldBody, newBody) {
+const v = [];
+if (ppHardText(oldBody) !== ppHardText(newBody)) v.push('the visible text would change');
+const a = ppImgList(oldBody).slice().sort(), b = ppImgList(newBody).slice().sort();
+if (JSON.stringify(a) !== JSON.stringify(b)) v.push('the set of photos would change');
+return v;
+}
+function ppFollowsLabel(blocks, idx) {
+for (let j = idx - 1; j >= 0; j--) {
+const info = ppBlockInfo(blocks[j]);
+if (info.spacer) continue;
+if (info.kind !== 'other') return 'After the previous photo';
+const el = ppBlockEl(blocks[j]);
+const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+if (!t) continue;
+return (el.tagName === 'H2' || el.tagName === 'H3' ? 'Section: ' : 'After: ') + (t.length > 60 ? t.slice(0, 60) + '…' : t);
+}
+return 'Start of the post';
+}
+function ppEsc(s) {
+return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function initPhotoPanel() {
+const mount = document.getElementById('photo-panel');
+if (!mount) return;
+const body = quill ? quill.root.innerHTML : '';
+const parsed = ppBlocksFromBody(body);
+ppState = { originalBody: body, lastKnownBody: body, blocks: parsed.blocks, dirty: false, unsupported: parsed.stray };
+ppRender();
+}
+function resetPhotoPanel() {
+ppState = null;
+const mount = document.getElementById('photo-panel');
+if (mount) mount.innerHTML = '<div class="pp-empty">Open a post to reorder its photos.</div>';
+}
+function ppNotice(kind, msg) {
+const n = document.getElementById('pp-notice');
+if (!n) return;
+n.className = 'pp-notice' + (kind ? ' pp-' + kind : '');
+n.textContent = msg || '';
+}
+function ppRender() {
+const mount = document.getElementById('photo-panel');
+if (!mount || !ppState) return;
+if (ppState.unsupported) {
+mount.innerHTML = '<div class="pp-empty">This post\'s body has loose text outside any paragraph, a shape this panel can\'t safely reorder. Edit photos in the body editor above instead.</div>';
+return;
+}
+const blocks = ppState.blocks;
+const infos = blocks.map(ppBlockInfo);
+const imgIdx = [];
+infos.forEach((info, i) => { if (info.kind !== 'other') imgIdx.push(i); });
+let html = '';
+if (imgIdx.length === 0) {
+html += '<div class="pp-empty">No photos in the body of this post. (The hero image is managed in the panel on the right.)</div>';
+} else {
+imgIdx.forEach(i => {
+const info = infos[i];
+const file = (info.src || '').split('/').pop();
+if (info.kind === 'movable') {
+const upOk = ppAnchorIndex(blocks, i, -1) >= 0;
+const dnOk = ppAnchorIndex(blocks, i, 1) >= 0;
+html += '<div class="pp-row" draggable="true" data-pp-row="' + i + '">'
++ '<span class="pp-drag" title="Drag to move">&#9776;</span>'
++ '<img class="pp-thumb" src="' + ppEsc(info.src) + '" alt="">'
++ '<div class="pp-meta"><div class="pp-follows">' + ppEsc(ppFollowsLabel(blocks, i)) + '</div>'
++ '<div class="pp-file">' + ppEsc(file) + '</div></div>'
++ '<div class="pp-btns">'
++ '<button type="button" class="pp-move-btn" data-pp-move="' + i + ':-1" ' + (upOk ? '' : 'disabled') + ' title="Move up">&#9650;</button>'
++ '<button type="button" class="pp-move-btn" data-pp-move="' + i + ':1" ' + (dnOk ? '' : 'disabled') + ' title="Move down">&#9660;</button>'
++ '</div></div>';
+} else {
+html += '<div class="pp-row pp-locked" data-pp-row="' + i + '">'
++ '<span class="pp-drag" style="visibility:hidden">&#9776;</span>'
++ '<img class="pp-thumb" src="' + ppEsc(info.src) + '" alt="">'
++ '<div class="pp-meta"><div class="pp-follows">' + ppEsc(ppFollowsLabel(blocks, i)) + '</div>'
++ '<div class="pp-file">' + ppEsc(file) + '</div>'
++ '<span class="pp-badge">LOCKED — shares its block with text or a wrapper; position held</span></div></div>';
+}
+});
+}
+html += '<div class="pp-actions">'
++ '<button type="button" class="pp-save-btn" id="pp-preview-btn" ' + (ppState.dirty ? '' : 'disabled') + '>Preview &amp; save photo order</button>'
++ '<button type="button" class="pp-revert-btn" id="pp-revert-btn" ' + (ppState.dirty ? '' : 'disabled') + '>Revert all changes</button>'
++ '</div>'
++ '<div class="pp-preview" id="pp-preview"></div>'
++ '<div class="pp-notice" id="pp-notice"></div>'
++ '<div class="pp-status">' + (ppState.dirty ? 'Photo order changed — not saved yet.' : 'Photo order matches the saved post.') + '</div>';
+mount.innerHTML = html;
+// Wire controls (no inline handlers; CSP-friendly and testable).
+mount.querySelectorAll('[data-pp-move]').forEach(btn => {
+btn.addEventListener('click', () => {
+const parts = btn.getAttribute('data-pp-move').split(':');
+ppDoMove(parseInt(parts[0], 10), parseInt(parts[1], 10));
+});
+});
+const pv = document.getElementById('pp-preview-btn');
+if (pv) pv.addEventListener('click', ppShowPreview);
+const rv = document.getElementById('pp-revert-btn');
+if (rv) rv.addEventListener('click', ppRevertAll);
+mount.querySelectorAll('[data-pp-row]').forEach(row => {
+row.addEventListener('dragstart', e => {
+const idx = parseInt(row.getAttribute('data-pp-row'), 10);
+if (!ppState || ppBlockInfo(ppState.blocks[idx]).kind !== 'movable') { e.preventDefault(); return; }
+e.dataTransfer.setData('text/plain', String(idx));
+e.dataTransfer.effectAllowed = 'move';
+});
+row.addEventListener('dragover', e => {
+e.preventDefault();
+row.classList.add('pp-dragover');
+});
+row.addEventListener('dragleave', () => row.classList.remove('pp-dragover'));
+row.addEventListener('drop', e => {
+e.preventDefault();
+row.classList.remove('pp-dragover');
+const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+const target = parseInt(row.getAttribute('data-pp-row'), 10);
+if (isNaN(from) || isNaN(target) || !ppState) return;
+const rect = row.getBoundingClientRect();
+const after = (e.clientY - rect.top) > rect.height / 2;
+if (ppMoveToPhoto(ppState.blocks, from, target, after)) ppAfterChange();
+});
+});
+}
+function ppAfterChange() {
+ppState.dirty = true;
+markDirty();
+ppRender();
+}
+function ppDoMove(idx, dir) {
+if (!ppState) return;
+if (ppSwapWithAnchor(ppState.blocks, idx, dir)) ppAfterChange();
+}
+function ppRevertAll() {
+if (!ppState) return;
+ppState.blocks = ppBlocksFromBody(ppState.originalBody).blocks;
+ppState.dirty = false;
+ppRender();
+ppNotice('ok', 'Photo changes reverted to the saved order.');
+}
+function ppMovedCount(candidateBlocks) {
+// Photos (by document-order occurrence) whose block index changed.
+const before = [], after = [];
+ppState.blocks.forEach((b, i) => { if (ppBlockInfo(b).kind !== 'other') before.push(i); });
+candidateBlocks.forEach((b, i) => { if (ppBlockInfo(b).kind !== 'other') after.push(i); });
+let n = 0;
+before.forEach((bi, k) => { if (after[k] !== bi) n++; });
+return n;
+}
+function ppShowPreview() {
+if (!ppState || !ppState.dirty) return;
+const box = document.getElementById('pp-preview');
+if (!box) return;
+// Baseline-drift guard: the editor body must not have changed under us.
+if (quill && quill.root.innerHTML !== ppState.lastKnownBody) {
+box.classList.remove('pp-show');
+ppNotice('error', 'The body text changed in the editor while you were reordering photos. To keep those text edits, revert the photo changes or reload the post, then reorder again. Nothing was saved.');
+return;
+}
+const candidateBlocks = ppNormalize(ppState.blocks.slice());
+const stats = {
+blocksBefore: ppState.blocks.length,
+blocksAfter: candidateBlocks.length,
+emptiesBefore: ppCountEmpties(ppState.blocks),
+emptiesAfter: ppCountEmpties(candidateBlocks),
+moved: ppMovedCount(candidateBlocks)
+};
+box.innerHTML = '<strong>Before you save</strong> — saving from this panel also tidies spacing across the whole post (blank-line runs become one).'
++ '<table><tr><td>Blocks</td><td>' + stats.blocksBefore + ' &rarr; ' + stats.blocksAfter + '</td></tr>'
++ '<tr><td>Blank spacer paragraphs</td><td>' + stats.emptiesBefore + ' &rarr; ' + stats.emptiesAfter + '</td></tr>'
++ '<tr><td>Photos in a new position</td><td>' + stats.moved + '</td></tr></table>'
++ '<div class="pp-actions"><button type="button" class="pp-save-btn" id="pp-confirm-btn">Save photo order</button>'
++ '<button type="button" class="pp-revert-btn" id="pp-cancel-btn">Cancel</button></div>';
+box.classList.add('pp-show');
+document.getElementById('pp-confirm-btn').addEventListener('click', ppConfirmSave);
+document.getElementById('pp-cancel-btn').addEventListener('click', () => { box.classList.remove('pp-show'); box.innerHTML = ''; });
+ppState.pendingCandidate = candidateBlocks.join('');
+}
+async function ppConfirmSave() {
+if (!ppState || !ppState.pendingCandidate) return;
+const candidate = ppState.pendingCandidate;
+const violations = ppCheckInvariants(ppState.originalBody, candidate);
+if (violations.length) {
+ppNotice('error', 'Save refused: ' + violations.join(' and ') + '. The reorder was NOT saved. (Text changes belong in the editor above; if this looks wrong, revert the photo changes and reload the post.)');
+return;
+}
+const btn = document.getElementById('pp-confirm-btn');
+if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+try {
+const post = collectPost();
+post.body = candidate;
+const r = await fetch(API_BASE + '/api/blog-save', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify(post)
+});
+let data = {};
+try { data = await r.json(); } catch (e) { /* non-JSON response */ }
+if (r.ok && data.success) {
+ppFinishSave(post, candidate, false);
+} else if (r.status === 409 && data && data.code === 'INDEX_CONFLICT') {
+// Per blog-save.js: the post blob WAS written; only the index entry
+// lagged. The reorder landed — say so, and do not invite a re-save.
+ppFinishSave(post, candidate, true);
+} else {
+ppNotice('error', 'Save failed: ' + ((data && data.error) || ('HTTP ' + r.status)) + ' — the reorder was NOT saved.');
+if (btn) { btn.disabled = false; btn.textContent = 'Save photo order'; }
+}
+} catch (e) {
+ppNotice('error', 'Save failed (network) — the reorder was NOT saved.');
+if (btn) { btn.disabled = false; btn.textContent = 'Save photo order'; }
+}
+}
+function ppFinishSave(post, candidate, indexLagged) {
+if (quill) quill.root.innerHTML = candidate;
+currentPost = post;
+isDirty = false;
+ppState = { originalBody: candidate, lastKnownBody: candidate, blocks: ppBlocksFromBody(candidate).blocks, dirty: false, unsupported: false };
+ppRender();
+loadPosts();
+if (indexLagged) {
+showToast('Photo order saved &#10003;', 'success');
+ppNotice('ok', 'Photo order saved. The post list may lag a few minutes — no need to save again.');
+} else {
+showToast('Photo order saved &#10003;', 'success');
+ppNotice('ok', 'Photo order saved.');
+}
+}
+// === PHOTO PANEL END ===
 
 function onHeroUrlChange() {
 const url = document.getElementById('f-hero-url').value.trim();

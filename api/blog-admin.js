@@ -187,6 +187,11 @@ Batch Upload
 <div id="quill-editor"><\/div>
 <\/div>
 <div class="field-group" style="margin-top:20px">
+<div class="field-label">Photos in this post<\/div>
+<div id="photo-panel"><\/div>
+<div style="font-size:11px;color:#888;margin-top:6px">Reorder body photos here. A photo only ever moves as a whole paragraph, so it can't land mid-sentence. Spacing is tidied (single blank line between blocks) when you save from this panel. The hero image is managed in the panel on the right.<\/div>
+<\/div>
+<div class="field-group" style="margin-top:20px">
 <div class="field-label">Frequently Asked Questions<\/div>
 <div id="faq-list"><\/div>
 <button type="button" class="btn-add-faq" onclick="addFaqItem()">+ Add FAQ<\/button>
