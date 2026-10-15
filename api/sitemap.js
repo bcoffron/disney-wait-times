@@ -50,6 +50,11 @@ export default async function handler(req, res) {
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
+  <url>
+    <loc>https://themeparkcopilot.com/editorial-standards</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
 ${postUrls}
 </urlset>`;
 
