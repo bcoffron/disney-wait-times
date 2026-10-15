@@ -189,7 +189,7 @@ Batch Upload
 <div class="field-group" style="margin-top:20px">
 <div class="field-label">Photos in this post<\/div>
 <div id="photo-panel"><\/div>
-<div style="font-size:11px;color:#888;margin-top:6px">Reorder body photos here. A photo only ever moves as a whole paragraph, so it can't land mid-sentence. Spacing is tidied (single blank line between blocks) when you save from this panel. The hero image is managed in the panel on the right.<\/div>
+<div style="font-size:11px;color:#888;margin-top:6px">Reorder body photos here. A photo only ever moves as a whole paragraph, so it can't land mid-sentence. A photo that shares its paragraph with text can be unlocked into its own paragraph first. Spacing is tidied (single blank line between blocks) when you save from this panel. The hero image is managed in the panel on the right.<\/div>
 <\/div>
 <div class="field-group" style="margin-top:20px">
 <div class="field-label">Frequently Asked Questions<\/div>

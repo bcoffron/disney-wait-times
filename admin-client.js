@@ -948,7 +948,14 @@ updatePreviews();
 // never on ordinary editor saves. Saves send the FULL post object; a 409
 // INDEX_CONFLICT means the post blob was written and only the index lagged.
 // Invariants refuse the save loudly, naming the specific violation.
-var ppState = null; // { originalBody, lastKnownBody, blocks: [html], dirty, unsupported }
+// PR #61 (Unlock, Claude-approved Oct 15, 2026): a photo locked ONLY because
+// it shares its <p> with text can be UNLOCKED — the <img> is lifted into its
+// own paragraph (host text before/after becomes its own paragraph), after
+// which it moves like any movable photo. Wrapper-locked photos (figure, div,
+// link, nested, or multi-photo blocks) stay locked: a wrapper's structure can
+// be load-bearing (caption association, link target), and no live case needs
+// it. Revert-all restores the original body byte-for-byte.
+var ppState = null; // { originalBody, lastKnownBody, blocks: [html], dirty, unsupported, unlocks: [{src, splits}] }
 
 function ppParseRoot(bodyHtml) {
 const doc = new DOMParser().parseFromString('<div id="pp-root">' + (bodyHtml || '') + '</div>', 'text/html');
@@ -981,7 +988,18 @@ if (imgs.length === 0) return { kind: 'other', src: null, spacer };
 const src = imgs[0].getAttribute('src') || '';
 let movable = false;
 if (el.tagName === 'P' && imgs.length === 1 && el.children.length === 1 && el.children[0].tagName === 'IMG' && el.textContent.trim() === '') movable = true;
-return { kind: movable ? 'movable' : 'locked', src, spacer: false, alt: imgs[0].getAttribute('alt') || '' };
+// Locked split: 'text' = the photo's only lock is sharing its <p> with text,
+// with the <img> a direct child of the <p> (unlockable, PR #61). Anything
+// else — non-<p> block, nested <img>, several photos — is 'wrapped' and
+// stays locked.
+let lockReason = null, unlockable = false;
+if (!movable) {
+lockReason = 'wrapped';
+if (el.tagName === 'P' && imgs.length === 1) {
+el.childNodes.forEach(n => { if (n.nodeType === 1 && n.tagName === 'IMG') { lockReason = 'text'; unlockable = true; } });
+}
+}
+return { kind: movable ? 'movable' : 'locked', src, spacer: false, alt: imgs[0].getAttribute('alt') || '', lockReason, unlockable };
 }
 function ppHardText(html) {
 const d = document.createElement('div');
@@ -1019,6 +1037,52 @@ if (fromIdx < targetIdx) ins = targetIdx - 1;
 if (after) ins += 1;
 blocks.splice(ins, 0, item);
 return true;
+}
+function ppFragmentHasContent(el) {
+if (el.textContent.trim() !== '') return true;
+return !!el.querySelector('a,strong,em,u,s,sub,sup,iframe,video,table,ul,ol,span');
+}
+function ppCloneP(host, nodes) {
+const p = document.createElement('p');
+host.getAttributeNames().forEach(a => p.setAttribute(a, host.getAttribute(a)));
+nodes.forEach(n => p.appendChild(n));
+return p;
+}
+// Split a 'text'-locked block into [text-before?] + [photo <p>] + [text-after?]
+// by lifting the <img> into its own paragraph (attributes preserved by moving
+// the actual nodes). Returns { parts, splits } — splits = meaningful content
+// follows the photo — or null when the block is not unlockable.
+function ppSplitLocked(blockHtml) {
+const el = ppBlockEl(blockHtml);
+if (!el || el.tagName !== 'P') return null;
+if (el.querySelectorAll('img').length !== 1) return null;
+let img = null, seen = false;
+const before = [], after = [];
+[...el.childNodes].forEach(n => {
+if (n.nodeType === 1 && n.tagName === 'IMG' && !seen) { img = n; seen = true; return; }
+(seen ? after : before).push(n);
+});
+if (!img) return null; // the <img> is nested inside another element: wrapped, stays locked
+const beforeP = ppCloneP(el, before);
+const afterP = ppCloneP(el, after);
+const hasBefore = ppFragmentHasContent(beforeP);
+const hasAfter = ppFragmentHasContent(afterP);
+const parts = [];
+if (hasBefore) parts.push(beforeP.outerHTML);
+parts.push(ppCloneP(el, [img]).outerHTML);
+if (hasAfter) parts.push(afterP.outerHTML);
+return { parts, splits: hasAfter };
+}
+function ppDoUnlock(idx) {
+if (!ppState) return;
+const info = ppBlockInfo(ppState.blocks[idx]);
+if (info.kind !== 'locked' || !info.unlockable) return;
+const res = ppSplitLocked(ppState.blocks[idx]);
+if (!res) return;
+ppState.blocks.splice(idx, 1, ...res.parts);
+ppState.unlocks.push({ src: info.src, splits: res.splits });
+ppAfterChange();
+ppNotice('ok', 'Photo unlocked — it is now its own paragraph and can be moved. Save from this panel to keep the change.');
 }
 function ppNormalize(blocks) {
 const out = [];
@@ -1062,7 +1126,7 @@ const mount = document.getElementById('photo-panel');
 if (!mount) return;
 const body = quill ? quill.root.innerHTML : '';
 const parsed = ppBlocksFromBody(body);
-ppState = { originalBody: body, lastKnownBody: body, blocks: parsed.blocks, dirty: false, unsupported: parsed.stray };
+ppState = { originalBody: body, lastKnownBody: body, blocks: parsed.blocks, dirty: false, unsupported: parsed.stray, unlocks: [] };
 ppRender();
 }
 function resetPhotoPanel() {
@@ -1106,13 +1170,21 @@ html += '<div class="pp-row" draggable="true" data-pp-row="' + i + '">'
 + '<button type="button" class="pp-move-btn" data-pp-move="' + i + ':-1" ' + (upOk ? '' : 'disabled') + ' title="Move up">&#9650;</button>'
 + '<button type="button" class="pp-move-btn" data-pp-move="' + i + ':1" ' + (dnOk ? '' : 'disabled') + ' title="Move down">&#9660;</button>'
 + '</div></div>';
+} else if (info.unlockable) {
+html += '<div class="pp-row pp-locked" data-pp-row="' + i + '">'
++ '<span class="pp-drag" style="visibility:hidden">&#9776;</span>'
++ '<img class="pp-thumb" src="' + ppEsc(info.src) + '" alt="">'
++ '<div class="pp-meta"><div class="pp-follows">' + ppEsc(ppFollowsLabel(blocks, i)) + '</div>'
++ '<div class="pp-file">' + ppEsc(file) + '</div>'
++ '<span class="pp-badge">LOCKED — shares its paragraph with text; position held</span></div>'
++ '<div class="pp-btns"><button type="button" class="pp-unlock-btn" data-pp-unlock="' + i + '" title="Lift this photo out of its paragraph so it can be moved">Unlock photo</button></div></div>';
 } else {
 html += '<div class="pp-row pp-locked" data-pp-row="' + i + '">'
 + '<span class="pp-drag" style="visibility:hidden">&#9776;</span>'
 + '<img class="pp-thumb" src="' + ppEsc(info.src) + '" alt="">'
 + '<div class="pp-meta"><div class="pp-follows">' + ppEsc(ppFollowsLabel(blocks, i)) + '</div>'
 + '<div class="pp-file">' + ppEsc(file) + '</div>'
-+ '<span class="pp-badge">LOCKED — shares its block with text or a wrapper; position held</span></div></div>';
++ '<span class="pp-badge">LOCKED — inside a figure or link wrapper; position held (wrapped photos stay locked)</span></div></div>';
 }
 });
 }
@@ -1130,6 +1202,9 @@ btn.addEventListener('click', () => {
 const parts = btn.getAttribute('data-pp-move').split(':');
 ppDoMove(parseInt(parts[0], 10), parseInt(parts[1], 10));
 });
+});
+mount.querySelectorAll('[data-pp-unlock]').forEach(btn => {
+btn.addEventListener('click', () => ppDoUnlock(parseInt(btn.getAttribute('data-pp-unlock'), 10)));
 });
 const pv = document.getElementById('pp-preview-btn');
 if (pv) pv.addEventListener('click', ppShowPreview);
@@ -1172,6 +1247,7 @@ function ppRevertAll() {
 if (!ppState) return;
 ppState.blocks = ppBlocksFromBody(ppState.originalBody).blocks;
 ppState.dirty = false;
+ppState.unlocks = [];
 ppRender();
 ppNotice('ok', 'Photo changes reverted to the saved order.');
 }
@@ -1205,7 +1281,9 @@ moved: ppMovedCount(candidateBlocks)
 box.innerHTML = '<strong>Before you save</strong> — saving from this panel also tidies spacing across the whole post (blank-line runs become one).'
 + '<table><tr><td>Blocks</td><td>' + stats.blocksBefore + ' &rarr; ' + stats.blocksAfter + '</td></tr>'
 + '<tr><td>Blank spacer paragraphs</td><td>' + stats.emptiesBefore + ' &rarr; ' + stats.emptiesAfter + '</td></tr>'
-+ '<tr><td>Photos in a new position</td><td>' + stats.moved + '</td></tr></table>'
++ '<tr><td>Photos in a new position</td><td>' + stats.moved + '</td></tr>'
++ (ppState.unlocks || []).map(u => '<tr><td>Unlocked photo</td><td>' + ppEsc((u.src || '').split('/').pop()) + ' — ' + (u.splits ? 'host paragraph splits into 2 (text before and after the photo)' : 'no text follows the photo') + '</td></tr>').join('')
++ '</table>'
 + '<div class="pp-actions"><button type="button" class="pp-save-btn" id="pp-confirm-btn">Save photo order</button>'
 + '<button type="button" class="pp-revert-btn" id="pp-cancel-btn">Cancel</button></div>';
 box.classList.add('pp-show');
@@ -1252,7 +1330,7 @@ function ppFinishSave(post, candidate, indexLagged) {
 if (quill) quill.root.innerHTML = candidate;
 currentPost = post;
 isDirty = false;
-ppState = { originalBody: candidate, lastKnownBody: candidate, blocks: ppBlocksFromBody(candidate).blocks, dirty: false, unsupported: false };
+ppState = { originalBody: candidate, lastKnownBody: candidate, blocks: ppBlocksFromBody(candidate).blocks, dirty: false, unsupported: false, unlocks: [] };
 ppRender();
 loadPosts();
 if (indexLagged) {
