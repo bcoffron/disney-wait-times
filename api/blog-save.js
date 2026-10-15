@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { timingSafeEqual } from 'node:crypto';
 import { put } from '@vercel/blob';
 import { updateBlobJson, computeBodySnippet, readBlobJson } from './lib/blob.js';
 
@@ -22,14 +23,35 @@ function checkRateLimit(ip, max, windowMs) {
 
 export default async function handler(req, res) {
   // Fix 5: JWT verification FIRST before any data processing
+  // Two credentials are accepted:
+  //   - the admin session JWT (auth: session), as before;
+  //   - BLOG_AGENT_TOKEN (auth: agent), a static high-entropy bearer
+  //     held in a Vercel env var, compared in constant time. It exists
+  //     so reviewed agent tooling (committed scripts/, never ad-hoc
+  //     snippets) can save without holding Beau's session token. The
+  //     read-only stage shipped in PR #64 and was proven on a full
+  //     50-post census before writes were enabled here. An unset env
+  //     var means the agent path simply never matches. Every save
+  //     outcome below logs its auth kind, so agent writes are always
+  //     distinguishable from Beau's own in the function logs.
   const sentToken = req.headers['x-admin-key'] || '';
-  if (!sentToken) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
-  try {
-    jwt.verify(sentToken, process.env.JWT_SECRET);
-  } catch (err) {
-    console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
-    return res.status(401).json({ error: 'Unauthorized' });
+  let authKind = null;
+  let agentChecked = false;
+  // Shape only, never the value: three dot-separated segments reads as
+  // a JWT. The failure log below records it so an operator can tell a
+  // bad agent token (wrong or rotated credential) from a session
+  // expiry (Beau signs in again) - different problems, different fix.
+  const presentedShape = !sentToken ? 'none' : (/^[^.\s]+\.[^.\s]+\.[^.\s]+$/.test(sentToken) ? 'jwt' : 'other');
+  if (sentToken) {
+    try { jwt.verify(sentToken, process.env.JWT_SECRET); authKind = 'session'; } catch (err) { /* not a session JWT: try the agent token below */ }
+    if (!authKind && process.env.BLOG_AGENT_TOKEN) {
+      agentChecked = true;
+      const expected = Buffer.from(process.env.BLOG_AGENT_TOKEN);
+      const presented = Buffer.from(sentToken);
+      if (presented.length === expected.length && timingSafeEqual(presented, expected)) authKind = 'agent';
+    }
   }
+  if (!authKind) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', agentChecked, presentedShape, time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const MAX_REQUEST_SIZE = 500 * 1024; // 500KB
   const contentLength = parseInt(req.headers['content-length'] || '0');
@@ -141,6 +163,7 @@ export default async function handler(req, res) {
       return currentIndex;
     });
 
+    console.log('blog-save: saved "' + post.slug + '" (auth: ' + authKind + ')');
     return res.status(200).json({ success: true, slug: post.slug, updatedAt: post.updatedAt });
   } catch (err) {
     // A refused index update (api/lib/blob.js INDEX_CONFLICT) is a
@@ -150,7 +173,7 @@ export default async function handler(req, res) {
     // which displays error) knows a retry is the remedy instead of
     // guessing at a bare 500.
     if (err && err.code === 'INDEX_CONFLICT') {
-      console.error('blog-save: index update refused for "' + post.slug + '":', err.message);
+      console.error('blog-save: index update refused for "' + post.slug + '" (auth: ' + authKind + '):', err.message);
       return res.status(409).json({
         error: 'Index update refused (concurrent write could not be verified). The post file was saved; retry in a moment.',
         code: 'INDEX_CONFLICT',
@@ -159,7 +182,7 @@ export default async function handler(req, res) {
         slug: post.slug
       });
     }
-    console.error('blog-save error:', err.message);
+    console.error('blog-save error (auth: ' + authKind + '):', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
