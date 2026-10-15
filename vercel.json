@@ -136,6 +136,10 @@
       "destination": "/llms.txt"
     },
     {
+      "source": "/editorial-standards",
+      "destination": "/api/editorial"
+    },
+    {
       "source": "/wp-admin",
       "destination": "/api/not-found"
     },
