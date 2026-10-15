@@ -940,22 +940,28 @@ updatePreviews();
 }
 
 // === PHOTO PANEL START ===
-// Photo reorder panel (PR: photo-move). Design approved by Claude (security
-// thread, Oct 14, 2026): a photo moves ONLY as a whole <p> whose sole content
-// is one <img> (strict separability) — image+text paragraphs and photos in
-// figure/div wrappers are LOCKED and hold their position. Normalization
-// (collapse empty-paragraph runs to one) happens ONLY on this panel's save,
-// never on ordinary editor saves. Saves send the FULL post object; a 409
-// INDEX_CONFLICT means the post blob was written and only the index lagged.
-// Invariants refuse the save loudly, naming the specific violation.
-// PR #61 (Unlock, Claude-approved Oct 15, 2026): a photo locked ONLY because
-// it shares its <p> with text can be UNLOCKED — the <img> is lifted into its
-// own paragraph (host text before/after becomes its own paragraph), after
-// which it moves like any movable photo. Wrapper-locked photos (figure, div,
-// link, nested, or multi-photo blocks) stay locked: a wrapper's structure can
-// be load-bearing (caption association, link target), and no live case needs
-// it. Revert-all restores the original body byte-for-byte.
-var ppState = null; // { originalBody, lastKnownBody, blocks: [html], dirty, unsupported, unlocks: [{src, splits}] }
+// Photo reorder panel (PRs #59/#61/#62). Design approved by Claude (security
+// thread, Oct 14–15, 2026): a photo moves ONLY as a whole <p> whose sole
+// content is one <img> (strict separability) — image+text paragraphs and
+// photos in figure/div wrappers are LOCKED and hold their position. A photo
+// locked ONLY for sharing its <p> with text can be UNLOCKED (PR #61): the
+// <img> is lifted into its own paragraph; wrapper-locked photos stay locked.
+// PR #62 (save-on-Update): the panel has NO save of its own. Moves and
+// unlocks are STAGED locally; when the editor saves (Update / Go Live / Save
+// Draft — all funnel through savePost), the staged changes are re-applied to
+// the CURRENT editor body and written in that same save — one commit point,
+// never two write paths. Staged moves re-apply by photo identity + position
+// among the non-photo blocks (text-independent); staged unlocks carry a
+// host-paragraph guard (the host's before/after text recorded at stage time)
+// and REFUSE the save, naming the photo, if that paragraph changed in the
+// editor meanwhile. Structural divergence (blocks added/removed in the
+// editor) also refuses, loudly, with Revert staged changes as the escape.
+// Normalization (collapse empty-paragraph runs to one) happens ONLY when
+// staged changes commit — never on ordinary editor saves. An indicator next
+// to the publish button shows "N photo changes staged" so a commit never
+// surprises. Invariants (visible text + photo set) are checked against the
+// editor body before anything is written.
+var ppState = null; // { originalBody, blocks: [html], dirty, unsupported, unlocks: [{key, src, splits, beforeHard, afterHard}] }
 
 function ppParseRoot(bodyHtml) {
 const doc = new DOMParser().parseFromString('<div id="pp-root">' + (bodyHtml || '') + '</div>', 'text/html');
@@ -1071,7 +1077,24 @@ const parts = [];
 if (hasBefore) parts.push(beforeP.outerHTML);
 parts.push(ppCloneP(el, [img]).outerHTML);
 if (hasAfter) parts.push(afterP.outerHTML);
-return { parts, splits: hasAfter };
+return { parts, splits: hasAfter, beforeHard: ppHardText(beforeP.outerHTML), afterHard: ppHardText(afterP.outerHTML) };
+}
+// Photo identity: src + occurrence among photo blocks (the same image can
+// legitimately appear twice in a post; index-based identity breaks the
+// moment text is edited, src+occurrence survives it).
+function ppPhotoKey(blocks, idx) {
+const src = ppBlockInfo(blocks[idx]).src || '';
+let occ = 0;
+for (let j = 0; j < idx; j++) {
+const b = ppBlockInfo(blocks[j]);
+if (b.kind !== 'other' && (b.src || '') === src) occ++;
+}
+return src + '#' + occ;
+}
+function ppPhotoKeys(blocks) {
+const keys = [];
+blocks.forEach((b, i) => { if (ppBlockInfo(b).kind !== 'other') keys.push({ idx: i, key: ppPhotoKey(blocks, i), src: ppBlockInfo(b).src || '' }); });
+return keys;
 }
 function ppDoUnlock(idx) {
 if (!ppState) return;
@@ -1079,10 +1102,11 @@ const info = ppBlockInfo(ppState.blocks[idx]);
 if (info.kind !== 'locked' || !info.unlockable) return;
 const res = ppSplitLocked(ppState.blocks[idx]);
 if (!res) return;
+const key = ppPhotoKey(ppState.blocks, idx);
 ppState.blocks.splice(idx, 1, ...res.parts);
-ppState.unlocks.push({ src: info.src, splits: res.splits });
+ppState.unlocks.push({ key, src: info.src, splits: res.splits, beforeHard: res.beforeHard, afterHard: res.afterHard });
 ppAfterChange();
-ppNotice('ok', 'Photo unlocked — it is now its own paragraph and can be moved. Save from this panel to keep the change.');
+ppNotice('ok', 'Photo unlocked — it is now its own paragraph and can be moved. The change is staged and saves when you press Update.');
 }
 function ppNormalize(blocks) {
 const out = [];
@@ -1126,13 +1150,15 @@ const mount = document.getElementById('photo-panel');
 if (!mount) return;
 const body = quill ? quill.root.innerHTML : '';
 const parsed = ppBlocksFromBody(body);
-ppState = { originalBody: body, lastKnownBody: body, blocks: parsed.blocks, dirty: false, unsupported: parsed.stray, unlocks: [] };
+ppState = { originalBody: body, blocks: parsed.blocks, dirty: false, unsupported: parsed.stray, unlocks: [] };
 ppRender();
+ppUpdateIndicator();
 }
 function resetPhotoPanel() {
 ppState = null;
 const mount = document.getElementById('photo-panel');
 if (mount) mount.innerHTML = '<div class="pp-empty">Open a post to reorder its photos.</div>';
+ppUpdateIndicator();
 }
 function ppNotice(kind, msg) {
 const n = document.getElementById('pp-notice');
@@ -1189,12 +1215,10 @@ html += '<div class="pp-row pp-locked" data-pp-row="' + i + '">'
 });
 }
 html += '<div class="pp-actions">'
-+ '<button type="button" class="pp-save-btn" id="pp-preview-btn" ' + (ppState.dirty ? '' : 'disabled') + '>Preview &amp; save photo order</button>'
-+ '<button type="button" class="pp-revert-btn" id="pp-revert-btn" ' + (ppState.dirty ? '' : 'disabled') + '>Revert all changes</button>'
++ '<button type="button" class="pp-revert-btn" id="pp-revert-btn" ' + (ppState.dirty ? '' : 'disabled') + '>Revert staged changes</button>'
 + '</div>'
-+ '<div class="pp-preview" id="pp-preview"></div>'
 + '<div class="pp-notice" id="pp-notice"></div>'
-+ '<div class="pp-status">' + (ppState.dirty ? 'Photo order changed — not saved yet.' : 'Photo order matches the saved post.') + '</div>';
++ '<div class="pp-status">' + (ppState.dirty ? 'Photo changes are staged — they save together with the post when you press Update (or Save Draft / Go Live).' : 'Photo order matches the saved post.') + '</div>';
 mount.innerHTML = html;
 // Wire controls (no inline handlers; CSP-friendly and testable).
 mount.querySelectorAll('[data-pp-move]').forEach(btn => {
@@ -1206,8 +1230,6 @@ ppDoMove(parseInt(parts[0], 10), parseInt(parts[1], 10));
 mount.querySelectorAll('[data-pp-unlock]').forEach(btn => {
 btn.addEventListener('click', () => ppDoUnlock(parseInt(btn.getAttribute('data-pp-unlock'), 10)));
 });
-const pv = document.getElementById('pp-preview-btn');
-if (pv) pv.addEventListener('click', ppShowPreview);
 const rv = document.getElementById('pp-revert-btn');
 if (rv) rv.addEventListener('click', ppRevertAll);
 mount.querySelectorAll('[data-pp-row]').forEach(row => {
@@ -1238,6 +1260,7 @@ function ppAfterChange() {
 ppState.dirty = true;
 markDirty();
 ppRender();
+ppUpdateIndicator();
 }
 function ppDoMove(idx, dir) {
 if (!ppState) return;
@@ -1245,101 +1268,126 @@ if (ppSwapWithAnchor(ppState.blocks, idx, dir)) ppAfterChange();
 }
 function ppRevertAll() {
 if (!ppState) return;
-ppState.blocks = ppBlocksFromBody(ppState.originalBody).blocks;
+// Discard the staged changes: the panel re-syncs to the CURRENT editor body
+// (which may hold unsaved text edits — those are the editor's, untouched).
+const body = quill ? quill.root.innerHTML : ppState.originalBody;
+const parsed = ppBlocksFromBody(body);
+if (!parsed.stray) { ppState.blocks = parsed.blocks; ppState.unsupported = false; }
+else { ppState.blocks = ppBlocksFromBody(ppState.originalBody).blocks; }
 ppState.dirty = false;
 ppState.unlocks = [];
 ppRender();
-ppNotice('ok', 'Photo changes reverted to the saved order.');
+ppUpdateIndicator();
+ppNotice('ok', 'Staged photo changes discarded. The panel now matches the editor.');
 }
-function ppMovedCount(candidateBlocks) {
-// Photos (by document-order occurrence) whose block index changed.
-const before = [], after = [];
-ppState.blocks.forEach((b, i) => { if (ppBlockInfo(b).kind !== 'other') before.push(i); });
-candidateBlocks.forEach((b, i) => { if (ppBlockInfo(b).kind !== 'other') after.push(i); });
-let n = 0;
-before.forEach((bi, k) => { if (after[k] !== bi) n++; });
+// The block a photo follows, as text (or a sentinel) — used only for the
+// staged-change COUNT shown in the UI, never for the commit itself.
+function ppAnchorLabel(blocks, idx) {
+for (let j = idx - 1; j >= 0; j--) {
+const info = ppBlockInfo(blocks[j]);
+if (info.spacer) continue;
+if (info.kind !== 'other') return 'photo:' + (info.src || '');
+return 'block:' + ppHardText(blocks[j]);
+}
+return 'START';
+}
+function ppStagedCount() {
+if (!ppState || !ppState.dirty) return 0;
+let n = (ppState.unlocks || []).length;
+const orig = ppBlocksFromBody(ppState.originalBody).blocks;
+const unlockedKeys = {};
+(ppState.unlocks || []).forEach(u => { unlockedKeys[u.key] = true; });
+const origLabels = {};
+ppPhotoKeys(orig).forEach(k => { origLabels[k.key] = ppAnchorLabel(orig, k.idx); });
+ppPhotoKeys(ppState.blocks).forEach(k => {
+if (unlockedKeys[k.key]) return;
+if (origLabels[k.key] !== undefined && origLabels[k.key] !== ppAnchorLabel(ppState.blocks, k.idx)) n++;
+});
 return n;
 }
-function ppShowPreview() {
-if (!ppState || !ppState.dirty) return;
-const box = document.getElementById('pp-preview');
-if (!box) return;
-// Baseline-drift guard: the editor body must not have changed under us.
-if (quill && quill.root.innerHTML !== ppState.lastKnownBody) {
-box.classList.remove('pp-show');
-ppNotice('error', 'The body text changed in the editor while you were reordering photos. To keep those text edits, revert the photo changes or reload the post, then reorder again. Nothing was saved.');
-return;
+function ppUpdateIndicator() {
+const el = document.getElementById('pp-staged-indicator');
+if (!el) return;
+const n = ppStagedCount();
+el.textContent = n > 0 ? (n + ' photo change' + (n === 1 ? '' : 's') + ' staged') : '';
 }
-const candidateBlocks = ppNormalize(ppState.blocks.slice());
-const stats = {
-blocksBefore: ppState.blocks.length,
-blocksAfter: candidateBlocks.length,
-emptiesBefore: ppCountEmpties(ppState.blocks),
-emptiesAfter: ppCountEmpties(candidateBlocks),
-moved: ppMovedCount(candidateBlocks)
-};
-box.innerHTML = '<strong>Before you save</strong> — saving from this panel also tidies spacing across the whole post (blank-line runs become one).'
-+ '<table><tr><td>Blocks</td><td>' + stats.blocksBefore + ' &rarr; ' + stats.blocksAfter + '</td></tr>'
-+ '<tr><td>Blank spacer paragraphs</td><td>' + stats.emptiesBefore + ' &rarr; ' + stats.emptiesAfter + '</td></tr>'
-+ '<tr><td>Photos in a new position</td><td>' + stats.moved + '</td></tr>'
-+ (ppState.unlocks || []).map(u => '<tr><td>Unlocked photo</td><td>' + ppEsc((u.src || '').split('/').pop()) + ' — ' + (u.splits ? 'host paragraph splits into 2 (text before and after the photo)' : 'no text follows the photo') + '</td></tr>').join('')
-+ '</table>'
-+ '<div class="pp-actions"><button type="button" class="pp-save-btn" id="pp-confirm-btn">Save photo order</button>'
-+ '<button type="button" class="pp-revert-btn" id="pp-cancel-btn">Cancel</button></div>';
-box.classList.add('pp-show');
-document.getElementById('pp-confirm-btn').addEventListener('click', ppConfirmSave);
-document.getElementById('pp-cancel-btn').addEventListener('click', () => { box.classList.remove('pp-show'); box.innerHTML = ''; });
-ppState.pendingCandidate = candidateBlocks.join('');
-}
-async function ppConfirmSave() {
-if (!ppState || !ppState.pendingCandidate) return;
-const candidate = ppState.pendingCandidate;
-const violations = ppCheckInvariants(ppState.originalBody, candidate);
-if (violations.length) {
-ppNotice('error', 'Save refused: ' + violations.join(' and ') + '. The reorder was NOT saved. (Text changes belong in the editor above; if this looks wrong, revert the photo changes and reload the post.)');
-return;
-}
-const btn = document.getElementById('pp-confirm-btn');
-if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
-try {
-const post = collectPost();
-post.body = candidate;
-const r = await fetch(API_BASE + '/api/blog-save', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
-body: JSON.stringify(post)
+// Position of every photo: how many NON-photo blocks precede it. Non-photo
+// blocks are never reordered by the panel or by the commit, so this
+// coordinate survives text edits untouched; only adding/removing whole
+// blocks shifts it, which the commit treats as structural divergence.
+function ppPhotoPositions(blocks) {
+const pos = {};
+let skeleton = 0;
+blocks.forEach((b, i) => {
+const info = ppBlockInfo(b);
+if (info.kind !== 'other') pos[ppPhotoKey(blocks, i)] = skeleton;
+else skeleton++;
 });
-let data = {};
-try { data = await r.json(); } catch (e) { /* non-JSON response */ }
-if (r.ok && data.success) {
-ppFinishSave(post, candidate, false);
-} else if (r.status === 409 && data && data.code === 'INDEX_CONFLICT') {
-// Per blog-save.js: the post blob WAS written; only the index entry
-// lagged. The reorder landed — say so, and do not invite a re-save.
-ppFinishSave(post, candidate, true);
-} else {
-ppNotice('error', 'Save failed: ' + ((data && data.error) || ('HTTP ' + r.status)) + ' — the reorder was NOT saved.');
-if (btn) { btn.disabled = false; btn.textContent = 'Save photo order'; }
+return pos;
 }
-} catch (e) {
-ppNotice('error', 'Save failed (network) — the reorder was NOT saved.');
-if (btn) { btn.disabled = false; btn.textContent = 'Save photo order'; }
+function ppSkeletonCount(blocks) {
+return blocks.reduce((n, b) => n + (ppBlockInfo(b).kind === 'other' ? 1 : 0), 0);
 }
+function ppFileOf(src) { return (src || '').split('/').pop() || 'a photo'; }
+// Re-apply the staged changes to the CURRENT editor body. Returns
+// { ok: true, body } or { ok: false, error } — on refusal NOTHING is written
+// and the staged changes stay staged (Revert staged changes is the escape).
+function ppCommitStaged(editorBody) {
+if (!ppState || !ppState.dirty) return { ok: true, body: editorBody };
+if (ppState.unsupported) return { ok: false, error: 'Photo changes are staged, but this post\'s body shape isn\'t panel-safe. Revert the staged photo changes in the panel, then save again.' };
+const parsed = ppBlocksFromBody(editorBody);
+if (parsed.stray) return { ok: false, error: 'Save stopped: the body now has loose text outside any paragraph, so the staged photo changes can\'t be applied safely. Nothing was saved — your text edits are still in the editor.' };
+let blocks = parsed.blocks;
+// Phase 1: staged unlocks, each behind its host-paragraph guard.
+for (const u of (ppState.unlocks || [])) {
+const hit = ppPhotoKeys(blocks).find(k => k.key === u.key);
+if (!hit) return { ok: false, error: 'Save stopped: ' + ppFileOf(u.src) + ' is no longer in the post, so its staged unlock can\'t be applied. Nothing was saved. Revert the staged photo changes in the panel, or put the photo back, then save again.' };
+const info = ppBlockInfo(blocks[hit.idx]);
+if (info.kind !== 'locked' || !info.unlockable) return { ok: false, error: 'Save stopped: the paragraph holding ' + ppFileOf(u.src) + ' no longer matches the unlock you staged (it may have been edited or already split). Nothing was saved. Revert the staged photo changes in the panel, then save again.' };
+const res = ppSplitLocked(blocks[hit.idx]);
+if (!res || res.beforeHard !== u.beforeHard || res.afterHard !== u.afterHard) return { ok: false, error: 'Save stopped: the text around ' + ppFileOf(u.src) + ' changed in the editor after you unlocked it, so the split you previewed is no longer the split that would happen. Nothing was saved. Revert the staged photo changes in the panel, then save again.' };
+blocks.splice(hit.idx, 1, ...res.parts);
 }
-function ppFinishSave(post, candidate, indexLagged) {
-if (quill) quill.root.innerHTML = candidate;
-currentPost = post;
-isDirty = false;
-ppState = { originalBody: candidate, lastKnownBody: candidate, blocks: ppBlocksFromBody(candidate).blocks, dirty: false, unsupported: false, unlocks: [] };
+// Phase 2: photo placements by non-photo-block position.
+const stagedPos = ppPhotoPositions(ppState.blocks);
+const freshKeys = ppPhotoKeys(blocks);
+const stagedKeys = ppPhotoKeys(ppState.blocks);
+for (const k of stagedKeys) {
+if (!freshKeys.some(f => f.key === k.key)) return { ok: false, error: 'Save stopped: ' + ppFileOf(k.src) + ' was removed in the editor, but it has staged photo changes. Nothing was saved. Revert the staged photo changes in the panel, then save again.' };
+}
+if (ppSkeletonCount(blocks) !== ppSkeletonCount(ppState.blocks)) return { ok: false, error: 'Save stopped: paragraphs were added or removed in the editor after the photo changes were staged, so the staged positions no longer line up. Nothing was saved. Revert the staged photo changes in the panel, save your text edits, then redo the photo changes.' };
+// Photos the panel doesn't know (added in the editor) keep their place.
+const freshPos = ppPhotoPositions(blocks);
+const targetPos = {};
+freshKeys.forEach(k => { targetPos[k.key] = stagedPos[k.key] !== undefined ? stagedPos[k.key] : freshPos[k.key]; });
+const photosByGap = {};
+freshKeys.forEach(k => {
+const g = targetPos[k.key];
+if (!photosByGap[g]) photosByGap[g] = [];
+photosByGap[g].push(blocks[k.idx]);
+});
+const skeleton = blocks.filter(b => ppBlockInfo(b).kind === 'other');
+const out = [];
+let si = 0;
+const emitGap = g => { (photosByGap[g] || []).forEach(p => out.push(p)); };
+emitGap(0);
+skeleton.forEach(b => { out.push(b); si++; emitGap(si); });
+const candidate = ppNormalize(out).join('');
+const violations = ppCheckInvariants(editorBody, candidate);
+if (violations.length) return { ok: false, error: 'Save stopped by the panel\'s safety check: ' + violations.join(' and ') + '. Nothing was saved.' };
+return { ok: true, body: candidate };
+}
+// Called by savePost after ANY successful editor save (200, or 409
+// INDEX_CONFLICT where the blob landed): the saved body is the new truth.
+function ppAfterCommittedSave(savedBody) {
+if (quill) quill.root.innerHTML = savedBody;
+if (!ppState) { initPhotoPanel(); return; }
+const wasDirty = ppState.dirty;
+const parsed = ppBlocksFromBody(savedBody);
+ppState = { originalBody: savedBody, blocks: parsed.blocks, dirty: false, unsupported: parsed.stray, unlocks: [] };
 ppRender();
-loadPosts();
-if (indexLagged) {
-showToast('Photo order saved &#10003;', 'success');
-ppNotice('ok', 'Photo order saved. The post list may lag a few minutes — no need to save again.');
-} else {
-showToast('Photo order saved &#10003;', 'success');
-ppNotice('ok', 'Photo order saved.');
-}
+ppUpdateIndicator();
+if (wasDirty) ppNotice('ok', 'Photo changes saved with the post.');
 }
 // === PHOTO PANEL END ===
 
@@ -1469,6 +1517,18 @@ tags: (document.getElementById('f-tags').value || '').split(',').map(function(t)
 }
 
 async function savePost(post) {
+// PR #62: staged photo-panel changes commit HERE — the one commit point.
+// The panel re-applies its staged moves/unlocks to the body being saved; a
+// refusal aborts the save before anything is written, naming the photo.
+if (typeof ppCommitStaged === 'function') {
+const staged = ppCommitStaged(post.body);
+if (!staged.ok) {
+showToast(staged.error, 'error');
+if (typeof ppNotice === 'function') ppNotice('error', staged.error);
+return;
+}
+post.body = staged.body;
+}
 const btn = document.getElementById('btn-publish');
 const origText = btn ? btn.textContent : '';
 if (btn) { btn.textContent = 'Saving...'; btn.classList.add('btn-loading'); btn.disabled = true; }
@@ -1481,10 +1541,13 @@ headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
 body: JSON.stringify(post)
 });
 const data = await r.json();
-if (r.ok && data.success) {
+// A 409 INDEX_CONFLICT means the post blob WAS written and only the index
+// lagged (PR #52 semantics) — the save landed; treat it as success.
+if ((r.ok && data.success) || (r.status === 409 && data && data.code === 'INDEX_CONFLICT')) {
 if (data.slug) optimisticUpsert(data.slug, toOptimisticEntry(post, allPosts.find(function(p) { return p.slug === post.slug; })));
 currentPost = post;
 isDirty = false;
+if (typeof ppAfterCommittedSave === 'function') ppAfterCommittedSave(post.body);
 document.getElementById('f-readtime').value = post.readTime;
 document.getElementById('f-published').checked = post.published;
 document.getElementById('status-label').textContent = post.published ? 'Published' : 'Draft';
