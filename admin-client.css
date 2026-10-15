@@ -96,6 +96,17 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .ql-container{border-radius:0 0 8px 8px!important;border-color:rgba(7,30,37,0.12)!important;min-height:500px;overflow-y:auto}
 .ql-editor{min-height:500px;height:auto}
 .ql-editor img{width:100%!important;max-width:100%!important;height:auto!important;border-radius:8px;margin:16px 0;display:block}
+/* Editor-only: empty spacer paragraphs take no space while editing, so the
+   editor reads like the published post (which strips them at render time,
+   PR #60). Display-only — the stored body is never changed. Quill renders an
+   empty paragraph as <p><br></p>; hiding that lone <br> collapses the
+   paragraph to zero height, and a truly childless paragraph is hidden
+   outright. The rules never hide a paragraph that carries text: the worst
+   case for a hand-shaped text+<br> paragraph is losing the visual break in
+   the editor, never the words. A paragraph holding any real content,
+   including an &nbsp;, keeps its space. */
+#quill-editor .ql-editor p:empty,
+#quill-editor .ql-editor p > br:only-child{display:none}
 .ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa;position:sticky;top:0;z-index:10}
 .ql-snow .ql-toolbar button:hover,.ql-snow.ql-toolbar button:hover{background:rgba(7,30,37,0.06)!important}
 .ql-toolbar button svg{width:18px!important;height:18px!important;display:block!important;float:none!important}
