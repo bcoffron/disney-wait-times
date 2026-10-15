@@ -2,12 +2,13 @@
 > AI-powered Disney theme park planning. Personalized daily schedules, live wait time awareness, and proactive re-routing so families spend less time waiting and more time making memories.
 
 ## About
-Theme Park Co-Pilot is a native iPhone app for planning and navigating Disney theme park days. It generates a personalized schedule before the trip, then works as an in-park copilot: monitoring live wait times, watching Lightning Lane return windows, and proactively suggesting re-routes around crowds and closures — like a brilliant friend who knows every wait time, shortcut, and secret. Trip leaders plan and optimize; everyone in the party follows along with a shared view of the day.
+Theme Park Co-Pilot is an iPhone app for planning and navigating Disney theme park days — currently in private beta testing, with a live web version. It generates a personalized schedule before the trip, then works as an in-park copilot: monitoring live wait times, watching Lightning Lane return windows, and proactively suggesting re-routes around crowds and closures — like a brilliant friend who knows every wait time, shortcut, and secret. Trip leaders plan and optimize; everyone in the party follows along with a shared view of the day.
 
 ## Product
 - App: https://app.themeparkcopilot.com/app.html
 - Landing page: https://themeparkcopilot.com
 - Platform: iPhone
+- Availability: private beta testing (TestFlight); the web version is live now
 - Planning support now: Disneyland and Disney California Adventure
 - In development: Walt Disney World, then Universal Orlando — the blog already publishes full Walt Disney World guides (below)
 
