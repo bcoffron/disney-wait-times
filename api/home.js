@@ -249,7 +249,7 @@ const html = `<!DOCTYPE html>
                                                                                                                                                                                                                                                                                                                                     <span class="nav-wm">Theme Park Co<span>&#10022;</span>Pilot</span>
                                                                                                                                                                                                                                                                                                                                       </a>
                                                                                                                                                                                                                                                                                                                                         <div class="nav-right">
-<a class="nav-blog" href="/blog">Blog</a>
+<a class="nav-blog" href="/blog">Planning Guides</a>
 <button class="nav-cta" onclick="document.getElementById('signup-email').focus()">Get early access</button>
 </div>
                                                                                                                                                                                                                                                                                                                                         </nav>
