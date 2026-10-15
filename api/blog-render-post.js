@@ -175,6 +175,16 @@ var html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta nam
   + '<div class="post-back"><a href="/blog" class="post-back__btn">&#8592; Back to all guides</a></div><article><header class="article-wrap">' + breadcrumbHtml(post) + '<div class="post-category">' + esc((post.category || '').replace(/&middot;/g, '\u00b7').replace(/&amp;/g, '&')) + '</div><h1 class="post-title">' + esc(post.title) + '</h1><div class="post-meta"><span class="post-byline">' + esc(byline) + '</span><span class="post-meta-sep">&middot;</span><span class="post-date">Published ' + formatDate(post.publishedAt) + '</span>' + updatedHtml + '</div><p class="post-intro">' + esc(post.intro || '') + '</p></header>'
   + '<div class="article-wrap article-body-wrap"><div class="article-body">' + (function(rawBody) {
   var body = (rawBody || '').replace(/^(\s*<p>\s*<\/p>\s*)+/i, '').trim();
+  // Strip empty spacer paragraphs (display-time only; stored bodies are untouched).
+  // A paragraph is a spacer when, after removing <br> tags, it contains no other
+  // element and its text is only whitespace / &nbsp;. Paragraphs holding an image,
+  // a link, or any formatted content are never touched.
+  body = body.replace(/<p(?:\s[^>]*)?>([\s\S]*?)<\/p>/gi, function(whole, inner) {
+    var noBr = inner.replace(/<br\s*\/?>/gi, '');
+    if (/<[a-z][\s\S]*?>/i.test(noBr)) return whole;
+    var textOnly = noBr.replace(/&nbsp;/gi, ' ').replace(/&#160;/g, ' ');
+    return textOnly.trim() === '' ? '' : whole;
+  });
   body = body.replace(/<div class="ql-raw-embed"[^>]*data-raw-embed="([^"]*)"[^>]*>[\s\S]*?<\/div>/g, function(match, encoded) {
     var decoded = encoded
       .replace(/&lt;/g, '<')
