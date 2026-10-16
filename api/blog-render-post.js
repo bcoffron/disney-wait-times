@@ -33,11 +33,25 @@ const CTA_TEXT = {
   both: "Planning a Disney trip should not feel like a second job. Theme Park Co-Pilot builds your day, watches wait times, and helps you make the most of every hour."
 };
 
+// Stored CTA text sometimes carries HTML entities as literal characters
+// (e.g. buttonText "Try free for 7 days &#8594;" from the original import).
+// esc() would double-escape them into visible garbage, so decode first:
+// real characters pass through untouched, entities become the character
+// they name, and esc() then encodes safely for HTML either way.
+function decodeEntities(s) {
+  if (!s) return s;
+  var named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", middot: '\u00B7', rsquo: '\u2019', lsquo: '\u2018', ldquo: '\u201C', rdquo: '\u201D', hellip: '\u2026' };
+  return String(s).replace(/&(#\d+|amp|lt|gt|quot|apos|middot|rsquo|lsquo|ldquo|rdquo|hellip);/g, function(m, e) {
+    if (e.charAt(0) === '#') return String.fromCharCode(parseInt(e.slice(1), 10));
+    return named[e] || m;
+  });
+}
+
 function ctaHtml(cta, park) {
   if (!cta) cta = {};
   const type = cta.type || park || 'both';
-  const text = cta.text || CTA_TEXT[type] || CTA_TEXT.both;
-  const btnText = cta.buttonText || "Try free for 7 days →";
+  const text = decodeEntities(cta.text || '') || CTA_TEXT[type] || CTA_TEXT.both;
+  const btnText = decodeEntities(cta.buttonText || "Try free for 7 days →");
   const btnUrl = cta.buttonUrl || 'https://themeparkcopilot.com';
   return '<div class="cta-box"><div class="cta-inner"><div class="cta-brand"><img class="cta-logo" src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt="Theme Park Co-Pilot"><div class="cta-brand-name">Theme Park Co-Pilot</div></div><div class="cta-tagline">Smarter days.<br><em>More magic.</em></div><p class="cta-body">' + esc(text) + '</p><a href="' + esc(btnUrl) + '" class="cta-btn">' + esc(btnText) + '</a></div></div>';
 }
