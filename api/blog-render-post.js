@@ -253,9 +253,9 @@ var html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta nam
   });
   return body;
 })(post.body) + '</div>'
+  + faqsHtml(post.faqs)
   + '<div class="share-bar"><div class="share-label">Share this post</div><div class="share-buttons"><a href="https://www.facebook.com/sharer/sharer.php?u=' + shareUrl + '" class="share-btn share-btn-facebook" target="_blank" rel="noopener">Facebook</a><a href="https://twitter.com/intent/tweet?url=' + shareUrl + '&text=' + shareTitle + '" class="share-btn share-btn-x" target="_blank" rel="noopener">X</a><a href="https://pinterest.com/pin/create/button/?url=' + shareUrl + '&media=' + shareImg + '&description=' + shareTitle + '" class="share-btn share-btn-pinterest" target="_blank" rel="noopener">Pinterest</a><button class="share-btn share-btn-instagram" onclick="copyLink()" type="button">Instagram</button><button class="share-btn share-btn-copy share-tooltip" id="copy-btn" onclick="copyLink()" type="button"><span class="share-tooltip-text" id="copy-tip">Copied!</span>Copy link</button></div></div>'
   + ctaHtml(post.cta, post.park)
-  + faqsHtml(post.faqs)
       + relatedHtml(relatedForRender)
   + '<div class="author-bio"><div class="author-avatar"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt="Theme Park Co-Pilot"></div><div><div class="author-name">Theme Park Co-Pilot Team</div><div class="author-bio-text">Disney planning obsessives who have spent countless hours studying wait time patterns, crowd behavior, and what actually makes a theme park day feel magical. We built Theme Park Co-Pilot because we kept giving the same advice to friends &#8212; and wanted to share it with every family. <a href="https://themeparkcopilot.com/editorial-standards">How we research and verify our guides &#8594;</a></div></div></div>'
   + '</div></article>'
