@@ -701,7 +701,15 @@ const r = await fetch(API_BASE + '/api/blog-admin-post?slug=' + encodeURICompone
 if (!r.ok) { showToast('Could not load draft', 'error'); return; }
 const post = await r.json();
 post.published = true;
-if (!post.publishedAt) post.publishedAt = new Date().toISOString();
+// Publish-date rule (Beau, Oct 16, 2026): a draft's date is when it
+// goes live, never when it was created. This path IS a transition by
+// construction (Publish clicked on a Drafts-list item), so stamp
+// unconditionally. The server (blog-save + api/lib/publish-date.js)
+// owns the stored value; this client stamp exists so the PR #54
+// optimistic overlay, which builds its entry from this object, sorts
+// by the go-live date during the visibility window instead of a
+// stale draft date.
+post.publishedAt = new Date().toISOString();
 post.updatedAt = new Date().toISOString();
 const saveR = await fetch(API_BASE + '/api/blog-save', {
 method: 'POST',

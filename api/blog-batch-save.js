@@ -35,6 +35,7 @@
 import jwt from 'jsonwebtoken';
 import { put } from '@vercel/blob';
 import { updateBlobJson, computeBodySnippet, readBlobJson } from './lib/blob.js';
+import { resolvePublishedAt } from './lib/publish-date.js';
 
 const rateLimit = new Map();
 
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
 
   const results = [];
   const landed = [];
+    const transitionBySlug = new Map(); // slug -> publish transition flag (publish-date rule); kept off the post objects so it never reaches the blob
   const acceptedNewSlugs = [];
   for (const rawPost of posts) {
     const post = rawPost && typeof rawPost === 'object' ? { ...rawPost } : null;
@@ -128,6 +130,16 @@ export default async function handler(req, res) {
     }
 
     post.updatedAt = new Date().toISOString();
+    // Publish-date rule (see api/lib/publish-date.js): batch posts
+    // normally land as drafts (no stamp), but if a batch item ever
+    // arrives published, the same transition semantics as blog-save
+    // apply - the stored blob is the pre-image, and the index update
+    // below takes the resolved value on a transition.
+    let batchPreImage = null;
+    try { batchPreImage = await readBlobJson('blog/posts/' + post.slug, 'blog-batch-save.publish-date', { expected: false }); } catch (e) { batchPreImage = null; }
+    const bpd = resolvePublishedAt(batchPreImage, post, post.updatedAt);
+    if (bpd.publishedAt) post.publishedAt = bpd.publishedAt;
+    transitionBySlug.set(post.slug, bpd.transition);
     if (post.body && typeof post.body === 'string') {
       post.body = post.body.replace(/<img([^>]*?)>/gi, function (match, attrs) {
         attrs = attrs.replace(/\s*(width|height|style)=["'][^"']*["']/gi, '');
@@ -158,9 +170,11 @@ export default async function handler(req, res) {
             category: post.category, tagLabel: post.tagLabel,
             heroImage: post.heroImage, heroAlt: post.heroAlt,
             intro: post.intro, readTime: post.readTime,
-            publishedAt: existingEntry && existingEntry.publishedAt
-              ? existingEntry.publishedAt
-              : post.publishedAt, updatedAt: post.updatedAt,
+            publishedAt: transitionBySlug.get(post.slug)
+              ? post.publishedAt
+              : (existingEntry && existingEntry.publishedAt
+                ? existingEntry.publishedAt
+                : post.publishedAt), updatedAt: post.updatedAt,
             published: post.published,
             tags: post.tags || [],
             bodySnippet: computeBodySnippet(post.body)
