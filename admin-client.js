@@ -1839,6 +1839,7 @@ gridEl.innerHTML = uploadQueue.map((item, idx) =>
 '<button class="queue-thumb-remove" onclick="removeFromQueue(' + idx + ')">&times;</button>' +
 '</div>'
 ).join('');
+gridEl.innerHTML += uploadQueue.map((item, idx) => queueMetaRow(item, idx)).join('');
 }
 if (uploadDone) {
 if (btnUpload) {
@@ -1901,7 +1902,7 @@ body: item.file
 });
 const data = await r.json();
 // Fix 1: check data.url (matches what blog-upload-image.js returns)
-if (r.ok && data.url) { successCount++; }
+if (r.ok && data.url) { successCount++; if (item.meta && (item.meta.alt || item.meta.credit)) { await saveImageMeta(data.url, { alt: item.meta.alt || '', credit: item.meta.credit || '', creditUrl: '', source: item.meta.source || 'own', creditRequired: item.meta.source === 'commons' }); } }
 else { progress.textContent = 'Failed: ' + item.file.name; progress.style.color = '#C82030'; await sleep(1000); progress.style.color = '#0A4840'; }
 } catch(e) { progress.textContent = 'Upload error: ' + item.file.name; progress.style.color = '#C82030'; await sleep(1000); progress.style.color = '#0A4840'; }
 }
@@ -1919,6 +1920,7 @@ async function startUploadQueue() { await uploadQueue_fn(); }
 function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
 async function loadImages() {
+loadImageMeta();
 const grid = document.getElementById('img-grid');
 const empty = document.getElementById('img-empty');
 if (!grid) return;
@@ -1934,10 +1936,12 @@ grid.innerHTML = images.map(img =>
 '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
 (imgManagerContext !== 'hero' ? '<div class="img-cell-actions">' +
 '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + "'" + escAttr(img.url) + "',this" + ')">Copy URL</button>' +
+'<button class="img-cell-btn" onclick="event.stopPropagation();openMetaEditor(' + "'" + escAttr(img.url) + "'" + ')">Meta</button>' +
 '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + "'" + escAttr(img.url) + "'" + ')">Delete</button>' +
 '</div>' : '') +
 '</div>' +
 '<div class="img-cell-name">' + escHtml(img.filename) + '</div>' +
+'<span class="meta-chip" data-meta-url="' + escAttr(img.url) + '"></span>' +
 (imgManagerContext !== 'hero' ? '<button class="img-set-hero-btn" onclick="setHeroFromLibrary(' + "'" + escAttr(img.url) + "'" + ')">Set as hero</button>' : '') +
 '</div>'
 ).join('');
@@ -2165,6 +2169,7 @@ function moveMultiToUsedPhotos() {
 }
 
 async function loadImagesInline() {
+loadImageMeta();
   if (isLoadingImages) return;
   isLoadingImages = true;
   try {
@@ -2197,10 +2202,12 @@ async function loadImagesInline() {
           '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy">' +
           '<div class="img-cell-actions">' +
           '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + q + escAttr(img.url) + q + ',this)">Copy URL</button>' +
+'<button class="img-cell-btn" onclick="event.stopPropagation();openMetaEditor(' + q + escAttr(img.url) + q + ')">Meta</button>' +
           '<button class="img-cell-btn danger" onclick="event.stopPropagation();deleteImage(' + q + escAttr(img.url) + q + ')">Delete</button>' +
           '</div>' +
           '</div>' +
           '<div class="img-cell-name">' + escHtml(img.filename) + '</div>' +
+'<span class="meta-chip" data-meta-url="' + escAttr(img.url) + '"></span>' +
           '</div>';
       }).join('') + '</div>';
     }
@@ -2216,6 +2223,7 @@ async function loadImagesInline() {
           '<img src="' + escAttr(img.url) + '" alt="' + escAttr(img.filename) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">' +
           '<div class="img-cell-actions">' +
           '<button class="img-cell-btn" onclick="event.stopPropagation();copyImgUrl(' + q + escAttr(img.url) + q + ',this)">Copy URL</button>' +
+'<button class="img-cell-btn" onclick="event.stopPropagation();openMetaEditor(' + q + escAttr(img.url) + q + ')">Meta</button>' +
           '</div>' +
           '</div>' +
           '<button type="button" class="btn-use-image" onclick="selectImage(\'' + escAttr(img.url) + '\')" ' +
@@ -2232,15 +2240,249 @@ async function loadImagesInline() {
 }
 
 
+// === IMAGE META SECTION START ===
+// Per-image metadata registry (alt + credit) -- editor side. Records live
+// in the blog/image-meta blob via api/blog-image-meta.js and are keyed by
+// image pathname. Alt attaches automatically at insert; a photo whose
+// record says a credit is legally required (creditRequired, e.g. a
+// Wikimedia Commons CC BY / BY-SA image) cannot be inserted until its
+// credit exists -- a published post missing that credit is out of license
+// compliance for every day it is live. Everything here fails soft: if the
+// registry cannot be read, inserts behave exactly as they did before.
+let imageMeta = {};
+let imageMetaLoaded = false;
+let metaModalState = null;
+function metaKey(url) {
+try { return decodeURIComponent(new URL(url).pathname).replace(/^\/+/, ''); } catch (e) { return ''; }
+}
+function metaRec(url) { return imageMeta[metaKey(url)] || null; }
+async function loadImageMeta() {
+try {
+const r = await fetch(API_BASE + '/api/blog-image-meta', { headers: { 'x-admin-key': token } });
+if (!r.ok) return;
+const data = await r.json();
+imageMeta = (data && data.records) || {};
+imageMetaLoaded = true;
+refreshMetaChips();
+} catch (e) { /* fail soft */ }
+}
+async function saveImageMeta(url, rec) {
+const path = metaKey(url);
+if (!path) return false;
+try {
+const r = await fetch(API_BASE + '/api/blog-image-meta', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+body: JSON.stringify({ pathname: path, record: rec })
+});
+if (!r.ok) return false;
+imageMeta[path] = {
+alt: rec.alt || '', credit: rec.credit || '', creditUrl: rec.creditUrl || '',
+source: rec.source || 'unknown', creditRequired: rec.creditRequired === true
+};
+refreshMetaChips();
+return true;
+} catch (e) { return false; }
+}
+function insertGate(rec) {
+if (rec && rec.creditRequired && !rec.credit) return 'block';
+if (!rec || !rec.alt) return 'prompt';
+return 'ok';
+}
+function metaChipState(rec) {
+if (!rec) return { cls: 'meta-chip-none', label: 'no details' };
+if (rec.creditRequired && !rec.credit) return { cls: 'meta-chip-bad', label: 'credit needed' };
+if (!rec.alt) return { cls: 'meta-chip-none', label: 'no alt' };
+return { cls: 'meta-chip-ok', label: 'details \u2713' };
+}
+function refreshMetaChips() {
+document.querySelectorAll('.meta-chip').forEach(function(chip) {
+const st = metaChipState(metaRec(chip.getAttribute('data-meta-url') || ''));
+chip.className = 'meta-chip ' + st.cls;
+chip.textContent = st.label;
+});
+}
+function metaSourceOptions(sel) {
+const opts = [['own', 'My own photo'], ['pexels', 'Pexels'], ['unsplash', 'Unsplash'], ['pixabay', 'Pixabay'], ['commons', 'Wikimedia Commons'], ['unknown', 'Not sure']];
+return opts.map(function(o) { return '<option value="' + o[0] + '"' + (o[0] === sel ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+}
+function ensureMetaModal() {
+if (document.getElementById('meta-modal')) return;
+const wrap = document.createElement('div');
+wrap.innerHTML =
+'<div class="meta-overlay" id="meta-modal">' +
+'<div class="meta-card">' +
+'<div class="meta-title" id="meta-title">Photo details</div>' +
+'<div class="meta-sub" id="meta-sub"></div>' +
+'<label class="meta-label">Alt text</label>' +
+'<input type="text" class="field-input" id="meta-alt" placeholder="Describe the photo for screen readers + SEO">' +
+'<label class="meta-label">Photo credit (small print under the photo)</label>' +
+'<input type="text" class="field-input" id="meta-credit" placeholder="e.g. Photo: Jane Doe / CC BY-SA 4.0 via Wikimedia Commons">' +
+'<label class="meta-label">Credit link (optional)</label>' +
+'<input type="text" class="field-input" id="meta-credit-url" placeholder="https://... (the photo page)">' +
+'<label class="meta-label">Where did this photo come from?</label>' +
+'<select class="field-input" id="meta-source"></select>' +
+'<label class="meta-check"><input type="checkbox" id="meta-required"> A credit is legally required for this photo</label>' +
+'<div class="meta-error" id="meta-error"></div>' +
+'<div class="meta-actions">' +
+'<button class="btn-secondary" id="meta-cancel" type="button">Cancel</button>' +
+'<button class="btn-primary" id="meta-save" type="button">Save</button>' +
+'</div>' +
+'<button class="meta-skip" id="meta-skip" type="button">Insert without saving details</button>' +
+'</div>' +
+'</div>';
+document.body.appendChild(wrap.firstChild);
+document.getElementById('meta-source').innerHTML = metaSourceOptions('own');
+document.getElementById('meta-source').addEventListener('change', function() {
+if (this.value === 'commons') document.getElementById('meta-required').checked = true;
+});
+document.getElementById('meta-save').addEventListener('click', metaModalSave);
+document.getElementById('meta-cancel').addEventListener('click', metaModalCancel);
+document.getElementById('meta-skip').addEventListener('click', metaModalSkip);
+}
+function openMetaModal(url, mode, range) {
+ensureMetaModal();
+const rec = metaRec(url);
+metaModalState = { url: url, mode: mode, range: range || null };
+document.getElementById('meta-alt').value = rec ? (rec.alt || '') : '';
+document.getElementById('meta-credit').value = rec ? (rec.credit || '') : '';
+document.getElementById('meta-credit-url').value = rec ? (rec.creditUrl || '') : '';
+document.getElementById('meta-source').innerHTML = metaSourceOptions(rec ? (rec.source || 'unknown') : 'own');
+document.getElementById('meta-required').checked = rec ? !!rec.creditRequired : false;
+document.getElementById('meta-error').textContent = '';
+const title = document.getElementById('meta-title');
+const sub = document.getElementById('meta-sub');
+const saveBtn = document.getElementById('meta-save');
+const skipBtn = document.getElementById('meta-skip');
+if (mode === 'block') {
+title.textContent = 'Credit required before inserting';
+sub.textContent = 'This photo is marked as needing a credit by law (for example a Wikimedia Commons CC BY / BY-SA image). Add the credit once here and it is saved for every future use.';
+saveBtn.textContent = 'Save credit & insert';
+skipBtn.style.display = 'none';
+} else if (mode === 'prompt') {
+title.textContent = 'Add photo details';
+sub.textContent = 'Alt text and credit are saved once for this photo and attach automatically from now on.';
+saveBtn.textContent = 'Save & insert';
+skipBtn.style.display = '';
+} else {
+title.textContent = 'Photo details';
+sub.textContent = 'Saved once for this photo; the alt attaches at insert and the credit prints under the photo on the site.';
+saveBtn.textContent = 'Save';
+skipBtn.style.display = 'none';
+}
+document.getElementById('meta-modal').classList.add('active');
+}
+function closeMetaModal() {
+const m = document.getElementById('meta-modal');
+if (m) m.classList.remove('active');
+metaModalState = null;
+}
+function insertImageWithAlt(url, range, alt) {
+if (!quill) return;
+let idx = (range && typeof range.index === 'number') ? range.index : -1;
+if (idx < 0) { const sel = quill.getSelection(true); idx = sel ? sel.index : quill.getLength() - 1; }
+quill.insertEmbed(idx, 'image', url);
+let node = null;
+try {
+[0, 1].forEach(function(off) {
+if (node) return;
+const leaf = quill.getLeaf(idx + off);
+const n = leaf && leaf[0] && leaf[0].domNode;
+if (n && n.tagName === 'IMG') node = n;
+});
+} catch (e) { /* fall through to DOM scan */ }
+if (!node) {
+const imgs = quill.root.querySelectorAll('img');
+for (let i = 0; i < imgs.length; i++) {
+if (imgs[i].getAttribute('src') === url && !imgs[i].hasAttribute('data-meta-alt')) { node = imgs[i]; break; }
+}
+}
+if (node) { node.setAttribute('alt', alt || ''); node.setAttribute('data-meta-alt', '1'); }
+markDirty();
+}
+async function metaModalSave() {
+const st = metaModalState;
+if (!st) return;
+const rec = {
+alt: document.getElementById('meta-alt').value.trim(),
+credit: document.getElementById('meta-credit').value.trim(),
+creditUrl: document.getElementById('meta-credit-url').value.trim(),
+source: document.getElementById('meta-source').value,
+creditRequired: document.getElementById('meta-required').checked
+};
+const errEl = document.getElementById('meta-error');
+if (st.mode === 'block' && !rec.credit) {
+errEl.textContent = 'A credit is required for this photo before it can be inserted.';
+return;
+}
+const saved = await saveImageMeta(st.url, rec);
+if (!saved && st.mode === 'block') {
+errEl.textContent = 'Could not save the credit. Check your connection and try again -- the photo has not been inserted.';
+return;
+}
+if (!saved) showToast('Photo details could not be saved', 'error');
+const mode = st.mode, url = st.url, range = st.range;
+closeMetaModal();
+refreshMetaChips();
+if (mode === 'prompt' || mode === 'block') {
+insertImageWithAlt(url, range, rec.alt);
+forceCloseImageManager();
+}
+}
+function metaModalCancel() {
+const st = metaModalState;
+closeMetaModal();
+if (st && st.mode === 'prompt') {
+// The prompt is an offer, not a trap: insert with whatever the registry
+// already has (possibly nothing) and let Beau move on.
+const rec = metaRec(st.url);
+insertImageWithAlt(st.url, st.range, rec ? (rec.alt || '') : '');
+forceCloseImageManager();
+}
+// 'block' cancel: do not insert -- that is the point of the block.
+// 'edit' cancel: just close.
+}
+function metaModalSkip() {
+const st = metaModalState;
+if (!st) return;
+const rec = metaRec(st.url);
+closeMetaModal();
+insertImageWithAlt(st.url, st.range, rec ? (rec.alt || '') : '');
+forceCloseImageManager();
+}
+function openMetaEditor(url) { openMetaModal(url, 'edit', null); }
+function queueMetaSet(idx, field, val) {
+if (!uploadQueue[idx]) return;
+if (!uploadQueue[idx].meta) uploadQueue[idx].meta = { alt: '', credit: '', source: 'own' };
+uploadQueue[idx].meta[field] = val;
+}
+function queueMetaRow(item, idx) {
+if (!item.meta) item.meta = { alt: '', credit: '', source: 'own' };
+return '<div class="queue-meta-row">' +
+'<input type="text" class="field-input queue-meta-input" placeholder="Alt text" value="' + escAttr(item.meta.alt || '') + '" oninput="queueMetaSet(' + idx + ',\'alt\',this.value)">' +
+'<input type="text" class="field-input queue-meta-input" placeholder="Credit (if not your photo)" value="' + escAttr(item.meta.credit || '') + '" oninput="queueMetaSet(' + idx + ',\'credit\',this.value)">' +
+'<select class="field-input queue-meta-select" onchange="queueMetaSet(' + idx + ',\'source\',this.value)">' + metaSourceOptions(item.meta.source || 'own') + '</select>' +
+'</div>';
+}
+// === IMAGE META SECTION END ===
 function selectImage(url) {
 if (imgManagerContext === 'hero') {
 document.getElementById('hero-preview').src = url;
 document.getElementById('f-hero-url').value = url;
 document.getElementById('og-img').src = url;
+const heroRec = metaRec(url);
+const heroAltEl = document.getElementById('f-hero-alt');
+if (heroRec && heroRec.alt && heroAltEl && !heroAltEl.value) heroAltEl.value = heroRec.alt;
 markDirty();
 } else if (imgManagerContext === 'quill' && quill) {
-const range = quill.getSelection(true);
-quill.insertEmbed(range.index, 'image', url);
+const rec = metaRec(url);
+const gate = imageMetaLoaded ? insertGate(rec) : 'ok';
+if (gate === 'ok') {
+insertImageWithAlt(url, quill.getSelection(true), rec ? (rec.alt || '') : '');
+} else {
+openMetaModal(url, gate, quill.getSelection(true));
+return;
+}
 }
 forceCloseImageManager();
 }
