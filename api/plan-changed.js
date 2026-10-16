@@ -38,6 +38,9 @@
 import { list, put } from '@vercel/blob';
 import { fireTripPush } from './cron-booking-alerts.js';
 import { readBlobJson as readBlobJsonShared } from './lib/blob.js';
+// Per-role routing (PR 2): the category label flows through the shared
+// policy table; roles resolve from each code's own registry entry.
+import { buildRoleMap, shouldSend } from './lib/push-routing.js';
 import { isApnsConfigured } from './apns.js';
 
 export const PLAN_CHANGED_WINDOW_MS = 3 * 60 * 1000;
@@ -80,18 +83,29 @@ async function writeJsonBlob(pathname, obj) {
 // reader in api/push-test.js / api/trip.js.
 // ---------------------------------------------------------------------------
 async function readRegistry() {
+  const data = await readRegistryRaw();
+  return data || {};
+}
+// Raw variant: null when no registry could be read at all -- the
+// difference between "no registry" and "empty registry" is the
+// fail-closed signal the role map is built from.
+async function readRegistryRaw() {
   const keys = _AUTH_SALT ? ['twize/' + _AUTH_SALT + '/trip_registry.json', 'twize/trip_registry.json'] : ['twize/trip_registry.json'];
   for (const key of keys) {
     const data = await readBlobJson(key);
     if (data && typeof data === 'object') return data;
   }
-  return {};
+  return null;
 }
 
 // Every registry code sharing this tripId (the leader/guest pair), the
-// presented code first. Mirror of tripCodesFor in api/push-test.js.
-async function pairCodesFor(tripId, presentedCode) {
-  const registry = await readRegistry();
+// presented code first -- plus the role map built from the SAME single
+// registry read (routing PR 2). Mirror of tripCodesFor in
+// api/push-test.js.
+async function pairCodesAndRoles(tripId, presentedCode) {
+  const registryRaw = await readRegistryRaw();
+  const roleMap = buildRoleMap(registryRaw);
+  const registry = registryRaw || {};
   const codes = [];
   const pc = safeTripCode(presentedCode || '');
   if (pc && registry[pc] && registry[pc].tripId === tripId) codes.push(pc);
@@ -100,7 +114,11 @@ async function pairCodesFor(tripId, presentedCode) {
     const e = registry[code];
     if (e && e.tripId === tripId && safeTripCode(code)) codes.push(code);
   }
-  return codes;
+  return { codes: codes, roleMap: roleMap };
+}
+async function pairCodesFor(tripId, presentedCode) {
+  const r = await pairCodesAndRoles(tripId, presentedCode);
+  return r.codes;
 }
 
 // Registered push targets across the given codes, EXCLUDING the originator
@@ -206,7 +224,19 @@ function mergeChange(base, add) {
 // targets exist but every send failed (retry discipline: the caller
 // leaves the pending record untouched for the next flush).
 async function attemptSend(tripId, presentedCode, change) {
-  const codes = await pairCodesFor(tripId, presentedCode);
+  const pair = await pairCodesAndRoles(tripId, presentedCode);
+  if (!pair.codes.length) return 'no-targets';
+  // Routing (PR 2): the plan-changed category flows through the shared
+  // policy table before any send. Plan-changed is awareness for EVERY
+  // role -- its purpose is keeping guests in sync -- so the policy
+  // passes every resolvable code; the originating actor is excluded by
+  // the excludeToken mechanism below, not by role.
+  const codes = [];
+  for (const code of pair.codes) {
+    const role = (pair.roleMap.byCode[code] && pair.roleMap.byCode[code].role) || null;
+    if (shouldSend('plan-changed', role, pair.roleMap.ok)) codes.push(code);
+    else console.warn('[plan-changed] routing suppressed code ' + code + ' for trip ' + tripId);
+  }
   if (!codes.length) return 'no-targets';
   const excludeToken = safeDeviceToken(change.originToken || '');
   const targets = await countTargets(codes, excludeToken);
