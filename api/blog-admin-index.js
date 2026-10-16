@@ -43,21 +43,28 @@ export default async function handler(req, res) {
     //   - BLOG_AGENT_TOKEN (auth: agent), a static high-entropy bearer
     //     held in a Vercel env var, compared in constant time. It exists
     //     so reviewed agent tooling can read without holding Beau's
-    //     session token. Scope is reads only: blog-save deliberately
-    //     does NOT accept it (its JWT-only gate is unchanged, and a
-    //     test asserts the agent token gets a 401 there). Unset env
-    //     var = the agent path simply never matches.
+    //     session token. blog-save accepts the same two credentials
+    //     since PR #66, with the auth kind logged on every save.
+    //     Unset env var = the agent path simply never matches.
     const sentToken = req.headers['x-admin-key'] || '';
     let authKind = null;
+    let agentChecked = false;
+    // Shape only, never the value: three dot-separated segments reads as
+    // a JWT. The failure log below records it so an operator can tell a
+    // bad agent token (wrong or rotated credential) from a session
+    // expiry (Beau signs in again) - different problems, different fix.
+    // (Same discriminator as blog-save, PR #66.)
+    const presentedShape = !sentToken ? 'none' : (/^[^.\s]+\.[^.\s]+\.[^.\s]+$/.test(sentToken) ? 'jwt' : 'other');
     if (sentToken) {
       try { jwt.verify(sentToken, process.env.JWT_SECRET); authKind = 'session'; } catch (err) { /* not a session JWT: try the agent token below */ }
       if (!authKind && process.env.BLOG_AGENT_TOKEN) {
+        agentChecked = true;
         const expected = Buffer.from(process.env.BLOG_AGENT_TOKEN);
         const presented = Buffer.from(sentToken);
         if (presented.length === expected.length && timingSafeEqual(presented, expected)) authKind = 'agent';
       }
     }
-    if (!authKind) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
+    if (!authKind) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', agentChecked, presentedShape, time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
     const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
     const now = Date.now();
