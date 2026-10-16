@@ -33,11 +33,25 @@ const CTA_TEXT = {
   both: "Planning a Disney trip should not feel like a second job. Theme Park Co-Pilot builds your day, watches wait times, and helps you make the most of every hour."
 };
 
+// Stored CTA text sometimes carries HTML entities as literal characters
+// (e.g. buttonText "Try free for 7 days &#8594;" from the original import).
+// esc() would double-escape them into visible garbage, so decode first:
+// real characters pass through untouched, entities become the character
+// they name, and esc() then encodes safely for HTML either way.
+function decodeEntities(s) {
+  if (!s) return s;
+  var named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", middot: '\u00B7', rsquo: '\u2019', lsquo: '\u2018', ldquo: '\u201C', rdquo: '\u201D', hellip: '\u2026' };
+  return String(s).replace(/&(#\d+|amp|lt|gt|quot|apos|middot|rsquo|lsquo|ldquo|rdquo|hellip);/g, function(m, e) {
+    if (e.charAt(0) === '#') return String.fromCharCode(parseInt(e.slice(1), 10));
+    return named[e] || m;
+  });
+}
+
 function ctaHtml(cta, park) {
   if (!cta) cta = {};
   const type = cta.type || park || 'both';
-  const text = cta.text || CTA_TEXT[type] || CTA_TEXT.both;
-  const btnText = cta.buttonText || "Try free for 7 days →";
+  const text = decodeEntities(cta.text || '') || CTA_TEXT[type] || CTA_TEXT.both;
+  const btnText = decodeEntities(cta.buttonText || "Try free for 7 days →");
   const btnUrl = cta.buttonUrl || 'https://themeparkcopilot.com';
   return '<div class="cta-box"><div class="cta-inner"><div class="cta-brand"><img class="cta-logo" src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt="Theme Park Co-Pilot"><div class="cta-brand-name">Theme Park Co-Pilot</div></div><div class="cta-tagline">Smarter days.<br><em>More magic.</em></div><p class="cta-body">' + esc(text) + '</p><a href="' + esc(btnUrl) + '" class="cta-btn">' + esc(btnText) + '</a></div></div>';
 }
@@ -59,6 +73,55 @@ if (!related || !related.length) return '';
     return '<a href="https://themeparkcopilot.com/blog/' + esc(r.slug) + '" class="related-card">' + imgHtml + '<div class="related-card-body"><span class="related-park">' + esc(rLabel) + '</span><span class="related-title">' + esc(r.title) + '</span><span class="related-link">Read guide \u2192</span></div></a>';
   }).join('');
   return '<div class="related-posts"><h3>You might also like</h3><div class="related-grid">' + cards + '</div></div>';
+}
+
+// Cross-links computed at render time from index metadata — deterministic, no
+// hand-maintained lists (Claude's constraint, Oct 15): same park scores highest,
+// then same category, then shared tags; ties resolve by a stable per-post hash
+// rotation (see the sort below). Published posts only; self always excluded.
+// FNV-1a 32-bit — small, stable across engines and runs (no Date/Math.random).
+function stableHash(str) {
+  var h = 0x811c9dc5;
+  for (var i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+function computeRelated(post, indexPosts) {
+  if (!post || !Array.isArray(indexPosts)) return null;
+  var LIMIT = 6;
+  var myPark = post.park || 'both';
+  var myCategory = post.category || '';
+  var myTags = {};
+  (post.tags || []).forEach(function(t) { myTags[t] = true; });
+  var scored = [];
+  indexPosts.forEach(function(p) {
+    if (!p || p.published !== true || !p.slug || p.slug === post.slug) return;
+    var s = 0;
+    var pPark = p.park || 'both';
+    if (pPark === myPark) s += 4;
+    else if (pPark === 'both' || myPark === 'both') s += 1;
+    if (myCategory && p.category && p.category === myCategory) s += 3;
+    var shared = 0;
+    (p.tags || []).forEach(function(t) { if (myTags[t]) shared++; });
+    s += Math.min(shared, 2);
+    scored.push({ slug: p.slug, title: p.title, heroImage: p.heroImage, park: pPark, _s: s });
+  });
+  // Within an equal score, order by a stable hash of (this post, candidate):
+  // every post surfaces a different slice of its tied cohort, so inbound links
+  // spread across all equally-relevant posts instead of the newest few always
+  // winning the recency tiebreak (which starved the oldest park guides).
+  scored.sort(function(a, b) {
+    if (b._s !== a._s) return b._s - a._s;
+    var ha = stableHash(post.slug + '|' + a.slug), hb = stableHash(post.slug + '|' + b.slug);
+    if (ha !== hb) return ha - hb;
+    return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;
+  });
+  return scored.slice(0, LIMIT).map(function(r) {
+    return { slug: r.slug, title: r.title, heroImage: r.heroImage, park: r.park };
+  });
 }
 
 function breadcrumbHtml(post) {
@@ -137,6 +200,15 @@ var post = null;
 
 // Read settings for byline
 var settings = await readSettings();
+
+// Related posts: computed from the index; the stored list is only a fallback
+// if the index read fails, so a blob hiccup never strips the block.
+var relatedForRender = null;
+try {
+  var indexPosts = await readBlobJson('blog/posts/index', 'blog-render-post.readBlob', { expected: true });
+  relatedForRender = computeRelated(post, indexPosts);
+} catch(e) { relatedForRender = null; }
+if (!relatedForRender || !relatedForRender.length) relatedForRender = post.related;
   var byline = settings.byline || 'By the Theme Park Co-Pilot Team';
 
 // Show updated date if post was updated more than 7 days after publish
@@ -195,10 +267,10 @@ var html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta nam
   });
   return body;
 })(post.body) + '</div>'
+  + faqsHtml(post.faqs)
   + '<div class="share-bar"><div class="share-label">Share this post</div><div class="share-buttons"><a href="https://www.facebook.com/sharer/sharer.php?u=' + shareUrl + '" class="share-btn share-btn-facebook" target="_blank" rel="noopener">Facebook</a><a href="https://twitter.com/intent/tweet?url=' + shareUrl + '&text=' + shareTitle + '" class="share-btn share-btn-x" target="_blank" rel="noopener">X</a><a href="https://pinterest.com/pin/create/button/?url=' + shareUrl + '&media=' + shareImg + '&description=' + shareTitle + '" class="share-btn share-btn-pinterest" target="_blank" rel="noopener">Pinterest</a><button class="share-btn share-btn-instagram" onclick="copyLink()" type="button">Instagram</button><button class="share-btn share-btn-copy share-tooltip" id="copy-btn" onclick="copyLink()" type="button"><span class="share-tooltip-text" id="copy-tip">Copied!</span>Copy link</button></div></div>'
   + ctaHtml(post.cta, post.park)
-  + faqsHtml(post.faqs)
-      + relatedHtml(post.related)
+      + relatedHtml(relatedForRender)
   + '<div class="author-bio"><div class="author-avatar"><img src="https://app.themeparkcopilot.com/assets/brand/favicon.PNG" alt="Theme Park Co-Pilot"></div><div><div class="author-name">Theme Park Co-Pilot Team</div><div class="author-bio-text">Disney planning obsessives who have spent countless hours studying wait time patterns, crowd behavior, and what actually makes a theme park day feel magical. We built Theme Park Co-Pilot because we kept giving the same advice to friends &#8212; and wanted to share it with every family. <a href="https://themeparkcopilot.com/editorial-standards">How we research and verify our guides &#8594;</a></div></div></div>'
   + '</div></article>'
   + '<footer class="footer" role="contentinfo"><div class="footer-left">&#169; 2026 Lunchbox Dad LLC &#183; Theme Park Co-Pilot &#183; hello@themeparkcopilot.com</div><div class="footer-right"><a href="https://themeparkcopilot.com" class="footer-link">Home</a><a href="/blog" class="footer-link">Blog</a><a href="https://themeparkcopilot.com/privacy" class="footer-link">Privacy</a><a href="https://themeparkcopilot.com/terms" class="footer-link">Terms</a></div></footer>'
