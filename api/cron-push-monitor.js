@@ -422,17 +422,29 @@ export default async function handler(req, res) {
 
     const summary = [];
 
-    // ---- 4. per trip ----
+    // ---- 4. group codes by trip; evaluate once per trip ----
+    // (Oct 16, 2026 -- Claude routing ruling, amended section 1.) Wait-state
+    // is per-TRIP, so the old per-code loop raced itself: the first code's
+    // pass committed the fire markers into the shared state and the paired
+    // code's pass found them set and sent nothing -- blob list order picked
+    // the winner. Group the discovered codes by tripId, evaluate each trip
+    // once against its per-trip state, and fan delivery out to every code
+    // of the trip (see fire() below).
+    const tripGroups = new Map();
     for (const code of tripCodes) {
       const entry = registry[code];
       if (!entry || entry.status !== 'active') { summary.push({ code, skip: 'inactive' }); continue; }
       const tripId = safeTripId(entry.tripId || '');
       if (!tripId) { summary.push({ code, skip: 'bad tripId' }); continue; }
+      if (!tripGroups.has(tripId)) tripGroups.set(tripId, []);
+      tripGroups.get(tripId).push(code);
+    }
+    for (const [tripId, codes] of tripGroups) {
 
       const tripData = await readSaltedDualBlob(tripSaltedKey(tripId), tripBareKey(tripId));
       const cfg = tripData && tripData.tripConfig;
       const schedule = cfg && cfg.schedule;
-      if (!schedule || !Array.isArray(schedule.days)) { summary.push({ code, skip: 'no schedule' }); continue; }
+      if (!schedule || !Array.isArray(schedule.days)) { for (const c of codes) summary.push({ code: c, skip: 'no schedule' }); continue; }
 
       // which day index is "today" in Pacific? dates live in cfg.days[i].date
       // (human "Jun 28, 2026" or ISO), index-aligned with schedule.days[i].
@@ -443,11 +455,11 @@ export default async function handler(req, res) {
                         (schedule.days[i] && (schedule.days[i].date || schedule.days[i].isoDate)) || '';
         if (normDate(rawDate) === pt.ymd) { todayIdx = i; break; }
       }
-      if (todayIdx === -1) { summary.push({ code, skip: 'no day for today (' + pt.ymd + ')' }); continue; }
+      if (todayIdx === -1) { for (const c of codes) summary.push({ code: c, skip: 'no day for today (' + pt.ymd + ')' }); continue; }
 
       // skip VIP days -- the guide handles optimization
       const isVip = cfgDays[todayIdx] && cfgDays[todayIdx].isVip === true;
-      if (isVip) { summary.push({ code, skip: 'VIP day' }); continue; }
+      if (isVip) { for (const c of codes) summary.push({ code: c, skip: 'VIP day' }); continue; }
 
       const items = Array.isArray(schedule.days[todayIdx].items) ? schedule.days[todayIdx].items : [];
       const rideItems = items.filter(it => it && it.type === 'ride' && it.h);
@@ -470,20 +482,28 @@ export default async function handler(req, res) {
 
       // One alert payload, both channels: web subscriptions + native APNs.
       // "Delivered" for cooldown/commit purposes = at least one channel sent.
+      const sentByCode = {};
+      for (const c of codes) sentByCode[c] = 0;
       const fire = async (payload) => {
-        const w = await sendToTrip(code, payload);
-        const a = await sendApnsToTrip(code, payload);
-        apnsSentTrip += a.sent;
-        const sentTotal = w.sent + a.sent;
-        // Poll backstop (Claude msg 94 (i)): record every successfully
-        // fired episode for the client's ~10s foreground poll, which
-        // renders it in-app where the native shell never hands the push
-        // to the app's listener. Same delivery gate as the cooldown /
-        // fire-count commits below: a failed send records nothing.
-        if (sentTotal > 0 && payload && payload.episodeId) {
-          await recordEpisode(code, payload);
+        let sentTotal = 0;
+        for (const c of codes) {
+          const w = await sendToTrip(c, payload);
+          const a = await sendApnsToTrip(c, payload);
+          apnsSentTrip += a.sent;
+          const codeSent = w.sent + a.sent;
+          sentByCode[c] += codeSent;
+          sentTotal += codeSent;
+          // Poll backstop (Claude msg 94 (i)): record every successfully
+          // fired episode for the client's ~10s foreground poll, which
+          // renders it in-app where the native shell never hands the push
+          // to the app's listener. Recorded per code, gated on that code's
+          // own delivery -- same discipline as the cooldown / fire-count
+          // commits below: a failed send records nothing.
+          if (codeSent > 0 && payload && payload.episodeId) {
+            await recordEpisode(c, payload);
+          }
         }
-        return { sent: sentTotal, web: w, apns: a };
+        return { sent: sentTotal };
       };
 
       for (const it of rideItems) {
@@ -677,7 +697,7 @@ export default async function handler(req, res) {
       }
 
       await writeJsonBlob(stateKey, state);
-      summary.push({ code, tripId, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip, apnsSent: apnsSentTrip });
+      summary.push({ tripId, codes, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip, sentByCode, apnsSent: apnsSentTrip });
     }
 
     console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));
