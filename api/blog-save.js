@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { timingSafeEqual } from 'node:crypto';
 import { put } from '@vercel/blob';
 import { updateBlobJson, computeBodySnippet, readBlobJson } from './lib/blob.js';
+import { resolvePublishedAt } from './lib/publish-date.js';
 
 const rateLimit = new Map();
 
@@ -118,16 +119,28 @@ export default async function handler(req, res) {
 
   post.updatedAt = new Date().toISOString();
 
-  // Invariant: a published post has a publishedAt. A client publish
-  // path has forgotten to stamp it before (one-click publish from
-  // Drafts shipped a post with publishedAt: null, which sorted
-  // dateless to the bottom of every publishedAt-ordered list), so
-  // the invariant is enforced here - upstream of both the blob
-  // write and the index entry below, which each read
-  // post.publishedAt. An existing publishedAt is never overwritten,
-  // and drafts are never stamped.
+  // Publish-date rule (Beau, Oct 16, 2026): publishedAt is when a post
+  // GOES LIVE, never when it was created. The shared helper
+  // (api/lib/publish-date.js) decides from the pre-image - the stored
+  // post blob, read here (one extra read per save; a missing blob is
+  // a creation, not a transition). The index upsert below takes the
+  // resolved value on a transition; otherwise it keeps its existing
+  // preference for the stored entry's date.
+  let preImage = null;
+  try { preImage = await readBlobJson('blog/posts/' + post.slug, 'blog-save.publish-date', { expected: false }); } catch (e) { preImage = null; }
+  const pd = resolvePublishedAt(preImage, post, post.updatedAt);
+  if (pd.publishedAt) post.publishedAt = pd.publishedAt;
+  const publishTransition = pd.transition;
+
+  // Invariant (unchanged): a published post has a publishedAt. A
+  // client publish path has forgotten to stamp it before (one-click
+  // publish from Drafts shipped a post with publishedAt: null, which
+  // sorted dateless to the bottom of every publishedAt-ordered list),
+  // so the floor is enforced here - upstream of both the blob write
+  // and the index entry below, which each read post.publishedAt.
+  // Drafts are never stamped.
   if (post.published === true && !post.publishedAt) {
-    post.publishedAt = new Date().toISOString();
+    post.publishedAt = post.updatedAt;
   }
 
   if (post.body && typeof post.body === 'string') {
@@ -151,9 +164,11 @@ export default async function handler(req, res) {
         category: post.category, tagLabel: post.tagLabel,
         heroImage: post.heroImage, heroAlt: post.heroAlt,
         intro: post.intro, readTime: post.readTime,
-        publishedAt: existingEntry && existingEntry.publishedAt
-          ? existingEntry.publishedAt
-          : post.publishedAt, updatedAt: post.updatedAt,
+        publishedAt: publishTransition
+          ? post.publishedAt
+          : (existingEntry && existingEntry.publishedAt
+            ? existingEntry.publishedAt
+            : post.publishedAt), updatedAt: post.updatedAt,
         published: post.published,
         tags: post.tags || [],
         bodySnippet: computeBodySnippet(post.body)

@@ -1,5 +1,6 @@
 import { put } from '@vercel/blob';
 import { readBlobJson, updateBlobJson } from './lib/blob.js';
+import { resolvePublishedAt } from './lib/publish-date.js';
 
 // api/cron-publish.js â runs every hour, publishes scheduled posts whose time has passed
 // Cron schedule: 0 * * * * (top of every hour)
@@ -44,9 +45,16 @@ export default async function handler(req, res) {
           continue;
         }
 
-        // Publish it
+        // Publish it. The stamp comes from the shared publish-date
+        // helper (api/lib/publish-date.js): the stored blob just read
+        // is the pre-image and this flip is a transition, so the date
+        // is the actual go-live moment - the same value this code
+        // stamped inline before the helper existed (and if the blob
+        // turns out to be live already, the helper preserves its
+        // original date instead of re-dating it).
+        const pd = resolvePublishedAt(post, { ...post, published: true }, new Date().toISOString());
         post.published = true;
-        post.publishedAt = new Date().toISOString();
+        post.publishedAt = pd.publishedAt;
         post.scheduledAt = null;
         post.updatedAt = new Date().toISOString();
 
