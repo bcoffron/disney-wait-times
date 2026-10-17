@@ -17,11 +17,20 @@
 // stays human-run and cron-unreachable (PR #39). Repair, when needed,
 // is the reviewed blog-reindex dry run + hash-gated commit.
 //
-// Auth: Vercel cron only - the x-vercel-cron header plus the
-// CRON_SECRET bearer, the pattern hardened after the May 2026
-// incident. The admin JWT is NOT accepted: nothing human calls this.
-// Auth failure: 401, [SECURITY] log, and NO status write (a rejected
-// call must not be able to fake a healthy status).
+// Auth: Vercel cron only - the CRON_SECRET bearer alone, the same
+// pattern as the project's working crons (cron-push-monitor,
+// cron-booking-alerts). This endpoint originally ALSO required the
+// x-vercel-cron header (the pattern hardened after the May 2026
+// incident), but that header stopped authenticating on Oct 6, 2026
+// (it is spoofable by anyone) and requiring it silently rejected
+// every legitimate cron invocation from Oct 15-17, 2026: each run
+// 401'd, no status record was ever written, and the external reader
+// alerted on Oct 17 on the missing record. The bearer alone is
+// sufficient and matches what actually runs. Fail closed: with
+// CRON_SECRET unset, nothing is authorized. The admin JWT is NOT
+// accepted: nothing human calls this. Auth failure: 401, [SECURITY]
+// log, and NO status write (a rejected call must not be able to fake
+// a healthy status).
 //
 // Comparison, by entry keyed on slug. Three divergence classes:
 // - missing: a post blob exists with no index entry (the clobber
@@ -51,10 +60,9 @@ const STATUS_KEY = 'blog/reconcile/status';
 // visibility lag. Tunable for tests; production keeps the default.
 const LAG_CONFIRM_MS = parseInt(process.env.BLOG_RECONCILE_LAG_MS || '120000', 10);
 
-function cronAuthorized(req) {
+export function cronAuthorized(req) {
   if (!process.env.CRON_SECRET) return false;
-  return req.headers['x-vercel-cron'] === '1'
-    && req.headers['authorization'] === 'Bearer ' + process.env.CRON_SECRET;
+  return req.headers['authorization'] === 'Bearer ' + process.env.CRON_SECRET;
 }
 
 function diffIndexes(candidate, stored) {
@@ -89,6 +97,18 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const ranAt = new Date().toISOString();
+  // Run-started marker: overwrite the status with a 'started' verdict
+  // before the (potentially long) check, so a run that dies mid-flight
+  // is distinguishable from one that never ran. A stale 'started'
+  // record means invoked + authorized but died during execution; no
+  // record at all means never invoked or rejected. Best-effort - a
+  // failed marker must not abort the check. The final verdict write
+  // below overwrites it as before.
+  try {
+    await writeStatus({ ranAt, verdict: 'started', candidateCount: null, storedCount: null, missing: [], extra: [], publishedDrift: [], lagArtifacts: [], note: 'Run started; verdict pending.' });
+  } catch (e) {
+    console.error('[blog-reconcile] run-started marker write failed:', e.message);
+  }
   try {
     const pass1Start = Date.now();
     const c1 = await buildCandidate();
