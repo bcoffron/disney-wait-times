@@ -136,12 +136,16 @@ function imgCreditFor(imgTag, meta, esc) {
 export function applyBodyCredits(body, meta, esc) {
   if (!body || !meta || !Object.keys(meta).length) return body;
   let out = body.replace(/<p(?:\s[^>]*)?>\s*(<img[^>]*>)\s*<\/p>/gi, (whole, img, offset, full) => {
-    if (full.slice(offset + whole.length).startsWith('<p class="img-credit">')) return whole;
+    if (full.slice(offset + whole.length).replace(/^\s+/, '').startsWith('<p class="img-credit">')) return whole;
     const c = imgCreditFor(img, meta, esc);
     return c ? whole + c : whole;
   });
   out = out.replace(/<img[^>]*>/gi, (img, offset, full) => {
-    const after = full.slice(offset + img.length, offset + img.length + 40);
+    // Skip leading whitespace before the already-credited checks: editor-
+    // serialized bodies put newlines between the img and </p>, and a
+    // whitespace-blind guard here inserted a SECOND credit inside the
+    // paragraph after the paragraph pass had already added one.
+    const after = full.slice(offset + img.length, offset + img.length + 48).replace(/^\s+/, '');
     if (after.startsWith('</p><p class="img-credit">') || after.startsWith('<p class="img-credit">')) return img;
     const c = imgCreditFor(img, meta, esc);
     return c ? img + c : img;
