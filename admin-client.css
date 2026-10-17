@@ -313,6 +313,13 @@ html,body{overflow-x:hidden}
 .post-title-cell{flex:1 1 180px}
 .post-date{min-width:0;text-align:left}
 .post-actions{flex-wrap:wrap;row-gap:6px}
+/* The 16px anti-zoom rule above only reaches class-styled fields. The
+   Quill body editor inherits 13px from .ql-container, and several fields
+   carry sub-16px inline styles (hero URL 11px, schedule datetime 13px,
+   video URL 14px, login/password 15px) that beat the class rule — iOS
+   auto-zooms on focus for every one of them. Close the whole class. */
+.ql-editor{font-size:16px}
+input,textarea,select{font-size:16px!important}
 }
 .mobile-menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:150;background:#071E25;border:none;border-radius:8px;padding:8px;cursor:pointer}
 .mobile-menu-btn svg{width:20px;height:20px;color:white;stroke:currentColor}
