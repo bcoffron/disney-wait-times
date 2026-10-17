@@ -97,6 +97,12 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .ql-editor{min-height:500px;height:auto}
 #quill-editor .ql-editor p{margin-bottom:20px}
 .ql-editor img{width:100%!important;max-width:100%!important;height:auto!important;border-radius:8px;margin:16px 0;display:block}
+/* Embed slots: if the player iframe doesn't paint (some browsers block
+   YouTube embeds), the slot is an invisible hole in the post. Give it a
+   labeled backdrop UNDER the iframe (pseudo-element: never saved into
+   the post) — visible only while the player is unpainted. */
+#quill-editor .ql-video-wrapper{background:#0B222A}
+#quill-editor .ql-video-wrapper::before{content:'▶ YouTube video';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ECA050;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;letter-spacing:.04em}
 .ql-toolbar{border-radius:8px 8px 0 0!important;border-color:rgba(7,30,37,0.12)!important;background:#fafafa;position:sticky;top:0;z-index:10}
 .ql-snow .ql-toolbar button:hover,.ql-snow.ql-toolbar button:hover{background:rgba(7,30,37,0.06)!important}
 .ql-toolbar button svg{width:18px!important;height:18px!important;display:block!important;float:none!important}
