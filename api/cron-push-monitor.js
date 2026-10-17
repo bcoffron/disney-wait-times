@@ -24,6 +24,8 @@ import { flushPlanChanged } from './plan-changed.js';
 // Poll-backstop episode recording (msg 94 (i)): fired episodes are also
 // recorded per trip code for the client's foreground poll.
 import { recordEpisode } from './push-episodes.js';
+// Per-role routing (PR 2): role map + copy-variant policy.
+import { buildRoleMap, variantFor } from './lib/push-routing.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment. Reads are salted-first
@@ -399,7 +401,12 @@ export default async function handler(req, res) {
     if (!tripCodes.length) return res.status(200).json({ ok: true, trips: 0, note: 'no subscribed trips', planChangedFlush: _pcFlush });
 
     // ---- 2. registry: code -> tripId (salted-first, bare-fallback) ----
-    const registry = await readSaltedDualBlob(registrySaltedKey(), registryBareKey()) || {};
+    // The run's ONE registry read also builds the role map (routing
+    // PR 2): each code's role resolves from its own registry entry.
+    const registryRaw = await readSaltedDualBlob(registrySaltedKey(), registryBareKey());
+    const registry = registryRaw || {};
+    const roleMap = buildRoleMap(registryRaw);
+    if (!roleMap.ok) console.error('[push-monitor] ROLE MAP UNAVAILABLE (registry read failed) -- actionable pushes suppressed this run');
 
     // ---- 3. live waits once (shared across all trips) ----
     const [dlResp, dcaResp] = await Promise.all([
@@ -480,18 +487,38 @@ export default async function handler(req, res) {
       const backUps = [];
       const lastHigh = (typeof state.lastHighAlertMin === 'number') ? state.lastHighAlertMin : -99999;
 
-      // One alert payload, both channels: web subscriptions + native APNs.
-      // "Delivered" for cooldown/commit purposes = at least one channel sent.
+      // One evaluated event, fanned out to every code of the trip on
+      // both channels: web subscriptions + native APNs. "Delivered" for
+      // cooldown/commit purposes = at least one channel sent to at
+      // least one code (unchanged discipline).
       const sentByCode = {};
       for (const c of codes) sentByCode[c] = 0;
-      const fire = async (payload) => {
+      const variantByCode = {};
+      // Roles for this trip's codes, resolved once from the run's
+      // single registry read. An unresolved role is a divergence: log
+      // it with the code; that code receives awareness (fact)
+      // variants only (fail-closed, routing ruling section 3).
+      const codeRoles = codes.map((c) => {
+        const role = (roleMap.byCode[c] && roleMap.byCode[c].role) || null;
+        if (role === null) console.warn('[push-monitor] role unresolved for code ' + c + ' (trip ' + tripId + ') -- actionable suppressed, awareness only');
+        return { code: c, role: role };
+      });
+      // fire(category, makePayload): makePayload(variant) builds the
+      // payload for one copy variant -- 'actionable' (leader) or 'fact'
+      // (guest). The episode recorded for a code mirrors the payload
+      // that code was actually sent (routing decision, Oct 16, 2026).
+      const fire = async (category, makePayload) => {
         let sentTotal = 0;
-        for (const c of codes) {
-          const w = await sendToTrip(c, payload);
-          const a = await sendApnsToTrip(c, payload);
+        for (const cr of codeRoles) {
+          const variant = variantFor(category, cr.role, roleMap.ok);
+          variantByCode[cr.code] = variant;
+          if (variant === null) continue;
+          const payload = makePayload(variant);
+          const w = await sendToTrip(cr.code, payload);
+          const a = await sendApnsToTrip(cr.code, payload);
           apnsSentTrip += a.sent;
           const codeSent = w.sent + a.sent;
-          sentByCode[c] += codeSent;
+          sentByCode[cr.code] += codeSent;
           sentTotal += codeSent;
           // Poll backstop (Claude msg 94 (i)): record every successfully
           // fired episode for the client's ~10s foreground poll, which
@@ -500,7 +527,7 @@ export default async function handler(req, res) {
           // own delivery -- same discipline as the cooldown / fire-count
           // commits below: a failed send records nothing.
           if (codeSent > 0 && payload && payload.episodeId) {
-            await recordEpisode(c, payload);
+            await recordEpisode(cr.code, payload);
           }
         }
         return { sent: sentTotal };
@@ -575,18 +602,20 @@ export default async function handler(req, res) {
       if (downs.length) {
         const d = downs[0];
         const more = downs.length > 1 ? (' (+' + (downs.length - 1) + ' more)') : '';
-        const body = (d.status === 'REFURBISHMENT')
-          ? (d.name + ' is closed for refurbishment' + more + '. Tap to rework your morning.')
-          : (d.name + ' is temporarily down right now' + more + '. Tap to rework your morning.');
-        const payload = {
-          title: 'Planned ride is down',
-          body: body,
-          url: '/app.html',
-          tag: 'tpcp-ride-down',
-          class: 'ride-update',
-          episodeId: episodeIdFor(tripId, d.key, 'down', pt.ymd)
-        };
-        const r = await fire(payload);
+        const r = await fire('ride-down', (variant) => {
+          const prompt = (variant === 'actionable') ? '. Tap to rework your morning.' : '.';
+          const body = (d.status === 'REFURBISHMENT')
+            ? (d.name + ' is closed for refurbishment' + more + prompt)
+            : (d.name + ' is temporarily down right now' + more + prompt);
+          return {
+            title: 'Planned ride is down',
+            body: body,
+            url: '/app.html',
+            tag: 'tpcp-ride-down',
+            class: 'ride-update',
+            episodeId: episodeIdFor(tripId, d.key, 'down', pt.ymd)
+          };
+        });
         firedThisTrip = r.sent;
         if (r.sent > 0) {
           // The morning alert also covers any all-day down candidates.
@@ -600,18 +629,20 @@ export default async function handler(req, res) {
       } else if (downsAll.length) {
         const d = downsAll[0];
         const more = downsAll.length > 1 ? (' (+' + (downsAll.length - 1) + ' more)') : '';
-        const body = (d.status === 'REFURBISHMENT')
-          ? (d.name + ' is closed for refurbishment today' + more + '. Tap to see your options.')
-          : (d.name + ' is temporarily down' + more + '. Tap to see your options.');
-        const payload = {
-          title: 'Planned ride is down',
-          body: body,
-          url: '/app.html',
-          tag: 'tpcp-ride-down',
-          class: 'ride-update',
-          episodeId: episodeIdFor(tripId, d.key, 'down', pt.ymd)
-        };
-        const r = await fire(payload);
+        const r = await fire('ride-down', (variant) => {
+          const prompt = (variant === 'actionable') ? '. Tap to see your options.' : '.';
+          const body = (d.status === 'REFURBISHMENT')
+            ? (d.name + ' is closed for refurbishment today' + more + prompt)
+            : (d.name + ' is temporarily down' + more + prompt);
+          return {
+            title: 'Planned ride is down',
+            body: body,
+            url: '/app.html',
+            tag: 'tpcp-ride-down',
+            class: 'ride-update',
+            episodeId: episodeIdFor(tripId, d.key, 'down', pt.ymd)
+          };
+        });
         firedThisTrip = r.sent;
         if (r.sent > 0) {
           for (const dn of downsAll) {
@@ -627,29 +658,27 @@ export default async function handler(req, res) {
         const more = spikes.length > 1 ? (' (+' + (spikes.length - 1) + ' more)') : '';
         const spikeKey = normName(worst.name);
         const spikeFire = nextFireCount(state.rides[spikeKey], 'spike');
-        const payload = {
+        const r = await fire('wait-spike', (variant) => ({
           title: 'Wait spike on your plan',
-          body: worst.name + ' just jumped to ~' + worst.to + ' min' + more + '. Tap for better options.',
+          body: worst.name + ' just jumped to ~' + worst.to + ' min' + more + ((variant === 'actionable') ? '. Tap for better options.' : '.'),
           url: '/app.html',
           tag: 'tpcp-wait-spike',
           class: 'ride-update',
           episodeId: episodeIdFor(tripId, spikeKey, 'spike', pt.ymd, spikeFire)
-        };
-        const r = await fire(payload);
+        }));
         firedThisTrip = r.sent;
         if (r.sent > 0) commitFireCount(state, spikeKey, 'spike', spikeFire);
       } else if (backUps.length) {
         const u = backUps[0];
         const more = backUps.length > 1 ? (' (+' + (backUps.length - 1) + ' more)') : '';
-        const payload = {
+        const r = await fire('ride-back-up', (variant) => ({
           title: 'Good news \u2014 ride is back',
-          body: u.name + ' is operating again' + more + ' \u2014 it\u2019s on your plan if you want to swing back.',
+          body: u.name + ' is operating again' + more + ((variant === 'actionable') ? ' \u2014 it\u2019s on your plan if you want to swing back.' : '.'),
           url: '/app.html',
           tag: 'tpcp-ride-up',
           class: 'ride-update',
           episodeId: episodeIdFor(tripId, u.key, 'up', pt.ymd)
-        };
-        const r = await fire(payload);
+        }));
         firedThisTrip = r.sent;
         if (r.sent > 0) {
           for (const up of backUps) {
@@ -662,15 +691,14 @@ export default async function handler(req, res) {
         highs.sort((a, b) => b.to - a.to);
         const worst = highs[0];
         const highFire = nextFireCount(state.rides[worst.key], 'high');
-        const payload = {
+        const r = await fire('high-wait', (variant) => ({
           title: 'Heads up on your plan',
-          body: worst.name + ' is running ~' + worst.to + ' min right now \u2014 want to rework your next move?',
+          body: worst.name + ' is running ~' + worst.to + ' min right now' + ((variant === 'actionable') ? ' \u2014 want to rework your next move?' : '.'),
           url: '/app.html',
           tag: 'tpcp-wait-high',
           class: 'ride-update',
           episodeId: episodeIdFor(tripId, worst.key, 'high', pt.ymd, highFire)
-        };
-        const r = await fire(payload);
+        }));
         firedThisTrip = r.sent;
         if (r.sent > 0) {
           state.lastHighAlertMin = nowMin;
@@ -683,21 +711,20 @@ export default async function handler(req, res) {
         const best = drops[0];
         const dropKey = normName(best.name);
         const dropFire = nextFireCount(state.rides[dropKey], 'drop');
-        const payload = {
+        const r = await fire('wait-drop', (variant) => ({
           title: 'Short wait on your plan',
-          body: best.name + ' just dropped to ~' + best.to + ' min and it\u2019s on your plan \u2014 want to grab it now?',
+          body: best.name + ' just dropped to ~' + best.to + ' min and it\u2019s on your plan' + ((variant === 'actionable') ? ' \u2014 want to grab it now?' : '.'),
           url: '/app.html',
           tag: 'tpcp-wait-drop',
           class: 'ride-update',
           episodeId: episodeIdFor(tripId, dropKey, 'drop', pt.ymd, dropFire)
-        };
-        const r = await fire(payload);
+        }));
         firedThisTrip = r.sent;
         if (r.sent > 0) commitFireCount(state, dropKey, 'drop', dropFire);
       }
 
       await writeJsonBlob(stateKey, state);
-      summary.push({ tripId, codes, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip, sentByCode, apnsSent: apnsSentTrip });
+      summary.push({ tripId, codes, variants: variantByCode, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip, sentByCode, apnsSent: apnsSentTrip });
     }
 
     console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));

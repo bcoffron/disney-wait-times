@@ -51,6 +51,8 @@
 import webpush from 'web-push';
 import { isApnsConfigured, sendApnsToDevices } from './apns.js';
 import { recordEpisode } from './push-episodes.js';
+// Per-role routing (PR 2): role map + fail-closed send policy.
+import { buildRoleMap, shouldSend } from './lib/push-routing.js';
 
 // Disneyland dining reservations open 60 days before the dining date.
 export const BOOKING_WINDOW_DAYS = 60;
@@ -636,7 +638,12 @@ export default async function handler(req, res) {
     }
 
     // ---- 2. registry: code -> tripId (salted-first, bare-fallback) ----
-    const registry = await readSaltedDualBlob(registrySaltedKey(), registryBareKey()) || {};
+    // The run's ONE registry read also builds the role map (routing
+    // PR 2): each code's role resolves from its own registry entry.
+    const registryRaw = await readSaltedDualBlob(registrySaltedKey(), registryBareKey());
+    const registry = registryRaw || {};
+    const roleMap = buildRoleMap(registryRaw);
+    if (!roleMap.ok) console.error('[booking-alerts] ROLE MAP UNAVAILABLE (registry read failed) -- actionable pushes suppressed this run');
 
     const summary = [];
     for (const code of tripCodes) {
@@ -644,6 +651,12 @@ export default async function handler(req, res) {
       if (!entry || entry.status !== 'active') { summary.push({ code, skip: 'inactive' }); continue; }
       const tripId = safeTripId(entry.tripId || '');
       if (!tripId) { summary.push({ code, skip: 'bad tripId' }); continue; }
+
+      // This code's own role (routing PR 2). An unresolved role is a
+      // divergence: log it with the code; the gate below suppresses
+      // the (actionable) booking alerts for it.
+      const role = (roleMap.byCode[code] && roleMap.byCode[code].role) || null;
+      if (role === null) console.warn('[booking-alerts] role unresolved for code ' + code + ' -- actionable suppressed (awareness only)');
 
       const tripData = await readSaltedDualBlob(tripSaltedKey(tripId), tripBareKey(tripId));
       const cfg = tripData && tripData.tripConfig;
@@ -665,6 +678,16 @@ export default async function handler(req, res) {
       if (!items.length) { summary.push({ code, skip: 'no window opening today' }); continue; }
 
       for (const item of items) {
+        // Routing gate (PR 2): booking alerts are LEADER ONLY (Claude
+        // ruling, adopted by Beau Oct 16, 2026) on BOTH channels -- a
+        // guest code never sends, never records an episode, and never
+        // writes a dedupe marker for either booking category. Copy is
+        // unchanged for leaders.
+        const category = (item.kind === 'catchup') ? 'booking-morning-of' : 'booking-window';
+        if (!shouldSend(category, role, roleMap.ok)) {
+          summary.push({ code, tripId, date: item.date, dayNum: item.dayNum, kind: item.kind || 'open', skip: 'role-' + (role || 'unresolved'), category });
+          continue;
+        }
         if (dryRun) {
           summary.push({ code, tripId, date: item.date, dayNum: item.dayNum, kind: item.kind || 'open', dryRun: true, wouldSend: item.payload, restaurants: item.wishes.map(w => w.name) });
           continue;
