@@ -282,12 +282,28 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 @media(max-width:768px){
 .sidebar{transform:translateX(-240px);transition:transform 0.2s}
 .sidebar.open{transform:translateX(0)}
-.main-content{margin-left:0;padding:16px}
+.main-content{margin-left:0;padding:56px 16px 16px}
 .editor-panels{flex-direction:column}
 .editor-left,.editor-right{flex:none;width:100%}
 .action-bar{left:0}
 .mobile-menu-btn{display:flex!important}
 .img-grid{grid-template-columns:repeat(2,1fr)}
+/* Mobile hardening: stop iOS focus auto-zoom (inputs under 16px trigger it),
+   keep the fixed hamburger clear of view headers, let the action bar wrap,
+   and make any stray wide element unable to stretch the layout viewport. */
+html,body{overflow-x:hidden}
+#app{width:100%}
+.field-input,.field-textarea,.field-select,.search-input,.login-input,.queue-meta-input,.queue-meta-select{font-size:16px}
+.tags-row{flex-wrap:wrap}
+.tags-row .field-input{min-width:0}
+.action-bar{left:0;flex-wrap:wrap;gap:8px;padding:10px 12px}
+.action-bar-left{order:2;flex:1 1 100%}
+.action-bar-right{order:1;flex:1 1 100%;flex-wrap:nowrap;gap:6px}
+.action-bar-right button{flex:1 1 0;min-width:0;padding:10px 2px;font-size:12px;min-height:44px;white-space:nowrap}
+.editor-panels{padding-bottom:120px}
+.toast{left:12px;right:12px}
+.login-card{padding:28px 20px}
+.modal-box,.schedule-modal-box{padding:20px}
 }
 .mobile-menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:150;background:#071E25;border:none;border-radius:8px;padding:8px;cursor:pointer}
 .mobile-menu-btn svg{width:20px;height:20px;color:white;stroke:currentColor}
