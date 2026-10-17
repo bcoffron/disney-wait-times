@@ -304,6 +304,15 @@ html,body{overflow-x:hidden}
 .toast{left:12px;right:12px}
 .login-card{padding:28px 20px}
 .modal-box,.schedule-modal-box{padding:20px}
+/* List rows (Posts/Drafts/Pinned/Featured): on one line the thumb, pills,
+   80px date and action links exceed the phone width, so the title cell
+   collapses to zero and the actions run off-screen. Wrap instead: the
+   title keeps line 1 beside the thumb (real flex-basis), chips/date and
+   actions flow onto the lines below. */
+.post-row{flex-wrap:wrap;row-gap:8px}
+.post-title-cell{flex:1 1 180px}
+.post-date{min-width:0;text-align:left}
+.post-actions{flex-wrap:wrap;row-gap:6px}
 }
 .mobile-menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:150;background:#071E25;border:none;border-radius:8px;padding:8px;cursor:pointer}
 .mobile-menu-btn svg{width:20px;height:20px;color:white;stroke:currentColor}
