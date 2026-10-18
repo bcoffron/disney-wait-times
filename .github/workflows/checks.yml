@@ -1,0 +1,58 @@
+# Standing checks + test suites on every PR (Oct 17, 2026).
+#
+# Until now every check in this repo ran only when someone remembered to
+# run it by hand -- which is how two test suites and the render-chrome
+# drift check silently rotted on main (all three were red when this
+# workflow was built; the same PR fixes them). Per Claude's ruling on the
+# cron-auth check: the trigger is the deliverable.
+#
+# Everything in the gate job is a pure/static check or a stubbed suite:
+# no secrets, no network, no npm install (the suites stub @vercel/blob /
+# jsonwebtoken via module hooks, and the check scripts read repo files).
+#
+# Deliberately NOT in the gate:
+# - api/golden-trip.test.js reads api/vercel.json (not in this repo) and
+#   ../tpcp-cache-debug/ (a folder outside the repo) -- it cannot pass in
+#   a clean checkout and stays a local suite until those reads are fixed.
+# - check-llms runs as its own non-blocking job below: it compares the
+#   repo's llms.txt against LIVE production pages, and on a publish PR
+#   production lags the branch by design, so it must not gate merges.
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cron auth class check
+        run: node scripts/check-cron-auth.mjs
+      - name: Photo bundle drift check
+        run: node scripts/check-photo-bundle.mjs
+      - name: Render chrome drift check
+        run: node scripts/check-render-chrome.mjs
+      - name: Blog handler suites + cron-auth self-tests
+        run: node --test test/blog-reconcile-auth.test.mjs test/blog-images-delete.test.mjs test/blog-images-cleanup.test.mjs test/blog-upload-ratelimit.test.mjs test/check-cron-auth.test.mjs
+      - name: Schedule engine suite
+        run: node --test api/schedule-engine.test.js
+      - name: Schedule corrections suite
+        run: node tests/test-corrections.mjs
+
+  llms-drift:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: llms.txt drift check (vs live production -- advisory)
+        run: node scripts/check-llms.mjs
