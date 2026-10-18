@@ -152,3 +152,24 @@ export function applyBodyCredits(body, meta, esc) {
   });
   return out;
 }
+
+// Insert a fallback link into each YouTube embed wrapper at RENDER time
+// (stored bodies are never touched — the same boundary as applyBodyCredits).
+// The anchor becomes the wrapper's first child; the iframe follows it in DOM
+// order and paints over it when the player loads. When a reader's browser
+// blocks the player, the iframe renders transparent/absent and the label
+// shows, with the whole box linking out to the video on YouTube.
+// Beau's decision (Oct 17, 2026): label with a link out. The video ID is
+// derived defensively: a src that is not a youtube.com/embed/<id> shape
+// produces NO anchor and the body passes through untouched. Stored iframes
+// carry no title attribute, so the anchor text is the video's only
+// accessible name — it is deliberately not aria-hidden.
+export function applyVideoFallbacks(body) {
+  if (!body || body.indexOf('ql-video-wrapper') === -1) return body;
+  return body.replace(/(<div class="ql-video-wrapper"[^>]*>)(\s*)(<iframe[^>]*\bsrc="([^"]+)"[^>]*>)/gi, (whole, open, ws, iframe, src) => {
+    const m = /^https:\/\/(?:www\.)?youtube\.com\/embed\/([A-Za-z0-9_-]{6,})(?:[?#].*)?$/.exec(src.trim());
+    if (!m) return whole;
+    const anchor = '<a class="video-fallback" href="https://www.youtube.com/watch?v=' + m[1] + '" target="_blank" rel="noopener">\u25B6 YouTube video \u2014 Watch on YouTube</a>';
+    return open + anchor + ws + iframe;
+  });
+}
