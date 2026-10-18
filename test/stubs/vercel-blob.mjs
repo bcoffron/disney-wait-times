@@ -15,6 +15,13 @@ export async function list({ prefix } = {}) {
   return { blobs };
 }
 
+export async function put(pathname, body) {
+  const st = state();
+  const url = 'https://blob.test/' + pathname;
+  st.blobs.set(pathname, { pathname, url, size: body ? body.length : 0 });
+  return { url, pathname };
+}
+
 export async function del(url) {
   const st = state();
   st.delCalls.push(url);
