@@ -1032,7 +1032,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .reopt-btns{gap:8px;margin-top:12px;display:none}
 .reopt-btns.show{display:flex}
 .reopt-spinner{width:32px;height:32px;border:3px solid #EEF5F4;border-top:3px solid #C86030;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
-.gp-panel{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:430px;background:var(--card,#fff);border:1.5px solid var(--border,rgba(7,30,37,0.10));border-radius:var(--radius,14px);box-shadow:0 10px 40px rgba(0,0,0,.35);padding:14px 16px;z-index:890;font-family:Outfit,sans-serif}
+.gp-panel{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:430px;background:var(--card,#fff);border:1.5px solid var(--border,rgba(7,30,37,0.10));border-radius:var(--radius,14px);box-shadow:0 10px 40px rgba(0,0,0,.35);padding:14px 16px;z-index:890;font-family:Outfit,sans-serif}
 .gp-head{display:flex;align-items:flex-start;gap:10px}
 .gp-label{flex:1;font-size:13.5px;font-weight:700;color:var(--text,#071E25);line-height:1.45}
 .gp-close{background:none;border:none;color:var(--text-muted,#4A7A7C);font-size:18px;font-weight:700;line-height:1;cursor:pointer;padding:0 2px;font-family:inherit}
@@ -2302,6 +2302,42 @@ function ensureAdminKey() {
 var userRole='guest'; // 'admin' or 'guest'
 
 
+// TRIP_CONFIG re-sync (Oct 20, 2026): copy the user-visible fields of a
+// freshly fetched tripConfig into the in-memory TRIP_CONFIG. This is the
+// Phase 2 population block that used to live inline inside checkLock's
+// schedule branch -- where it only ran when the trip already had a
+// schedule. A trip returning from onboarding without one (a failed or
+// not-yet-generated save) skipped it entirely, so the header kept the
+// static default and every synced field stayed stale for the session.
+// checkLock now calls this at the trip-load point, for every loaded trip.
+function tpcpSyncTripConfig(tc) {
+  if (!tc) return;
+    if (tc.tripName) TRIP_CONFIG.tripName = tc.tripName; var _htEl = document.querySelector('.header-title'); if (_htEl && tc.tripName) _htEl.textContent = tc.tripName;
+    if (tc.guestCode) TRIP_CONFIG.guestCode = tc.guestCode;
+    if (tc.party) TRIP_CONFIG.party = tc.party;
+    if (tc.members) TRIP_CONFIG.members = tc.members;
+    if (tc.days && tc.days.length) {
+      TRIP_CONFIG.days = tc.days.map(function(dy, i) {
+        return Object.assign({}, TRIP_CONFIG.days[i] || {}, {
+          num: dy.num || (i+1), label: 'Day ' + (dy.num || (i+1)), date: dy.date || '',
+          park: dy.park || 'Disneyland',
+          isVip: !!dy.isVip, vipStart: dy.vipStart || '10:00', vipEnd: dy.vipEnd || '17:00',
+          hasLL: !!dy.hasLL, hasLLMP: !!dy.hasLLMP, hasILL: !!dy.hasILL, hopTo: !!dy.hopTo
+        });
+      });
+    }
+    // Update day tab DOM from populated TRIP_CONFIG.days
+    ensureDayTabs(TRIP_CONFIG.days.length);
+    TRIP_CONFIG.days.forEach(function(dy, i) {
+      var tab = document.getElementById('day-tab-' + (i+1));
+      if (!tab) return;
+      var dateEl = tab.querySelector('.day-tab-date');
+      if (dateEl) dateEl.textContent = dy.date || '';
+      if (dy.isVip) tab.classList.add('vip-tab');
+      else tab.classList.remove('vip-tab');
+    });
+}
+
 function checkLock(){
 
 
@@ -2347,37 +2383,10 @@ function checkLock(){
             // Show edit trip details button for admin
             if(typeof isAdmin==='function'&&isAdmin()){var etr=document.getElementById('editTripDetailsRow');if(etr)etr.style.display='block';}
             // FIX 3: Set _loadedTripData so nudgeCheckAndShow can check tripConfig.onboardingComplete
-            if (d.tripData) { window._loadedTripData = d.tripData; window.renderClosureAlerts(); }
+            if (d.tripData) { window._loadedTripData = d.tripData; window.renderClosureAlerts(); tpcpSyncTripConfig(d.tripData.tripConfig); }
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
-            // Phase 2: populate TRIP_CONFIG from canonical blob at runtime
-            if (window._loadedTripData && window._loadedTripData.tripConfig) {
-              var _ltc = window._loadedTripData.tripConfig;
-              if (_ltc.tripName) TRIP_CONFIG.tripName = _ltc.tripName; var _htEl = document.querySelector('.header-title'); if (_htEl && _ltc.tripName) _htEl.textContent = _ltc.tripName;
-              if (_ltc.guestCode) TRIP_CONFIG.guestCode = _ltc.guestCode;
-              if (_ltc.party) TRIP_CONFIG.party = _ltc.party;
-              if (_ltc.members) TRIP_CONFIG.members = _ltc.members;
-              if (_ltc.days && _ltc.days.length) {
-                TRIP_CONFIG.days = _ltc.days.map(function(dy, i) {
-                  return Object.assign({}, TRIP_CONFIG.days[i] || {}, {
-                    num: dy.num || (i+1), label: 'Day ' + (dy.num || (i+1)), date: dy.date || '',
-                    park: dy.park || 'Disneyland',
-                    isVip: !!dy.isVip, vipStart: dy.vipStart || '10:00', vipEnd: dy.vipEnd || '17:00',
-                    hasLL: !!dy.hasLL, hasLLMP: !!dy.hasLLMP, hasILL: !!dy.hasILL, hopTo: !!dy.hopTo
-                  });
-                });
-              }
-              // Update day tab DOM from populated TRIP_CONFIG.days
-              ensureDayTabs(TRIP_CONFIG.days.length);
-              TRIP_CONFIG.days.forEach(function(dy, i) {
-                var tab = document.getElementById('day-tab-' + (i+1));
-                if (!tab) return;
-                var dateEl = tab.querySelector('.day-tab-date');
-                if (dateEl) dateEl.textContent = dy.date || '';
-                if (dy.isVip) tab.classList.add('vip-tab');
-                else tab.classList.remove('vip-tab');
-              });
-            }
+            // TRIP_CONFIG is re-synced at the trip-load point above (tpcpSyncTripConfig) -- for every loaded trip, not only when a schedule exists.
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
               loadCustom();
