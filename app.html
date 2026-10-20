@@ -2419,8 +2419,9 @@ function checkLock(){
                 var _cachedStr = localStorage.getItem('tpcp_lastSched_' + tpcpCode);
                 var _c = _cachedStr ? JSON.parse(_cachedStr) : null;
                 if (_c && _c.DAYS) {
-                  DAYS = _c.DAYS;
+                  try { DAYS = _c.DAYS; } catch(_de) {}
                   customSched = _c.customSched || customSched;
+                  if (typeof tpcpFitCustomSched === 'function') tpcpFitCustomSched();
                   usingCachedSchedule = true;
                   var _cb2 = document.getElementById('cachedSchedBanner'); if (_cb2) _cb2.style.display = '';
                   document.getElementById('lockScreen').style.display = 'none';
@@ -2575,8 +2576,9 @@ function tryUnlock() {
             var _cachedStr2 = localStorage.getItem('tpcp_lastSched_' + code);
             var _c2 = _cachedStr2 ? JSON.parse(_cachedStr2) : null;
             if (_c2 && _c2.DAYS) {
-              DAYS = _c2.DAYS;
+              try { DAYS = _c2.DAYS; } catch(_de2) {}
               customSched = _c2.customSched || customSched;
+              if (typeof tpcpFitCustomSched === 'function') tpcpFitCustomSched();
               usingCachedSchedule = true;
               var _cb5 = document.getElementById('cachedSchedBanner'); if (_cb5) _cb5.style.display = '';
               try { localStorage.setItem('tpcp_code', code); } catch(e8) {}
@@ -3077,8 +3079,8 @@ async function pullSchedule(){
 
 async function pushApiKey(key){if(!isAdmin())return;}
 async function pullApiKey(){ return; } // disabled: key is server-side only
-async function pushSchedule(){if(!isAdmin())return;try{var code=localStorage.getItem('tpcp_code')||'';if(!code)return;var days=[];for(var di=0;di<customSched.length;di++){var dayObj=customSched[di];var _ent=(dayObj&&dayObj.sections&&dayObj.sections[0]&&dayObj.sections[0].entries)||[];var _prk=(dayObj&&dayObj.sections&&dayObj.sections[0]&&dayObj.sections[0].title)||'';if(!_ent.length){var _fbDays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.schedule&&window._loadedTripData.tripConfig.schedule.days)||(window._schedData&&window._schedData.days)||[];var _fb=_fbDays[di];if(_fb&&_fb.items&&_fb.items.length){_ent=_fb.items;if(!_prk)_prk=_fb.park||'';}}days.push({park:_prk,items:_ent});}var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),tripData:{tripConfig:updatedTc}})});console.log('Schedule saved to tripConfig.schedule');}catch(e){console.warn('Push schedule:',e);}}
-async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;renderSched();renderDayInfoBar();renderPreTripBanner();setTimeout(renderPreTripWeather,500);}catch(e){console.warn('Pull schedule:',e);}}
+async function pushSchedule(){if(!isAdmin())return;try{var code=localStorage.getItem('tpcp_code')||'';if(!code)return;if(typeof tpcpFitCustomSched==='function')tpcpFitCustomSched();var days=[];for(var di=0;di<customSched.length;di++){var dayObj=customSched[di];var _ent=(dayObj&&dayObj.sections&&dayObj.sections[0]&&dayObj.sections[0].entries)||[];var _prk=(dayObj&&dayObj.sections&&dayObj.sections[0]&&dayObj.sections[0].title)||'';if(!_ent.length){var _fbDays=(window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.schedule&&window._loadedTripData.tripConfig.schedule.days)||(window._schedData&&window._schedData.days)||[];var _fb=_fbDays[di];if(_fb&&_fb.items&&_fb.items.length){_ent=_fb.items;if(!_prk)_prk=_fb.park||'';}}days.push({park:_prk,items:_ent});}var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};var updatedTc=Object.assign({},existingTc,{schedule:{days:days},onboardingComplete:true,scheduleVersion:Date.now().toString()});await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),tripData:{tripConfig:updatedTc}})});console.log('Schedule saved to tripConfig.schedule');}catch(e){console.warn('Push schedule:',e);}}
+async function pullSchedule(){if(isAdmin())return;try{var r=await fetch(SYNC_BASE+'/api/schedule?t='+Date.now());if(!r.ok)return;var data=await r.json();if(data.empty)return;if(data.updated===scheduleLastSync)return;scheduleLastSync=data.updated;customSched=data.schedule;if(typeof tpcpFitCustomSched==='function')tpcpFitCustomSched(data.schedule?data.schedule.length:0);renderSched();renderDayInfoBar();renderPreTripBanner();setTimeout(renderPreTripWeather,500);}catch(e){console.warn('Pull schedule:',e);}}
 function startScheduleSync(){
   if(window._schedSyncStarted) return;
   window._schedSyncStarted = true;
@@ -4509,7 +4511,7 @@ function startWazeChecks(){
   setTimeout(checkWazeSuggestion,5*60*1000);
 }
 
-var editMode=false, customSched=[null,null,null], addSecIdx=null;
+var editMode=false, customSched=[], addSecIdx=null;
 var pendingReopt=null, dragSrc=null;
 
 //    API Key                                                                
@@ -4523,6 +4525,39 @@ function openDisneyApp(){var a=document.createElement('a');a.href='https://disne
 function openLightningLane(){var a=document.createElement('a');a.href='https://disneyland.disney.go.com/my-plans/';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
 
 //    Schedule storage                                                       
+//    Schedule model sizing (Oct 20, 2026)
+// customSched is the client schedule model: one slot per trip day. It used
+// to be hard-wired to three slots -- [null, null, null] at declaration, and
+// loadCustom filled slots without ever resizing -- so a 2-day trip rendered
+// a phantom Day 3 tab and a trip longer than 3 days could not be held
+// client-side at all. The model now fits the trip's actual day count at
+// every population site (declaration, loadCustom, pullSchedule, the
+// localStorage cache restores, pushSchedule). Day-count sources: the loaded
+// schedule's days (window._schedData.days) and the trip config's days
+// (TRIP_CONFIG.days) -- the load paths populate both from the same trip
+// response before loadCustom runs, so the max is the trip's day count; the
+// max also keeps a partially built schedule (fewer saved days than
+// configured days) from shrinking the model below the trip's length. When
+// no schedule exists yet, the config count sizes the model so tabs and
+// saves stay positional for the trip's real days.
+function tpcpTripDayCount(){
+  var n = 0;
+  try {
+    if (window._schedData && Array.isArray(window._schedData.days)) n = Math.max(n, window._schedData.days.length);
+    if (typeof TRIP_CONFIG !== 'undefined' && TRIP_CONFIG && Array.isArray(TRIP_CONFIG.days)) n = Math.max(n, TRIP_CONFIG.days.length);
+  } catch(e){}
+  return n;
+}
+function tpcpFitCustomSched(minN){
+  var n = tpcpTripDayCount();
+  if (typeof minN === 'number' && minN > n) n = minN;
+  if (n > 0) {
+    if (customSched.length > n) customSched.length = n;
+    while (customSched.length < n) customSched.push(null);
+  }
+  if (curDay >= customSched.length) curDay = Math.max(0, customSched.length - 1);
+  return customSched.length;
+}
 function loadCustom(){
   // Read schedule from window._schedData (set from server response) instead of localStorage
   if (window._schedData && window._schedData.days) {
@@ -4535,6 +4570,11 @@ function loadCustom(){
       }
     }
   }
+  // Fit the model to the trip's day count: drops stale slots left over from
+  // a longer trip loaded earlier in the session and extends the model for
+  // trips over 3 days. Then reconcile the tab bar to exactly that count.
+  var _fitN = tpcpFitCustomSched();
+  if (_fitN > 0 && typeof ensureDayTabs === 'function') { try { ensureDayTabs(_fitN, true); } catch(e){} }
   if (typeof renderSched === 'function') { try { renderSched(); if (typeof renderDayInfoBar === 'function') renderDayInfoBar(); } catch(e){} }
 }
 function saveCustom(d){
@@ -6318,16 +6358,18 @@ function renderShows(){
 }
 
 //    Nav                                                                    
-function ensureDayTabs(count){
+function ensureDayTabs(count, exact){
   var c = document.getElementById('dayTabsContainer');
   if (!c) return;
   var want = count || 0;
-  try {
-    if (typeof TRIP_CONFIG !== 'undefined' && TRIP_CONFIG) {
-      if (Array.isArray(TRIP_CONFIG.days)) want = Math.max(want, TRIP_CONFIG.days.length);
-      if (Array.isArray(TRIP_CONFIG.day)) want = Math.max(want, TRIP_CONFIG.day.length);
-    }
-  } catch(e){}
+  if (!exact) {
+    try {
+      if (typeof TRIP_CONFIG !== 'undefined' && TRIP_CONFIG) {
+        if (Array.isArray(TRIP_CONFIG.days)) want = Math.max(want, TRIP_CONFIG.days.length);
+        if (Array.isArray(TRIP_CONFIG.day)) want = Math.max(want, TRIP_CONFIG.day.length);
+      }
+    } catch(e){}
+  }
   var existing = c.querySelectorAll('.day-tab').length;
   for (var i = existing + 1; i <= want; i++) {
     var tab = document.createElement('div');
@@ -6337,6 +6379,16 @@ function ensureDayTabs(count){
     tab.setAttribute('onclick', 'setDay(' + (i-1) + ')');
     tab.innerHTML = '<div class="day-tab-text"><span class="day-tab-name">Day ' + i + '</span><span class="day-tab-date"></span></div>';
     c.appendChild(tab);
+  }
+  // Remove tabs beyond the wanted count (Oct 20, 2026): the static HTML
+  // ships three tabs and this function previously only ever added, so a
+  // trip shorter than 3 days kept a phantom tab for a day it does not have.
+  if (want > 0) {
+    var tabsNow = c.querySelectorAll('.day-tab');
+    for (var r = tabsNow.length; r > want; r--) {
+      var extra = tabsNow[r - 1];
+      if (extra && extra.parentNode) extra.parentNode.removeChild(extra);
+    }
   }
 }
 function setDay(d){
@@ -7695,6 +7747,7 @@ function enterSplash(skipAnim) {
           if (typeof loadCustom==='function') { loadCustom(); }
         } else if (_gcObj && _gcObj.customSched) {
           customSched = _gcObj.customSched;
+          if (typeof tpcpFitCustomSched === 'function') tpcpFitCustomSched();
           if (typeof renderSched==='function') { renderSched(window.curDay || 1); }
         }
       }
