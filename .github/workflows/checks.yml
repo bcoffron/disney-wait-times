@@ -39,6 +39,8 @@ jobs:
         run: node scripts/check-photo-bundle.mjs
       - name: Photo reference check
         run: node scripts/check-photo-refs.mjs
+      - name: Shared validator drift check
+        run: node scripts/check-shared-validator.mjs
       - name: Render chrome drift check
         run: node scripts/check-render-chrome.mjs
       - name: Blog handler suites + cron-auth self-tests

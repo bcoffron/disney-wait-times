@@ -5544,7 +5544,16 @@ function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
   if(typeof renderLLSequenceBlock==='function')h+=renderLLSequenceBlock(curDay);
-  if(!day||!day.sections||!day.sections.length){
+  // Completeness (Oct 20, 2026): a stored day that POSITIVELY fails the
+  // shared validator -- its park closing time is known and the day does
+  // not run to it -- reads as no schedule, so a truncated day never
+  // renders as a finished plan. When the closing time cannot be resolved
+  // (park-hours cache horizon) the day cannot be judged and renders as
+  // before.
+  var _rsDay=(window._schedData&&window._schedData.days&&window._schedData.days[curDay])||null;
+  var _rsClose=_rsDay?_tpcpCloseMinutesForDay(curDay):null;
+  var _rsInvalid=!!(_rsDay&&_rsDay.items&&_rsDay.items.length&&_rsClose!==null&&!tpcpDayIsComplete(_rsDay,_rsClose));
+  if(_rsInvalid||!day||!day.sections||!day.sections.length){
     document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
     return;
   }
@@ -6536,6 +6545,43 @@ function _renderSurfacingSummary(closedDelayMs){
   if (c.length) setTimeout(function(){ showToast('Closed during your dates: ' + c.join(', '), '#64748B'); }, closedDelayMs || 0);
   return u.length;
 }
+/* ==== BEGIN SHARED: tpcpDayIsComplete (byte-identical in app.html and pretrip.html; enforced by scripts/check-shared-validator.mjs) ====
+   A generated day counts as COMPLETE only when it actually runs to park
+   closing: it has at least one item, and its latest item start falls
+   within the final 60 minutes before closing (latest >= close - 60).
+   closeMinutes is minutes-from-midnight for the day's park on the day's
+   date (1440 = a midnight close), supplied by the caller from that page's
+   own park-hours source. When the caller cannot supply a real closing
+   time (null, or not a finite number) the day is NOT complete:
+   unvalidated is not complete, and generation must surface a failure
+   instead of saving an unchecked day. Item times are the scaffold's
+   "8:00 AM" strings (a bare 24-hour "20:30" is also accepted); the scan
+   takes the LATEST parseable start, which for the chronological days
+   both generators produce is the last item's start. No fallback closing
+   time lives here: inventing one is how a truncated day passed as
+   finished (TEST02, Oct 20, 2026: two identical 11-item days ending
+   11:50 AM were saved as a complete schedule). */
+function tpcpDayIsComplete(day, closeMinutes) {
+  if (typeof closeMinutes !== 'number' || !isFinite(closeMinutes)) return false;
+  if (!day || !Array.isArray(day.items) || !day.items.length) return false;
+  var latest = -1;
+  for (var i = 0; i < day.items.length; i++) {
+    var t = day.items[i] && day.items[i].t;
+    if (typeof t !== 'string') continue;
+    var m = t.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (!m) continue;
+    var hh = parseInt(m[1], 10);
+    var mm = parseInt(m[2], 10);
+    if (isNaN(hh) || isNaN(mm)) continue;
+    if (m[3]) { hh = hh % 12; if (/pm/i.test(m[3])) hh += 12; }
+    var mins = hh * 60 + mm;
+    if (mins > latest) latest = mins;
+  }
+  if (latest < 0) return false;
+  return latest >= closeMinutes - 60;
+}
+/* ==== END SHARED: tpcpDayIsComplete ==== */
+
 function generateFromSetup(params, callback) {
   window._genSurfacing = null; // re-filled by this call's save response below
   var context = [
@@ -6580,6 +6626,22 @@ function generateFromSetup(params, callback) {
         sections = JSON.parse(attempt);
       }
       if(sections && sections.length > 0){
+        // Completeness gate (Oct 20, 2026): this function's own save
+        // below is a save path, so the shared validator gates it like
+        // every other -- a day that does not run to park closing is
+        // never written into schedule.days, from any path. The failure
+        // rides the existing callback error channel (generateAllDays
+        // marks the day failed in the progress panel); the no-callback
+        // rebuild card gets a toast. Single-day regeneration is gated
+        // too: replacing a stored day with a truncated one is exactly
+        // the defect this closes.
+        var _vDayIdx = (typeof params === 'number') ? params : 0;
+        if (!tpcpDayIsComplete({ items: sections }, _tpcpCloseMinutesForDay(_vDayIdx))) {
+          console.error('[generateFromSetup] Day ' + (_vDayIdx + 1) + ' failed completeness validation -- it does not run to park closing; not saved.');
+          if (typeof callback === 'function') callback('Day ' + (_vDayIdx + 1) + ' did not run to park closing');
+          else if (typeof showToast === 'function') showToast('That day did not run to park closing, so nothing was saved. Please try again.');
+          return;
+        }
         var code = localStorage.getItem('tpcp_code')||'';
         if(code){
           var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
@@ -6692,28 +6754,122 @@ function gpHide() {
   if (p) p.remove();
   _gpState = null;
 }
+function _tpcpCloseMinutesForDay(dayIdx) {
+  // Closing time (minutes from midnight) for a trip day, read from the
+  // park_hours_intel cache WITHOUT the display layer's fallback defaults
+  // (getParkHoursForDate invents a 23:00 / 22:00 close when the cache
+  // misses -- a validation decision must never rest on an invented
+  // closing time). Returns null when the closing time is genuinely
+  // unknown: the cache spans roughly two weeks forward, the day's park
+  // is not a Disneyland Resort park, or the date cannot be resolved. A
+  // midnight close in the cache ("00:00") is 1440.
+  try {
+    var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || {};
+    var day = (tc.days || [])[dayIdx];
+    if (!day) return null;
+    var parkName = day.park || day.startPark || '';
+    var key = /california adventure/i.test(parkName) || /^dca$/i.test(String(parkName).trim()) ? 'dca' : (/disneyland/i.test(parkName) ? 'dl' : null);
+    if (!key) return null;
+    var iso = '';
+    var rawDate = day.date || '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) iso = rawDate;
+    else { var dd = new Date(rawDate); if (!isNaN(dd.getTime())) { iso = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0'); } }
+    if (!iso) return null;
+    var intel = (typeof getParkHoursIntel === 'function') ? getParkHoursIntel() : null;
+    var rec = intel && intel[iso] && intel[iso][key];
+    if (!rec || !rec.close) return null;
+    var p = String(rec.close).split(':');
+    var mins = parseInt(p[0], 10) * 60 + parseInt(p[1] || '0', 10);
+    if (isNaN(mins)) return null;
+    return mins === 0 ? 1440 : mins;
+  } catch (e) { return null; }
+}
 function generateAllDays() {
   var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || {};
   var n = (Array.isArray(tc.days) && tc.days.length) || (Array.isArray(tc.dates) && tc.dates.length) || 3;
   showToast('Building your schedule \u2014 one day at a time\u2026');
   gpShow(n);
   window._genSurfacing = null; window._genSavePromise = null; // filled by the final day's save (see generateFromSetup)
+  // Cross-day accumulation (Oct 20, 2026): the full-build orchestrator
+  // sequences its days the way pretrip's _genDaySeq does -- each finished
+  // day's rides, characters, rope-drop pick, shows, and dining venues are
+  // folded into the next day's request context, through the tripConfig
+  // _prior* fields generateFromSetup reads when it builds its request,
+  // so the scaffold can refuse repeats across the trip. Before this,
+  // every day was generated with the stored priors (empty for a fresh
+  // trip) and TEST02 got two byte-identical days. The accumulators seed
+  // exactly as _genDaySeq seeds: venues from the stored
+  // dining.usedVenues, the four _prior* lists empty. The in-memory fields
+  // are restored when the build ends or halts, so a standalone
+  // generateFromSetup call outside this orchestrator behaves exactly as
+  // before. Deliberate side effect: generateFromSetup's per-day saves
+  // persist the progressively accumulated priors, so a trip built here
+  // stores CURRENT _prior* values (pretrip's finish, by contrast, never
+  // writes its accumulators back -- see the PR description).
+  var _origPriors = {
+    rides: tc._priorRides, characters: tc._priorCharacters, ropeDrops: tc._priorRopeDrops, shows: tc._priorShows,
+    venues: (tc.dining && tc.dining.usedVenues) || undefined
+  };
+  var _accRides = [], _accChars = [], _accRope = [], _accShows = [];
+  var _accVenues = ((tc.dining && Array.isArray(tc.dining.usedVenues)) ? tc.dining.usedVenues : []).slice();
+  function _publishPriors() {
+    tc._priorRides = _accRides.slice();
+    tc._priorCharacters = _accChars.slice();
+    tc._priorRopeDrops = _accRope.slice();
+    tc._priorShows = _accShows.slice();
+    if (!tc.dining) tc.dining = {};
+    tc.dining.usedVenues = _accVenues.slice();
+  }
+  function _restorePriors() {
+    if (_origPriors.rides === undefined) delete tc._priorRides; else tc._priorRides = _origPriors.rides;
+    if (_origPriors.characters === undefined) delete tc._priorCharacters; else tc._priorCharacters = _origPriors.characters;
+    if (_origPriors.ropeDrops === undefined) delete tc._priorRopeDrops; else tc._priorRopeDrops = _origPriors.ropeDrops;
+    if (_origPriors.shows === undefined) delete tc._priorShows; else tc._priorShows = _origPriors.shows;
+    if (tc.dining) { if (_origPriors.venues === undefined) delete tc.dining.usedVenues; else tc.dining.usedVenues = _origPriors.venues; }
+  }
+  function _accumulateDay(items) {
+    // The same extraction pretrip's _proceed performs in _genDaySeq:
+    // the structured venue/ride field is preferred, the card heading is
+    // the fallback for cards that carry no structured field.
+    var _venues = (items || []).filter(function(x){ return x && (x.type === 'dining' || x.type === 'quickservice' || x.type === 'snack') && x.h; }).map(function(x){ return x.venue || x.h; });
+    var _rides = (items || []).filter(function(x){ return x && x.type === 'ride'; }).map(function(x){ return x.ride || x.h; }).filter(Boolean);
+    var _chars = (items || []).filter(function(x){ return x && x.type === 'character'; }).map(function(x){ return x.h; }).filter(Boolean);
+    var _shows = (items || []).filter(function(x){ return x && x.type === 'show'; }).map(function(x){ return x.h; }).filter(Boolean);
+    var _firstRide = (items || []).filter(function(x){ return x && x.type === 'ride'; })[0];
+    var _rope = _firstRide ? [(_firstRide.ride || _firstRide.h)] : [];
+    _accVenues = _accVenues.concat(_venues);
+    _accRides = _accRides.concat(_rides);
+    _accChars = _accChars.concat(_chars);
+    _accRope = _accRope.concat(_rope);
+    _accShows = _accShows.concat(_shows);
+  }
+  _publishPriors();
   var i = 0;
   function next() {
-    if (i >= n) { var _finishBuild = function(){ gpHide(); if (!_renderSurfacingSummary(2700)) showToast('Schedule built!'); if (typeof loadCustom === 'function') loadCustom(); if (typeof renderSched === 'function') renderSched(); }; var _sp = window._genSavePromise; if (_sp && typeof _sp.then === 'function') { _sp.then(_finishBuild).catch(_finishBuild); } else { _finishBuild(); } return; }
+    if (i >= n) { _restorePriors(); var _finishBuild = function(){ gpHide(); if (!_renderSurfacingSummary(2700)) showToast('Schedule built!'); if (typeof loadCustom === 'function') loadCustom(); if (typeof renderSched === 'function') renderSched(); }; var _sp = window._genSavePromise; if (_sp && typeof _sp.then === 'function') { _sp.then(_finishBuild).catch(_finishBuild); } else { _finishBuild(); } return; }
     var idx = i; i++;
     gpSetDay(idx, 'building');
     generateFromSetup(idx, function (err, sections) {
-      if (err) { gpSetDay(idx, 'failed'); showToast('Day ' + (idx + 1) + ' hit a snag \u2014 tap AI Optimize to retry'); return; }
+      if (err) { gpSetDay(idx, 'failed'); _restorePriors(); showToast('Day ' + (idx + 1) + ' hit a snag \u2014 tap AI Optimize to retry'); return; }
+      var park = (tc.days && tc.days[idx] && (tc.days[idx].park || tc.days[idx].startPark)) || '';
+      // Completeness gate, defense in depth behind generateFromSetup's
+      // own gate: a day that does not run to park closing is marked
+      // failed in the progress panel and is NEVER written into the
+      // schedule; the build halts with the existing retry affordance
+      // (re-tap AI Optimize), exactly like a generation error.
+      if (!tpcpDayIsComplete({ park: park, items: sections }, _tpcpCloseMinutesForDay(idx))) {
+        gpSetDay(idx, 'failed'); _restorePriors(); showToast('Day ' + (idx + 1) + ' did not run to park closing \u2014 tap AI Optimize to retry'); return;
+      }
       gpSetDay(idx, 'done');
       try {
         var ltc = window._loadedTripData.tripConfig;
         if (!ltc.schedule) ltc.schedule = { days: [] };
-        var park = (ltc.days && ltc.days[idx] && (ltc.days[idx].park || ltc.days[idx].startPark)) || '';
         ltc.schedule.days[idx] = { park: park, items: sections, llSequence: (window._genLlSeq&&window._genLlSeq[idx])||undefined };
         window._schedData = ltc.schedule;
         if (typeof loadCustom === 'function') loadCustom();
       } catch (e) {}
+      _accumulateDay(sections);
+      _publishPriors();
       next();
     });
   }
@@ -8922,7 +9078,16 @@ function tpcpConfirmSwap() {
     var done = localStorage.getItem('tpcp_onboardingComplete');
     if (done === 'true') {
       var _hasSched = false;
-      try { var _tc0 = (window._loadedTripData && window._loadedTripData.tripConfig) || {}; _hasSched = !!(_tc0.schedule && _tc0.schedule.days && _tc0.schedule.days.some(function (d) { return d.items && d.items.length; })); } catch (e) {}
+      // "Has a schedule" means has a VALID schedule (Oct 20, 2026): at
+      // least one stored day passes the shared completeness validator
+      // against its park's real closing time. A truncated day (TEST02's
+      // 11:50 AM days) reads as no schedule, so AI Optimize rebuilds
+      // instead of "reoptimizing" a half-day. When a day's closing time
+      // cannot be resolved (the park-hours cache spans ~two weeks;
+      // far-future trips cannot be judged from here) the day counts on
+      // presence alone -- unjudgeable is not the same as invalid at a
+      // read site; generation is where unvalidated days are refused.
+      try { var _tc0 = (window._loadedTripData && window._loadedTripData.tripConfig) || {}; _hasSched = !!(_tc0.schedule && _tc0.schedule.days && _tc0.schedule.days.some(function (d, _di) { if (!d.items || !d.items.length) return false; var _cm = _tpcpCloseMinutesForDay(_di); if (_cm === null) return true; return tpcpDayIsComplete(d, _cm); })); } catch (e) {}
       if (!_hasSched && typeof generateAllDays === 'function') { generateAllDays(); return; }
       if (typeof reoptimize === 'function') reoptimize();
       return;

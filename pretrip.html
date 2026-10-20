@@ -1915,6 +1915,43 @@ function ptUpdateGenBar(dayNum, totalDays) {
   }
 }
 
+/* ==== BEGIN SHARED: tpcpDayIsComplete (byte-identical in app.html and pretrip.html; enforced by scripts/check-shared-validator.mjs) ====
+   A generated day counts as COMPLETE only when it actually runs to park
+   closing: it has at least one item, and its latest item start falls
+   within the final 60 minutes before closing (latest >= close - 60).
+   closeMinutes is minutes-from-midnight for the day's park on the day's
+   date (1440 = a midnight close), supplied by the caller from that page's
+   own park-hours source. When the caller cannot supply a real closing
+   time (null, or not a finite number) the day is NOT complete:
+   unvalidated is not complete, and generation must surface a failure
+   instead of saving an unchecked day. Item times are the scaffold's
+   "8:00 AM" strings (a bare 24-hour "20:30" is also accepted); the scan
+   takes the LATEST parseable start, which for the chronological days
+   both generators produce is the last item's start. No fallback closing
+   time lives here: inventing one is how a truncated day passed as
+   finished (TEST02, Oct 20, 2026: two identical 11-item days ending
+   11:50 AM were saved as a complete schedule). */
+function tpcpDayIsComplete(day, closeMinutes) {
+  if (typeof closeMinutes !== 'number' || !isFinite(closeMinutes)) return false;
+  if (!day || !Array.isArray(day.items) || !day.items.length) return false;
+  var latest = -1;
+  for (var i = 0; i < day.items.length; i++) {
+    var t = day.items[i] && day.items[i].t;
+    if (typeof t !== 'string') continue;
+    var m = t.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (!m) continue;
+    var hh = parseInt(m[1], 10);
+    var mm = parseInt(m[2], 10);
+    if (isNaN(hh) || isNaN(mm)) continue;
+    if (m[3]) { hh = hh % 12; if (/pm/i.test(m[3])) hh += 12; }
+    var mins = hh * 60 + mm;
+    if (mins > latest) latest = mins;
+  }
+  if (latest < 0) return false;
+  return latest >= closeMinutes - 60;
+}
+/* ==== END SHARED: tpcpDayIsComplete ==== */
+
 function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   var day = tripConfig.days[dayIndex];
   var retries = retryCount || 0;
@@ -2522,24 +2559,64 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       ptUpdateGenBar(_completed, totalDays);
       _genDaySeq(idx + 1, usedSoFar.concat(_dayVenues), (priorRidesSoFar || []).concat(_dayRides), (priorCharsSoFar || []).concat(_dayChars), (priorRopeSoFar || []).concat(_dayRope), (priorShowsSoFar || []).concat(_dayShows));
     }
+    // Closing time (minutes from midnight) for THIS day, from the
+    // parkHours array ptFinish populated out of the park_hours_intel cache
+    // before generation: one entry per day, { dl: "8:00 AM  12:00 AM",
+    // dca: ... } as 12-hour strings. The END park governs when the day
+    // hops (finalPark). A midnight close ("12:00 AM") is 1440. Returns
+    // null when hours are unknown for the day -- the shared validator
+    // treats unknown as NOT complete, so the day parks on the failure
+    // line below instead of saving unchecked.
+    function _closeMinutesFor(parkName) {
+      var ph = (tripConfig && tripConfig.parkHours) || null;
+      var rec = ph && ph[idx];
+      if (!rec) return null;
+      var key = /california adventure/i.test(parkName || '') || /^dca$/i.test(String(parkName || '').trim()) ? 'dca' : (/disneyland/i.test(parkName || '') ? 'dl' : null);
+      if (!key || !rec[key]) return null;
+      var parts = String(rec[key]).trim().split(/\s+/);
+      if (parts.length < 2) return null;
+      var hm = parts[parts.length - 2].split(':');
+      var hh = parseInt(hm[0], 10);
+      var mm = parseInt(hm[1] || '0', 10);
+      if (isNaN(hh) || isNaN(mm)) return null;
+      hh = hh % 12; if (/pm/i.test(parts[parts.length - 1])) hh += 12;
+      var mins = hh * 60 + mm;
+      return mins === 0 ? 1440 : mins;
+    }
+    // Honest failure at the day's own progress line (Claude Q3): retry
+    // this day, or continue without it -- the carry-forward guard in
+    // _finishAndSave protects any stored plan for that day either way.
+    // Generation is sequential, so exactly one day can be failed at a
+    // time and a single pending retry/skip handler is correct. Shared by
+    // the generation-error path and the completeness-validation path: a
+    // day that does not run to park closing is a FAILED day -- it never
+    // counts as done and never reaches _finishAndSave as a finished day.
+    function _parkFailed() {
+      ptSetGenLine(idx, 'failed', true);
+      _ptGenRetry = function() { ptSetGenLine(idx, 'building', false); _attempt(); };
+      _ptGenSkip = function() {
+        generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
+        _proceed(null);
+      };
+    }
     function _attempt() {
       ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
         if (err) {
           console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
-          // Honest failure at the day's own progress line (Claude Q3): retry
-          // this day, or continue without it -- the carry-forward guard in
-          // _finishAndSave protects any stored plan for that day either way.
-          // Generation is sequential, so exactly one day can be failed at a
-          // time and a single pending retry/skip handler is correct.
-          ptSetGenLine(idx, 'failed', true);
-          _ptGenRetry = function() { ptSetGenLine(idx, 'building', false); _attempt(); };
-          _ptGenSkip = function() {
-            generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
-            _proceed(null);
-          };
+          _parkFailed();
           return;
         }
-        var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; if (window._ptLlSeq && window._ptLlSeq[idx]) _dayObj.llSequence = window._ptLlSeq[idx]; generatedDays[idx] = _dayObj;
+        var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; if (window._ptLlSeq && window._ptLlSeq[idx]) _dayObj.llSequence = window._ptLlSeq[idx];
+        // Completeness gate (Oct 20, 2026): a generated day that does not
+        // run to park closing parks as a failed day with the same
+        // Retry/Continue handling as a generation error -- it is not
+        // stored as a finished day and _proceed never sees it.
+        if (!tpcpDayIsComplete(_dayObj, _closeMinutesFor(_dayObj.finalPark || _dayObj.park))) {
+          console.error('[pretrip] Day ' + (idx+1) + ' failed completeness validation -- it does not run to park closing; not saved as a finished day.');
+          _parkFailed();
+          return;
+        }
+        generatedDays[idx] = _dayObj;
         console.log('[pretrip] Day ' + (idx+1) + ' done; items: ' + ((items||[]).length));
         _proceed(items);
       });
