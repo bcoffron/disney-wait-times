@@ -1881,6 +1881,10 @@ function ptGenRetryDay(idx) { if (_ptGenRetry) _ptGenRetry(); }
 function ptGenSkipDay(idx) { if (_ptGenSkip) _ptGenSkip(); }
 
 function ptShowGenerating(dayNum, totalDays) {
+  // In-flight marker (Oct 20, 2026): the app's missing-schedule self-heal
+  // reads this so it never starts a second build against this one.
+  // ptFinishExit clears it; a crashed run leaves it to go stale (20 min).
+  try { localStorage.setItem('tpcp_gen_inflight', JSON.stringify({ code: localStorage.getItem('tpcp_code') || '', at: Date.now() })); } catch (e) {}
   // Claude's Q3 waiting screen: sequential reassurance + REAL per-day
   // progress ("Day 1 ready \u00B7 Building Day 3\u2026"). No spinner-only, no
   // percentage bar, no clock estimates; the before-you-go tips double as
@@ -2109,6 +2113,7 @@ function ptPushPlugin() {
 }
 function ptNavigateHome() { window.location.href = ptHomeUrl(); }
 function ptFinishExit() {
+  try { localStorage.removeItem('tpcp_gen_inflight'); } catch (e) {}
   var P = ptPushPlugin();
   var done = false;
   try { done = localStorage.getItem('tpcp_push_prime_done') === '1'; } catch (e) {}

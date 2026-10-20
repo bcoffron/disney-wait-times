@@ -2347,7 +2347,7 @@ function checkLock(){
             // Show edit trip details button for admin
             if(typeof isAdmin==='function'&&isAdmin()){var etr=document.getElementById('editTripDetailsRow');if(etr)etr.style.display='block';}
             // FIX 3: Set _loadedTripData so nudgeCheckAndShow can check tripConfig.onboardingComplete
-            if (d.tripData) { window._loadedTripData = d.tripData; window.renderClosureAlerts(); }
+            if (d.tripData) { window._loadedTripData = d.tripData; window.renderClosureAlerts(); if (typeof tpcpMaybeAutoBuild === 'function') tpcpMaybeAutoBuild(); }
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
             // Phase 2: populate TRIP_CONFIG from canonical blob at runtime
@@ -2514,7 +2514,7 @@ function tryUnlock() {
       if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
         window._schedData = d.tripData.tripConfig.schedule;
         // FIX 1: hydrate _loadedTripData and TRIP_CONFIG for initial guest load
-        if (d.tripData) { window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
+        if (d.tripData) { window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); if (typeof tpcpMaybeAutoBuild === 'function') tpcpMaybeAutoBuild(); }
         if (window._loadedTripData && window._loadedTripData.tripConfig) {
           var _iltc = window._loadedTripData.tripConfig;
           if (_iltc.tripName) { TRIP_CONFIG.tripName = _iltc.tripName; var _ihtEl = document.querySelector('.header-title'); if (_ihtEl) _ihtEl.textContent = _iltc.tripName;if (_iltc.guestCode) TRIP_CONFIG.guestCode = _iltc.guestCode; }
@@ -3193,40 +3193,6 @@ async function tpcpRegisterNativePushToken(tokenValue){
     return false;
   }
 }
-// ---- Sign Out (Oct 19, 2026) -------------------------------------------
-// Ends this phone's session and returns to the trip-code entry screen so
-// the phone can join a different trip. Per Claude's ruling: await the push
-// unregister (3s cap) BEFORE clearing keys -- the endpoint validates the
-// session, so after clearing it could never succeed; clear the five session
-// keys PLUS the unkeyed trip-scoped caches (they would bleed into a newly
-// joined trip's first render); then location.reload() instead of trying to
-// enumerate in-memory state (TRIP_CONFIG, timers, window flags), so the
-// splash renders from scratch. No server-side trip data is touched.
-async function tpcpSignOut(){
-  var code=''; try{ code=(localStorage.getItem('tpcp_code')||'').toUpperCase(); }catch(e){}
-  var role=''; try{ role=localStorage.getItem('tpcp_role')||''; }catch(e){}
-  var isGuest=(role==='guest');
-  var msg= isGuest
-    ? 'Sign out of this trip? You\'ll need your guest code'+(code?' ('+code+')':'')+' to get back in. The trip itself won\'t change.'
-    : 'Sign out of trip'+(code?' '+code:'')+'? You\'ll need your leader code to get back in. The trip itself won\'t change.';
-  if(!window.confirm(msg)) return;
-  var note='';
-  var token=''; try{ token=localStorage.getItem('tpcp_push_token')||''; }catch(e){}
-  if(token && code){
-    try{
-      var ctl=('AbortController' in window)?new AbortController():null;
-      var to=ctl?setTimeout(function(){ try{ctl.abort();}catch(e){} },3000):null;
-      var r=await fetch(SYNC_BASE+'/api/push-register',{method:'POST',headers:{'Content-Type':'application/json','x-trip-code':code},body:JSON.stringify({action:'unregister',tripCode:code,token:token}),signal:ctl?ctl.signal:undefined});
-      if(to)clearTimeout(to);
-      if(!r.ok) note='Signed out. This device may still get notifications for the old trip until it reconnects.';
-    }catch(e){ note='Signed out. This device may still get notifications for the old trip until it reconnects.'; }
-  }
-  var keys=['tpcp_code','tpcp_role','tpcp_tripId','tpcp_guest_code','tpcp_onboardingComplete','setup_data','setup_done','setup_skips','ll_plan','ll_plan_hash','day_strategy','day_strategy_hash','crowd_pred','crowd_pred_date','dining_reservations','checklist_checked','checklist_custom','tpcp_checklist_custom','tpcp_checklist_state','group_heights'];
-  for(var i=0;i<keys.length;i++){ try{ localStorage.removeItem(keys[i]); }catch(e){} }
-  if(note){ try{ sessionStorage.setItem('tpcp_signout_note',note); }catch(e){} }
-  try{ window._blobPollFirst=false; if(typeof stopBlobPoll==='function') stopBlobPoll(); }catch(e){}
-  location.reload();
-}
 // ---- On-demand push test (Claude msg 76, Oct 8, 2026) -------------------
 // Leader-only control in the alerts area (Waits + Info tabs): a
 // registration readout for THIS phone -- the primary diagnostic -- and a
@@ -3674,7 +3640,7 @@ function startBlobPoll() {
           if (data.tripData.tripConfig && data.tripData.tripConfig.schedule) {
             window._schedData = data.tripData.tripConfig.schedule;
             // FIX 1: hydrate _loadedTripData and TRIP_CONFIG for guest path
-            if (data.tripData) { window._loadedTripData = data.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
+            if (data.tripData) { window._loadedTripData = data.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); if (typeof tpcpMaybeAutoBuild === 'function') tpcpMaybeAutoBuild(); }
             if (window._loadedTripData && window._loadedTripData.tripConfig) {
               var _gltc = window._loadedTripData.tripConfig;
               if (_gltc.tripName) { TRIP_CONFIG.tripName = _gltc.tripName; var _ghtEl = document.querySelector('.header-title'); if (_ghtEl) _ghtEl.textContent = _gltc.tripName;if (_gltc.guestCode) TRIP_CONFIG.guestCode = _gltc.guestCode; }
@@ -5921,10 +5887,6 @@ function tpcpBundleLabel(){
     +' Group members: install Theme Park CP, choose "I have a trip code", and enter the code above to follow along.'
     +'</div>'
     +'</div>';
-  shareContent += '<div style="margin-top:14px;">'
-    +'<button onclick="tpcpSignOut()" style="width:100%;padding:11px;background:transparent;border:1.5px solid rgba(26,104,96,0.45);border-radius:10px;font-size:13px;font-weight:700;color:var(--color-teal-mid);cursor:pointer;font-family:Outfit,sans-serif;">Sign Out</button>'
-    +'<div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:6px;line-height:1.45;">This phone is signed in with a trip code. Sign out to enter a different one.</div>'
-    +'</div>';
 
   // Section 2: Trip Weather Forecast
   function weatherContent() {
@@ -6692,6 +6654,54 @@ function gpHide() {
   if (p) p.remove();
   _gpState = null;
 }
+// Self-heal for a stranded onboarding (Oct 20, 2026): pretrip saves the
+// trip config BEFORE generating (so the config survives an interrupted
+// build), and only the terminal save adds the schedule. If generation
+// never completes -- app closed, a day parked on its retry line -- the
+// trip is left with onboardingComplete=true and no schedule, and the only
+// manual exit was an AI Optimize tap a schedule-less user has no reason
+// to make. When the app loads such a trip (admin only), finish the build
+// here, through the same generateAllDays the button would have run.
+// Guardrails: never while a pretrip generation is in flight (its
+// localStorage marker), once per session per code with the attempt
+// recorded before firing, and only after a fresh trip read confirms the
+// schedule is still missing (a just-landed terminal write must not
+// trigger a spurious rebuild).
+function tpcpMaybeAutoBuild(){
+  try{
+    if (window._tpcpAutoBuildChecking || window._tpcpAutoBuildFired) return;
+    if (!isAdmin()) return;
+    var code = localStorage.getItem('tpcp_code') || '';
+    if (!code) return;
+    if (localStorage.getItem('tpcp_onboardingComplete') !== 'true') return;
+    var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || null;
+    if (!tc || tc.onboardingComplete !== true) return;
+    var days = (tc.schedule && tc.schedule.days) || [];
+    if (days.some(function(d){ return d && d.items && d.items.length; })) return;
+    try{
+      var mk = JSON.parse(localStorage.getItem('tpcp_gen_inflight') || 'null');
+      if (mk && mk.code === code && (Date.now() - (mk.at || 0)) < 20 * 60 * 1000) return;
+    }catch(e){}
+    var skey = 'tpcp_autobuild_attempted_' + code;
+    try{ if (sessionStorage.getItem(skey)) return; }catch(e){}
+    window._tpcpAutoBuildChecking = true;
+    fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code), { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        window._tpcpAutoBuildChecking = false;
+        var tc2 = (j && j.tripData && j.tripData.tripConfig) || null;
+        if (!tc2 || tc2.onboardingComplete !== true) return;
+        var days2 = (tc2.schedule && tc2.schedule.days) || [];
+        if (days2.some(function(d){ return d && d.items && d.items.length; })) return;
+        window._loadedTripData = j.tripData;
+        try{ sessionStorage.setItem(skey, '1'); }catch(e){}
+        window._tpcpAutoBuildFired = true;
+        showToast('Finishing your schedule \u2014 this takes a minute');
+        if (typeof generateAllDays === 'function') generateAllDays();
+      })
+      .catch(function(){ window._tpcpAutoBuildChecking = false; });
+  }catch(e){}
+}
 function generateAllDays() {
   var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || {};
   var n = (Array.isArray(tc.days) && tc.days.length) || (Array.isArray(tc.dates) && tc.dates.length) || 3;
@@ -7334,10 +7344,6 @@ function renderSplashCtas(){
       +'<div style="font-size:10px;color:rgba(255,255,255,0.35);text-align:center;margin-top:6px;font-style:italic">Enter your code above then tap Enter Your Adventure</div>'
       +'<div style="font-size:11px;color:rgba(255,255,255,0.65);text-align:center;margin-top:14px;line-height:1.55">New to Theme Park Co-Pilot?<br>Trip codes are created free at <a href="https://themeparkcopilot.com" target="_blank" rel="noopener" style="color:#ECA050;font-weight:700;text-decoration:none">themeparkcopilot.com</a> &mdash; start your free trial there, then come back and enter your code.</div>';
     area.appendChild(wrap);
-    try{
-      var soNote=sessionStorage.getItem('tpcp_signout_note');
-      if(soNote){ sessionStorage.removeItem('tpcp_signout_note'); var nd=document.createElement('div'); nd.style.cssText='font-size:11px;color:rgba(255,255,255,0.75);text-align:center;margin-top:10px;line-height:1.5;'; nd.textContent=soNote; area.appendChild(nd); }
-    }catch(e){}
   }
 }
 function showTripCodeInput(){
@@ -7385,7 +7391,7 @@ function submitTripCode() {
       } else {
         if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
         if (d.tripData && d.tripData.tripConfig) { window._schedData = d.tripData.tripConfig.schedule;
-        window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
+        window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); if (typeof tpcpMaybeAutoBuild === 'function') tpcpMaybeAutoBuild(); }
         enterSplash(true);
       }
     })
