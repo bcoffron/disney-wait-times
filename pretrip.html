@@ -517,6 +517,10 @@ input, select, textarea { font-size: 16px !important; }
     <p class="pt-intro" style="margin-bottom:6px;">We're shaping each day from park open to close — around your must-dos, your meals, and your shows. This takes a moment; it's worth it.</p>
     <div id="ptGenProg"><div class="gp-label" id="ptGenProgLabel"></div><div class="gp-segs" id="ptGenProgSegs"></div></div>
     <div id="ptGenDays"></div>
+    <div id="ptSaveError" style="display:none;margin-top:10px;">
+      <div id="ptSaveErrorMsg" style="font-size:13px;font-weight:600;color:#B0552F;line-height:1.5;margin-bottom:8px;"></div>
+      <button type="button" class="pt-gen-retry" id="ptSaveRetryBtn">Retry save</button>
+    </div>
   </div>
   <div class="pt-card" style="margin-bottom:0;">
     <div class="pt-section-label">While we work — three things worth doing now</div>
@@ -2380,7 +2384,42 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
     // per-day merge guard in api/trip.js is the server-side backstop.)
     function _saveDays(daysArr) {
     var finalConfig = Object.assign({}, tripConfig, { schedule: { days: daysArr } });
-    if (code) {
+    if (!code) { ptFinishExit(); return; }
+    // Save-failure surfacing (Oct 20, 2026): this terminal save used to treat
+    // EVERY settled outcome -- success, HTTP error, or its own 15s abort --
+    // as success and leave via ptFinishExit (the all-done popup), so a failed
+    // save looked identical to a saved trip (TEST02 "finished" with no
+    // schedule server-side). Now only a verified-ok response exits. Any
+    // failure stays on this screen, names the failure in plain words, and
+    // offers Retry save, which re-sends THIS staged payload (finalConfig is
+    // closure state -- a retry never regenerates a day).
+    var _saveInFlight = false;
+    function _showSaveFailure(kind) {
+      var msg;
+      if (kind === 'timeout') msg = 'Your plan is built, but saving it timed out. Nothing is lost \u2014 your days are still right here. Tap Retry save to try again.';
+      else if (kind === 'server') msg = 'Your plan is built, but it couldn\u2019t be saved \u2014 the server returned an error. Nothing is lost; your days are still right here. Tap Retry save to try again.';
+      else msg = 'Your plan is built, but it couldn\u2019t be saved \u2014 the connection failed. Nothing is lost; your days are still right here. Tap Retry save to try again.';
+      var title = document.getElementById('ptGenTitle');
+      if (title) title.textContent = 'Your plan is built \u2014 but it didn\u2019t save';
+      var box = document.getElementById('ptSaveError');
+      var msgEl = document.getElementById('ptSaveErrorMsg');
+      var btn = document.getElementById('ptSaveRetryBtn');
+      if (box && msgEl && btn) {
+        msgEl.textContent = msg;
+        btn.disabled = false;
+        btn.onclick = function() { _attemptSave(); };
+        box.style.display = 'block';
+        try { window.scrollTo(0, 0); } catch(e){}
+      } else {
+        alert(msg); // never fail silently, even if the box is missing
+      }
+    }
+    function _attemptSave() {
+      if (_saveInFlight) return;
+      _saveInFlight = true;
+      var box = document.getElementById('ptSaveError');
+      if (box) box.style.display = 'none';
+      var _saveStatus = 0;
       var _saveAbort=new AbortController();var _saveAbortT=setTimeout(function(){_saveAbort.abort();},15000);
       fetch(SYNC_BASE + '/api/trip', {
         method: 'POST',
@@ -2388,12 +2427,15 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
         body: JSON.stringify({ code: code, deviceToken: tpcpDeviceToken(), tripData: { tripConfig: finalConfig } }),
         signal: _saveAbort.signal
       })
-      .then(function(r){ clearTimeout(_saveAbortT); return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
+      .then(function(r){ clearTimeout(_saveAbortT); _saveStatus = r.status; return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
       .then(function(writeResp) {
+        _saveInFlight = false;
         var bodyStr = JSON.stringify(finalConfig);
         var bytesWritten = bodyStr ? bodyStr.length : 0;
         console.log('[ptFinish] trip blob write status: ' + writeResp._httpStatus + ', bytes written: ' + bytesWritten + ', ok: ' + (writeResp.ok ? 'true' : 'false') + (writeResp.error ? ', error: ' + writeResp.error : ''));
         if (!writeResp.ok) { console.error('[ptFinish] WRITE 1 FAILED - tripId: ' + (writeResp.tripId || 'unknown') + ', error: ' + (writeResp.error || 'unknown')); }
+        var _saveOk = !!writeResp.ok && writeResp._httpStatus >= 200 && writeResp._httpStatus < 300;
+        if (!_saveOk) { _showSaveFailure('server'); return; }
         // Trip-level must-do surfacing (Oct 7, 2026): the server computed
         // these once, against the schedule exactly as saved -- show them
         // here, before leaving, each line only when its list is non-empty.
@@ -2407,10 +2449,16 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
         if (_surfLines.length) alert(_surfLines.join('\n'));
         ptFinishExit();
       })
-      .catch(function(err){ clearTimeout(_saveAbortT); console.error('[ptFinish] trip blob write network error:', err && err.message); ptFinishExit(); });
-    } else {
-      ptFinishExit();
+      .catch(function(err){
+        _saveInFlight = false;
+        clearTimeout(_saveAbortT);
+        console.error('[ptFinish] trip blob write network error:', err && err.message);
+        if (err && err.name === 'AbortError') { _showSaveFailure('timeout'); return; }
+        if (_saveStatus && (_saveStatus < 200 || _saveStatus >= 300)) { _showSaveFailure('server'); return; }
+        _showSaveFailure('failed');
+      });
     }
+    _attemptSave();
     }
     var _anyEmpty = generatedDays.some(function(gd){ return !gd || !gd.items || !gd.items.length; });
     if (code && _anyEmpty) {
