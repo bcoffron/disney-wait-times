@@ -2383,7 +2383,7 @@ function checkLock(){
             // Show edit trip details button for admin
             if(typeof isAdmin==='function'&&isAdmin()){var etr=document.getElementById('editTripDetailsRow');if(etr)etr.style.display='block';}
             // FIX 3: Set _loadedTripData so nudgeCheckAndShow can check tripConfig.onboardingComplete
-            if (d.tripData) { window._loadedTripData = d.tripData; window.renderClosureAlerts(); tpcpSyncTripConfig(d.tripData.tripConfig); }
+            if (d.tripData) { window._loadedTripData = d.tripData; window.renderClosureAlerts(); tpcpSyncTripConfig(d.tripData.tripConfig); if (typeof tpcpMaybeAutoBuild === 'function') tpcpMaybeAutoBuild(); }
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
             // TRIP_CONFIG is re-synced at the trip-load point above (tpcpSyncTripConfig) -- for every loaded trip, not only when a schedule exists.
@@ -2524,7 +2524,7 @@ function tryUnlock() {
       if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
         window._schedData = d.tripData.tripConfig.schedule;
         // FIX 1: hydrate _loadedTripData and TRIP_CONFIG for initial guest load
-        if (d.tripData) { window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
+        if (d.tripData) { window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); if (typeof tpcpMaybeAutoBuild === 'function') tpcpMaybeAutoBuild(); }
         if (window._loadedTripData && window._loadedTripData.tripConfig) {
           var _iltc = window._loadedTripData.tripConfig;
           if (_iltc.tripName) { TRIP_CONFIG.tripName = _iltc.tripName; var _ihtEl = document.querySelector('.header-title'); if (_ihtEl) _ihtEl.textContent = _iltc.tripName;if (_iltc.guestCode) TRIP_CONFIG.guestCode = _iltc.guestCode; }
@@ -3685,7 +3685,7 @@ function startBlobPoll() {
           if (data.tripData.tripConfig && data.tripData.tripConfig.schedule) {
             window._schedData = data.tripData.tripConfig.schedule;
             // FIX 1: hydrate _loadedTripData and TRIP_CONFIG for guest path
-            if (data.tripData) { window._loadedTripData = data.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
+            if (data.tripData) { window._loadedTripData = data.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); if (typeof tpcpMaybeAutoBuild === 'function') tpcpMaybeAutoBuild(); }
             if (window._loadedTripData && window._loadedTripData.tripConfig) {
               var _gltc = window._loadedTripData.tripConfig;
               if (_gltc.tripName) { TRIP_CONFIG.tripName = _gltc.tripName; var _ghtEl = document.querySelector('.header-title'); if (_ghtEl) _ghtEl.textContent = _gltc.tripName;if (_gltc.guestCode) TRIP_CONFIG.guestCode = _gltc.guestCode; }
@@ -6845,6 +6845,74 @@ function _tpcpCloseMinutesForDay(dayIdx) {
     return mins === 0 ? 1440 : mins;
   } catch (e) { return null; }
 }
+// Self-heal for a stranded onboarding (Oct 20, 2026; reworked after the
+// #87 generator fix): pretrip saves the trip config BEFORE generating
+// (so the config survives an interrupted build), and only the terminal
+// save adds the schedule. If generation never completes -- app closed,
+// a day parked on its retry line -- the trip is left with
+// onboardingComplete=true and no valid schedule, and the only manual
+// exit was an AI Optimize tap a schedule-less user has no reason to
+// make. When the app loads such a trip (admin only), finish the build
+// here, through the same generateAllDays the button would have run.
+// Guardrails: never while a pretrip generation is in flight (its
+// localStorage marker), once per session per code with the attempt
+// recorded before firing, and only after a fresh trip read confirms
+// the schedule is still not valid (a just-landed terminal write must
+// not trigger a spurious rebuild).
+// "Not valid" is the #87 definition, with the same read-site semantics
+// as aiOptGated/renderSched: a trip HAS a schedule iff at least one
+// stored day is valid -- passing tpcpDayIsComplete against its park's
+// real closing time where that resolves, and counting on presence
+// alone where it cannot (the park-hours cache spans ~two weeks; a
+// far-future trip is unjudgeable from here, and unjudgeable is not
+// invalid at a read site). A stored-but-truncated schedule (TEST02's
+// duplicated days ending 11:50 AM) therefore triggers the heal; the
+// original #85 tested only for items, which such a schedule passes.
+function tpcpMaybeAutoBuild(){
+  try{
+    if (window._tpcpAutoBuildChecking || window._tpcpAutoBuildFired) return;
+    if (!isAdmin()) return;
+    var code = localStorage.getItem('tpcp_code') || '';
+    if (!code) return;
+    if (localStorage.getItem('tpcp_onboardingComplete') !== 'true') return;
+    var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || null;
+    if (!tc || tc.onboardingComplete !== true) return;
+    function _hasValidSched(cfg){
+      var dys = (cfg && cfg.schedule && cfg.schedule.days) || [];
+      return dys.some(function(d, di){
+        if (!d || !d.items || !d.items.length) return false;
+        var cm = (typeof _tpcpCloseMinutesForDay === 'function') ? _tpcpCloseMinutesForDay(di) : null;
+        if (cm === null) return true;
+        return tpcpDayIsComplete(d, cm);
+      });
+    }
+    if (_hasValidSched(tc)) return;
+    try{
+      var mk = JSON.parse(localStorage.getItem('tpcp_gen_inflight') || 'null');
+      if (mk && mk.code === code && (Date.now() - (mk.at || 0)) < 20 * 60 * 1000) return;
+    }catch(e){}
+    var skey = 'tpcp_autobuild_attempted_' + code;
+    try{ if (sessionStorage.getItem(skey)) return; }catch(e){}
+    window._tpcpAutoBuildChecking = true;
+    fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code), { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        window._tpcpAutoBuildChecking = false;
+        var tc2 = (j && j.tripData && j.tripData.tripConfig) || null;
+        if (!tc2 || tc2.onboardingComplete !== true) return;
+        // Point the close-time helper at the fresh read before judging
+        // it -- it resolves park/date from _loadedTripData. (The
+        // original #85 assigned _loadedTripData here, on the fire path.)
+        window._loadedTripData = j.tripData;
+        if (_hasValidSched(tc2)) return;
+        try{ sessionStorage.setItem(skey, '1'); }catch(e){}
+        window._tpcpAutoBuildFired = true;
+        showToast('Finishing your schedule \u2014 this takes a minute');
+        if (typeof generateAllDays === 'function') generateAllDays();
+      })
+      .catch(function(){ window._tpcpAutoBuildChecking = false; });
+  }catch(e){}
+}
 function generateAllDays() {
   var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || {};
   var n = (Array.isArray(tc.days) && tc.days.length) || (Array.isArray(tc.dates) && tc.dates.length) || 3;
@@ -7602,7 +7670,7 @@ function submitTripCode() {
       } else {
         if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
         if (d.tripData && d.tripData.tripConfig) { window._schedData = d.tripData.tripConfig.schedule;
-        window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); }
+        window._loadedTripData = d.tripData; if (typeof window.renderClosureAlerts==='function') window.renderClosureAlerts(); if (typeof tpcpMaybeAutoBuild === 'function') tpcpMaybeAutoBuild(); }
         enterSplash(true);
       }
     })
