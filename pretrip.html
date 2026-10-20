@@ -2416,7 +2416,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   var generatedDays = new Array(totalDays);
   var _completed = 0;
 
-  function _finishAndSave() {
+  function _finishAndSave(_genPriors) {
     // Trip-level must-do surfacing renders from the SAVE response inside
     // _saveDays (server computes it once, against the schedule as stored).
     // Carry-forward guard (Oct 6, 2026): a day whose generation failed must
@@ -2424,8 +2424,26 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
     // generated day is empty, read the stored schedule first and substitute
     // the stored day at the same index. Fails open if the read fails. (The
     // per-day merge guard in api/trip.js is the server-side backstop.)
-    function _saveDays(daysArr) {
+    function _saveDays(daysArr, _genPriors) {
     var finalConfig = Object.assign({}, tripConfig, { schedule: { days: daysArr } });
+    // BEGIN GEN-PRIORS-PERSIST (Oct 20, 2026, Claude msg 564): the stored
+    // config must describe what its days were built against. The cross-day
+    // accumulation (_prior* + dining.usedVenues) used to live only in
+    // _genDaySeq's recursion parameters and was never written back, so any
+    // later regeneration (app or pretrip) started from a state that did
+    // not match the saved days. Persist it on the terminal save. No
+    // backfill for existing trips (considered and rejected in the ruling:
+    // priors cannot be reconstructed from stored days without conflating
+    // "wasn't offered" with "was offered and skipped"); this takes effect
+    // on each trip's next pretrip save.
+    if (_genPriors) {
+      finalConfig._priorRides = (_genPriors.priorRides || []).slice();
+      finalConfig._priorCharacters = (_genPriors.priorCharacters || []).slice();
+      finalConfig._priorRopeDrops = (_genPriors.priorRopeDrops || []).slice();
+      finalConfig._priorShows = (_genPriors.priorShows || []).slice();
+      finalConfig.dining = Object.assign({}, tripConfig.dining || {}, { usedVenues: (_genPriors.usedVenues || []).slice() });
+    }
+    // END GEN-PRIORS-PERSIST
     if (!code) { ptFinishExit(); return; }
     // Save-failure surfacing (Oct 20, 2026): this terminal save used to treat
     // EVERY settled outcome -- success, HTTP error, or its own 15s abort --
@@ -2513,11 +2531,28 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
             if ((!gd || !gd.items || !gd.items.length) && sd && sd.items && sd.items.length) { console.warn('[ptFinish] Day ' + (i+1) + ' came back empty -- keeping the stored plan for that day'); return sd; }
             return gd;
           });
-          _saveDays(merged);
+          // Fold any carried-forward stored days into the persisted
+          // priors: the saved plan includes them, so its dedup record
+          // must cover them too (same extraction as _proceed).
+          var _priorsOut = _genPriors;
+          if (_genPriors) {
+            _priorsOut = { usedVenues: (_genPriors.usedVenues || []).slice(), priorRides: (_genPriors.priorRides || []).slice(), priorCharacters: (_genPriors.priorCharacters || []).slice(), priorRopeDrops: (_genPriors.priorRopeDrops || []).slice(), priorShows: (_genPriors.priorShows || []).slice() };
+            merged.forEach(function(gd, i){
+              if (gd && gd !== generatedDays[i] && gd.items && gd.items.length) {
+                _priorsOut.usedVenues = _priorsOut.usedVenues.concat(gd.items.filter(function(x){ return x && (x.type === 'dining' || x.type === 'quickservice' || x.type === 'snack') && x.h; }).map(function(x){ return x.venue || x.h; }));
+                _priorsOut.priorRides = _priorsOut.priorRides.concat(gd.items.filter(function(x){ return x && x.type === 'ride'; }).map(function(x){ return x.ride || x.h; }).filter(Boolean));
+                _priorsOut.priorCharacters = _priorsOut.priorCharacters.concat(gd.items.filter(function(x){ return x && x.type === 'character'; }).map(function(x){ return x.h; }).filter(Boolean));
+                _priorsOut.priorShows = _priorsOut.priorShows.concat(gd.items.filter(function(x){ return x && x.type === 'show'; }).map(function(x){ return x.h; }).filter(Boolean));
+                var _cfr = gd.items.filter(function(x){ return x && x.type === 'ride'; })[0];
+                if (_cfr) _priorsOut.priorRopeDrops = _priorsOut.priorRopeDrops.concat([(_cfr.ride || _cfr.h)]);
+              }
+            });
+          }
+          _saveDays(merged, _priorsOut);
         })
-        .catch(function(){ _saveDays(generatedDays); });
+        .catch(function(){ _saveDays(generatedDays, _genPriors); });
     } else {
-      _saveDays(generatedDays);
+      _saveDays(generatedDays, _genPriors);
     }
   }
 
@@ -2531,7 +2566,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
   var _seedUsed = (tripConfig.dining && Array.isArray(tripConfig.dining.usedVenues))
     ? tripConfig.dining.usedVenues.slice() : [];
   function _genDaySeq(idx, usedSoFar, priorRidesSoFar, priorCharsSoFar, priorRopeSoFar, priorShowsSoFar) {
-    if (idx >= totalDays) { _finishAndSave(); return; }
+    if (idx >= totalDays) { _finishAndSave({ usedVenues: (usedSoFar || []).slice(), priorRides: (priorRidesSoFar || []).slice(), priorCharacters: (priorCharsSoFar || []).slice(), priorRopeDrops: (priorRopeSoFar || []).slice(), priorShows: (priorShowsSoFar || []).slice() }); return; }
     var _dayNum = idx + 1;
     ptSetGenLine(idx, 'building', false);
     var _dayReservations = (tripConfig.dining && Array.isArray(tripConfig.dining.reservations))
