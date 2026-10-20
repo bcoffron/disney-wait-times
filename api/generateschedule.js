@@ -80,7 +80,26 @@ function checkAILimit(ip) {
 }
 
 // --------- buildCacheContext ----------------------------
-async function buildCacheContext(sectionNames, includeDynamic = false) {
+// Park-hours helpers (Oct 20, 2026 -- Claude msg 562 ruling): the
+// park_hours_intel blob is a PER-DATE map {"YYYY-MM-DD": {dl:{open,close},
+// dca:{open,close}}} (24h "HH:MM"), written by api/cron-cache.js and by the
+// clients. The scaffold must use the entry FOR THE DAY BEING GENERATED --
+// never another date's hours. A "24:00" close is midnight (formats as
+// 12:00 AM, which the line parser maps to 1440); the previous formatter
+// rendered it "12:00 PM", collapsing every Disneyland day to a noon close.
+function tpcpFmtHour(hhmm) { const p = String(hhmm || '').split(':'); if (p.length < 2) return ''; const h = parseInt(p[0], 10); if (isNaN(h)) return ''; const ap = (h === 24 || h < 12) ? 'AM' : 'PM'; let h12 = h % 12; if (h12 === 0) h12 = 12; return h12 + ':' + p[1] + ' ' + ap; }
+// Returns { entry } for the requested date (or the flat entry when the blob
+// is genuinely in the legacy flat shape), or { missing: true } when a
+// per-date map has no entry for the date -- the caller then omits the
+// PARK_HOURS section (generic fallback hours) instead of borrowing a
+// different date's hours.
+function tpcpResolveParkHoursEntry(ph, parkDateISO) {
+  if (!ph || typeof ph !== 'object') return { missing: true };
+  if (ph.dl || ph.dca) return { entry: ph };
+  if (parkDateISO && ph[parkDateISO] && (ph[parkDateISO].dl || ph[parkDateISO].dca)) return { entry: ph[parkDateISO] };
+  return { missing: true };
+}
+async function buildCacheContext(sectionNames, includeDynamic = false, parkDateISO = null) {
     const results = {};
     const dynamicSections = ['CURRENT_CLOSURES', 'CLOSURES', 'DINING_CLOSURES', 'TRIP_CONTEXT', 'CURRENT_LL_PRICING', 'SPECIAL_EVENTS', 'SHOWS'];
 
@@ -144,21 +163,30 @@ async function buildCacheContext(sectionNames, includeDynamic = false) {
   }
 
   // --------- PARK_HOURS: no cache section carries it. The live hours live in the
-  // legacy park_hours_intel blob ({dl:{open,close}, dca:{open,close}}, 24h "HH:MM").
-  // Format one line per park for the consumers' line parser (first time on the
-  // park's line = open, last = close). Without this, cacheCtx.PARK_HOURS is always
-  // empty and generators fall back to generic close times (days ending early).
+  // park_hours_intel blob, a PER-DATE map (see tpcpResolveParkHoursEntry above).
+  // Format one line per park FOR THE DAY BEING GENERATED (parkDateISO) for the
+  // consumers' line parser (first time on the park's line = open, last = close).
+  // Without this, cacheCtx.PARK_HOURS is empty and generators fall back to
+  // generic close times (days ending early).
   try {
     const { blobs: phb } = await list({ prefix: 'twize/park_hours_intel.json' });
-    if (phb && phb.length) {
-      const phData = await fetch(phb[0].downloadUrl || phb[0].url).then(r => r.json());
-      let ph = (phData && phData.data) ? phData.data : phData;
-      if (ph && !ph.dl && !ph.dca) { const _fk = Object.keys(ph).find(k => ph[k] && (ph[k].dl || ph[k].dca)); if (_fk) ph = ph[_fk]; }
-      const _fmtH = (hhmm) => { const p = String(hhmm || '').split(':'); if (p.length < 2) return ''; let h = parseInt(p[0], 10); if (isNaN(h)) return ''; const ap = h < 12 ? 'AM' : 'PM'; let h12 = h % 12; if (h12 === 0) h12 = 12; return h12 + ':' + p[1] + ' ' + ap; };
-      const _phLines = [];
-      if (ph && ph.dl && ph.dl.open && ph.dl.close) _phLines.push('Disneyland: ' + _fmtH(ph.dl.open) + ' - ' + _fmtH(ph.dl.close));
-      if (ph && ph.dca && ph.dca.open && ph.dca.close) _phLines.push('Disney California Adventure: ' + _fmtH(ph.dca.open) + ' - ' + _fmtH(ph.dca.close));
-      if (_phLines.length) results['PARK_HOURS'] = _phLines.join('\n');
+    // Blob selection mirrors api/cache.js: exact pathname or a suffixed
+    // sibling, newest by uploadedAt -- never a bare blobs[0].
+    const _phMatches = (phb || []).filter(b => b.pathname === 'twize/park_hours_intel.json' || /^twize\/park_hours_intel-[a-zA-Z0-9]+\.json$/.test(b.pathname || ''));
+    const _phBlob = _phMatches.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
+    if (_phBlob) {
+      const phData = await fetch(_phBlob.downloadUrl || _phBlob.url).then(r => r.json());
+      const ph = (phData && phData.data) ? phData.data : phData;
+      const _res = tpcpResolveParkHoursEntry(ph, parkDateISO);
+      if (_res.missing) {
+        console.error('[SECURITY] park_hours_intel: no hours entry for trip date ' + (parkDateISO || '(none provided)') + ' in blob twize/park_hours_intel.json -- PARK_HOURS section omitted; generators use generic fallback hours rather than another date\'s hours');
+      } else {
+        const entry = _res.entry;
+        const _phLines = [];
+        if (entry.dl && entry.dl.open && entry.dl.close) _phLines.push('Disneyland: ' + tpcpFmtHour(entry.dl.open) + ' - ' + tpcpFmtHour(entry.dl.close));
+        if (entry.dca && entry.dca.open && entry.dca.close) _phLines.push('Disney California Adventure: ' + tpcpFmtHour(entry.dca.open) + ' - ' + tpcpFmtHour(entry.dca.close));
+        if (_phLines.length) results['PARK_HOURS'] = _phLines.join('\n');
+      }
     }
   } catch (e) {
     console.error('[cache] park_hours_intel read error:', e.message);
@@ -349,11 +377,16 @@ export default async function handler(req, res) {
           if (!apiKey) return res.status(500).json({ error: 'No API key' });
           if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
+      // The park date for THIS generation (the day being built), normalized to
+      // ISO -- buildCacheContext uses it to select that date's park hours.
+      const _phDayIdx = (req.body && typeof req.body.dayIndex === 'number') ? req.body.dayIndex : 0;
+      const _phRawDate = (tripConfig && Array.isArray(tripConfig.days) && tripConfig.days[_phDayIdx]) ? tripConfig.days[_phDayIdx].date : null;
+      const _parkDateISO = (function () { if (!_phRawDate) return null; const t = String(_phRawDate).trim(); if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10); const d = new Date(t); if (isNaN(d.getTime())) return null; return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); })();
       const cacheCtx = await buildCacheContext(
               ['LAND_MAP', 'WAIT_PATTERNS', 'ROPE_DROP_STRATEGY',
                        'LIGHTNING_LANE_STRATEGY', 'DINING_TIMING', 'CROWD_FLOW',
       'PARK_HOURS', 'PARK_HOP_STRATEGY', 'CATALOG', 'SHOW_AND_ENTERTAINMENT'],
-              true
+              true, _parkDateISO
             );
           // TRIP_CONTEXT in the dynamic blob is one specific trip's context (the
           // June 28-30, 2026 family trip). Feeding it to other trips poisons their
