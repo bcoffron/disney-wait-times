@@ -832,10 +832,13 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
           // the guest bought Individual Lightning Lane for. Expanded to a
           // group-aware normName key set (a listed ride covers its variant
           // siblings). Empty/absent = unspecified -- the catalog governs.
-          const _illRideKeys = (function () {
+          const _illNames = (function () {
             const raw = _day.illRides;
-            const names = Array.isArray(raw) ? raw.map(s => String(s || '').trim()).filter(Boolean)
+            return Array.isArray(raw) ? raw.map(s => String(s || '').trim()).filter(Boolean)
               : (typeof raw === 'string' && raw.trim()) ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+          })();
+          const _illRideKeys = (function () {
+            const names = _illNames;
             if (!names.length) return null;
             const set = new Set();
             for (const n of names) {
@@ -990,9 +993,14 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
           // the final cards and stamped on the response; the clients
           // persist it on the saved day. Fail-open like the other
           // surfacing seams -- a sequence bug never breaks generation.
+          // generatedWith stamp (Item 4, Claude msg 570): what this day
+          // was actually built with, from the COERCED flags -- the state
+          // every LL surface arms off. Config flags are intent only;
+          // llSequence stays the game-plan card's content, not a state
+          // signal (it is legitimately null on some LL-built days).
           let llSequence = null;
           try { llSequence = computeLLSequence(_items, _catIdx, { llmp: _llmp === true, isVip: !!(_day && _day.isVip) }); } catch (e) { console.warn('[scaffold] LL sequence failed:', e.message); }
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts, proseVenueFlags: proseVenueFlags, llSequence: llSequence });
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts, proseVenueFlags: proseVenueFlags, generatedWith: { hasLLMP: _llmp === true, hasILL: _ill === true, illRides: _illNames }, llSequence: llSequence });
         } catch (_se) {
           // SAFE FAILURE (legacy retired Oct 7, 2026): never fall through
           // to a second engine. The shipped clients render { ok:false,

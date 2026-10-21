@@ -5573,6 +5573,84 @@ function renderLLSequenceBlock(dayIdx){
 }
 
 
+
+// ===== PER-DAY LL TOGGLE (Item 4, Claude msg 570) =====
+// INTENT vs STATE: TRIP_CONFIG.days[].hasLLMP is intent (what the
+// party wants); the stored day's generatedWith.hasLLMP is state
+// (what the day was actually built with, stamped by the generator).
+// LL surfaces arm off STATE. The toggle writes intent and
+// regenerates the day through generateFromSetup, whose save carries
+// intent + the rebuilt day (with its fresh stamp) in ONE write --
+// the two land together or not at all. A failed regeneration saves
+// nothing, and the local intent is rolled back in the handler below
+// so intent can never diverge silently from state. Days saved
+// before the stamp existed carry no generatedWith; for those,
+// intent is the only record of how they were built, so it is the
+// read fallback until their next regeneration stamps them.
+var _tpcpLLRebuilding = -1;
+function tpcpLLDayState(dayIdx){
+  var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
+  if(sd&&sd.generatedWith) return sd.generatedWith.hasLLMP===true;
+  var days=(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG&&TRIP_CONFIG.days)||[];
+  return !!(days[dayIdx]&&days[dayIdx].hasLLMP===true);
+}
+function renderLLToggleBlock(dayIdx){
+  if(typeof isAdmin!=='function'||!isAdmin()) return ''; // leader-only; guests never render it (msg 570 (5))
+  var on=tpcpLLDayState(dayIdx);
+  var busy=(_tpcpLLRebuilding===dayIdx);
+  var h='<div class="ll-seq-block"><div class="ll-seq-title"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane Multi Pass</div>';
+  h+='<div class="ll-seq-line">'+(on?'Multi Pass is on for this day \u2014 the plan is built around Lightning Lane returns.':'Multi Pass is off for this day \u2014 this plan uses standby lines only.')+'</div>';
+  if(busy){ h+='<div class="ll-seq-line" style="margin-top:8px">Rebuilding this day\u2026</div>'; }
+  else { h+='<button onclick="tpcpToggleLLMP('+dayIdx+')" style="margin-top:8px;background:'+(on?'transparent':'#1A6860')+';color:'+(on?'#4A7A7C':'#fff')+';border:1px solid '+(on?'#8AACAE':'#1A6860')+';border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">'+(on?'Turn Multi Pass off':'Turn Multi Pass on')+'</button>'; }
+  h+='</div>';
+  return h;
+}
+function tpcpSetLLIntent(dayIdx, on){
+  // The flag PAIR (probe-verified Oct 21, 2026): the generator's
+  // master hasLL vetoes the subtypes, so writing hasLLMP alone
+  // changes nothing. Turning MP off must never drag hasLL down on
+  // a day that also has Individual LL -- the master is recomputed
+  // from the subtypes that remain.
+  var apply=function(days){
+    if(!days||!days[dayIdx]) return;
+    var d=days[dayIdx];
+    d.hasLLMP=(on===true);
+    d.hasLL=(on===true)?true:(d.hasILL===true);
+  };
+  try{ apply((typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG&&TRIP_CONFIG.days)||null); }catch(e){}
+  try{ apply((window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||null); }catch(e){}
+}
+function tpcpToggleLLMP(dayIdx){
+  if(_tpcpLLRebuilding===dayIdx) return;
+  var target=!tpcpLLDayState(dayIdx);
+  var dayName='Day '+(dayIdx+1);
+  var msg;
+  if(target){
+    msg='Rebuild '+dayName+' with Lightning Lane Multi Pass?\n\nThe day will be rebuilt around Lightning Lane returns, and the booking game plan will appear. Dining reservations stay locked in.\n\nOne thing to know first: if you have already booked Lightning Lane returns in Disney\u2019s app, this rebuild cannot see them and will plan as if you have not. Book after rebuilding, or check the new plan against what you already hold.';
+  } else {
+    msg='Rebuild '+dayName+' without Lightning Lane Multi Pass?\n\nThe day will be rebuilt around standby lines, and the Lightning Lane game plan will go away. Dining reservations stay locked in.';
+  }
+  if(!window.confirm(msg)) return;
+  var snap=[];
+  [ ((typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG&&TRIP_CONFIG.days)||null),
+    ((window._loadedTripData&&window._loadedTripData.tripConfig&&window._loadedTripData.tripConfig.days)||null)
+  ].forEach(function(days){ if(days&&days[dayIdx]) snap.push({d:days[dayIdx], hasLL:days[dayIdx].hasLL, hasLLMP:days[dayIdx].hasLLMP}); });
+  tpcpSetLLIntent(dayIdx, target);
+  _tpcpLLRebuilding=dayIdx;
+  if(typeof renderSched==='function') renderSched();
+  generateFromSetup(dayIdx, function(err){
+    _tpcpLLRebuilding=-1;
+    if(err){
+      snap.forEach(function(sn){ sn.d.hasLL=sn.hasLL; sn.d.hasLLMP=sn.hasLLMP; });
+      if(typeof showToast==='function') showToast(dayName+' could not be rebuilt \u2014 nothing changed.');
+      if(typeof renderSched==='function') renderSched();
+      return;
+    }
+    if(typeof showToast==='function') showToast(target?(dayName+' rebuilt with Lightning Lane.'):(dayName+' rebuilt without Lightning Lane.'));
+    if(typeof renderSched==='function') renderSched();
+  });
+}
+
 // End-of-day LL savings receipt (LL plan-side package, Oct 8, 2026):
 // renders llDaySavings for the day as one compact block at the end of
 // the day view. Rounded to the nearest 5 minutes and labeled an
@@ -5594,6 +5672,7 @@ function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
   if(typeof renderLLSequenceBlock==='function')h+=renderLLSequenceBlock(curDay);
+  if(typeof renderLLToggleBlock==='function')h+=renderLLToggleBlock(curDay);
   // Completeness (Oct 20, 2026): a stored day that POSITIVELY fails the
   // shared validator -- its park closing time is known and the day does
   // not run to it -- reads as no schedule, so a truncated day never
@@ -6676,6 +6755,7 @@ function generateFromSetup(params, callback) {
     // the guest summary renders from the SAVE response further below.
     if (d.unplacedMustDos && d.unplacedMustDos.length) { console.warn('[generateFromSetup] per-day unplaced must-dos (diagnostic): ' + d.unplacedMustDos.join(', ')); }
     window._genLlSeq=window._genLlSeq||{}; window._genLlSeq[(typeof params==='number')?params:0]=(d&&d.llSequence)||null;
+    window._genGenWith=window._genGenWith||{}; window._genGenWith[(typeof params==='number')?params:0]=(d&&d.generatedWith)||null;
     try{
       var sections = (d.parsed && d.parsed.length) ? d.parsed : null;
       if (!sections) {
@@ -6709,8 +6789,8 @@ function generateFromSetup(params, callback) {
           var existingTc=(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
           var existingDays=(existingTc.schedule&&existingTc.schedule.days)||[];
           var dayIdx=(typeof params==='number')?params:0;
-          var newDays=existingDays.map(function(d,i){return i===dayIdx?{park:d.park||'',items:sections,llSequence:(window._genLlSeq&&window._genLlSeq[dayIdx])||undefined}:d;});
-          if(dayIdx>=newDays.length){ while(newDays.length<dayIdx)newDays.push({park:'',items:[]}); newDays.push({park:(existingTc.days&&existingTc.days[dayIdx]&&(existingTc.days[dayIdx].park||existingTc.days[dayIdx].startPark))||'',items:sections,llSequence:(window._genLlSeq&&window._genLlSeq[dayIdx])||undefined}); }
+          var newDays=existingDays.map(function(d,i){return i===dayIdx?{park:d.park||'',items:sections,llSequence:(window._genLlSeq&&window._genLlSeq[dayIdx])||undefined,generatedWith:(window._genGenWith&&window._genGenWith[dayIdx])||undefined}:d;});
+          if(dayIdx>=newDays.length){ while(newDays.length<dayIdx)newDays.push({park:'',items:[]}); newDays.push({park:(existingTc.days&&existingTc.days[dayIdx]&&(existingTc.days[dayIdx].park||existingTc.days[dayIdx].startPark))||'',items:sections,llSequence:(window._genLlSeq&&window._genLlSeq[dayIdx])||undefined,generatedWith:(window._genGenWith&&window._genGenWith[dayIdx])||undefined}); }
           if(!newDays.length){newDays=[{park:'Disneyland Park',items:sections}];}
           var updatedTc=Object.assign({},existingTc,{schedule:{days:newDays},scheduleVersion:Date.now().toString()});
           window._genSavePromise = fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),tripData:{tripConfig:updatedTc}})})
@@ -6994,7 +7074,7 @@ function generateAllDays() {
       try {
         var ltc = window._loadedTripData.tripConfig;
         if (!ltc.schedule) ltc.schedule = { days: [] };
-        ltc.schedule.days[idx] = { park: park, items: sections, llSequence: (window._genLlSeq&&window._genLlSeq[idx])||undefined };
+        ltc.schedule.days[idx] = { park: park, items: sections, llSequence: (window._genLlSeq&&window._genLlSeq[idx])||undefined, generatedWith: (window._genGenWith&&window._genGenWith[idx])||undefined };
         window._schedData = ltc.schedule;
         if (typeof loadCustom === 'function') loadCustom();
       } catch (e) {}
