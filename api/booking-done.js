@@ -117,7 +117,10 @@ export default async function handler(req, res) {
     // The write is keyed by the RESOLVED tripId -- the flag is a trip
     // fact, so a guest's tap lands in the same store the leader's poll
     // reads. Only the booking-done blob is touched.
-    const stored = await markBookingDone(session.tripId, episodeId, session.role);
+    // Who asserted it (msg 568 (b)): role + the asserting code -- the
+    // record says which member of the party booked, without inventing
+    // an identity the system does not hold.
+    const stored = await markBookingDone(session.tripId, episodeId, session.role + ':' + session.code);
     if (!stored) return res.status(500).json({ error: 'Done flag could not be stored' });
     return res.status(200).json({ ok: true, episodeId: episodeId, done: true });
   } catch (e) {

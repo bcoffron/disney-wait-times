@@ -13,7 +13,7 @@ import { notePlanChange, diffScheduleDays, safeDeviceToken } from './plan-change
 // Poll-backstop episodes (Claude msg 94 (i)): the GET response carries the
 // trip's recorded push episodes so the client's ~10s foreground poll can
 // render any the native shell never handed to its push listener.
-import { readEpisodesForPoll, readBookingDone } from './push-episodes.js';
+import { readEpisodesForPoll, readBookingDone, bookingEpisodesForGuest, guestCoordinationBody } from './push-episodes.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment so their fixed public
@@ -308,15 +308,32 @@ export default async function handler(req, res) {
     // ones through the foreground push handler.
     const episodes = await readEpisodesForPoll(code);
 
+    // Guest booking fan-out (Claude msg 568, Item 1): booking episodes
+    // record under the leader code only, so a guest's own record never
+    // holds them. A guest's poll list fans out by trip -- own record
+    // plus the trip's booking episodes from the leader's record (one
+    // recorded episode, presented per role; push stays leader-only).
+    // Guest booking bodies carry the coordination line, applied here
+    // at read time; the recorded episode is never rewritten.
+    let pollEpisodes = episodes;
+    if (entry.role === 'guest') {
+      const leaderCode = Object.keys(registry).find(c => registry[c] && registry[c].tripId === entry.tripId && registry[c].role === 'admin');
+      if (leaderCode && leaderCode !== code) {
+        const leaderEps = await readEpisodesForPoll(leaderCode);
+        pollEpisodes = bookingEpisodesForGuest(episodes, leaderEps);
+      }
+      for (const ep of pollEpisodes) { if (ep.class === 'booking') ep.body = guestCoordinationBody(ep.body); }
+    }
+
     // Booking done flags (Claude msg 118): "I made my reservation" is
     // a fact about the TRIP, stored per tripId (api/push-episodes.js),
     // so it merges here -- keyed by the resolved trip, it reaches both
     // the leader's and the guest's poll on this existing read, and a
     // device that has never seen the episode learns it is done before
     // ever presenting it.
-    if (episodes.length) {
+    if (pollEpisodes.length) {
       const bookingDone = await readBookingDone(entry.tripId);
-      for (const ep of episodes) { if (bookingDone[ep.episodeId]) ep.done = true; }
+      for (const ep of pollEpisodes) { if (bookingDone[ep.episodeId]) ep.done = true; }
     }
 
     return res.status(200).json({
@@ -331,7 +348,7 @@ export default async function handler(req, res) {
       guestCode: entry.role === 'admin' ? (entry.guestCode || null) : null,
       hasTrip,
       tripData: hasTrip ? tripData : null,
-      episodes: episodes
+      episodes: pollEpisodes
     });
   }
 
