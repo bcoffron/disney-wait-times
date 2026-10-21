@@ -64,6 +64,10 @@ export const AUDIENCE = {
   // is the opens-today alert; 'booking-morning-of' is the catch-up
   // ('already open') alert fired on a later morning.
   'booking-window':     { audience: 'leader', variants: { leader: 'actionable', guest: null } },
+  // LL game plan (cron-push-monitor, Item 5, Claude msg 574): the
+  // morning booking-order push. LEADER ONLY -- a booking order is an
+  // instruction to one person; guests see the game plan in-app.
+  'll-order':           { audience: 'leader', variants: { leader: 'actionable', guest: null } },
   'booking-morning-of': { audience: 'leader', variants: { leader: 'actionable', guest: null } },
   // Plan-changed (plan-changed.js): awareness for every role -- its
   // whole purpose is keeping guests in sync. The originating actor is
