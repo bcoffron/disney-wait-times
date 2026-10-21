@@ -126,6 +126,49 @@ export async function recordEpisode(tripCode, payload, nowMs) {
   }
 }
 
+// ---- Guest booking fan-out (Claude msg 568, Item 1) ---------------------
+// Booking episodes record under the LEADER code only: the booking cron
+// is leader-only on both channels (a guest code never sends and never
+// records), so a guest's own episode record can never hold them. The
+// read fans out BY TRIP instead: a guest's poll list is their own
+// record PLUS the trip's booking episodes from the leader's record --
+// one recorded episode, presented per role; nothing is double-recorded
+// and push stays leader-only. Monitor episodes are NOT fanned out:
+// they record per code with the copy variant that code was actually
+// sent (fact-only for guests), and that per-code truth stands.
+// Guest copy (msg 568 (c)): the duplicate-booking hazard is accepted,
+// and the guest's presentation carries a coordination line the
+// leader's does not. It is applied at READ time (the helper below), so
+// the recorded episode -- and the leader's read of it -- stays exactly
+// as fired. The line itself is Beau's wording (Oct 21, 2026).
+export const GUEST_BOOKING_COORDINATION = 'Your trip leader got this too \u2014 just one of you needs to book.';
+
+// Merge a guest's own poll list with the leader record's booking
+// episodes. Own episodes keep their order and always win an episodeId
+// collision; leader episodes contribute booking class only.
+export function bookingEpisodesForGuest(ownList, leaderList) {
+  const own = Array.isArray(ownList) ? ownList : [];
+  const seen = {};
+  for (const e of own) { if (e && e.episodeId) seen[e.episodeId] = 1; }
+  const out = own.slice();
+  const leader = Array.isArray(leaderList) ? leaderList : [];
+  for (const e of leader) {
+    if (!e || e.class !== 'booking' || !e.episodeId || seen[e.episodeId]) continue;
+    seen[e.episodeId] = 1;
+    out.push(e);
+  }
+  return out;
+}
+
+// The guest variant of a booking episode's body: the fired body plus
+// the coordination line, appended once.
+export function guestCoordinationBody(body) {
+  const b = typeof body === 'string' ? body : '';
+  if (!b) return GUEST_BOOKING_COORDINATION;
+  if (b.indexOf(GUEST_BOOKING_COORDINATION) !== -1) return b;
+  return b + ' ' + GUEST_BOOKING_COORDINATION;
+}
+
 // The poll read side (GET /api/trip): retention-pruned, and only today's
 // (Pacific) episodes -- the client renders nothing older than the park
 // day it fired on. Never throws; a read failure reads as "no episodes".
@@ -185,7 +228,7 @@ export function pruneBookingDone(map) {
     const e = map[k];
     if (!safeBookingEpisodeId(k)) continue;
     if (!e || typeof e.at !== 'number') continue;
-    entries.push([k, { at: e.at, by: typeof e.by === 'string' ? e.by.slice(0, 20) : '' }]);
+    entries.push([k, { at: e.at, by: typeof e.by === 'string' ? e.by.slice(0, 48) : '' }]);
   }
   entries.sort(function (a, b) { return a[1].at - b[1].at; });
   const keep = entries.slice(-BOOKING_DONE_MAX);
@@ -199,7 +242,7 @@ export function mergeBookingDone(map, episodeId, atMs, byRole) {
   if (!safeBookingEpisodeId(episodeId)) return base;
   base[episodeId] = {
     at: typeof atMs === 'number' ? atMs : Date.now(),
-    by: typeof byRole === 'string' ? byRole.slice(0, 20) : ''
+    by: typeof byRole === 'string' ? byRole.slice(0, 48) : ''
   };
   return pruneBookingDone(base);
 }
