@@ -54,6 +54,11 @@ const DROP_PREV_MIN = 45; // previous wait must have been >= this
 const DROP_NOW_MAX = 15;  // current wait must be <= this (genuinely short, not just lower)
 const DROP_DELTA_MIN = 35; // must have dropped at least this much (avoid 50->40 noise)
 const DROP_DAY_CUTOFF_MIN = 21 * 60; // do not send drop alerts after 9 PM (little day left to use it)
+
+const LL_ORDER_CUTOFF_MIN = 12 * 60; // Item 5 (msg 574 (e)): if the day's first
+// fire opportunity is already past noon PT, the morning booking window has
+// effectively closed -- suppress the order push for the day rather than
+// sending a confidently late instruction.
 // High-wait nudge: planned ride already busy (not just a sudden spike). Once per ride per day, gated per-trip.
 const HIGH_MIN = 60; // current wait must be >= this to nudge
 const HIGH_COOLDOWN_MIN = 75; // per-trip: at most one high-wait nudge this often
@@ -87,6 +92,51 @@ const PARK_CLOSE_HOUR_PT = 24; // midnight PT (rides can run to ~midnight)
 // keep the plain tuple: they are one-time state transitions per
 // closure/reopening, not recurring threshold events.
 // Format: ep:<tripId>:<rideKey>:<episodeType>:<ymd>:f<n>
+
+// ---- LL ORDER PUSH (Item 5, Claude msg 574) ----
+// ONE push per armed day, early: the booking ORDER from the stored
+// day's llSequence. Nothing here claims knowledge of booked returns
+// -- the system has none (returns live in Disney's app); the push
+// carries only what llSequence actually is: an order, delivered
+// when it is actionable. Per-entry nudges were ruled out: their
+// trigger (the party tapping in) is unobservable, and a planned-time
+// proxy fires confidently mistimed pushes when a party runs behind.
+// Arming is STRICT (msg 574 (c)): the stored day's generatedWith
+// stamp only -- never config intent. A pre-stamp LL day receives
+// nothing until it regenerates (AI Optimize / the Item 4 toggle
+// re-stamps it). Leader-only via the 'll-order' routing row.
+function llOrderArmed(day) {
+  if (!day || !day.generatedWith || day.generatedWith.hasLLMP !== true) return false;
+  const seq = day.llSequence;
+  return !!(seq && Array.isArray(seq.order) && seq.order.length > 0);
+}
+function llOrderBody(seq) {
+  const names = (seq.order || []).filter(n => typeof n === 'string' && n.trim());
+  const first = (typeof seq.bookFirst === 'string' && seq.bookFirst.trim()) ? seq.bookFirst.trim() : names[0];
+  const tail = names.filter(n => n !== first);
+  if (!tail.length) return 'Book ' + first + ' first \u2014 it tops today\u2019s Lightning Lane game plan.';
+  return 'Book ' + first + ' first, then ' + tail.slice(0, 3).join(', ')
+    + (tail.length > 3 ? ', and ' + (tail.length - 3) + ' more' : '')
+    + '. The full order is in today\u2019s plan.';
+}
+// Decide the leg for one trip-day. Pure (the harness drives this):
+//   skip     -- not armed, or already settled today (sent/suppressed)
+//   wait     -- armed, but the morning window has not opened yet
+//   suppress -- first opportunity is already past the booking window;
+//               settle the day WITHOUT sending (msg 574 (e))
+//   fire     -- send the order push now
+// The window opens 60 min before the day's first planned item (the
+// party is up and moving; bookFirst happens at park open), with an
+// 8:00 AM PT fallback when no item time parses.
+function llOrderDecision(day, nowMin, firstItemMin, settled) {
+  if (!llOrderArmed(day)) return { act: 'skip', why: 'not-armed' };
+  if (settled) return { act: 'skip', why: 'settled' };
+  const openMin = (typeof firstItemMin === 'number' && firstItemMin >= 0) ? firstItemMin - 60 : 8 * 60;
+  if (nowMin < openMin) return { act: 'wait', why: 'window-not-open' };
+  if (nowMin > LL_ORDER_CUTOFF_MIN) return { act: 'suppress', why: 'booking-window-closed' };
+  return { act: 'fire' };
+}
+
 function episodeIdFor(tripId, rideKey, episodeType, ymd, fireCount) {
   const base = 'ep:' + tripId + ':' + rideKey + ':' + episodeType + ':' + ymd;
   return (typeof fireCount === 'number' && fireCount > 0) ? base + ':f' + fireCount : base;
@@ -721,6 +771,38 @@ export default async function handler(req, res) {
         }));
         firedThisTrip = r.sent;
         if (r.sent > 0) commitFireCount(state, dropKey, 'drop', dropFire);
+      }
+
+
+      // ---- LL ORDER PUSH (Item 5, msg 574): one morning push with
+      // the booking order, leader-only. Runs after the alert ladder
+      // and only on a sweep the ladder left quiet -- one buzz per
+      // sweep stays the discipline. Settles for the day on send OR
+      // on window-closed suppression; a failed send settles nothing
+      // and the next sweep retries (until the cutoff settles it).
+      {
+        const llDay = schedule.days[todayIdx];
+        const llSettled = (state.llOrder && state.llOrder.ymd === pt.ymd && state.llOrder.status) ? state.llOrder : null;
+        let firstItemMin = -1;
+        for (const it of items) { const m = hmToMin(it && it.t); if (m >= 0 && (firstItemMin < 0 || m < firstItemMin)) firstItemMin = m; }
+        const dec = llOrderDecision(llDay, nowMin, firstItemMin, llSettled);
+        if (dec.act === 'fire') {
+          const r = await fire('ll-order', () => ({
+            title: 'Today\u2019s Lightning Lane game plan',
+            body: llOrderBody(llDay.llSequence),
+            url: '/app.html',
+            tag: 'tpcp-ll-order',
+            class: 'll-order',
+            episodeId: episodeIdFor(tripId, 'll-order', 'll', pt.ymd)
+          }));
+          if (r.sent > 0) {
+            state.llOrder = { ymd: pt.ymd, status: 'sent', firedMin: nowMin };
+            firedThisTrip += r.sent;
+          }
+        } else if (dec.act === 'suppress') {
+          state.llOrder = { ymd: pt.ymd, status: 'suppressed', firedMin: nowMin };
+        }
+        if (dec.act !== 'skip' || dec.why !== 'not-armed') summary.push({ tripId, llOrder: dec.act, why: dec.why || undefined });
       }
 
       await writeJsonBlob(stateKey, state);
