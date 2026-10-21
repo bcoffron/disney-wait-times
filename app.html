@@ -3367,6 +3367,7 @@ async function tpcpEnableNativeWaitAlerts(){
         // EXTERNALLY in the system browser; relative app paths and a
         // missing url stay a no-op (the app is already in hand).
         if(url && /^https:\/\//i.test(url)){
+          tpcpNoteExternalCover();
           try {
             var B = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) || null;
             if (B && B.open) { B.open({ url: url }); }
@@ -8340,7 +8341,10 @@ function tpcpOfferFromData(d) {
 // COUNT is this device's courtesy budget: localStorage, incremented
 // at presentation (mark-on-present) however the showing ends --
 // Remind me later, the 12s auto-dismiss, even a tap-through to
-// Disney. Booking class ONLY: no other class reads this state.
+// Disney from the toast itself. (A PUSH tap-through is not a
+// showing: it covers the app before anything renders, so the
+// presentation defers uncounted -- msg 568, see tpcpAlertRoute.)
+// Booking class ONLY: no other class reads this state.
 var TPCP_BOOKING_MAX_SHOWS = 3;
 function tpcpBookingStateKey() {
   try { return 'tpcpBookingState:' + (localStorage.getItem('tpcp_code') || ''); } catch (e) { return ''; }
@@ -8552,8 +8556,52 @@ var _tpcpAlertTimer = null;        // auto-dismiss timer for the current item on
 var _tpcpPendingEpisodes = {};     // episodeIds presented-open or queued (not yet marked)
 var _tpcpAlertLatestByGroup = {};  // ride group -> newest episodeId seen (supersede check)
 
+// ===== EXTERNAL COVER STATE (Claude msg 568) =====
+// Opening a deep link (a push tap-through, or a toast body tap)
+// covers the app with an external browser surface: the Capacitor
+// Browser sheet when that plugin is present, otherwise _system
+// Safari (the app itself backgrounds). While covered, episodic
+// presentations defer (see tpcpAlertRoute): mark-on-present must
+// mean presented IN-APP, never burned unseen under the sheet.
+// The cover clears on the browser's own finish event, on the app
+// resuming, or when the document becomes visible again after
+// hiding; a 15-minute stale valve bounds a missed signal so a
+// stuck flag can never suppress presentations for a whole session.
+var _tpcpCovered = false;
+var _tpcpCoveredAt = 0;
+var _tpcpCoverTrackingBound = false;
+function tpcpNoteExternalCover() {
+  _tpcpCovered = true;
+  _tpcpCoveredAt = Date.now();
+  if (_tpcpCoverTrackingBound) return;
+  _tpcpCoverTrackingBound = true;
+  try {
+    var B = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) || null;
+    if (B && B.addListener) B.addListener('browserFinished', tpcpClearExternalCover);
+  } catch (e) {}
+  try {
+    var A = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) || null;
+    if (A && A.addListener) A.addListener('resume', tpcpClearExternalCover);
+  } catch (e) {}
+  try {
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) tpcpClearExternalCover();
+    });
+  } catch (e) {}
+}
+function tpcpClearExternalCover() {
+  _tpcpCovered = false;
+  _tpcpCoveredAt = 0;
+}
+function tpcpCoverActive() {
+  if (!_tpcpCovered) return false;
+  if (_tpcpCoveredAt && (Date.now() - _tpcpCoveredAt) > 15 * 60 * 1000) { tpcpClearExternalCover(); return false; }
+  return true;
+}
+
 function tpcpOpenExternalUrl(url) {
   if (!url) return;
+  tpcpNoteExternalCover();
   try {
     var B = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) || null;
     if (B && B.open) { B.open({ url: url }); return; }
@@ -8614,6 +8662,17 @@ function tpcpAlertRoute(item) {
     if (_tpcpPresentedEpisodes[item.episodeId] || _tpcpPendingEpisodes[item.episodeId]) return;
     _tpcpPendingEpisodes[item.episodeId] = 1;
   }
+  // Deep-link cover deferral (Claude msg 568): while an external
+  // browser surface opened by a push tap (or a toast deep-link tap)
+  // covers the app, an auto-dismissing presentation would open
+  // unseen in the webview, set the presented mark, spend a booking
+  // showing, and auto-dismiss -- the tap would have consumed a
+  // presentation the user never saw. Drop the delivery unmarked and
+  // uncounted instead; the poll re-offers the episode every cycle,
+  // so it presents on the next foreground once the surface closes.
+  // Decision modals persist until answered, so they are exempt:
+  // they are still on screen when the user returns.
+  if (item.episodeId && item.kind !== 'decision' && tpcpCoverActive()) { tpcpAlertForget(item); return; }
   if (item.group) _tpcpAlertLatestByGroup[item.group] = item.episodeId;
   if (_tpcpAlertCurrent) { tpcpAlertEnqueue(item); return; }
   tpcpAlertOpen(item);
