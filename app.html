@@ -5557,12 +5557,28 @@ function tpcpBoltSVG(size){
 // api/scaffold.js computeLLSequence at generation time). Days saved
 // before the stamp existed -- and standby-only or VIP days, which the
 // server stamps null for -- simply render nothing.
+
+// LL game plan collapse (Beau, Oct 21, 2026): the card's title row
+// toggles its body. One remembered preference per device, default
+// EXPANDED -- the game plan is the morning's key surface, so it
+// starts open and then stays however the user left it.
+function tpcpLLPlanCollapsed(){
+  try { return localStorage.getItem('tpcp_llplan_collapsed') === '1'; } catch (e) { return false; }
+}
+function tpcpToggleLLPlan(dayIdx){
+  try { localStorage.setItem('tpcp_llplan_collapsed', tpcpLLPlanCollapsed() ? '0' : '1'); } catch (e) {}
+  if (typeof renderSched === 'function') renderSched();
+}
+
 function renderLLSequenceBlock(dayIdx){
   var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
   var seq=sd&&sd.llSequence;
   if(!seq||!seq.bookFirst)return '';
   var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');};
-  var h='<div class="ll-seq-block"><div class="ll-seq-title"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane game plan</div>';
+  var collapsed=tpcpLLPlanCollapsed();
+  var chev='<svg class="info-section-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-left:auto;'+(collapsed?'transform:rotate(-90deg);':'')+'"><polyline points="6 9 12 15 18 9"/></svg>';
+  var h='<div class="ll-seq-block"><div class="ll-seq-title" onclick="tpcpToggleLLPlan('+dayIdx+')" style="cursor:pointer;display:flex;align-items:center"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane game plan'+chev+'</div>';
+  if(collapsed){h+='</div>';return h;}
   if(seq.reason){h+='<div class="ll-seq-line">'+esc(seq.reason)+'</div>';}
   else{h+='<div class="ll-seq-line">Book first: <b>'+esc(seq.bookFirst)+'</b></div>';}
   if(seq.order&&seq.order.length>1){h+='<div class="ll-seq-line">Then: '+seq.order.slice(1).map(esc).join(' \u2192 ')+'</div>';}
