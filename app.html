@@ -5573,17 +5573,26 @@ function tpcpToggleLLPlan(dayIdx){
 function renderLLSequenceBlock(dayIdx){
   var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
   var seq=sd&&sd.llSequence;
-  if(!seq||!seq.bookFirst)return '';
+  if(!seq||!seq.bookFirst){
+    // No game plan for this day (Multi Pass off / standby / VIP).
+    // Leaders still get the compact card with the Turn-on control --
+    // the merged single-card form (Beau, Oct 21, 2026); guests get
+    // nothing, exactly as when the toggle was its own card.
+    if(typeof isAdmin!=='function'||!isAdmin())return '';
+    return '<div class="ll-seq-block"><div class="ll-seq-title"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane Multi Pass</div>'+renderLLToggleFooter(dayIdx,true)+'</div>';
+  }
   var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');};
   var collapsed=tpcpLLPlanCollapsed();
   var chev='<svg class="info-section-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-left:auto;'+(collapsed?'transform:rotate(-90deg);':'')+'"><polyline points="6 9 12 15 18 9"/></svg>';
   var h='<div class="ll-seq-block"><div class="ll-seq-title" onclick="tpcpToggleLLPlan('+dayIdx+')" style="cursor:pointer;display:flex;align-items:center"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane game plan'+chev+'</div>';
-  if(collapsed){h+='</div>';return h;}
+  if(!collapsed){
   if(seq.reason){h+='<div class="ll-seq-line">'+esc(seq.reason)+'</div>';}
   else{h+='<div class="ll-seq-line">Book first: <b>'+esc(seq.bookFirst)+'</b></div>';}
   if(seq.order&&seq.order.length>1){h+='<div class="ll-seq-line">Then: '+seq.order.slice(1).map(esc).join(' \u2192 ')+'</div>';}
   if(seq.singleSeparate&&seq.singleSeparate.length===1){h+='<div class="ll-seq-note">'+esc(seq.singleSeparate[0])+' is a separate Single Pass purchase \u2014 not part of this sequence.</div>';}
   else if(seq.singleSeparate&&seq.singleSeparate.length>1){h+='<div class="ll-seq-note">'+seq.singleSeparate.map(esc).join(' and ')+' are separate Single Pass purchases \u2014 not part of this sequence.</div>';}
+  }
+  if(typeof renderLLToggleFooter==='function')h+=renderLLToggleFooter(dayIdx,false);
   h+='</div>';
   return h;
 }
@@ -5610,15 +5619,15 @@ function tpcpLLDayState(dayIdx){
   var days=(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG&&TRIP_CONFIG.days)||[];
   return !!(days[dayIdx]&&days[dayIdx].hasLLMP===true);
 }
-function renderLLToggleBlock(dayIdx){
+function renderLLToggleFooter(dayIdx, bare){
   if(typeof isAdmin!=='function'||!isAdmin()) return ''; // leader-only; guests never render it (msg 570 (5))
   var on=tpcpLLDayState(dayIdx);
   var busy=(_tpcpLLRebuilding===dayIdx);
-  var h='<div class="ll-seq-block"><div class="ll-seq-title"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane Multi Pass</div>';
+  var h=bare?'':'<div style="border-top:0.5px solid #E7DcBE;margin-top:9px;padding-top:9px">';
   h+='<div class="ll-seq-line">'+(on?'Multi Pass is on for this day \u2014 the plan is built around Lightning Lane returns.':'Multi Pass is off for this day \u2014 this plan uses standby lines only.')+'</div>';
   if(busy){ h+='<div class="ll-seq-line" style="margin-top:8px">Rebuilding this day\u2026</div>'; }
   else { h+='<button onclick="tpcpToggleLLMP('+dayIdx+')" style="margin-top:8px;background:'+(on?'transparent':'#1A6860')+';color:'+(on?'#4A7A7C':'#fff')+';border:1px solid '+(on?'#8AACAE':'#1A6860')+';border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">'+(on?'Turn Multi Pass off':'Turn Multi Pass on')+'</button>'; }
-  h+='</div>';
+  if(!bare)h+='</div>';
   return h;
 }
 function tpcpSetLLIntent(dayIdx, on){
@@ -5688,7 +5697,6 @@ function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
   if(typeof renderLLSequenceBlock==='function')h+=renderLLSequenceBlock(curDay);
-  if(typeof renderLLToggleBlock==='function')h+=renderLLToggleBlock(curDay);
   // Completeness (Oct 20, 2026): a stored day that POSITIVELY fails the
   // shared validator -- its park closing time is known and the day does
   // not run to it -- reads as no schedule, so a truncated day never
