@@ -347,6 +347,18 @@ export default async function handler(req, res) {
     const timeout = setTimeout(() => controller.abort(), 90000);
     try {
           const { prompt, mode, maxTokens = 8000, tripConfig } = req.body || {};
+          // EVAL-ONLY (scratch branch eval/haiku-5-5 -- NEVER merge to main): Haiku 5.5 A/B hooks.
+          // Inert unless VERCEL_ENV=preview AND an x-eval-model header names an allowlisted model.
+          const _evalHdr = (req.headers && req.headers['x-eval-model']) || '';
+          const _evalActive = process.env.VERCEL_ENV === 'preview' && (_evalHdr === 'haiku55' || _evalHdr === 'haiku45');
+          const _evalModel = _evalActive ? (_evalHdr === 'haiku55' ? 'claude-haiku-5-5' : 'claude-haiku-4-5-20251001') : null;
+          const _evalTempProbe = _evalActive && req.headers['x-eval-temp'] === '0';
+          const _evalEffortVal = (_evalActive && ['low', 'medium', 'high'].indexOf(req.headers['x-eval-effort'] || '') >= 0) ? req.headers['x-eval-effort'] : null;
+          const _evalCache = _evalActive && req.headers['x-eval-cache'] === '1';
+          const _evalTempSpread = (!_evalModel || _evalModel === 'claude-haiku-4-5-20251001' || _evalTempProbe) ? { temperature: 0 } : {};
+          const _evalEffortSpread = (_evalModel === 'claude-haiku-5-5' && _evalEffortVal) ? { output_config: { effort: _evalEffortVal } } : {};
+          const _evalUsage = [];
+
 
       const rp = (tripConfig || {}).ridePreferences || {};
           const mustDo = rp.mustDo || [];
@@ -810,9 +822,10 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
             const r = await fetch('https://api.anthropic.com/v1/messages', {
               signal: controller.signal, method: 'POST',
               headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', temperature: 0, max_tokens: maxTokens, system: _system, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
+              body: JSON.stringify({ model: _evalModel || 'claude-haiku-4-5-20251001', ..._evalTempSpread, ..._evalEffortSpread, max_tokens: maxTokens, system: _system, messages: [{ role: 'user', content: 'Fill every slot in the skeleton now. Return ONLY the JSON array of slot objects, one per slot id, same order.' }] })
             });
             const d = await r.json();
+            _evalUsage.push({ usage: d.usage || null, stop_reason: d.stop_reason || null, model: d.model || null });
             console.log('[scaffold] fill usage: input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' cache_creation=' + ((d.usage && d.usage.cache_creation_input_tokens) ?? 0) + ' cache_read=' + ((d.usage && d.usage.cache_read_input_tokens) ?? 0));
             if (d.error) throw new Error(d.error.message);
             let t = ''; for (const b of (d.content || [])) if (b.type === 'text') t += b.text;
@@ -1000,7 +1013,7 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
           // signal (it is legitimately null on some LL-built days).
           let llSequence = null;
           try { llSequence = computeLLSequence(_items, _catIdx, { llmp: _llmp === true, isVip: !!(_day && _day.isVip) }); } catch (e) { console.warn('[scaffold] LL sequence failed:', e.message); }
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts, proseVenueFlags: proseVenueFlags, generatedWith: { hasLLMP: _llmp === true, hasILL: _ill === true, illRides: _illNames }, llSequence: llSequence });
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts, proseVenueFlags: proseVenueFlags, generatedWith: { hasLLMP: _llmp === true, hasILL: _ill === true, illRides: _illNames }, llSequence: llSequence, evalUsage: _evalUsage, evalModel: _evalModel });
         } catch (_se) {
           // SAFE FAILURE (legacy retired Oct 7, 2026): never fall through
           // to a second engine. The shipped clients render { ok:false,
