@@ -269,6 +269,17 @@ async function handler(req, res) {
     const timeout = setTimeout(() => controller.abort(), 30000);
     try {
           const { scheduleItems, dayLabel, tripDayDate, isInTrip, currentTime, liveWaits, apiKey: clientKey, ridePrefsContext, heldReturns } = req.body;
+          // EVAL-ONLY (scratch branch eval/haiku-5-5 -- NEVER merge to main): Haiku 5.5 A/B hooks.
+          // Inert unless VERCEL_ENV=preview AND an x-eval-model header names an allowlisted model.
+          const _evalHdr = (req.headers && req.headers['x-eval-model']) || '';
+          const _evalActive = process.env.VERCEL_ENV === 'preview' && (_evalHdr === 'haiku55' || _evalHdr === 'haiku45');
+          const _evalModel = _evalActive ? (_evalHdr === 'haiku55' ? 'claude-haiku-5-5' : 'claude-haiku-4-5-20251001') : null;
+          const _evalTempProbe = _evalActive && req.headers['x-eval-temp'] === '0';
+          const _evalEffortVal = (_evalActive && ['low', 'medium', 'high'].indexOf(req.headers['x-eval-effort'] || '') >= 0) ? req.headers['x-eval-effort'] : null;
+          const _evalCache = _evalActive && req.headers['x-eval-cache'] === '1';
+          const _evalTempSpread = (!_evalModel || _evalModel === 'claude-haiku-4-5-20251001' || _evalTempProbe) ? { temperature: 0 } : {};
+          const _evalEffortSpread = (_evalModel === 'claude-haiku-5-5' && _evalEffortVal) ? { output_config: { effort: _evalEffortVal } } : {};
+
           const apiKey = process.env.ANTHROPIC_API_KEY || clientKey;
           if (!apiKey) return res.status(500).json({ error: 'No API key' });
 
@@ -497,11 +508,12 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
           console.log('[reoptimize] building from scheduleItems:', scheduleItems.length);
           console.log('[reoptimize] userMessage length:', userMessage.length);
           console.log('[reoptimize] userMessage sample:', userMessage.substring(0, 300));
+          const _evalSystemReopt = (_evalCache && _evalModel === 'claude-haiku-5-5') ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }] : systemPrompt;
           const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
                   signal: controller.signal,
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-                  body: JSON.stringify({ model: MODEL, temperature: 0, max_tokens: 8000, system: systemPrompt, messages: [{ role: 'user', content: cappedMessage }] })
+                  body: JSON.stringify({ model: _evalModel || MODEL, ..._evalTempSpread, ..._evalEffortSpread, max_tokens: 8000, system: _evalSystemReopt, messages: [{ role: 'user', content: cappedMessage }] })
           });
           const data = await anthropicRes.json();
           console.log('[reoptimize] usage: input=' + ((data.usage && data.usage.input_tokens) ?? '?') + ' output=' + ((data.usage && data.usage.output_tokens) ?? '?') + ' cache_creation=' + ((data.usage && data.usage.cache_creation_input_tokens) ?? 0) + ' cache_read=' + ((data.usage && data.usage.cache_read_input_tokens) ?? 0));
@@ -581,7 +593,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                     }
                     if (_violations.length) {
                           console.log('[reoptimize] held-return guard kept plan unchanged:', JSON.stringify(_violations.map(v => v.ride)));
-                          return res.status(200).json({ sections: [{ title: dayLabel || 'Schedule', entries: (Array.isArray(scheduleItems) ? scheduleItems : []) }], explanation: 'Your plan is unchanged. ' + _violations.map(v => v.detail).join(' '), changed: false, changeCount: 0, heldReturnConflicts: _heldConflicts.concat(_violations) });
+                          return res.status(200).json({ sections: [{ title: dayLabel || 'Schedule', entries: (Array.isArray(scheduleItems) ? scheduleItems : []) }], explanation: 'Your plan is unchanged. ' + _violations.map(v => v.detail).join(' '), changed: false, changeCount: 0, heldReturnConflicts: _heldConflicts.concat(_violations), usage: data.usage || null, evalModel: _evalModel });
                     }
               }
               let changeCount = 0;
@@ -598,7 +610,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
               const changed = changeCount > 0;
               const _respObj = { sections: normalized, explanation: parsed.explanation || 'Schedule optimized.', changed: changed, changeCount: changeCount };
               if (_heldConflicts.length) _respObj.heldReturnConflicts = _heldConflicts;
-              return res.status(200).json(_respObj);
+              _respObj.usage = data.usage || null; _respObj.evalModel = _evalModel; return res.status(200).json(_respObj);
       }
 
       return res.status(200).json({ error: 'Parse failed', raw: text.substring(0, 8000) });
