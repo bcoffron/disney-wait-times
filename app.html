@@ -2090,6 +2090,7 @@ window.renderClosureAlerts = function() {
     <div id="tpcpAlertKicker" style="font-size:9px; font-weight:800; letter-spacing:0.14em; color:#E8A840; text-transform:uppercase;"></div>
     <div id="tpcpAlertTitle" style="font-size:17px; font-weight:800; color:#fff; line-height:1.3; margin-top:6px;"></div>
     <div id="tpcpAlertBody" style="font-size:14px; color:rgba(255,255,255,0.72); line-height:1.45; margin-top:6px;"></div>
+    <div id="tpcpAlertNote" style="display:none; font-size:14px; color:rgba(255,255,255,0.72); line-height:1.45; margin-top:8px;"></div>
     <div id="tpcpAlertConfirm" style="display:none; font-size:14px; color:#fff; line-height:1.45; margin-top:10px; background:rgba(255,255,255,0.07); border-radius:10px; padding:10px 12px;"></div>
     <div style="display:flex; gap:8px; margin-top:16px;">
       <button id="tpcpAlertPrimary" onclick="tpcpAlertPrimaryAction()" style="flex:1; background:#C86030; border:none; border-radius:9px; padding:11px 10px; font-size:14px; font-weight:800; color:#fff; cursor:pointer; font-family:inherit;"></button>
@@ -8756,6 +8757,21 @@ function tpcpShowPushPopup(title, body, cls, meta) {
     item.type = seg[3] || '';
     if (!item.ymd) item.ymd = seg[4] || '';
   }
+  // Rework action (Claude ruling, Oct 22): the leader's ride-update
+  // modal for the wait classes on this presentation path
+  // (down / spike / high / drop) gains a real primary -- "Rework my
+  // morning" -- that runs the live reoptimize endpoint for the alert's
+  // day and offers the result as Accept/Deny (see the REWORK block
+  // below). Guests stay fact-only and get the leader line instead.
+  // Back-up ('up') carried no promise; it stays plain awareness for
+  // both roles. Role reads through isAdmin(), the same gate every
+  // other leader-only surface in this file uses.
+  if (item.cls === 'ride-update' && (item.type === 'down' || item.type === 'spike' || item.type === 'high' || item.type === 'drop')) {
+    var _isLeader = false;
+    try { _isLeader = (typeof isAdmin === 'function') && isAdmin(); } catch (e) {}
+    if (_isLeader) item.rework = true;
+    else item.leaderNote = true;
+  }
   tpcpAlertRoute(item);
 }
 
@@ -8827,7 +8843,11 @@ function tpcpAlertOpen(item) {
   if (item.kind === 'booking' && item.episodeId) tpcpBookingNoteShown(item.episodeId);
   if (item.kind === 'booking') tpcpAlertShowBooking(item);
   else tpcpAlertShowModal(item);
-  if (item.kind !== 'decision') {
+  if (item.kind !== 'decision' && !item.rework) {
+    // An actionable (rework) awareness modal gets NO auto-dismiss
+    // timer: it carries a real primary the user must be able to tap,
+    // so it persists until answered -- decision-modal semantics. Pure
+    // awareness and booking keep their timers.
     var ms = (item.kind === 'booking') ? TPCP_ALERT_BOOKING_MS : TPCP_ALERT_AWARE_MS;
     _tpcpAlertTimer = setTimeout(function() {
       // Identity-checked: a stale timer can never dismiss a later
@@ -8850,11 +8870,22 @@ function tpcpAlertShowModal(item) {
   var conf = document.getElementById('tpcpAlertConfirm');
   conf.style.display = 'none';
   conf.textContent = '';
+  conf.style.whiteSpace = '';
+  var note = document.getElementById('tpcpAlertNote');
+  if (note) {
+    if (item.leaderNote) { note.textContent = 'Your trip leader can rework the plan.'; note.style.display = ''; }
+    else { note.textContent = ''; note.style.display = 'none'; }
+  }
   var pri = document.getElementById('tpcpAlertPrimary');
   var sec = document.getElementById('tpcpAlertSecondary');
+  pri.disabled = false;
   if (item.kind === 'decision') {
     pri.textContent = (item.cls === 'test') ? 'Accept (test)' : 'Accept';
     sec.textContent = (item.cls === 'test') ? 'Deny (test)' : 'Deny';
+    sec.style.display = '';
+  } else if (item.rework) {
+    pri.textContent = 'Rework my morning';
+    sec.textContent = 'Not now';
     sec.style.display = '';
   } else {
     pri.textContent = 'Got it';
@@ -8947,6 +8978,12 @@ function tpcpAlertPrimaryAction() {
     tpcpDismissAlert();
     return;
   }
+  if (item.rework) {
+    if (item.state === 'rework-result') { tpcpReworkAccept(item); return; }
+    if (item.state === 'rework-working') return; // a run is already in flight
+    tpcpReworkRun(item); // first tap, or retry from the error state
+    return;
+  }
   tpcpDismissAlert(); // awareness "Got it"
 }
 
@@ -8954,6 +8991,356 @@ function tpcpAlertSecondaryAction() {
   // Deny (decision) -- the only secondary action; awareness modals
   // hide the button entirely.
   tpcpDismissAlert();
+}
+
+
+// ===== REWORK MY MORNING (Claude ruling, Oct 22) =====
+// The client executor for the wait-alert rework promise. This is NOT
+// step (v): no server-generated offer exists and none is invented
+// here. The alert supplies the context (which ride, what happened,
+// which day); the leader supplies the one thing the system cannot
+// know -- yes, help me now -- and the rework itself is the LIVE
+// /api/reoptimize endpoint, called with the exact payload construction
+// the Schedule banner's reoptimize()/runReoptimize() uses, for the
+// ALERT's day (the episode's ymd), not the day on screen.
+//
+// Scoping (the ruling's guard): the endpoint re-plans only the items
+// it is sent, and the send set is the banner's in-trip set -- items
+// starting at or after now-30min -- so the morning already lived is
+// never sent. On Accept the merge is applyReopt()'s own rule, run
+// through the pure helper below: past items (start < now-30min) are
+// preserved verbatim from the full-day snapshot, the AI entries form
+// the remainder, everything time-sorts into a single section, and the
+// write goes through the same persistence as every schedule edit
+// (customSched[day] + saveCustom -> pushSchedule -> POST /api/trip).
+// Anchors are the endpoint's own contract and are NOT re-implemented
+// here: held Lightning Lane returns are fixed anchors in its prompt
+// AND behind a deterministic output guard that returns the plan
+// unchanged rather than emit a moved/dropped held ride; confirmed
+// dining reservations and VIP items are prompt-level fixed anchors.
+// A result is held privately on the item until Accept -- Deny, an
+// error, or a mid-flight dismissal writes NOTHING.
+function tpcpReworkTimeToMin(t) {
+  if (!t) return 0;
+  var m = String(t).match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return 0;
+  var h = parseInt(m[1], 10), mn = parseInt(m[2], 10), pm = m[3].toUpperCase() === 'PM';
+  if (pm && h !== 12) h += 12;
+  if (!pm && h === 12) h = 0;
+  return h * 60 + mn;
+}
+
+// Pure merge (applyReopt's rules, parameterized): returns the merged
+// entry list for the day. In-trip: past items preserved + AI entries.
+// Not in-trip: AI entries + the original tail after the last AI time.
+function tpcpReworkMergeEntries(allDayItems, aiEntries, isInTrip, nowMin) {
+  var src = allDayItems || [];
+  var ai = aiEntries || [];
+  var merged;
+  if (isInTrip) {
+    var pastItems = src.filter(function(item) { return tpcpReworkTimeToMin(item.t) < nowMin - 30; });
+    merged = pastItems.concat(ai);
+  } else {
+    var lastAiTime = ai.length ? tpcpReworkTimeToMin(ai[ai.length - 1].t) : 0;
+    var tailItems = src.filter(function(item) { return tpcpReworkTimeToMin(item.t) > lastAiTime; });
+    merged = ai.concat(tailItems);
+  }
+  merged = merged.slice();
+  merged.sort(function(a, b) { return tpcpReworkTimeToMin(a.t) - tpcpReworkTimeToMin(b.t); });
+  return merged;
+}
+
+// Pure diff of the sent remainder vs the AI remainder, by item name
+// (multiset): what moved (same name, new time), what was added, what
+// was removed. Shown to the leader as "what's changing" -- it asserts
+// nothing about what the party has or hasn't done.
+function tpcpReworkDiff(sentItems, aiEntries) {
+  function nm(e) { return (e && (e.h || e.title || e.name)) || ''; }
+  var remaining = {};
+  (sentItems || []).forEach(function(e) {
+    var k = nm(e);
+    if (!k) return;
+    (remaining[k] = remaining[k] || []).push(e.t || '');
+  });
+  var moved = [], added = [];
+  (aiEntries || []).forEach(function(e) {
+    var k = nm(e);
+    if (!k) return;
+    var q = remaining[k];
+    if (q && q.length) {
+      var from = q.shift();
+      if (from !== (e.t || '')) moved.push({ name: k, from: from, to: e.t || '' });
+    } else {
+      added.push({ name: k, to: e.t || '' });
+    }
+  });
+  var removed = [];
+  Object.keys(remaining).forEach(function(k) {
+    remaining[k].forEach(function(t) { removed.push({ name: k, from: t }); });
+  });
+  return { moved: moved, added: added, removed: removed };
+}
+
+function tpcpReworkDayIndex(item) {
+  var ymd = (item && item.ymd) || tpcpTodayYmdPT();
+  if (!ymd) return -1;
+  var lists = [];
+  var tcDays = (window._loadedTripData && window._loadedTripData.tripConfig && window._loadedTripData.tripConfig.days) || [];
+  if (tcDays.length) lists.push(tcDays);
+  try { if (typeof TRIP_CONFIG !== 'undefined' && TRIP_CONFIG.days && TRIP_CONFIG.days.length) lists.push(TRIP_CONFIG.days); } catch (e) {}
+  for (var l = 0; l < lists.length; l++) {
+    for (var i = 0; i < lists[l].length; i++) {
+      if (lists[l][i] && lists[l][i].date === ymd) return i;
+    }
+  }
+  return -1;
+}
+
+function tpcpReworkShowWorking(item) {
+  if (_tpcpAlertCurrent !== item) return;
+  item.state = 'rework-working';
+  document.getElementById('tpcpAlertKicker').textContent = tpcpAlertKicker(item);
+  document.getElementById('tpcpAlertTitle').textContent = item.title;
+  var bodyEl = document.getElementById('tpcpAlertBody');
+  bodyEl.textContent = 'Reworking the rest of your day around this\u2026';
+  bodyEl.style.display = '';
+  var conf = document.getElementById('tpcpAlertConfirm');
+  conf.style.display = 'none';
+  conf.textContent = '';
+  var pri = document.getElementById('tpcpAlertPrimary');
+  pri.textContent = 'Reworking\u2026';
+  pri.disabled = true;
+  // Cancel stays available during the run: dismissing drops the
+  // result when it lands (every render re-checks currency) and
+  // nothing is written.
+  var sec = document.getElementById('tpcpAlertSecondary');
+  sec.textContent = 'Cancel';
+  sec.style.display = '';
+}
+
+function tpcpReworkShowError(item, msg) {
+  if (_tpcpAlertCurrent !== item) return;
+  item.state = 'rework-error';
+  document.getElementById('tpcpAlertTitle').textContent = 'Could not rework just now';
+  var bodyEl = document.getElementById('tpcpAlertBody');
+  bodyEl.textContent = msg;
+  bodyEl.style.display = '';
+  var conf = document.getElementById('tpcpAlertConfirm');
+  conf.style.display = 'none';
+  conf.textContent = '';
+  var pri = document.getElementById('tpcpAlertPrimary');
+  pri.textContent = 'Try again';
+  pri.disabled = false;
+  var sec = document.getElementById('tpcpAlertSecondary');
+  sec.textContent = 'Not now';
+  sec.style.display = '';
+}
+
+function tpcpReworkShowResult(item, view) {
+  if (_tpcpAlertCurrent !== item) return;
+  var bodyEl = document.getElementById('tpcpAlertBody');
+  var conf = document.getElementById('tpcpAlertConfirm');
+  var pri = document.getElementById('tpcpAlertPrimary');
+  var sec = document.getElementById('tpcpAlertSecondary');
+  var conflictText = '';
+  if (view.conflicts) {
+    conflictText = view.conflicts.map(function(c) { return c.detail || ''; }).filter(Boolean).join(' ');
+  }
+  if (view.noChange) {
+    // Honest no-op (includes the endpoint's held-anchor guard, which
+    // returns the plan unchanged with the reason in its explanation):
+    // there is nothing to Accept, so the modal says so and closes.
+    item.state = 'confirm';
+    document.getElementById('tpcpAlertTitle').textContent = 'Your plan already works';
+    bodyEl.textContent = view.explanation || 'The optimizer kept your plan as it is.';
+    bodyEl.style.display = '';
+    if (conflictText) { conf.textContent = conflictText; conf.style.display = ''; }
+    else { conf.style.display = 'none'; conf.textContent = ''; }
+    pri.textContent = 'Close';
+    pri.disabled = false;
+    sec.style.display = 'none';
+    return;
+  }
+  item.state = 'rework-result';
+  document.getElementById('tpcpAlertKicker').textContent = 'Rework my morning';
+  document.getElementById('tpcpAlertTitle').textContent = 'Here\u2019s the reworked plan';
+  bodyEl.textContent = view.explanation || 'Tap Accept to apply this plan, or Deny to keep yours.';
+  bodyEl.style.display = '';
+  var lines = [];
+  view.diff.moved.forEach(function(mv) { lines.push(mv.name + ': ' + (mv.from || 'earlier') + ' \u2192 ' + (mv.to || 'later')); });
+  view.diff.added.forEach(function(ad) { lines.push('Added: ' + ad.name + (ad.to ? ' at ' + ad.to : '')); });
+  view.diff.removed.forEach(function(rm) { lines.push('Removed: ' + rm.name + (rm.from ? ' (was ' + rm.from + ')' : '')); });
+  if (conflictText) lines.push(conflictText);
+  if (lines.length) {
+    var shown = lines.slice(0, 6);
+    if (lines.length > 6) shown.push('+ ' + (lines.length - 6) + ' more changes');
+    conf.textContent = shown.join('\n');
+    conf.style.whiteSpace = 'pre-line';
+    conf.style.display = '';
+  } else {
+    conf.style.display = 'none';
+    conf.textContent = '';
+  }
+  pri.textContent = 'Accept';
+  pri.disabled = false;
+  sec.textContent = 'Deny';
+  sec.style.display = '';
+}
+
+async function tpcpReworkRun(item) {
+  if (item.state === 'rework-working') return;
+  var dayIdx = tpcpReworkDayIndex(item);
+  var allDayItems = (dayIdx >= 0 && window._schedData && window._schedData.days && window._schedData.days[dayIdx] && window._schedData.days[dayIdx].items) || [];
+  if (dayIdx < 0 || !allDayItems.length) {
+    tpcpReworkShowError(item, 'I could not load that day\u2019s plan just now \u2014 your plan is unchanged.');
+    return;
+  }
+  tpcpReworkShowWorking(item);
+  try { await ensureApiKey(); } catch (e) {}
+  // Payload construction mirrors reoptimize()/runReoptimize() exactly,
+  // parameterized by the ALERT's day instead of the day on screen.
+  var tripDays = (window._loadedTripData && window._loadedTripData.tripConfig && window._loadedTripData.tripConfig.days) || [];
+  var dayCfg = tripDays[dayIdx] || {};
+  var tripDayDate = dayCfg.date || '';
+  var tripDayLabel = '';
+  if (tripDayDate) {
+    try {
+      var _td = new Date(tripDayDate + 'T12:00:00');
+      tripDayLabel = _td.toDateString().replace(/\s\d{4}$/, '').trim();
+    } catch (e) {}
+  }
+  var dn = (function() {
+    try {
+      var _tdays = (typeof TRIP_CONFIG !== 'undefined' && TRIP_CONFIG.days) || [];
+      var _dy = _tdays[dayIdx] || _tdays[0];
+      if (_dy && _dy.date) {
+        var _wd = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        var _mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var _dd = new Date(_dy.date);
+        return _wd[_dd.getDay()] + ' ' + _mo[_dd.getMonth()] + ' ' + _dd.getDate();
+      }
+    } catch (e) {}
+    return 'Day ' + (dayIdx + 1);
+  })();
+  var _today = new Date();
+  _today.setHours(0, 0, 0, 0);
+  var firstDate = tripDays.length > 0 && tripDays[0].date ? new Date(tripDays[0].date + 'T00:00:00') : null;
+  var lastDate = tripDays.length > 0 && tripDays[tripDays.length - 1].date ? new Date(tripDays[tripDays.length - 1].date + 'T00:00:00') : null;
+  if (lastDate) lastDate.setHours(23, 59, 59, 999);
+  var isInTrip = !!(firstDate && lastDate && _today >= firstDate && _today <= lastDate);
+  var nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  var sentItems;
+  if (isInTrip) {
+    sentItems = allDayItems.filter(function(it) { return tpcpReworkTimeToMin(it.t) >= nowMin - 30; });
+  } else {
+    sentItems = allDayItems.slice(0, 20);
+  }
+  var liveWaits = '';
+  if (typeof buildWaitContext === 'function') { try { liveWaits = buildWaitContext() || ''; } catch (e) {} }
+  var _tnow = new Date();
+  var currentTimeStr = _tnow.getHours() + ':' + (String(_tnow.getMinutes()).padStart(2, '0')) + (_tnow.getHours() >= 12 ? ' PM' : ' AM');
+  var ctx = { dayIdx: dayIdx, allDayItems: allDayItems.slice(), sentItems: sentItems, isInTrip: isInTrip, nowMin: nowMin, mergedDay: null };
+  item.reworkCtx = ctx;
+  var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timeoutId = controller ? setTimeout(function() { controller.abort(); }, 65000) : null;
+  var resp;
+  try {
+    var r = await fetch(SYNC_BASE + '/api/reoptimize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scheduleItems: sentItems,
+        dayLabel: dn,
+        tripDayDate: tripDayLabel || tripDayDate,
+        isInTrip: isInTrip,
+        currentTime: isInTrip ? currentTimeStr : null,
+        liveWaits: isInTrip ? liveWaits.substring(0, 1000) : null,
+        ridePrefsContext: buildRidePrefsContext((window._loadedTripData && window._loadedTripData.tripConfig) || {}),
+        heldReturns: (typeof getHeldReturnsForDay === 'function' ? getHeldReturnsForDay(dayIdx) : []),
+        tripCode: localStorage.getItem('tpcp_code') || '',
+        deviceToken: tpcpDeviceToken()
+      }),
+      signal: controller ? controller.signal : undefined
+    });
+    if (timeoutId) clearTimeout(timeoutId);
+    if (!r.ok || (r.headers.get('content-type') || '').indexOf('application/json') === -1) {
+      tpcpReworkShowError(item, 'I could not finish reworking just now. The server was busy \u2014 your plan is unchanged.');
+      return;
+    }
+    try { resp = await r.json(); }
+    catch (je) {
+      tpcpReworkShowError(item, 'I could not read the reworked schedule just now. Your plan is unchanged.');
+      return;
+    }
+  } catch (e) {
+    if (timeoutId) clearTimeout(timeoutId);
+    tpcpReworkShowError(item, (e && e.name === 'AbortError')
+      ? 'Reworking took longer than expected \u2014 your plan is unchanged.'
+      : 'I could not reach the optimizer just now \u2014 your plan is unchanged.');
+    return;
+  }
+  // Dismissed mid-flight: the result is dropped and nothing was
+  // written (every render below also re-checks currency).
+  if (_tpcpAlertCurrent !== item) return;
+  if (resp.error) {
+    var em = (typeof resp.error === 'object') ? (resp.error.message || '') : String(resp.error);
+    if (resp.error && resp.error.type === 'rate_limit_error') em = 'The optimizer is busy right now.';
+    tpcpReworkShowError(item, (em ? em + ' ' : '') + 'Your plan is unchanged.');
+    return;
+  }
+  var newSecs = resp.sections || null;
+  var explanation = resp.explanation || '';
+  if (!newSecs && resp.raw) {
+    var jm = resp.raw.match(/JSONSTART([\s\S]+?)JSONEND/);
+    var sm = resp.raw.match(/SUMMARY:\s*(.+)/);
+    if (jm) { try { newSecs = JSON.parse(jm[1].trim()); if (sm) explanation = sm[1].trim(); } catch (e) {} }
+  }
+  if (!newSecs || !Array.isArray(newSecs) || !newSecs.length) {
+    tpcpReworkShowError(item, (explanation && explanation.length > 20) ? explanation : 'The optimizer did not return a new plan \u2014 your plan is unchanged.');
+    return;
+  }
+  var aiEntries = [];
+  newSecs.forEach(function(s) { if (s.entries) aiEntries = aiEntries.concat(s.entries); });
+  var mergedEntries = tpcpReworkMergeEntries(ctx.allDayItems, aiEntries, ctx.isInTrip, ctx.nowMin);
+  if (!mergedEntries.length) {
+    tpcpReworkShowError(item, 'Reworking came back empty \u2014 your plan is unchanged.');
+    return;
+  }
+  var baseDay = {};
+  try { baseDay = JSON.parse(JSON.stringify(customSched[dayIdx] || (typeof DAYS !== 'undefined' && DAYS[dayIdx]) || {})); } catch (e) { baseDay = {}; }
+  baseDay.sections = [{ title: (newSecs[0] && newSecs[0].title) || '', entries: mergedEntries }];
+  ctx.mergedDay = baseDay;
+  var noChange = (resp.changed === false) || (typeof resp.changeCount === 'number' && resp.changeCount === 0);
+  tpcpReworkShowResult(item, {
+    explanation: explanation,
+    noChange: noChange,
+    conflicts: (resp.heldReturnConflicts && resp.heldReturnConflicts.length) ? resp.heldReturnConflicts : null,
+    diff: tpcpReworkDiff(ctx.sentItems, aiEntries)
+  });
+}
+
+function tpcpReworkAccept(item) {
+  var ctx = item.reworkCtx;
+  if (!ctx || !ctx.mergedDay) { tpcpDismissAlert(); return; }
+  // The same write path as the banner's Accept (applyReopt):
+  // customSched[day] + saveCustom -> pushSchedule -> POST /api/trip.
+  customSched[ctx.dayIdx] = ctx.mergedDay;
+  saveCustom(ctx.dayIdx);
+  if (ctx.dayIdx === curDay && typeof renderSched === 'function') { try { renderSched(); } catch (e) {} }
+  item.reworkCtx = null;
+  item.state = 'confirm';
+  document.getElementById('tpcpAlertTitle').textContent = 'Plan updated';
+  var bodyEl = document.getElementById('tpcpAlertBody');
+  bodyEl.textContent = '';
+  bodyEl.style.display = 'none';
+  var conf = document.getElementById('tpcpAlertConfirm');
+  conf.style.whiteSpace = '';
+  conf.textContent = 'Your plan is updated \u2014 the rest of your day now follows the reworked schedule.';
+  conf.style.display = '';
+  var pri = document.getElementById('tpcpAlertPrimary');
+  pri.textContent = 'Close';
+  pri.disabled = false;
+  document.getElementById('tpcpAlertSecondary').style.display = 'none';
 }
 
 // Booking tap-through + decision-modal survival on foreground return.
@@ -8972,7 +9359,7 @@ function tpcpAlertSecondaryAction() {
     document.addEventListener('visibilitychange', function() {
       if (document.hidden) return;
       var item = _tpcpAlertCurrent;
-      if (!item || item.kind !== 'decision') return;
+      if (!item || (item.kind !== 'decision' && !item.rework)) return;
       // An unanswered decision modal survives background/lock return
       // while its episode is still today's and still the newest for
       // its ride; a stale or superseded one quietly dismisses itself
