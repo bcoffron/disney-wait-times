@@ -115,9 +115,13 @@ function llOrderBody(seq) {
   const first = (typeof seq.bookFirst === 'string' && seq.bookFirst.trim()) ? seq.bookFirst.trim() : names[0];
   const tail = names.filter(n => n !== first);
   if (!tail.length) return 'Book ' + first + ' first \u2014 it tops today\u2019s Lightning Lane game plan.';
-  return 'Book ' + first + ' first, then ' + tail.slice(0, 3).join(', ')
-    + (tail.length > 3 ? ', and ' + (tail.length - 3) + ' more' : '')
-    + '. The full order is in today\u2019s plan.';
+  // Push-copy audit Option A (Oct 22): name bookFirst + the next ride
+  // only, then count the rest -- naming 4 rides clipped mid-list on
+  // the lock screen. The full order still renders from llSequence in
+  // the plan's game-plan card.
+  return 'Book ' + first + ' first, then ' + tail[0]
+    + (tail.length > 1 ? ', and ' + (tail.length - 1) + ' more' : '')
+    + '.';
 }
 // Decide the leg for one trip-day. Pure (the harness drives this):
 //   skip     -- not armed, or already settled today (sent/suppressed)
