@@ -17,7 +17,7 @@
 // planned rides alert on all-day DOWN episodes + back-up (evaluateRideEpisode).
 
 import webpush from 'web-push';
-import { isApnsConfigured, sendApnsToDevices, evaluateRideEpisode } from './apns.js';
+import { isApnsConfigured, sendApnsToDevices, evaluateRideEpisode, apnsDetailFor } from './apns.js';
 // Plan-changed debounce flusher (restoration step iv): pending
 // plan-changed notifications flush on THIS sweep (no new cron).
 import { flushPlanChanged } from './plan-changed.js';
@@ -272,6 +272,24 @@ async function readJsonBlob(key) {
     return null;
   }
 }
+// Meta variant of readJsonBlob (instrumentation, Claude msg 578):
+// same list + blobs[0] selection as the plain read -- the SELECTION
+// IS UNCHANGED -- but it also reports which blob the read resolved
+// (pathname + uploadedAt + how many blobs matched the prefix), so a
+// short targeted list can be attributed to the read itself.
+async function readJsonBlobMeta(key) {
+  try {
+    const { list } = await import('@vercel/blob');
+    const { blobs } = await list({ prefix: key });
+    if (!blobs || blobs.length === 0) return { data: null, pathname: null, uploadedAt: null, matches: 0 };
+    const resp = await fetch(blobs[0].url + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return { data: null, pathname: blobs[0].pathname || null, uploadedAt: blobs[0].uploadedAt || null, matches: blobs.length };
+    return { data: await resp.json(), pathname: blobs[0].pathname || null, uploadedAt: blobs[0].uploadedAt || null, matches: blobs.length };
+  } catch (e) {
+    return { data: null, pathname: null, uploadedAt: null, matches: 0 };
+  }
+}
+
 // Salted-dual read for the registry/trip blobs only: try the salted key first,
 // fall back to the bare key (transition-safe). Do not log the pathname.
 async function readSaltedDualBlob(saltedKey, bareKey) {
@@ -368,11 +386,13 @@ export async function listTripCodesWithDevices() {
 // native channel is effectively feature-flagged OFF until tokens exist.
 async function sendApnsToTrip(tripCode, payloadObj) {
   if (!isApnsConfigured()) return { sent: 0, failed: 0, pruned: 0, skipped: true };
-  const devBlob = await readJsonBlob('twize/push-devices/' + tripCode + '.json');
+  const devMeta = await readJsonBlobMeta('twize/push-devices/' + tripCode + '.json');
+  const devBlob = devMeta.data;
   const devices = (devBlob && Array.isArray(devBlob.devices)) ? devBlob.devices : [];
   const targets = devices.filter(d => d && d.platform === 'ios' && typeof d.token === 'string' && d.alertsEnabled !== false);
-  if (!targets.length) return { sent: 0, failed: 0, pruned: 0 };
+  if (!targets.length) return { sent: 0, failed: 0, pruned: 0, detail: apnsDetailFor(devMeta, [], []) };
   const results = await sendApnsToDevices(targets.map(d => d.token), payloadObj);
+  const detail = apnsDetailFor(devMeta, targets.map(d => d.token), results);
   let sent = 0, failed = 0;
   const deadTokens = new Set();
   for (const r of results) {
@@ -392,7 +412,7 @@ async function sendApnsToTrip(tripCode, payloadObj) {
         { tripCode: tripCode, devices: survivors, updated: new Date().toISOString() });
     } catch (e) { console.error('[push-monitor] apns prune write failed', e.message); }
   }
-  return { sent, failed, pruned };
+  return { sent, failed, pruned, detail };
 }
 
 export default async function handler(req, res) {
@@ -529,6 +549,7 @@ export default async function handler(req, res) {
       const nowMin = pt.hour * 60 + pt.minute;
       let firedThisTrip = 0;
       let apnsSentTrip = 0;
+      const apnsDetails = [];
       const spikes = [];
       const drops = [];
       const highs = [];
@@ -567,6 +588,7 @@ export default async function handler(req, res) {
           const w = await sendToTrip(cr.code, payload);
           const a = await sendApnsToTrip(cr.code, payload);
           apnsSentTrip += a.sent;
+          if (a && a.detail) apnsDetails.push({ code: cr.code, cat: category, d: a.detail });
           const codeSent = w.sent + a.sent;
           sentByCode[cr.code] += codeSent;
           sentTotal += codeSent;
@@ -806,7 +828,7 @@ export default async function handler(req, res) {
       }
 
       await writeJsonBlob(stateKey, state);
-      summary.push({ tripId, codes, variants: variantByCode, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip, sentByCode, apnsSent: apnsSentTrip });
+      summary.push({ tripId, codes, variants: variantByCode, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip, sentByCode, apnsSent: apnsSentTrip, apnsDetail: apnsDetails.length ? apnsDetails : undefined });
     }
 
     console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));

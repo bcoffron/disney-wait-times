@@ -136,6 +136,27 @@ export function collapseIdForEpisode(episodeId) {
   return 'eph:' + crypto.createHash('sha256').update(episodeId, 'utf8').digest('hex').slice(0, 40);
 }
 
+// Compact per-send detail for caller logs (instrumentation, Claude
+// msg 577-578): which device blob the caller's read resolved, the
+// targeted token last-4s IN ARRAY ORDER, how many sends reached the
+// wire, and each device's verdict. Tokens never appear beyond their
+// last 4 characters. Pure: (resolved-blob meta, target tokens,
+// sendApnsToDevices results) -> detail object.
+export function apnsDetailFor(meta, targets, results) {
+  const t4 = function (t) { return (typeof t === 'string' && t.length >= 4) ? t.slice(-4) : '????'; };
+  const rs = Array.isArray(results) ? results : [];
+  return {
+    blob: (meta && meta.pathname) || null,
+    blobAt: (meta && meta.uploadedAt) || null,
+    matches: (meta && typeof meta.matches === 'number') ? meta.matches : null,
+    targeted: (Array.isArray(targets) ? targets : []).map(t4),
+    attempted: rs.filter(function (r) { return r && r.attempted; }).length,
+    results: rs.map(function (r) {
+      return { t: t4(r && r.token), s: (r && r.status) || 0, r: (r && r.reason) || '', v: (r && r.verdict) || '', a: (r && r.attempted) ? 1 : 0 };
+    })
+  };
+}
+
 // Send one alert payload to many device tokens over a single HTTP/2 session.
 // Resolves to [{ token, status, reason, verdict }] and never rejects.
 export async function sendApnsToDevices(tokens, note, env) {
@@ -143,7 +164,7 @@ export async function sendApnsToDevices(tokens, note, env) {
   const cfg = getApnsConfig(env);
   if (!cfg) {
     if (list.length) console.log('[apns] not configured -- skipping ' + list.length + ' device send(s)');
-    return list.map(function (token) { return { token: token, status: 0, reason: 'apns-not-configured', verdict: 'skipped' }; });
+    return list.map(function (token) { return { token: token, status: 0, reason: 'apns-not-configured', verdict: 'skipped', attempted: false }; });
   }
   if (!list.length) return [];
   const jwt = getApnsProviderToken(env);
@@ -159,7 +180,7 @@ export async function sendApnsToDevices(tokens, note, env) {
   }
   for (const token of list) {
     if (!client || sessionError) {
-      results.push({ token: token, status: 0, reason: sessionError ? sessionError.message : 'no session', verdict: 'error' });
+      results.push({ token: token, status: 0, reason: sessionError ? sessionError.message : 'no session', verdict: 'error', attempted: false });
       continue;
     }
     const r = await new Promise(function (resolve) {
@@ -185,16 +206,16 @@ export async function sendApnsToDevices(tokens, note, env) {
         req.on('end', function () {
           let reason = '';
           try { reason = (JSON.parse(data || '{}') || {}).reason || ''; } catch (e) { /* empty body on success */ }
-          done({ token: token, status: status, reason: reason, verdict: classifyApnsResult(status, reason) });
+          done({ token: token, status: status, reason: reason, verdict: classifyApnsResult(status, reason), attempted: true });
         });
-        req.on('error', function (err) { done({ token: token, status: 0, reason: err.message, verdict: 'error' }); });
+        req.on('error', function (err) { done({ token: token, status: 0, reason: err.message, verdict: 'error', attempted: true }); });
         req.setTimeout(10000, function () {
           try { req.close(); } catch (e) { /* already closed */ }
-          done({ token: token, status: 0, reason: 'timeout', verdict: 'error' });
+          done({ token: token, status: 0, reason: 'timeout', verdict: 'error', attempted: true });
         });
         req.end(body);
       } catch (e) {
-        done({ token: token, status: 0, reason: e.message, verdict: 'error' });
+        done({ token: token, status: 0, reason: e.message, verdict: 'error', attempted: true });
       }
     });
     if (r.verdict === 'auth-error' && r.reason === 'ExpiredProviderToken') {

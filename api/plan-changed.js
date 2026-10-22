@@ -225,7 +225,7 @@ function mergeChange(base, add) {
 // leaves the pending record untouched for the next flush).
 async function attemptSend(tripId, presentedCode, change) {
   const pair = await pairCodesAndRoles(tripId, presentedCode);
-  if (!pair.codes.length) return 'no-targets';
+  if (!pair.codes.length) return { outcome: 'no-targets', apns: null };
   // Routing (PR 2): the plan-changed category flows through the shared
   // policy table before any send. Plan-changed is awareness for EVERY
   // role -- its purpose is keeping guests in sync -- so the policy
@@ -237,17 +237,19 @@ async function attemptSend(tripId, presentedCode, change) {
     if (shouldSend('plan-changed', role, pair.roleMap.ok)) codes.push(code);
     else console.warn('[plan-changed] routing suppressed code ' + code + ' for trip ' + tripId);
   }
-  if (!codes.length) return 'no-targets';
+  if (!codes.length) return { outcome: 'no-targets', apns: null };
   const excludeToken = safeDeviceToken(change.originToken || '');
   const targets = await countTargets(codes, excludeToken);
-  if (targets.total === 0) return 'no-targets';
+  if (targets.total === 0) return { outcome: 'no-targets', apns: null };
   const payload = buildPlanChangedPayload(tripId, change.version, change.days);
   let sent = 0;
+  const apns = {};
   for (const code of codes) {
     const r = await fireTripPush(code, payload, { excludeToken: excludeToken });
     sent += (r && r.sent) || 0;
+    if (r && r.apns && r.apns.detail) apns[code] = r.apns.detail;
   }
-  return sent > 0 ? 'sent' : 'failed';
+  return { outcome: sent > 0 ? 'sent' : 'failed', apns: Object.keys(apns).length ? apns : null };
 }
 
 // commitSend / queueChange mutate + persist the state record.
@@ -277,13 +279,14 @@ export async function notePlanChange(args) {
   const st = await readState(tripId);
   const change = st.pending ? mergeChange(st.pending, incoming) : incoming;
   if (now - st.lastSentAt >= PLAN_CHANGED_WINDOW_MS) {
-    const outcome = await attemptSend(tripId, args.presentedCode, change);
+    const att = await attemptSend(tripId, args.presentedCode, change);
+    const outcome = att.outcome;
     if (outcome === 'failed') {
       await queueChange(st, change);
-      return { sent: 0, queued: true, version: change.version };
+      return { sent: 0, queued: true, version: change.version, apns: att.apns || undefined };
     }
     await commitSend(st, change, now);
-    return { sent: outcome === 'sent' ? 1 : 0, delivered: outcome, version: change.version };
+    return { sent: outcome === 'sent' ? 1 : 0, delivered: outcome, version: change.version, apns: att.apns || undefined };
   }
   await queueChange(st, change);
   return { sent: 0, queued: true, version: change.version };
@@ -308,10 +311,11 @@ export async function flushPlanChanged(nowMs) {
       if (!st.pending) continue;
       if (now - st.lastSentAt < PLAN_CHANGED_WINDOW_MS) continue;
       const change = st.pending;
-      const outcome = await attemptSend(tripId, '', change);
-      if (outcome === 'failed') { out.push({ tripId: tripId, flushed: false, version: change.version }); continue; }
+      const att = await attemptSend(tripId, '', change);
+      const outcome = att.outcome;
+      if (outcome === 'failed') { out.push({ tripId: tripId, flushed: false, version: change.version, apns: att.apns || undefined }); continue; }
       await commitSend(st, change, now);
-      out.push({ tripId: tripId, flushed: true, delivered: outcome, version: change.version });
+      out.push({ tripId: tripId, flushed: true, delivered: outcome, version: change.version, apns: att.apns || undefined });
     } catch (e) {
       console.warn('[plan-changed] flush failed for ' + key, e && e.message);
     }
