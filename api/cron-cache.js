@@ -613,7 +613,11 @@ async function blobStore(key, cacheData) {
 // and self-heals the chain). Entry shape:
 // {ts, key, section, via ('fanout'|'section'|'legacy'), outcome
 // ('ok'|'fail'|'empty-output'|'skipped-fresh'), bytes, webSearchRequests,
-// model, error, note}. 'note' is an optional additive field for non-fatal
+// model, error, note, stopReason, blockTypes, attempts}. The last three are
+// response diagnostics captured from the most recent model call (see
+// lastCallDiag): they attach to 'fail'/'empty-output' entries only, so an
+// unusable model response is never again just 'Response too short: 0 chars'
+// with no hint of what the API actually returned. 'note' is an optional additive field for non-fatal
 // detail worth keeping with the entry (e.g. park_hours entries dropped by
 // per-entry validation on an otherwise-ok build). Errors are kept to 1200
 // chars so a rejection can carry its own diagnosis (counts, sample bad
@@ -622,6 +626,7 @@ const CACHE_VERDICTS_KEY = 'twize/cache_verdicts.json';
 const CACHE_VERDICTS_CAP = 200;
 const CACHE_BUILD_MODEL = 'claude-sonnet-5-5';
 let lastCallUsage = null; // usage of the most recent callClaude() call
+let lastCallDiag = null; // {stopReason, blockTypes, attempts} of the most recent model call (any builder)
 function lastCallSearches() {
   const u = lastCallUsage;
   return (u && u.server_tool_use && typeof u.server_tool_use.web_search_requests === 'number') ? u.server_tool_use.web_search_requests : null;
@@ -635,6 +640,10 @@ function sectionDataIsEmpty(sd) {
 }
 async function recordCacheVerdict(entry) {
   try {
+    // Diagnostics attach to fail/empty entries only, taken from the most
+    // recent model call's capture unless the caller passes its own.
+    const diagOutcome = entry.outcome || 'ok';
+    const diag = entry.diag || ((diagOutcome === 'fail' || diagOutcome === 'empty-output') ? lastCallDiag : null);
     const full = {
       ts: new Date().toISOString(),
       key: entry.key || null,
@@ -645,7 +654,10 @@ async function recordCacheVerdict(entry) {
       webSearchRequests: (typeof entry.webSearchRequests === 'number') ? entry.webSearchRequests : null,
       model: entry.model || CACHE_BUILD_MODEL,
       error: entry.error ? String(entry.error).slice(0, 1200) : null,
-      note: entry.note ? String(entry.note).slice(0, 500) : null
+      note: entry.note ? String(entry.note).slice(0, 500) : null,
+      stopReason: entry.stopReason || (diag && diag.stopReason) || null,
+      blockTypes: entry.blockTypes || (diag && diag.blockTypes) || null,
+      attempts: (typeof entry.attempts === 'number') ? entry.attempts : ((diag && typeof diag.attempts === 'number') ? diag.attempts : null)
     };
     let arr = [];
     try {
@@ -752,16 +764,72 @@ function extractLargestObject(text, preferKey) {
 // top_p, or top_k returns a 400 (Anthropic's Sonnet 5.5 docs) -- so the
 // temperature:0 the Sonnet 4.6 calls carried is intentionally absent from
 // all three request bodies below.
+// ==== CLAUDE CALL START ====
+// Response-diagnostics helpers (Oct 22, 2026): until now a section build
+// that got an unusable response recorded only 'Response too short: 0 chars'
+// with no hint of what the API actually returned -- the CURRENT_CLOSURES
+// build that night returned NO text blocks at all and nothing anywhere
+// said why. Every response now leaves a {stopReason, blockTypes, attempts}
+// capture in lastCallDiag (declared with the verdict record above), which
+// recordCacheVerdict attaches to fail/empty entries.
+function blockTypeSummary(blocks) {
+  if (!Array.isArray(blocks) || !blocks.length) return 'none';
+  const counts = {};
+  for (let i = 0; i < blocks.length; i++) {
+    const t = (blocks[i] && blocks[i].type) || 'unknown';
+    counts[t] = (counts[t] || 0) + 1;
+  }
+  return Object.keys(counts).sort().map(k => k + ' x' + counts[k]).join(', ');
+}
+function mergeCallUsage(acc, u) {
+  if (!u) return acc;
+  if (!acc) return JSON.parse(JSON.stringify(u));
+  acc.input_tokens = (acc.input_tokens || 0) + (u.input_tokens || 0);
+  acc.output_tokens = (acc.output_tokens || 0) + (u.output_tokens || 0);
+  if (u.server_tool_use && typeof u.server_tool_use.web_search_requests === 'number') {
+    acc.server_tool_use = acc.server_tool_use || {};
+    acc.server_tool_use.web_search_requests = (acc.server_tool_use.web_search_requests || 0) + u.server_tool_use.web_search_requests;
+  }
+  return acc;
+}
+// pause_turn (Anthropic server-tools docs): with web_search the API runs a
+// server-side agentic loop and can pause a long turn, returning
+// stop_reason 'pause_turn' -- possibly with NO text blocks at all, the
+// exact shape of the Oct 22 CURRENT_CLOSURES failure. To continue, the
+// paused assistant message goes back unchanged in a new request (same
+// tools included, or the API rejects a pending server_tool_use). Bounded
+// to ONE continuation (2 sends total), matching the retry discipline
+// elsewhere in this file; a second pause falls through to the throw, whose
+// message now carries the full diagnosis.
+const MAX_PAUSE_CONTINUATIONS = 1;
 async function callClaude(prompt, apiKey) {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:prompt.maxTokens,system:prompt.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt.user}]})
-  });
-  const d = await resp.json();
-  lastCallUsage = d.usage || null; // for the cache verdict record
-  console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
-  if(d.error) throw new Error(d.error.message);
+  lastCallDiag = null;
+  const tools = [{type:'web_search_20250305',name:'web_search'}];
+  let messages = [{role:'user',content:prompt.user}];
+  let attempts = 0;
+  let d = null;
+  let mergedUsage = null;
+  while (true) {
+    attempts++;
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:prompt.maxTokens,system:prompt.system,tools:tools,messages:messages})
+    });
+    try { d = await resp.json(); }
+    catch (e) { throw new Error('Anthropic API returned non-JSON (HTTP ' + resp.status + ')'); }
+    mergedUsage = mergeCallUsage(mergedUsage, d.usage || null);
+    lastCallUsage = mergedUsage; // for the cache verdict record
+    lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(d.content), attempts: attempts };
+    console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
+    if(d.error) throw new Error(d.error.message);
+    if (d.stop_reason === 'pause_turn' && attempts <= MAX_PAUSE_CONTINUATIONS && Array.isArray(d.content)) {
+      console.log('[cron-cache] stop_reason=pause_turn on attempt ' + attempts + ' -- continuing the server-tool loop');
+      messages = [{role:'user',content:prompt.user},{role:'assistant',content:d.content}];
+      continue;
+    }
+    break;
+  }
   const blocks = d.content || [];
   // With web_search, the response interleaves the model's narration with tool-use and
   // tool-result blocks; the real answer is the text AFTER the last tool block. Concatenating
@@ -771,9 +839,10 @@ async function callClaude(prompt, apiKey) {
   let text='';
   for(let i=lastToolIdx+1;i<blocks.length;i++){ if(blocks[i].type==='text') text+=blocks[i].text; }
   if(!text){ for(const b of blocks) if(b.type==='text') text+=b.text; } // fallback: no post-tool text
-  if(text.length<100) throw new Error('Response too short: '+text.length+' chars');
+  if(text.length<100) throw new Error('Response too short: '+text.length+' chars (stop_reason=' + (d.stop_reason || 'none') + ', blocks=[' + blockTypeSummary(blocks) + '], attempts=' + attempts + ')');
   return text;
 }
+// ==== CLAUDE CALL END ====
 
 
 // ---------------------------------------------------------------------------
@@ -1265,6 +1334,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
 }
 
 async function buildDiningDL(key, apiKey) {
+  lastCallDiag = null;
   const p = LEGACY_PROMPTS['dining_intel_dl'];
   const augUser = SOURCE_AUTHORITY + '\n\nDINING GOVERNANCE:\n- ' + DINING_RULES.join('\n- ') + '\n\n' + p.user;
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1273,6 +1343,7 @@ async function buildDiningDL(key, apiKey) {
     body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:augUser}]})
   });
   const d = await resp.json();
+  lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(d.content), attempts: 1 };
   console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
   if(d.error) throw new Error(d.error.message);
   const blocks = d.content || [];
@@ -1314,6 +1385,7 @@ async function buildDiningDL(key, apiKey) {
 
 async function buildLegacy(key, apiKey) {
   if(key === 'dining_intel_dl') return await buildDiningDL(key, apiKey);
+  lastCallDiag = null;
   const p=LEGACY_PROMPTS[key];
   let legacyVerdictNote = null; // optional detail for the ok verdict (park_hours drops)
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1322,6 +1394,7 @@ async function buildLegacy(key, apiKey) {
     body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:p.user}]})
   });
   const d = await resp.json();
+  lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(d.content), attempts: 1 };
   console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
   if(d.error) throw new Error(d.error.message);
   const blocks = d.content || [];
