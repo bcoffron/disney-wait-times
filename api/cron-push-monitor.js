@@ -675,7 +675,7 @@ export default async function handler(req, res) {
         const d = downs[0];
         const more = downs.length > 1 ? (' (+' + (downs.length - 1) + ' more)') : '';
         const r = await fire('ride-down', (variant) => {
-          const prompt = (variant === 'actionable') ? '. Tap to rework your morning.' : '.';
+          const prompt = '.';
           const body = (d.status === 'REFURBISHMENT')
             ? (d.name + ' is closed for refurbishment' + more + prompt)
             : (d.name + ' is temporarily down right now' + more + prompt);
@@ -702,7 +702,7 @@ export default async function handler(req, res) {
         const d = downsAll[0];
         const more = downsAll.length > 1 ? (' (+' + (downsAll.length - 1) + ' more)') : '';
         const r = await fire('ride-down', (variant) => {
-          const prompt = (variant === 'actionable') ? '. Tap to see your options.' : '.';
+          const prompt = '.';
           const body = (d.status === 'REFURBISHMENT')
             ? (d.name + ' is closed for refurbishment today' + more + prompt)
             : (d.name + ' is temporarily down' + more + prompt);
@@ -732,7 +732,7 @@ export default async function handler(req, res) {
         const spikeFire = nextFireCount(state.rides[spikeKey], 'spike');
         const r = await fire('wait-spike', (variant) => ({
           title: 'Wait spike on your plan',
-          body: worst.name + ' just jumped to ~' + worst.to + ' min' + more + ((variant === 'actionable') ? '. Tap for better options.' : '.'),
+          body: worst.name + ' just jumped to ~' + worst.to + ' min' + more + '.',
           url: '/app.html',
           tag: 'tpcp-wait-spike',
           class: 'ride-update',
@@ -765,7 +765,7 @@ export default async function handler(req, res) {
         const highFire = nextFireCount(state.rides[worst.key], 'high');
         const r = await fire('high-wait', (variant) => ({
           title: 'Heads up on your plan',
-          body: worst.name + ' is running ~' + worst.to + ' min right now' + ((variant === 'actionable') ? ' \u2014 want to rework your next move?' : '.'),
+          body: worst.name + ' is running ~' + worst.to + ' min right now' + '.',
           url: '/app.html',
           tag: 'tpcp-wait-high',
           class: 'ride-update',
