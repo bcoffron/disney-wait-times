@@ -20,6 +20,37 @@ import { list } from '@vercel/blob';
 
 const MAX_BODY = 16 * 1024; // a registration is tiny
 export const MAX_DEVICES_PER_TRIP = 20;
+export const MAX_DEVICES_PER_PLATFORM = 3;
+
+// Per-platform token cap, applied at registration. A reinstall mints a
+// fresh APNs token and the old one is never rejected (Apple answers 200
+// for dead tokens indefinitely, so no 410/prune signal ever arrives);
+// without a cap the array accumulates one dead entry per reinstall and
+// every alert pays a send to each of them. Within a platform group the
+// least-recently-refreshed entries (entry.updated, falling back to
+// entry.added, then array order) are evicted until the cap remains.
+// Re-registering a token refreshes its `updated`, so a live device is
+// never the one evicted.
+export function capDevicesPerPlatform(devices) {
+  var idxByPlatform = {};
+  devices.forEach(function (d, i) {
+    var p = (d && d.platform) || '';
+    (idxByPlatform[p] = idxByPlatform[p] || []).push(i);
+  });
+  var drop = {};
+  Object.keys(idxByPlatform).forEach(function (p) {
+    var idxs = idxByPlatform[p];
+    if (idxs.length <= MAX_DEVICES_PER_PLATFORM) return;
+    var oldestFirst = idxs.slice().sort(function (a, b) {
+      var ta = Date.parse((devices[a] && (devices[a].updated || devices[a].added)) || '') || 0;
+      var tb = Date.parse((devices[b] && (devices[b].updated || devices[b].added)) || '') || 0;
+      if (ta !== tb) return ta - tb;
+      return a - b; // tie or missing timestamps: earlier in array = older
+    });
+    oldestFirst.slice(0, idxs.length - MAX_DEVICES_PER_PLATFORM).forEach(function (i) { drop[i] = true; });
+  });
+  return devices.filter(function (_, i) { return !drop[i]; });
+}
 
 // ---- Registry-backed trip-code validation (same pattern as
 // api/generateschedule.js: salted-first / bare-fallback read, 60s cache) ----
@@ -145,6 +176,7 @@ export default async function handler(req, res) {
       if (appVersion) entry.appVersion = appVersion;
       if (existingIdx > -1) devices[existingIdx] = entry; else devices.push(entry);
       if (devices.length > MAX_DEVICES_PER_TRIP) devices = devices.slice(-MAX_DEVICES_PER_TRIP);
+      devices = capDevicesPerPlatform(devices);
     }
     await writeDevices(tripCode, devices);
 
