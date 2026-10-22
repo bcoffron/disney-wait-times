@@ -198,6 +198,20 @@ export function prettyDate(ymd) {
   }).format(d);
 }
 
+// Short form of prettyDate without the year, for push bodies: the push
+// length budget (title <= 38 / body <= 100 chars; push-copy audit,
+// Oct 22, 2026) cannot carry the year at the longest venue names, and
+// the year is the one fact the reader cannot act on -- the alert fires
+// against a fixed day exactly 60 days out.
+export function prettyDateShort(ymd) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd || '');
+  if (!m) return ymd || '';
+  const d = new Date(Date.UTC(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10), 12));
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric'
+  }).format(d);
+}
+
 // ---- THE wish source (pluggable) -----------------------------------------
 // extractDiningWishes(tripConfig) -> [{ name, day, source }]
 //   day: 1-based trip day the wish belongs to, or null when undated.
@@ -297,14 +311,17 @@ function alertableWishes(dayWishes, confirmedKeys) {
 export function buildBookingPayload(wishes, openYmd) {
   const names = wishes.map((w) => displayNameFor(w.name));
   const first = names[0];
-  const dateStr = prettyDate(openYmd);
+  const dateStr = prettyDateShort(openYmd);
   let body;
+  // Push body budget (audit Oct 22, 2026): multi-pick bodies name the
+  // first pick + a count; the tap lands on the first wish's verified
+  // link (below) and the full pick list stays in the run summary.
   if (names.length === 1) {
-    body = 'Booking opens today for ' + first + ' \u2014 ' + dateStr + '. Tap to book on Disney\u2019s site.';
+    body = 'Booking opens for ' + first + ' \u2014 ' + dateStr + '. Tap to book on Disney\u2019s site.';
   } else if (names.length === 2) {
-    body = 'Booking opens today for ' + names[0] + ' and ' + names[1] + ' \u2014 ' + dateStr + '. Tap to book on Disney\u2019s site.';
+    body = 'Booking opens for ' + first + ' and 1 more pick \u2014 ' + dateStr + '. Tap to book.';
   } else {
-    body = 'Booking opens today for ' + names[0] + ', ' + names[1] + ' and ' + (names.length - 2) + ' more of your picks \u2014 ' + dateStr + '. Tap to book on Disney\u2019s site.';
+    body = 'Booking opens for ' + first + ' and ' + (names.length - 1) + ' more picks \u2014 ' + dateStr + '. Tap to book.';
   }
   // Tap-through: the first wish with a VERIFIED per-restaurant link wins;
   // otherwise the resort dining hub (payload url when all are fallback-class).
@@ -355,14 +372,14 @@ export function planBookingAlerts(tripConfig, todayYmd, alreadySent) {
 export function buildCatchUpPayload(wishes, dayYmd) {
   const names = wishes.map((w) => displayNameFor(w.name));
   const first = names[0];
-  const dateStr = prettyDate(dayYmd);
+  const dateStr = prettyDateShort(dayYmd);
   let body;
   if (names.length === 1) {
-    body = 'Booking is already open for ' + first + ' \u2014 ' + dateStr + '. These tables go fast \u2014 tap to book on Disney\u2019s site.';
+    body = 'Already open: ' + first + ' \u2014 ' + dateStr + '. Tables go fast \u2014 tap to book.';
   } else if (names.length === 2) {
-    body = 'Booking is already open for ' + names[0] + ' and ' + names[1] + ' \u2014 ' + dateStr + '. These tables go fast \u2014 tap to book on Disney\u2019s site.';
+    body = 'Already open: ' + first + ' and 1 more pick \u2014 ' + dateStr + '. Tap to book.';
   } else {
-    body = 'Booking is already open for ' + names[0] + ', ' + names[1] + ' and ' + (names.length - 2) + ' more of your picks \u2014 ' + dateStr + '. These tables go fast \u2014 tap to book on Disney\u2019s site.';
+    body = 'Already open: ' + first + ' and ' + (names.length - 1) + ' more picks \u2014 ' + dateStr + '. Tap to book.';
   }
   let url = DINING_HUB_URL;
   for (const w of wishes) {

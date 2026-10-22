@@ -745,7 +745,7 @@ export default async function handler(req, res) {
         const more = backUps.length > 1 ? (' (+' + (backUps.length - 1) + ' more)') : '';
         const r = await fire('ride-back-up', (variant) => ({
           title: 'Good news \u2014 ride is back',
-          body: u.name + ' is operating again' + more + ((variant === 'actionable') ? ' \u2014 it\u2019s on your plan if you want to swing back.' : '.'),
+          body: ((variant === 'actionable') ? (u.name + ' is back' + more + ' \u2014 it\u2019s on your plan if you want to swing back.') : (u.name + ' is operating again' + more + '.')),
           url: '/app.html',
           tag: 'tpcp-ride-up',
           class: 'ride-update',
@@ -785,7 +785,7 @@ export default async function handler(req, res) {
         const dropFire = nextFireCount(state.rides[dropKey], 'drop');
         const r = await fire('wait-drop', (variant) => ({
           title: 'Short wait on your plan',
-          body: best.name + ' just dropped to ~' + best.to + ' min and it\u2019s on your plan' + ((variant === 'actionable') ? ' \u2014 want to grab it now?' : '.'),
+          body: best.name + ' just dropped to ~' + best.to + ' min' + ((variant === 'actionable') ? ' \u2014 want to grab it now?' : ' and it\u2019s on your plan.'),
           url: '/app.html',
           tag: 'tpcp-wait-drop',
           class: 'ride-update',

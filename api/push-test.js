@@ -208,11 +208,13 @@ async function tokenRegisteredForTrip(codes, token) {
 
 // The trip's real display name (tripConfig.tripName, the name the app
 // header shows) when the trip blob carries one; else the presented code.
+// Capped at 44 chars so the test body stays inside the push length
+// budget (body <= 100 chars; push-copy audit, Oct 22, 2026).
 async function tripDisplayName(session, presentedCode) {
   try {
     const td = await readSaltedDualBlob(tripSaltedKey(session.tripId), tripBareKey(session.tripId));
     const name = (td && td.tripConfig && typeof td.tripConfig.tripName === 'string') ? td.tripConfig.tripName.trim() : '';
-    if (name) return name.slice(0, 80);
+    if (name) return name.slice(0, 44);
   } catch (e) { /* fall through to the code */ }
   return presentedCode;
 }
