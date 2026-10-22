@@ -574,11 +574,16 @@ function extractLargestObject(text, preferKey) {
   return best;
 }
 
+// Model (Oct 22, 2026): claude-sonnet-5-5 for every call in this file.
+// NOTE: Sonnet 5.5 rejects the sampling parameters -- setting temperature,
+// top_p, or top_k returns a 400 (Anthropic's Sonnet 5.5 docs) -- so the
+// temperature:0 the Sonnet 4.6 calls carried is intentionally absent from
+// all three request bodies below.
 async function callClaude(prompt, apiKey) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:prompt.maxTokens,system:prompt.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt.user}]})
+    body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:prompt.maxTokens,system:prompt.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt.user}]})
   });
   const d = await resp.json();
   console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
@@ -1088,7 +1093,7 @@ async function buildDiningDL(key, apiKey) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:augUser}]})
+    body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:augUser}]})
   });
   const d = await resp.json();
   console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
@@ -1135,7 +1140,7 @@ async function buildLegacy(key, apiKey) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',temperature:0,max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:p.user}]})
+    body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:p.user}]})
   });
   const d = await resp.json();
   console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
