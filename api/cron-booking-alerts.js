@@ -532,19 +532,20 @@ async function sendToTrip(tripCode, payloadObj, opts) {
   return { sent, failed, pruned };
 }
 async function sendApnsToTrip(tripCode, payloadObj, opts) {
-  if (!isApnsConfigured()) return { sent: 0, failed: 0, pruned: 0, skipped: true };
+  if (!isApnsConfigured()) return { sent: 0, failed: 0, pruned: 0, skipped: true, accepted: [] };
   const exclude = (opts && typeof opts.excludeToken === 'string' && opts.excludeToken) ? opts.excludeToken : '';
   const devMeta = await readJsonBlobMeta('twize/push-devices/' + tripCode + '.json');
   const devBlob = devMeta.data;
   const devices = (devBlob && Array.isArray(devBlob.devices)) ? devBlob.devices : [];
   const targets = devices.filter(d => d && d.platform === 'ios' && typeof d.token === 'string' && d.alertsEnabled !== false && d.token !== exclude);
-  if (!targets.length) return { sent: 0, failed: 0, pruned: 0, detail: apnsDetailFor(devMeta, [], []) };
+  if (!targets.length) return { sent: 0, failed: 0, pruned: 0, detail: apnsDetailFor(devMeta, [], []), accepted: [] };
   const results = await sendApnsToDevices(targets.map(d => d.token), payloadObj);
   const detail = apnsDetailFor(devMeta, targets.map(d => d.token), results);
   let sent = 0, failed = 0;
+  const accepted = []; // raw tokens APNs accepted -- episode send evidence (hashed at record time)
   const deadTokens = new Set();
   for (const r of results) {
-    if (r.verdict === 'ok') sent++;
+    if (r.verdict === 'ok') { sent++; accepted.push(r.token); }
     else {
       failed++;
       if (r.verdict === 'prune') deadTokens.add(r.token);
@@ -560,7 +561,7 @@ async function sendApnsToTrip(tripCode, payloadObj, opts) {
         { tripCode: tripCode, devices: survivors, updated: new Date().toISOString() });
     } catch (e) { console.error('[booking-alerts] apns prune write failed', e.message); }
   }
-  return { sent, failed, pruned, detail };
+  return { sent, failed, pruned, detail, accepted };
 }
 
 // ---- shared dual-channel fire (composed for api/push-test.js) -----------
@@ -607,7 +608,10 @@ export async function fireTripPush(tripCode, payloadObj, opts) {
   // (test sends, plan-changed) is covered by the one seam; only a real
   // delivery records, matching the crons' marker discipline.
   if (out.sent > 0 && payloadObj && payloadObj.episodeId) {
-    await recordEpisode(tripCode, payloadObj);
+    // Send evidence (Oct 22 ruling): accepted devices ride the record
+    // as hashes; the poll excludes already-pushed episodes per device
+    // (booking class is carved out of that exclusion at read time).
+    await recordEpisode(tripCode, payloadObj, undefined, (a && a.accepted) || []);
   }
   return out;
 }
@@ -723,8 +727,8 @@ export default async function handler(req, res) {
         const sent = w.sent + a.sent;
         if (sent > 0) {
           // Poll backstop: record the fired episode for the foreground
-          // poll alongside the marker write below.
-          await recordEpisode(code, item.payload);
+          // poll alongside the marker write below, with send evidence.
+          await recordEpisode(code, item.payload, undefined, (a && a.accepted) || []);
           // Marker discipline is shared across both paths: the marker is
           // keyed by park-day date in state.sent and written ONLY after a
           // successful send, so a caught-up day can never later receive

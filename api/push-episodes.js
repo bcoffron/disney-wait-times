@@ -27,6 +27,7 @@
 // to present, and a retry records the episode once, at its real fire.
 
 import { put } from '@vercel/blob';
+import { createHash } from 'node:crypto';
 import { readBlobJson as readBlobJsonShared } from './lib/blob.js';
 
 export const EPISODE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -47,10 +48,38 @@ export function pacificYmd(nowMs) {
   }).format(new Date(now));
 }
 
+// ---- Send evidence (presentation policy, Claude ruling Oct 22, 2026) ---
+// Channel dedupe: an episode a device already received as a native push
+// must never re-present in-app on that device. The send paths know
+// exactly which devices APNs accepted, so the accepted set rides the
+// episode record as send evidence -- HASHES ONLY (first 16 hex chars of
+// sha256(token)); raw device tokens never enter the episode store. The
+// poll read compares against the hash of the token the polling client
+// presents (see readEpisodesForPoll / filterEpisodesForViewer). Booking
+// episodes are carved out of the exclusion at read time: they carry an
+// action and present even when pushed.
+export function deviceEvidenceHash(token) {
+  if (typeof token !== 'string' || !token) return '';
+  return createHash('sha256').update(token).digest('hex').slice(0, 16);
+}
+
+// Deduped evidence hashes for a list of raw accepted tokens.
+export function evidenceHashes(tokens) {
+  const out = [];
+  const seen = {};
+  for (const t of (Array.isArray(tokens) ? tokens : [])) {
+    const h = deviceEvidenceHash(t);
+    if (h && !seen[h]) { seen[h] = 1; out.push(h); }
+  }
+  return out;
+}
+
 // Normalize a fired payload into its recorded episode. Returns null when
 // the payload carries no episodeId -- without the shared dedupe identity
 // there is nothing safe to record (the poll could never dedupe it).
-export function episodeRecordFromPayload(payload, nowMs) {
+// acceptedTokens (optional): the raw APNs tokens that accepted this
+// send; stored as hashes in rec.sentTo when non-empty.
+export function episodeRecordFromPayload(payload, nowMs, acceptedTokens) {
   if (!payload || typeof payload.episodeId !== 'string' || !payload.episodeId) return null;
   const now = typeof nowMs === 'number' ? nowMs : Date.now();
   const rec = {
@@ -64,6 +93,8 @@ export function episodeRecordFromPayload(payload, nowMs) {
   };
   if (payload.schedVersion != null) rec.schedVersion = payload.schedVersion;
   if (typeof payload.url === 'string' && payload.url) rec.url = payload.url;
+  const sentTo = evidenceHashes(acceptedTokens);
+  if (sentTo.length) rec.sentTo = sentTo;
   return rec;
 }
 
@@ -108,12 +139,12 @@ async function writeJsonBlob(pathname, obj) {
 // failure must never break the send path that already delivered the push
 // (the banner/event presentations still happened). Returns true when the
 // episode was recorded.
-export async function recordEpisode(tripCode, payload, nowMs) {
+export async function recordEpisode(tripCode, payload, nowMs, acceptedTokens) {
   try {
     const code = safeEpisodeTripCode(tripCode);
     if (!code) return false;
     const now = typeof nowMs === 'number' ? nowMs : Date.now();
-    const rec = episodeRecordFromPayload(payload, now);
+    const rec = episodeRecordFromPayload(payload, now, acceptedTokens);
     if (!rec) return false;
     const key = episodesKey(code);
     const cur = await readBlobJson(key);
@@ -169,17 +200,35 @@ export function guestCoordinationBody(body) {
   return b + ' ' + GUEST_BOOKING_COORDINATION;
 }
 
+// Channel dedupe, pure: drop the episodes this viewer already received
+// as a native push (their send evidence names the viewer's device hash).
+// Booking episodes are NEVER dropped (carve-out: they carry an action).
+// Episodes with no evidence -- legacy records, web-only sends -- are
+// never dropped, and an empty viewer hash drops nothing.
+export function filterEpisodesForViewer(list, viewerHash) {
+  const arr = Array.isArray(list) ? list : [];
+  if (typeof viewerHash !== 'string' || !viewerHash) return arr;
+  return arr.filter(function (e) {
+    if (!e || e.class === 'booking') return true;
+    return !(Array.isArray(e.sentTo) && e.sentTo.indexOf(viewerHash) !== -1);
+  });
+}
+
 // The poll read side (GET /api/trip): retention-pruned, and only today's
 // (Pacific) episodes -- the client renders nothing older than the park
-// day it fired on. Never throws; a read failure reads as "no episodes".
-export async function readEpisodesForPoll(tripCode, nowMs) {
+// day it fired on. viewerHash (optional): the evidence hash of the
+// polling device's token; episodes already pushed to that device are
+// excluded for it (channel dedupe). Never throws; a read failure reads
+// as "no episodes".
+export async function readEpisodesForPoll(tripCode, nowMs, viewerHash) {
   try {
     const code = safeEpisodeTripCode(tripCode);
     if (!code) return [];
     const now = typeof nowMs === 'number' ? nowMs : Date.now();
     const cur = await readBlobJson(episodesKey(code));
     const today = pacificYmd(now);
-    return pruneEpisodes(cur && cur.episodes, now).filter(function (e) { return e.ymd === today; });
+    const list = pruneEpisodes(cur && cur.episodes, now).filter(function (e) { return e.ymd === today; });
+    return filterEpisodesForViewer(list, viewerHash);
   } catch (e) { return []; }
 }
 
