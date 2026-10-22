@@ -114,14 +114,37 @@ function llOrderBody(seq) {
   const names = (seq.order || []).filter(n => typeof n === 'string' && n.trim());
   const first = (typeof seq.bookFirst === 'string' && seq.bookFirst.trim()) ? seq.bookFirst.trim() : names[0];
   const tail = names.filter(n => n !== first);
-  if (!tail.length) return 'Book ' + first + ' first \u2014 it tops today\u2019s Lightning Lane game plan.';
-  // Push-copy audit Option A (Oct 22): name bookFirst + the next ride
-  // only, then count the rest -- naming 4 rides clipped mid-list on
-  // the lock screen. The full order still renders from llSequence in
-  // the plan's game-plan card.
-  return 'Book ' + first + ' first, then ' + tail[0]
-    + (tail.length > 1 ? ', and ' + (tail.length - 1) + ' more' : '')
-    + '.';
+  // Multi Pass frame (push-copy audit Option A, Oct 22): name bookFirst
+  // + the next ride only, then count the rest -- naming 4 rides clipped
+  // mid-list on the lock screen. The full order still renders from
+  // llSequence in the plan's game-plan card.
+  const mpFull = !tail.length
+    ? 'Book ' + first + ' first \u2014 it tops today\u2019s Lightning Lane game plan.'
+    : 'Book ' + first + ' first, then ' + tail[0]
+      + (tail.length > 1 ? ', and ' + (tail.length - 1) + ' more' : '')
+      + '.';
+  const singles = (seq.singleSeparate || []).filter(n => typeof n === 'string' && n.trim()).map(n => n.trim());
+  // Zero singles: the shipped Option A body, byte for byte.
+  if (!singles.length) return mpFull;
+  // Single Pass clause FIRST (Claude ruling, Oct 22): a missed single
+  // purchase is gone for the day; the Multi Pass order is recoverable.
+  // One single is named; two or more are counted, never named. The
+  // 7 AM timing is named once and is protected -- under the 100-char
+  // lock-screen budget, Multi Pass detail yields before it does.
+  const clause = singles.length === 1
+    ? 'Buy ' + singles[0] + ' at 7. '
+    : 'Buy your ' + singles.length + ' Single Passes at 7. ';
+  let body = clause + mpFull;
+  if (body.length <= 100) return body;
+  // Yield cascade, least-protected first: (4) the next-named ride
+  // yields -- it joins the count, which stays truthful.
+  if (tail.length) {
+    body = clause + 'Book ' + first + ' first, and ' + tail.length + ' more.';
+    if (body.length <= 100) return body;
+  }
+  // (3) the count yields. The singles clause, its timing, and
+  // "Book <first> first" never drop.
+  return clause + 'Book ' + first + ' first.';
 }
 // Decide the leg for one trip-day. Pure (the harness drives this):
 //   skip     -- not armed, or already settled today (sent/suppressed)

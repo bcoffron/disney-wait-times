@@ -2092,6 +2092,7 @@ window.renderClosureAlerts = function() {
     <div id="tpcpAlertBody" style="font-size:14px; color:rgba(255,255,255,0.72); line-height:1.45; margin-top:6px;"></div>
     <div id="tpcpAlertNote" style="display:none; font-size:14px; color:rgba(255,255,255,0.72); line-height:1.45; margin-top:8px;"></div>
     <div id="tpcpAlertConfirm" style="display:none; font-size:14px; color:#fff; line-height:1.45; margin-top:10px; background:rgba(255,255,255,0.07); border-radius:10px; padding:10px 12px;"></div>
+    <div id="tpcpAlertSingles" style="display:none; text-align:left; margin-top:10px;"></div>
     <div style="display:flex; gap:8px; margin-top:16px;">
       <button id="tpcpAlertPrimary" onclick="tpcpAlertPrimaryAction()" style="flex:1; background:#C86030; border:none; border-radius:9px; padding:11px 10px; font-size:14px; font-weight:800; color:#fff; cursor:pointer; font-family:inherit;"></button>
       <button id="tpcpAlertSecondary" onclick="tpcpAlertSecondaryAction()" style="flex:1; background:transparent; border:1.5px solid rgba(255,255,255,0.25); border-radius:9px; padding:11px 10px; font-size:14px; font-weight:700; color:rgba(255,255,255,0.8); cursor:pointer; font-family:inherit;"></button>
@@ -4034,27 +4035,44 @@ function scheduleLLPrompts(){
 }
 
 //    LL banner "Got it" buttons                                             
-function llGotIt(rideKey, bannerEl, rideName){
-  var timeInput=bannerEl.parentNode.querySelector('.ll-time-input');
-  var returnTime=timeInput?timeInput.value.trim():'';
-  if(!returnTime){timeInput&&timeInput.focus();return;}
-
-  loadLLState();
-  llState.bookedTimes[rideKey]=returnTime;
-  saveLLState();
-
+// Shared booked-return write (extracted from llGotIt, Oct 22, 2026):
+// every surface that records a Lightning Lane return the leader
+// booked in Disney's app -- the ride-card banner, the game plan's
+// Single Pass rows, the morning ll-order modal -- writes through
+// here, so there is exactly one record of a booking: the device-local
+// ll_state_<day> bookedTimes entry AND, for leaders, the trip-level
+// held return (setHeldReturn + saveHeldReturns) that anchors the
+// plan. Returns the held record, or null when none was written
+// (guest, or an unparseable time -- a window we cannot read cannot
+// anchor anything). dayIdx is explicit: the game plan and the modal
+// act on their own day, which is not always the day on screen.
+function tpcpRecordBookedReturn(dayIdx, rideKey, rideName, returnTime){
+  // Device-local record. For the day on screen this is llGotIt's own
+  // load/save path verbatim; other days write their own ll_state key.
+  if(dayIdx===curDay){
+    loadLLState();
+    llState.bookedTimes[rideKey]=returnTime;
+    saveLLState();
+  }else{
+    try{
+      var _st={}; try{ _st=JSON.parse(localStorage.getItem('ll_state_'+dayIdx)||'{}'); }catch(e){}
+      if(!_st||typeof _st!=='object')_st={};
+      if(!_st.bookedTimes)_st.bookedTimes={};
+      _st.bookedTimes[rideKey]=returnTime;
+      localStorage.setItem('ll_state_'+dayIdx,JSON.stringify(_st));
+    }catch(e){}
+  }
   // Trip-level held return (LL plan-side package, Oct 8, 2026): leaders
   // also record the booking on the TRIP, where it becomes an anchor.
   // Guests keep the device-local record above only -- recording on the
   // trip is a leader action, and the save path is admin-gated server-
-  // side too. An unparseable time stays device-local: a window we
-  // cannot read cannot anchor anything. The standby snapshot is the
-  // live wait at confirm time (null when waits are not loaded) -- the
-  // receipt never substitutes the plan's assumption for it.
+  // side too. The standby snapshot is the live wait at confirm time
+  // (null when waits are not loaded) -- the receipt never substitutes
+  // the plan's assumption for it.
   if(typeof isAdmin==='function'&&isAdmin()&&typeof setHeldReturn==='function'){
     var _startMin=parseTimeMins(returnTime);
     if(_startMin!=null){
-      var _dayItems=(window._schedData&&window._schedData.days&&window._schedData.days[curDay]&&window._schedData.days[curDay].items)||[];
+      var _dayItems=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx]&&window._schedData.days[dayIdx].items)||[];
       var _dispName=rideName||'';
       if(!_dispName){
         var _rk=rideKey.replace(/_/g,' ');
@@ -4062,13 +4080,28 @@ function llGotIt(rideKey, bannerEl, rideName){
       }
       if(!_dispName)_dispName=rideKey;
       var _w=(typeof lookupWait==='function')?lookupWait(_dispName):null;
-      var _rec={day:curDay,rideKey:llNormKey(_dispName),ride:_dispName,returnStart:fmtMins(_startMin),returnEnd:fmtMins(_startMin+60),bookedAt:new Date().toISOString(),standbyAtConfirm:(_w&&typeof _w.w==='number')?_w.w:null,conflict:''};
-      _rec.conflict=(typeof heldReturnConflict==='function')?heldReturnConflict(curDay,_startMin,_startMin+60,_dayItems):'';
+      var _rec={day:dayIdx,rideKey:llNormKey(_dispName),ride:_dispName,returnStart:fmtMins(_startMin),returnEnd:fmtMins(_startMin+60),bookedAt:new Date().toISOString(),standbyAtConfirm:(_w&&typeof _w.w==='number')?_w.w:null,conflict:''};
+      _rec.conflict=(typeof heldReturnConflict==='function')?heldReturnConflict(dayIdx,_startMin,_startMin+60,_dayItems):'';
       setHeldReturn(_rec);
-      window._llEditKey=null;
       saveHeldReturns();
-      setTimeout(function(){try{renderSched();}catch(e){}},1500);
+      return _rec;
     }
+  }
+  return null;
+}
+
+function llGotIt(rideKey, bannerEl, rideName){
+  var timeInput=bannerEl.parentNode.querySelector('.ll-time-input');
+  var returnTime=timeInput?timeInput.value.trim():'';
+  if(!returnTime){timeInput&&timeInput.focus();return;}
+
+  // The write is shared (tpcpRecordBookedReturn, above): the banner,
+  // the game plan's Single Pass rows, and the morning modal all record
+  // a booked return through the one path.
+  var _rec=tpcpRecordBookedReturn(curDay,rideKey,rideName,returnTime);
+  if(_rec){
+    window._llEditKey=null;
+    setTimeout(function(){try{renderSched();}catch(e){}},1500);
   }
 
   var dayData=getCurDay();
@@ -4217,6 +4250,75 @@ async function llRemoveHeld(rideKey,rideName){
   await saveHeldReturns();
   try{renderSched();}catch(e){}
 }
+// ===== SINGLE PASS ROWS: GAME PLAN + MORNING MODAL (Claude ruling,
+// Oct 22) =====
+// The day's Single Pass rides (llSequence.singleSeparate) get a row
+// with an INLINE return-time entry on the two morning surfaces: the
+// game-plan card and the morning ll-order modal. Entering a return is
+// a record, not a decision -- the rows sit at record weight, well
+// below the modal's decision actions (small type, quiet buttons, no
+// primary styling). The write goes through tpcpRecordBookedReturn,
+// the banner's own path -- the same device-local ll_state entry and
+// the same trip-level held return -- so a single entered here is the
+// same record the ride card shows as held, and editing it here
+// replaces that record. Leader-only: guests render neither the entry
+// nor any affordance for it (their game plan keeps the plain note;
+// the modal renders no section at all).
+var _tpcpSingleEdit = {}; // 'dayIdx:normKey' -> true while that row's input is open
+function tpcpSingleBannerKey(name){ return String(name||'').toLowerCase().replace(/[^a-z0-9]/g,'_').substring(0,15); }
+function tpcpSingleRowHTML(dayIdx, name, surface){
+  var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');};
+  var jsName=String(name||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var dark=(surface==='modal');
+  var held=(typeof getHeldReturn==='function')?getHeldReturn(dayIdx,name):null;
+  var saved='';
+  try{ var _o=JSON.parse(localStorage.getItem('ll_state_'+dayIdx)||'{}'); saved=(_o.bookedTimes&&_o.bookedTimes[tpcpSingleBannerKey(name)])||''; }catch(e){}
+  var editing=!!_tpcpSingleEdit[dayIdx+':'+llNormKey(name)];
+  var nameColor=dark?'#fff':'var(--text)';
+  var muteColor=dark?'rgba(255,255,255,0.55)':'var(--text-muted)';
+  var h='<div class="tpcp-single-row" style="margin-top:7px">';
+  h+='<div style="font-size:12px;line-height:1.45;color:'+nameColor+'"><b>'+esc(name)+'</b> <span style="font-size:10px;font-weight:700;letter-spacing:0.04em;color:'+muteColor+'">SINGLE PASS</span></div>';
+  if(held&&!editing){
+    h+='<div style="margin-top:4px;'+(dark?'background:rgba(255,255,255,0.07);':'background:#E0F0EE;')+'border-radius:10px;padding:7px 10px">'
+      +'<div style="font-size:12px;font-weight:700;color:'+(dark?'#fff':'#071E25')+'">&#10003; Booked \u2014 return '+esc(held.returnStart)+' \u2013 '+esc(held.returnEnd)+'</div>'
+      +'<div style="font-size:10px;color:'+(dark?'rgba(255,255,255,0.6)':'#1A6860')+';margin-top:2px">Locked into the plan \u2014 optimizing plans around it and never moves it.</div>'
+      +(held.conflict?'<div class="ll-conflict-line">'+esc(held.conflict)+'</div>':'')
+      +'<div style="margin-top:5px"><button class="ll-banner-got" style="margin-left:0" onclick="tpcpSingleChange('+dayIdx+',\''+jsName+'\',\''+surface+'\')">Change</button></div>'
+      +'</div>';
+  }else if(saved&&!held&&!editing){
+    h+='<div style="margin-top:3px"><span class="ll-banner-got" style="margin-left:0;background:rgba(21,128,61,0.1);color:#15803D;cursor:default">&#10003; Booked '+esc(saved)+'</span></div>';
+  }else{
+    h+='<div style="display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap">'
+      +'<span style="font-size:11px;color:'+muteColor+'">Return time:</span>'
+      +'<input class="ll-time-input" placeholder="e.g. 2:30 PM"'+(held?' value="'+esc(held.returnStart)+'"':'')+'/>'
+      +'<button class="ll-banner-got" style="margin-left:0" onclick="tpcpSingleGotIt('+dayIdx+',\''+jsName+'\',this,\''+surface+'\')"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Got it</button>'
+      +'</div>';
+  }
+  h+='</div>';
+  return h;
+}
+function tpcpSinglesRowsHTML(dayIdx, seq, surface){
+  var list=(seq&&seq.singleSeparate)||[];
+  var h='';
+  for(var i=0;i<list.length;i++){ if(typeof list[i]==='string'&&list[i].trim()) h+=tpcpSingleRowHTML(dayIdx,list[i],surface); }
+  return h;
+}
+function tpcpSingleGotIt(dayIdx, name, btn, surface){
+  var row=btn&&btn.closest?btn.closest('.tpcp-single-row'):null;
+  var input=row?row.querySelector('.ll-time-input'):null;
+  var returnTime=input?input.value.trim():'';
+  if(!returnTime){ input&&input.focus(); return; }
+  tpcpRecordBookedReturn(dayIdx, tpcpSingleBannerKey(name), name, returnTime);
+  delete _tpcpSingleEdit[dayIdx+':'+llNormKey(name)];
+  if(surface==='modal') tpcpAlertRenderSingles();
+  try{ renderSched(); }catch(e){}
+}
+function tpcpSingleChange(dayIdx, name, surface){
+  _tpcpSingleEdit[dayIdx+':'+llNormKey(name)]=true;
+  if(surface==='modal') tpcpAlertRenderSingles();
+  try{ renderSched(); }catch(e){}
+}
+
 
 //    Magic Day fireworks                                                   
 var fwParticles=[], fwAnimId=null, fwLaunchTimer=null;
@@ -5596,7 +5698,9 @@ function renderLLSequenceBlock(dayIdx){
   if(seq.reason){h+='<div class="ll-seq-line">'+esc(seq.reason)+'</div>';}
   else{h+='<div class="ll-seq-line">Book first: <b>'+esc(seq.bookFirst)+'</b></div>';}
   if(seq.order&&seq.order.length>1){h+='<div class="ll-seq-line">Then: '+seq.order.slice(1).map(esc).join(' \u2192 ')+'</div>';}
-  if(seq.singleSeparate&&seq.singleSeparate.length===1){h+='<div class="ll-seq-note">'+esc(seq.singleSeparate[0])+' is a separate Single Pass purchase \u2014 not part of this sequence.</div>';}
+  var _llLeader=false; try{ _llLeader=(typeof isAdmin==='function')&&isAdmin(); }catch(e){}
+  if(_llLeader&&seq.singleSeparate&&seq.singleSeparate.length){h+=tpcpSinglesRowsHTML(dayIdx,seq,'card');}
+  else if(seq.singleSeparate&&seq.singleSeparate.length===1){h+='<div class="ll-seq-note">'+esc(seq.singleSeparate[0])+' is a separate Single Pass purchase \u2014 not part of this sequence.</div>';}
   else if(seq.singleSeparate&&seq.singleSeparate.length>1){h+='<div class="ll-seq-note">'+seq.singleSeparate.map(esc).join(' and ')+' are separate Single Pass purchases \u2014 not part of this sequence.</div>';}
   }
   if(typeof renderLLToggleFooter==='function')h+=renderLLToggleFooter(dayIdx,false);
@@ -8936,11 +9040,13 @@ function tpcpAlertOpen(item) {
   if (item.kind === 'booking' && item.episodeId) tpcpBookingNoteShown(item.episodeId);
   if (item.kind === 'booking') tpcpAlertShowBooking(item);
   else tpcpAlertShowModal(item);
-  if (item.kind !== 'decision' && !item.rework) {
+  if (item.kind !== 'decision' && !item.rework && !item.singlesEntry) {
     // An actionable (rework) awareness modal gets NO auto-dismiss
     // timer: it carries a real primary the user must be able to tap,
-    // so it persists until answered -- decision-modal semantics. Pure
-    // awareness and booking keep their timers.
+    // so it persists until answered -- decision-modal semantics. The
+    // ll-order modal carrying Single Pass entry (singlesEntry) is
+    // exempt for the same reason: a record being typed into must not
+    // vanish mid-entry. Pure awareness and booking keep their timers.
     var ms = (item.kind === 'booking') ? TPCP_ALERT_BOOKING_MS : TPCP_ALERT_AWARE_MS;
     _tpcpAlertTimer = setTimeout(function() {
       // Identity-checked: a stale timer can never dismiss a later
@@ -8948,6 +9054,43 @@ function tpcpAlertOpen(item) {
       if (_tpcpAlertCurrent === item) tpcpDismissAlert();
     }, ms);
   }
+}
+
+// Morning-modal singles section (Claude ruling, Oct 22): when an
+// ll-order episode presents and the leader's day has Single Pass
+// rides, the modal lists them with the same inline entry the game-
+// plan card carries -- rendered client-side from the episode day's
+// llSequence (the episode payload itself is unchanged). Rendering
+// marks the item singlesEntry, which exempts the modal from the
+// awareness auto-dismiss in tpcpAlertOpen: a record being typed into
+// must not vanish mid-entry -- the same reasoning that exempts the
+// rework primary. Guests get no section and no affordance, and their
+// modal keeps its timer exactly as today.
+function tpcpAlertRenderSingles(item){
+  var box=document.getElementById('tpcpAlertSingles');
+  if(!box) return;
+  if(item) window._tpcpAlertSinglesItem=item;
+  var it=window._tpcpAlertSinglesItem||null;
+  var show=false, dayIdx=-1, seq=null;
+  if(it&&it.cls==='ll-order'){
+    var leader=false;
+    try{ leader=(typeof isAdmin==='function')&&isAdmin(); }catch(e){}
+    if(leader){
+      dayIdx=(typeof tpcpReworkDayIndex==='function')?tpcpReworkDayIndex(it):-1;
+      var sd=(window._schedData&&window._schedData.days&&dayIdx>=0&&window._schedData.days[dayIdx])||null;
+      seq=sd&&sd.llSequence;
+      if(seq&&seq.singleSeparate&&seq.singleSeparate.length) show=true;
+    }
+  }
+  if(!show){
+    box.style.display='none'; box.innerHTML='';
+    if(it) it.singlesEntry=false;
+    return;
+  }
+  box.innerHTML='<div style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin-bottom:2px">SINGLE PASS</div>'
+    +tpcpSinglesRowsHTML(dayIdx, seq, 'modal');
+  box.style.display='';
+  if(it) it.singlesEntry=true;
 }
 
 function tpcpAlertShowModal(item) {
@@ -8969,6 +9112,7 @@ function tpcpAlertShowModal(item) {
     if (item.leaderNote) { note.textContent = 'Your trip leader can rework the plan.'; note.style.display = ''; }
     else { note.textContent = ''; note.style.display = 'none'; }
   }
+  tpcpAlertRenderSingles(item);
   var pri = document.getElementById('tpcpAlertPrimary');
   var sec = document.getElementById('tpcpAlertSecondary');
   pri.disabled = false;
@@ -9183,7 +9327,19 @@ function tpcpReworkDayIndex(item) {
   try { if (typeof TRIP_CONFIG !== 'undefined' && TRIP_CONFIG.days && TRIP_CONFIG.days.length) lists.push(TRIP_CONFIG.days); } catch (e) {}
   for (var l = 0; l < lists.length; l++) {
     for (var i = 0; i < lists[l].length; i++) {
-      if (lists[l][i] && lists[l][i].date === ymd) return i;
+      var _d = lists[l][i] && lists[l][i].date;
+      if (!_d) continue;
+      if (_d === ymd) return i;
+      // Stored tripConfig day dates are not always ISO ("Oct 22, 2026"
+      // is the onboarding form); parse to an ISO day before comparing,
+      // or a real trip's alerts never resolve their day. (Found Oct 22
+      // wiring the ll-order modal's singles section, which resolves
+      // its day through this same function.)
+      var _pd = (typeof tpcpParseDayDate === 'function') ? tpcpParseDayDate(_d) : null;
+      if (_pd) {
+        var _iso = _pd.getFullYear() + '-' + String(_pd.getMonth() + 1).padStart(2, '0') + '-' + String(_pd.getDate()).padStart(2, '0');
+        if (_iso === ymd) return i;
+      }
     }
   }
   return -1;
