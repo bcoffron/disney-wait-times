@@ -113,6 +113,17 @@ export default async function handler(req, res) {
   // -------------------------------------------------------------------------
 
   try {
+    
+          // EVAL-ONLY (scratch branch eval/haiku-5-5 -- NEVER merge to main): Haiku 5.5 A/B hooks.
+          // Inert unless VERCEL_ENV=preview AND an x-eval-model header names an allowlisted model.
+          const _evalHdr = (req.headers && req.headers['x-eval-model']) || '';
+          const _evalActive = process.env.VERCEL_ENV === 'preview' && (_evalHdr === 'haiku55' || _evalHdr === 'haiku45');
+          const _evalModel = _evalActive ? (_evalHdr === 'haiku55' ? 'claude-haiku-5-5' : 'claude-haiku-4-5-20251001') : null;
+          const _evalTempProbe = _evalActive && req.headers['x-eval-temp'] === '0';
+          const _evalEffortVal = (_evalActive && ['low', 'medium', 'high'].indexOf(req.headers['x-eval-effort'] || '') >= 0) ? req.headers['x-eval-effort'] : null;
+          const _evalCache = _evalActive && req.headers['x-eval-cache'] === '1';
+          const _evalTempSpread = (!_evalModel || _evalModel === 'claude-haiku-4-5-20251001' || _evalTempProbe) ? { temperature: 0 } : {};
+          const _evalEffortSpread = (_evalModel === 'claude-haiku-5-5' && _evalEffortVal) ? { output_config: { effort: _evalEffortVal } } : {};
     const { prompt, park, maxTokens = 1500 } = req.body || {};
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(500).json({ error: 'No API key' });
@@ -130,7 +141,7 @@ export default async function handler(req, res) {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 2000) }] })
+      body: JSON.stringify({ model: _evalModel || 'claude-haiku-4-5-20251001', ..._evalEffortSpread, max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt.substring(0, 2000) }] })
     });
 
     const data = await anthropicRes.json();
@@ -144,7 +155,7 @@ export default async function handler(req, res) {
     if (!text) return res.status(200).json({ error: 'Empty response' });
 
     const parsed = extractJSON(text);
-    return res.status(200).json({ ok: true, text, parsed, model: data.model });
+    return res.status(200).json({ ok: true, text, parsed, model: data.model, usage: data.usage || null, evalModel: _evalModel });
 
   } catch (e) {
     console.error('dining endpoint error:', e.message);
