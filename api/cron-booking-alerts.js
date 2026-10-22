@@ -49,7 +49,7 @@
 // WOULD be sent, but sends nothing and writes no state.
 
 import webpush from 'web-push';
-import { isApnsConfigured, sendApnsToDevices } from './apns.js';
+import { isApnsConfigured, sendApnsToDevices, apnsDetailFor } from './apns.js';
 import { recordEpisode } from './push-episodes.js';
 // Per-role routing (PR 2): role map + fail-closed send policy.
 import { buildRoleMap, shouldSend } from './lib/push-routing.js';
@@ -422,6 +422,24 @@ async function readJsonBlob(key) {
     return null;
   }
 }
+// Meta variant of readJsonBlob (instrumentation, Claude msg 578):
+// same list + blobs[0] selection as the plain read -- the SELECTION
+// IS UNCHANGED -- but it also reports which blob the read resolved
+// (pathname + uploadedAt + how many blobs matched the prefix), so a
+// short targeted list can be attributed to the read itself.
+async function readJsonBlobMeta(key) {
+  try {
+    const { list } = await import('@vercel/blob');
+    const { blobs } = await list({ prefix: key });
+    if (!blobs || blobs.length === 0) return { data: null, pathname: null, uploadedAt: null, matches: 0 };
+    const resp = await fetch(blobs[0].url + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return { data: null, pathname: blobs[0].pathname || null, uploadedAt: blobs[0].uploadedAt || null, matches: blobs.length };
+    return { data: await resp.json(), pathname: blobs[0].pathname || null, uploadedAt: blobs[0].uploadedAt || null, matches: blobs.length };
+  } catch (e) {
+    return { data: null, pathname: null, uploadedAt: null, matches: 0 };
+  }
+}
+
 async function readSaltedDualBlob(saltedKey, bareKey) {
   try {
     const { list } = await import('@vercel/blob');
@@ -516,11 +534,13 @@ async function sendToTrip(tripCode, payloadObj, opts) {
 async function sendApnsToTrip(tripCode, payloadObj, opts) {
   if (!isApnsConfigured()) return { sent: 0, failed: 0, pruned: 0, skipped: true };
   const exclude = (opts && typeof opts.excludeToken === 'string' && opts.excludeToken) ? opts.excludeToken : '';
-  const devBlob = await readJsonBlob('twize/push-devices/' + tripCode + '.json');
+  const devMeta = await readJsonBlobMeta('twize/push-devices/' + tripCode + '.json');
+  const devBlob = devMeta.data;
   const devices = (devBlob && Array.isArray(devBlob.devices)) ? devBlob.devices : [];
   const targets = devices.filter(d => d && d.platform === 'ios' && typeof d.token === 'string' && d.alertsEnabled !== false && d.token !== exclude);
-  if (!targets.length) return { sent: 0, failed: 0, pruned: 0 };
+  if (!targets.length) return { sent: 0, failed: 0, pruned: 0, detail: apnsDetailFor(devMeta, [], []) };
   const results = await sendApnsToDevices(targets.map(d => d.token), payloadObj);
+  const detail = apnsDetailFor(devMeta, targets.map(d => d.token), results);
   let sent = 0, failed = 0;
   const deadTokens = new Set();
   for (const r of results) {
@@ -540,7 +560,7 @@ async function sendApnsToTrip(tripCode, payloadObj, opts) {
         { tripCode: tripCode, devices: survivors, updated: new Date().toISOString() });
     } catch (e) { console.error('[booking-alerts] apns prune write failed', e.message); }
   }
-  return { sent, failed, pruned };
+  return { sent, failed, pruned, detail };
 }
 
 // ---- shared dual-channel fire (composed for api/push-test.js) -----------
