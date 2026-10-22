@@ -385,18 +385,19 @@ export async function listTripCodesWithDevices() {
 // No-ops cleanly until APNs env is configured and a device registers, so the
 // native channel is effectively feature-flagged OFF until tokens exist.
 async function sendApnsToTrip(tripCode, payloadObj) {
-  if (!isApnsConfigured()) return { sent: 0, failed: 0, pruned: 0, skipped: true };
+  if (!isApnsConfigured()) return { sent: 0, failed: 0, pruned: 0, skipped: true, accepted: [] };
   const devMeta = await readJsonBlobMeta('twize/push-devices/' + tripCode + '.json');
   const devBlob = devMeta.data;
   const devices = (devBlob && Array.isArray(devBlob.devices)) ? devBlob.devices : [];
   const targets = devices.filter(d => d && d.platform === 'ios' && typeof d.token === 'string' && d.alertsEnabled !== false);
-  if (!targets.length) return { sent: 0, failed: 0, pruned: 0, detail: apnsDetailFor(devMeta, [], []) };
+  if (!targets.length) return { sent: 0, failed: 0, pruned: 0, detail: apnsDetailFor(devMeta, [], []), accepted: [] };
   const results = await sendApnsToDevices(targets.map(d => d.token), payloadObj);
   const detail = apnsDetailFor(devMeta, targets.map(d => d.token), results);
   let sent = 0, failed = 0;
+  const accepted = []; // raw tokens APNs accepted -- episode send evidence (hashed at record time)
   const deadTokens = new Set();
   for (const r of results) {
-    if (r.verdict === 'ok') sent++;
+    if (r.verdict === 'ok') { sent++; accepted.push(r.token); }
     else {
       failed++;
       if (r.verdict === 'prune') deadTokens.add(r.token); // 410 / BadDeviceToken: token is dead
@@ -412,7 +413,7 @@ async function sendApnsToTrip(tripCode, payloadObj) {
         { tripCode: tripCode, devices: survivors, updated: new Date().toISOString() });
     } catch (e) { console.error('[push-monitor] apns prune write failed', e.message); }
   }
-  return { sent, failed, pruned, detail };
+  return { sent, failed, pruned, detail, accepted };
 }
 
 export default async function handler(req, res) {
@@ -599,7 +600,11 @@ export default async function handler(req, res) {
           // own delivery -- same discipline as the cooldown / fire-count
           // commits below: a failed send records nothing.
           if (codeSent > 0 && payload && payload.episodeId) {
-            await recordEpisode(cr.code, payload);
+            // Send evidence (Oct 22 ruling): the devices APNs accepted
+            // for THIS code ride the record as hashes, so a device that
+            // already got the push never re-presents it in-app. A
+            // web-only delivery carries no evidence and still presents.
+            await recordEpisode(cr.code, payload, undefined, (a && a.accepted) || []);
           }
         }
         return { sent: sentTotal };

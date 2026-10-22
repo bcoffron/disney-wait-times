@@ -13,7 +13,7 @@ import { notePlanChange, diffScheduleDays, safeDeviceToken } from './plan-change
 // Poll-backstop episodes (Claude msg 94 (i)): the GET response carries the
 // trip's recorded push episodes so the client's ~10s foreground poll can
 // render any the native shell never handed to its push listener.
-import { readEpisodesForPoll, readBookingDone, bookingEpisodesForGuest, guestCoordinationBody } from './push-episodes.js';
+import { readEpisodesForPoll, readBookingDone, bookingEpisodesForGuest, guestCoordinationBody, deviceEvidenceHash } from './push-episodes.js';
 
 // Secret path-prefix hardening. When BLOB_PATH_SALT is set, the registry and
 // per-trip blobs live behind an unguessable path segment so their fixed public
@@ -306,7 +306,13 @@ export default async function handler(req, res) {
     // retention-pruned, today-Pacific only. Older clients ignore the
     // field; the current client's blob poll renders the unpresented
     // ones through the foreground push handler.
-    const episodes = await readEpisodesForPoll(code);
+    // Channel dedupe (Oct 22 ruling): the poll presents its device
+    // token as ?dt=; episodes already delivered to that device as a
+    // native push are excluded for it (booking carved out). Clients
+    // that send no token (older builds, web preview) get the full list
+    // and rely on the client's own presentation policy instead.
+    const _viewerToken = safeDeviceToken((req.query && req.query.dt) || '');
+    const episodes = await readEpisodesForPoll(code, undefined, _viewerToken ? deviceEvidenceHash(_viewerToken) : '');
 
     // Guest booking fan-out (Claude msg 568, Item 1): booking episodes
     // record under the leader code only, so a guest's own record never

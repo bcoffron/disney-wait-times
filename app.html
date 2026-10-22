@@ -3654,7 +3654,13 @@ function startBlobPoll() {
     var code = localStorage.getItem('tpcp_code');
     var role = localStorage.getItem('tpcp_role') || '';
     if (!code) return;
-    fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code) + '&t=' + Date.now())
+    // Channel dedupe (Oct 22 ruling): present this device's push token
+    // so the server can exclude episodes this device already received
+    // as a native push. Absent (web preview, pushes never enabled) the
+    // server excludes nothing and the client policy below still holds.
+    var _pollDt = '';
+    try { _pollDt = (typeof tpcpDeviceToken === 'function') ? tpcpDeviceToken() : ''; } catch (e) {}
+    fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code) + '&t=' + Date.now() + (_pollDt ? '&dt=' + encodeURIComponent(_pollDt) : ''))
       .then(function(resp) { var st=resp.status; return resp.json().then(function(j){return {status:st,data:j};}).catch(function(){return {status:st,data:null};}); }, function(){ return {status:0,data:null}; })
       .then(function(r) {
         var data = r.data;
@@ -8603,6 +8609,36 @@ function tpcpTodayYmdPT() {
   } catch (e) { return ''; }
 }
 
+// Presentation policy (Claude ruling, Oct 22, 2026): the poll channel
+// presents AT MOST ONE episode per selection -- the most recent
+// eligible one, booking first -- and silently marks every other
+// eligible episode shown on this device, so opening the app can never
+// parade a day's accumulated alerts one after another. Non-booking
+// episodes also present only while FRESH (TPCP_EPISODE_FRESH_MS): the
+// condition that fired a wait alert may have reversed, and a stale
+// alert is noise, not help. Booking is carved out of the freshness cap
+// (and of the server's channel dedupe): it carries an action, stays
+// presentable for its Pacific day, and its showing budget is spent
+// ONLY by an actual presentation (mark-on-present in tpcpAlertOpen) --
+// the silent marks below never touch the booking counts.
+var TPCP_EPISODE_FRESH_MS = 10 * 60 * 1000; // two monitor sweep intervals
+
+function tpcpEpisodeFeed(ep) {
+  tpcpHandleForegroundPush({
+    title: ep.title || '',
+    body: ep.body || '',
+    data: {
+      'class': ep.class || '',
+      tag: ep.tag || '',
+      episodeId: ep.episodeId,
+      url: ep.url || '',
+      ymd: ep.ymd || '',
+      schedVersion: (ep.schedVersion != null ? ep.schedVersion : null),
+      done: ep.done === true
+    }
+  });
+}
+
 function tpcpPresentPolledEpisodes(list) {
   if (!Array.isArray(list)) return;
   // Booking state hygiene (msg 118): the retained list is the bound
@@ -8611,25 +8647,82 @@ function tpcpPresentPolledEpisodes(list) {
   for (var j = 0; j < list.length; j++) { if (list[j] && list[j].episodeId) retained[list[j].episodeId] = 1; }
   tpcpBookingPruneState(retained);
   var today = tpcpTodayYmdPT();
+  var now = Date.now();
+  var eligible = [];
   for (var i = 0; i < list.length; i++) {
     var ep = list[i];
     if (!ep || !ep.episodeId) continue;
     if (today && ep.ymd && ep.ymd !== today) continue; // not the park day it fired on
-    if (typeof ep.firedAt === 'number' && (Date.now() - ep.firedAt) > 24 * 60 * 60 * 1000) continue;
-    tpcpHandleForegroundPush({
-      title: ep.title || '',
-      body: ep.body || '',
-      data: {
-        'class': ep.class || '',
-        tag: ep.tag || '',
-        episodeId: ep.episodeId,
-        url: ep.url || '',
-        ymd: ep.ymd || '',
-        schedVersion: (ep.schedVersion != null ? ep.schedVersion : null),
-        done: ep.done === true
-      }
-    });
+    if (typeof ep.firedAt === 'number' && (now - ep.firedAt) > 24 * 60 * 60 * 1000) continue;
+    if (_tpcpPresentedEpisodes[ep.episodeId]) continue; // already shown this session
+    var cls = ep.class || '';
+    if (cls === 'booking') {
+      // Booking gates mirror the handler's: a done episode (the server
+      // flag teaches the local shadow here, as in the handler) or a
+      // spent showing budget ends eligibility. No freshness cap, no
+      // silent consumption -- an unshown booking stays offerable.
+      if (ep.done === true) tpcpBookingNoteDone(ep.episodeId);
+      if (tpcpBookingIsDone(ep.episodeId)) continue;
+      if (tpcpBookingShowCount(ep.episodeId) >= TPCP_BOOKING_MAX_SHOWS) continue;
+      eligible.push(ep);
+      continue;
+    }
+    // Plan-changed this device has already applied (the handler's own
+    // suppression): consumed as a fact -- mark shown, never present.
+    if (cls === 'plan-changed' && ep.schedVersion != null) {
+      var pv = Number(ep.schedVersion);
+      var av = (typeof tpcpAppliedSchedVersion === 'function') ? tpcpAppliedSchedVersion() : 0;
+      if (!isNaN(pv) && av > 0 && pv <= av) { _tpcpPresentedEpisodes[ep.episodeId] = 1; continue; }
+    }
+    // Freshness cap (non-booking): past the window, mark shown so the
+    // episode never becomes a candidate again, and never present it.
+    if (typeof ep.firedAt === 'number' && (now - ep.firedAt) > TPCP_EPISODE_FRESH_MS) {
+      _tpcpPresentedEpisodes[ep.episodeId] = 1;
+      continue;
+    }
+    eligible.push(ep);
   }
+  if (!eligible.length) return;
+  // External-cover composition (msg 568): while a deep-link surface
+  // covers the app, deferrable episodes are not candidates at all and
+  // consume nothing -- the poll re-offers them once the surface
+  // closes. Decision presentations are exempt from deferral (they
+  // persist until answered), so a decision candidate may still be
+  // selected on its own; nothing else is marked or presented.
+  if ((typeof tpcpCoverActive === 'function') && tpcpCoverActive()) {
+    var dec = null;
+    for (var d = 0; d < eligible.length; d++) {
+      if (eligible[d].class === 'test' && (!dec || eligible[d].firedAt > dec.firedAt)) dec = eligible[d];
+    }
+    if (dec && !_tpcpAlertCurrent && !_tpcpAlertQueue.length) tpcpEpisodeFeed(dec);
+    return;
+  }
+  // One-modal gate: while any presentation is up or queued, the poll
+  // selects nothing -- candidates stay unmarked for a later tick, so
+  // the pump can never stack a second modal behind the first.
+  if (_tpcpAlertCurrent || _tpcpAlertQueue.length) return;
+  // Selection: booking first (it carries the action, and never
+  // presents alongside a wait alert), otherwise the most recent.
+  var winner = null;
+  for (var b = 0; b < eligible.length; b++) {
+    if (eligible[b].class === 'booking' && (!winner || eligible[b].firedAt > winner.firedAt)) winner = eligible[b];
+  }
+  if (!winner) {
+    for (var w = 0; w < eligible.length; w++) {
+      if (!winner || eligible[w].firedAt > winner.firedAt) winner = eligible[w];
+    }
+  }
+  if (!winner) return;
+  // Every other eligible episode is silently marked shown on this
+  // device: consumed, never presented. Other BOOKING episodes are the
+  // one exception -- an unshown booking is never silently consumed
+  // (the store holds at most one per park day in practice).
+  for (var s = 0; s < eligible.length; s++) {
+    if (eligible[s] === winner) continue;
+    if (eligible[s].class === 'booking') continue;
+    _tpcpPresentedEpisodes[eligible[s].episodeId] = 1;
+  }
+  tpcpEpisodeFeed(winner);
 }
 
 // ===== CLASS-SWITCHED ALERT RENDERER (Claude msg 102) =====
