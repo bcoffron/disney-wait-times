@@ -251,16 +251,24 @@ Output the complete JSON object. Do not truncate. Do not add any text before or 
   }
 };
 
+// Budget note (Oct 22, 2026): on Sonnet 5.5, searches + thinking draw
+// from the same max_tokens budget as the final text. The closures class
+// below carries 6000 so a full section of output still fits after the
+// (now capped) search phase; SPECIAL_EVENTS / CURRENT_LL_PRICING are
+// raised to 4000 / 3000 for the same reason -- dynamic, search-first
+// sections whose old budgets were sized for text alone. Stable-section
+// budgets stay as they are: the global search cap bounds their runaway
+// term, and the verdict record names any section that still exhausts.
 const DYNAMIC_SECTION_PROMPTS = {
   CURRENT_CLOSURES:{
     system:'You are a Disneyland current operations expert. Only use confirmed 2025-2026 information. Be specific about status and expected return dates.',
     user:`Search disneylandresort.com, AllEars.net, and TouringPlans.com for ALL current ride closures and refurbishments at Disneyland and DCA as of today 2026. For each closed or refurbished attraction provide: attraction name and park DL or DCA, closure type scheduled refurbishment unplanned seasonal or permanent, expected reopening date if known or best estimate, what caused the closure if known, alternative recommendation for guests who planned to ride it. Pay special attention to Pirates of the Caribbean current status and expected return date. List any major E-ticket closures. Note any new closures announced for summer 2026. Format as clear readable text that could be read to a guest planning their visit.`,
-    maxTokens:1500
+    maxTokens:6000
   },
   CURRENT_CLOSURES_WDW:{
     system:'You are a Walt Disney World current operations expert. Only use confirmed 2025-2026 information. Be specific about status and expected return dates.',
     user:`Search disneyworld.disney.go.com, WDW News Today (wdwnt.com), BlogMickey, AllEars.net, and TouringPlans.com for ALL current ride closures and refurbishments at Magic Kingdom (MK), EPCOT (EP), Disney's Hollywood Studios (HS), and Disney's Animal Kingdom (AK) as of today 2026. For each closed or refurbished attraction provide: attraction name and park MK EP HS or AK, closure type scheduled refurbishment unplanned seasonal or permanent, expected reopening date if known or best estimate, what caused the closure if known, alternative recommendation for guests who planned to ride it. List any major E-ticket closures. Note any new closures announced for summer 2026. Format as clear readable text that could be read to a guest planning their visit.`,
-    maxTokens:2000
+    maxTokens:6000
   },
   CLOSURES:{
     system:'You are a Disneyland Resort current-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
@@ -288,7 +296,7 @@ FIELD RULES:
 - note: one short sentence (source + reason). ASCII only.
 
 Pay special attention to Pirates of the Caribbean and Inside Out Emotional Whirlwind -- report their exact current status, reopenDate, and reopenConfidence. Only include attractions that are actually closed/affected; do NOT list operating rides. Output the complete JSON array only.`,
-    maxTokens:1500
+    maxTokens:6000
   },
   CLOSURES_WDW:{
     system:'You are a Walt Disney World current-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
@@ -316,7 +324,7 @@ FIELD RULES:
 - note: one short sentence (source + reason). ASCII only.
 
 List any major E-ticket closures. Only include attractions that are actually closed/affected; do NOT list operating rides. Output the complete JSON array only.`,
-    maxTokens:2000
+    maxTokens:6000
   },
   DINING_CLOSURES:{
     system:'You are a Disneyland Resort dining-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
@@ -345,7 +353,7 @@ FIELD RULES (same contract as the attractions CLOSURES section):
 - note: one short sentence (source + reason). ASCII only.
 
 Only include venues that are actually closed/affected; do NOT list operating restaurants. Output the complete JSON array only.`,
-    maxTokens:1500
+    maxTokens:6000
   },
   DINING_CLOSURES_WDW:{
     system:'You are a Walt Disney World dining-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
@@ -374,17 +382,17 @@ FIELD RULES (same contract as the attractions CLOSURES section):
 - note: one short sentence (source + reason). ASCII only.
 
 Only include venues that are actually closed/affected; do NOT list operating restaurants. Output the complete JSON array only.`,
-    maxTokens:2000
+    maxTokens:6000
   },
   SPECIAL_EVENTS:{
     system:'You are a Disneyland special events expert. Focus on the current season at Disneyland Resort.',
     user:`Search Disneyland official site, AllEars, and MiceChat for special events, hard ticket events, seasonal overlays, or entertainment changes at Disneyland Resort in the current season. Investigate: any anniversary or seasonal celebrations currently running, with their dates; seasonal events, special dining events, or unique experiences tied to the current season; proximity to any major holiday and any related celebrations, overlays, or extra fireworks; hard ticket events -- any separately ticketed evening events that would affect park access; entertainment changes -- any shows or parades recently added, changed, or removed. Be specific with dates when sources give them. Note if something was announced but not yet confirmed.`,
-    maxTokens:1500
+    maxTokens:4000
   },
   CURRENT_LL_PRICING:{
     system:'You are a Disneyland Lightning Lane pricing expert. Current 2025-2026 pricing only. Never use Genie+ terminology.',
     user:`Search AllEars, TouringPlans, and official Disneyland sources for current Lightning Lane pricing at Disneyland Resort 2025-2026. Provide: Individual Lightning Lane ILL -- which specific attractions are ILL at Disneyland, not LLMP -- with current price range per person for each, and the price range for a peak summer day. Lightning Lane Multi Pass LLMP: current per-person price range for Disneyland LLMP on a peak-season day, current per-person price range for DCA LLMP, combined price if purchasing for both parks. Recent changes: any changes to LL system in 2025-2026, new attractions added or removed from LL, any pricing changes from previous year. Booking tips: when prices are lowest vs highest within a day, whether to buy LLMP at park open or wait, multi-day ticket LL discounts if any. Use only Lightning Lane Multi Pass LLMP and Individual Lightning Lane ILL terminology throughout.`,
-    maxTokens:1200
+    maxTokens:3000
   },
   TRIP_CONTEXT:{
     system:'You are a brilliant, specific Disneyland trip advisor writing shared reference guidance for guests planning a Disneyland plus DCA trip, often with park hopping and sometimes a VIP tour day. Write in a warm, specific, confident voice like a knowledgeable friend who has been dozens of times. No generic advice. Never assume a party size, specific dates, or a fixed itinerary -- write for the patterns that hold across trips.',
@@ -802,9 +810,19 @@ function mergeCallUsage(acc, u) {
 // elsewhere in this file; a second pause falls through to the throw, whose
 // message now carries the full diagnosis.
 const MAX_PAUSE_CONTINUATIONS = 1;
+// Search cap (Oct 22, 2026): on Sonnet 5.5 the CURRENT_CLOSURES build
+// spent its entire 1500-token output budget on 15 web searches + thinking
+// blocks and never emitted final text (stop_reason=max_tokens; the PR
+// #114 diagnostics in the verdict record are what made this visible).
+// web_search's max_uses is a hard per-request cap (Anthropic web-search
+// tool docs): past the cap the tool returns a max_uses_exceeded result
+// and the model writes its answer from what it already has. 6 covers the
+// 2-3 named sources per section with headroom, and bounds the
+// runaway-search term for every section build, not just closures.
+const WEB_SEARCH_MAX_USES = 6;
 async function callClaude(prompt, apiKey) {
   lastCallDiag = null;
-  const tools = [{type:'web_search_20250305',name:'web_search'}];
+  const tools = [{type:'web_search_20250305',name:'web_search',max_uses:WEB_SEARCH_MAX_USES}];
   let messages = [{role:'user',content:prompt.user}];
   let attempts = 0;
   let d = null;
