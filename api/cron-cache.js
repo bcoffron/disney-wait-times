@@ -104,7 +104,7 @@ const LEGACY_PROMPTS = {
   dining_intel:{system:'Disneyland dining expert. 2024-2026 only.',user:'Search Disney Food Blog AllEars 2024-2026. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Circle Lamplight Lounge Flos V8 (DCA). Rating must-orders reservation tips each.',maxTokens:1500},
   dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe). After any searches, your FINAL message must contain ONLY the JSON object inside a fenced code block: ```json{...}``` -- no commentary before or after the fence.',maxTokens:8000},
   events_intel:{system:'Disneyland events expert.',user:'Special events at Disneyland over the next 30 days starting from today: ticketed events, closures, holidays in that window, shows, fireworks. Use the current date as the anchor and give specific dates.',maxTokens:800},
-  park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours for the next 14 days starting from today. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 14 dates, keyed by the actual calendar dates.',maxTokens:1000},
+  park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours for the next 14 days starting from today. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 14 dates, keyed by the actual calendar dates.',maxTokens:2500},
   character_intel:{system:'Disneyland Resort character meet-and-greet expert. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search AllEars, MiceChat, DisneyTouristBlog, and the official Disneyland site (2025-2026) for current Disneyland Resort character meet-and-greet info. Return JSON: {"characters":[{"name":"...","category":"...","park":"DL or DCA","location":"land or spot","notes":"timing/tips"}]}. The category field MUST be EXACTLY one of these six lowercase values: princess, classic, star_wars, pixar, marvel, villain. You MUST include real, currently-appearing meets for ALL SIX categories: princess (e.g. princesses at Royal Hall/Fantasy Faire); classic (Mickey, Minnie, Donald, Daisy, Goofy, Pluto, Chip and Dale -- Toontown, Main Street); star_wars (characters in Star Wars Galaxy Edge -- e.g. Chewbacca, Vi Moradi, Kylo Ren, Rey, stormtroopers); pixar (Woody/Buzz/Jessie, Pixar Pier characters, Edna/Incredibles at Avengers-adjacent areas, characters at DCA Pixar Pier); marvel (Avengers Campus at DCA -- Spider-Man, Captain America, Black Panther, Black Widow, Doctor Strange, etc.); villain (seasonal/where they appear -- e.g. villains during Halloween/Oogie Boogie Bash, or year-round meets if any). Only include characters that genuinely appear at the Disneyland Resort right now. If a category has limited or seasonal availability, still include its real entries and note the seasonality. Use only current 2025-2026 information. Keep every notes field to ONE short sentence (20 words max) and include at most 6 characters per category (about 24-30 total) -- a complete roster matters more than long notes.',maxTokens:9000},
   photo_ops:{system:'Disneyland Resort guest photography expert -- the iconic photo spots visitors plan for. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search DisneyTouristBlog, AllEars, MiceChat and Disney Parks sources (2025-2026) for the BEST guest photo spots at Disneyland Park and Disney California Adventure. Return JSON: {"spots":[{"name":"...","park":"DL or DCA","land":"...","shot":"...","bestTime":"...","short":"...","sampleUrl":"..."}]}. The shot field is ONE guest-facing sentence describing the specific photo: where to stand and what landmark fills the background (example: "Stand in the middle of Main Street, U.S.A. facing the castle -- Sleeping Beauty Castle fills the background behind your group."). Include 16-20 spots, roughly half in each park, covering at least: the Main Street castle shot, the Partners statue, Sleeping Beauty Castle from the front, the Millennium Falcon in Star Wars: Galaxy\'s Edge, the Galaxy\'s Edge rock spires, Cars Land neon signs at dusk on Route 66, the Radiator Springs Ornament Valley mountain backdrop, Pixar Pier with the Incredicoaster and Pixar Pal-A-Round behind you at sunset, Buena Vista Street with the Carthay Circle tower, Grizzly Peak and its waterfall, the Mark Twain riverfront in Frontierland, the "it\'s a small world" facade lit up at night, Avengers Campus headquarters, Snow White\'s wishing well grotto, and the New Orleans Square riverfront. bestTime is exactly one of: any, morning, golden hour, sunset, night. The short field is a phrase of at most 11 words naming the standpoint and the backdrop, with NO ending period, starting lowercase unless it opens with a place name (example: "the Haunted Mansion gates with the manor behind you"). The sampleUrl field must link to ONE SINGLE PHOTO of this exact spot -- never a blog post, article, or listicle page (guests tap it expecting to see just the photo). Acceptable: a direct image file URL ending .jpg, .jpeg, .png, or .webp; a single Instagram post (instagram.com/p/...); a single Flickr photo page (flickr.com/photos/...); or a Wikimedia Commons file page (commons.wikimedia.org/wiki/File:...). Use only a real URL taken from your search results --  NEVER invent, shorten, or guess a URL; if you cannot find a real page for a spot, omit sampleUrl for that spot. Only real, current photo locations -- no invented backdrops.',maxTokens:9000}
 };
@@ -410,6 +410,23 @@ function isSinglePhotoUrl(u) {
     return false;
   } catch (e) { return false; }
 }
+// park_hours_intel contract: the blob's data is a PER-DATE map
+// {"YYYY-MM-DD": {dl:{open,close}, dca:{open,close}}} in 24h "HH:MM" --
+// generateschedule's tpcpResolveParkHoursEntry selects the entry for the
+// trip's own date. Anything else (notably a flat {dl, dca} object, which the
+// resolver's legacy-flat branch would apply to EVERY date) is degraded data.
+function isValidParkHoursMap(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const dateKeys = Object.keys(value).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+  if (dateKeys.length < 7) return false;
+  const hhmm = /^\d{2}:\d{2}$/;
+  return dateKeys.every(k => {
+    const e = value[k];
+    return !!(e && e.dl && e.dca && hhmm.test(e.dl.open || '') && hhmm.test(e.dl.close || '') &&
+      hhmm.test(e.dca.open || '') && hhmm.test(e.dca.close || '') &&
+      e.dl.open < e.dl.close && e.dca.open < e.dca.close);
+  });
+}
 async function isFresh(key) {
   try {
     const {blobs} = await list({prefix:'twize/'+key});
@@ -431,6 +448,14 @@ async function isFresh(key) {
       const cd = raw && raw.data;
       const roster = cd && Array.isArray(cd.characters) ? cd.characters : null;
       if(!roster || roster.length < 5) return false;
+    }
+    if(key === 'park_hours_intel') {
+      // Same lesson as the character roster above: a fresh timestamp on a
+      // wrong-shaped blob is degraded data, not fresh data. The Oct 22, 2026
+      // build stored one date's flat {dl, dca} entry (harvested by
+      // extractJson from a truncated reply); counting that fresh would have
+      // suppressed the self-healing rebuild for 5.6 days.
+      if(!isValidParkHoursMap(raw && raw.data)) return false;
     }
     if(key === 'photo_ops') {
       // v3 link rule (Beau, Oct 6, 2026): sampleUrl must open ONE photo, not
@@ -1113,6 +1138,18 @@ async function buildLegacy(key, apiKey) {
   if(key==='park_hours_intel'||key==='character_intel'||key==='photo_ops') {
     const parsed = extractJson(text);
     if(parsed) value = parsed;
+  }
+  if (key === 'park_hours_intel') {
+    // NEVER let a wrong-shaped rebuild replace the hours map: the Oct 22,
+    // 2026 scheduled build stored a single date's flat {dl, dca} entry
+    // (harvested by extractJson from a truncated model reply) and every
+    // generated day then inherited that date's hours -- including an 18:00
+    // party-night DCA close. Fail loud instead: the caller records the
+    // failure and the last good blob stays live (same pattern as the
+    // character_intel / photo_ops guards below).
+    if (!isValidParkHoursMap(value)) {
+      throw new Error('park_hours_intel rebuild rejected: parsed payload is not a per-date hours map (got: ' + (value && typeof value === 'object' ? 'object with keys ' + Object.keys(value).slice(0, 4).join(',') : String(value && typeof value)) + ')');
+    }
   }
   if (key === 'character_intel') {
     // NEVER let a truncated rebuild silently replace the roster with junk.
