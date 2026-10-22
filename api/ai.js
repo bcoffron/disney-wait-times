@@ -232,6 +232,17 @@ export default async function handler(req, res) {
   // -- B: Model allowlist — never use req.body.model or any client value --------
   // const MODEL is hardcoded above; req.body.model is intentionally ignored
   const { prompt, system, maxTokens = 1000, context } = req.body || {};
+          // EVAL-ONLY (scratch branch eval/haiku-5-5 -- NEVER merge to main): Haiku 5.5 A/B hooks.
+          // Inert unless VERCEL_ENV=preview AND an x-eval-model header names an allowlisted model.
+          const _evalHdr = (req.headers && req.headers['x-eval-model']) || '';
+          const _evalActive = process.env.VERCEL_ENV === 'preview' && (_evalHdr === 'haiku55' || _evalHdr === 'haiku45');
+          const _evalModel = _evalActive ? (_evalHdr === 'haiku55' ? 'claude-haiku-5-5' : 'claude-haiku-4-5-20251001') : null;
+          const _evalTempProbe = _evalActive && req.headers['x-eval-temp'] === '0';
+          const _evalEffortVal = (_evalActive && ['low', 'medium', 'high'].indexOf(req.headers['x-eval-effort'] || '') >= 0) ? req.headers['x-eval-effort'] : null;
+          const _evalCache = _evalActive && req.headers['x-eval-cache'] === '1';
+          const _evalTempSpread = (!_evalModel || _evalModel === 'claude-haiku-4-5-20251001' || _evalTempProbe) ? { temperature: 0 } : {};
+          const _evalEffortSpread = (_evalModel === 'claude-haiku-5-5' && _evalEffortVal) ? { output_config: { effort: _evalEffortVal } } : {};
+
       if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
   // ------ Build full park intelligence from new two-cache architecture ------------------------------------
@@ -317,6 +328,7 @@ export default async function handler(req, res) {
         }
               systemPrompt = sanitizeForJSON(systemPrompt);
 
+        const _evalSystemAi = (_evalCache && _evalModel === 'claude-haiku-5-5') ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }] : systemPrompt;
         const resp = await fetch('https://api.anthropic.com/v1/messages', {
                   signal: controller.signal,
                   method: 'POST',
@@ -326,10 +338,10 @@ export default async function handler(req, res) {
                               'anthropic-version': '2023-06-01'
                   },
                   body: JSON.stringify({
-                              model: MODEL,
-                              temperature: 0,
+                              model: _evalModel || MODEL, ..._evalEffortSpread,
+                              ..._evalTempSpread,
                               max_tokens: maxTokens,
-                              system: systemPrompt,
+                              system: _evalSystemAi,
                               messages: [{ role: 'user', content: prompt }]
                   })
         });
@@ -343,7 +355,7 @@ export default async function handler(req, res) {
                         if (block.type === 'text') text += block.text;
               }
 
-        return res.status(200).json({ ok: true, text, model: data.model });
+        return res.status(200).json({ ok: true, text, model: data.model, usage: data.usage || null, evalModel: _evalModel });
       } catch (e) {
               if (e.name === 'AbortError') {
                         return res.status(504).json({ error: 'AI request timed out' });
