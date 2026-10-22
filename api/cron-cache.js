@@ -421,23 +421,122 @@ function isSinglePhotoUrl(u) {
     return false;
   } catch (e) { return false; }
 }
+// ==== PARK HOURS NORMALIZE START ====
 // park_hours_intel contract: the blob's data is a PER-DATE map
 // {"YYYY-MM-DD": {dl:{open,close}, dca:{open,close}}} in 24h "HH:MM" --
 // generateschedule's tpcpResolveParkHoursEntry selects the entry for the
 // trip's own date. Anything else (notably a flat {dl, dca} object, which the
 // resolver's legacy-flat branch would apply to EVERY date) is degraded data.
-function isValidParkHoursMap(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const dateKeys = Object.keys(value).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
-  if (dateKeys.length < 7) return false;
-  const hhmm = /^\d{2}:\d{2}$/;
-  return dateKeys.every(k => {
-    const e = value[k];
-    return !!(e && e.dl && e.dca && hhmm.test(e.dl.open || '') && hhmm.test(e.dl.close || '') &&
-      hhmm.test(e.dca.open || '') && hhmm.test(e.dca.close || '') &&
-      e.dl.open < e.dl.close && e.dca.open < e.dca.close);
-  });
+//
+// The Oct 22, 2026 PR #109 validator was all-or-nothing strict: EVERY entry
+// had to match /^\d{2}:\d{2}$/ with a string open<close. The first live
+// rebuild under it was rejected wholesale even though the payload carried
+// real date entries -- real model output breaks that shape three ways:
+// "8:00" single-digit hours, 12-hour "8:00 PM" strings, and midnight closes
+// ("00:00" sorts BEFORE any open in a string compare). Worse, the rejection
+// named only the first four keys, so the actual cause was undiagnosable
+// (the raw payload was never stored). Now: normalize each entry (coerce
+// H:MM, convert 12-hour, canonical "HH:MM" out), validate entries
+// individually, store the valid ones, and accept when >=7 entries are valid
+// AND the next 3 days are covered. Dropped entries are reported with
+// reasons, never silently discarded, and a rejection error carries the
+// counts, sample drops verbatim, and the raw payload head.
+function normalizeParkHoursTime(v) {
+  if (typeof v !== 'string') return null;
+  const m = v.trim().match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/);
+  if (!m) return null;
+  let hh = parseInt(m[1], 10);
+  const mm = parseInt(m[2], 10);
+  if (mm > 59) return null;
+  if (m[3]) {
+    if (hh < 1 || hh > 12) return null;
+    if (m[3].toLowerCase() === 'pm') { if (hh !== 12) hh += 12; }
+    else if (hh === 12) hh = 0;
+  } else if (hh > 23) return null;
+  return String(hh).padStart(2, '0') + ':' + m[2];
 }
+function parkHoursTimeProblem(openRaw, closeRaw) {
+  const o = normalizeParkHoursTime(openRaw);
+  const c = normalizeParkHoursTime(closeRaw);
+  if (!o) return 'open is not a recognizable time: ' + JSON.stringify(openRaw);
+  if (!c) return 'close is not a recognizable time: ' + JSON.stringify(closeRaw);
+  const om = Number(o.slice(0, 2)) * 60 + Number(o.slice(3, 5));
+  let cm = Number(c.slice(0, 2)) * 60 + Number(c.slice(3, 5));
+  // A "00:00" close is end-of-day (24:00), not start-of-day; a close up to
+  // 03:00 that falls before the open is a past-midnight close (Disneyland
+  // closes at 1-2 AM on special nights) -- compare as next-day times. The
+  // stored close stays the normalized "HH:MM" the model reported.
+  if (cm === 0) cm = 1440;
+  else if (cm < om && cm <= 180) cm += 1440;
+  if (!(om < cm)) return 'open ' + o + ' is not before close ' + c;
+  return null;
+}
+function parkHoursEntryProblem(e) {
+  if (!e || typeof e !== 'object' || Array.isArray(e)) return 'entry is not an object';
+  const parks = ['dl', 'dca'];
+  for (let i = 0; i < parks.length; i++) {
+    const p = e[parks[i]];
+    if (!p || typeof p !== 'object') return 'missing ' + parks[i] + ' hours';
+    const prob = parkHoursTimeProblem(p.open, p.close);
+    if (prob) return parks[i] + ': ' + prob;
+  }
+  return null;
+}
+function normalizeParkHoursEntry(e) {
+  if (parkHoursEntryProblem(e)) return null;
+  return {
+    dl: { open: normalizeParkHoursTime(e.dl.open), close: normalizeParkHoursTime(e.dl.close) },
+    dca: { open: normalizeParkHoursTime(e.dca.open), close: normalizeParkHoursTime(e.dca.close) }
+  };
+}
+function parkHoursYmd(date, timeZone) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+}
+function parkHoursAddDays(ymd, n) {
+  const d = new Date(ymd + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function analyzeParkHoursMap(value) {
+  const out = { ok: false, map: null, total: 0, valid: 0, dropped: [], missingRequired: [] };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return out;
+  const dateKeys = Object.keys(value).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+  out.total = dateKeys.length;
+  const map = {};
+  for (let i = 0; i < dateKeys.length; i++) {
+    const k = dateKeys[i];
+    const norm = normalizeParkHoursEntry(value[k]);
+    if (norm) { map[k] = norm; out.valid++; }
+    else out.dropped.push({ date: k, reason: parkHoursEntryProblem(value[k]), entry: value[k] });
+  }
+  // Coverage: each of the next 3 days must have a valid entry. The model's
+  // "today" basis is ambiguous (the builder runs on UTC; the parks run on
+  // Pacific), so either 3-day window fully covered is acceptable.
+  const now = new Date();
+  const starts = [parkHoursYmd(now, 'America/Los_Angeles'), parkHoursYmd(now, 'UTC')];
+  let covered = false;
+  for (let s = 0; s < starts.length && !covered; s++) {
+    const need = [0, 1, 2].map(n => parkHoursAddDays(starts[s], n));
+    const missing = need.filter(k => !map[k]);
+    if (missing.length === 0) covered = true;
+    else if (s === 0) out.missingRequired = missing;
+  }
+  out.ok = covered && out.valid >= 7;
+  if (out.ok) out.map = map;
+  return out;
+}
+function parkHoursRejectionMessage(analysis, rawText) {
+  const a = analysis;
+  const dropTxt = a.dropped.slice(0, 3).map(d => d.date + ' [' + d.reason + '] ' + JSON.stringify(d.entry)).join(' | ');
+  return 'park_hours_intel rebuild rejected: ' + a.valid + '/' + a.total + ' date entries valid, ' + a.dropped.length + ' dropped' +
+    (a.missingRequired.length ? '; missing next-3-days coverage: ' + a.missingRequired.join(', ') : '') +
+    (dropTxt ? '; dropped samples: ' + dropTxt : '') +
+    '; payload head: ' + String(rawText == null ? '' : rawText).slice(0, 300);
+}
+function isValidParkHoursMap(value) {
+  return analyzeParkHoursMap(value).ok;
+}
+// ==== PARK HOURS NORMALIZE END ====
 async function isFresh(key) {
   try {
     const {blobs} = await list({prefix:'twize/'+key});
@@ -514,7 +613,11 @@ async function blobStore(key, cacheData) {
 // and self-heals the chain). Entry shape:
 // {ts, key, section, via ('fanout'|'section'|'legacy'), outcome
 // ('ok'|'fail'|'empty-output'|'skipped-fresh'), bytes, webSearchRequests,
-// model, error}
+// model, error, note}. 'note' is an optional additive field for non-fatal
+// detail worth keeping with the entry (e.g. park_hours entries dropped by
+// per-entry validation on an otherwise-ok build). Errors are kept to 1200
+// chars so a rejection can carry its own diagnosis (counts, sample bad
+// entries, payload head) instead of a bare summary.
 const CACHE_VERDICTS_KEY = 'twize/cache_verdicts.json';
 const CACHE_VERDICTS_CAP = 200;
 const CACHE_BUILD_MODEL = 'claude-sonnet-5-5';
@@ -541,7 +644,8 @@ async function recordCacheVerdict(entry) {
       bytes: (typeof entry.bytes === 'number') ? entry.bytes : null,
       webSearchRequests: (typeof entry.webSearchRequests === 'number') ? entry.webSearchRequests : null,
       model: entry.model || CACHE_BUILD_MODEL,
-      error: entry.error ? String(entry.error).slice(0, 300) : null
+      error: entry.error ? String(entry.error).slice(0, 1200) : null,
+      note: entry.note ? String(entry.note).slice(0, 500) : null
     };
     let arr = [];
     try {
@@ -1211,6 +1315,7 @@ async function buildDiningDL(key, apiKey) {
 async function buildLegacy(key, apiKey) {
   if(key === 'dining_intel_dl') return await buildDiningDL(key, apiKey);
   const p=LEGACY_PROMPTS[key];
+  let legacyVerdictNote = null; // optional detail for the ok verdict (park_hours drops)
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
@@ -1239,9 +1344,22 @@ async function buildLegacy(key, apiKey) {
     // party-night DCA close. Fail loud instead: the caller records the
     // failure and the last good blob stays live (same pattern as the
     // character_intel / photo_ops guards below).
-    if (!isValidParkHoursMap(value)) {
-      throw new Error('park_hours_intel rebuild rejected: parsed payload is not a per-date hours map (got: ' + (value && typeof value === 'object' ? 'object with keys ' + Object.keys(value).slice(0, 4).join(',') : String(value && typeof value)) + ')');
+    // Entries are normalized and judged individually (analyzeParkHoursMap):
+    // "8:00" / "8:00 PM" / a midnight close no longer sink the whole map,
+    // and a rejection now says WHY -- counts, sample dropped entries
+    // verbatim, and the raw payload head -- because the payload itself is
+    // not stored anywhere (the first post-guard rejection, Oct 22, 2026,
+    // was undiagnosable for exactly that reason).
+    const ph = analyzeParkHoursMap(value);
+    if (!ph.ok) {
+      throw new Error(parkHoursRejectionMessage(ph, text));
     }
+    if (ph.dropped.length) {
+      const dropList = ph.dropped.map(d => d.date + ' (' + d.reason + ')').join(', ');
+      console.log('[cron-cache] park_hours_intel: kept ' + ph.valid + '/' + ph.total + ' entries; dropped ' + ph.dropped.length + ': ' + dropList);
+      legacyVerdictNote = 'park_hours_intel: kept ' + ph.valid + '/' + ph.total + ' entries; dropped: ' + dropList;
+    }
+    value = ph.map;
   }
   if (key === 'character_intel') {
     // NEVER let a truncated rebuild silently replace the roster with junk.
@@ -1364,7 +1482,7 @@ async function buildLegacy(key, apiKey) {
   const blob = await put('twize/'+key+'.json', JSON.stringify(legacyPayload), {
     access:'public', addRandomSuffix:false, contentType:'application/json', allowOverwrite:true
   });
-  await recordCacheVerdict({ key, via: 'legacy', outcome: sectionDataIsEmpty(value) ? 'empty-output' : 'ok', bytes: JSON.stringify(legacyPayload).length, webSearchRequests: usageSearches(d) });
+  await recordCacheVerdict({ key, via: 'legacy', outcome: sectionDataIsEmpty(value) ? 'empty-output' : 'ok', bytes: JSON.stringify(legacyPayload).length, webSearchRequests: usageSearches(d), note: legacyVerdictNote });
   return {key, length:text.length};
 }
 
