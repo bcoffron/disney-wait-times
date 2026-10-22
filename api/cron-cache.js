@@ -99,6 +99,17 @@ const EXPIRY_DAYS = {
   park_intel_wdw_stable:30, park_intel_wdw_dynamic:7
 };
 
+// WDW LAUNCH GATE (Oct 22, 2026): Walt Disney World is NOT launched and
+// park_intel_wdw_stable has never been built, yet the Thursday &section=
+// crons were burning ~13 Sonnet + web-search builds a month maintaining
+// park_intel_wdw_dynamic sections nothing reads (Oct 22 cost audit).
+// Every WDW section build path is gated off here until launch. To enable
+// WDW builds at launch: set this to true AND re-add the three WDW
+// Thursday crons (CLOSURES / CURRENT_CLOSURES / DINING_CLOSURES) to
+// vercel.json.
+const WDW_BUILDS_ENABLED = false;
+function isWdwBuildKey(key) { return typeof key === 'string' && key.includes('_wdw_'); }
+
 const LEGACY_PROMPTS = {
   park_intel:{system:'Disneyland expert. 2024-2026 only.',user:'Search TouringPlans AllEars MiceChat 2025-2026 for current Disneyland rope drop strategy, Lightning Lane Multi Pass order, peak-season crowds, top 10 tips, best times per land. Dense actionable guide.',maxTokens:1500},
   dining_intel:{system:'Disneyland dining expert. 2024-2026 only.',user:'Search Disney Food Blog AllEars 2024-2026. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Circle Lamplight Lounge Flos V8 (DCA). Rating must-orders reservation tips each.',maxTokens:1500},
@@ -896,6 +907,8 @@ function authorityForKey(cacheKey) {
 
 async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
   opts = opts || {};
+  // WDW launch gate (defense in depth): no single-section WDW builds.
+  if (!WDW_BUILDS_ENABLED && isWdwBuildKey(cacheKey)) throw new Error('WDW section builds are disabled (WDW_BUILDS_ENABLED=false) -- WDW is not launched');
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
   const prompt = resolveSectionPrompt(promptMap, cacheKey, sectionName);
@@ -1307,6 +1320,10 @@ async function setRateLimit() {
 // - Fail-loud: per-section errors are collected and returned; any failure -> 500.
 async function buildAllSections(cacheKey, apiKey, opts) {
   opts = opts || {};
+  // WDW launch gate (defense in depth): never fan out over a WDW key.
+  if (!WDW_BUILDS_ENABLED && isWdwBuildKey(cacheKey)) {
+    return { key: cacheKey, built: 0, skipped: 0, failed: 0, errors: [], remaining: [], partial: false, skippedReason: 'wdw-builds-disabled' };
+  }
   const t0 = Date.now();
   const TIME_BUDGET_MS = 240000;
   const isStable = cacheKey.includes('stable');
@@ -1468,6 +1485,14 @@ export default async function handler(req, res) {
   const force = req.query.force === '1';
   const requestedKey = req.query.key;
   const requestedSection = req.query.section;
+
+  // WDW launch gate: no request path builds park_intel_wdw_* sections
+  // while WDW is unlaunched (see WDW_BUILDS_ENABLED above). Covers both
+  // the &section= dispatch and the fan-out dispatch below in one place.
+  if (!WDW_BUILDS_ENABLED && isWdwBuildKey(requestedKey)) {
+    console.log('[cron-cache] WDW build skipped (launch gate): key=' + requestedKey + (requestedSection ? ' section=' + requestedSection : ''));
+    return res.status(200).json({ ok: true, skipped: 'wdw-builds-disabled', key: requestedKey, section: requestedSection || null });
+  }
 
   if(requestedKey && (requestedKey.includes('_dl_') || requestedKey.includes('_wdw_')) && requestedSection) {
     if(!VALID_KEYS.includes(requestedKey)) return res.status(400).json({error:'Invalid key'});
