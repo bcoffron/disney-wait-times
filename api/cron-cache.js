@@ -500,6 +500,75 @@ async function blobStore(key, cacheData) {
   return blob.url;
 }
 
+// ==== CACHE VERDICT RECORD START ====
+// CACHE VERDICT RECORD (Oct 22, 2026): every build attempt -- fan-out,
+// &section=, &key= legacy; forced or freshness-driven -- appends one entry
+// to a rolling blob, twize/cache_verdicts.json (a JSON array, most recent
+// 200 entries). Until now a failed or empty build vanished silently: DL
+// CURRENT_CLOSURES sat stale from Oct 8, 2026 and park_hours_intel stored
+// a wrong-shaped payload on Oct 22 with no signal anywhere. The reader
+// side (a daily check) lives outside this file; this is the write side.
+// A verdict write must NEVER break or block a build: all of it is
+// best-effort try/catch, and a read-back mismatch is logged, not thrown
+// (this store has known read-after-write lag; the next append re-reads
+// and self-heals the chain). Entry shape:
+// {ts, key, section, via ('fanout'|'section'|'legacy'), outcome
+// ('ok'|'fail'|'empty-output'|'skipped-fresh'), bytes, webSearchRequests,
+// model, error}
+const CACHE_VERDICTS_KEY = 'twize/cache_verdicts.json';
+const CACHE_VERDICTS_CAP = 200;
+const CACHE_BUILD_MODEL = 'claude-sonnet-5-5';
+let lastCallUsage = null; // usage of the most recent callClaude() call
+function lastCallSearches() {
+  const u = lastCallUsage;
+  return (u && u.server_tool_use && typeof u.server_tool_use.web_search_requests === 'number') ? u.server_tool_use.web_search_requests : null;
+}
+function usageSearches(d) {
+  return (d && d.usage && d.usage.server_tool_use && typeof d.usage.server_tool_use.web_search_requests === 'number') ? d.usage.server_tool_use.web_search_requests : null;
+}
+function sectionDataIsEmpty(sd) {
+  return sd == null || sd === '' || (Array.isArray(sd) && sd.length === 0) ||
+    (typeof sd === 'object' && !Array.isArray(sd) && Object.keys(sd).length === 0);
+}
+async function recordCacheVerdict(entry) {
+  try {
+    const full = {
+      ts: new Date().toISOString(),
+      key: entry.key || null,
+      section: entry.section || null,
+      via: entry.via || null,
+      outcome: entry.outcome || 'ok',
+      bytes: (typeof entry.bytes === 'number') ? entry.bytes : null,
+      webSearchRequests: (typeof entry.webSearchRequests === 'number') ? entry.webSearchRequests : null,
+      model: entry.model || CACHE_BUILD_MODEL,
+      error: entry.error ? String(entry.error).slice(0, 300) : null
+    };
+    let arr = [];
+    try {
+      const { blobs } = await list({ prefix: CACHE_VERDICTS_KEY });
+      if (blobs && blobs.length) {
+        const raw = await (await fetch(blobs[0].downloadUrl || blobs[0].url)).json();
+        if (Array.isArray(raw)) arr = raw;
+      }
+    } catch (e) { /* no readable verdict blob yet -- start fresh */ }
+    arr.push(full);
+    if (arr.length > CACHE_VERDICTS_CAP) arr = arr.slice(arr.length - CACHE_VERDICTS_CAP);
+    const blob = await put(CACHE_VERDICTS_KEY, JSON.stringify(arr), {
+      access: 'public', addRandomSuffix: false, contentType: 'application/json', allowOverwrite: true
+    });
+    // Read-back verify: log a mismatch rather than failing -- store lag is
+    // expected on this store and the build must not be its victim.
+    try {
+      const back = await (await fetch(blob.url)).json();
+      const last = Array.isArray(back) ? back[back.length - 1] : null;
+      if (!last || last.ts !== full.ts) console.warn('[cron-cache] verdict readback mismatch for ' + full.key + '/' + (full.section || '-') + ' (store lag likely)');
+    } catch (e) { console.warn('[cron-cache] verdict readback failed: ' + e.message); }
+  } catch (e) {
+    console.warn('[cron-cache] verdict record failed (build unaffected): ' + e.message);
+  }
+}
+// ==== CACHE VERDICT RECORD END ====
+
 function extractJson(text) {
   if(!text) return null;
   // Try direct parse first (handles raw JSON responses)
@@ -586,6 +655,7 @@ async function callClaude(prompt, apiKey) {
     body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:prompt.maxTokens,system:prompt.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt.user}]})
   });
   const d = await resp.json();
+  lastCallUsage = d.usage || null; // for the cache verdict record
   console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
   if(d.error) throw new Error(d.error.message);
   const blocks = d.content || [];
@@ -914,6 +984,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
   opts = opts || {};
   // WDW launch gate (defense in depth): no single-section WDW builds.
   if (!WDW_BUILDS_ENABLED && isWdwBuildKey(cacheKey)) throw new Error('WDW section builds are disabled (WDW_BUILDS_ENABLED=false) -- WDW is not launched');
+  lastCallUsage = null; // reset per build so a non-Claude path (CATALOG) never inherits a stale usage
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
   const prompt = resolveSectionPrompt(promptMap, cacheKey, sectionName);
@@ -1026,6 +1097,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
     // Do NOT touch the blob here -- per-section read-modify-write against the
     // CDN-cached blob URL is racy and a stale read silently drops
     // previously-written sections and their section_meta.
+    await recordCacheVerdict({ key: cacheKey, section: sectionName, via: 'fanout', outcome: sectionDataIsEmpty(sectionData) ? 'empty-output' : 'ok', bytes: JSON.stringify(sectionData).length, webSearchRequests: lastCallSearches() });
     return { section: sectionName, length: text.length, sectionData, sample: _sample };
   }
 
@@ -1079,6 +1151,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
 
   await blobStore(cacheKey, cacheData);
 
+  await recordCacheVerdict({ key: cacheKey, section: sectionName, via: 'section', outcome: sectionDataIsEmpty(sectionData) ? 'empty-output' : 'ok', bytes: JSON.stringify(sectionData).length, webSearchRequests: lastCallSearches() });
   return {
     section:sectionName,
     length:text.length,
@@ -1131,6 +1204,7 @@ async function buildDiningDL(key, apiKey) {
   const blob = await put('twize/'+key+'.json', JSON.stringify(diningPayload), {
     access:'public', addRandomSuffix:false, contentType:'application/json', allowOverwrite:true
   });
+  await recordCacheVerdict({ key, via: 'legacy', outcome: venues.length === 0 ? 'empty-output' : 'ok', bytes: JSON.stringify(diningPayload).length, webSearchRequests: usageSearches(d) });
   return { key, length: dataStr.length, venues: venues.length, stripped: rawVenues.length - venues.length };
 }
 
@@ -1290,6 +1364,7 @@ async function buildLegacy(key, apiKey) {
   const blob = await put('twize/'+key+'.json', JSON.stringify(legacyPayload), {
     access:'public', addRandomSuffix:false, contentType:'application/json', allowOverwrite:true
   });
+  await recordCacheVerdict({ key, via: 'legacy', outcome: sectionDataIsEmpty(value) ? 'empty-output' : 'ok', bytes: JSON.stringify(legacyPayload).length, webSearchRequests: usageSearches(d) });
   return {key, length:text.length};
 }
 
@@ -1407,7 +1482,7 @@ async function buildAllSections(cacheKey, apiKey, opts) {
   const results = [], errors = [], skipped = [];
   let sinceFlush = 0;
   for (const name of sectionNames) {
-    if (!isStale(name)) { skipped.push(name); continue; }
+    if (!isStale(name)) { skipped.push(name); await recordCacheVerdict({ key: cacheKey, section: name, via: 'fanout', outcome: 'skipped-fresh' }); continue; }
     if (Date.now() - t0 > TIME_BUDGET_MS) {
       console.log('[cron-cache] buildAllSections: time budget reached at ' + name + ', deferring the rest to the next run');
       break;
@@ -1422,6 +1497,7 @@ async function buildAllSections(cacheKey, apiKey, opts) {
       if (++sinceFlush >= 2) { sinceFlush = 0; await flush(); }
     } catch (e) {
       console.error('[cron-cache] buildAllSections: section FAILED ' + cacheKey + ' / ' + name + ': ' + e.message);
+      await recordCacheVerdict({ key: cacheKey, section: name, via: 'fanout', outcome: 'fail', error: e.message });
       errors.push({ section: name, error: e.message });
     }
   }
@@ -1505,6 +1581,7 @@ export default async function handler(req, res) {
       const result = await buildSingleSection(requestedKey, requestedSection, apiKey);
       return res.status(200).json({ok:true, ...result, ts:new Date().toISOString()});
     } catch(e) {
+      await recordCacheVerdict({ key: requestedKey, section: requestedSection, via: 'section', outcome: 'fail', error: e.message });
       return res.status(500).json({ok:false, section:requestedSection, error:e.message});
     }
   }
@@ -1528,7 +1605,7 @@ export default async function handler(req, res) {
   for(const k of legacyKeys) {
     if(!VALID_KEYS.includes(k)){errors.push({key:k,error:'Invalid key'});continue;}
     if(!LEGACY_PROMPTS[k]){errors.push({key:k,error:'No prompt for key'});continue;}
-    if(!force && await isFresh(k)){results.push({key:k,skipped:true});continue;}
+    if(!force && await isFresh(k)){results.push({key:k,skipped:true});await recordCacheVerdict({key:k, via:'legacy', outcome:'skipped-fresh'});continue;}
     if(force) {
       try {
         const {blobs} = await list({prefix:'twize/'+k+'.json'});
@@ -1539,6 +1616,7 @@ export default async function handler(req, res) {
       const blobUrl = await buildLegacy(k, apiKey);
       results.push({key:k, length:blobUrl.length||0});
     } catch(e) {
+      await recordCacheVerdict({key:k, via:'legacy', outcome:'fail', error:e.message});
       errors.push({key:k, error:e.message});
     }
     if(legacyKeys.indexOf(k) < legacyKeys.length-1) {
