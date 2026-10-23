@@ -534,6 +534,48 @@ export default async function handler(req, res) {
           }
         }
       } catch (e) { /* best-effort: never block a save */ }
+      // Day-field preservation (Oct 23, 2026 -- Claude ruling on the LL
+      // stamp strip, item 12): the merge guard above rescues whole days,
+      // but a save that rebuilds each day as {park, items} only (the
+      // client's pushSchedule, and any future partial-shape save) still
+      // erases the day-level generation state the stored day carries --
+      // generatedWith (the stamp the push monitor arms on), llSequence
+      // (the booking order), finalPark (onboarding's hop record), and
+      // the legacy date/isoDate day identity the monitor's today-match
+      // falls back to. An Oct 22 Rework Accept did exactly that and
+      // silently disarmed the next morning's game-plan push. The guard
+      // lives HERE, at the one persistence seam, so no client save
+      // shape can bypass it: for each incoming day, a preserved field
+      // absent on the incoming day but present on the stored day is
+      // merged from the stored day. Incoming values always win.
+      // llSequence carries one exception: when the incoming day bears
+      // a FRESH generatedWith stamp, this save regenerated the day and
+      // the sequence's presence or absence is that generation's truth
+      // -- an absent llSequence under a fresh stamp is a deliberate
+      // removal (an LL-off regeneration posts the stamp with no order)
+      // and the stored order must not be resurrected.
+      try {
+        const _pdInDays = tripData && tripData.tripConfig && tripData.tripConfig.schedule && tripData.tripConfig.schedule.days;
+        const _pdStDays = _pcStored && _pcStored.tripConfig && _pcStored.tripConfig.schedule && _pcStored.tripConfig.schedule.days;
+        if (Array.isArray(_pdInDays) && Array.isArray(_pdStDays)) {
+          const _pdFields = ['generatedWith', 'finalPark', 'date', 'isoDate'];
+          const _pdTouched = [];
+          for (let _pdi = 0; _pdi < _pdInDays.length; _pdi++) {
+            const _in = _pdInDays[_pdi], _st = _pdStDays[_pdi];
+            if (!_in || typeof _in !== 'object' || !_st) continue;
+            const _freshStamp = _in.generatedWith !== undefined;
+            const _got = [];
+            for (const _f of _pdFields) {
+              if (_in[_f] === undefined && _st[_f] !== undefined) { _in[_f] = _st[_f]; _got.push(_f); }
+            }
+            if (_in.llSequence === undefined && _st.llSequence !== undefined && !_freshStamp) {
+              _in.llSequence = _st.llSequence; _got.push('llSequence');
+            }
+            if (_got.length) _pdTouched.push('day ' + (_pdi + 1) + ': ' + _got.join(', '));
+          }
+          if (_pdTouched.length) console.log('[trip-preserve] trip ' + entry.tripId + ': carried day field(s) forward -- ' + _pdTouched.join('; '));
+        }
+      } catch (e) { /* best-effort: never block a save */ }
       // Plan-changed version stamp (step iv): computed against the FINAL
       // schedule (post merge-guard -- exactly what is about to be
       // stored). The version moves ONLY when a day's card sequence
