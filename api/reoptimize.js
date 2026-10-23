@@ -693,8 +693,23 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                     for (const hr of _held) {
                           const k = _norm(hr.ride);
                           const outT = _outByName[k];
-                          if (outT === undefined) { _violations.push({ ride: hr.ride, type: 'held-dropped', detail: 'Optimizing would have dropped ' + hr.ride + ', which has a booked Lightning Lane return (' + hr.returnStart + ' \u2013 ' + hr.returnEnd + ') \u2014 so your plan was kept unchanged.' }); continue; }
-                          const inT = _inByName[k] || '';
+                          const inT = _inByName[k];
+                          if (outT === undefined) {
+                                // "Dropped" requires the ride to have been IN the
+                                // input plan. A held return for a ride the day
+                                // never contained (manual Single Pass record,
+                                // Oct 23, 2026 -- the generator left the ride out
+                                // of the day and the leader bought it anyway)
+                                // cannot be dropped by a proposal: refusing every
+                                // optimize on that basis would strand the day
+                                // behind a false conflict. The prompt above still
+                                // instructs the model to place the ride at its
+                                // booked window, and once any output includes it,
+                                // the moved check below binds it like any other
+                                // held ride.
+                                if (inT !== undefined) { _violations.push({ ride: hr.ride, type: 'held-dropped', detail: 'Optimizing would have dropped ' + hr.ride + ', which has a booked Lightning Lane return (' + hr.returnStart + ' \u2013 ' + hr.returnEnd + ') \u2014 so your plan was kept unchanged.' }); }
+                                continue;
+                          }
                           if (outT !== inT) {
                                 const outMin = _parseClock(outT);
                                 if (outMin === null || outMin < hr.startMin || outMin > hr.endMin) {
