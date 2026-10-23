@@ -4323,6 +4323,103 @@ function tpcpSingleChange(dayIdx, name, surface){
 }
 
 
+// ===== MANUAL SINGLE PASS RECORD (Claude ruling, Oct 23, 2026) =====
+// Beau's ask: a leader who buys a Single Pass in Disney's app needs a
+// way to record it that day -- the generator's singleSeparate list is
+// only a recommendation, and the morning TEST02 was rebuilt it came
+// back empty, leaving no surface at all. The research (Oct 23) sets
+// the shape: at Disneyland, Single Pass is bought day-of, only AFTER
+// the guest scans into a park, and Disney assigns the next available
+// 1-hour window -- so this is an in-park record, not a morning alarm,
+// and it asks only for the window's start (tpcpRecordBookedReturn
+// derives the end, exactly like the game-plan rows). Recording is a
+// fact, not a decision: no rework prompt; the return lands as a held
+// anchor and the rest of the day accommodates it.
+//
+// The purchasable set is TWO rides and has been stable for years --
+// hardcoded on purpose (ruling Q2): a ride list read from the
+// pricing-intel cache would vanish silently whenever that cache is
+// stale. Disney's cap of one per attraction per day falls out of the
+// record itself: a ride with a held return renders its booked state
+// (with Change), never a second entry.
+//
+// Placement (ruling Q1): the SAME control lives where the day's LL
+// content already is -- inside the game-plan card on Multi-Pass days,
+// inside the compact LL card on standby days -- never a second LL
+// surface, and never duplicated for a ride the generator already
+// listed in singleSeparate (those rows are the same control).
+// Leader-only, and only when the viewed day is TODAY in the day's
+// park-local time (Q4): the purchase it records cannot exist before
+// the day itself. What communicates the entry-scan rule is the
+// empty-state line, not the control's absence.
+function tpcpParkTzForDay(dayIdx){
+  // The PR #118 static park -> timezone map, mirrored client-side:
+  // derived from the day's own park strings, never from the device.
+  var s='';
+  var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
+  if(sd&&sd.park)s+=' '+sd.park;
+  var tc=(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG)||(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
+  var cfg=(tc.days&&tc.days[dayIdx])||{};
+  s+=' '+(cfg.park||'')+' '+(cfg.startPark||'')+' '+(tc.location||'');
+  if(/magic kingdom|epcot|hollywood studios|animal kingdom|walt disney world/i.test(s))return 'America/New_York';
+  return 'America/Los_Angeles';
+}
+function tpcpDayIsTodayParkLocal(dayIdx){
+  try{
+    var tc=(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG)||(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
+    var cfg=(tc.days&&tc.days[dayIdx])||null;
+    if(!cfg||!cfg.date)return false;
+    var pd=(typeof tpcpParseDayDate==='function')?tpcpParseDayDate(cfg.date):null;
+    if(!pd)return false;
+    var iso=pd.getFullYear()+'-'+String(pd.getMonth()+1).padStart(2,'0')+'-'+String(pd.getDate()).padStart(2,'0');
+    var today=new Intl.DateTimeFormat('en-CA',{timeZone:tpcpParkTzForDay(dayIdx),year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    return iso===today;
+  }catch(e){return false;}
+}
+function tpcpSinglePassRidesForDay(dayIdx){
+  // Disneyland Park -> Rise of the Resistance; Disney California
+  // Adventure -> Radiator Springs Racers. A park-hopper day offers
+  // both (either can be bought after scanning into either park); the
+  // day's own park lists first.
+  var parkStrs=[];
+  var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
+  if(sd&&sd.park)parkStrs.push(String(sd.park));
+  var tc=(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG)||(window._loadedTripData&&window._loadedTripData.tripConfig)||{};
+  var cfg=(tc.days&&tc.days[dayIdx])||{};
+  if(cfg.startPark)parkStrs.push(String(cfg.startPark));
+  if(cfg.park)parkStrs.push(String(cfg.park));
+  var hasDL=false,hasDCA=false;
+  parkStrs.forEach(function(pk){
+    if(/california adventure/i.test(pk))hasDCA=true;
+    else if(/disneyland/i.test(pk))hasDL=true;
+  });
+  if(!hasDL&&!hasDCA&&/disneyland/i.test(String(tc.location||'')))hasDL=true;
+  if((cfg.hopTo===true||tc.parkHopping===true)&&(hasDL||hasDCA)){hasDL=true;hasDCA=true;}
+  var rides=[];
+  var dcaFirst=!!(sd&&/california adventure/i.test(String(sd.park||'')));
+  if(dcaFirst){ if(hasDCA)rides.push('Radiator Springs Racers'); if(hasDL)rides.push('Star Wars: Rise of the Resistance'); }
+  else{ if(hasDL)rides.push('Star Wars: Rise of the Resistance'); if(hasDCA)rides.push('Radiator Springs Racers'); }
+  return rides;
+}
+function tpcpManualSinglePassHTML(dayIdx, seq){
+  var leader=false;
+  try{ leader=(typeof isAdmin==='function')&&isAdmin(); }catch(e){}
+  if(!leader)return '';
+  if(!tpcpDayIsTodayParkLocal(dayIdx))return '';
+  var covered={};
+  if(seq&&seq.singleSeparate){ for(var ci=0;ci<seq.singleSeparate.length;ci++){ if(typeof seq.singleSeparate[ci]==='string')covered[llNormKey(seq.singleSeparate[ci])]=true; } }
+  var rides=tpcpSinglePassRidesForDay(dayIdx).filter(function(n){ return !covered[llNormKey(n)]; });
+  if(!rides.length)return '';
+  var anyOpen=false;
+  for(var ri=0;ri<rides.length;ri++){ if(!getHeldReturn(dayIdx,rides[ri])){ anyOpen=true; break; } }
+  var h='<div style="margin-top:10px;border-top:0.5px solid #E7DcBE;padding-top:9px">';
+  if(anyOpen)h+='<div class="ll-seq-line">Single Pass goes on sale once you\u2019ve scanned into the park. Bought one? Enter the return time Disney gave you \u2014 the plan treats it as locked in.</div>';
+  for(var rj=0;rj<rides.length;rj++)h+=tpcpSingleRowHTML(dayIdx,rides[rj],'card');
+  h+='</div>';
+  return h;
+}
+
+
 //    Magic Day fireworks                                                   
 var fwParticles=[], fwAnimId=null, fwLaunchTimer=null;
 
@@ -5691,7 +5788,7 @@ function renderLLSequenceBlock(dayIdx){
     // the merged single-card form (Beau, Oct 21, 2026); guests get
     // nothing, exactly as when the toggle was its own card.
     if(typeof isAdmin!=='function'||!isAdmin())return '';
-    return '<div class="ll-seq-block"><div class="ll-seq-title"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane Multi Pass</div>'+renderLLToggleFooter(dayIdx,true)+'</div>';
+    return '<div class="ll-seq-block"><div class="ll-seq-title"><span style="display:inline-block;vertical-align:-2px;margin-right:5px">'+tpcpBoltSVG(12)+'</span>Lightning Lane Multi Pass</div>'+tpcpManualSinglePassHTML(dayIdx,null)+renderLLToggleFooter(dayIdx,true)+'</div>';
   }
   var esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');};
   var collapsed=tpcpLLPlanCollapsed();
@@ -5705,6 +5802,7 @@ function renderLLSequenceBlock(dayIdx){
   if(_llLeader&&seq.singleSeparate&&seq.singleSeparate.length){h+=tpcpSinglesRowsHTML(dayIdx,seq,'card');}
   else if(seq.singleSeparate&&seq.singleSeparate.length===1){h+='<div class="ll-seq-note">'+esc(seq.singleSeparate[0])+' is a separate Single Pass purchase \u2014 not part of this sequence.</div>';}
   else if(seq.singleSeparate&&seq.singleSeparate.length>1){h+='<div class="ll-seq-note">'+seq.singleSeparate.map(esc).join(' and ')+' are separate Single Pass purchases \u2014 not part of this sequence.</div>';}
+  h+=tpcpManualSinglePassHTML(dayIdx,seq);
   }
   if(typeof renderLLToggleFooter==='function')h+=renderLLToggleFooter(dayIdx,false);
   h+='</div>';
