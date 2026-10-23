@@ -71,6 +71,8 @@ jobs:
         run: node --test test/push-schedule-preserve.test.mjs
       - name: LL intent-vs-stamp divergence suite
         run: node --test test/ll-divergence.test.mjs
+      - name: Upcoming-only ride-alert gate suite
+        run: node --test test/ride-alert-upcoming-gate.test.mjs
       - name: Schedule engine suite
         run: node --test api/schedule-engine.test.js
       - name: Schedule corrections suite

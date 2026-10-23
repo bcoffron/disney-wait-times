@@ -266,6 +266,170 @@ export function recordLlDivergence(state, rec) {
   return true;
 }
 
+// ---- UPCOMING-ONLY RIDE ALERTS (Beau, Oct 23, 2026; Claude msg 606) ----
+// Ride-condition alerts (spike / drop / high / down / back-up) are
+// only worth sending while the ride is still ahead of the party on
+// TODAY's plan: a spike ping for the 8:30 AM Space Mountain at 11 AM
+// is noise about a ride already ridden. The filter judges DONE-AT per
+// ride from the CURRENT stored day, so a rework that moves the ride
+// later makes it eligible again on the next sweep (the Waits tab is
+// the answer for a ride the party skipped -- no alert-side
+// compensation).
+//
+// Layering (ruling Q1): the gate sits at EMISSION, after the
+// wait-state machine has tracked waits and recorded crossings exactly
+// as before -- keep the record accurate, filter the telling. A
+// suppressed candidate produces no episode, no send to either role,
+// and no send-side commit (fire counts, downAlerted, highAlerted all
+// stay send-gated as they were); the state machine's own crossing
+// record is untouched.
+//
+// Done-at resolution for a ride, in precedence order:
+//   (a) a recorded BOOKED RETURN for the ride today
+//       (tripConfig.heldReturns, the fact the leader asserted --
+//       ruling Q3) governs outright: its window END is the done-at,
+//       whether that is later OR earlier than the plan item's time.
+//   (b) an occurrence that is an LL-return item WITH a window: the
+//       window end. No current producer emits a windowed item (the
+//       live window source is (a)); this is a tolerant read for
+//       range-encoded or returnEnd-carrying items, not a new shape.
+//   (c) otherwise the occurrence's scheduled start.
+// A ride is done when park-local now >= the LATEST done-at across its
+// occurrences -- any still-upcoming occurrence keeps it eligible.
+//
+// Fail open (ruling Q2): when no occurrence yields a parseable time,
+// the ride stays eligible (silence on bad data is the failure mode
+// this week keeps punishing) AND the gap is recorded on the
+// wait-state (state.alertParseGaps, kind 'alert-time-unparsed') so
+// the parser gap is learned about instead of silently eaten.
+
+// Exact port of the client's llNormKey (app.html): held-return records
+// carry rideKey computed by this function, so matching a record to a
+// live ride name must run the same normalization.
+export function heldRideKey(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\b(the|a|an|ride|standby|at|to|and)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// The window end an item itself carries, in minutes; -1 when the item
+// has no readable window (the normal case in today's stored shapes).
+export function itemWindowEndMin(it) {
+  if (!it || typeof it !== 'object') return -1;
+  const fields = [it.returnEnd, it.winEnd, it.ll && it.ll.returnEnd, it.ll && it.ll.winEnd];
+  for (const f of fields) { const m = hmToMin(f); if (m >= 0) return m; }
+  // Range-encoded window on an LL item's time ("2:30 PM - 3:30 PM"):
+  // the second clock is the window end.
+  if (it.ll && typeof it.t === 'string') {
+    const clocks = it.t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/gi);
+    if (clocks && clocks.length >= 2) return hmToMin(clocks[clocks.length - 1]);
+  }
+  return -1;
+}
+
+// Pure eligibility verdict for one candidate ride. ctx:
+//   items / itemKeys -- today's ride items and, in parallel, the
+//     monitor ride key each item resolves to (null when unresolvable)
+//   rideKey / liveName -- the candidate's key + display name
+//   heldReturns -- tripConfig.heldReturns (any days; filtered here)
+//   dayIdx, nowMin -- today's index + park-local minutes now
+// Returns { eligible, doneAtMin, via, parseGaps: [{ride, ref}] }.
+export function evaluateRideEligibility(ctx) {
+  const items = Array.isArray(ctx.items) ? ctx.items : [];
+  const itemKeys = Array.isArray(ctx.itemKeys) ? ctx.itemKeys : [];
+  const held = Array.isArray(ctx.heldReturns) ? ctx.heldReturns : [];
+  const nowMin = ctx.nowMin;
+  const gaps = [];
+  // (a) booked return governs.
+  const heldKey = heldRideKey(ctx.liveName);
+  for (const rec of held) {
+    if (!rec || rec.day !== ctx.dayIdx) continue;
+    const nameKey = rec.ride ? normName(rec.ride) : '';
+    const matches = (rec.rideKey && heldKey && rec.rideKey === heldKey)
+      || (nameKey && (nameKey === ctx.rideKey
+          || nameKey.indexOf(ctx.rideKey + ' ') === 0
+          || ctx.rideKey.indexOf(nameKey + ' ') === 0));
+    if (!matches) continue;
+    const endMin = hmToMin(rec.returnEnd);
+    if (endMin >= 0) {
+      return { eligible: nowMin < endMin, doneAtMin: endMin, via: 'booked-return', parseGaps: gaps };
+    }
+    // The asserted fact is unreadable: name the gap, then fall back
+    // to the plan occurrences rather than guessing at the window.
+    gaps.push({ ride: ctx.liveName, ref: 'held return returnEnd=' + JSON.stringify(String(rec.returnEnd || '')) });
+    break; // one held return per ride per day by construction
+  }
+  // (b)/(c) occurrences: latest done-at wins.
+  let latest = -1;
+  for (let i = 0; i < items.length; i++) {
+    if (itemKeys[i] !== ctx.rideKey) continue;
+    const it = items[i];
+    const winEnd = itemWindowEndMin(it);
+    const done = winEnd >= 0 ? winEnd : hmToMin(it && it.t);
+    if (done < 0) {
+      gaps.push({ ride: ctx.liveName, ref: 'item ' + JSON.stringify(String((it && it.h) || '')) + ' t=' + JSON.stringify(String((it && it.t) || '')) });
+      continue;
+    }
+    if (done > latest) latest = done;
+  }
+  if (latest < 0) {
+    // Nothing parseable (or the ride is not in today's items at all):
+    // fail open -- eligibility cannot be disproved.
+    return { eligible: true, doneAtMin: null, via: gaps.length ? 'unparsed' : 'not-in-day', parseGaps: gaps };
+  }
+  return { eligible: nowMin < latest, doneAtMin: latest, via: 'schedule', parseGaps: gaps };
+}
+
+// gateCandidateList: the emission filter itself. Keeps candidates the
+// eligibility function clears; the names of the rest are appended to
+// `suppressed` (the caller dedupes before tracing). Order preserved.
+export function gateCandidateList(list, keyOf, eligibilityFor, suppressed) {
+  if (!Array.isArray(list)) return [];
+  return list.filter((c) => {
+    const ev = eligibilityFor(keyOf(c), c.name);
+    if (ev && ev.eligible === false) { suppressed.push(c.name); return false; }
+    return true;
+  });
+}
+
+// recordAlertParseGap: wait-state tripwire for unparseable item /
+// held-return times on rides the gate had to judge (ruling Q2 --
+// fail open AND log). Same discipline as recordLlDivergence:
+// deduped per (ymd, ride, ref), capped to the most recent 14.
+// Returns true when a record was added.
+export function recordAlertParseGap(state, rec) {
+  if (!state || !rec) return false;
+  if (!Array.isArray(state.alertParseGaps)) state.alertParseGaps = [];
+  if (state.alertParseGaps.some(g => g && g.ymd === rec.ymd && g.ride === rec.ride && g.ref === rec.ref)) return false;
+  state.alertParseGaps.push(rec);
+  if (state.alertParseGaps.length > 14) state.alertParseGaps = state.alertParseGaps.slice(-14);
+  return true;
+}
+
+// recordAlertSuppression: the per-day suppression trace (ruling Q4)
+// -- a rolling count + ride names on the wait-state, visible nowhere
+// in the product, overwritten when the day rolls. `names` is ONE
+// sweep's suppressed rides (deduped by the caller); the count grows
+// by the number of distinct rides suppressed that sweep, so a ride
+// suppressed in ten sweeps reads as ten evaluations, not one.
+export function recordAlertSuppression(state, ymd, names) {
+  if (!state || !ymd || !Array.isArray(names)) return false;
+  const uniq = Array.from(new Set(names.filter(n => typeof n === 'string' && n)));
+  if (!uniq.length) return false;
+  if (!state.alertSuppressions || state.alertSuppressions.ymd !== ymd) {
+    state.alertSuppressions = { ymd: ymd, count: 0, rides: [] };
+  }
+  state.alertSuppressions.count += uniq.length;
+  for (const n of uniq) {
+    if (!state.alertSuppressions.rides.includes(n)) state.alertSuppressions.rides.push(n);
+  }
+  return true;
+}
+
 function episodeIdFor(tripId, rideKey, episodeType, ymd, fireCount) {
   const base = 'ep:' + tripId + ':' + rideKey + ':' + episodeType + ':' + ymd;
   return (typeof fireCount === 'number' && fireCount > 0) ? base + ':f' + fireCount : base;
@@ -674,18 +838,18 @@ export default async function handler(req, res) {
       // load per-trip wait state (last-known waits + cooldowns)
       const stateKey = 'twize/wait-state/' + tripId + '.json';
       const state = (await readJsonBlob(stateKey)) || { ymd: pt.ymd, rides: {} };
-      if (state.ymd !== pt.ymd) { state.ymd = pt.ymd; state.rides = {}; state.lastHighAlertMin = -99999; } // new day -> reset
+      if (state.ymd !== pt.ymd) { state.ymd = pt.ymd; state.rides = {}; state.lastHighAlertMin = -99999; delete state.alertSuppressions; } // new day -> reset (the per-day suppression trace rolls with it)
 
       const nowMin = pt.hour * 60 + pt.minute;
       let firedThisTrip = 0;
       let apnsSentTrip = 0;
       const apnsDetails = [];
-      const spikes = [];
-      const drops = [];
-      const highs = [];
-      const downs = [];
-      const downsAll = [];
-      const backUps = [];
+      let spikes = [];
+      let drops = [];
+      let highs = [];
+      let downs = [];
+      let downsAll = [];
+      let backUps = [];
       const lastHigh = (typeof state.lastHighAlertMin === 'number') ? state.lastHighAlertMin : -99999;
 
       // One evaluated event, fanned out to every code of the trip on
@@ -801,6 +965,49 @@ export default async function handler(req, res) {
           state.rides[key] = { ...prevRec, wait: cur, lastAlertMin: lastAlert, lastDropMin: lastDrop, highAlerted: highDone };
         }
       }
+
+      // ---- UPCOMING-ONLY EMISSION GATE (Beau, Oct 23, 2026; Claude
+      // msg 606) ---- the wait-state machine above has already tracked
+      // waits and recorded crossings exactly as before; here, at
+      // emission, candidates whose ride is DONE on today's current
+      // stored plan are filtered out of every ride-condition list.
+      // The clock is park-local via the same static tz map the
+      // ll-order gate uses (for Disneyland trips it is the PT clock
+      // the rest of the monitor runs on). Suppression adds no commits
+      // of its own: a filtered candidate simply never reaches the
+      // ladder, so its send-side flags (fire counts, downAlerted,
+      // highAlerted) stay unconsumed for a later, eligible sweep.
+      const gatePark = (cfgDays[todayIdx] && cfgDays[todayIdx].park) || (schedule.days[todayIdx] && schedule.days[todayIdx].park) || '';
+      const gateTz = parkTimezoneFor(gatePark);
+      const gateNowMin = gateTz ? zonedParts(now, gateTz).minutes : nowMin;
+      const gateItemKeys = rideItems.map((it) => {
+        const r = resolveLive(it.h, liveByName, liveKeys);
+        return r ? normName(r.name) : null;
+      });
+      const gateHeld = Array.isArray(cfg.heldReturns) ? cfg.heldReturns : [];
+      const suppressedRaw = [];
+      const eligibilityFor = (key, liveName) => {
+        const ev = evaluateRideEligibility({
+          items: rideItems, itemKeys: gateItemKeys, rideKey: key, liveName: liveName,
+          heldReturns: gateHeld, dayIdx: todayIdx, nowMin: gateNowMin
+        });
+        for (const g of ev.parseGaps) {
+          if (recordAlertParseGap(state, { kind: 'alert-time-unparsed', ymd: pt.ymd, tripId: tripId, ride: g.ride, ref: g.ref, atMin: gateNowMin })) {
+            console.warn('[push-monitor] alert-time-unparsed trip ' + tripId + ' ' + g.ref + ' -- ride stays eligible (fail open)');
+          }
+        }
+        return ev;
+      };
+      const byKey = (c) => c.key;
+      const byName = (c) => normName(c.name);
+      downs = gateCandidateList(downs, byKey, eligibilityFor, suppressedRaw);
+      downsAll = gateCandidateList(downsAll, byKey, eligibilityFor, suppressedRaw);
+      spikes = gateCandidateList(spikes, byName, eligibilityFor, suppressedRaw);
+      backUps = gateCandidateList(backUps, byKey, eligibilityFor, suppressedRaw);
+      highs = gateCandidateList(highs, byKey, eligibilityFor, suppressedRaw);
+      drops = gateCandidateList(drops, byName, eligibilityFor, suppressedRaw);
+      const suppressedNames = Array.from(new Set(suppressedRaw));
+      if (suppressedNames.length) recordAlertSuppression(state, pt.ymd, suppressedNames);
 
       // fire one notification per trip. A planned ride down wins (rope-drop
       // morning case first, then any all-day down episode); then spikes,
@@ -985,7 +1192,7 @@ export default async function handler(req, res) {
       }
 
       await writeJsonBlob(stateKey, state);
-      summary.push({ tripId, codes, variants: variantByCode, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, sent: firedThisTrip, sentByCode, apnsSent: apnsSentTrip, apnsDetail: apnsDetails.length ? apnsDetails : undefined });
+      summary.push({ tripId, codes, variants: variantByCode, dayIdx: todayIdx, ridesChecked: rideItems.length, downs: downs.length, downsAll: downsAll.length, backUps: backUps.length, spikes: spikes.length, highs: highs.length, drops: drops.length, alertSuppressed: suppressedNames.length || undefined, sent: firedThisTrip, sentByCode, apnsSent: apnsSentTrip, apnsDetail: apnsDetails.length ? apnsDetails : undefined });
     }
 
     console.log('[push-monitor] ' + pt.ymd + ' ' + pt.hour + ':' + pt.minute + ' PT | ' + JSON.stringify(summary));
