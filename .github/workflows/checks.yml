@@ -63,6 +63,8 @@ jobs:
         run: node --test test/multipass-sale-time.test.mjs
       - name: Manual Single Pass record suite
         run: node --test test/single-pass-manual.test.mjs
+      - name: Startup / day-state suite (item 20)
+        run: node --test test/startup-day-state.test.mjs
       - name: Trip save day-field preservation suite
         run: node --test test/trip-save-preserve.test.mjs
       - name: Client pushSchedule carry-forward suite
