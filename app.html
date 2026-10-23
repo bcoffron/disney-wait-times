@@ -3362,6 +3362,12 @@ async function tpcpEnableNativeWaitAlerts(){
       // Tap on a notification: bring the guest to the app (Waits is one tap
       // away; the payload url is '/app.html').
       P.addListener('pushNotificationActionPerformed', function(action){
+        // Push-tap episode capture (Claude ruling, Oct 22, 2026): a tap
+        // is a SPECIFIC intent -- record which episode was tapped so the
+        // app can open onto that episode (TAP-PRESENT block, below).
+        // Payloads carrying an absolute https url (booking deep links)
+        // record nothing and keep the external-open behavior below.
+        try { if (tpcpTapRecord(action && action.notification && action.notification.data)) tpcpTapConsume(); } catch(e) {}
         var url = (action && action.notification && action.notification.data && action.notification.data.url) || '';
         // Tap-through: alert payloads can carry a destination (booking-window
         // alerts deep-link to the restaurant's Disney dining page; wait
@@ -3655,6 +3661,12 @@ function startBlobPoll() {
     var code = localStorage.getItem('tpcp_code');
     var role = localStorage.getItem('tpcp_role') || '';
     if (!code) return;
+    // Push-tap floor: consume a recorded notification tap (a cold start
+    // records the tap before the poll is running). No-op unless a tap
+    // is pending; the consume fetch is tokenless BY DESIGN -- the
+    // tapped episode was pushed to this device, so the dt poll below
+    // excludes it server-side (see the TAP-PRESENT block).
+    try { tpcpTapConsume(); } catch (e) {}
     // Channel dedupe (Oct 22 ruling): present this device's push token
     // so the server can exclude episodes this device already received
     // as a native push. Absent (web preview, pushes never enabled) the
@@ -8742,6 +8754,119 @@ function tpcpEpisodeFeed(ep) {
     }
   });
 }
+
+/* ==== BEGIN TAP-PRESENT: push-tap episode presentation (extracted by test/push-tap-presenter.test.mjs) ==== */
+// ===== PUSH-TAP EPISODE PRESENTATION (Claude ruling, Oct 22, 2026) =====
+// A push TAP is a specific intent, not a general one: the user tapped
+// THIS notification, so the app opens onto THIS episode -- never "the
+// newest fresh episode," which could be a different alert than the one
+// tapped. Everything in the #106 policy below answers "what may
+// interrupt someone who didn't ask"; a tap is someone asking, and it
+// gets its own narrow path:
+//
+//   - Capture: the tap handler records the payload's episodeId (the
+//     identity already rides every episode payload, api/apns.js).
+//     Payloads carrying an absolute https url record NOTHING: booking
+//     deep-link taps open their destination and never consume a
+//     presentation (the 6(b) rule), untouched below.
+//   - Retrieval: the consume fetch is TOKENLESS (code only). The
+//     tapped episode was pushed to this device, so the dt poll
+//     excludes it server-side by design; the poll request cannot be
+//     reused here.
+//   - Validation mirrors the poll's discipline: the episode must
+//     exist in today's (Pacific) list, must not be booking class,
+//     and must still be FRESH (TPCP_EPISODE_FRESH_MS) -- a tap on a
+//     six-hour-old notification opens the schedule, as before.
+//   - The bypass is exactly ONE episode, identified by id: this id's
+//     shown/pending marks are forgotten so the route can present it,
+//     and mark-on-present at open re-marks it. The presentation
+//     occupies the #106 one-per-foreground slot -- if a presentation
+//     is up or queued, the tap presents nothing alongside it.
+//   - One tap, one chance: a definitive fetch answer spends the
+//     pending tap whatever it says (presented, stale, missing, slot
+//     taken). Only a transport failure keeps it, for a later poll
+//     tick, and the freshness cap bounds how long it can live.
+var _tpcpPendingTap = null;
+var TPCP_TAP_STORAGE_KEY = 'tpcp_pending_tap';
+
+// Pure capture decision: the pending tap for a notification payload,
+// or null when the payload carries no episode identity or deep-links
+// externally (absolute https url).
+function tpcpTapFromData(data, now) {
+  if (!data || typeof data !== 'object') return null;
+  var ep = data.episodeId;
+  if (!ep || typeof ep !== 'string') return null;
+  var url = data.url || '';
+  if (url && /^https:\/\//i.test(url)) return null;
+  return { episodeId: ep, tappedAt: (typeof now === 'number' ? now : Date.now()) };
+}
+
+function tpcpTapRecord(data) {
+  var tap = tpcpTapFromData(data, Date.now());
+  if (!tap) return null;
+  _tpcpPendingTap = tap;
+  try { sessionStorage.setItem(TPCP_TAP_STORAGE_KEY, JSON.stringify(tap)); } catch (e) {}
+  return tap;
+}
+
+function tpcpTapRead() {
+  if (_tpcpPendingTap && _tpcpPendingTap.episodeId) return _tpcpPendingTap;
+  try {
+    var raw = sessionStorage.getItem(TPCP_TAP_STORAGE_KEY);
+    if (!raw) return null;
+    var tap = JSON.parse(raw);
+    if (tap && typeof tap.episodeId === 'string' && tap.episodeId) { _tpcpPendingTap = tap; return tap; }
+  } catch (e) {}
+  return null;
+}
+
+function tpcpTapClear() {
+  _tpcpPendingTap = null;
+  try { sessionStorage.removeItem(TPCP_TAP_STORAGE_KEY); } catch (e) {}
+}
+
+// Pure selection + validation: from a tokenless trip episode list,
+// the ONE episode a pending tap may present, or null. Exact id match
+// only -- a newer episode, however fresh, is never substituted.
+function tpcpTapPickEpisode(list, tap, todayYmd, now) {
+  if (!Array.isArray(list) || !tap || !tap.episodeId) return null;
+  for (var i = 0; i < list.length; i++) {
+    var ep = list[i];
+    if (!ep || ep.episodeId !== tap.episodeId) continue;
+    if (!ep.ymd || (todayYmd && ep.ymd !== todayYmd)) return null;
+    if ((ep.class || '') === 'booking') return null;
+    if (typeof ep.firedAt !== 'number') return null;
+    if ((now - ep.firedAt) > TPCP_EPISODE_FRESH_MS) return null;
+    return ep;
+  }
+  return null;
+}
+
+function tpcpTapConsume() {
+  var tap = tpcpTapRead();
+  if (!tap) return;
+  var code = '';
+  try { code = localStorage.getItem('tpcp_code') || ''; } catch (e) {}
+  if (!code || typeof fetch === 'undefined' || typeof SYNC_BASE === 'undefined') return; // not attemptable yet; a later poll tick retries
+  fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(code) + '&t=' + Date.now())
+    .then(function(resp) { return resp.json().then(function(j) { return j; }).catch(function() { return null; }); }, function() { return null; })
+    .then(function(data) {
+      if (!data) return; // transport failure: keep the tap for a later tick (freshness bounds it)
+      tpcpTapClear(); // a definitive answer spends the tap, whatever it says
+      if (!Array.isArray(data.episodes)) return;
+      var ep = tpcpTapPickEpisode(data.episodes, tap, (typeof tpcpTodayYmdPT === 'function') ? tpcpTodayYmdPT() : '', Date.now());
+      if (!ep) return;
+      if (_tpcpAlertCurrent || _tpcpAlertQueue.length) return; // the #106 slot is taken; present nothing alongside
+      // Single-id bypass: forget this one episode's marks so the route
+      // can present it; mark-on-present at open re-marks it. No other
+      // episode's state is touched, and the poll path is unchanged.
+      delete _tpcpPresentedEpisodes[ep.episodeId];
+      delete _tpcpPendingEpisodes[ep.episodeId];
+      tpcpEpisodeFeed(ep);
+    })
+    .catch(function() {});
+}
+/* ==== END TAP-PRESENT ==== */
 
 function tpcpPresentPolledEpisodes(list) {
   if (!Array.isArray(list)) return;
