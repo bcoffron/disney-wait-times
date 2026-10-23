@@ -53,6 +53,8 @@ jobs:
         run: node --test test/reoptimize-held-guard.test.mjs
       - name: Rework fresh-run + interruption suite
         run: node --test test/rework-interruption.test.mjs
+      - name: Rework result copy suite
+        run: node --test test/rework-result-copy.test.mjs
       - name: LL order 7 AM park-local gate suite
         run: node --test test/ll-order-gate.test.mjs
       - name: Single Pass copy audit suite
