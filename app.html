@@ -4288,7 +4288,12 @@ function tpcpRecordBookedReturn(dayIdx, rideKey, rideName, returnTime){
       // bodies are built from the same local state (the conversion
       // mutates every store the two saves read), so either landing
       // order stores both halves.
-      try{ tpcpConvertRideItem(dayIdx,_dispName,_startMin); }catch(e){}
+      var _conv=false;
+      try{ _conv=tpcpConvertRideItem(dayIdx,_dispName,_startMin); }catch(e){}
+      // No plan item anywhere: the return still has to exist in the
+      // day -- insert its timeline item, locked in that spot (Beau's
+      // decision, Oct 23, 2026; see the insert section below).
+      if(!_conv){ try{ tpcpInsertRideItem(dayIdx,_dispName,_startMin); }catch(e){} }
       saveHeldReturns();
       try{ if(typeof saveCustom==='function') saveCustom(dayIdx); }catch(e){}
       return _rec;
@@ -4382,10 +4387,12 @@ function tpcpConvertRideItem(dayIdx, rideName, startMin){
     var hit=tpcpFindRideItemIn(items, rideName);
     if(!hit) continue;
     var it=hit.item;
-    if(!it._preBook){
+    if(!it._preBook&&!it._recordedInsert){
       // First conversion: stash the pre-conversion state BEFORE any
       // field changes. A re-record (Change) finds the stash already
       // here and keeps it -- the converted state is never stashed.
+      // A recorded insert (below) is never stashed either: it is the
+      // leader's own record, and removing its return deletes it.
       it._preBook={ idx: hit.index, item: JSON.parse(JSON.stringify(it)) };
       if(!it.ll){
         var kind=tpcpReturnKindForRide(dayIdx, rideName, it);
@@ -4426,13 +4433,114 @@ function tpcpRestoreRideItem(dayIdx, rideName){
   }
   return did;
 }
+// ===== RECORDED-RETURN INSERT (Beau's decision, Oct 23, 2026) =====
+// Conversion covers a ride the generator planned. Beau's other case
+// is the ride it did NOT plan: he buys an Individual Lightning Lane
+// in the park for a ride with no plan item (the morning TEST02 was
+// rebuilt, the generator's Single Pass list came back empty and the
+// ride was nowhere in the day). PR #128 recorded only the held return
+// for that case -- the anchor existed, but the day's timeline showed
+// nothing, so the plan the leader and guests look at never mentioned
+// the ride. Beau's ruling: "Recorded return time that is locked in
+// that spot for a purchased Individual LL." Recording now INSERTS a
+// timeline item at the return window, shaped like a generated LL ride
+// item and flagged _recordedInsert, in every store that lacks the
+// ride. heldReturns stays the guard's authority (ruling Q4); the item
+// is its timeline face, rendered with the same card, LL marker, and
+// booked pill a converted item gets.
+//
+// Record and remove stay an inverse pair: removing the return deletes
+// the inserted item outright (there is no planned state to restore),
+// and the round-trip is byte-identical, test-pinned like conversion's.
+// A re-record (Change) reaches the inserted item through conversion,
+// which retimes and re-sorts it but never stashes it -- removal still
+// deletes it.
+function tpcpRideItemPresence(items, rideName){
+  // Conservative presence probe for insert: an exact normalized
+  // match, or ANY prefix candidate (the ambiguous case conversion
+  // refuses to touch), counts as present -- insert must never
+  // duplicate a ride the day already carries under a variant name.
+  if(!items||!rideName) return false;
+  var rk=llNormKey(rideName); if(!rk) return false;
+  for(var i=0;i<items.length;i++){
+    var e=items[i]; if(!e||e.type!=='ride') continue;
+    var nk=llNormKey(e.ride||e.h||''); if(!nk) continue;
+    if(nk===rk||nk.indexOf(rk)===0||rk.indexOf(nk)===0) return true;
+  }
+  return false;
+}
+function tpcpRideLandHint(rideName){
+  // Static facts for the inserted item, best-effort and never
+  // blocking: another day of THIS trip that planned the ride knows
+  // its land; the two hardcoded Single Pass rides are the fallback.
+  // Anything else inserts without a land -- the record never waits
+  // on metadata.
+  var rk=llNormKey(rideName||''); if(!rk) return '';
+  try{
+    var days=(window._schedData&&window._schedData.days)||[];
+    for(var d=0;d<days.length;d++){
+      var items=(days[d]&&days[d].items)||[];
+      for(var i=0;i<items.length;i++){
+        var e=items[i];
+        if(e&&e.land&&llNormKey(e.ride||e.h||'')===rk) return e.land;
+      }
+    }
+  }catch(e){}
+  if(rk===llNormKey('Star Wars: Rise of the Resistance')) return "Star Wars: Galaxy's Edge";
+  if(rk===llNormKey('Radiator Springs Racers')) return 'Cars Land';
+  return '';
+}
+function tpcpInsertRideItem(dayIdx, rideName, startMin){
+  if(startMin==null||!rideName) return false;
+  // An itemless day has no editing-model wrapper yet (loadCustom
+  // builds it only for days with items); build it the same way here
+  // so the insert renders and persists like any other item.
+  try{
+    if(typeof customSched!=='undefined'&&customSched&&!customSched[dayIdx]){
+      var _sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
+      if(_sd&&Array.isArray(_sd.items)) customSched[dayIdx]={ sections: [{ title: _sd.park || '', entries: _sd.items }] };
+    }
+  }catch(e){}
+  var stores=tpcpDayItemStores(dayIdx), did=false;
+  for(var s=0;s<stores.length;s++){
+    var items=stores[s];
+    if(tpcpRideItemPresence(items, rideName)) continue;
+    var kind=tpcpReturnKindForRide(dayIdx, rideName, null);
+    var item={ t: fmtMins(startMin), h: rideName, type: 'ride', n: '' };
+    var land=tpcpRideLandHint(rideName);
+    if(land) item.land=land;
+    item.ride=rideName;
+    item.ll={ t: kind, a: (kind==='single' ? 'Lightning Lane Single Pass pick \u2014 book a return time in the app.' : 'Lightning Lane Multi Pass pick \u2014 book a return time in the app.') };
+    item._recordedInsert=true;
+    items.push(item);
+    tpcpSortDayItems(items);
+    did=true;
+  }
+  return did;
+}
+function tpcpDeleteInsertedRideItem(dayIdx, rideName){
+  var stores=tpcpDayItemStores(dayIdx), did=false;
+  var rk=llNormKey(rideName||''), bk=tpcpBannerKeyOf(rideName||'');
+  for(var s=0;s<stores.length;s++){
+    var items=stores[s];
+    for(var i=items.length-1;i>=0;i--){
+      var it=items[i];
+      if(!it||!it._recordedInsert) continue;
+      var nm=it.ride||it.h||'';
+      if(rk&&llNormKey(nm)!==rk&&tpcpBannerKeyOf(nm)!==bk) continue;
+      items.splice(i,1);
+      did=true;
+    }
+  }
+  return did;
+}
 function tpcpConversionFriction(dayIdx, rideName, returnTimeStr){
   try{
     if(typeof tpcpDayIsTodayParkLocal!=='function'||!tpcpDayIsTodayParkLocal(dayIdx)) return '';
     var startMin=parseTimeMins(returnTimeStr); if(startMin==null) return '';
     var stores=tpcpDayItemStores(dayIdx), hit=null;
     for(var s=0;s<stores.length;s++){ hit=tpcpFindRideItemIn(stores[s], rideName); if(hit) break; }
-    if(!hit||hit.item._preBook) return '';
+    if(!hit||hit.item._preBook||hit.item._recordedInsert) return '';
     var itemMin=parseTimeMins(hit.item.t); if(itemMin==null) return '';
     if(tpcpParkNowMin(dayIdx)-itemMin<=60) return '';
     var disp=hit.item.ride||hit.item.h||rideName;
@@ -4629,9 +4737,13 @@ async function llRemoveHeld(rideKey,rideName){
   // Conversion reversal (Claude ruling, Oct 23, 2026): removing the
   // return restores the converted plan item exactly -- record and
   // remove are an inverse pair. The restored day rides out on the
-  // schedule save below; a return with no converted item (no plan
-  // item, or recorded before conversion existed) reverses nothing.
+  // schedule save below. A return whose ride had NO plan item
+  // reverses the other way: its inserted timeline item is deleted
+  // (Beau's decision, Oct 23, 2026). The two are disjoint per item --
+  // converted items carry _preBook, inserted items carry
+  // _recordedInsert, never both.
   try{ tpcpRestoreRideItem(curDay,rideName||rideKey); }catch(e){}
+  try{ tpcpDeleteInsertedRideItem(curDay,rideName||rideKey); }catch(e){}
   window._llEditKey=null;
   try{loadLLState();if(llState&&llState.bookedTimes)delete llState.bookedTimes[rideKey];saveLLState();}catch(e){}
   await saveHeldReturns();

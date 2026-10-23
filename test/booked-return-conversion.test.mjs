@@ -6,9 +6,10 @@
 // becomes the return window's start, it carries the booked window via
 // the item's ll marker, the day re-sorts -- and removing the return
 // restores the item EXACTLY (record/remove are an inverse pair, via
-// the _preBook stash on the item). A ride with no plan item records
-// the held return only (PR #128 behavior; nothing to convert, nothing
-// to stash). Past-item friction (ruling Q2): converting an item more
+// the _preBook stash on the item). A ride with no plan item gets a
+// timeline item INSERTED at its return window instead (item 23,
+// Beau's decision; flagged _recordedInsert, deleted on remove --
+// test/booked-return-insert.test.mjs pins that pair). Past-item friction (ruling Q2): converting an item more
 // than 60 minutes behind park-local now first surfaces one honest
 // line in the recorder; the same Got it tap then proceeds.
 //
@@ -250,14 +251,21 @@ test('(d) Change keeps the original stash: remove after a re-record still restor
 });
 
 // ------------------------------------------------------------ (e)
-test('(e) no plan item: the held return records (PR #128 behavior), the day is untouched, nothing stashed', async () => {
+test('(e) no plan item: the return INSERTS a timeline item (item 23); remove deletes it, day byte-identical', async () => {
   const w = makeWorld();
-  const itemsBefore = JSON.stringify(w.day2.items);
+  const before = JSON.stringify(w.day2);
   const rec = w.ctx.tpcpRecordBookedReturn(1, w.ctx.tpcpSingleBannerKey(RACERS), RACERS, '1:00 PM');
   assert.ok(rec && rec.returnStart === '1:00 PM' && rec.returnEnd === '2:00 PM', 'held return recorded for a ride with no plan item');
   await flush();
-  assert.equal(JSON.stringify(w.day2.items), itemsBefore, 'no item created, converted, or stashed');
-  assert.equal(w.ctx.tpcpRestoreRideItem(1, RACERS), false, 'nothing to reverse for a record-only return');
+  const ins = w.day2.items.filter(e => e.h === RACERS);
+  assert.equal(ins.length, 1, 'a timeline item is inserted for the unplanned ride');
+  assert.equal(ins[0]._recordedInsert, true, 'inserted item carries the flag');
+  assert.equal(ins[0].t, '1:00 PM', 'inserted at the return window start');
+  assert.ok(!('_preBook' in ins[0]), 'nothing stashed for an insert');
+  assert.equal(w.ctx.tpcpRestoreRideItem(1, RACERS), false, 'restore has nothing to do for an inserted ride (deletion is the inverse)');
+  await w.ctx.llRemoveHeld(w.ctx.tpcpSingleBannerKey(RACERS), RACERS);
+  await flush();
+  assert.equal(JSON.stringify(w.day2), before, 'remove deletes the insert: stored day byte-identical to pre-record');
 });
 
 // ------------------------------------------------------------ (f)
