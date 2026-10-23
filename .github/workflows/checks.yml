@@ -49,6 +49,8 @@ jobs:
         run: node --test test/push-tap-presenter.test.mjs
       - name: Reoptimize scope guard suite
         run: node --test test/reoptimize-scope.test.mjs
+      - name: Reoptimize held-return guard suite
+        run: node --test test/reoptimize-held-guard.test.mjs
       - name: Rework fresh-run + interruption suite
         run: node --test test/rework-interruption.test.mjs
       - name: LL order 7 AM park-local gate suite
