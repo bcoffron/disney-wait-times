@@ -45,6 +45,8 @@ jobs:
         run: node scripts/check-render-chrome.mjs
       - name: Blog handler suites + cron-auth self-tests
         run: node --test test/blog-reconcile-auth.test.mjs test/blog-images-delete.test.mjs test/blog-images-cleanup.test.mjs test/blog-upload-ratelimit.test.mjs test/check-cron-auth.test.mjs
+      - name: Push-tap presenter suite
+        run: node --test test/push-tap-presenter.test.mjs
       - name: Schedule engine suite
         run: node --test api/schedule-engine.test.js
       - name: Schedule corrections suite
