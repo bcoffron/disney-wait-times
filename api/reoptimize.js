@@ -209,6 +209,106 @@ function normalizeEntry(e) {
     return base;
 }
 
+// --------- Remainder-scope guard helpers (Claude ruling, Oct 22, 2026) ----
+// DETERMINISTIC, server-side enforcement of the settled remainder rule:
+// a mid-trip re-optimization may only move items that start at or after
+// (park-local now - 30 min). The client flows scope their payloads the
+// same way, but the endpoint is authoritative -- the build-48 defect was
+// a client whose in-trip test silently never fired (a stored non-ISO
+// date parsed to Invalid Date), so it sent the whole day and past items
+// were re-timed and written. A client-side fix alone leaves the
+// invariant one new call site away from breaking again.
+// The cutoff clock is PARK-LOCAL, computed here -- never the client's
+// phone clock and never a client-sent time (this endpoint has received
+// tripDayDate: 'Invalid Date' from the affected client). Park identity
+// comes from the trip record (registry-issued, not client-editable).
+// No park->timezone mapping existed in this codebase before this guard
+// (every prior use hardcodes America/Los_Angeles for Disneyland), so a
+// small static map lives here; it must only ever be extended with
+// first-party park knowledge, never inferred from request data.
+const _SCOPE_GRACE_MIN = 30;
+const _SCOPE_PARK_TZ = [
+      { re: /disneyland|california adventure/i, tz: 'America/Los_Angeles' },
+      { re: /magic kingdom|epcot|hollywood studios|animal kingdom|walt disney world/i, tz: 'America/New_York' }
+];
+function _scopeParkTimezone(parkOrLocation) {
+      const s = String(parkOrLocation || '');
+      for (const row of _SCOPE_PARK_TZ) { if (row.re.test(s)) return row.tz; }
+      return null;
+}
+const _SCOPE_MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+// Tolerant day parse for stored/requested day strings: ISO (2026-10-22),
+// the onboarding long form (Oct 22, 2026), and the year-less client label
+// (Thu Oct 22). Returns { y|null, m, d } or null.
+function _scopeParseDay(str) {
+      if (!str || typeof str !== 'string') return null;
+      const s = str.trim();
+      let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return { y: +m[1], m: +m[2], d: +m[3] };
+      const re = /([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?/g;
+      let mm;
+      while ((mm = re.exec(s)) !== null) {
+            const mon = _SCOPE_MONTHS[mm[1].substring(0, 3).toLowerCase()];
+            if (mon) return { y: mm[3] ? +mm[3] : null, m: mon, d: +mm[2] };
+      }
+      return null;
+}
+// Resolve which trip day a request targets by matching the requested
+// date fields against the trip record's own day list. Returns
+// { ymd, park } or null when nothing matches unambiguously.
+function _scopeResolveDay(tripCfg, tripDayDate, dayLabel) {
+      const days = (tripCfg && Array.isArray(tripCfg.days)) ? tripCfg.days : [];
+      if (!days.length) return null;
+      const want = _scopeParseDay(tripDayDate) || _scopeParseDay(dayLabel);
+      if (!want) return null;
+      for (const dy of days) {
+            const pd = _scopeParseDay(dy && dy.date);
+            if (!pd) continue;
+            if (pd.m === want.m && pd.d === want.d && (want.y === null || pd.y === null || pd.y === want.y)) {
+                  return { ymd: pd.y + '-' + String(pd.m).padStart(2, '0') + '-' + String(pd.d).padStart(2, '0'), park: (dy && dy.park) || '' };
+            }
+      }
+      return null;
+}
+// Park-local { ymd, minutes } for an instant, Intl formatToParts in the
+// park's zone (the monitor's pacificParts approach, generalized).
+function _scopeParkNow(instantMs, tz) {
+      const fmt = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+      });
+      const parts = {};
+      for (const p of fmt.formatToParts(new Date(instantMs))) { parts[p.type] = p.value; }
+      let hh = parseInt(parts.hour, 10);
+      if (hh === 24) hh = 0;
+      return { ymd: parts.year + '-' + parts.month + '-' + parts.day, minutes: hh * 60 + parseInt(parts.minute, 10) };
+}
+function _scopeFmtMin(min) {
+      if (min === null || min === undefined || isNaN(min)) return '';
+      let h = Math.floor(min / 60);
+      const mn = min % 60;
+      const ap = h >= 12 ? 'PM' : 'AM';
+      h = h % 12; if (h === 0) h = 12;
+      return h + ':' + String(mn).padStart(2, '0') + ' ' + ap;
+}
+// The trip record for the scope guard (same salted-first/bare-fallback
+// key discipline as the registry read above).
+async function _readTripConfigForScope(tripId) {
+      if (!tripId) return null;
+      const _keys = _AUTH_SALT ? ['twize/' + _AUTH_SALT + '/trip_' + tripId + '.json', 'twize/trip_' + tripId + '.json'] : ['twize/trip_' + tripId + '.json'];
+      for (const _k of _keys) {
+            try {
+                  const { blobs } = await list({ prefix: _k });
+                  if (blobs && blobs.length) {
+                        const _d = await fetchJsonTimeout(blobs[0].downloadUrl || blobs[0].url);
+                        if (_d) return _d.tripConfig || (_d.tripData && _d.tripData.tripConfig) || null;
+                  }
+            } catch (e) { /* try the next key */ }
+      }
+      return null;
+}
+
 // --------- Main handler ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -312,6 +412,29 @@ async function handler(req, res) {
                   }
             }
       }
+      // ------ Remainder-scope context (Claude ruling, Oct 22, 2026) ------
+      // Resolved from the TRIP RECORD (registry session -> trip blob),
+      // never from client-sent fields alone: the client whose scoping
+      // failed is the client whose date fields cannot be trusted. The
+      // guard arms only when the resolved day IS today at the park --
+      // pre-trip days keep whole-day planning. Any failure to resolve
+      // (no session, no trip record, unknown park, unresolvable day)
+      // leaves _scopeCtx null and the guard silent: it must never
+      // block a legitimate plan on a guess.
+      let _scopeCtx = null;
+      try {
+            const _tripCfg = _session ? await _readTripConfigForScope(_session.tripId) : null;
+            if (_tripCfg) {
+                  const _day = _scopeResolveDay(_tripCfg, tripDayDate, dayLabel);
+                  const _tz = _day ? _scopeParkTimezone(_day.park || _tripCfg.location || '') : null;
+                  if (_day && _tz) {
+                        const _pnow = _scopeParkNow(Date.now(), _tz);
+                        if (_pnow.ymd === _day.ymd) _scopeCtx = { cutoffMin: _pnow.minutes - _SCOPE_GRACE_MIN, tz: _tz, dayYmd: _day.ymd };
+                  }
+            }
+      } catch (e) { console.log('[reoptimize] scope context unresolved:', e.message); }
+      if (_scopeCtx) console.log('[reoptimize] scope guard armed: day ' + _scopeCtx.dayYmd + ' (' + _scopeCtx.tz + '), cutoff ' + _scopeFmtMin(_scopeCtx.cutoffMin));
+
       // ------ Build cache context from new two-cache architecture ------------------------------------------------------
       const cacheCtx = await buildCacheContext(
               ['LAND_MAP', 'WAIT_PATTERNS', 'CROWD_FLOW', 'WALKING_ROUTES'],
@@ -587,6 +710,62 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
               let changeCount = 0;
               const outEntries = [];
               normalized.forEach(sec => (sec.entries || []).forEach(e => outEntries.push(e)));
+              // ---- REMAINDER-SCOPE GUARD (deterministic; Claude ruling,
+              // Oct 22, 2026): when the reworked day is TODAY at the park,
+              // items that start before the park-local cutoff (now - 30m)
+              // may only pass through verbatim -- the model must not move
+              // them, drop them, or move anything else into that
+              // already-lived window. Multiset comparison on (name, time)
+              // pairs, so duplicate names at different times stay exact.
+              // Same refusal shape as the held-return guard above: the
+              // input plan is returned UNCHANGED with named conflicts.
+              if (_scopeCtx) {
+                    const _cut = _scopeCtx.cutoffMin;
+                    const _pair = (nm, mn) => nm + '|' + mn;
+                    const _inPast = {}, _outPast = {}, _inNames = {}, _outNames = {}, _pairLabel = {};
+                    (Array.isArray(scheduleItems) ? scheduleItems : []).forEach(it => {
+                          const k = _name(it); if (!k) return;
+                          const mn = _parseClock(it.t || it.time || '');
+                          if (mn === null) return;
+                          (_inNames[k] = _inNames[k] || []).push(mn);
+                          if (mn < _cut) { const pk = _pair(k, mn); _inPast[pk] = (_inPast[pk] || 0) + 1; if (!_pairLabel[pk]) _pairLabel[pk] = { name: (it.h || it.title || it.name || ''), t: (it.t || it.time || '') }; }
+                    });
+                    outEntries.forEach(e => {
+                          const k = _name(e); if (!k) return;
+                          const mn = _parseClock(e.t || e.time || '');
+                          if (mn === null) return;
+                          (_outNames[k] = _outNames[k] || []).push(mn);
+                          if (mn < _cut) { const pk = _pair(k, mn); _outPast[pk] = (_outPast[pk] || 0) + 1; if (!_pairLabel[pk]) _pairLabel[pk] = { name: (e.h || e.title || e.name || ''), t: (e.t || e.time || '') }; }
+                    });
+                    const _scopeViolations = [];
+                    const _movedNames = {};
+                    Object.keys(_inPast).forEach(pk => {
+                          const missing = _inPast[pk] - (_outPast[pk] || 0);
+                          if (missing <= 0) return;
+                          const nm = pk.substring(0, pk.lastIndexOf('|'));
+                          const lbl = _pairLabel[pk] || { name: nm, t: '' };
+                          const movedTo = (_outNames[nm] || []).find(x => _pair(nm, x) !== pk);
+                          if (movedTo !== undefined) _movedNames[nm] = true;
+                          for (let i = 0; i < missing; i++) {
+                                if (movedTo !== undefined) _scopeViolations.push({ name: lbl.name, type: 'past-item-moved', detail: 'Optimizing would have moved ' + lbl.name + ' (' + lbl.t + '), which is already past (before the ' + _scopeFmtMin(_cut) + ' cutoff) \u2014 so your plan was kept unchanged.' });
+                                else _scopeViolations.push({ name: lbl.name, type: 'past-item-dropped', detail: 'Optimizing would have dropped ' + lbl.name + ' (' + lbl.t + '), which is already past (before the ' + _scopeFmtMin(_cut) + ' cutoff) \u2014 so your plan was kept unchanged.' });
+                          }
+                    });
+                    Object.keys(_outPast).forEach(pk => {
+                          const extra = _outPast[pk] - (_inPast[pk] || 0);
+                          if (extra <= 0) return;
+                          const nm = pk.substring(0, pk.lastIndexOf('|'));
+                          if (_movedNames[nm]) return; // already reported as that item's move
+                          const lbl = _pairLabel[pk] || { name: nm, t: '' };
+                          for (let i = 0; i < extra; i++) _scopeViolations.push({ name: lbl.name, type: 'moved-into-past', detail: 'Optimizing would have moved ' + lbl.name + ' to ' + lbl.t + ', into the part of the day that has already happened (before the ' + _scopeFmtMin(_cut) + ' cutoff) \u2014 so your plan was kept unchanged.' });
+                    });
+                    if (_scopeViolations.length) {
+                          console.log('[reoptimize] scope guard kept plan unchanged:', JSON.stringify(_scopeViolations.map(v => v.type + ':' + v.name)));
+                          const _svResp = { sections: [{ title: dayLabel || 'Schedule', entries: (Array.isArray(scheduleItems) ? scheduleItems : []) }], explanation: 'Your plan is unchanged. ' + _scopeViolations.map(v => v.detail).join(' '), changed: false, changeCount: 0, scopeConflicts: _scopeViolations };
+                          if (_heldConflicts.length) _svResp.heldReturnConflicts = _heldConflicts;
+                          return res.status(200).json(_svResp);
+                    }
+              }
               outEntries.forEach(e => {
                       const k = _name(e);
                       if (!k) return;
@@ -616,3 +795,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
 
 handler.config = { maxDuration: 60 };
 export default handler;
+// Named exports for test/reoptimize-scope.test.mjs (the platform uses
+// the default export; these exist so the guard's pure helpers can be
+// unit-tested directly).
+export { _scopeParkTimezone, _scopeParseDay, _scopeResolveDay, _scopeParkNow, _scopeFmtMin };
