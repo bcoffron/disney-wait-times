@@ -57,6 +57,8 @@ jobs:
         run: node --test test/ll-order-gate.test.mjs
       - name: Single Pass copy audit suite
         run: node --test test/single-pass-copy.test.mjs
+      - name: Multi Pass sale-time copy suite
+        run: node --test test/multipass-sale-time.test.mjs
       - name: Manual Single Pass record suite
         run: node --test test/single-pass-manual.test.mjs
       - name: Trip save day-field preservation suite
