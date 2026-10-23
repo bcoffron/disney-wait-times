@@ -59,6 +59,14 @@ const LL_ORDER_CUTOFF_MIN = 12 * 60; // Item 5 (msg 574 (e)): if the day's first
 // fire opportunity is already past noon PT, the morning booking window has
 // effectively closed -- suppress the order push for the day rather than
 // sending a confidently late instruction.
+const LL_ORDER_EARLIEST_MIN = 7 * 60; // Beau's ruling, Oct 23, 2026: the LL
+// morning alert must not fire before 7:00 AM PARK-LOCAL -- the booking
+// window opens at 7:00, and an order push that lands at 6:00 (yesterday's
+// firedMin was 360) is an instruction the party cannot act on yet. The
+// gate is a FLOOR on the existing window (first item - 60, 8:00
+// fallback): a day whose window would open before 7:00 now opens at 7:00
+// and fires on the first quiet sweep at/after 7:00; a later window is
+// unchanged. The noon cutoff above stays.
 // High-wait nudge: planned ride already busy (not just a sudden spike). Once per ride per day, gated per-trip.
 const HIGH_MIN = 60; // current wait must be >= this to nudge
 const HIGH_COOLDOWN_MIN = 75; // per-trip: at most one high-wait nudge this often
@@ -146,6 +154,42 @@ function llOrderBody(seq) {
   // "Book <first> first" never drop.
   return clause + 'Book ' + first + ' first.';
 }
+// Park -> timezone: the same static map the reoptimize scope guard
+// carries (api/reoptimize.js, PR #118) -- duplicated per house pattern
+// (cf. cron-booking-alerts' mirrored helpers); keep the two in sync. It
+// must only ever be extended with first-party park knowledge, never
+// inferred from request data.
+const PARK_TZ = [
+  { re: /disneyland|california adventure/i, tz: 'America/Los_Angeles' },
+  { re: /magic kingdom|epcot|hollywood studios|animal kingdom|walt disney world/i, tz: 'America/New_York' }
+];
+export function parkTimezoneFor(parkOrLocation) {
+  const s = String(parkOrLocation || '');
+  for (const row of PARK_TZ) { if (row.re.test(s)) return row.tz; }
+  return null;
+}
+// { ymd, hour, minute, minutes } for an instant in an IANA zone --
+// pacificParts generalized. The monitor's day model is PT, but the
+// LL-order gate runs on the TRIP'S park-local clock (Oct 23, 2026).
+export function zonedParts(now, tz) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  });
+  const parts = {};
+  for (const p of fmt.formatToParts(now)) { parts[p.type] = p.value; }
+  let hour = parseInt(parts.hour, 10);
+  if (hour === 24) hour = 0;
+  const minute = parseInt(parts.minute, 10);
+  return {
+    ymd: parts.year + '-' + parts.month + '-' + parts.day,
+    hour: hour,
+    minute: minute,
+    minutes: hour * 60 + minute
+  };
+}
+
 // Decide the leg for one trip-day. Pure (the harness drives this):
 //   skip     -- not armed, or already settled today (sent/suppressed)
 //   wait     -- armed, but the morning window has not opened yet
@@ -154,11 +198,17 @@ function llOrderBody(seq) {
 //   fire     -- send the order push now
 // The window opens 60 min before the day's first planned item (the
 // party is up and moving; bookFirst happens at park open), with an
-// 8:00 AM PT fallback when no item time parses.
-function llOrderDecision(day, nowMin, firstItemMin, settled) {
+// 8:00 AM fallback when no item time parses -- but NEVER before
+// 7:00 AM park-local (LL_ORDER_EARLIEST_MIN, Oct 23, 2026): the
+// booking window opens at 7:00, so an earlier push is unactionable.
+// nowMin is PARK-LOCAL minutes in the trip's park timezone (the
+// caller derives it via parkTimezoneFor + zonedParts).
+export function llOrderDecision(day, nowMin, firstItemMin, settled) {
   if (!llOrderArmed(day)) return { act: 'skip', why: 'not-armed' };
   if (settled) return { act: 'skip', why: 'settled' };
-  const openMin = (typeof firstItemMin === 'number' && firstItemMin >= 0) ? firstItemMin - 60 : 8 * 60;
+  const openMin = Math.max(
+    (typeof firstItemMin === 'number' && firstItemMin >= 0) ? firstItemMin - 60 : 8 * 60,
+    LL_ORDER_EARLIEST_MIN);
   if (nowMin < openMin) return { act: 'wait', why: 'window-not-open' };
   if (nowMin > LL_ORDER_CUTOFF_MIN) return { act: 'suppress', why: 'booking-window-closed' };
   return { act: 'fire' };
@@ -839,7 +889,17 @@ export default async function handler(req, res) {
         const llSettled = (state.llOrder && state.llOrder.ymd === pt.ymd && state.llOrder.status) ? state.llOrder : null;
         let firstItemMin = -1;
         for (const it of items) { const m = hmToMin(it && it.t); if (m >= 0 && (firstItemMin < 0 || m < firstItemMin)) firstItemMin = m; }
-        const dec = llOrderDecision(llDay, nowMin, firstItemMin, llSettled);
+        // Gate clock (Beau's ruling, Oct 23, 2026): the decision runs on
+        // the TRIP'S park-local minutes, derived from the day's own park
+        // via the static tz map. For Disneyland trips this is exactly
+        // the PT clock the rest of the monitor uses; a day whose park
+        // the map does not know keeps the PT clock (the monitor serves
+        // DL only). Schedule item times are park-local wall times, so
+        // firstItemMin and the cutoff compare like-for-like.
+        const llPark = (cfgDays[todayIdx] && cfgDays[todayIdx].park) || llDay.park || '';
+        const llTz = parkTimezoneFor(llPark);
+        const llNowMin = llTz ? zonedParts(now, llTz).minutes : nowMin;
+        const dec = llOrderDecision(llDay, llNowMin, firstItemMin, llSettled);
         if (dec.act === 'fire') {
           const r = await fire('ll-order', () => ({
             title: 'Today\u2019s Lightning Lane game plan',
@@ -850,11 +910,11 @@ export default async function handler(req, res) {
             episodeId: episodeIdFor(tripId, 'll-order', 'll', pt.ymd)
           }));
           if (r.sent > 0) {
-            state.llOrder = { ymd: pt.ymd, status: 'sent', firedMin: nowMin };
+            state.llOrder = { ymd: pt.ymd, status: 'sent', firedMin: llNowMin };
             firedThisTrip += r.sent;
           }
         } else if (dec.act === 'suppress') {
-          state.llOrder = { ymd: pt.ymd, status: 'suppressed', firedMin: nowMin };
+          state.llOrder = { ymd: pt.ymd, status: 'suppressed', firedMin: llNowMin };
         }
         if (dec.act !== 'skip' || dec.why !== 'not-armed') summary.push({ tripId, llOrder: dec.act, why: dec.why || undefined });
       }
