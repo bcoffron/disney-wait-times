@@ -1321,6 +1321,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .ll-banner-got{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:99px;background:rgba(21,128,61,0.1);border:1px solid rgba(21,128,61,0.3);color:#15803D;font-size:10px;font-weight:600;cursor:pointer}
 .ll-held-pill{display:inline-block;background:#1A6860;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px;}
 .ll-conflict-line{font-size:11px;color:#B3261E;line-height:1.5;margin-top:5px;font-weight:600;}
+.tpcp-friction-line{font-size:11px;color:#9A6B12;line-height:1.5;margin-top:5px;font-weight:600;}
 .ll-time-input{width:80px;padding:3px 7px;border-radius:6px;border:1.5px solid var(--border);font-size:12px;font-family:inherit;color:var(--text);background:var(--card);margin-left:4px}
 .waze-card{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;background:#FFFFFF;border:2px solid #1B2FA0;border-radius:var(--radius);box-shadow:0 8px 32px rgba(27,47,160,0.25);z-index:800;overflow:hidden;animation:slideUp .3s ease}
 @keyframes slideUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
@@ -4280,17 +4281,200 @@ function tpcpRecordBookedReturn(dayIdx, rideKey, rideName, returnTime){
       var _rec={day:dayIdx,rideKey:llNormKey(_dispName),ride:_dispName,returnStart:fmtMins(_startMin),returnEnd:fmtMins(_startMin+60),bookedAt:new Date().toISOString(),standbyAtConfirm:(_w&&typeof _w.w==='number')?_w.w:null,conflict:''};
       _rec.conflict=(typeof heldReturnConflict==='function')?heldReturnConflict(dayIdx,_startMin,_startMin+60,_dayItems):'';
       setHeldReturn(_rec);
+      // Booked-return conversion (Claude ruling, Oct 23, 2026): the
+      // recorded fact absorbs the plan item -- see the conversion
+      // section below. The schedule save carries the converted day;
+      // saveHeldReturns carries the held record itself. Both POST
+      // bodies are built from the same local state (the conversion
+      // mutates every store the two saves read), so either landing
+      // order stores both halves.
+      try{ tpcpConvertRideItem(dayIdx,_dispName,_startMin); }catch(e){}
       saveHeldReturns();
+      try{ if(typeof saveCustom==='function') saveCustom(dayIdx); }catch(e){}
       return _rec;
     }
   }
   return null;
 }
 
+// ===== BOOKED-RETURN CONVERSION (Claude ruling, Oct 23, 2026) =====
+// Recording a return used to leave the plan item stating its planned
+// standby time, with the booked return riding beside it as a pill --
+// while the alert filter (PR #132), the anchor guard, and the
+// reoptimize scope all treated the RETURN as the truth. The display
+// was the last holdout. Now the record CONVERTS the item: its time
+// becomes the return window's start, it carries the booked window via
+// the item's ll marker (the shape a generated LL item uses -- display
+// and prompt context), and the day re-sorts into time order. One
+// story everywhere.
+//
+// The item's pre-conversion state is stashed on the item itself
+// (_preBook: {idx, item}) so Remove restores it EXACTLY -- record and
+// remove are an inverse pair. The stash rides the normal save
+// round-trip: pushSchedule serializes item objects wholesale, the
+// trip endpoint stores them verbatim, and reload ingests them whole
+// (verified Oct 23, 2026 -- neither side projects item fields).
+// heldReturns remains the guard's authority; the item's ll marker is
+// never collapsed into it (ruling Q4).
+//
+// Conversion mutates every local store of the day (the server copy,
+// the loaded tripConfig's schedule, and the editing model), which are
+// usually -- but after inline edits not always -- the same objects.
+//
+// PAST-ITEM FRICTION (ruling Q2): conversion applies regardless of
+// past or future -- for the same attraction the recorded fact
+// supersedes a planned slot that evidently did not happen as planned.
+// But when the item is more than an hour behind park-local now, the
+// recorder first shows one honest line naming the move ("<Ride> moves
+// from <old time> to your <return start> return.") and the SAME
+// Got it tap then proceeds. The line exists so a mistyped ride gets
+// caught before it rewrites a morning; it is inline copy, not a
+// modal, and it never appears for future items, recent items, or
+// re-records of an already-converted item.
+var _tpcpFrictionPending={}; // 'dayIdx:normKey' -> {rt, line}
+function tpcpBannerKeyOf(name){ return String(name||'').toLowerCase().replace(/[^a-z0-9]/g,'_').substring(0,15); }
+function tpcpFindRideItemIn(items, rideName){
+  if(!items||!rideName) return null;
+  var rk=llNormKey(rideName); if(!rk) return null;
+  var prefixHit=null, prefixAmbiguous=false;
+  for(var i=0;i<items.length;i++){
+    var e=items[i]; if(!e||e.type!=='ride') continue;
+    var nk=llNormKey(e.ride||e.h||''); if(!nk) continue;
+    if(nk===rk) return {item:e,index:i};
+    if(nk.indexOf(rk)===0||rk.indexOf(nk)===0){ if(prefixHit) prefixAmbiguous=true; else prefixHit={item:e,index:i}; }
+  }
+  return prefixAmbiguous?null:prefixHit;
+}
+function tpcpDayItemStores(dayIdx){
+  var out=[];
+  function add(arr){ if(Array.isArray(arr)){ for(var i=0;i<out.length;i++){ if(out[i]===arr) return; } out.push(arr); } }
+  var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
+  if(sd) add(sd.items);
+  var ltc=(window._loadedTripData&&window._loadedTripData.tripConfig)||null;
+  var ld=(ltc&&ltc.schedule&&ltc.schedule.days&&ltc.schedule.days[dayIdx])||null;
+  if(ld) add(ld.items);
+  try{ if(typeof customSched!=='undefined'&&customSched&&customSched[dayIdx]&&customSched[dayIdx].sections&&customSched[dayIdx].sections[0]) add(customSched[dayIdx].sections[0].entries); }catch(e){}
+  return out;
+}
+function tpcpReturnKindForRide(dayIdx, rideName, item){
+  if(item&&item.ll&&item.ll.t) return item.ll.t;
+  var rk=llNormKey(rideName||'');
+  var sd=(window._schedData&&window._schedData.days&&window._schedData.days[dayIdx])||null;
+  var seq=sd?sd.llSequence:null;
+  if(seq&&seq.singleSeparate){ for(var i=0;i<seq.singleSeparate.length;i++){ if(llNormKey(seq.singleSeparate[i])===rk) return 'single'; } }
+  if(rk===llNormKey('Star Wars: Rise of the Resistance')||rk===llNormKey('Radiator Springs Racers')) return 'single';
+  return 'multi';
+}
+function tpcpSortDayItems(items){
+  var decorated=items.map(function(e,i){ return {e:e,i:i,m:(e?parseTimeMins(e.t):null)}; });
+  decorated.sort(function(a,b){
+    var am=(a.m==null?Number.MAX_SAFE_INTEGER:a.m), bm=(b.m==null?Number.MAX_SAFE_INTEGER:b.m);
+    if(am!==bm) return am-bm;
+    return a.i-b.i;
+  });
+  for(var i=0;i<items.length;i++) items[i]=decorated[i].e;
+}
+function tpcpConvertRideItem(dayIdx, rideName, startMin){
+  if(startMin==null||!rideName) return false;
+  var stores=tpcpDayItemStores(dayIdx), did=false;
+  for(var s=0;s<stores.length;s++){
+    var items=stores[s];
+    var hit=tpcpFindRideItemIn(items, rideName);
+    if(!hit) continue;
+    var it=hit.item;
+    if(!it._preBook){
+      // First conversion: stash the pre-conversion state BEFORE any
+      // field changes. A re-record (Change) finds the stash already
+      // here and keeps it -- the converted state is never stashed.
+      it._preBook={ idx: hit.index, item: JSON.parse(JSON.stringify(it)) };
+      if(!it.ll){
+        var kind=tpcpReturnKindForRide(dayIdx, rideName, it);
+        it.ll={ t: kind, a: (kind==='single' ? 'Lightning Lane Single Pass pick \u2014 book a return time in the app.' : 'Lightning Lane Multi Pass pick \u2014 book a return time in the app.') };
+      }
+    }
+    it.t=fmtMins(startMin);
+    tpcpSortDayItems(items);
+    did=true;
+  }
+  return did;
+}
+function tpcpRestoreRideItem(dayIdx, rideName){
+  var stores=tpcpDayItemStores(dayIdx), did=false;
+  var rk=llNormKey(rideName||''), bk=tpcpBannerKeyOf(rideName||'');
+  for(var s=0;s<stores.length;s++){
+    var items=stores[s];
+    for(var i=0;i<items.length;i++){
+      var it=items[i];
+      if(!it||!it._preBook) continue;
+      var nm=it.ride||it.h||'';
+      if(rk&&llNormKey(nm)!==rk&&tpcpBannerKeyOf(nm)!==bk) continue;
+      var stash=it._preBook;
+      var orig=JSON.parse(JSON.stringify(stash.item));
+      var at=(typeof stash.idx==='number')?stash.idx:items.length;
+      // Restore in place (other stores may hold this same object):
+      // wipe every current key, then re-assign the stashed ones in
+      // their original order -- the item is byte-identical to its
+      // pre-conversion self, stash included in what gets wiped.
+      var keys=Object.keys(it); for(var k=0;k<keys.length;k++) delete it[keys[k]];
+      for(var k2 in orig) it[k2]=orig[k2];
+      var cur=items.indexOf(it); if(cur>-1) items.splice(cur,1);
+      if(at<0) at=0; if(at>items.length) at=items.length;
+      items.splice(at,0,it);
+      did=true;
+      break;
+    }
+  }
+  return did;
+}
+function tpcpConversionFriction(dayIdx, rideName, returnTimeStr){
+  try{
+    if(typeof tpcpDayIsTodayParkLocal!=='function'||!tpcpDayIsTodayParkLocal(dayIdx)) return '';
+    var startMin=parseTimeMins(returnTimeStr); if(startMin==null) return '';
+    var stores=tpcpDayItemStores(dayIdx), hit=null;
+    for(var s=0;s<stores.length;s++){ hit=tpcpFindRideItemIn(stores[s], rideName); if(hit) break; }
+    if(!hit||hit.item._preBook) return '';
+    var itemMin=parseTimeMins(hit.item.t); if(itemMin==null) return '';
+    if(tpcpParkNowMin(dayIdx)-itemMin<=60) return '';
+    var disp=hit.item.ride||hit.item.h||rideName;
+    return disp+' moves from '+hit.item.t+' to your '+fmtMins(startMin)+' return.';
+  }catch(e){ return ''; }
+}
+function tpcpFrictionGate(dayIdx, rideName, returnTimeStr){
+  // Returns the line to show (recording must wait) or '' when the
+  // write may proceed: either no friction applies, or the line was
+  // already shown for this exact ride + return time.
+  var line=tpcpConversionFriction(dayIdx, rideName, returnTimeStr);
+  if(!line) return '';
+  var key=dayIdx+':'+llNormKey(rideName||'');
+  var p=_tpcpFrictionPending[key];
+  if(p&&p.rt===String(returnTimeStr||'').trim()) return '';
+  _tpcpFrictionPending[key]={ rt: String(returnTimeStr||'').trim(), line: line };
+  return line;
+}
+function tpcpFrictionPendingLine(dayIdx, rideName){
+  var p=_tpcpFrictionPending[dayIdx+':'+llNormKey(rideName||'')];
+  return p?p.line:'';
+}
+function tpcpFrictionClear(dayIdx, rideName){ delete _tpcpFrictionPending[dayIdx+':'+llNormKey(rideName||'')]; }
+function tpcpFrictionLineHTML(line){ return '<div class="tpcp-friction-line">'+String(line||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div>'; }
+
 function llGotIt(rideKey, bannerEl, rideName){
   var timeInput=bannerEl.parentNode.querySelector('.ll-time-input');
   var returnTime=timeInput?timeInput.value.trim():'';
   if(!returnTime){timeInput&&timeInput.focus();return;}
+
+  // Past-item friction (conversion ruling Q2): when this record will
+  // convert a plan item more than an hour behind park-local now, the
+  // first Got it tap shows the honest move line inline and stops; the
+  // same tap again proceeds with the write.
+  var _fricLine=tpcpFrictionGate(curDay,rideName||rideKey,returnTime);
+  if(_fricLine){
+    var _fricSlot=null;
+    try{ var _bRoot=bannerEl.closest?bannerEl.closest('.ll-banner,.lls-banner'):null; _fricSlot=_bRoot?_bRoot.querySelector('.tpcp-friction-slot'):null; }catch(e){}
+    if(_fricSlot)_fricSlot.innerHTML=tpcpFrictionLineHTML(_fricLine);
+    return;
+  }
+  tpcpFrictionClear(curDay,rideName||rideKey);
 
   // The write is shared (tpcpRecordBookedReturn, above): the banner,
   // the game plan's Single Pass rows, and the morning modal all record
@@ -4442,9 +4626,16 @@ function llEditHeld(rideKey){window._llEditKey=rideKey;try{renderSched();}catch(
 async function llRemoveHeld(rideKey,rideName){
   if(!isAdmin())return;
   removeHeldReturn(curDay,rideName||rideKey);
+  // Conversion reversal (Claude ruling, Oct 23, 2026): removing the
+  // return restores the converted plan item exactly -- record and
+  // remove are an inverse pair. The restored day rides out on the
+  // schedule save below; a return with no converted item (no plan
+  // item, or recorded before conversion existed) reverses nothing.
+  try{ tpcpRestoreRideItem(curDay,rideName||rideKey); }catch(e){}
   window._llEditKey=null;
   try{loadLLState();if(llState&&llState.bookedTimes)delete llState.bookedTimes[rideKey];saveLLState();}catch(e){}
   await saveHeldReturns();
+  try{ if(typeof saveCustom==='function') saveCustom(curDay); }catch(e){}
   try{renderSched();}catch(e){}
 }
 // ===== SINGLE PASS ROWS: GAME PLAN + MORNING MODAL (Claude ruling,
@@ -4489,7 +4680,8 @@ function tpcpSingleRowHTML(dayIdx, name, surface){
       +'<span style="font-size:11px;color:'+muteColor+'">Return time:</span>'
       +'<input class="ll-time-input" placeholder="e.g. 2:30 PM"'+(held?' value="'+esc(held.returnStart)+'"':'')+'/>'
       +'<button class="ll-banner-got" style="margin-left:0" onclick="tpcpSingleGotIt('+dayIdx+',\''+jsName+'\',this,\''+surface+'\')"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Got it</button>'
-      +'</div>';
+      +'</div>'
+      +'<div class="tpcp-friction-slot">'+((typeof tpcpFrictionPendingLine==='function'&&tpcpFrictionPendingLine(dayIdx,name))?tpcpFrictionLineHTML(tpcpFrictionPendingLine(dayIdx,name)):'')+'</div>';
   }
   h+='</div>';
   return h;
@@ -4505,6 +4697,16 @@ function tpcpSingleGotIt(dayIdx, name, btn, surface){
   var input=row?row.querySelector('.ll-time-input'):null;
   var returnTime=input?input.value.trim():'';
   if(!returnTime){ input&&input.focus(); return; }
+  // Past-item friction (conversion ruling Q2): same gate as the
+  // banner -- first tap shows the move line in the row, same tap
+  // again records.
+  var _fricLine=tpcpFrictionGate(dayIdx, name, returnTime);
+  if(_fricLine){
+    var _fricSlot=row?row.querySelector('.tpcp-friction-slot'):null;
+    if(_fricSlot)_fricSlot.innerHTML=tpcpFrictionLineHTML(_fricLine);
+    return;
+  }
+  tpcpFrictionClear(dayIdx, name);
   tpcpRecordBookedReturn(dayIdx, tpcpSingleBannerKey(name), name, returnTime);
   delete _tpcpSingleEdit[dayIdx+':'+llNormKey(name)];
   if(surface==='modal') tpcpAlertRenderSingles();
@@ -5664,6 +5866,8 @@ function renderLLBanner(e,dayIdx){
     out+='<input class="ll-time-input" placeholder="e.g. 2:30 PM"'+(editHeld&&held?' value="'+held.returnStart+'"':'')+'/>';
     out+='<button class="ll-banner-got" onclick="llGotIt(\''+rideKey+'\',this,\''+safeName+'\')"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Got it</button>';
     out+='</div>';
+    var _fricP=(typeof tpcpFrictionPendingLine==='function')?tpcpFrictionPendingLine(dayIdx,(e.ride||e.h||'')):'';
+    out+='<div class="tpcp-friction-slot">'+(_fricP?tpcpFrictionLineHTML(_fricP):'')+'</div>';
   }
   if(backup) out+='<div style="margin-top:4px;font-size:11px;color:var(--text-dim)">If unavailable &#8594; <b style="color:var(--text)">'+backup+'</b></div>';
   out+='</div></div>';
