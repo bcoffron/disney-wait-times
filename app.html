@@ -83,7 +83,7 @@ body{background:#EEF5F4;color:#071E25;font-family:'Outfit',sans-serif;min-height
 .header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
 .header-title{font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;line-height:1.25}
 .header-sub{font-size:8px;color:rgba(255,255,255,0.40);margin-top:3px;letter-spacing:0.02em}.header-eyebrow{font-size:7px;font-weight:700;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px}.header button{color:rgba(255,255,255,0.70)}
-.day-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-top:10px;padding:0 4px 8px;align-items:stretch;position:relative;z-index:6;background:#071E25;transition:opacity .2s}
+.day-tabs{display:flex;gap:2px;overflow-x:auto;touch-action:pan-x;scrollbar-width:none;margin-top:10px;padding:0 4px 8px;align-items:stretch;position:relative;z-index:6;background:#071E25;transition:opacity .2s}
 .day-tabs.day-tabs-dim{opacity:.45;filter:saturate(.55)}
 .day-tabs.day-tabs-dim .day-tab{pointer-events:none}
 .day-tabs::-webkit-scrollbar{display:none}
@@ -1830,19 +1830,19 @@ input, select, textarea { font-size: 16px !important; }
     </div>
     <!-- Day tabs &mdash; auto-updated from TRIP_CONFIG -->
     <div class="day-tabs" id="dayTabsContainer">
-      <div class="day-tab" id="day-tab-1" onclick="setDay(0)" role="tab">
+      <div class="day-tab" id="day-tab-1" onclick="tpcpDayTabTap(0)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 1</span>
           <span class="day-tab-date"></span>
         </div>
       </div>
-      <div class="day-tab" id="day-tab-2" onclick="setDay(1)" role="tab">
+      <div class="day-tab" id="day-tab-2" onclick="tpcpDayTabTap(1)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 2</span>
           <span class="day-tab-date"></span>
         </div>
       </div>
-      <div class="day-tab" id="day-tab-3" onclick="setDay(2)" role="tab">
+      <div class="day-tab" id="day-tab-3" onclick="tpcpDayTabTap(2)" role="tab">
         <div class="day-tab-text">
           <span class="day-tab-name">Day 3</span>
           <span class="day-tab-date"></span>
@@ -1973,7 +1973,7 @@ input, select, textarea { font-size: 16px !important; }
   </div>
 </div>
       <div id="tripSetupBanner" style="display:none;background:#FFFFFF;border-radius:11px;border:1.5px solid #C86030;padding:11px 13px;align-items:center;gap:11px;margin:8px 10px 0"><div style="width:36px;height:36px;background:rgba(200,96,48,0.10);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C86030" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/></svg></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#071E25">Complete your trip setup</div><div style="font-size:9px;color:#4A7A7C;line-height:1.35;margin-top:2px">Your schedule is a starting point &mdash; tell us about your group so the AI can personalise it.</div></div><a href="/pretrip.html" style="background:#C86030;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:6px 10px;text-decoration:none;white-space:nowrap;flex-shrink:0">Set up &rarr;</a></div>
-      <div id="cachedSchedBanner" style="display:none;background:#e8eef4;border-left:3px solid #8ba4bb;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#5a6d7e;font-family:Outfit,sans-serif;">&#x21BA; Showing your last saved plan &mdash; reconnecting&hellip;</div><div id="closureAlertsBanner" style="display:none;background:#fdf3e7;border-left:3px solid #e8a33d;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#7a5a22;font-family:Outfit,sans-serif;"></div><script>
+      <div id="cachedSchedBanner" style="display:none;background:#e8eef4;border-left:3px solid #8ba4bb;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#5a6d7e;font-family:Outfit,sans-serif;">&#x21BA; Last saved plan &mdash; updating&hellip;</div><div id="closureAlertsBanner" style="display:none;background:#fdf3e7;border-left:3px solid #e8a33d;border-radius:4px;padding:8px 12px;margin:8px 8px 0;font-size:13px;color:#7a5a22;font-family:Outfit,sans-serif;"></div><script>
 // Closure alerts banner: renders scan-annotated closure impacts (api/trip-closure-scan.js).
 window.renderClosureAlerts = function() {
   try {
@@ -2278,6 +2278,182 @@ const DAYS=[
   {label:'Day 3', sub:''}
 ];
 var usingCachedSchedule = false;
+var _tripLoaded = false;
+var _tripProvisional = false;
+var _dayRepicked = false;
+
+/* TPCP-STARTUP-DAYSTATE-BEGIN */
+// ---- Cold-start + day-state core (Oct 23, 2026; item 20) ----
+// One home for the state the three build-50 recording defects turned
+// on: whether a server copy has applied, whether the paint on screen
+// is only the same-trip cache (provisional), and a persisted ring
+// buffer of every day change so the next flicker report names its
+// caller instead of guessing.
+var _tpcpDayLog = [];
+function tpcpDayLogLoad(){ try{ var s=localStorage.getItem('tpcp_day_log'); if(s){ var a=JSON.parse(s); if(a&&a.length) _tpcpDayLog=a.slice(-50); } }catch(e){} }
+tpcpDayLogLoad();
+function tpcpDayLogRecord(from,to,caller,touchPreceded){
+  var e={ts:Date.now(),from:from,to:to,caller:String(caller||'unknown'),touch:!!touchPreceded};
+  _tpcpDayLog.push(e); if(_tpcpDayLog.length>50) _tpcpDayLog=_tpcpDayLog.slice(-50);
+  try{ localStorage.setItem('tpcp_day_log',JSON.stringify(_tpcpDayLog)); }catch(err){}
+  return e;
+}
+function tpcpDayLogCaller(){
+  try{
+    var st=(new Error().stack||'').split('\n');
+    for(var i=1;i<st.length;i++){
+      var m=/at\s+(?:Object\.)?([A-Za-z_$][\w$]*)/.exec(st[i]);
+      if(m && ['setDay','tpcpDayLogRecord','tpcpDayLogCaller'].indexOf(m[1])===-1) return m[1];
+    }
+  }catch(e){}
+  return 'programmatic';
+}
+function tpcpDayChangesHtml(){
+  try{
+    var esc=function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    var rows=_tpcpDayLog.slice(-8).map(function(e){
+      var t=new Date(e.ts);
+      var hh=String(t.getHours()).padStart(2,'0'), mm=String(t.getMinutes()).padStart(2,'0'), ss=String(t.getSeconds()).padStart(2,'0');
+      return 'Day '+(e.from+1)+' \u2192 Day '+(e.to+1)+' \u00B7 '+esc(e.caller)+(e.touch?' \u00B7 touch':'')+' \u00B7 '+hh+':'+mm+':'+ss;
+    });
+    if(!rows.length) rows=['No day changes recorded yet.'];
+    return '<div style="margin:2px 14px 16px;font-size:11px;color:var(--text-muted);font-family:\'Outfit\',sans-serif;line-height:1.6;text-align:center;"><div style="font-weight:700;color:#1A6860;">Day changes</div>'+rows.map(function(r){return '<div>'+r+'</div>';}).join('')+'</div>';
+  }catch(e){ return ''; }
+}
+// -- Day-tab tap guard: a tap that moved is not a tap. Touch (and
+// mouse) sequences that begin on the tab strip are tracked; if the
+// pointer travels more than ~10px before release, the click the
+// browser fires anyway is swallowed by tpcpDayTabTap. The strip
+// itself already sits inside the sticky header (out of the content
+// scroll path) and takes touch-action:pan-x, so vertical scrolls
+// starting on it scroll the page instead of hitting a tab.
+var _tpcpTabGesture = null;
+var _tpcpSuppressTabTap = false;
+var _tpcpLastTouchEndAt = 0;
+function tpcpTabGesture(kind,x,y){
+  if(kind==='start'){ _tpcpTabGesture={x:x,y:y,moved:false}; }
+  else if(kind==='move'){ if(_tpcpTabGesture){ var dx=x-_tpcpTabGesture.x, dy=y-_tpcpTabGesture.y; if(Math.sqrt(dx*dx+dy*dy)>10) _tpcpTabGesture.moved=true; } }
+  else if(kind==='end'){ _tpcpLastTouchEndAt=Date.now(); if(_tpcpTabGesture && _tpcpTabGesture.moved) _tpcpSuppressTabTap=true; _tpcpTabGesture=null; }
+  else if(kind==='cancel'){ _tpcpTabGesture=null; }
+}
+function tpcpDayLogTouchPreceded(){ return (Date.now()-_tpcpLastTouchEndAt)<1000; }
+function tpcpDayTabTap(d){
+  if(_tpcpSuppressTabTap){ _tpcpSuppressTabTap=false; return; }
+  setDay(d,{caller:'tab-tap',user:true});
+}
+function tpcpInitDayTabGuards(){
+  if(window._tpcpTabGuardsOn) return;
+  var c=document.getElementById('dayTabsContainer'); if(!c) return;
+  window._tpcpTabGuardsOn=true;
+  c.addEventListener('touchstart',function(e){ var t=e.touches&&e.touches[0]; if(t) tpcpTabGesture('start',t.clientX,t.clientY); },{passive:true});
+  c.addEventListener('touchmove',function(e){ var t=e.touches&&e.touches[0]; if(t) tpcpTabGesture('move',t.clientX,t.clientY); },{passive:true});
+  c.addEventListener('touchend',function(e){ var t=e.changedTouches&&e.changedTouches[0]; tpcpTabGesture('end',t?t.clientX:0,t?t.clientY:0); },{passive:true});
+  c.addEventListener('touchcancel',function(){ tpcpTabGesture('cancel',0,0); },{passive:true});
+  c.addEventListener('mousedown',function(e){ tpcpTabGesture('start',e.clientX,e.clientY); });
+  c.addEventListener('mousemove',function(e){ if(e.buttons) tpcpTabGesture('move',e.clientX,e.clientY); });
+  c.addEventListener('mouseup',function(e){ tpcpTabGesture('end',e.clientX,e.clientY); });
+}
+// -- Cache-first paint, all roles. The cache key is per-code; the
+// parsed payload must ALSO agree with the code being opened (writers
+// stamp `code` into the payload), so a cache left by a different trip
+// can never be painted. Legacy payloads without a stamp pass on the
+// key match alone.
+function tpcpCacheForCode(code){
+  try{
+    if(!code) return null;
+    var s=localStorage.getItem('tpcp_lastSched_'+code);
+    if(!s) return null;
+    var o=JSON.parse(s); if(!o) return null;
+    if(o.code && String(o.code).toUpperCase()!==String(code).toUpperCase()) return null;
+    if(!(o.schedData&&o.schedData.days&&o.schedData.days.length) && !(o.customSched&&o.customSched.length)) return null;
+    return o;
+  }catch(e){ return null; }
+}
+function tpcpPaintCachedTrip(code){
+  var c=tpcpCacheForCode(code); if(!c) return false;
+  // Mark provisional BEFORE painting: renderSched's loading gate keys
+  // off these flags, and loadCustom renders as part of the paint.
+  _tripProvisional=true; usingCachedSchedule=true;
+  try{
+    if(c.schedData && c.schedData.days) window._schedData=c.schedData;
+    if(c.DAYS){ try{ DAYS=c.DAYS; }catch(e){} }
+    if(c.customSched) customSched=c.customSched;
+    if(typeof loadCustom==='function') loadCustom();
+    else if(typeof renderSched==='function') renderSched();
+    if(c.tripName){ try{ var _ht=document.querySelector('.header-title'); if(_ht) _ht.textContent=c.tripName; }catch(e){} }
+    var b=document.getElementById('cachedSchedBanner'); if(b) b.style.display='';
+    if(typeof renderDayInfoBar==='function'){ try{ renderDayInfoBar(); }catch(e){} }
+    return true;
+  }catch(e){ return false; }
+}
+function tpcpMarkTripLoaded(){
+  _tripLoaded=true; _tripProvisional=false; usingCachedSchedule=false;
+  try{ var b=document.getElementById('cachedSchedBanner'); if(b) b.style.display='none'; }catch(e){}
+}
+// "Not loaded" must never render as "empty": until a server copy has
+// applied or a same-trip cache has painted, the schedule area gets a
+// neutral loading view -- never the empty state, never the default
+// trip. renderSched consults this before its empty-state branch.
+function tpcpSchedPlaceholderHTML(){
+  if(_tripLoaded || _tripProvisional) return null;
+  return '<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:16px;font-weight:600;margin-bottom:8px">Loading your trip&hellip;</div><div style="font-size:13px">One moment while we fetch your plan.</div></div>';
+}
+// -- One-time day re-pick: when the real config first applies, re-run
+// the initial-day pick ONCE -- unless the user has tapped a day tab,
+// which is a deliberate selection and is never stolen.
+function tpcpMaybeRepickDay(){
+  if(_dayRepicked) return; _dayRepicked=true;
+  if(window._dayUserPicked) return;
+  try{
+    var idx=(typeof getInitialActiveDay==='function')?getInitialActiveDay():0;
+    if(typeof idx==='number' && idx!==curDay && typeof setDay==='function') setDay(idx,{caller:'repick'});
+  }catch(e){}
+}
+// -- Park-local time helpers (the day's own park timezone, via the
+// PR #118 map mirrored in tpcpParkTzForDay -- never the device's).
+function tpcpParkTodayIso(dayIdx){
+  try{
+    var tz=(typeof tpcpParkTzForDay==='function')?tpcpParkTzForDay(dayIdx||0):'America/Los_Angeles';
+    return new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  }catch(e){ return ''; }
+}
+function tpcpParkNowMin(dayIdx){
+  try{
+    var tz=(typeof tpcpParkTzForDay==='function')?tpcpParkTzForDay(dayIdx||0):'America/Los_Angeles';
+    var parts=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+    var hh=0,mm=0;
+    for(var i=0;i<parts.length;i++){ if(parts[i].type==='hour') hh=parseInt(parts[i].value,10)%24; if(parts[i].type==='minute') mm=parseInt(parts[i].value,10); }
+    return hh*60+mm;
+  }catch(e){ var n=new Date(); return n.getHours()*60+n.getMinutes(); }
+}
+function tpcpParkTimeEpoch(dayIdx,iso,hour,min){
+  // Epoch ms of a park-local wall time on an ISO date. Iterated offset
+  // correction: shift the guess by (target wall - wall read at the
+  // guess) until it reads back as the target. Converges across DST
+  // transitions, where the offset at the guess differs from the
+  // offset at the target.
+  try{
+    var tz=(typeof tpcpParkTzForDay==='function')?tpcpParkTzForDay(dayIdx||0):'America/Los_Angeles';
+    var p=String(iso).split('-'); if(p.length<3) return null;
+    var target=Date.UTC(+p[0],+p[1]-1,+p[2],hour||0,min||0);
+    var guess=target;
+    for(var pass=0;pass<4;pass++){
+      var parts=new Intl.DateTimeFormat('en-US',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(guess));
+      var o={}; for(var i=0;i<parts.length;i++) o[parts[i].type]=parts[i].value;
+      var asUTC=Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute,+o.second);
+      if(asUTC===target) break;
+      guess+=(target-asUTC);
+    }
+    return guess;
+  }catch(e){ return null; }
+}
+function tpcpIsInTripParkLocal(dayIdx){
+  var rd=(typeof tpcpRealDays==='function')?tpcpRealDays():[];
+  if(!rd.length) return false;
+  var iso=tpcpParkTodayIso(dayIdx||0); if(!iso) return false;
+  return iso>=rd[0].iso && iso<=rd[rd.length-1].iso;
+}
+/* TPCP-STARTUP-DAYSTATE-END */
 
 const SHOWS=[
   {name:'World of Color \u2014 Happiness!',park:'DCA',time:'~9:00\u20139:30 PM',days:'Nightly',hl:true,desc:'A 25-min water, light & projection show hosted by Joy from Inside Out. Reserved lagoon-side viewing areas offer the best view.'},
@@ -2364,12 +2540,20 @@ function checkLock(){
             if(area){var err=document.createElement('div');err.style.cssText='color:#C86030;font-size:13px;text-align:center;margin-top:8px;';err.textContent='Session expired. Please re-enter your code.';area.appendChild(err);}
             return;
           }
-          // Transient (5xx cold start, 429, offline on wake, non-JSON edge, dropped connection): keep the session, retry once via reload.
+          // Transient (5xx cold start, 429, offline on wake, non-JSON edge, dropped connection): keep the session and retry IN PLACE.
+          // The location.reload() that used to live here was this branch's only recovery: the _retryLoad ladder
+          // hangs off .catch and never sees a resolved-but-invalid response, so reloading was the only way to
+          // re-run validation. The branch mutates nothing before returning and the success path below is fully
+          // re-enterable -- it is exactly what a reload would have run -- so a bounded re-invocation of checkLock
+          // restores equivalent state without re-painting the shell (removed Oct 23, 2026). Bounded to once per
+          // cold start; after that the provisional cache paint (or splash) stays up and the blob poll backstops.
           if(result.status!==200||!result.data||!result.data.valid){
-            try{ if(!sessionStorage.getItem('tpcp_revalRetry')){ sessionStorage.setItem('tpcp_revalRetry','1'); setTimeout(function(){location.reload();},2500); } }catch(e){}
+            try{ if(!window._tpcpRevalRetried){ window._tpcpRevalRetried=true; setTimeout(function(){ try{ checkLock(); }catch(e){} },2500); } }catch(e){}
             return;
           }
           try{ sessionStorage.removeItem('tpcp_revalRetry'); }catch(e){}
+          window._tpcpRevalRetried=false;
+          tpcpMarkTripLoaded();
           var d=result.data;
           userRole=d.role;
           try{localStorage.setItem('disney_unlocked',d.role);}catch(e){}
@@ -2392,7 +2576,8 @@ function checkLock(){
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
               loadCustom();
-              (function() { try { var _sched = d.tripData.tripConfig.schedule; if (_sched && _sched.days && _sched.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none'; } } catch(e) {} })();
+              (function() { try { var _sched = d.tripData.tripConfig.schedule; if (_sched && _sched.days && _sched.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none'; } } catch(e) {} })();
+              tpcpMaybeRepickDay();
               var _gwsEl=document.getElementById('guestWaitScreen'); if(_gwsEl) _gwsEl.style.display='none';
             } else {
               if(typeof showGuestWaitingScreen==='function') showGuestWaitingScreen(d.tripName||'');
@@ -2416,9 +2601,11 @@ function checkLock(){
                     if (result2.status === 200 && dr && dr.data && dr.data.tripData && dr.data.tripData.tripConfig && dr.data.tripData.tripConfig.schedule) {
                       window._schedData = dr.data.tripData.tripConfig.schedule;
                       loadCustom();
+                      tpcpMarkTripLoaded();
+                      tpcpMaybeRepickDay();
                       usingCachedSchedule = false;
                       var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none';
-                      try { if (dr.data.tripData.tripConfig.schedule.days && dr.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e2) {}
+                      try { if (dr.data.tripData.tripConfig.schedule.days && dr.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e2) {}
                       document.getElementById('lockScreen').style.display = 'none';
                       document.getElementById('mainApp').style.display = '';
                       applyRoleUI();
@@ -2433,6 +2620,7 @@ function checkLock(){
                   try { DAYS = _c.DAYS; } catch(_de) {}
                   customSched = _c.customSched || customSched;
                   if (typeof tpcpFitCustomSched === 'function') tpcpFitCustomSched();
+                  _tripProvisional = true;
                   usingCachedSchedule = true;
                   var _cb2 = document.getElementById('cachedSchedBanner'); if (_cb2) _cb2.style.display = '';
                   document.getElementById('lockScreen').style.display = 'none';
@@ -2454,6 +2642,7 @@ function checkLock(){
     var saved=localStorage.getItem('disney_unlocked');
     if(saved==='admin'||saved==='guest'){
       userRole=saved;
+      tpcpMarkTripLoaded();
       document.getElementById('lockScreen').style.display='none';
       document.getElementById('mainApp').style.display='';
       applyRoleUI();
@@ -2494,6 +2683,7 @@ function tryUnlock() {
         if (d.tripData && (d.tripData.onboardingComplete === true || (d.tripData.tripConfig && d.tripData.tripConfig.onboardingComplete === true))) { try { localStorage.setItem('tpcp_onboardingComplete', 'true'); } catch(e) {} }
       } catch(e) {}
       userRole = d.role;
+      tpcpMarkTripLoaded();
       applyRoleUI();
       // Phase 2: populate TRIP_CONFIG from canonical blob at runtime
       if (window._loadedTripData && window._loadedTripData.tripConfig) {
@@ -2544,8 +2734,9 @@ function tryUnlock() {
           }
         }
         loadCustom();
+        tpcpMaybeRepickDay();
         // PART A: cache write (tryUnlock path)
-        (function() { try { var _sched2 = d.tripData.tripConfig.schedule; if (_sched2 && _sched2.days && _sched2.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb3 = document.getElementById('cachedSchedBanner'); if (_cb3) _cb3.style.display = 'none'; } } catch(e5) {} })();
+        (function() { try { var _sched2 = d.tripData.tripConfig.schedule; if (_sched2 && _sched2.days && _sched2.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb3 = document.getElementById('cachedSchedBanner'); if (_cb3) _cb3.style.display = 'none'; } } catch(e5) {} })();
         var _gwsEl2=document.getElementById('guestWaitScreen'); if(_gwsEl2) _gwsEl2.style.display='none';
       }
       if (d.role === 'guest' || d.hasTrip) {
@@ -2574,9 +2765,11 @@ function tryUnlock() {
                   userRole = dr2.data.role;
                   applyRoleUI();
                   loadCustom();
+                  tpcpMarkTripLoaded();
+                  tpcpMaybeRepickDay();
                   usingCachedSchedule = false;
                   var _cb4 = document.getElementById('cachedSchedBanner'); if (_cb4) _cb4.style.display = 'none';
-                  try { if (dr2.data.tripData.tripConfig.schedule.days && dr2.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e7) {}
+                  try { if (dr2.data.tripData.tripConfig.schedule.days && dr2.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e7) {}
                   var _gwsEl3 = document.getElementById('guestWaitScreen'); if (_gwsEl3) _gwsEl3.style.display = 'none';
                   enterSplash(true);
                 } else { _retryUnlock(attempt + 1); }
@@ -2590,6 +2783,7 @@ function tryUnlock() {
               try { DAYS = _c2.DAYS; } catch(_de2) {}
               customSched = _c2.customSched || customSched;
               if (typeof tpcpFitCustomSched === 'function') tpcpFitCustomSched();
+              _tripProvisional = true;
               usingCachedSchedule = true;
               var _cb5 = document.getElementById('cachedSchedBanner'); if (_cb5) _cb5.style.display = '';
               try { localStorage.setItem('tpcp_code', code); } catch(e8) {}
@@ -2922,13 +3116,13 @@ function getCountdown(){
   var now=new Date();
   var first=new Date(rd[0].date); first.setHours(0,0,0,0);
   var last=new Date(rd[rd.length-1].date); last.setHours(23,59,59,999);
-  if(now>last) return null;
-  if(now>=first){
+  var _cdIso=(typeof tpcpParkTodayIso==='function')?tpcpParkTodayIso(0):'';
+  if(_cdIso ? (_cdIso>rd[rd.length-1].iso) : (now>last)) return null;
+  if(_cdIso ? (_cdIso>=rd[0].iso) : (now>=first)){
     var idx=0;
     for(var i=0;i<rd.length;i++){
-      var ds=new Date(rd[i].date); ds.setHours(0,0,0,0);
-      var de=new Date(rd[i].date); de.setHours(23,59,59,999);
-      if(now>=ds&&now<=de){idx=i;break;}
+      if(_cdIso){ if(rd[i].iso===_cdIso){idx=i;break;} }
+      else { var ds=new Date(rd[i].date); ds.setHours(0,0,0,0); var de=new Date(rd[i].date); de.setHours(23,59,59,999); if(now>=ds&&now<=de){idx=i;break;} }
     }
     if(rd[idx].isVip) return {during:true,msg:'You\u2019re a VIP today! \u2728'};
     if(rd.length===1) return {during:true,msg:'Your park day is here \u2014 make it magical!'};
@@ -3715,7 +3909,7 @@ function startBlobPoll() {
                    ensureDayTabs(TRIP_CONFIG.days.length); TRIP_CONFIG.days.forEach(function(dy, i){ var tab=document.getElementById('day-tab-'+(i+1)); if(!tab)return; if(dy.isVip){tab.classList.add('vip-tab');}else{tab.classList.remove('vip-tab');} var de=tab.querySelector('.day-tab-date'); if(de)de.textContent=dy.date||''; });
                  }
                }
-               if (typeof loadCustom === 'function') loadCustom();try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
+               if (typeof loadCustom === 'function') loadCustom(); tpcpMarkTripLoaded(); tpcpMaybeRepickDay(); try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
           }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
           if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
@@ -4008,29 +4202,29 @@ function scheduleLLPrompts(){
   // 2026 trip dates, so the prompts could never fire for any other trip.
   var days={};
   ((window.TRIP_CONFIG && TRIP_CONFIG.days) || []).forEach(function(d,i){
-    var dt = d && d.date ? new Date(d.date) : null;
+    var dt = d && d.date ? tpcpParseDayDate(d.date) : null;
     if (dt && !isNaN(dt.getTime())) days[i] = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
   });
   Object.keys(days).map(function(k){ return parseInt(k, 10); }).filter(function(i){ return !(TRIP_CONFIG.days[i] && TRIP_CONFIG.days[i].isVip); }).forEach(function(dayIdx){
     // 7 AM planning prompt
-    var t7=new Date(days[dayIdx]+'T07:00:00');
-    var ms7=t7-now;
+    var _t7=(typeof tpcpParkTimeEpoch==='function')?tpcpParkTimeEpoch(dayIdx,days[dayIdx],7,0):null;
+    var ms7=(_t7===null)?-1:(_t7-Date.now());
     if(ms7>0&&ms7<24*60*60*1000){
       setTimeout(function(){if(curDay===dayIdx)showLLPlanningPrompt();},ms7);
     }
     // 8 AM confirmed-at-park prompt
-    var t8=new Date(days[dayIdx]+'T08:00:00');
-    var ms8=t8-now;
+    var _t8=(typeof tpcpParkTimeEpoch==='function')?tpcpParkTimeEpoch(dayIdx,days[dayIdx],8,0):null;
+    var ms8=(_t8===null)?-1:(_t8-Date.now());
     if(ms8>0&&ms8<24*60*60*1000){
       setTimeout(function(){if(curDay===dayIdx)showLLConfirmedPrompt();},ms8);
     }
   });
   // If opening app during the window, show appropriate prompt
-  var today=now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  var today=(typeof tpcpParkTodayIso==='function')?tpcpParkTodayIso(0):'';
   var dayMap={}; Object.keys(days).forEach(function(k){ dayMap[days[k]] = parseInt(k, 10); });
   var todayIdx=dayMap[today];
   if(todayIdx!==undefined && !(TRIP_CONFIG.days[todayIdx] && TRIP_CONFIG.days[todayIdx].isVip)){
-    var h=now.getHours();
+    var h=Math.floor(((typeof tpcpParkNowMin==='function')?tpcpParkNowMin(todayIdx):0)/60);
     loadLLState();
     if(h>=7&&h<8&&llState.multiPass===null) setTimeout(showLLPlanningPrompt,2000);
     else if(h>=8&&h<10&&llState.multiPass!==null) setTimeout(showLLConfirmedPrompt,2000);
@@ -4774,7 +4968,18 @@ function tpcpFitCustomSched(minN){
     if (customSched.length > n) customSched.length = n;
     while (customSched.length < n) customSched.push(null);
   }
-  if (curDay >= customSched.length) curDay = Math.max(0, customSched.length - 1);
+  if (curDay >= customSched.length) {
+    var _clampTo = Math.max(0, customSched.length - 1);
+    if (_clampTo !== curDay) {
+      // Route through setDay (Oct 23, 2026): a bare curDay rewrite left
+      // the tab strip lit for the old day over the new day's content --
+      // tabs and content desynced. setDay is the single writer for day
+      // state; pre-init there is no UI to desync, so assign directly
+      // (still logged, caller 'fit-clamp').
+      if (window._appInitialized && typeof setDay === 'function') setDay(_clampTo, { caller: 'fit-clamp' });
+      else { try { tpcpDayLogRecord(curDay, _clampTo, 'fit-clamp', false); } catch(e){} curDay = _clampTo; }
+    }
+  }
   return customSched.length;
 }
 function loadCustom(){
@@ -5276,16 +5481,26 @@ async function reoptimize(){ if(!isAdmin()) return;
         tripDayLabel=_td.toDateString().replace(/\s\d{4}$/,'').trim();
       }catch(e){}
     }
-    var today=new Date();
-    today.setHours(0,0,0,0);
-    var firstDate=tripDays.length>0&&tripDays[0].date?new Date(tripDays[0].date+'T00:00:00'):null;
-    var lastDate=tripDays.length>0&&tripDays[tripDays.length-1].date?new Date(tripDays[tripDays.length-1].date+'T00:00:00'):null;
-    if(lastDate)lastDate.setHours(23,59,59,999);
-    isInTrip=!!(firstDate&&lastDate&&today>=firstDate&&today<=lastDate);
+    // Park-local in-trip test (Oct 23, 2026): park today vs the trip's
+    // own day dates -- the device calendar named the wrong day for
+    // anyone outside the park's timezone. Falls back to the legacy
+    // device-local comparison only if the park helpers are absent.
+    var _plIso1=(typeof tpcpParkTodayIso==='function')?tpcpParkTodayIso(curDay):'';
+    var _plRd1=(typeof tpcpRealDays==='function')?tpcpRealDays():[];
+    if(_plIso1&&_plRd1.length){
+      isInTrip=(_plIso1>=_plRd1[0].iso&&_plIso1<=_plRd1[_plRd1.length-1].iso);
+    }else{
+      var today=new Date();
+      today.setHours(0,0,0,0);
+      var firstDate=tripDays.length>0&&tripDays[0].date?new Date(tripDays[0].date+'T00:00:00'):null;
+      var lastDate=tripDays.length>0&&tripDays[tripDays.length-1].date?new Date(tripDays[tripDays.length-1].date+'T00:00:00'):null;
+      if(lastDate)lastDate.setHours(23,59,59,999);
+      isInTrip=!!(firstDate&&lastDate&&today>=firstDate&&today<=lastDate);
+    }
     function itemTimeToMin(t){if(!t)return 0;var m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;var h=parseInt(m[1]),mn=parseInt(m[2]),pm=m[3].toUpperCase()==='PM';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h*60+mn;}
     var allDayItems=(window._schedData&&window._schedData.days&&window._schedData.days[curDay]&&window._schedData.days[curDay].items)||[];
     if(isInTrip){
-      var nowMin=new Date().getHours()*60+new Date().getMinutes();
+      var nowMin=(typeof tpcpParkNowMin==='function')?tpcpParkNowMin(curDay):(new Date().getHours()*60+new Date().getMinutes());
       schedItems=allDayItems.filter(function(item){return itemTimeToMin(item.t)>=nowMin-30;});
     }else{
       schedItems=allDayItems.slice(0,20);
@@ -5294,7 +5509,7 @@ async function reoptimize(){ if(!isAdmin()) return;
     console.log('[reoptimize] snapshot allDayItems:',allDayItems.length,'curDay:',curDay,'schedItems:',schedItems.length);
     window._aiOptAllDayItems=allDayItems.slice(); // full day \u2014 used for tail merge on Accept
     window._aiOptIsInTrip=isInTrip;
-    window._aiOptNowMin=isInTrip?(new Date().getHours()*60+new Date().getMinutes()):0;
+    window._aiOptNowMin=isInTrip?((typeof tpcpParkNowMin==='function')?tpcpParkNowMin(curDay):(new Date().getHours()*60+new Date().getMinutes())):0;
     window._aiOptSentCount=schedItems.length;
     liveWaitContext='';
     if(typeof buildWaitContext==='function'){liveWaitContext=buildWaitContext()||'';}
@@ -5714,16 +5929,19 @@ function toggleRideNote(id) {
   wrap.style.display = isOpen ? 'none' : 'block';
   if (btn) btn.innerHTML = isOpen ? 'Tips &amp; details &rsaquo;' : 'Tips &amp; details &or;';
 }
-function _isDateToday(dateStr){
+function _isDateToday(dateStr, dayIdx){
+  // Park-local (Oct 23, 2026): "today" is the park's today, via the
+  // day's own date parsed with tpcpParseDayDate and the park timezone
+  // map -- never the device's calendar day or clock.
   if(!dateStr) return false;
-  var dt=new Date(dateStr);
-  if(isNaN(dt.getTime())) return false;
-  var now=new Date();
-  return dt.getFullYear()===now.getFullYear() && dt.getMonth()===now.getMonth() && dt.getDate()===now.getDate();
+  var dt=(typeof tpcpParseDayDate==='function')?tpcpParseDayDate(dateStr):null;
+  if(!dt||isNaN(dt.getTime())) return false;
+  var iso=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+  return iso===tpcpParkTodayIso(dayIdx||0);
 }
 function _isTodayDayIndex(i){
   var days=(window.TRIP_CONFIG&&TRIP_CONFIG.days)||[];
-  return !!(days[i] && _isDateToday(days[i].date));
+  return !!(days[i] && _isDateToday(days[i].date, i));
 }
 function _schedStickyTop(){
   var off=0;
@@ -5738,7 +5956,7 @@ function scrollScheduleToNow(){
     if(!_isTodayDayIndex(window.curDay)){ window.scrollTo(0,0); return; }
     var cards=document.querySelectorAll('#schedContent .ride-block[data-min]');
     if(!cards.length){ window.scrollTo(0,0); return; }
-    var now=new Date(); var nowMin=now.getHours()*60+now.getMinutes();
+    var nowMin=tpcpParkNowMin(window.curDay);
     var target=null, isFirst=false;
     for(var i=0;i<cards.length;i++){
       var m=parseInt(cards[i].getAttribute('data-min'),10);
@@ -5906,6 +6124,11 @@ function renderLLReceiptBlock(dayIdx){
 function renderSched(){
   // PART A: update cached banner visibility
   (function() { var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = (typeof usingCachedSchedule !== 'undefined' && usingCachedSchedule) ? '' : 'none'; })();
+  // Loading is not empty (Oct 23, 2026): before the first server copy
+  // applies -- and with no same-trip cache painted -- the schedule
+  // area shows the neutral loading view, never the empty state below.
+  var _ph = (typeof tpcpSchedPlaceholderHTML === 'function') ? tpcpSchedPlaceholderHTML() : null;
+  if (_ph) { document.getElementById('schedContent').innerHTML = _ph; return; }
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
   if(typeof renderLLSequenceBlock==='function')h+=renderLLSequenceBlock(curDay);
@@ -6541,6 +6764,7 @@ function tpcpBundleLabel(){
     +'<div id="tpcpAlertInfoRow" style="margin:0 14px 14px;padding:12px;border:1px solid rgba(7,30,37,0.12);border-radius:10px;background:#fff;"><button class="tpcp-alert-btn" onclick="tpcpAlertTestTap()" style="background:#1A6860;border:none;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:700;color:#fff;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;">Enable Wait Time Alerts</button><div id="tpcpAlertTestStatus" style="font-size:10px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;margin-top:8px;line-height:1.4;"></div><div class="tpcp-reg-status" style="display:none"></div><div class=\"tpcp-push-test-panel\" style=\"display:none;margin-top:10px;border-top:1px solid rgba(7,30,37,0.08);padding-top:10px;\"><div class=\"tpcp-pt-readout\" style=\"font-size:11px;font-weight:600;color:#1A6860;font-family:\'Outfit\',sans-serif;line-height:1.45;\"></div><div style=\"font-size:11px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;line-height:1.5;margin-top:6px;\">Leader test: this sends a test alert to every device on this trip — your phone and your group&rsquo;s phones — so notifications can be checked any time, not just when a real alert fires.</div><button type=\"button\" class=\"tpcp-pt-btn\" onclick=\"tpcpSendTestPush(this)\" style=\"background:#fff;border:1.5px solid #1A6860;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;color:#1A6860;font-family:\'Outfit\',sans-serif;cursor:pointer;width:100%;margin-top:8px;\">Send test alert</button><div class=\"tpcp-pt-result\" style=\"white-space:pre-line;font-size:11px;color:#4A7A7C;font-family:\'Outfit\',sans-serif;line-height:1.45;margin-top:8px;\"></div></div>'+tpcpAlertHelpHTML()+'</div>'
     +_order.map(function(k){return _secs[k]||'';}).join('')
     +versionsHtml
+    +(typeof tpcpDayChangesHtml==='function'?tpcpDayChangesHtml():'')
     +nativeSpikeHtml
     +'</div>';
 
@@ -6701,7 +6925,7 @@ function ensureDayTabs(count, exact){
     tab.className = 'day-tab';
     tab.id = 'day-tab-' + i;
     tab.setAttribute('role', 'tab');
-    tab.setAttribute('onclick', 'setDay(' + (i-1) + ')');
+    tab.setAttribute('onclick', 'tpcpDayTabTap(' + (i-1) + ')');
     tab.innerHTML = '<div class="day-tab-text"><span class="day-tab-name">Day ' + i + '</span><span class="day-tab-date"></span></div>';
     c.appendChild(tab);
   }
@@ -6716,7 +6940,11 @@ function ensureDayTabs(count, exact){
     }
   }
 }
-function setDay(d){
+function setDay(d, opts){
+  opts = opts || {};
+  var _fromDay = curDay;
+  if (opts.user) window._dayUserPicked = true;
+  try { tpcpDayLogRecord(_fromDay, d, opts.caller || tpcpDayLogCaller(), tpcpDayLogTouchPreceded()); } catch(e){}
   ensureDayTabs(0);
   window._nowScrollPending = _isTodayDayIndex(d); switchNav('schedule');
   curDay=d;
@@ -7868,20 +8096,19 @@ var TRIP_CONFIG = {
 };
 
 function getInitialActiveDay() {
-  // Beau's rule: open on Day 1 before the trip, and on the current day during
-  // the trip. The start date comes from the LOADED trip config -- this once
-  // hardcoded the June 2026 trip start, which sent every later trip (whose
-  // dates are all "after" it) to its LAST day on open. Found Oct 5, 2026.
-  var days = (window.TRIP_CONFIG && TRIP_CONFIG.days) || [];
-  if (!days.length) return 0;
-  var tripStart = days[0] && days[0].date ? new Date(days[0].date) : null;
-  if (!tripStart || isNaN(tripStart.getTime())) return 0;
-  tripStart.setHours(0, 0, 0, 0);
-  var today = new Date(); today.setHours(0, 0, 0, 0);
-  var diffDays = Math.floor((today - tripStart) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return 0;
-  if (diffDays >= days.length) return days.length - 1;
-  return diffDays;
+  // Open on the trip's current day (Beau's rule): before the trip ->
+  // Day 1, during the trip -> today, after the trip -> the last day.
+  // "Today" is the PARK's today: each day's own date (parsed with
+  // tpcpParseDayDate, matched via tpcpRealDays) is compared against
+  // park-local today from the park timezone map -- never the device's
+  // calendar. Unparseable/absent dates fall back to Day 1.
+  var rd = (typeof tpcpRealDays === 'function') ? tpcpRealDays() : [];
+  if (!rd.length) return 0;
+  var todayIso = (typeof tpcpParkTodayIso === 'function') ? tpcpParkTodayIso(rd[0].idx) : '';
+  if (!todayIso) return 0;
+  for (var i = 0; i < rd.length; i++) { if (rd[i].iso === todayIso) return rd[i].idx; }
+  if (todayIso < rd[0].iso) return 0;
+  return rd[rd.length - 1].idx;
 }
 
 /* --- Splash screen --- */
@@ -8133,18 +8360,22 @@ function enterSplash(skipAnim) {
     if (typeof loadKey === 'function') loadKey();
     if (typeof checkLock === 'function') checkLock();
     if (typeof applyRoleUI === 'function') applyRoleUI();try {
-      if ((localStorage.getItem('tpcp_role')||'') === 'guest' && !(window._schedData && window._schedData.days)) {
-        var _gcStr = localStorage.getItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''));
-        var _gcObj = _gcStr ? JSON.parse(_gcStr) : null;
-        if (_gcObj && _gcObj.schedData && _gcObj.schedData.days && _gcObj.schedData.days.length) {
-          window._schedData = _gcObj.schedData;
-          if (typeof loadCustom==='function') { loadCustom(); }
-        } else if (_gcObj && _gcObj.customSched) {
-          customSched = _gcObj.customSched;
-          if (typeof tpcpFitCustomSched === 'function') tpcpFitCustomSched();
-          if (typeof renderSched==='function') { renderSched(window.curDay || 1); }
-        }
+      // Cache-first paint for EVERY role (Oct 23, 2026): the guest-only
+      // hydrate that used to sit here left leaders staring at the baked-in
+      // default trip until the fetch landed. tpcpPaintCachedTrip paints
+      // only the cache that belongs to the code being opened and marks
+      // the paint provisional until the server copy applies.
+      var _openCode = localStorage.getItem('tpcp_code') || '';
+      if (_openCode && !(window._schedData && window._schedData.days)) {
+        tpcpPaintCachedTrip(_openCode);
       }
+      // Never let the baked-in shell title stand as if it were a trip:
+      // until a load (or the cache) names the trip, it stays blank.
+      if (!_tripLoaded && !_tripProvisional) {
+        var _ht0 = document.querySelector('.header-title');
+        if (_ht0) _ht0.textContent = '';
+      }
+      if (typeof tpcpInitDayTabGuards === 'function') tpcpInitDayTabGuards();
     } catch(_e){}
     if (typeof startScheduleSync === 'function') startScheduleSync();
     else if (typeof pullSchedule === 'function') pullSchedule(1);
@@ -8335,8 +8566,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   // Set active day tab based on trip progress
+  if (typeof tpcpInitDayTabGuards === 'function') tpcpInitDayTabGuards();
   var _initDay = getInitialActiveDay();
-  setDay(_initDay);
+  setDay(_initDay, { caller: 'init' });
 });
 </script>
 
@@ -9910,13 +10142,23 @@ async function tpcpReworkRun(item) {
     } catch (e) {}
     return 'Day ' + (dayIdx + 1);
   })();
-  var _today = new Date();
-  _today.setHours(0, 0, 0, 0);
-  var firstDate = tripDays.length > 0 && tripDays[0].date ? new Date(tripDays[0].date + 'T00:00:00') : null;
-  var lastDate = tripDays.length > 0 && tripDays[tripDays.length - 1].date ? new Date(tripDays[tripDays.length - 1].date + 'T00:00:00') : null;
-  if (lastDate) lastDate.setHours(23, 59, 59, 999);
-  var isInTrip = !!(firstDate && lastDate && _today >= firstDate && _today <= lastDate);
-  var nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  // Park-local in-trip test (Oct 23, 2026), matching the reoptimize
+  // payload builder: park today vs the trip's own day dates, with the
+  // legacy device-local comparison only as a no-helpers fallback.
+  var _plIso2 = (typeof tpcpParkTodayIso === 'function') ? tpcpParkTodayIso(dayIdx) : '';
+  var _plRd2 = (typeof tpcpRealDays === 'function') ? tpcpRealDays() : [];
+  var isInTrip;
+  if (_plIso2 && _plRd2.length) {
+    isInTrip = (_plIso2 >= _plRd2[0].iso && _plIso2 <= _plRd2[_plRd2.length - 1].iso);
+  } else {
+    var _today = new Date();
+    _today.setHours(0, 0, 0, 0);
+    var firstDate = tripDays.length > 0 && tripDays[0].date ? new Date(tripDays[0].date + 'T00:00:00') : null;
+    var lastDate = tripDays.length > 0 && tripDays[tripDays.length - 1].date ? new Date(tripDays[tripDays.length - 1].date + 'T00:00:00') : null;
+    if (lastDate) lastDate.setHours(23, 59, 59, 999);
+    isInTrip = !!(firstDate && lastDate && _today >= firstDate && _today <= lastDate);
+  }
+  var nowMin = (typeof tpcpParkNowMin === 'function') ? tpcpParkNowMin(dayIdx) : (new Date().getHours() * 60 + new Date().getMinutes());
   var sentItems;
   if (isInTrip) {
     sentItems = allDayItems.filter(function(it) { return tpcpReworkTimeToMin(it.t) >= nowMin - 30; });
