@@ -9510,6 +9510,33 @@ function tpcpReworkShowError(item, msg) {
   sec.style.display = '';
 }
 
+function tpcpReworkShowInterrupted(item) {
+  if (_tpcpAlertCurrent !== item) return;
+  // Interruption recovery (Claude ruling, Oct 22): restore the
+  // alert's own context -- its kicker, title, and fact -- with the
+  // Rework affordance live again and honest copy. The user's context
+  // is the alert, not a failure modal, and a client-side interruption
+  // must never be reported as the optimizer being unreachable. The
+  // dedicated state keeps the primary dispatch honest: it is neither
+  // a result to Accept nor a run in flight, so the primary tap
+  // simply runs the rework again.
+  item.state = 'rework-interrupted';
+  document.getElementById('tpcpAlertKicker').textContent = tpcpAlertKicker(item);
+  document.getElementById('tpcpAlertTitle').textContent = item.title;
+  var bodyEl = document.getElementById('tpcpAlertBody');
+  bodyEl.textContent = ((item.body || '') ? (item.body + ' ') : '') + 'Rework interrupted \u2014 tap to try again.';
+  bodyEl.style.display = '';
+  var conf = document.getElementById('tpcpAlertConfirm');
+  conf.style.display = 'none';
+  conf.textContent = '';
+  var pri = document.getElementById('tpcpAlertPrimary');
+  pri.textContent = 'Rework my morning';
+  pri.disabled = false;
+  var sec = document.getElementById('tpcpAlertSecondary');
+  sec.textContent = 'Not now';
+  sec.style.display = '';
+}
+
 function tpcpReworkShowResult(item, view) {
   if (_tpcpAlertCurrent !== item) return;
   var bodyEl = document.getElementById('tpcpAlertBody');
@@ -9563,13 +9590,36 @@ function tpcpReworkShowResult(item, view) {
 
 async function tpcpReworkRun(item) {
   if (item.state === 'rework-working') return;
+  tpcpReworkShowWorking(item);
+  // Fresh run per alert (Claude ruling, Oct 22): an alert-driven
+  // rework never runs on the in-memory day snapshot. For the leader
+  // that snapshot is rebuilt only on trip load -- the 10s poll
+  // ingests schedule updates for guests only -- so a rework could run
+  // on a plan the leader had already replaced (Oct 22, 9:27 PM: a
+  // byte-identical re-proposal of the just-accepted plan, diffed
+  // against times that no longer existed in storage). Fetch the
+  // trip fresh and re-ingest it exactly like the load paths do; the
+  // day, its items, and the Accept merge base all come from the
+  // fresh record. On fetch failure, fall back to the in-memory
+  // snapshot rather than erroring -- the endpoint's remainder-scope
+  // guard is the correctness backstop either way.
+  try {
+    var _code = localStorage.getItem('tpcp_code') || '';
+    if (_code) {
+      var _fr = await fetch(SYNC_BASE + '/api/trip?code=' + encodeURIComponent(_code) + '&t=' + Date.now());
+      var _fj = _fr ? await _fr.json() : null;
+      if (_fj && _fj.tripData && _fj.tripData.tripConfig) {
+        window._loadedTripData = _fj.tripData;
+        if (_fj.tripData.tripConfig.schedule) window._schedData = _fj.tripData.tripConfig.schedule;
+      }
+    }
+  } catch (e) { /* fall back to the in-memory snapshot */ }
   var dayIdx = tpcpReworkDayIndex(item);
   var allDayItems = (dayIdx >= 0 && window._schedData && window._schedData.days && window._schedData.days[dayIdx] && window._schedData.days[dayIdx].items) || [];
   if (dayIdx < 0 || !allDayItems.length) {
     tpcpReworkShowError(item, 'I could not load that day\u2019s plan just now \u2014 your plan is unchanged.');
     return;
   }
-  tpcpReworkShowWorking(item);
   try { await ensureApiKey(); } catch (e) {}
   // Payload construction mirrors reoptimize()/runReoptimize() exactly,
   // parameterized by the ALERT's day instead of the day on screen.
@@ -9616,7 +9666,20 @@ async function tpcpReworkRun(item) {
   var ctx = { dayIdx: dayIdx, allDayItems: allDayItems.slice(), sentItems: sentItems, isInTrip: isInTrip, nowMin: nowMin, mergedDay: null };
   item.reworkCtx = ctx;
   var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-  var timeoutId = controller ? setTimeout(function() { controller.abort(); }, 65000) : null;
+  // Interruption tracking (Claude ruling, Oct 22): classification
+  // happens where the failure is caught, not in the copy. Backgrounding
+  // the app (iOS suspends the webview and the in-flight fetch dies
+  // on-device) marks the run interrupted, and any abort that is not
+  // our own 65s timeout is a client-side interruption -- neither may
+  // be reported as the optimizer being unreachable.
+  var _run = { interrupted: false, timedOut: false };
+  var timeoutId = controller ? setTimeout(function() { _run.timedOut = true; controller.abort(); }, 65000) : null;
+  var _onVis = function() { if (document.hidden) _run.interrupted = true; };
+  try { document.addEventListener('visibilitychange', _onVis); } catch (e) {}
+  function _endRun() {
+    if (timeoutId) clearTimeout(timeoutId);
+    try { document.removeEventListener('visibilitychange', _onVis); } catch (e) {}
+  }
   var resp;
   try {
     var r = await fetch(SYNC_BASE + '/api/reoptimize', {
@@ -9636,7 +9699,7 @@ async function tpcpReworkRun(item) {
       }),
       signal: controller ? controller.signal : undefined
     });
-    if (timeoutId) clearTimeout(timeoutId);
+    _endRun();
     if (!r.ok || (r.headers.get('content-type') || '').indexOf('application/json') === -1) {
       tpcpReworkShowError(item, 'I could not finish reworking just now. The server was busy \u2014 your plan is unchanged.');
       return;
@@ -9647,10 +9710,16 @@ async function tpcpReworkRun(item) {
       return;
     }
   } catch (e) {
-    if (timeoutId) clearTimeout(timeoutId);
-    tpcpReworkShowError(item, (e && e.name === 'AbortError')
-      ? 'Reworking took longer than expected \u2014 your plan is unchanged.'
-      : 'I could not reach the optimizer just now \u2014 your plan is unchanged.');
+    _endRun();
+    if (_run.interrupted || (e && e.name === 'AbortError' && !_run.timedOut)) {
+      // Client-side interruption: restore the alert's Rework prompt.
+      // The optimizer was never given the chance to fail.
+      tpcpReworkShowInterrupted(item);
+    } else if (e && e.name === 'AbortError') {
+      tpcpReworkShowError(item, 'Reworking took longer than expected \u2014 your plan is unchanged.');
+    } else {
+      tpcpReworkShowError(item, 'I could not reach the optimizer just now \u2014 your plan is unchanged.');
+    }
     return;
   }
   // Dismissed mid-flight: the result is dropped and nothing was

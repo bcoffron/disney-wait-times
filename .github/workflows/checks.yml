@@ -49,6 +49,8 @@ jobs:
         run: node --test test/push-tap-presenter.test.mjs
       - name: Reoptimize scope guard suite
         run: node --test test/reoptimize-scope.test.mjs
+      - name: Rework fresh-run + interruption suite
+        run: node --test test/rework-interruption.test.mjs
       - name: Schedule engine suite
         run: node --test api/schedule-engine.test.js
       - name: Schedule corrections suite
