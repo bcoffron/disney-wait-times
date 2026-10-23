@@ -55,6 +55,8 @@ jobs:
         run: node --test test/ll-order-gate.test.mjs
       - name: Trip save day-field preservation suite
         run: node --test test/trip-save-preserve.test.mjs
+      - name: Client pushSchedule carry-forward suite
+        run: node --test test/push-schedule-preserve.test.mjs
       - name: Schedule engine suite
         run: node --test api/schedule-engine.test.js
       - name: Schedule corrections suite
