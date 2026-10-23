@@ -193,7 +193,7 @@ test('interruption: backgrounding mid-flight restores the alert prompt with hone
   assert.equal(world.els.tpcpAlertTitle.textContent, 'Wait spike on your plan');
   assert.ok(world.els.tpcpAlertBody.textContent.includes('Rework interrupted \u2014 tap to try again'), 'interrupted copy shown');
   assert.ok(!world.els.tpcpAlertBody.textContent.includes('could not reach'), 'no false reachability claim');
-  assert.equal(world.els.tpcpAlertPrimary.textContent, 'Rework my morning');
+  assert.equal(world.els.tpcpAlertPrimary.textContent, 'Rework my day');
   assert.equal(world.els.tpcpAlertPrimary.disabled, false);
   // the affordance is live: tapping again re-runs and can complete
   world.document.hidden = false;

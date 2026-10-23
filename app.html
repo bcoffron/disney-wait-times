@@ -9082,7 +9082,7 @@ function tpcpShowPushPopup(title, body, cls, meta) {
   // Rework action (Claude ruling, Oct 22): the leader's ride-update
   // modal for the wait classes on this presentation path
   // (down / spike / high / drop) gains a real primary -- "Rework my
-  // morning" -- that runs the live reoptimize endpoint for the alert's
+  // day" -- that runs the live reoptimize endpoint for the alert's
   // day and offers the result as Accept/Deny (see the REWORK block
   // below). Guests stay fact-only and get the leader line instead.
   // Back-up ('up') carried no promise; it stays plain awareness for
@@ -9246,7 +9246,7 @@ function tpcpAlertShowModal(item) {
     sec.textContent = (item.cls === 'test') ? 'Deny (test)' : 'Deny';
     sec.style.display = '';
   } else if (item.rework) {
-    pri.textContent = 'Rework my morning';
+    pri.textContent = 'Rework my day';
     sec.textContent = 'Not now';
     sec.style.display = '';
   } else {
@@ -9356,7 +9356,7 @@ function tpcpAlertSecondaryAction() {
 }
 
 
-// ===== REWORK MY MORNING (Claude ruling, Oct 22) =====
+// ===== REWORK MY DAY (Claude ruling, Oct 22) =====
 // The client executor for the wait-alert rework promise. This is NOT
 // step (v): no server-generated offer exists and none is invented
 // here. The alert supplies the context (which ride, what happened,
@@ -9530,7 +9530,7 @@ function tpcpReworkShowInterrupted(item) {
   conf.style.display = 'none';
   conf.textContent = '';
   var pri = document.getElementById('tpcpAlertPrimary');
-  pri.textContent = 'Rework my morning';
+  pri.textContent = 'Rework my day';
   pri.disabled = false;
   var sec = document.getElementById('tpcpAlertSecondary');
   sec.textContent = 'Not now';
@@ -9563,7 +9563,7 @@ function tpcpReworkShowResult(item, view) {
     return;
   }
   item.state = 'rework-result';
-  document.getElementById('tpcpAlertKicker').textContent = 'Rework my morning';
+  document.getElementById('tpcpAlertKicker').textContent = 'Rework my day';
   document.getElementById('tpcpAlertTitle').textContent = 'Here\u2019s the reworked plan';
   bodyEl.textContent = view.explanation || 'Tap Accept to apply this plan, or Deny to keep yours.';
   bodyEl.style.display = '';
