@@ -118,7 +118,7 @@ export function llOrderArmed(day) {
   const seq = day.llSequence;
   return !!(seq && Array.isArray(seq.order) && seq.order.length > 0);
 }
-function llOrderBody(seq) {
+export function llOrderBody(seq) {
   const names = (seq.order || []).filter(n => typeof n === 'string' && n.trim());
   const first = (typeof seq.bookFirst === 'string' && seq.bookFirst.trim()) ? seq.bookFirst.trim() : names[0];
   const tail = names.filter(n => n !== first);
@@ -137,11 +137,16 @@ function llOrderBody(seq) {
   // Single Pass clause FIRST (Claude ruling, Oct 22): a missed single
   // purchase is gone for the day; the Multi Pass order is recoverable.
   // One single is named; two or more are counted, never named. The
-  // 7 AM timing is named once and is protected -- under the 100-char
-  // lock-screen budget, Multi Pass detail yields before it does.
+  // clause states the Disneyland rule (research + ruling, Oct 23,
+  // 2026): Single Pass is bought day-of, AFTER the guest scans into a
+  // park, for the next available window -- there is no 7 AM drop at
+  // Disneyland (that is Walt Disney World's system); an earlier clause
+  // said "at 7" and shipped the wrong rule for the launched resort.
+  // Under the 100-char lock-screen budget, Multi Pass detail yields
+  // before the clause does.
   const clause = singles.length === 1
-    ? 'Buy ' + singles[0] + ' at 7. '
-    : 'Buy your ' + singles.length + ' Single Passes at 7. ';
+    ? 'Buy ' + singles[0] + ' once you’re in the park. '
+    : 'Buy your ' + singles.length + ' Single Passes once you’re in the park. ';
   let body = clause + mpFull;
   if (body.length <= 100) return body;
   // Yield cascade, least-protected first: (4) the next-named ride
@@ -150,7 +155,7 @@ function llOrderBody(seq) {
     body = clause + 'Book ' + first + ' first, and ' + tail.length + ' more.';
     if (body.length <= 100) return body;
   }
-  // (3) the count yields. The singles clause, its timing, and
+  // (3) the count yields. The singles clause and
   // "Book <first> first" never drop.
   return clause + 'Book ' + first + ' first.';
 }

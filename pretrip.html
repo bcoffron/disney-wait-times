@@ -1967,7 +1967,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   if (day.hasLL) {
     llContext = 'Lightning Lane: YES. ';
     if (day.hasLLMP) llContext += 'Has LLMP (Lightning Lane Multi Pass) -- include 3-4 specific LLMP booking tip cards throughout the day naming exact rides to book and when. ';
-    if (day.hasILL) llContext += 'Has ILL (Individual Lightning Lane) -- paid per ride. ILL rides for this day: ' + (day.illRides || 'not specified') + '. Include ILL booking tip card at 7:00 AM telling them to purchase ILL immediately at park open. ';
+    if (day.hasILL) llContext += 'Has ILL (Individual Lightning Lane) -- paid per ride. ILL rides for this day: ' + (day.illRides || 'not specified') + '. Include an ILL booking tip card early in the day telling them to buy ILL right after they scan into the park -- Disneyland Single Pass is sold only after park entry, for the next available return window. ';
     if (!day.hasLLMP && !day.hasILL) llContext += 'Has Lightning Lane but type not specified -- include general LL strategy tips. ';
   } else {
     llContext = 'Lightning Lane: NO -- do not include any LL booking tip cards. Schedule standby rides only. ';
