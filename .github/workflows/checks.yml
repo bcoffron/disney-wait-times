@@ -51,6 +51,8 @@ jobs:
         run: node --test test/reoptimize-scope.test.mjs
       - name: Rework fresh-run + interruption suite
         run: node --test test/rework-interruption.test.mjs
+      - name: LL order 7 AM park-local gate suite
+        run: node --test test/ll-order-gate.test.mjs
       - name: Schedule engine suite
         run: node --test api/schedule-engine.test.js
       - name: Schedule corrections suite
