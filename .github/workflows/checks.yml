@@ -53,6 +53,8 @@ jobs:
         run: node --test test/rework-interruption.test.mjs
       - name: LL order 7 AM park-local gate suite
         run: node --test test/ll-order-gate.test.mjs
+      - name: Trip save day-field preservation suite
+        run: node --test test/trip-save-preserve.test.mjs
       - name: Schedule engine suite
         run: node --test api/schedule-engine.test.js
       - name: Schedule corrections suite
