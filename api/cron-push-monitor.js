@@ -113,7 +113,7 @@ const PARK_CLOSE_HOUR_PT = 24; // midnight PT (rides can run to ~midnight)
 // stamp only -- never config intent. A pre-stamp LL day receives
 // nothing until it regenerates (AI Optimize / the Item 4 toggle
 // re-stamps it). Leader-only via the 'll-order' routing row.
-function llOrderArmed(day) {
+export function llOrderArmed(day) {
   if (!day || !day.generatedWith || day.generatedWith.hasLLMP !== true) return false;
   const seq = day.llSequence;
   return !!(seq && Array.isArray(seq.order) && seq.order.length > 0);
@@ -212,6 +212,53 @@ export function llOrderDecision(day, nowMin, firstItemMin, settled) {
   if (nowMin < openMin) return { act: 'wait', why: 'window-not-open' };
   if (nowMin > LL_ORDER_CUTOFF_MIN) return { act: 'suppress', why: 'booking-window-closed' };
   return { act: 'fire' };
+}
+
+// llDayHasStamp: the day-level generation stamp exists (any
+// generatedWith object) -- the half of the record that says a
+// generation ran with recorded intent, whatever the intent was.
+function llDayHasStamp(day) {
+  return !!(day && day.generatedWith && typeof day.generatedWith === 'object');
+}
+
+// llIntentDivergence (Claude ruling, Oct 23, 2026): the NAMED
+// divergence record for "config intent says LL-on but the stored day
+// lacks the stamp/order" -- the item-12 failure mode, where a
+// partial-shape save stripped generatedWith + llSequence and the
+// morning game-plan push skipped silently while the app (intent
+// fallback) showed the user an armed day. The save seam now preserves
+// the stamp (api/trip.js day-field preservation); this record is the
+// tripwire if any other path ever produces the shape again. Returns
+// null when there is nothing divergent: intent OFF (not-armed is the
+// day's truth, not a divergence -- those days record nothing) or the
+// day armed. Pure; the caller owns persistence.
+export function llIntentDivergence(day, cfgDay, ctx) {
+  if (!cfgDay || cfgDay.hasLLMP !== true) return null;
+  if (llOrderArmed(day)) return null;
+  const hasStamp = llDayHasStamp(day);
+  const hasOrder = !!(day && day.llSequence && Array.isArray(day.llSequence.order) && day.llSequence.order.length);
+  return {
+    kind: 'll-intent-on-unstamped',
+    ymd: ctx.ymd,
+    tripId: ctx.tripId,
+    codes: ctx.codes || [],
+    dayIdx: ctx.dayIdx,
+    atMin: ctx.atMin,
+    detail: 'hasLLMP intent on; generatedWith ' + (hasStamp ? 'present (stamp says LL off)' : 'ABSENT') + '; llSequence ' + (hasOrder ? 'present' : 'ABSENT'),
+  };
+}
+
+// recordLlDivergence: appends a divergence record to the trip's
+// wait-state (state.llDivergences), deduped per (ymd, kind) so repeat
+// sweeps of the same divergent day do not spam the record, capped to
+// the most recent 14. Returns true when a record was added.
+export function recordLlDivergence(state, rec) {
+  if (!state || !rec) return false;
+  if (!Array.isArray(state.llDivergences)) state.llDivergences = [];
+  if (state.llDivergences.some(d => d && d.ymd === rec.ymd && d.kind === rec.kind)) return false;
+  state.llDivergences.push(rec);
+  if (state.llDivergences.length > 14) state.llDivergences = state.llDivergences.slice(-14);
+  return true;
 }
 
 function episodeIdFor(tripId, rideKey, episodeType, ymd, fireCount) {
@@ -900,6 +947,19 @@ export default async function handler(req, res) {
         const llTz = parkTimezoneFor(llPark);
         const llNowMin = llTz ? zonedParts(now, llTz).minutes : nowMin;
         const dec = llOrderDecision(llDay, llNowMin, firstItemMin, llSettled);
+        // Intent-vs-stamp divergence (Claude ruling, Oct 23, 2026):
+        // config says Multi Pass is ON for today but the stored day is
+        // unstamped, so the decision skipped as not-armed while the app
+        // showed the user an armed day. Pre-fix this silence shipped a
+        // missed game-plan push (item 12); now the divergence is
+        // recorded BY NAME on the trip's wait-state (deduped per day)
+        // and warned once. Intent-off days record nothing.
+        if (dec.act === 'skip' && dec.why === 'not-armed') {
+          const _div = llIntentDivergence(llDay, cfgDays[todayIdx], { tripId, codes, ymd: pt.ymd, dayIdx: todayIdx, atMin: llNowMin });
+          if (_div && recordLlDivergence(state, _div)) {
+            console.warn('[push-monitor] ll-divergence trip ' + tripId + ' (' + (codes || []).join('/') + ') day ' + pt.ymd + ': config intent LL-on but stored day unstamped -- ' + _div.detail);
+          }
+        }
         if (dec.act === 'fire') {
           const r = await fire('ll-order', () => ({
             title: 'Today\u2019s Lightning Lane game plan',
