@@ -5765,9 +5765,9 @@ function tpcpToggleLLMP(dayIdx){
   var dayName='Day '+(dayIdx+1);
   var msg;
   if(target){
-    msg='Rebuild '+dayName+' with Lightning Lane Multi Pass?\n\nThe day will be rebuilt around Lightning Lane returns, and the booking game plan will appear. Dining reservations stay locked in.\n\nOne thing to know first: if you have already booked Lightning Lane returns in Disney\u2019s app, this rebuild cannot see them and will plan as if you have not. Book after rebuilding, or check the new plan against what you already hold.';
+    msg='Rebuild '+dayName+' with Multi Pass?\n\nWe\'ll make a new plan for this day, built around Lightning Lane. Your dining reservations won\'t change.\n\nBooked Lightning Lanes in Disney\'s app already? We can\'t see them. Book after this rebuild \u2014 or check that the new plan fits what you booked.';
   } else {
-    msg='Rebuild '+dayName+' without Lightning Lane Multi Pass?\n\nThe day will be rebuilt around standby lines, and the Lightning Lane game plan will go away. Dining reservations stay locked in.';
+    msg='Rebuild '+dayName+' without Multi Pass?\n\nWe\'ll make a new plan for this day using the regular lines, and the Lightning Lane plan goes away. Your dining reservations won\'t change.\n\nBooked Lightning Lanes in Disney\'s app already? We can\'t see them, and the new plan won\'t use them.';
   }
   if(!window.confirm(msg)) return;
   var snap=[];
