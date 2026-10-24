@@ -67,6 +67,8 @@ jobs:
         run: node --test test/booked-return-conversion.test.mjs
       - name: Booked-return insert suite
         run: node --test test/booked-return-insert.test.mjs
+      - name: Photo-op duplicate guard suite (item 25)
+        run: node --test test/photo-op-dedupe.test.mjs
       - name: Startup / day-state suite (item 20)
         run: node --test test/startup-day-state.test.mjs
       - name: Trip save day-field preservation suite

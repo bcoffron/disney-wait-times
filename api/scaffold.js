@@ -3579,7 +3579,29 @@ export function deterministicBackfill(slot, ctx) {
             : (/golden|sunset|evening|night|dusk/.test(bt) ? 1 : 0);
           return ((near && normName(s.land || '') === near) ? 2 : 0) + ts;
         };
-        const picks = coveredPool.slice().sort((a, b) => score(b) - score(a)).slice(0, 2);
+        // File-distinct picks (Item 25, Oct 23 2026 -- Beau's rule: "we
+        // can't have the same photo twice in a photo op"). The manifest
+        // maps spot -> bundled FILE, and two distinct spots can share
+        // one file (the bundle owns a single Galaxy's Edge photo, so
+        // "Galaxy's Edge Rock Spires" and "Millennium Falcon Plaza"
+        // both resolve to it). Dedupe on the RESOLVED FILE, never the
+        // spot key: a pick whose file matches an earlier pick's file
+        // is rejected. Fall-through (Claude's ruling) reaches only
+        // spots that scored ABOVE ZERO on the rubric above -- a
+        // distinct-file spot that does not fit this land/time is not
+        // grabbed just to fill the second slot; if no above-rubric
+        // distinct-file spot remains, the card composes single-pick
+        // and the lead below goes singular by construction.
+        const fileOf = (s) => PHOTO_BUNDLE_COVERED[photoSpotKey(s.name)];
+        const ranked = coveredPool.slice().sort((a, b) => score(b) - score(a));
+        const picks = [ranked[0]];
+        let fellThrough = false;
+        for (let i = 1; i < ranked.length && picks.length < 2; i++) {
+          const s = ranked[i];
+          if (fileOf(s) === fileOf(picks[0])) { fellThrough = true; continue; }
+          if (fellThrough && score(s) <= 0) break;
+          picks.push(s);
+        }
         // Short pattern (Beau picked ~28 words, Oct 6, 2026): a lead-in plus
         // one <=11-word phrase per spot. Falls back to compressing the long
         // shot sentence when a spot has no short phrase yet.
