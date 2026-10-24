@@ -52,6 +52,17 @@
 //    tpcpSyncTripConfig, and can record timers / queue rAF / count
 //    scroll directives (opt-in per world).
 //
+// Item 32 (Oct 24, 2026) adds the loaded-apply teardown, per Claude's
+// build-53 ruling (stage 1 only): the provisional cache paint's render
+// was composited OVER by the loaded render instead of replaced --
+// doubled sections in every tab from the first frame on device.
+// tpcpTeardownProvisional empties the provisional containers at each
+// loaded-apply seam, immediately before the loaded paint. Test (k)
+// drives the seam in both flag-flip orderings against write-logging
+// containers and pins the five call sites; test (l) sweeps the
+// item-31 scroll marker down after every render path the harness
+// drives (the marker audit's ordered assertion).
+//
 // The suite extracts the REAL code from app.html (the startup/daystate
 // block, the day helpers, setDay/ensureDayTabs, the fit function) and
 // drives it in a vm with browser stubs -- the code under test is the
@@ -89,6 +100,7 @@ const SRC = [
 assert.ok(SRC.includes('function tpcpPaintCachedTrip'), 'cache paint missing');
 assert.ok(!SRC.includes('tpcpMaybeRepickDay'), 'the post-paint repick must stay gone (item 31)');
 assert.ok(SRC.includes('function tpcpDaySwitchScroll'), 'single scroll owner missing');
+assert.ok(SRC.includes('function tpcpTeardownProvisional'), 'loaded-apply teardown missing');
 assert.ok(SRC.includes('function switchNav'), 'switchNav missing');
 assert.ok(SRC.includes('function tpcpSyncTripConfig'), 'config sync missing');
 assert.ok(SRC.includes('function tpcpDayTabTap'), 'tab tap guard missing');
@@ -140,8 +152,23 @@ const TEST02_DAYS = [
   { num: 2, label: 'Day 2', date: 'Oct 23, 2026', park: 'Disneyland', isVip: false },
 ];
 
+// An element whose innerHTML setter logs every write, so a test can
+// observe the exact write sequence a container goes through (the
+// compositing defect itself is device-only; the seam's write order is
+// the logical half the harness CAN see).
+function makeTrackedEl(id, log) {
+  const el = makeEl();
+  let v = '';
+  Object.defineProperty(el, 'innerHTML', {
+    get: () => v,
+    set: (nv) => { v = String(nv); log.push({ id, value: v }); },
+  });
+  return el;
+}
+
 function makeWorld(opts = {}) {
-  const world = { loadCustomCalls: 0, renderSchedCalls: 0, scrollCalls: 0, scrollArgs: [], nowScrollCalls: 0, docScrollTopSets: 0, timers: [], rafQueue: [] };
+  const world = { loadCustomCalls: 0, renderSchedCalls: 0, scrollCalls: 0, scrollArgs: [], nowScrollCalls: 0, docScrollTopSets: 0, timers: [], rafQueue: [], contentWrites: [], phase: null };
+  world._loadCustomImpl = opts.loadCustomImpl || null;
   world.flushTimers = () => { const q = world.timers.splice(0); q.forEach((t) => t.fn()); };
   world.flushRaf = () => { while (world.rafQueue.length) { const fn = world.rafQueue.shift(); fn(); } };
   world.scrollDirectives = () => world.scrollCalls + world.nowScrollCalls + world.docScrollTopSets;
@@ -170,6 +197,14 @@ function makeWorld(opts = {}) {
     reoptBox: null,
     reoptLoading: null,
   };
+  if (opts.trackContainers) {
+    world.els = {
+      schedContent: makeTrackedEl('schedContent', world.contentWrites),
+      dayInfoBar: makeTrackedEl('dayInfoBar', world.contentWrites),
+    };
+    byId.schedContent = world.els.schedContent;
+    byId.dayInfoBar = world.els.dayInfoBar;
+  }
   const docElStub = {};
   Object.defineProperty(docElStub, 'scrollTop', { get: () => 0, set: () => { world.docScrollTopSets++; } });
   const documentStub = {
@@ -215,7 +250,7 @@ function makeWorld(opts = {}) {
     renderInfoTab: null,
     renderClosuresFromWaits: null,
     scrollScheduleToNow: () => { world.nowScrollCalls++; },
-    loadCustom: () => { world.loadCustomCalls++; },
+    loadCustom: () => { world.loadCustomCalls++; if (world._loadCustomImpl) world._loadCustomImpl(world); },
   };
   vm.createContext(ctx);
   vm.runInContext(SRC, ctx);
@@ -581,6 +616,106 @@ test('(i) static pins (item 26): init does not paint; cache writers carry dates;
   const unlockSrc = sliceRange('function tryUnlock()', 'function enterMagic()');
   assert.ok(unlockSrc.includes('tpcpApplyFirstPaintPick();'), 'tryUnlock applies the pick before its first paint');
   assert.ok(unlockSrc.includes('tpcpSyncTripConfig(dr2.data.tripData.tripConfig)'), 'tryUnlock retry path syncs the config (it never did)');
+});
+
+// ------------------------------------------------------------ (k) loaded-apply teardown
+// A world whose two provisional containers log every innerHTML write.
+// The loadCustom implementation models the real loadCustom ->
+// renderSched + renderDayInfoBar pair: both containers are filled by
+// wholesale assignment, tagged by the phase the test sets (the paint
+// phase writes PROVISIONAL, the apply phase writes LOADED).
+function trackedCacheWorld() {
+  const cache = JSON.stringify({
+    code: 'TEST02', tripName: 'BB test trip',
+    cfgDays: [{ date: 'Oct 22, 2026', park: 'Disneyland' }, { date: 'Oct 23, 2026', park: 'Disneyland' }],
+    customSched: [{ sections: [{ title: 'Disneyland', entries: [{ t: '8:05 AM', h: 'Space Mountain' }] }] }, null],
+    savedAt: 1,
+  });
+  const w = makeWorld({
+    storage: { tpcp_code: 'TEST02', tpcp_role: 'admin', tpcp_lastSched_TEST02: cache },
+    trackContainers: true,
+    loadCustomImpl: (ww) => {
+      const tag = ww.phase || 'PROVISIONAL';
+      ww.els.schedContent.innerHTML = tag + '-SCHED';
+      ww.els.dayInfoBar.innerHTML = tag + '-INFOBAR';
+    },
+  });
+  w.phase = 'PROVISIONAL';
+  return w;
+}
+
+// Drive one loaded apply over a provisional paint, in the order the
+// real path uses. 'flag-first' is the checkLock / tryUnlock main
+// order (tpcpMarkTripLoaded runs before the paint); 'flag-last' is
+// the retry-ladder / poll-ingest order (it runs after).
+function driveLoadedApply(w, order) {
+  w.phase = 'LOADED';
+  if (order === 'flag-first') w.ctx.tpcpMarkTripLoaded();
+  w.ctx.tpcpSyncTripConfig({ tripName: 'BB test trip', days: JSON.parse(JSON.stringify(TEST02_DAYS)) });
+  w.ctx.tpcpApplyFirstPaintPick();
+  w.ctx.tpcpTeardownProvisional();
+  w.ctx.loadCustom();
+  if (order === 'flag-last') w.ctx.tpcpMarkTripLoaded();
+}
+
+test('(k) loaded apply tears the provisional down before painting: the clear lands between the two paints, in both flag orderings', () => {
+  for (const order of ['flag-first', 'flag-last']) {
+    const w = trackedCacheWorld();
+    assert.equal(w.ctx.tpcpPaintCachedTrip('TEST02'), true, 'provisional paint lands (' + order + ')');
+    assert.equal(w.ctx._tripProvisional, true);
+    assert.deepEqual(w.contentWrites.map((x) => x.id + '=' + x.value),
+      ['schedContent=PROVISIONAL-SCHED', 'dayInfoBar=PROVISIONAL-INFOBAR'],
+      'the provisional paint filled both containers (' + order + ')');
+    driveLoadedApply(w, order);
+    assert.deepEqual(w.contentWrites.map((x) => x.id + '=' + x.value), [
+      'schedContent=PROVISIONAL-SCHED', 'dayInfoBar=PROVISIONAL-INFOBAR',
+      'schedContent=', 'dayInfoBar=',
+      'schedContent=LOADED-SCHED', 'dayInfoBar=LOADED-INFOBAR',
+    ], 'each container is emptied AFTER the provisional paint and BEFORE the loaded paint (' + order + ')');
+    assert.equal(w.els.schedContent.innerHTML, 'LOADED-SCHED', 'final content is the loaded render alone -- nothing provisional remains under it');
+    assert.equal(w.els.dayInfoBar.innerHTML, 'LOADED-INFOBAR');
+    assert.equal(w.ctx._tripLoaded, true);
+    assert.equal(w.ctx._tripProvisional, false);
+    assert.equal(w.banner.style.display, 'none', 'the banner transition lands with the apply');
+    assert.ok(!w.window._tpcpDayScrollSeq, 'scroll marker is down after the loaded apply (' + order + ')');
+  }
+});
+
+test('(k) static pins (item 32): the teardown is called at exactly the five loaded-apply seams, each time immediately before the loaded paint', () => {
+  assert.ok(appHtml.includes('function tpcpTeardownProvisional(){'), 'teardown helper exists');
+  assert.equal(appHtml.split('tpcpTeardownProvisional();').length - 1, 5, 'exactly five teardown call sites (checkLock main + retry, tryUnlock main + retry, guest poll ingest)');
+  const seam = /tpcpTeardownProvisional\(\);\s*(loadCustom\(\);|if \(typeof loadCustom === 'function'\) loadCustom\(\);)/g;
+  assert.equal((appHtml.match(seam) || []).length, 5, 'every call site sits immediately before a loaded-apply loadCustom');
+  const flip = sliceRange('function tpcpMarkTripLoaded(){', 'function tpcpTeardownProvisional');
+  assert.ok(!flip.includes('innerHTML'), 'the clear does NOT live inside tpcpMarkTripLoaded -- on the retry/poll paths the flip runs after the paint and would erase it');
+});
+
+// ------------------------------------------------------------ (l) marker-down sweep
+test('(l) the scroll marker is down after every render path the harness drives (item 32)', () => {
+  const down = (w, label) => assert.ok(!w.window._tpcpDayScrollSeq, 'marker down after ' + label);
+  for (const order of ['flag-first', 'flag-last']) {
+    const w = trackedCacheWorld();
+    w.ctx.tpcpPaintCachedTrip('TEST02');
+    down(w, 'provisional paint (' + order + ')');
+    driveLoadedApply(w, order);
+    down(w, 'loaded apply (' + order + ')');
+  }
+  const w = makeWorld({ curDay: 0, recordTimers: true, queueRaf: true });
+  w.ctx.switchNav('schedule');
+  down(w, 'plain switchNav');
+  w.ctx.setTab('waits');
+  w.flushTimers();
+  down(w, 'setTab');
+  w.ctx.setDay(1, { caller: 'tab-tap', user: true });
+  w.flushRaf();
+  down(w, 'cross-day switch');
+  w.ctx.setDay(0, { caller: 'tab-tap', user: true });
+  w.ctx.setDay(1, { caller: 'tab-tap', user: true });
+  w.flushRaf();
+  w.flushTimers();
+  down(w, 'rapid switch burst');
+  w.ctx.setDay(1, { caller: 'tab-tap', user: true });
+  down(w, 'same-day tap');
 });
 
 // ------------------------------------------------------------ park time helpers
