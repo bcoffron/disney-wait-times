@@ -934,6 +934,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .tb-ll{background:var(--orange-bg);color:var(--orange)}
 .ll-return-pill{display:inline-block;background:#E0F0EE;color:#0A4840;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:600;margin-left:4px;}
 .ll-receipt-block{display:flex;gap:9px;align-items:flex-start;background:#E0F0EE;border:1px solid #BFE0D9;border-radius:var(--radius-sm);padding:10px 12px;margin:12px 0;font-size:12px;color:var(--text);line-height:1.45;}
+.ends-early-note{display:flex;gap:9px;align-items:flex-start;background:#FBF0DB;border:1px solid #EDD9AE;border-radius:var(--radius-sm);padding:10px 12px;margin:12px 0;font-size:12px;color:var(--text);line-height:1.45;}
+.ends-early-note .een-btn{flex-shrink:0;background:#0A4840;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
 .ll-seq-block{background:var(--navy-card);border:1px solid var(--navy-border);border-radius:var(--radius-sm);padding:10px 12px;margin:10px 0;}
 .ll-seq-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:5px;}
 .ll-seq-line{font-size:12px;color:var(--text);line-height:1.5;}
@@ -6588,18 +6590,27 @@ function renderSched(){
   var day=getCurDay();
   var h=renderDayTipsCard(curDay);
   if(typeof renderLLSequenceBlock==='function')h+=renderLLSequenceBlock(curDay);
-  // Completeness (Oct 20, 2026): a stored day that POSITIVELY fails the
-  // shared validator -- its park closing time is known and the day does
-  // not run to it -- reads as no schedule, so a truncated day never
-  // renders as a finished plan. When the closing time cannot be resolved
-  // (park-hours cache horizon) the day cannot be judged and renders as
-  // before.
+  // Ends before park closing (Oct 24, 2026; Claude's ruling on the
+  // Oct 20 completeness rule): the shared validator keeps its full
+  // force where a day is GENERATED or SAVED -- a truncated new day is
+  // still refused there. At this read site it may only annotate a
+  // stored plan, never erase one: a stored day that HAS items renders
+  // its items even when it does not run to the park's live closing
+  // time (a plan made under earlier-posted hours must not vanish
+  // because the park later stays open later), with the plain notice
+  // below that the plan ends before the park closes. The empty state
+  // is only for a day with genuinely nothing in it. When the closing
+  // time cannot be resolved (park-hours cache horizon) the day cannot
+  // be judged and renders without the notice, as before.
   var _rsDay=(window._schedData&&window._schedData.days&&window._schedData.days[curDay])||null;
   var _rsClose=_rsDay?_tpcpCloseMinutesForDay(curDay):null;
-  var _rsInvalid=!!(_rsDay&&_rsDay.items&&_rsDay.items.length&&_rsClose!==null&&!tpcpDayIsComplete(_rsDay,_rsClose));
-  if(_rsInvalid||!day||!day.sections||!day.sections.length){
+  var _rsEndsEarly=!!(_rsDay&&_rsDay.items&&_rsDay.items.length&&_rsClose!==null&&!tpcpDayIsComplete(_rsDay,_rsClose));
+  if(!day||!day.sections||!day.sections.length){
     document.getElementById('schedContent').innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No schedule yet</div><div style="font-size:13px">Tap <strong>  Edit Schedule</strong> to build one, or use <strong>( AI Optimize</strong> to generate a plan.</div></div>';
     return;
+  }
+  if(_rsEndsEarly){
+    h+='<div class="ends-early-note"><div style="flex:1"><b>This plan ends before the park closes.</b><div style="margin-top:1px">The park is open later that night. Everything below is still your plan \u2014 you just have extra time at the end of the day.</div></div>'+((typeof isAdmin==='function'&&isAdmin()&&!editMode)?'<button class="een-btn" onclick="toggleEdit()">Add to this day</button>':'')+'</div>';
   }
   day.sections.forEach(function(sec,si){
     if(!sec.entries||sec.entries.length===0)return;
@@ -7852,24 +7863,28 @@ function _tpcpCloseMinutesForDay(dayIdx) {
 // (so the config survives an interrupted build), and only the terminal
 // save adds the schedule. If generation never completes -- app closed,
 // a day parked on its retry line -- the trip is left with
-// onboardingComplete=true and no valid schedule, and the only manual
+// onboardingComplete=true and no schedule, and the only manual
 // exit was an AI Optimize tap a schedule-less user has no reason to
 // make. When the app loads such a trip (admin only), finish the build
 // here, through the same generateAllDays the button would have run.
 // Guardrails: never while a pretrip generation is in flight (its
 // localStorage marker), once per session per code with the attempt
 // recorded before firing, and only after a fresh trip read confirms
-// the schedule is still not valid (a just-landed terminal write must
+// the schedule is still missing (a just-landed terminal write must
 // not trigger a spurious rebuild).
-// "Not valid" is the #87 definition, with the same read-site semantics
-// as aiOptGated/renderSched: a trip HAS a schedule iff at least one
-// stored day is valid -- passing tpcpDayIsComplete against its park's
-// real closing time where that resolves, and counting on presence
-// alone where it cannot (the park-hours cache spans ~two weeks; a
-// far-future trip is unjudgeable from here, and unjudgeable is not
-// invalid at a read site). A stored-but-truncated schedule (TEST02's
-// duplicated days ending 11:50 AM) therefore triggers the heal; the
-// original #85 tested only for items, which such a schedule passes.
+// "Has a schedule" is presence, not completeness (Oct 24, 2026;
+// Claude's ruling, superseding the #87 read-site definition): a trip
+// HAS a schedule iff at least one stored day has items. A stored day
+// that ends before its park's live closing time is still a real plan
+// -- renderSched shows it under an ends-before-closing notice -- and
+// it must never read as "no schedule" here: this heal is AUTOMATIC,
+// so judging stored days against live hours would regenerate (and
+// erase) a guest's plan at load merely because the park extended its
+// closing after the plan was made. The heal fires only for a
+// genuinely item-less trip -- the stranded state above. A stored
+// truncated day no longer triggers it either; that case stays
+// reachable by hand through AI Optimize, whose gate is unchanged, as
+// is the generation/save refusal of incomplete NEW days.
 function tpcpMaybeAutoBuild(){
   try{
     if (window._tpcpAutoBuildChecking || window._tpcpAutoBuildFired) return;
@@ -7879,16 +7894,13 @@ function tpcpMaybeAutoBuild(){
     if (localStorage.getItem('tpcp_onboardingComplete') !== 'true') return;
     var tc = (window._loadedTripData && window._loadedTripData.tripConfig) || null;
     if (!tc || tc.onboardingComplete !== true) return;
-    function _hasValidSched(cfg){
+    function _hasSched(cfg){
       var dys = (cfg && cfg.schedule && cfg.schedule.days) || [];
-      return dys.some(function(d, di){
-        if (!d || !d.items || !d.items.length) return false;
-        var cm = (typeof _tpcpCloseMinutesForDay === 'function') ? _tpcpCloseMinutesForDay(di) : null;
-        if (cm === null) return true;
-        return tpcpDayIsComplete(d, cm);
+      return dys.some(function(d){
+        return !!(d && d.items && d.items.length);
       });
     }
-    if (_hasValidSched(tc)) return;
+    if (_hasSched(tc)) return;
     try{
       var mk = JSON.parse(localStorage.getItem('tpcp_gen_inflight') || 'null');
       if (mk && mk.code === code && (Date.now() - (mk.at || 0)) < 20 * 60 * 1000) return;
@@ -7902,11 +7914,11 @@ function tpcpMaybeAutoBuild(){
         window._tpcpAutoBuildChecking = false;
         var tc2 = (j && j.tripData && j.tripData.tripConfig) || null;
         if (!tc2 || tc2.onboardingComplete !== true) return;
-        // Point the close-time helper at the fresh read before judging
-        // it -- it resolves park/date from _loadedTripData. (The
-        // original #85 assigned _loadedTripData here, on the fire path.)
+        // Refresh the loaded-trip pointer from the fresh read before
+        // judging it. (The original #85 assigned _loadedTripData here,
+        // on the fire path.)
         window._loadedTripData = j.tripData;
-        if (_hasValidSched(tc2)) return;
+        if (_hasSched(tc2)) return;
         try{ sessionStorage.setItem(skey, '1'); }catch(e){}
         window._tpcpAutoBuildFired = true;
         showToast('Finishing your schedule \u2014 this takes a minute');
