@@ -1193,14 +1193,14 @@ export function diningPageUrlFor(canonKey) {
 // backfill), so card prose and photoLinks can only promise covered spots.
 // ---------------------------------------------------------------------------
 // === GENERATED PHOTO BUNDLE MANIFEST -- DO NOT HAND-EDIT ===
-// Derived from assets/photos/credits.json (sha256 669bf5a93af2aa2998933b28889b22b35917770f60af83e80d632a8febac511d)
+// Derived from assets/photos/credits.json (sha256 c7b77ed56dc4ce01ec7415c7eb2deb60e570e9fff570ad35ae3c50ebca583a4e)
 // plus the image files present in assets/photos/ at generation time.
 // Covered spots: 16. Regenerate: node scripts/gen-photo-manifest.mjs
 const PHOTO_BUNDLE_COVERED = {
   "avengers campus headquarters": "avengers-campus-headquarters.jpg",
   "buena vista street with carthay circle tower": "buena-vista-street-carthay-circle-tower.jpg",
   "cars land neon signs at dusk on route 66": "cars-land-neon-signs-tpcp.jpg",
-  "galaxy s edge rock spires": "millennium-falcon-plaza-tpcp.jpg",
+  "galaxy s edge rock spires": "galaxys-edge-rock-spires.jpg",
   "it s a small world facade at night": "its-a-small-world-facade-at-night.jpg",
   "main street castle shot": "main-street-castle-shot-tpcp.jpg",
   "mark twain riverboat frontierland dock": "mark-twain-riverboat-frontierland-dock.jpg",
@@ -3569,7 +3569,8 @@ export function deterministicBackfill(slot, ctx) {
       // no covered spot in the park, the card falls back to the generic
       // no-spot notes below: a photo stop that names no spot promises
       // no photo.
-      const coveredPool = inPark.filter(s => PHOTO_BUNDLE_COVERED[photoSpotKey(s.name)]);
+      const coveredMap = (ctx && ctx.photoCovered) || PHOTO_BUNDLE_COVERED;
+      const coveredPool = inPark.filter(s => coveredMap[photoSpotKey(s.name)]);
       if (coveredPool.length) {
         const near = normName(ctx.nearLand || '');
         const score = (s) => {
@@ -3582,9 +3583,9 @@ export function deterministicBackfill(slot, ctx) {
         // File-distinct picks (Item 25, Oct 23 2026 -- Beau's rule: "we
         // can't have the same photo twice in a photo op"). The manifest
         // maps spot -> bundled FILE, and two distinct spots can share
-        // one file (the bundle owns a single Galaxy's Edge photo, so
-        // "Galaxy's Edge Rock Spires" and "Millennium Falcon Plaza"
-        // both resolve to it). Dedupe on the RESOLVED FILE, never the
+        // one file (as "Galaxy's Edge Rock Spires" and "Millennium
+        // Falcon Plaza" did while the bundle owned a single Galaxy's
+        // Edge photo, until Item 27 restored the Rock Spires photo). Dedupe on the RESOLVED FILE, never the
         // spot key: a pick whose file matches an earlier pick's file
         // is rejected. Fall-through (Claude's ruling) reaches only
         // spots that scored ABOVE ZERO on the rubric above -- a
@@ -3592,7 +3593,7 @@ export function deterministicBackfill(slot, ctx) {
         // grabbed just to fill the second slot; if no above-rubric
         // distinct-file spot remains, the card composes single-pick
         // and the lead below goes singular by construction.
-        const fileOf = (s) => PHOTO_BUNDLE_COVERED[photoSpotKey(s.name)];
+        const fileOf = (s) => coveredMap[photoSpotKey(s.name)];
         const ranked = coveredPool.slice().sort((a, b) => score(b) - score(a));
         const picks = [ranked[0]];
         let fellThrough = false;
