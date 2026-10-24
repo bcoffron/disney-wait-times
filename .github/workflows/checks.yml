@@ -71,6 +71,8 @@ jobs:
         run: node --test test/photo-op-dedupe.test.mjs
       - name: Startup / day-state suite (item 20)
         run: node --test test/startup-day-state.test.mjs
+      - name: Completeness read-sites suite (item 30)
+        run: node --test test/completeness-read-sites.test.mjs
       - name: Trip save day-field preservation suite
         run: node --test test/trip-save-preserve.test.mjs
       - name: Client pushSchedule carry-forward suite
