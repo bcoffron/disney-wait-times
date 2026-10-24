@@ -30,6 +30,28 @@
 //    recreation. Tests (a) and (e) changed for exactly these reasons;
 //    tests (f)-(i) pin the newly ruled behavior.
 //
+// Item 31 (Oct 24, 2026) finishes item 26 per Claude's ruling on the
+// build-52 readout:
+//  - The pick is now ONE implementation: tpcpPickFromDays takes today
+//    from the single park-time authority (tpcpParkTodayIso over the
+//    PR #118 map) and getInitialActiveDay delegates to it. The
+//    post-paint re-pick is GONE (function, gate flag, all five load-
+//    path call sites): build 52 still logged a 'repick' on every
+//    ended-trip cold open because two pick authorities could disagree
+//    and a corrector existed to paper over the difference. Tests (a),
+//    (b), (e), (h) updated for exactly this; test (b) now drives the
+//    cold-open load sequence for an ENDED trip (sync -> pick -> paint
+//    order): the first pick IS the clamped last day and nothing is
+//    logged.
+//  - Cheap switches (fork B): setDay early-returns on the active day
+//    (at most a scroll-to-now), and a single scroll owner
+//    (tpcpDaySwitchScroll) issues a switch's one scroll directive --
+//    switchNav and setTab stand down for marked switches. Test (j)
+//    pins both halves, including a rapid-burst supersede.
+//  - The harness now also extracts the real setTab, switchNav and
+//    tpcpSyncTripConfig, and can record timers / queue rAF / count
+//    scroll directives (opt-in per world).
+//
 // The suite extracts the REAL code from app.html (the startup/daystate
 // block, the day helpers, setDay/ensureDayTabs, the fit function) and
 // drives it in a vm with browser stubs -- the code under test is the
@@ -59,10 +81,16 @@ const SRC = [
   sliceRange('function getInitialActiveDay()', '/* --- Splash screen --- */'),
   sliceRange('function tpcpTripDayCount', 'function loadCustom'),
   sliceRange('function ensureDayTabs', 'function setTab('),
+  sliceRange('function setTab(t){', 'function sendSuggested'),
+  sliceRange('function tpcpSyncTripConfig', 'function checkLock(){'),
+  sliceRange('function switchNav(tabKey)', '/* --- Alt sheet --- */'),
 ].join('\n');
 
 assert.ok(SRC.includes('function tpcpPaintCachedTrip'), 'cache paint missing');
-assert.ok(SRC.includes('function tpcpMaybeRepickDay'), 'repick missing');
+assert.ok(!SRC.includes('tpcpMaybeRepickDay'), 'the post-paint repick must stay gone (item 31)');
+assert.ok(SRC.includes('function tpcpDaySwitchScroll'), 'single scroll owner missing');
+assert.ok(SRC.includes('function switchNav'), 'switchNav missing');
+assert.ok(SRC.includes('function tpcpSyncTripConfig'), 'config sync missing');
 assert.ok(SRC.includes('function tpcpDayTabTap'), 'tab tap guard missing');
 assert.ok(SRC.includes('function setDay'), 'setDay missing');
 assert.ok(SRC.includes('function tpcpFitCustomSched'), 'fit missing');
@@ -113,7 +141,10 @@ const TEST02_DAYS = [
 ];
 
 function makeWorld(opts = {}) {
-  const world = { loadCustomCalls: 0, renderSchedCalls: 0 };
+  const world = { loadCustomCalls: 0, renderSchedCalls: 0, scrollCalls: 0, scrollArgs: [], nowScrollCalls: 0, docScrollTopSets: 0, timers: [], rafQueue: [] };
+  world.flushTimers = () => { const q = world.timers.splice(0); q.forEach((t) => t.fn()); };
+  world.flushRaf = () => { while (world.rafQueue.length) { const fn = world.rafQueue.shift(); fn(); } };
+  world.scrollDirectives = () => world.scrollCalls + world.nowScrollCalls + world.docScrollTopSets;
   const FixedDate = fixedDateClass(opts.nowMs ?? RealDate.UTC(2026, 9, 23, 17, 0, 0)); // Oct 23, 10:00 AM PDT
   const tc = {
     tripName: opts.tripName ?? '',
@@ -139,7 +170,10 @@ function makeWorld(opts = {}) {
     reoptBox: null,
     reoptLoading: null,
   };
+  const docElStub = {};
+  Object.defineProperty(docElStub, 'scrollTop', { get: () => 0, set: () => { world.docScrollTopSets++; } });
   const documentStub = {
+    documentElement: docElStub,
     getElementById: (id) => (id in byId ? byId[id] : null),
     querySelectorAll: (sel) => (sel === '.day-tab' ? tabs : []),
     querySelector: (sel) => (sel === '.header-title' ? titleEl : null),
@@ -153,7 +187,7 @@ function makeWorld(opts = {}) {
     TRIP_CONFIG: tc,
     _schedData: opts.schedData ?? { days: [{ park: 'Disneyland' }, { park: 'Disneyland' }] },
     _appInitialized: opts.appInitialized ?? true,
-    scrollTo: () => {},
+    scrollTo: (...a) => { world.scrollCalls++; world.scrollArgs.push(a); },
   };
   world.window = windowObj;
   const ctx = {
@@ -169,15 +203,18 @@ function makeWorld(opts = {}) {
     editMode: false,
     usingCachedSchedule: false,
     SYNC_BASE: 'https://example.test',
-    requestAnimationFrame: (fn) => { fn(); return 0; },
-    setTimeout: () => 0,
+    requestAnimationFrame: (fn) => { if (opts.queueRaf) { world.rafQueue.push(fn); return world.rafQueue.length; } fn(); return 0; },
+    setTimeout: (fn, ms) => { if (opts.recordTimers) { world.timers.push({ fn, ms }); return world.timers.length; } return 0; },
     clearTimeout: () => {},
-    switchNav: () => {},
     renderClosed: () => {},
     renderSched: () => { world.renderSchedCalls++; },
     renderDayInfoBar: () => {},
     renderVipBanner: () => {},
-    scrollScheduleToNow: () => {},
+    renderWaitTab: null,
+    renderShows: null,
+    renderInfoTab: null,
+    renderClosuresFromWaits: null,
+    scrollScheduleToNow: () => { world.nowScrollCalls++; },
     loadCustom: () => { world.loadCustomCalls++; },
   };
   vm.createContext(ctx);
@@ -219,11 +256,11 @@ test('(a) same-code cache paints provisionally for a leader, then reconciles on 
   assert.equal(w.ctx._tripLoaded, true);
   assert.equal(w.ctx._tripProvisional, false);
   assert.equal(w.banner.style.display, 'none', 'banner clears when the server copy applies');
-  // The post-load repick is now a reconciler, not a corrector: the
-  // pick already matches, so it must not flip or log anything.
-  w.ctx.tpcpMaybeRepickDay();
-  assert.equal(w.ctx.curDay, 1, 'repick after a picked paint is a no-op');
-  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller === 'repick').length, 0, 'no repick entry for an already-right day');
+  // Item 31: there is no post-load corrector left to reconcile
+  // anything -- the mechanism itself is removed, so no cold open can
+  // ever produce a correction entry after the paint.
+  assert.equal(typeof w.ctx.tpcpMaybeRepickDay, 'undefined', 'the post-paint repick mechanism is removed');
+  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller !== 'boot').length, 0, 'the whole cold open logged nothing but the boot entry');
 });
 
 test('(a) legacy cache without dates cannot pick -> does not paint; loading covers the gap', () => {
@@ -294,19 +331,24 @@ test('(b) initial day: mid-trip -> today, pre-trip -> first, post-trip -> last, 
   assert.equal(mixed.ctx.getInitialActiveDay(), 1, 'one parseable day that IS today still matches');
 });
 
-test('(b) re-pick fires once on first real config, and never steals a user tap', () => {
-  const w = makeWorld({ curDay: 0 });
-  w.ctx.tpcpMaybeRepickDay();
-  assert.equal(w.ctx.curDay, 1, 'repick moves to today (Day 2)');
-  assert.equal(w.tabs[1]._classes.active, true, 'tab strip agrees');
-  const logAfter = w.ctx._tpcpDayLog.filter((e) => e.caller === 'repick');
-  assert.equal(logAfter.length, 1, 'exactly one repick entry');
-  w.ctx.tpcpMaybeRepickDay();
-  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller === 'repick').length, 1, 'repick is one-time');
-
-  const w2 = makeWorld({ curDay: 0 });
+test('(b) load sequence for an ENDED trip: first pick is the clamped last day, applied as state before paint, nothing logged', () => {
+  // Oct 25: TEST02 (Oct 22-23) has ended. This is the build-52 failure
+  // shape (boots b2-b8: App start, then a 'repick' entry ~1s later).
+  // The load paths run: sync the real config -> apply the pick as
+  // state -> paint. The first pick must BE the clamp -- there is no
+  // corrector left to fix it afterwards -- and the log must stay
+  // empty.
+  const w = makeWorld({ nowMs: RealDate.UTC(2026, 9, 25, 17, 0, 0), days: [{ num: 1, label: 'Day 1', date: '', park: '' }, { num: 2, label: 'Day 2', date: '', park: '' }], curDay: 0 });
+  w.ctx.tpcpSyncTripConfig({ tripName: 'BB test trip', days: JSON.parse(JSON.stringify(TEST02_DAYS)) });
+  assert.equal(w.ctx.tpcpApplyFirstPaintPick(), true, 'the synced config makes a pick computable');
+  assert.equal(w.ctx.curDay, 1, 'ended trip clamps to the last day as the FIRST pick');
+  assert.equal(w.loadCustomCalls, 0, 'the pick itself paints nothing -- the load path paints next, on the picked day');
+  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller !== 'boot').length, 0, 'no repick (or any) entry for the cold open');
+  assert.equal(w.tabs[1]._classes.active, true, 'the picked tab is lit before the first paint');
+  // A deliberate selection is never overridden by the pick:
+  const w2 = makeWorld({ nowMs: RealDate.UTC(2026, 9, 25, 17, 0, 0), curDay: 0 });
   w2.window._dayUserPicked = true; // user tapped a tab before load completed
-  w2.ctx.tpcpMaybeRepickDay();
+  assert.equal(w2.ctx.tpcpApplyFirstPaintPick(), true);
   assert.equal(w2.ctx.curDay, 0, 'a deliberate selection is never stolen');
 });
 
@@ -358,11 +400,11 @@ test('(e) ring buffer records caller-labelled, boot-stamped entries and persists
   assert.equal(w.ctx._tpcpDayLog[0].caller, 'boot');
   assert.equal(w.ctx._tpcpDayLog[0].boot, w.ctx.tpcpBootId());
   w.ctx.setDay(1, { caller: 'init' });
-  w.ctx.setDay(0, { caller: 'repick' });
+  w.ctx.setDay(0, { caller: 'tab-tap' });
   assert.equal(w.ctx._tpcpDayLog.length, 3);
   const [, e1, e2] = w.ctx._tpcpDayLog;
   assert.deepEqual([e1.from, e1.to, e1.caller], [0, 1, 'init']);
-  assert.deepEqual([e2.from, e2.to, e2.caller], [1, 0, 'repick']);
+  assert.deepEqual([e2.from, e2.to, e2.caller], [1, 0, 'tab-tap']);
   assert.equal(typeof e1.ts, 'number');
   assert.equal(typeof e1.touch, 'boolean');
   assert.equal(e1.boot, w.ctx.tpcpBootId(), 'every entry is stamped with its instance boot id');
@@ -376,7 +418,7 @@ test('(e) ring buffer records caller-labelled, boot-stamped entries and persists
   assert.notEqual(w2.ctx.tpcpBootId(), w.ctx.tpcpBootId(), 'each instance mints a distinct boot id');
   const html = w2.ctx.tpcpDayChangesHtml();
   assert.ok(html.includes('Day changes'), 'diagnostics readout is labelled plainly');
-  assert.ok(html.includes('repick'), 'readout names callers');
+  assert.ok(html.includes('tab-tap'), 'readout names callers');
   assert.ok(html.includes('App start'), 'readout renders boot entries as app starts');
   assert.ok(html.includes(w.ctx.tpcpBootId()) && html.includes(w2.ctx.tpcpBootId()), 'readout shows both boot ids');
 });
@@ -387,7 +429,10 @@ test('(e) readout shows the WHOLE buffer and marks pre-instrumentation entries',
   const html0 = w.ctx.tpcpDayChangesHtml();
   assert.ok(html0.includes('pre-instrumentation'), 'entries without a boot stamp are marked as such');
   // More entries than the old last-8 window: every one must render.
-  for (let i = 0; i < 12; i++) w.ctx.setDay(i % 2, { caller: 'sw' + i });
+  // Item 31: alternate REAL switches -- a same-day setDay is now a
+  // no-op by design and logs nothing, so the old i%2 pattern (which
+  // started with a same-day call) would not produce 12 entries.
+  for (let i = 0; i < 12; i++) w.ctx.setDay(i % 2 === 0 ? 1 : 0, { caller: 'sw' + i });
   const html = w.ctx.tpcpDayChangesHtml();
   assert.ok(html.includes('sw0'), 'earliest entry still shown (no last-8 window)');
   assert.ok(html.includes('sw11'), 'latest entry shown');
@@ -432,18 +477,92 @@ test('(g) first-paint pick: applies from a dated config, refuses a dateless one,
   assert.equal(user.ctx.curDay, 0, 'a deliberate user selection is never overridden');
 });
 
-// ------------------------------------------------------------ (h) repick gate
-test('(h) repick gate: a no-op call against a dateless config does NOT consume the one-time repick', () => {
-  const w = makeWorld({ days: [{ num: 1, label: 'Day 1', date: '', park: 'Disneyland' }, { num: 2, label: 'Day 2', date: '', park: 'Disneyland' }], curDay: 0 });
-  w.ctx.tpcpMaybeRepickDay();
-  assert.equal(w.ctx._dayRepicked, false, 'no dates -> no decision made -> gate NOT consumed');
-  assert.equal(w.ctx.curDay, 0);
-  // The real config lands on a later load path: the repick must still fire.
-  w.tc.days = JSON.parse(JSON.stringify(TEST02_DAYS));
-  w.ctx.tpcpMaybeRepickDay();
-  assert.equal(w.ctx._dayRepicked, true, 'the dated call consumes the gate');
-  assert.equal(w.ctx.curDay, 1, 'and the repick still happens');
-  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller === 'repick').length, 1);
+// ------------------------------------------------------------ (h) one pick
+test('(h) one pick implementation: tpcpPickFromDays and getInitialActiveDay can never disagree', () => {
+  const cases = [
+    { nowMs: RealDate.UTC(2026, 9, 20, 15, 0, 0), want: 0, label: 'before the trip -> first day' },
+    { nowMs: RealDate.UTC(2026, 9, 22, 17, 0, 0), want: 0, label: 'Day 1 -> Day 1' },
+    { nowMs: RealDate.UTC(2026, 9, 23, 17, 0, 0), want: 1, label: 'Day 2 -> Day 2' },
+    { nowMs: RealDate.UTC(2026, 9, 24, 5, 30, 0), want: 1, label: 'park-local: still Day 2 late at night' },
+    { nowMs: RealDate.UTC(2026, 9, 25, 15, 0, 0), want: 1, label: 'after the trip -> clamped last day' },
+  ];
+  for (const c of cases) {
+    const w = makeWorld({ nowMs: c.nowMs });
+    assert.equal(w.ctx.tpcpPickFromDays(w.tc.days), c.want, 'pick: ' + c.label);
+    assert.equal(w.ctx.getInitialActiveDay(), c.want, 'initial day agrees: ' + c.label);
+  }
+  const blank = makeWorld({ days: [{ num: 1, label: 'Day 1', date: '', park: 'Disneyland' }, { num: 2, label: 'Day 2', date: '', park: 'Disneyland' }] });
+  assert.equal(blank.ctx.tpcpPickFromDays(blank.tc.days), -1, 'dateless config -> no pick possible');
+  assert.equal(blank.ctx.getInitialActiveDay(), 0, 'and the initial day falls back to Day 1');
+});
+
+test('(h) static pins (item 31): the post-paint repick is gone from every load path; the timed render cannot beat the pick', () => {
+  assert.ok(!appHtml.includes('tpcpMaybeRepickDay'), 'no repick function or call sites remain');
+  assert.ok(!appHtml.includes('_dayRepicked'), 'no repick gate flag remains');
+  assert.ok(!appHtml.includes("caller:'repick'"), 'no repick log entries can be written');
+  const initSrc = sliceRange('function _initApp()', 'if (skipAnim) {');
+  assert.ok(initSrc.includes('(_tripLoaded || _tripProvisional)'), '_initApp timed render only paints over an already-picked paint');
+});
+
+// ------------------------------------------------------------ (j) cheap switches
+test('(j) same-day tap is a no-op: no re-render, no log, at most scroll-to-now', () => {
+  const w = makeWorld({ curDay: 1, recordTimers: true, queueRaf: true }); // Day 2 is today at the default clock
+  w.ctx.setDay(1, { caller: 'tab-tap', user: true });
+  assert.equal(w.ctx.curDay, 1);
+  assert.equal(w.renderSchedCalls, 0, 'same-day tap must not rebuild the schedule');
+  assert.equal(w.scrollCalls, 0, 'no scroll-to-top for a same-day tap');
+  assert.equal(w.nowScrollCalls, 1, 'today + same-day tap may scroll to now, once');
+  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller !== 'boot').length, 0, 'no day-change entry for a non-switch');
+  assert.equal(w.window._dayUserPicked, true, 'the tap still counts as a deliberate selection');
+
+  const w2 = makeWorld({ curDay: 0, recordTimers: true, queueRaf: true }); // Day 1 is not today
+  w2.ctx.setDay(0, { caller: 'tab-tap', user: true });
+  assert.equal(w2.renderSchedCalls, 0, 'same-day tap on a non-today day also renders nothing');
+  assert.equal(w2.scrollDirectives(), 0, 'non-today same-day tap: no scroll at all');
+});
+
+test('(j) cross-day switch: one render, exactly one scroll directive from the single owner', () => {
+  // To a NON-today day:
+  const w = makeWorld({ curDay: 1, recordTimers: true, queueRaf: true });
+  w.ctx.setDay(0, { caller: 'tab-tap', user: true });
+  assert.equal(w.renderSchedCalls, 1, 'one innerHTML owner renders the switch once');
+  assert.equal(w.scrollCalls, 0, 'switchNav issued no scroll of its own for the switch');
+  w.flushRaf();
+  assert.equal(w.scrollCalls, 1, 'the owner issued the switch\'s one scroll');
+  assert.deepEqual(w.scrollArgs[0], [0, 0], 'non-today switch scrolls to top');
+  w.flushTimers();
+  assert.equal(w.scrollDirectives(), 1, 'setTab\'s timed scroll stood down -- exactly one directive total');
+  assert.equal(w.window._tpcpDayScrollSeq, 0, 'the switch marker is released after the scroll');
+
+  // To the TODAY day:
+  const w2 = makeWorld({ curDay: 0, recordTimers: true, queueRaf: true });
+  w2.ctx.setDay(1, { caller: 'tab-tap', user: true });
+  assert.equal(w2.renderSchedCalls, 1, 'one render for the today switch');
+  w2.flushRaf();
+  assert.equal(w2.nowScrollCalls, 1, 'today switch scrolls to now, once');
+  assert.equal(w2.scrollCalls, 0, 'no competing scroll-to-top');
+  w2.flushTimers();
+  assert.equal(w2.scrollDirectives(), 1, 'exactly one directive for the today switch too');
+});
+
+test('(j) rapid burst: many switches, one render each, exactly one scroll -- the last switch\'s', () => {
+  const w = makeWorld({ curDay: 0, recordTimers: true, queueRaf: true });
+  w.ctx.setDay(1, { caller: 'tab-tap', user: true });
+  w.ctx.setDay(0, { caller: 'tab-tap', user: true });
+  w.ctx.setDay(1, { caller: 'tab-tap', user: true });
+  assert.equal(w.renderSchedCalls, 3, 'each real switch renders once (one innerHTML owner per switch)');
+  w.flushRaf();
+  w.flushTimers();
+  assert.equal(w.scrollDirectives(), 1, 'superseded switches never scroll');
+  assert.equal(w.nowScrollCalls, 1, 'the surviving directive is the last switch\'s (to today: scroll-to-now)');
+  assert.equal(w.ctx.curDay, 1);
+});
+
+test('(j) plain navigation keeps its own scroll: switchNav outside a day switch still scrolls to top', () => {
+  const w = makeWorld({ curDay: 0, recordTimers: true, queueRaf: true });
+  w.ctx.switchNav('schedule');
+  assert.equal(w.scrollCalls, 1, 'plain nav scrolls as before');
+  assert.equal(w.scrollArgs[0][0].behavior, 'smooth', 'with its smooth scroll-to-top');
 });
 
 // ------------------------------------------------------------ (i) static pins

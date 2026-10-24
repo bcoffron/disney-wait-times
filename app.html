@@ -2309,7 +2309,6 @@ const DAYS=[
 var usingCachedSchedule = false;
 var _tripLoaded = false;
 var _tripProvisional = false;
-var _dayRepicked = false;
 
 /* TPCP-STARTUP-DAYSTATE-BEGIN */
 // ---- Cold-start + day-state core (Oct 23, 2026; item 20) ----
@@ -2479,11 +2478,21 @@ function tpcpPickFromDays(daysArr){
       parsed.push({idx:i,iso:dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'),park:dy.park||''});
     }
     if(!parsed.length) return -1;
-    var s=' '+parsed[0].park;
-    var sd=(window._schedData&&window._schedData.days&&window._schedData.days[parsed[0].idx])||null;
-    if(sd&&sd.park) s+=' '+sd.park;
-    var tz=/magic kingdom|epcot|hollywood studios|animal kingdom|walt disney world/i.test(s)?'America/New_York':'America/Los_Angeles';
-    var todayIso=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    // "Today" comes from the ONE park-time authority (item 31):
+    // tpcpParkTodayIso over the PR #118 timezone map -- the same
+    // source getInitialActiveDay uses. This function previously
+    // re-derived the timezone from park-name strings, a second
+    // authority: the pre-paint pick and the post-paint re-pick could
+    // be computed against different todays and disagree, and a
+    // correction can only exist where two authorities can differ.
+    var todayIso=(typeof tpcpParkTodayIso==='function')?tpcpParkTodayIso(parsed[0].idx):'';
+    if(!todayIso){
+      var s=' '+parsed[0].park;
+      var sd=(window._schedData&&window._schedData.days&&window._schedData.days[parsed[0].idx])||null;
+      if(sd&&sd.park) s+=' '+sd.park;
+      var tz=/magic kingdom|epcot|hollywood studios|animal kingdom|walt disney world/i.test(s)?'America/New_York':'America/Los_Angeles';
+      todayIso=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    }
     for(var j=0;j<parsed.length;j++){ if(parsed[j].iso===todayIso) return parsed[j].idx; }
     if(todayIso<parsed[0].iso) return parsed[0].idx;
     return parsed[parsed.length-1].idx;
@@ -2516,24 +2525,17 @@ function tpcpApplyFirstPaintPick(){
 function tpcpCacheCfgDays(){
   try{ return ((window.TRIP_CONFIG&&TRIP_CONFIG.days)||[]).map(function(d){ return {date:(d&&d.date)||'', park:(d&&d.park)||''}; }); }catch(e){ return []; }
 }
-// -- One-time day re-pick: when the real config first applies, re-run
-// the initial-day pick ONCE -- unless the user has tapped a day tab,
-// which is a deliberate selection and is never stolen. (Item 26: the
-// repick no longer corrects the cold open -- the first paint is picked
-// -- it reconciles genuine later config changes only, and its gate is
-// consumed ONLY by a decision made against a real, dated config: a
-// call that arrives before any dates exist is a no-op and must not
-// burn the one-time flag for the load paths that arrive after it.)
-function tpcpMaybeRepickDay(){
-  if(_dayRepicked) return;
-  if(window._dayUserPicked){ _dayRepicked=true; return; }
-  if(!tpcpPickIsPossible()) return;
-  _dayRepicked=true;
-  try{
-    var idx=(typeof getInitialActiveDay==='function')?getInitialActiveDay():0;
-    if(typeof idx==='number' && idx!==curDay && typeof setDay==='function') setDay(idx,{caller:'repick'});
-  }catch(e){}
-}
+// -- There is deliberately NO post-paint day correction (item 31).
+// Build 52 still logged a 'repick' entry on every cold open of an
+// ended trip: a post-paint corrector existed on every load path, fed
+// by a second pick implementation that could disagree with the
+// first-paint pick. Claude's ruling: the pick -- including the
+// ended-trip clamp to the last day -- is a PRE-PAINT input on every
+// load path (cache paint, fresh fetch, both retry ladders, the guest
+// poll ingest), computed by the single implementation above and
+// applied as state before the first render (tpcpApplyFirstPaintPick).
+// With one pick and no corrector, a cold open's first frame is the
+// picked day and no 'repick' entry can ever be logged for it.
 // -- Park-local time helpers (the day's own park timezone, via the
 // PR #118 map mirrored in tpcpParkTzForDay -- never the device's).
 function tpcpParkTodayIso(dayIdx){
@@ -2706,7 +2708,6 @@ function checkLock(){
               tpcpApplyFirstPaintPick();
               loadCustom();
               (function() { try { var _sched = d.tripData.tripConfig.schedule; if (_sched && _sched.days && _sched.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none'; } } catch(e) {} })();
-              tpcpMaybeRepickDay();
               var _gwsEl=document.getElementById('guestWaitScreen'); if(_gwsEl) _gwsEl.style.display='none';
             } else {
               if(typeof showGuestWaitingScreen==='function') showGuestWaitingScreen(d.tripName||'');
@@ -2736,7 +2737,6 @@ function checkLock(){
                       tpcpApplyFirstPaintPick();
                       loadCustom();
                       tpcpMarkTripLoaded();
-                      tpcpMaybeRepickDay();
                       usingCachedSchedule = false;
                       var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none';
                       try { if (dr.data.tripData.tripConfig.schedule.days && dr.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e2) {}
@@ -2871,7 +2871,6 @@ function tryUnlock() {
         }
         tpcpApplyFirstPaintPick();
         loadCustom();
-        tpcpMaybeRepickDay();
         // PART A: cache write (tryUnlock path)
         (function() { try { var _sched2 = d.tripData.tripConfig.schedule; if (_sched2 && _sched2.days && _sched2.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb3 = document.getElementById('cachedSchedBanner'); if (_cb3) _cb3.style.display = 'none'; } } catch(e5) {} })();
         var _gwsEl2=document.getElementById('guestWaitScreen'); if(_gwsEl2) _gwsEl2.style.display='none';
@@ -2905,7 +2904,6 @@ function tryUnlock() {
                   tpcpApplyFirstPaintPick();
                   loadCustom();
                   tpcpMarkTripLoaded();
-                  tpcpMaybeRepickDay();
                   usingCachedSchedule = false;
                   var _cb4 = document.getElementById('cachedSchedBanner'); if (_cb4) _cb4.style.display = 'none';
                   try { if (dr2.data.tripData.tripConfig.schedule.days && dr2.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e7) {}
@@ -4050,7 +4048,7 @@ function startBlobPoll() {
                    ensureDayTabs(TRIP_CONFIG.days.length); TRIP_CONFIG.days.forEach(function(dy, i){ var tab=document.getElementById('day-tab-'+(i+1)); if(!tab)return; if(dy.isVip){tab.classList.add('vip-tab');}else{tab.classList.remove('vip-tab');} var de=tab.querySelector('.day-tab-date'); if(de)de.textContent=dy.date||''; });
                  }
                }
-               tpcpApplyFirstPaintPick(); if (typeof loadCustom === 'function') loadCustom(); tpcpMarkTripLoaded(); tpcpMaybeRepickDay(); try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
+               tpcpApplyFirstPaintPick(); if (typeof loadCustom === 'function') loadCustom(); tpcpMarkTripLoaded(); try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
           }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
           if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
@@ -7397,19 +7395,53 @@ function ensureDayTabs(count, exact){
     }
   }
 }
+// The single scroll owner for day switches (item 31). One switch
+// used to issue up to three scroll commands -- switchNav's smooth
+// scroll-to-top, setTab's 200 ms scroll-to-top, and setDay's own
+// double-rAF scroll -- and the smooth/instant pair visibly fought on
+// every switch (the flashing audit's scroll fight). Now setDay marks
+// the switch with a sequence number, switchNav and setTab stand down
+// for marked switches, and this function issues the switch's ONE
+// scroll directive once the render has landed: scroll-to-now for the
+// today day, scroll-to-top for any other. A newer switch supersedes
+// an older one's pending scroll, so a rapid tap burst lands exactly
+// one scroll -- the last switch's.
+function tpcpDaySwitchScroll(d){
+  var seq = window._tpcpDayScrollSeq;
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    if (window._tpcpDayScrollSeq !== seq) return;
+    window._tpcpDayScrollSeq = 0;
+    if (window._nowScrollPending) { window._nowScrollPending = false; scrollScheduleToNow(); }
+    else window.scrollTo(0, 0);
+  }); });
+}
 function setDay(d, opts){
   opts = opts || {};
+  // Cheap switches (item 31; Claude's fork-B ruling): a tap on the
+  // already-active day is NOT a switch -- no log entry, no tab churn,
+  // no full re-render, no scroll. At most it scrolls the today view
+  // to the current time, the one gesture still meaningful on the day
+  // you are already looking at.
+  if (d === curDay && !opts.force) {
+    if (opts.user) {
+      window._dayUserPicked = true;
+      if (_isTodayDayIndex(d) && typeof scrollScheduleToNow === 'function') scrollScheduleToNow();
+    }
+    return;
+  }
   var _fromDay = curDay;
   if (opts.user) window._dayUserPicked = true;
   try { tpcpDayLogRecord(_fromDay, d, opts.caller || tpcpDayLogCaller(), tpcpDayLogTouchPreceded()); } catch(e){}
   ensureDayTabs(0);
-  window._nowScrollPending = _isTodayDayIndex(d); switchNav('schedule');
+  window._nowScrollPending = _isTodayDayIndex(d);
+  window._tpcpDayScrollSeq = (window._tpcpDayScrollSeq || 0) + 1;
+  switchNav('schedule');
   curDay=d;
   document.querySelectorAll('.day-tab').forEach(function(t,i){t.classList.toggle('active',i===d);});
   editMode=false;
   var et=document.getElementById('editToggle');et.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
-  renderClosed();renderSched();renderDayInfoBar(); requestAnimationFrame(function(){requestAnimationFrame(function(){ if(window._nowScrollPending){ scrollScheduleToNow(); } else { window.scrollTo(0,0); } });});
+  renderClosed();renderSched();renderDayInfoBar(); tpcpDaySwitchScroll(d);
         var _hTitleEl=document.querySelector('.header-title');if(_hTitleEl&&window.TRIP_CONFIG&&window.TRIP_CONFIG.tripName)_hTitleEl.textContent=window.TRIP_CONFIG.tripName;
   var _rlDay=document.getElementById('reoptLoading');if(_rlDay&&_rlDay.getAttribute('data-reopt-day')!==String(d)){_rlDay.style.display='none';}
   if(typeof renderVipBanner==='function')renderVipBanner(d);
@@ -7443,7 +7475,12 @@ function setTab(t){
   if(t==='info')renderInfoTab&&renderInfoTab();
   if(t==='closures'){renderClosuresFromWaits&&renderClosuresFromWaits();}
   if(t==='waits'||t==='info'){ if(typeof tpcpRefreshAlertButtons==='function') tpcpRefreshAlertButtons(); }
-  setTimeout(function() { if (window._nowScrollPending) return; document.documentElement.scrollTop = 0; window.scrollTo(0, 0); }, 200)
+  // Day switches own their scroll (item 31): when setTab runs as part
+  // of one, the switch's sequence marker is up -- capture that now,
+  // because by the time this timer fires the switch's own single
+  // scroll directive has already landed.
+  var _daySwitchOwnsScroll = !!window._tpcpDayScrollSeq;
+  setTimeout(function() { if (window._nowScrollPending || _daySwitchOwnsScroll) return; document.documentElement.scrollTop = 0; window.scrollTo(0, 0); }, 200)
 }
 function sendSuggested(btn){var msg=btn.textContent.trim();var sug=document.getElementById('chatSuggestions');if(sug)sug.style.display='none';sendChatMsg(msg);}
 async function sendChatMsg(directMsg){
@@ -8555,17 +8592,13 @@ var TRIP_CONFIG = {
 function getInitialActiveDay() {
   // Open on the trip's current day (Beau's rule): before the trip ->
   // Day 1, during the trip -> today, after the trip -> the last day.
-  // "Today" is the PARK's today: each day's own date (parsed with
-  // tpcpParseDayDate, matched via tpcpRealDays) is compared against
-  // park-local today from the park timezone map -- never the device's
-  // calendar. Unparseable/absent dates fall back to Day 1.
-  var rd = (typeof tpcpRealDays === 'function') ? tpcpRealDays() : [];
-  if (!rd.length) return 0;
-  var todayIso = (typeof tpcpParkTodayIso === 'function') ? tpcpParkTodayIso(rd[0].idx) : '';
-  if (!todayIso) return 0;
-  for (var i = 0; i < rd.length; i++) { if (rd[i].iso === todayIso) return rd[i].idx; }
-  if (todayIso < rd[0].iso) return 0;
-  return rd[rd.length - 1].idx;
+  // This delegates to the SINGLE pick implementation (tpcpPickFromDays,
+  // item 31): it previously re-implemented the same rule over
+  // tpcpRealDays, and two implementations of one pick are how the
+  // first-paint pick and a later correction could disagree.
+  // Unparseable/absent dates fall back to Day 1.
+  var idx = (typeof tpcpPickFromDays === 'function') ? tpcpPickFromDays((window.TRIP_CONFIG && TRIP_CONFIG.days) || []) : -1;
+  return idx >= 0 ? idx : 0;
 }
 
 /* --- Splash screen --- */
@@ -8850,7 +8883,11 @@ function enterSplash(skipAnim) {
     if (typeof startWaitRefresh === 'function') setTimeout(startWaitRefresh, 10000);
     if (typeof renderCountdown === 'function') renderCountdown();
     setTimeout(function() {
-      if (typeof renderSched === 'function') renderSched(1);
+      // Paint only over an already-picked paint (item 31): before the
+      // first picked paint lands (cache or server), the loading state
+      // owns the schedule area -- a timed render must not beat the
+      // pick to the first frame.
+      if (typeof renderSched === 'function' && (_tripLoaded || _tripProvisional)) renderSched(1);
       if(typeof renderVipBanner==='function')renderVipBanner(curDay);
     }, 300);
   }
@@ -8894,8 +8931,10 @@ function switchNav(tabKey) {
     b.classList.toggle('active', b.dataset.tab === tab);
   });
   setTab(tab);
-  // Scroll to top of content
-  if (!window._nowScrollPending) window.scrollTo({top: 0, behavior: 'smooth'});
+  // Scroll to top of content -- unless this navigation IS a day
+  // switch, whose one scroll directive the day-switch owner issues
+  // after the render (item 31).
+  if (!window._nowScrollPending && !window._tpcpDayScrollSeq) window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 /* --- Alt sheet --- */
