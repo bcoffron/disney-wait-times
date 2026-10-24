@@ -2451,6 +2451,38 @@ function tpcpMarkTripLoaded(){
   _tripLoaded=true; _tripProvisional=false; usingCachedSchedule=false;
   try{ var b=document.getElementById('cachedSchedBanner'); if(b) b.style.display='none'; }catch(e){}
 }
+// Loaded-apply teardown (item 32; Claude's build-53 ruling, stage 1):
+// the provisional cache paint lays a full render into the same
+// containers the loaded paint is about to fill, and on device the
+// loaded render composited OVER it instead of replacing it -- doubled
+// sections in every tab from the first frame. Every loaded-apply path
+// calls this immediately before its loaded loadCustom() paint, so the
+// loaded paint lands in emptied containers: replace, never overlay.
+// The clear cannot live inside tpcpMarkTripLoaded: on the retry and
+// poll paths that function runs AFTER the loaded paint, and clearing
+// there would erase the render it just applied. It is deliberately
+// not gated on _tripProvisional either: on the two main paths the
+// flag is already flipped by the time the paint seam is reached, and
+// at every seam the next action is a wholesale repaint of these same
+// containers in the same synchronous block, so clearing is always
+// safe. The containers cleared are exactly the provisional paint's
+// footprint; the day tabs and header are reconciled by assignment on
+// both paints, and the lazy tab containers are never touched by the
+// provisional paint (their shells ship empty and their first renders
+// assign wholesale).
+function tpcpTeardownProvisional(){
+  try{
+    var sc=document.getElementById('schedContent');
+    // renderSched parks the VIP notes singleton inside schedContent;
+    // an innerHTML clear would destroy the node, so park it back at
+    // its shell slot first -- the loaded renderSched finds it by id
+    // and re-inserts it into the new content exactly as it does today.
+    var vn=document.getElementById('vipNotesSection');
+    if(vn&&sc&&vn.parentNode===sc&&sc.parentNode) sc.parentNode.insertBefore(vn,sc);
+    if(sc) sc.innerHTML='';
+  }catch(e){}
+  try{ var ib=document.getElementById('dayInfoBar'); if(ib) ib.innerHTML=''; }catch(e){}
+}
 // "Not loaded" must never render as "empty": until a server copy has
 // applied or a same-trip cache has painted, the schedule area gets a
 // neutral loading view -- never the empty state, never the default
@@ -2708,6 +2740,7 @@ function checkLock(){
               // config synced above makes a pick computable, so apply
               // it as state BEFORE loadCustom renders anything.
               tpcpApplyFirstPaintPick();
+              tpcpTeardownProvisional();
               loadCustom();
               (function() { try { var _sched = d.tripData.tripConfig.schedule; if (_sched && _sched.days && _sched.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none'; } } catch(e) {} })();
               var _gwsEl=document.getElementById('guestWaitScreen'); if(_gwsEl) _gwsEl.style.display='none';
@@ -2737,6 +2770,7 @@ function checkLock(){
                       // apply the pick as state before the first paint.
                       tpcpSyncTripConfig(dr.data.tripData.tripConfig);
                       tpcpApplyFirstPaintPick();
+                      tpcpTeardownProvisional();
                       loadCustom();
                       tpcpMarkTripLoaded();
                       usingCachedSchedule = false;
@@ -2872,6 +2906,7 @@ function tryUnlock() {
           }
         }
         tpcpApplyFirstPaintPick();
+        tpcpTeardownProvisional();
         loadCustom();
         // PART A: cache write (tryUnlock path)
         (function() { try { var _sched2 = d.tripData.tripConfig.schedule; if (_sched2 && _sched2.days && _sched2.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb3 = document.getElementById('cachedSchedBanner'); if (_cb3) _cb3.style.display = 'none'; } } catch(e5) {} })();
@@ -2904,6 +2939,7 @@ function tryUnlock() {
                   applyRoleUI();
                   tpcpSyncTripConfig(dr2.data.tripData.tripConfig);
                   tpcpApplyFirstPaintPick();
+                  tpcpTeardownProvisional();
                   loadCustom();
                   tpcpMarkTripLoaded();
                   usingCachedSchedule = false;
@@ -4050,7 +4086,7 @@ function startBlobPoll() {
                    ensureDayTabs(TRIP_CONFIG.days.length); TRIP_CONFIG.days.forEach(function(dy, i){ var tab=document.getElementById('day-tab-'+(i+1)); if(!tab)return; if(dy.isVip){tab.classList.add('vip-tab');}else{tab.classList.remove('vip-tab');} var de=tab.querySelector('.day-tab-date'); if(de)de.textContent=dy.date||''; });
                  }
                }
-               tpcpApplyFirstPaintPick(); if (typeof loadCustom === 'function') loadCustom(); tpcpMarkTripLoaded(); try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
+               tpcpApplyFirstPaintPick(); tpcpTeardownProvisional(); if (typeof loadCustom === 'function') loadCustom(); tpcpMarkTripLoaded(); try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
           }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
           if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
