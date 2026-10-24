@@ -2293,12 +2293,22 @@ var _dayRepicked = false;
 var _tpcpDayLog = [];
 function tpcpDayLogLoad(){ try{ var s=localStorage.getItem('tpcp_day_log'); if(s){ var a=JSON.parse(s); if(a&&a.length) _tpcpDayLog=a.slice(-50); } }catch(e){} }
 tpcpDayLogLoad();
+// Boot id (Oct 23, 2026; item 26): every page instance mints one id at
+// startup, stamps it on each ring-buffer entry it records, and writes
+// one 'boot' entry of its own. The persisted buffer aggregates entries
+// across instances while 'from' is per-instance state, so a pair of
+// entries straddling two boot ids proves the page itself was recreated
+// between them -- the churn fork from the round-2 flashing audit,
+// settled by this stamp instead of another round of guessing.
+var _tpcpBootId=(function(){ try{ var n=parseInt(localStorage.getItem('tpcp_boot_seq')||'0',10)||0; n++; localStorage.setItem('tpcp_boot_seq',String(n)); return 'b'+n; }catch(e){ return 'b'+Date.now().toString(36); } })();
+function tpcpBootId(){ return _tpcpBootId; }
 function tpcpDayLogRecord(from,to,caller,touchPreceded){
-  var e={ts:Date.now(),from:from,to:to,caller:String(caller||'unknown'),touch:!!touchPreceded};
+  var e={ts:Date.now(),from:from,to:to,caller:String(caller||'unknown'),touch:!!touchPreceded,boot:_tpcpBootId};
   _tpcpDayLog.push(e); if(_tpcpDayLog.length>50) _tpcpDayLog=_tpcpDayLog.slice(-50);
   try{ localStorage.setItem('tpcp_day_log',JSON.stringify(_tpcpDayLog)); }catch(err){}
   return e;
 }
+try{ tpcpDayLogRecord(0,0,'boot',false); }catch(e){}
 function tpcpDayLogCaller(){
   try{
     var st=(new Error().stack||'').split('\n');
@@ -2312,10 +2322,18 @@ function tpcpDayLogCaller(){
 function tpcpDayChangesHtml(){
   try{
     var esc=function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
-    var rows=_tpcpDayLog.slice(-8).map(function(e){
+    // ALL buffered entries (item 26): the old last-8 window dropped
+    // rows in the flashing transcription, and dropped rows are one of
+    // the two live explanations for the impossible pair -- so the
+    // readout shows the whole buffer, each row stamped with the boot
+    // id of the instance that recorded it (entries written before
+    // this instrumentation are marked as such).
+    var rows=_tpcpDayLog.map(function(e){
       var t=new Date(e.ts);
       var hh=String(t.getHours()).padStart(2,'0'), mm=String(t.getMinutes()).padStart(2,'0'), ss=String(t.getSeconds()).padStart(2,'0');
-      return 'Day '+(e.from+1)+' \u2192 Day '+(e.to+1)+' \u00B7 '+esc(e.caller)+(e.touch?' \u00B7 touch':'')+' \u00B7 '+hh+':'+mm+':'+ss;
+      var bootTxt=e.boot?(' \u00B7 '+esc(e.boot)):' \u00B7 pre-instrumentation';
+      if(e.caller==='boot') return 'App start'+bootTxt+' \u00B7 '+hh+':'+mm+':'+ss;
+      return 'Day '+(e.from+1)+' \u2192 Day '+(e.to+1)+' \u00B7 '+esc(e.caller)+(e.touch?' \u00B7 touch':'')+bootTxt+' \u00B7 '+hh+':'+mm+':'+ss;
     });
     if(!rows.length) rows=['No day changes recorded yet.'];
     return '<div style="margin:2px 14px 16px;font-size:11px;color:var(--text-muted);font-family:\'Outfit\',sans-serif;line-height:1.6;text-align:center;"><div style="font-weight:700;color:#1A6860;">Day changes</div>'+rows.map(function(r){return '<div>'+r+'</div>';}).join('')+'</div>';
@@ -2372,15 +2390,28 @@ function tpcpCacheForCode(code){
 }
 function tpcpPaintCachedTrip(code){
   var c=tpcpCacheForCode(code); if(!c) return false;
-  // Mark provisional BEFORE painting: renderSched's loading gate keys
-  // off these flags, and loadCustom renders as part of the paint.
-  _tripProvisional=true; usingCachedSchedule=true;
   try{
     if(c.schedData && c.schedData.days) window._schedData=c.schedData;
     if(c.DAYS){ try{ DAYS=c.DAYS; }catch(e){} }
     if(c.customSched) customSched=c.customSched;
+  }catch(e){}
+  // No day paint until a pick is possible (item 26): this cache may
+  // paint only if the dates it carries (cfgDays) produce a pick, and
+  // the paint lands ON the picked day -- the pick is state set before
+  // the first render, never a flip after it. A cache without dates
+  // (anything written before item 26) cannot pick: it does not paint,
+  // and the loading state covers the gap until checkLock's config
+  // lands and paints the picked day itself.
+  var _picked=tpcpPickFromDays(c.cfgDays);
+  if(_picked<0) return false;
+  // Mark provisional BEFORE painting: renderSched's loading gate keys
+  // off these flags, and loadCustom renders as part of the paint.
+  _tripProvisional=true; usingCachedSchedule=true;
+  curDay=_picked; _dayPickApplied=true;
+  try{
     if(typeof loadCustom==='function') loadCustom();
     else if(typeof renderSched==='function') renderSched();
+    tpcpReflectDayTabs();
     if(c.tripName){ try{ var _ht=document.querySelector('.header-title'); if(_ht) _ht.textContent=c.tripName; }catch(e){} }
     var b=document.getElementById('cachedSchedBanner'); if(b) b.style.display='';
     if(typeof renderDayInfoBar==='function'){ try{ renderDayInfoBar(); }catch(e){} }
@@ -2399,12 +2430,77 @@ function tpcpSchedPlaceholderHTML(){
   if(_tripLoaded || _tripProvisional) return null;
   return '<div style="text-align:center;padding:40px 20px;color:var(--text-muted)"><div style="font-size:16px;font-weight:600;margin-bottom:8px">Loading your trip&hellip;</div><div style="font-size:13px">One moment while we fetch your plan.</div></div>';
 }
+// -- The day pick (Oct 23, 2026; item 26). Claude's round-2 ruling:
+// NO day paint until a pick is possible. The pick is a precondition of
+// the first paint, not a correction after it: the first render takes
+// the picked day as an input, computed from the first real config that
+// can supply dates (the cache payload now carries them; otherwise the
+// server copy checkLock delivers), and the loading state covers any
+// gap before that. tpcpPickFromDays is the single pick implementation
+// -- mid-trip -> today (park-local), pre-trip -> first day, post-trip
+// -> last day -- mirroring getInitialActiveDay, but over any
+// {date, park} list so a cached payload can be picked from before
+// TRIP_CONFIG is synced.
+function tpcpPickFromDays(daysArr){
+  try{
+    if(!daysArr||!daysArr.length) return -1;
+    var parsed=[];
+    for(var i=0;i<daysArr.length;i++){
+      var dy=daysArr[i]; if(!dy||!dy.date) continue;
+      var dt=(typeof tpcpParseDayDate==='function')?tpcpParseDayDate(dy.date):null; if(!dt) continue;
+      parsed.push({idx:i,iso:dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'),park:dy.park||''});
+    }
+    if(!parsed.length) return -1;
+    var s=' '+parsed[0].park;
+    var sd=(window._schedData&&window._schedData.days&&window._schedData.days[parsed[0].idx])||null;
+    if(sd&&sd.park) s+=' '+sd.park;
+    var tz=/magic kingdom|epcot|hollywood studios|animal kingdom|walt disney world/i.test(s)?'America/New_York':'America/Los_Angeles';
+    var todayIso=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    for(var j=0;j<parsed.length;j++){ if(parsed[j].iso===todayIso) return parsed[j].idx; }
+    if(todayIso<parsed[0].iso) return parsed[0].idx;
+    return parsed[parsed.length-1].idx;
+  }catch(e){ return -1; }
+}
+function tpcpPickIsPossible(){
+  try{ return tpcpPickFromDays((window.TRIP_CONFIG&&TRIP_CONFIG.days)||[])>=0; }catch(e){ return false; }
+}
+// Reflect curDay onto the tab strip without rendering or logging: the
+// tabs display state, and the first paint must show the picked day's
+// tab lit even though no setDay "change" ever happened.
+function tpcpReflectDayTabs(){
+  try{ document.querySelectorAll('.day-tab').forEach(function(t,i){ t.classList.toggle('active', i===curDay); }); }catch(e){}
+}
+// Apply the initial pick as STATE (no render, no log): the paint that
+// follows is the first paint and lands on the picked day. One-time; a
+// deliberate user selection is never overridden.
+var _dayPickApplied=false;
+function tpcpApplyFirstPaintPick(){
+  if(_dayPickApplied) return true;
+  if(window._dayUserPicked){ _dayPickApplied=true; return true; }
+  var idx=tpcpPickFromDays((window.TRIP_CONFIG&&TRIP_CONFIG.days)||[]);
+  if(idx<0) return false;
+  curDay=idx; _dayPickApplied=true;
+  tpcpReflectDayTabs();
+  return true;
+}
+// The {date, park} slice of the live config, stamped into every cache
+// payload so the NEXT cold open can pick before it paints.
+function tpcpCacheCfgDays(){
+  try{ return ((window.TRIP_CONFIG&&TRIP_CONFIG.days)||[]).map(function(d){ return {date:(d&&d.date)||'', park:(d&&d.park)||''}; }); }catch(e){ return []; }
+}
 // -- One-time day re-pick: when the real config first applies, re-run
 // the initial-day pick ONCE -- unless the user has tapped a day tab,
-// which is a deliberate selection and is never stolen.
+// which is a deliberate selection and is never stolen. (Item 26: the
+// repick no longer corrects the cold open -- the first paint is picked
+// -- it reconciles genuine later config changes only, and its gate is
+// consumed ONLY by a decision made against a real, dated config: a
+// call that arrives before any dates exist is a no-op and must not
+// burn the one-time flag for the load paths that arrive after it.)
 function tpcpMaybeRepickDay(){
-  if(_dayRepicked) return; _dayRepicked=true;
-  if(window._dayUserPicked) return;
+  if(_dayRepicked) return;
+  if(window._dayUserPicked){ _dayRepicked=true; return; }
+  if(!tpcpPickIsPossible()) return;
+  _dayRepicked=true;
   try{
     var idx=(typeof getInitialActiveDay==='function')?getInitialActiveDay():0;
     if(typeof idx==='number' && idx!==curDay && typeof setDay==='function') setDay(idx,{caller:'repick'});
@@ -2576,8 +2672,12 @@ function checkLock(){
             // TRIP_CONFIG is re-synced at the trip-load point above (tpcpSyncTripConfig) -- for every loaded trip, not only when a schedule exists.
             if (d.tripData && d.tripData.tripConfig && d.tripData.tripConfig.schedule) {
               window._schedData = d.tripData.tripConfig.schedule;
+              // First paint lands on the picked day (item 26): the
+              // config synced above makes a pick computable, so apply
+              // it as state BEFORE loadCustom renders anything.
+              tpcpApplyFirstPaintPick();
               loadCustom();
-              (function() { try { var _sched = d.tripData.tripConfig.schedule; if (_sched && _sched.days && _sched.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none'; } } catch(e) {} })();
+              (function() { try { var _sched = d.tripData.tripConfig.schedule; if (_sched && _sched.days && _sched.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none'; } } catch(e) {} })();
               tpcpMaybeRepickDay();
               var _gwsEl=document.getElementById('guestWaitScreen'); if(_gwsEl) _gwsEl.style.display='none';
             } else {
@@ -2601,12 +2701,17 @@ function checkLock(){
                     var dr = result2.data;
                     if (result2.status === 200 && dr && dr.data && dr.data.tripData && dr.data.tripData.tripConfig && dr.data.tripData.tripConfig.schedule) {
                       window._schedData = dr.data.tripData.tripConfig.schedule;
+                      // This path never synced the config, so no day
+                      // pick was computable on it (item 26): sync, then
+                      // apply the pick as state before the first paint.
+                      tpcpSyncTripConfig(dr.data.tripData.tripConfig);
+                      tpcpApplyFirstPaintPick();
                       loadCustom();
                       tpcpMarkTripLoaded();
                       tpcpMaybeRepickDay();
                       usingCachedSchedule = false;
                       var _cb = document.getElementById('cachedSchedBanner'); if (_cb) _cb.style.display = 'none';
-                      try { if (dr.data.tripData.tripConfig.schedule.days && dr.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e2) {}
+                      try { if (dr.data.tripData.tripConfig.schedule.days && dr.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + tpcpCode, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e2) {}
                       document.getElementById('lockScreen').style.display = 'none';
                       document.getElementById('mainApp').style.display = '';
                       applyRoleUI();
@@ -2620,6 +2725,7 @@ function checkLock(){
                 if (_c && _c.DAYS) {
                   try { DAYS = _c.DAYS; } catch(_de) {}
                   customSched = _c.customSched || customSched;
+                  var _fbPick = tpcpPickFromDays(_c.cfgDays); if (_fbPick >= 0) { curDay = _fbPick; _dayPickApplied = true; }
                   if (typeof tpcpFitCustomSched === 'function') tpcpFitCustomSched();
                   _tripProvisional = true;
                   usingCachedSchedule = true;
@@ -2628,6 +2734,7 @@ function checkLock(){
                   document.getElementById('mainApp').style.display = '';
                   applyRoleUI();
                   if (typeof renderSched === 'function') { try { renderSched(); if (typeof renderDayInfoBar === 'function') renderDayInfoBar(); } catch(e3) {} }
+                  tpcpReflectDayTabs();
                 }
               } catch(e4) {}
             }
@@ -2734,10 +2841,11 @@ function tryUnlock() {
             });
           }
         }
+        tpcpApplyFirstPaintPick();
         loadCustom();
         tpcpMaybeRepickDay();
         // PART A: cache write (tryUnlock path)
-        (function() { try { var _sched2 = d.tripData.tripConfig.schedule; if (_sched2 && _sched2.days && _sched2.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb3 = document.getElementById('cachedSchedBanner'); if (_cb3) _cb3.style.display = 'none'; } } catch(e5) {} })();
+        (function() { try { var _sched2 = d.tripData.tripConfig.schedule; if (_sched2 && _sched2.days && _sched2.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); usingCachedSchedule = false; var _cb3 = document.getElementById('cachedSchedBanner'); if (_cb3) _cb3.style.display = 'none'; } } catch(e5) {} })();
         var _gwsEl2=document.getElementById('guestWaitScreen'); if(_gwsEl2) _gwsEl2.style.display='none';
       }
       if (d.role === 'guest' || d.hasTrip) {
@@ -2765,12 +2873,14 @@ function tryUnlock() {
                   window._schedData = dr2.data.tripData.tripConfig.schedule;
                   userRole = dr2.data.role;
                   applyRoleUI();
+                  tpcpSyncTripConfig(dr2.data.tripData.tripConfig);
+                  tpcpApplyFirstPaintPick();
                   loadCustom();
                   tpcpMarkTripLoaded();
                   tpcpMaybeRepickDay();
                   usingCachedSchedule = false;
                   var _cb4 = document.getElementById('cachedSchedBanner'); if (_cb4) _cb4.style.display = 'none';
-                  try { if (dr2.data.tripData.tripConfig.schedule.days && dr2.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e7) {}
+                  try { if (dr2.data.tripData.tripConfig.schedule.days && dr2.data.tripData.tripConfig.schedule.days.length) { localStorage.setItem('tpcp_lastSched_' + code, JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), DAYS: DAYS, customSched: customSched, scheduleVersion: (typeof scheduleVersion !== 'undefined' ? scheduleVersion : ''), savedAt: Date.now() })); } } catch(e7) {}
                   var _gwsEl3 = document.getElementById('guestWaitScreen'); if (_gwsEl3) _gwsEl3.style.display = 'none';
                   enterSplash(true);
                 } else { _retryUnlock(attempt + 1); }
@@ -2783,6 +2893,7 @@ function tryUnlock() {
             if (_c2 && _c2.DAYS) {
               try { DAYS = _c2.DAYS; } catch(_de2) {}
               customSched = _c2.customSched || customSched;
+              var _fbPick2 = tpcpPickFromDays(_c2.cfgDays); if (_fbPick2 >= 0) { curDay = _fbPick2; _dayPickApplied = true; }
               if (typeof tpcpFitCustomSched === 'function') tpcpFitCustomSched();
               _tripProvisional = true;
               usingCachedSchedule = true;
@@ -2793,6 +2904,7 @@ function tryUnlock() {
               document.getElementById('lockScreen').style.display = 'none';
               document.getElementById('mainApp').style.display = '';
               if (typeof renderSched === 'function') { try { renderSched(); if (typeof renderDayInfoBar === 'function') renderDayInfoBar(); } catch(e9) {} }
+              tpcpReflectDayTabs();
             } else {
               if (errEl) { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
             }
@@ -3910,7 +4022,7 @@ function startBlobPoll() {
                    ensureDayTabs(TRIP_CONFIG.days.length); TRIP_CONFIG.days.forEach(function(dy, i){ var tab=document.getElementById('day-tab-'+(i+1)); if(!tab)return; if(dy.isVip){tab.classList.add('vip-tab');}else{tab.classList.remove('vip-tab');} var de=tab.querySelector('.day-tab-date'); if(de)de.textContent=dy.date||''; });
                  }
                }
-               if (typeof loadCustom === 'function') loadCustom(); tpcpMarkTripLoaded(); tpcpMaybeRepickDay(); try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
+               tpcpApplyFirstPaintPick(); if (typeof loadCustom === 'function') loadCustom(); tpcpMarkTripLoaded(); tpcpMaybeRepickDay(); try { localStorage.setItem('tpcp_lastSched_' + (localStorage.getItem('tpcp_code')||''), JSON.stringify({ code: (localStorage.getItem('tpcp_code')||''), tripName: (typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG.tripName)||'', cfgDays: tpcpCacheCfgDays(), schedData: window._schedData, DAYS: (typeof DAYS!=='undefined'?DAYS:null), customSched: customSched, savedAt: Date.now() })); } catch(_e){}
           }
           if (typeof renderSched === 'function') renderSched(window.curDay || 1);
           if (typeof renderDayInfoBar === 'function') renderDayInfoBar();
@@ -8881,10 +8993,14 @@ document.addEventListener('DOMContentLoaded', function() {
       if (dateEl) dateEl.textContent = d.date;
     }
   });
-  // Set active day tab based on trip progress
   if (typeof tpcpInitDayTabGuards === 'function') tpcpInitDayTabGuards();
-  var _initDay = getInitialActiveDay();
-  setDay(_initDay, { caller: 'init' });
+  // Day state initializes here; the day PAINT does not (item 26). This
+  // handler runs against the baked-in default config (blank dates), so
+  // any pick it could make is Day 1 by construction -- painting it was
+  // the cold-open wrong-day defect. The first schedule paint waits
+  // until a real config makes a pick computable (cache or server) and
+  // lands on the picked day: see tpcpApplyFirstPaintPick.
+  try { curDay = getInitialActiveDay(); } catch(e){}
 });
 </script>
 

@@ -13,6 +13,23 @@
 //     is now logged in a persisted ring buffer, the fit-clamp routes
 //     through setDay, and tab taps are guarded against moved touches.
 //
+// Item 26 (Oct 23, 2026) supersedes parts of the above, per Claude's
+// round-2 ruling on the flashing (item24/findings.md):
+//  - The first paint takes a computable day pick as a PRECONDITION
+//    ("no day paint until a pick is possible"): cache payloads carry
+//    the config dates (cfgDays), a cache that cannot pick does not
+//    paint at all, the DOMContentLoaded init setDay no longer paints,
+//    and every load path applies the pick as state before its first
+//    render. The repick remains for genuine later config changes, and
+//    its one-time gate is consumed only by a decision against a real
+//    dated config (a no-op call no longer burns it).
+//  - The ring buffer is boot-stamped: each page instance mints a boot
+//    id, stamps every entry, and writes one 'boot' entry; the Info
+//    readout shows the WHOLE buffer (not last-8) with boot ids, which
+//    settles whether the impossible 1->2, 1->2 pair straddled a page
+//    recreation. Tests (a) and (e) changed for exactly these reasons;
+//    tests (f)-(i) pin the newly ruled behavior.
+//
 // The suite extracts the REAL code from app.html (the startup/daystate
 // block, the day helpers, setDay/ensureDayTabs, the fit function) and
 // drives it in a vm with browser stubs -- the code under test is the
@@ -177,6 +194,7 @@ function fire(el, type, ev) {
 test('(a) same-code cache paints provisionally for a leader, then reconciles on load', () => {
   const cache = JSON.stringify({
     code: 'TEST02', tripName: 'BB test trip',
+    cfgDays: [{ date: 'Oct 22, 2026', park: 'Disneyland' }, { date: 'Oct 23, 2026', park: 'Disneyland' }],
     customSched: [{ sections: [{ title: 'Disneyland', entries: [{ t: '8:05 AM', h: 'Space Mountain' }] }] }, null],
     savedAt: 1,
   });
@@ -189,11 +207,40 @@ test('(a) same-code cache paints provisionally for a leader, then reconciles on 
   assert.equal(w.titleEl.textContent, 'BB test trip', 'cached trip name replaces the shell title');
   assert.equal(w.banner.style.display, '', 'provisional banner ("Last saved plan — updating…") shows');
   assert.equal(w.ctx.tpcpSchedPlaceholderHTML(), null, 'no loading placeholder over a provisional paint');
+  // Item 26: the paint landed ON the picked day (Oct 23 = Day 2) --
+  // state set before the first render, never a Day-1 paint to flip
+  // from, and no day-change entries beyond this instance's boot.
+  assert.equal(w.ctx.curDay, 1, 'cache paint is the picked day, not Day 1');
+  assert.equal(w.tabs[1]._classes.active, true, 'picked day tab lit at first paint');
+  assert.equal(w.tabs[0]._classes.active, false, 'Day 1 tab not lit');
+  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller !== 'boot').length, 0, 'no init/repick flip entries for the cold open');
   // Reconcile: the server copy applies.
   w.ctx.tpcpMarkTripLoaded();
   assert.equal(w.ctx._tripLoaded, true);
   assert.equal(w.ctx._tripProvisional, false);
   assert.equal(w.banner.style.display, 'none', 'banner clears when the server copy applies');
+  // The post-load repick is now a reconciler, not a corrector: the
+  // pick already matches, so it must not flip or log anything.
+  w.ctx.tpcpMaybeRepickDay();
+  assert.equal(w.ctx.curDay, 1, 'repick after a picked paint is a no-op');
+  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller === 'repick').length, 0, 'no repick entry for an already-right day');
+});
+
+test('(a) legacy cache without dates cannot pick -> does not paint; loading covers the gap', () => {
+  // Anything written before item 26 has no cfgDays: the dates the pick
+  // needs are not in the payload, so painting it would be painting an
+  // unpicked day. It must not paint; the loading state covers the gap
+  // until checkLock delivers a pickable config and paints picked.
+  const legacy = JSON.stringify({
+    code: 'TEST02', tripName: 'BB test trip',
+    customSched: [{ sections: [{ title: 'Disneyland', entries: [{ t: '8:05 AM', h: 'Space Mountain' }] }] }, null],
+    savedAt: 1,
+  });
+  const w = makeWorld({ storage: { tpcp_code: 'TEST02', tpcp_role: 'admin', tpcp_lastSched_TEST02: legacy } });
+  assert.equal(w.ctx.tpcpPaintCachedTrip('TEST02'), false, 'dateless cache must not paint a day');
+  assert.equal(w.loadCustomCalls, 0, 'no render happened');
+  assert.equal(w.ctx._tripProvisional, false, 'no provisional paint state');
+  assert.ok(w.ctx.tpcpSchedPlaceholderHTML().includes('Loading your trip'), 'loading state covers the gap');
 });
 
 test('(a) a different trip\'s cache is never painted; no cache -> loading view, never the empty state', () => {
@@ -304,24 +351,117 @@ test('(d) a moved touch does not switch days; a clean tap does', () => {
 });
 
 // ------------------------------------------------------------ (e) ring buffer
-test('(e) ring buffer records caller-labelled entries and persists across a reload', () => {
+test('(e) ring buffer records caller-labelled, boot-stamped entries and persists across a reload', () => {
   const w = makeWorld({ curDay: 0 });
+  // Item 26: this instance's boot entry is already in the buffer.
+  assert.equal(w.ctx._tpcpDayLog.length, 1, 'exactly one boot entry per instance');
+  assert.equal(w.ctx._tpcpDayLog[0].caller, 'boot');
+  assert.equal(w.ctx._tpcpDayLog[0].boot, w.ctx.tpcpBootId());
   w.ctx.setDay(1, { caller: 'init' });
   w.ctx.setDay(0, { caller: 'repick' });
-  assert.equal(w.ctx._tpcpDayLog.length, 2);
-  const [e1, e2] = w.ctx._tpcpDayLog;
+  assert.equal(w.ctx._tpcpDayLog.length, 3);
+  const [, e1, e2] = w.ctx._tpcpDayLog;
   assert.deepEqual([e1.from, e1.to, e1.caller], [0, 1, 'init']);
   assert.deepEqual([e2.from, e2.to, e2.caller], [1, 0, 'repick']);
   assert.equal(typeof e1.ts, 'number');
   assert.equal(typeof e1.touch, 'boolean');
+  assert.equal(e1.boot, w.ctx.tpcpBootId(), 'every entry is stamped with its instance boot id');
+  assert.equal(e2.boot, w.ctx.tpcpBootId());
   const persisted = JSON.parse(w.localStorage.getItem('tpcp_day_log'));
-  assert.equal(persisted.length, 2, 'buffer persisted to localStorage');
-  // A fresh world (the "reload") reading the same storage sees the log:
+  assert.equal(persisted.length, 3, 'buffer persisted to localStorage');
+  // A fresh world (the "reload") reading the same storage sees the log
+  // and appends its OWN boot entry under a NEW boot id:
   const w2 = makeWorld({ storage: Object.fromEntries(w.localStorage._map) });
-  assert.equal(w2.ctx._tpcpDayLog.length, 2, 'buffer survives reload');
+  assert.equal(w2.ctx._tpcpDayLog.length, 4, 'buffer survives reload, plus the new instance boot entry');
+  assert.notEqual(w2.ctx.tpcpBootId(), w.ctx.tpcpBootId(), 'each instance mints a distinct boot id');
   const html = w2.ctx.tpcpDayChangesHtml();
   assert.ok(html.includes('Day changes'), 'diagnostics readout is labelled plainly');
   assert.ok(html.includes('repick'), 'readout names callers');
+  assert.ok(html.includes('App start'), 'readout renders boot entries as app starts');
+  assert.ok(html.includes(w.ctx.tpcpBootId()) && html.includes(w2.ctx.tpcpBootId()), 'readout shows both boot ids');
+});
+
+test('(e) readout shows the WHOLE buffer and marks pre-instrumentation entries', () => {
+  const legacyLog = JSON.stringify([{ ts: 1792700000000, from: 0, to: 1, caller: 'tab-tap', touch: true }]);
+  const w = makeWorld({ storage: { tpcp_day_log: legacyLog } });
+  const html0 = w.ctx.tpcpDayChangesHtml();
+  assert.ok(html0.includes('pre-instrumentation'), 'entries without a boot stamp are marked as such');
+  // More entries than the old last-8 window: every one must render.
+  for (let i = 0; i < 12; i++) w.ctx.setDay(i % 2, { caller: 'sw' + i });
+  const html = w.ctx.tpcpDayChangesHtml();
+  assert.ok(html.includes('sw0'), 'earliest entry still shown (no last-8 window)');
+  assert.ok(html.includes('sw11'), 'latest entry shown');
+});
+
+// ------------------------------------------------------------ (f) the churn fork
+test('(f) boot ids settle the churn fork: the same 0->1 tap in two instances carries two boot ids', () => {
+  const w1 = makeWorld({ curDay: 0 });
+  w1.ctx.setDay(1, { caller: 'tab-tap' });
+  // A recreated page over the same storage: its in-memory day starts
+  // back at Day 1, so the user's next Day-2 tap honestly logs 0->1
+  // again -- indistinguishable from a single-instance reset UNLESS the
+  // entries carry boot ids. This is Beau's 21:28:27/:28 pair.
+  const w2 = makeWorld({ storage: Object.fromEntries(w1.localStorage._map), curDay: 0 });
+  w2.ctx.setDay(1, { caller: 'tab-tap' });
+  const taps = w2.ctx._tpcpDayLog.filter((e) => e.caller === 'tab-tap' && e.from === 0 && e.to === 1);
+  assert.equal(taps.length, 2, 'the impossible pair, reproduced');
+  assert.notEqual(taps[0].boot, taps[1].boot, 'the pair straddles two boots = the page was recreated');
+  const bootsBetween = w2.ctx._tpcpDayLog.slice(w2.ctx._tpcpDayLog.indexOf(taps[0]) + 1, w2.ctx._tpcpDayLog.indexOf(taps[1])).filter((e) => e.caller === 'boot');
+  assert.equal(bootsBetween.length, 1, 'a boot entry sits between the pair');
+  assert.equal(bootsBetween[0].boot, taps[1].boot);
+});
+
+// ------------------------------------------------------------ (g) first-paint pick
+test('(g) first-paint pick: applies from a dated config, refuses a dateless one, never overrides the user', () => {
+  const w = makeWorld({ curDay: 0 });
+  assert.equal(w.ctx.tpcpApplyFirstPaintPick(), true);
+  assert.equal(w.ctx.curDay, 1, 'pick = today (Day 2), applied as state before any paint');
+  assert.equal(w.tabs[1]._classes.active, true, 'tabs reflect the pick');
+  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller !== 'boot').length, 0, 'the pick is state, not a logged change');
+  assert.equal(w.ctx.tpcpApplyFirstPaintPick(), true, 'one-time: a second call is a no-op success');
+  assert.equal(w.ctx.curDay, 1);
+
+  const blank = makeWorld({ days: [{ num: 1, label: 'Day 1', date: '', park: 'Disneyland' }, { num: 2, label: 'Day 2', date: '', park: 'Disneyland' }], curDay: 0 });
+  assert.equal(blank.ctx.tpcpApplyFirstPaintPick(), false, 'no dates -> no pick possible -> the caller must not paint');
+  assert.equal(blank.ctx.curDay, 0);
+  assert.equal(blank.ctx._dayPickApplied, false, 'a failed pick does not consume the one-time application');
+
+  const user = makeWorld({ curDay: 0 });
+  user.window._dayUserPicked = true;
+  assert.equal(user.ctx.tpcpApplyFirstPaintPick(), true);
+  assert.equal(user.ctx.curDay, 0, 'a deliberate user selection is never overridden');
+});
+
+// ------------------------------------------------------------ (h) repick gate
+test('(h) repick gate: a no-op call against a dateless config does NOT consume the one-time repick', () => {
+  const w = makeWorld({ days: [{ num: 1, label: 'Day 1', date: '', park: 'Disneyland' }, { num: 2, label: 'Day 2', date: '', park: 'Disneyland' }], curDay: 0 });
+  w.ctx.tpcpMaybeRepickDay();
+  assert.equal(w.ctx._dayRepicked, false, 'no dates -> no decision made -> gate NOT consumed');
+  assert.equal(w.ctx.curDay, 0);
+  // The real config lands on a later load path: the repick must still fire.
+  w.tc.days = JSON.parse(JSON.stringify(TEST02_DAYS));
+  w.ctx.tpcpMaybeRepickDay();
+  assert.equal(w.ctx._dayRepicked, true, 'the dated call consumes the gate');
+  assert.equal(w.ctx.curDay, 1, 'and the repick still happens');
+  assert.equal(w.ctx._tpcpDayLog.filter((e) => e.caller === 'repick').length, 1);
+});
+
+// ------------------------------------------------------------ (i) static pins
+test('(i) static pins (item 26): init does not paint; cache writers carry dates; load paths pick before painting', () => {
+  const initSrc = sliceRange('// Update day tabs with VIP markers', '</script>');
+  assert.ok(!initSrc.includes("caller: 'init'"), 'the DOMContentLoaded init setDay paint is gone');
+  assert.ok(initSrc.includes('curDay = getInitialActiveDay()'), 'init initializes day STATE only');
+  assert.equal(appHtml.split('cfgDays: tpcpCacheCfgDays()').length - 1, 5, 'all five cache writers stamp cfgDays');
+  const paintSrc = sliceRange('function tpcpPaintCachedTrip', 'function tpcpMarkTripLoaded');
+  assert.ok(paintSrc.includes('tpcpPickFromDays(c.cfgDays)'), 'cache paint picks from the payload dates');
+  assert.ok(paintSrc.includes('if(_picked<0) return false;'), 'an unpickable cache does not paint');
+  const lockSrc = sliceRange('function checkLock(){', 'function tryUnlock()');
+  assert.ok(lockSrc.indexOf('tpcpSyncTripConfig(d.tripData.tripConfig)') < lockSrc.indexOf('tpcpApplyFirstPaintPick()'), 'checkLock: config sync precedes the pick');
+  assert.ok(lockSrc.indexOf('tpcpApplyFirstPaintPick()') < lockSrc.indexOf('loadCustom();'), 'checkLock: the pick precedes the first paint');
+  assert.ok(lockSrc.includes('tpcpSyncTripConfig(dr.data.tripData.tripConfig)'), 'checkLock retry path syncs the config (it never did)');
+  const unlockSrc = sliceRange('function tryUnlock()', 'function enterMagic()');
+  assert.ok(unlockSrc.includes('tpcpApplyFirstPaintPick();'), 'tryUnlock applies the pick before its first paint');
+  assert.ok(unlockSrc.includes('tpcpSyncTripConfig(dr2.data.tripData.tripConfig)'), 'tryUnlock retry path syncs the config (it never did)');
 });
 
 // ------------------------------------------------------------ park time helpers
