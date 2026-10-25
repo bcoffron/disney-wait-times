@@ -7449,18 +7449,37 @@ function ensureDayTabs(count, exact){
 // every switch (the flashing audit's scroll fight). Now setDay marks
 // the switch with a sequence number, switchNav and setTab stand down
 // for marked switches, and this function issues the switch's ONE
-// scroll directive once the render has landed: scroll-to-now for the
-// today day, scroll-to-top for any other. A newer switch supersedes
-// an older one's pending scroll, so a rapid tap burst lands exactly
-// one scroll -- the last switch's.
+// scroll directive: scroll-to-now for the today day, scroll-to-top
+// for any other.
+//
+// Item 33: the directive now issues SYNCHRONOUSLY, inside setDay's
+// task, right after the renders. The old double-rAF deferral let the
+// browser paint one intermediate frame per switch -- the incoming
+// day at the inherited scroll offset, header text not yet final --
+// which is the flash Beau kept filming. Supersede semantics change
+// accordingly: there is no pending scroll left for a newer switch to
+// supersede, because each switch completes atomically inside its own
+// task (a paint can only land between tasks, i.e. on a finished
+// switch); a rapid burst is a sequence of complete switches whose
+// last scroll is the final painted position, as before. The marker
+// is consumed here, synchronously, exactly where the deferred
+// callback used to consume it -- setTab's 200 ms timer captured its
+// stand-down flag while the marker was still up earlier in this same
+// task, and switchNav already stood down, so nothing downstream can
+// observe the difference.
 function tpcpDaySwitchScroll(d){
-  var seq = window._tpcpDayScrollSeq;
-  requestAnimationFrame(function(){ requestAnimationFrame(function(){
-    if (window._tpcpDayScrollSeq !== seq) return;
-    window._tpcpDayScrollSeq = 0;
-    if (window._nowScrollPending) { window._nowScrollPending = false; scrollScheduleToNow(); }
-    else window.scrollTo(0, 0);
-  }); });
+  window._tpcpDayScrollSeq = 0;
+  if (window._nowScrollPending) {
+    window._nowScrollPending = false;
+    // Forced synchronous layout read: the render above only queued
+    // the new cards -- make the browser compute layout NOW so
+    // scrollScheduleToNow's target card measurably exists before it
+    // reads its position. Do NOT re-defer this (item 33).
+    var _scEl = document.getElementById('schedContent');
+    if (_scEl) void _scEl.offsetHeight;
+    scrollScheduleToNow();
+  }
+  else window.scrollTo(0, 0);
 }
 function setDay(d, opts){
   opts = opts || {};
@@ -7488,7 +7507,13 @@ function setDay(d, opts){
   editMode=false;
   var et=document.getElementById('editToggle');et.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';et.classList.remove('active');
   var rb=document.getElementById('reoptBox');if(rb)rb.style.display='none';
-  renderClosed();renderSched();renderDayInfoBar(); tpcpDaySwitchScroll(d);
+  // Header first (item 33): the day-info bar -- park hours for the
+  // new day, plus the header countdown renderDayInfoBar drives --
+  // lands BEFORE the schedule render, and the day-tab toggles above
+  // are already final, so the only mutation a mid-task paint could
+  // ever catch is the schedule cards' own wholesale swap: the switch
+  // paints complete-or-nothing.
+  renderClosed();renderDayInfoBar();renderSched(); tpcpDaySwitchScroll(d);
         var _hTitleEl=document.querySelector('.header-title');if(_hTitleEl&&window.TRIP_CONFIG&&window.TRIP_CONFIG.tripName)_hTitleEl.textContent=window.TRIP_CONFIG.tripName;
   var _rlDay=document.getElementById('reoptLoading');if(_rlDay&&_rlDay.getAttribute('data-reopt-day')!==String(d)){_rlDay.style.display='none';}
   if(typeof renderVipBanner==='function')renderVipBanner(d);

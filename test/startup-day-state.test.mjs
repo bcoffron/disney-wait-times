@@ -63,6 +63,25 @@
 // item-31 scroll marker down after every render path the harness
 // drives (the marker audit's ordered assertion).
 //
+// Item 33 (Oct 24, 2026) kills the last switch flash, per Claude's
+// build-54 ruling: the ghosting was closed by item 32 (Beau: scrolling
+// fine now), but every day switch still painted ONE intermediate
+// frame -- incoming day at the inherited scroll offset, day-tab strip
+// blank, header countdown missing -- because setDay's one scroll was
+// deferred to a double-rAF and the header text landed at the end of
+// the task. The fix is ordering, not layers: (1) the switch scroll
+// issues SYNCHRONOUSLY inside setDay's task (double-rAF retired,
+// switch path only; a forced layout read precedes scroll-to-now), and
+// (2) header-first ordering -- tab toggles + renderDayInfoBar (which
+// drives renderCountdown) precede renderSched in setDay, so the
+// switch paints complete-or-nothing. Test (m) pins both orderings
+// statically and the in-task landing behaviorally. Two (j) tests are
+// re-pinned to the new semantics: a switch's scroll now lands DURING
+// setDay (nothing waits for a rAF flush), and a rapid burst issues one
+// synchronous scroll per switch -- there is no pending scroll left
+// for a later switch to supersede, and each switch task is atomic,
+// so only the last switch's position can ever paint.
+//
 // The suite extracts the REAL code from app.html (the startup/daystate
 // block, the day helpers, setDay/ensureDayTabs, the fit function) and
 // drives it in a vm with browser stubs -- the code under test is the
@@ -561,36 +580,49 @@ test('(j) cross-day switch: one render, exactly one scroll directive from the si
   const w = makeWorld({ curDay: 1, recordTimers: true, queueRaf: true });
   w.ctx.setDay(0, { caller: 'tab-tap', user: true });
   assert.equal(w.renderSchedCalls, 1, 'one innerHTML owner renders the switch once');
-  assert.equal(w.scrollCalls, 0, 'switchNav issued no scroll of its own for the switch');
-  w.flushRaf();
-  assert.equal(w.scrollCalls, 1, 'the owner issued the switch\'s one scroll');
+  // Item 33: no flush needed -- the owner's scroll lands synchronously
+  // inside the switch task (switchNav issued none of its own, or this
+  // count would be higher / the args wrong).
+  assert.equal(w.scrollCalls, 1, 'the owner issued the switch\'s one scroll, in-task');
   assert.deepEqual(w.scrollArgs[0], [0, 0], 'non-today switch scrolls to top');
+  assert.equal(w.window._tpcpDayScrollSeq, 0, 'the switch marker is released in the same task');
+  w.flushRaf();
+  assert.equal(w.scrollCalls, 1, 'no deferred second scroll was hiding in the rAF queue');
   w.flushTimers();
   assert.equal(w.scrollDirectives(), 1, 'setTab\'s timed scroll stood down -- exactly one directive total');
-  assert.equal(w.window._tpcpDayScrollSeq, 0, 'the switch marker is released after the scroll');
 
   // To the TODAY day:
   const w2 = makeWorld({ curDay: 0, recordTimers: true, queueRaf: true });
   w2.ctx.setDay(1, { caller: 'tab-tap', user: true });
   assert.equal(w2.renderSchedCalls, 1, 'one render for the today switch');
-  w2.flushRaf();
-  assert.equal(w2.nowScrollCalls, 1, 'today switch scrolls to now, once');
+  assert.equal(w2.nowScrollCalls, 1, 'today switch scrolls to now, synchronously, once');
   assert.equal(w2.scrollCalls, 0, 'no competing scroll-to-top');
+  w2.flushRaf();
   w2.flushTimers();
   assert.equal(w2.scrollDirectives(), 1, 'exactly one directive for the today switch too');
 });
 
-test('(j) rapid burst: many switches, one render each, exactly one scroll -- the last switch\'s', () => {
+test('(j) rapid burst: many switches, one render and one in-task scroll each -- nothing deferred survives', () => {
+  // Item 33 re-pin: the old deferred owner held each switch's scroll
+  // for a double-rAF, so a burst collapsed to ONE scroll (the last
+  // switch's). The synchronous owner scrolls inside each switch task
+  // instead -- a paint can only land between tasks, so intermediate
+  // positions are never painted, and the burst still SETTLES on the
+  // last switch's position. What must not come back: any scroll
+  // waiting in a queue after the burst.
   const w = makeWorld({ curDay: 0, recordTimers: true, queueRaf: true });
   w.ctx.setDay(1, { caller: 'tab-tap', user: true });
   w.ctx.setDay(0, { caller: 'tab-tap', user: true });
   w.ctx.setDay(1, { caller: 'tab-tap', user: true });
   assert.equal(w.renderSchedCalls, 3, 'each real switch renders once (one innerHTML owner per switch)');
+  assert.equal(w.scrollDirectives(), 3, 'one synchronous scroll per switch -- no pending scroll exists to supersede');
+  assert.equal(w.nowScrollCalls, 2, 'both today switches scrolled to now');
+  assert.equal(w.scrollCalls, 1, 'the non-today switch scrolled to top');
   w.flushRaf();
   w.flushTimers();
-  assert.equal(w.scrollDirectives(), 1, 'superseded switches never scroll');
-  assert.equal(w.nowScrollCalls, 1, 'the surviving directive is the last switch\'s (to today: scroll-to-now)');
-  assert.equal(w.ctx.curDay, 1);
+  assert.equal(w.scrollDirectives(), 3, 'flushing the queues adds nothing -- no deferred scroll survives the burst');
+  assert.equal(w.ctx.curDay, 1, 'the burst settles on the last switch\'s day');
+  assert.equal(w.window._tpcpDayScrollSeq, 0, 'marker down after the burst');
 });
 
 test('(j) plain navigation keeps its own scroll: switchNav outside a day switch still scrolls to top', () => {
@@ -716,6 +748,49 @@ test('(l) the scroll marker is down after every render path the harness drives (
   down(w, 'rapid switch burst');
   w.ctx.setDay(1, { caller: 'tab-tap', user: true });
   down(w, 'same-day tap');
+});
+
+// ------------------------------------------------------------ (m) switch flash (item 33)
+test('(m) static pins (item 33): in setDay the header lands before the schedule render, and the switch scroll path carries no deferral', () => {
+  const setDaySrc = sliceRange('function setDay(d, opts){', 'function setTab(t){');
+  // Header-first ordering (a): the day-tab toggles precede every render.
+  const toggleIdx = setDaySrc.indexOf("classList.toggle('active',i===d)");
+  assert.ok(toggleIdx !== -1, 'setDay toggles the day tabs');
+  assert.ok(toggleIdx < setDaySrc.indexOf('renderSched();'), 'day-tab toggles precede renderSched in setDay');
+  // ...and on the render line itself, the header render precedes
+  // renderSched. renderDayInfoBar is what writes #dayInfoBar AND
+  // drives the header countdown (pinned just below), so its position
+  // is the header's position.
+  const renderLine = setDaySrc.split('\n').find((l) => l.includes('renderSched();') && l.includes('tpcpDaySwitchScroll'));
+  assert.ok(renderLine, 'setDay render + switch-scroll line exists');
+  assert.ok(renderLine.indexOf('renderDayInfoBar();') !== -1 && renderLine.indexOf('renderDayInfoBar();') < renderLine.indexOf('renderSched();'),
+    'renderDayInfoBar precedes renderSched on the switch render line');
+  const dibSrc = sliceRange('function renderDayInfoBar(){', 'var PROXY=');
+  assert.ok(dibSrc.includes('renderCountdown();'), 'renderDayInfoBar drives the header countdown -- header-first covers the countdown');
+  // No deferral (b): the switch-scroll function contains no rAF and
+  // no timer, forces a layout read before scroll-to-now, and still
+  // issues both directives itself; its call site sits after the
+  // renders on the same line (same task).
+  const swSrc = sliceRange('function tpcpDaySwitchScroll(d){', 'function setDay(d, opts){');
+  assert.ok(!swSrc.includes('requestAnimationFrame'), 'switch scroll: the double-rAF deferral is retired');
+  assert.ok(!swSrc.includes('setTimeout'), 'switch scroll: no timer deferral');
+  assert.ok(swSrc.includes('offsetHeight'), 'switch scroll forces a synchronous layout read before scroll-to-now');
+  assert.ok(swSrc.includes('scrollScheduleToNow()') && swSrc.includes('window.scrollTo(0, 0)'), 'both scroll directives still issue from the single owner');
+  assert.ok(renderLine.indexOf('tpcpDaySwitchScroll(d);') > renderLine.indexOf('renderSched();'), 'the switch scroll issues after the renders, in the same task');
+});
+
+test('(m) behavioral: in a queued-rAF world the switch scroll has already landed when setDay returns -- the rAF queue stays empty (item 33)', () => {
+  const w = makeWorld({ curDay: 1, recordTimers: true, queueRaf: true });
+  w.ctx.setDay(0, { caller: 'tab-tap', user: true });
+  assert.equal(w.rafQueue.length, 0, 'the switch queued no animation frames');
+  assert.equal(w.scrollDirectives(), 1, 'the one scroll directive already landed, inside the task');
+  assert.equal(w.window._tpcpDayScrollSeq, 0, 'marker consumed synchronously at the scroll');
+  // Same for a today switch (the forced-layout + scroll-to-now arm):
+  const w2 = makeWorld({ curDay: 0, recordTimers: true, queueRaf: true });
+  w2.ctx.setDay(1, { caller: 'tab-tap', user: true });
+  assert.equal(w2.rafQueue.length, 0, 'today switch also queues no animation frames');
+  assert.equal(w2.nowScrollCalls, 1, 'scroll-to-now landed in-task');
+  assert.equal(w2.window._nowScrollPending, false, 'the pending flag is consumed in-task');
 });
 
 // ------------------------------------------------------------ park time helpers
