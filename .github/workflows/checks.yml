@@ -73,6 +73,8 @@ jobs:
         run: node --test test/startup-day-state.test.mjs
       - name: Completeness read-sites suite (item 30)
         run: node --test test/completeness-read-sites.test.mjs
+      - name: Cache legacy builders suite (item 34)
+        run: node --test test/cache-legacy-builders.test.mjs
       - name: Trip save day-field preservation suite
         run: node --test test/trip-save-preserve.test.mjs
       - name: Client pushSchedule carry-forward suite
