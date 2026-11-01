@@ -18,7 +18,10 @@ export async function list({ prefix } = {}) {
 export async function put(pathname, body) {
   const st = state();
   const url = 'https://blob.test/' + pathname;
-  st.blobs.set(pathname, { pathname, url, size: body ? body.length : 0 });
+  // Retain the body (item34): handlers like cron-cache read back what they
+  // wrote (verdict record, freshness checks) through fetch(downloadUrl), so
+  // the stub keeps the stored bytes alongside the metadata it always kept.
+  st.blobs.set(pathname, { pathname, url, downloadUrl: url, size: body ? body.length : 0, body: body != null ? String(body) : null, uploadedAt: new Date().toISOString() });
   return { url, pathname };
 }
 

@@ -113,8 +113,8 @@ function isWdwBuildKey(key) { return typeof key === 'string' && key.includes('_w
 const LEGACY_PROMPTS = {
   park_intel:{system:'Disneyland expert. 2024-2026 only.',user:'Search TouringPlans AllEars MiceChat 2025-2026 for current Disneyland rope drop strategy, Lightning Lane Multi Pass order, peak-season crowds, top 10 tips, best times per land. Dense actionable guide.',maxTokens:1500},
   dining_intel:{system:'Disneyland dining expert. 2024-2026 only.',user:'Search Disney Food Blog AllEars 2024-2026. Blue Bayou Cafe Orleans Bengal Barbecue Mint Julep (DL). Carthay Circle Lamplight Lounge Flos V8 (DCA). Rating must-orders reservation tips each.',maxTokens:1500},
-  dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe). After any searches, your FINAL message must contain ONLY the JSON object inside a fenced code block: ```json{...}``` -- no commentary before or after the fence.',maxTokens:8000},
-  events_intel:{system:'Disneyland events expert.',user:'Special events at Disneyland over the next 30 days starting from today: ticketed events, closures, holidays in that window, shows, fireworks. Use the current date as the anchor and give specific dates.',maxTokens:800},
+  dining_intel_dl:{system:'Disneyland Resort dining expert. Disneyland Park and Disney California Adventure ONLY. 2024-2026 sources only. Return ONLY valid JSON, no markdown, no preamble.',user:'Build a structured dining venue list for Disneyland Resort (Disneyland Park + Disney California Adventure ONLY -- never Walt Disney World, Magic Kingdom, EPCOT, or any Florida venue). Search DisneyFoodBlog and AllEars 2024-2026 for currently-operating venues. Return ONLY a JSON object: {"venues":[{"name":"","park":"DL"|"DCA","land":"","resv":"walkup"|"required"|"recommended"|"never_meal","topPick":"signature item","kids":"kid option","veg":null,"vegan":null,"gf":null}]}. Include veg/vegan/gf ONLY when you can verify a specific menu item exists for that need; otherwise null -- never guess. Cover major quick-service and table-service venues in both parks. Use only current venue names (e.g. Alien Pizza Planet not Redd Rocketts; Aunt Cass Cafe not Pacific Wharf Cafe). After any searches, your FINAL message must contain ONLY the JSON object inside a fenced code block: ```json{...}``` -- no commentary before or after the fence.',maxTokens:16000},
+  events_intel:{system:'Disneyland events expert.',user:'Special events at Disneyland over the next 30 days starting from today: ticketed events, closures, holidays in that window, shows, fireworks. Use the current date as the anchor and give specific dates.',maxTokens:4000},
   park_hours_intel:{system:'Return ONLY valid JSON, no markdown, no explanation.',user:'Search disneylandresort.com or isitpagdisney.com for Disneyland and DCA hours for the next 14 days starting from today. Return ONLY this exact JSON format: {"YYYY-MM-DD":{"dl":{"open":"HH:MM","close":"HH:MM"},"dca":{"open":"HH:MM","close":"HH:MM"}}} for all 14 dates, keyed by the actual calendar dates.',maxTokens:2500},
   character_intel:{system:'Disneyland Resort character meet-and-greet expert. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search AllEars, MiceChat, DisneyTouristBlog, and the official Disneyland site (2025-2026) for current Disneyland Resort character meet-and-greet info. Return JSON: {"characters":[{"name":"...","category":"...","park":"DL or DCA","location":"land or spot","notes":"timing/tips"}]}. The category field MUST be EXACTLY one of these six lowercase values: princess, classic, star_wars, pixar, marvel, villain. You MUST include real, currently-appearing meets for ALL SIX categories: princess (e.g. princesses at Royal Hall/Fantasy Faire); classic (Mickey, Minnie, Donald, Daisy, Goofy, Pluto, Chip and Dale -- Toontown, Main Street); star_wars (characters in Star Wars Galaxy Edge -- e.g. Chewbacca, Vi Moradi, Kylo Ren, Rey, stormtroopers); pixar (Woody/Buzz/Jessie, Pixar Pier characters, Edna/Incredibles at Avengers-adjacent areas, characters at DCA Pixar Pier); marvel (Avengers Campus at DCA -- Spider-Man, Captain America, Black Panther, Black Widow, Doctor Strange, etc.); villain (seasonal/where they appear -- e.g. villains during Halloween/Oogie Boogie Bash, or year-round meets if any). Only include characters that genuinely appear at the Disneyland Resort right now. If a category has limited or seasonal availability, still include its real entries and note the seasonality. Use only current 2025-2026 information. Keep every notes field to ONE short sentence (20 words max) and include at most 6 characters per category (about 24-30 total) -- a complete roster matters more than long notes.',maxTokens:9000},
   photo_ops:{system:'Disneyland Resort guest photography expert -- the iconic photo spots visitors plan for. Current 2025-2026 only. DL and DCA only -- never Walt Disney World/Florida. Return ONLY valid JSON inside a fenced code block, no commentary.',user:'Search DisneyTouristBlog, AllEars, MiceChat and Disney Parks sources (2025-2026) for the BEST guest photo spots at Disneyland Park and Disney California Adventure. Return JSON: {"spots":[{"name":"...","park":"DL or DCA","land":"...","shot":"...","bestTime":"...","short":"...","sampleUrl":"..."}]}. The shot field is ONE guest-facing sentence describing the specific photo: where to stand and what landmark fills the background (example: "Stand in the middle of Main Street, U.S.A. facing the castle -- Sleeping Beauty Castle fills the background behind your group."). Include 16-20 spots, roughly half in each park, covering at least: the Main Street castle shot, the Partners statue, Sleeping Beauty Castle from the front, the Millennium Falcon in Star Wars: Galaxy\'s Edge, the Galaxy\'s Edge rock spires, Cars Land neon signs at dusk on Route 66, the Radiator Springs Ornament Valley mountain backdrop, Pixar Pier with the Incredicoaster and Pixar Pal-A-Round behind you at sunset, Buena Vista Street with the Carthay Circle tower, Grizzly Peak and its waterfall, the Mark Twain riverfront in Frontierland, the "it\'s a small world" facade lit up at night, Avengers Campus headquarters, Snow White\'s wishing well grotto, and the New Orleans Square riverfront. bestTime is exactly one of: any, morning, golden hour, sunset, night. The short field is a phrase of at most 11 words naming the standpoint and the backdrop, with NO ending period, starting lowercase unless it opens with a place name (example: "the Haunted Mansion gates with the manor behind you"). The sampleUrl field must link to ONE SINGLE PHOTO of this exact spot -- never a blog post, article, or listicle page (guests tap it expecting to see just the photo). Acceptable: a direct image file URL ending .jpg, .jpeg, .png, or .webp; a single Instagram post (instagram.com/p/...); a single Flickr photo page (flickr.com/photos/...); or a Wikimedia Commons file page (commons.wikimedia.org/wiki/File:...). Use only a real URL taken from your search results --  NEVER invent, shorten, or guess a URL; if you cannot find a real page for a spot, omit sampleUrl for that spot. Only real, current photo locations -- no invented backdrops.',maxTokens:9000}
@@ -639,9 +639,6 @@ function lastCallSearches() {
   const u = lastCallUsage;
   return (u && u.server_tool_use && typeof u.server_tool_use.web_search_requests === 'number') ? u.server_tool_use.web_search_requests : null;
 }
-function usageSearches(d) {
-  return (d && d.usage && d.usage.server_tool_use && typeof d.usage.server_tool_use.web_search_requests === 'number') ? d.usage.server_tool_use.web_search_requests : null;
-}
 function sectionDataIsEmpty(sd) {
   return sd == null || sd === '' || (Array.isArray(sd) && sd.length === 0) ||
     (typeof sd === 'object' && !Array.isArray(sd) && Object.keys(sd).length === 0);
@@ -665,7 +662,8 @@ async function recordCacheVerdict(entry) {
       note: entry.note ? String(entry.note).slice(0, 500) : null,
       stopReason: entry.stopReason || (diag && diag.stopReason) || null,
       blockTypes: entry.blockTypes || (diag && diag.blockTypes) || null,
-      attempts: (typeof entry.attempts === 'number') ? entry.attempts : ((diag && typeof diag.attempts === 'number') ? diag.attempts : null)
+      attempts: (typeof entry.attempts === 'number') ? entry.attempts : ((diag && typeof diag.attempts === 'number') ? diag.attempts : null),
+      maxUsesExceeded: (diag && typeof diag.maxUsesExceeded === 'number') ? diag.maxUsesExceeded : null
     };
     let arr = [];
     try {
@@ -822,11 +820,19 @@ const MAX_PAUSE_CONTINUATIONS = 1;
 const WEB_SEARCH_MAX_USES = 6;
 async function callClaude(prompt, apiKey) {
   lastCallDiag = null;
-  const tools = [{type:'web_search_20250305',name:'web_search',max_uses:WEB_SEARCH_MAX_USES}];
+  // Per-key search cap (item34): a prompt may carry its own maxUses; the
+  // shared default bounds every build. Hitting the cap is NOT an error --
+  // the API returns a max_uses_exceeded tool result inside a normal 200 and
+  // the model answers from what it has; the hits are counted in the call
+  // diagnostics so a key that always hits the cap can be given a higher one.
+  const maxUses = (prompt && typeof prompt.maxUses === 'number') ? prompt.maxUses : WEB_SEARCH_MAX_USES;
+  const tools = [{type:'web_search_20250305',name:'web_search',max_uses:maxUses}];
   let messages = [{role:'user',content:prompt.user}];
   let attempts = 0;
   let d = null;
   let mergedUsage = null;
+  let allBlocks = [];
+  let maxUsesExceeded = 0;
   while (true) {
     attempts++;
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -838,8 +844,17 @@ async function callClaude(prompt, apiKey) {
     catch (e) { throw new Error('Anthropic API returned non-JSON (HTTP ' + resp.status + ')'); }
     mergedUsage = mergeCallUsage(mergedUsage, d.usage || null);
     lastCallUsage = mergedUsage; // for the cache verdict record
-    lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(d.content), attempts: attempts };
-    console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
+    // One answer can span two responses: a pause_turn resume sends the
+    // paused assistant message back and the model continues where it left
+    // off, so content blocks accumulate across attempts and the text
+    // extraction below runs over the combined stream (item34).
+    if (Array.isArray(d.content)) {
+      allBlocks = allBlocks.concat(d.content);
+      const hits = JSON.stringify(d.content).split('max_uses_exceeded').length - 1;
+      if (hits > 0) { maxUsesExceeded += hits; console.log('[cron-cache] web_search max_uses_exceeded x' + hits + ' (cap ' + maxUses + ') -- model answers from what it already has'); }
+    }
+    lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(allBlocks), attempts: attempts, maxUsesExceeded: maxUsesExceeded };
+    console.log('[cron-cache] web_search_requests=' + ((mergedUsage && mergedUsage.server_tool_use && mergedUsage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((mergedUsage && mergedUsage.input_tokens) ?? '?') + ' output=' + ((mergedUsage && mergedUsage.output_tokens) ?? '?'));
     if(d.error) throw new Error(d.error.message);
     if (d.stop_reason === 'pause_turn' && attempts <= MAX_PAUSE_CONTINUATIONS && Array.isArray(d.content)) {
       console.log('[cron-cache] stop_reason=pause_turn on attempt ' + attempts + ' -- continuing the server-tool loop');
@@ -848,7 +863,7 @@ async function callClaude(prompt, apiKey) {
     }
     break;
   }
-  const blocks = d.content || [];
+  const blocks = allBlocks;
   // With web_search, the response interleaves the model's narration with tool-use and
   // tool-result blocks; the real answer is the text AFTER the last tool block. Concatenating
   // every text block pollutes the output with search commentary and buries/breaks the JSON.
@@ -1351,32 +1366,41 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
   };
 }
 
+// Shrinkage floor for the dining guard below (item34): a rebuild yielding
+// fewer venues than this is a partial list, whatever its stop_reason. The
+// live catalog carries 40 venues built from this list; 30 leaves headroom
+// for genuine menu churn while catching a truncation's tail loss. The
+// reference cannot be the stored blob -- after the Nov 1, 2026 overwrite it
+// is empty and would pass anything.
+const DINING_MIN_VENUES = 30;
+
 async function buildDiningDL(key, apiKey) {
-  lastCallDiag = null;
   const p = LEGACY_PROMPTS['dining_intel_dl'];
   const augUser = SOURCE_AUTHORITY + '\n\nDINING GOVERNANCE:\n- ' + DINING_RULES.join('\n- ') + '\n\n' + p.user;
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:augUser}]})
-  });
-  const d = await resp.json();
-  lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(d.content), attempts: 1 };
-  console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
-  if(d.error) throw new Error(d.error.message);
-  const blocks = d.content || [];
-  let lastToolIdx = -1;
-  for(let i=0;i<blocks.length;i++){ const bt=blocks[i].type||''; if(bt.indexOf('tool')!==-1) lastToolIdx=i; }
-  let textParts=[]; for(let i=lastToolIdx+1;i<blocks.length;i++){ if(blocks[i].type==='text' && blocks[i].text) textParts.push(blocks[i].text); }
-  if(!textParts.length){ for(const b of blocks) if(b.type==='text' && b.text) textParts.push(b.text); }
-  const allText = textParts.join('\n');
-  if(allText.length<20) throw new Error('Response too short');
+  // One call path (item34): the shared callClaude carries the web_search cap
+  // and the pause_turn continuation, and returns the answer text with the
+  // same post-tool extraction this builder used to do by hand. It previously
+  // ran a bare one-shot fetch with neither -- the Nov 1, 2026 build
+  // truncated at max_tokens after 7 searches and the salvage below stored
+  // an empty venue list over the good blob.
+  const allText = await callClaude({ system: p.system, user: augUser, maxTokens: p.maxTokens, maxUses: p.maxUses }, apiKey);
   let parsed = extractJson(allText);
-  if(!parsed){ const longest = textParts.slice().sort(function(a,b){return b.length-a.length;})[0]||''; parsed = extractJson(longest); }
   if(!parsed){ console.error('[cache] dining_intel_dl: no parseable JSON in response. First 300 chars: '+allText.slice(0,300)); throw new Error('dining_intel_dl: model returned no parseable venue JSON'); }
   const rawVenues = (parsed && Array.isArray(parsed.venues)) ? parsed.venues : [];
   console.error('[DININGDIAG] rawVenues=' + rawVenues.length + ' parsedKeys=' + (parsed ? Object.keys(parsed).join('|') : 'none') + ' allTextLen=' + allText.length + ' parsedSample=' + JSON.stringify(parsed).slice(0,400));
   const venues = filterDiningVenues(rawVenues);
+  // Validate BEFORE the put (item34): a truncated or shrunken rebuild must
+  // never replace the last good blob. Truncation removes the tail, so a
+  // salvaged partial list is partial by construction -- reject the
+  // truncation itself, not just the zero-venue case that happened Nov 1.
+  // No harvest for dining (unlike character_intel): downstream code treats
+  // this list as complete (catalog membership, reservation matching,
+  // never-twice dedup, dietary tags), so a partial list has no storable
+  // form. The handler records the fail verdict with this error; no put runs.
+  const finalStop = (lastCallDiag && lastCallDiag.stopReason) || null;
+  if (finalStop === 'max_tokens') throw new Error('dining_intel_dl rebuild rejected: truncated (stop_reason=max_tokens, venues salvaged=' + venues.length + ') -- last good blob kept');
+  if (venues.length === 0) throw new Error('dining_intel_dl rebuild rejected: empty (0 venues after filtering) -- last good blob kept');
+  if (venues.length < DINING_MIN_VENUES) throw new Error('dining_intel_dl rebuild rejected: shrank (' + venues.length + ' venues < floor ' + DINING_MIN_VENUES + ') -- last good blob kept');
   const dataStr = venues.map(function(v){
     var diet = [];
     if(v.veg) diet.push('VEG:'+v.veg);
@@ -1397,31 +1421,23 @@ async function buildDiningDL(key, apiKey) {
   const blob = await put('twize/'+key+'.json', JSON.stringify(diningPayload), {
     access:'public', addRandomSuffix:false, contentType:'application/json', allowOverwrite:true
   });
-  await recordCacheVerdict({ key, via: 'legacy', outcome: venues.length === 0 ? 'empty-output' : 'ok', bytes: JSON.stringify(diningPayload).length, webSearchRequests: usageSearches(d) });
+  await recordCacheVerdict({ key, via: 'legacy', outcome: 'ok', bytes: JSON.stringify(diningPayload).length, webSearchRequests: lastCallSearches(), note: 'venues=' + venues.length });
   return { key, length: dataStr.length, venues: venues.length, stripped: rawVenues.length - venues.length };
 }
 
 async function buildLegacy(key, apiKey) {
   if(key === 'dining_intel_dl') return await buildDiningDL(key, apiKey);
-  lastCallDiag = null;
   const p=LEGACY_PROMPTS[key];
   let legacyVerdictNote = null; // optional detail for the ok verdict (park_hours drops)
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:p.maxTokens,system:p.system,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:p.user}]})
-  });
-  const d = await resp.json();
-  lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(d.content), attempts: 1 };
-  console.log('[cron-cache] web_search_requests=' + ((d.usage && d.usage.server_tool_use && d.usage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((d.usage && d.usage.input_tokens) ?? '?') + ' output=' + ((d.usage && d.usage.output_tokens) ?? '?'));
-  if(d.error) throw new Error(d.error.message);
-  const blocks = d.content || [];
-  let lastToolIdx = -1;
-  for(let i=0;i<blocks.length;i++){ const bt=blocks[i].type||''; if(bt.indexOf('tool')!==-1) lastToolIdx=i; }
-  let text='';
-  for(let i=lastToolIdx+1;i<blocks.length;i++){ if(blocks[i].type==='text') text+=blocks[i].text; }
-  if(!text){ for(const b of blocks) if(b.type==='text') text+=b.text; }
-  if(text.length<50) throw new Error('Response too short');
+  // One call path (item34): the shared callClaude carries the web_search
+  // cap, the pause_turn continuation, the short-response floor and the call
+  // diagnostics the verdict record reads. This builder previously ran a
+  // bare one-shot fetch with none of those -- the path events_intel failed
+  // on twice (Oct 29 + Nov 1, 2026: uncapped searches burned an 800-token
+  // budget before any answer text). Per-key validation below is unchanged:
+  // park_hours shape, character/photo harvest + guards all still run on the
+  // returned text exactly as before.
+  const text = await callClaude({ system: p.system, user: p.user, maxTokens: p.maxTokens, maxUses: p.maxUses }, apiKey);
   let value = text;
   if(key==='park_hours_intel'||key==='character_intel'||key==='photo_ops') {
     const parsed = extractJson(text);
@@ -1573,7 +1589,7 @@ async function buildLegacy(key, apiKey) {
   const blob = await put('twize/'+key+'.json', JSON.stringify(legacyPayload), {
     access:'public', addRandomSuffix:false, contentType:'application/json', allowOverwrite:true
   });
-  await recordCacheVerdict({ key, via: 'legacy', outcome: sectionDataIsEmpty(value) ? 'empty-output' : 'ok', bytes: JSON.stringify(legacyPayload).length, webSearchRequests: usageSearches(d), note: legacyVerdictNote });
+  await recordCacheVerdict({ key, via: 'legacy', outcome: sectionDataIsEmpty(value) ? 'empty-output' : 'ok', bytes: JSON.stringify(legacyPayload).length, webSearchRequests: lastCallSearches(), note: legacyVerdictNote });
   return {key, length:text.length};
 }
 
