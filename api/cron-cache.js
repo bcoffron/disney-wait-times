@@ -1438,6 +1438,16 @@ async function buildLegacy(key, apiKey) {
   // park_hours shape, character/photo harvest + guards all still run on the
   // returned text exactly as before.
   const text = await callClaude({ system: p.system, user: p.user, maxTokens: p.maxTokens, maxUses: p.maxUses }, apiKey);
+  // A truncated response never stores (item34 extension, Claude's ruling):
+  // events_intel is guarded now -- it has been stale since before Oct 29,
+  // so there is no healthy state to disturb, and at its raised budget a
+  // truncated answer would clear the length floor and store silently. The
+  // remaining prose keys join once their first routed verdict shows
+  // end_turn; character_intel / photo_ops keep their harvest designs and
+  // park_hours keeps its shape validator, per the same ruling.
+  if (key === 'events_intel' && lastCallDiag && lastCallDiag.stopReason === 'max_tokens') {
+    throw new Error('events_intel rebuild rejected: truncated (stop_reason=max_tokens) -- last good blob kept');
+  }
   let value = text;
   if(key==='park_hours_intel'||key==='character_intel'||key==='photo_ops') {
     const parsed = extractJson(text);

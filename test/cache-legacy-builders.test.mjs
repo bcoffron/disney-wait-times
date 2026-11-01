@@ -162,6 +162,16 @@ test('events: the Nov 1 shape (max_tokens, searches, no text) fails loud and sto
 });
 
 // ---- dining -------------------------------------------------------------------
+test('events: a LONG truncated answer is rejected before the put (truncation extension)', async () => {
+  // At the raised 4000 budget a max_tokens answer easily clears the length
+  // floor -- without the guard it would store silently as a good build.
+  reset([resp([...searchBlocks(5), { type: 'text', text: EVENTS_PROSE }], 'max_tokens', 5)]);
+  const res = await runKey('events_intel');
+  assert.equal(res.statusCode, 500, JSON.stringify(res.body));
+  assert.match(JSON.stringify(res.body), /events_intel rebuild rejected: truncated/);
+  assert.equal(globalThis.__blobState.blobs.has('twize/events_intel.json'), false);
+});
+
 test('dining: truncated response salvaging to a partial list is rejected before the put', async () => {
   reset([resp([...searchBlocks(6), { type: 'text', text: diningText(12) }], 'max_tokens', 6)]);
   const res = await runKey('dining_intel_dl');
