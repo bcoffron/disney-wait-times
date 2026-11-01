@@ -219,6 +219,22 @@ test('dining: a complete response stores at the raised ceiling', async () => {
   assert.equal(ok.note, 'venues=40');
 });
 
+test('dining: an empty stored payload reads as NOT fresh, so a plain (non-force) run rebuilds it', async () => {
+  reset([resp([...searchBlocks(4), { type: 'text', text: diningText(40) }], 'end_turn', 4)]);
+  // Seed the exact Nov 1 empty overwrite at the blob layer: top-level
+  // venues: [] with an empty data string and a fresh ts. Before the fix,
+  // isFresh's shape-blind checks read this as fresh and the run skipped
+  // (Beau's Nov 1 manual Run recorded skipped-fresh against it).
+  const emptyPayload = JSON.stringify({ data: '', venues: [], _retired: [], _meta: { built_at: '2026-11-01T04:01:44.320Z', count: 0 }, ts: Date.now() });
+  globalThis.__blobState.blobs.set('twize/dining_intel_dl.json', { pathname: 'twize/dining_intel_dl.json', url: 'https://blob.test/twize/dining_intel_dl.json', downloadUrl: 'https://blob.test/twize/dining_intel_dl.json', size: emptyPayload.length, body: emptyPayload, uploadedAt: new Date().toISOString() });
+  const res = mockRes();
+  await handler({ method: 'GET', headers: { authorization: 'Bearer test-secret' }, query: { key: 'dining_intel_dl' } }, res);
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(anthropicRequests.length, 1, 'the run must actually build, not skip as fresh');
+  const blob = stored('twize/dining_intel_dl.json');
+  assert.ok(blob && Array.isArray(blob.venues) && blob.venues.length === 40);
+});
+
 test('dining: a JSON answer split across a pause_turn boundary parses and stores', async () => {
   const full = JSON.stringify({ venues: venues(40) });
   const cut = Math.floor(full.length / 2);
