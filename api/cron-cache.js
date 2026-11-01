@@ -558,6 +558,18 @@ async function isFresh(key) {
     const emptyVenues = raw && raw.data && Array.isArray(raw.data.venues) && raw.data.venues.length === 0;
     const emptyData = raw && raw.data && (typeof raw.data === 'string') && raw.data.trim().length === 0;
     if(emptyVenues || emptyData) return false;
+    if(key === 'dining_intel_dl') {
+      // The dining payload keeps its venues at the TOP level ({data:
+      // lineString, venues: [...]}) -- the generic checks above read
+      // raw.data.venues (undefined for this shape) and an empty line
+      // string is falsy, so the Nov 1, 2026 empty overwrite (0 venues,
+      // data '') read as FRESH and a manual rebuild that afternoon
+      // skipped. An empty dining list is degraded data, not fresh data
+      // (same rule as the character roster below).
+      const dv = raw && Array.isArray(raw.venues) ? raw.venues : null;
+      if(!dv || dv.length === 0) return false;
+      if(typeof raw.data === 'string' && raw.data.trim().length === 0) return false;
+    }
     // A stored character roster that fails the shape validation is degraded
     // data, not fresh data (Oct 6, 2026: the Oct 5 rebuild stored ONE
     // character; every manual + scheduled trigger for 5.6 days then skipped
