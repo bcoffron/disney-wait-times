@@ -340,7 +340,7 @@
     },
     {
       "path": "/api/cron-cache?key=park_intel_dl_stable",
-      "schedule": "0 3 * * 1"
+      "schedule": "0 3 */2 * *"
     },
     {
       "path": "/api/cron-cache?key=park_intel_dl_dynamic",

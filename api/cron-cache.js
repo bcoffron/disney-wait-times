@@ -124,62 +124,62 @@ const STABLE_SECTION_PROMPTS = {
   LAND_MAP:{
     system:'You are a Disneyland mapping expert with current 2025-2026 knowledge. Return precise structured JSON only.',
     user:`Search for the current Disneyland park map (2025-2026) and return a complete JSON land map covering all 8 lands: Main Street USA, Fantasyland, Tomorrowland, Adventureland, New Orleans Square, Frontierland, Star Wars Galaxy's Edge, Mickey's Toontown. For each land include: adjacent lands array, attractions array (every ride/show/walkthrough). Include walking_minutes between land pairs and current_refurbs with expected return dates. Confirm Pirates of the Caribbean status. Format: {"lands":{"LandName":{"adjacent":[...],"attractions":[...],"notes":"..."}},"walking_minutes":{"Land A to Land B":minutes},"current_refurbs":{"attraction":"expected_return"}} Output ONLY this JSON object -- no list of sources, no notes, no text before or after it. Respond with ONLY the raw MINIFIED JSON on a single line -- no spaces, no newlines, no indentation, no markdown code fence. Use ONLY current attraction names everywhere, including inside notes and refurbs; NEVER include a former name and NEVER write "formerly ..." (e.g. write "Tiana's Bayou Adventure", never "Splash Mountain"; "Incredicoaster", never "California Screamin'"; "Guardians of the Galaxy - Mission: BREAKOUT!", never "Tower of Terror"). NEVER list a permanently-closed attraction such as "It's Tough to be a Bug!".`,
-    maxTokens:8000
+    maxTokens:12000,maxUses:3
   },
   WAIT_PATTERNS:{
     system:'You are a Disneyland wait time expert using TouringPlans and Thrill-Data 2024-2026 data. Provide specific numbers confidently.',
     user:`Search TouringPlans.com and Thrill-Data.com for Disneyland wait time patterns 2024-2026. Return typical wait times for top attractions across time blocks and crowd levels. Time blocks (5 only): rope_drop(open-10AM), midday(10AM-1PM), afternoon(1-4PM), evening(4-7PM), late(7PM+). Crowd levels (3 only): light(Mon-Thu off-peak), moderate(weekends and summer), heavy(holidays and peak days). Cover 30 attractions across DL and DCA: Rise of the Resistance, Millennium Falcon Smugglers Run, Indiana Jones Adventure, Haunted Mansion, Space Mountain, Matterhorn Bobsleds, Big Thunder Mountain Railroad, Star Tours, Buzz Lightyear Astro Blasters, Roger Rabbit Car Toon Spin, Mickey Minnie Runaway Railway, Peter Pan Flight, Its a Small World, Alice in Wonderland, Mr Toads Wild Ride, Snow Whites Enchanted Wish, Jungle Cruise, Finding Nemo Submarine, Autopia, Chip Dale Gadget Coaster, WEB-SLINGERS Spider-Man, Radiator Springs Racers, Guardians of the Galaxy, Incredicoaster, Toy Story Midway Mania, Soarin Around the World, Luigis Rollickin Roadsters, Maters Junkyard Jamboree, Pixar Pal-A-Round, Monsters Inc Mike and Sulley. Format as JSON: {"attraction_name":{"crowd_level":{"time_block":wait_minutes}}}. Output ONLY this JSON object -- no list of sources, no notes, no text before or after it. Respond with ONLY the raw MINIFIED JSON on a single line -- no spaces, no newlines, no indentation, no markdown code fence. Cover ALL major Disneyland and Disney California Adventure attractions, using ONLY current attraction names (e.g. "Incredicoaster" not "California Screamin'", "Guardians of the Galaxy - Mission: BREAKOUT!" not "Tower of Terror"); never include a permanently-closed attraction.`,
-    maxTokens:8000
+    maxTokens:12000,maxUses:3
   },
   CROWD_FLOW:{
     system:'You are a Disneyland crowd behavior expert. 2024-2026 specific knowledge. Be specific and actionable.',
     user:`Search TouringPlans, AllEars, and r/Disneyland for Disneyland crowd flow patterns on busy park days. Describe hour-by-hour crowd behavior for a typical busy weekday and weekend. Cover: pre-opening crowd build at main gate; rope drop rush which lands fill first; morning prime 9-11AM crowd distribution; midday peak 11AM-2PM what to avoid; afternoon lull 2-4PM which rides benefit; parade effect on wait times before during after; fireworks pre-show 8-9PM crowd movement; post-fireworks window 9:15-10PM which rides drop dramatically; late night last hour. Include DCA-specific patterns. Give specific examples with actual wait time changes like Indiana Jones drops from 75 to 25 min during fireworks. Write as flowing descriptive prose sections.`,
-    maxTokens:2000
+    maxTokens:12000,maxUses:3
   },
   ROPE_DROP_STRATEGY:{
     system:'You are a Disneyland rope drop strategy expert. 2024-2026 knowledge. Specific, actionable advice for any group.',
     user:`Search TouringPlans, KennyThePirate.com, and r/Disneyland for the best Disneyland and DCA rope drop strategies 2024-2026. Provide a comprehensive rope drop guide for families and groups of any size. For Disneyland cover THREE paths: Path A Fantasyland first (Peter Pan then other classic rides then Matterhorn); Path B Adventureland first (Indiana Jones then Haunted Mansion area); Path C Tomorrowland and Galaxy Edge first (Space Mountain then Rise of the Resistance). For each path: exact attraction sequence with realistic timing, which path wins on light vs heavy crowd days, walk-in time needed before official park open, how boarding group system affects Rise of the Resistance if applicable, what to do in the 10-10:30AM window after rope drop completes, how to handle a large group moving together. Cover DCA rope drop separately: Radiator Springs Racers strategy which reaches 90-120 min by 10 AM, Guardians timing, best DCA morning sequence. Include Early Entry tips if staying onsite and recommended arrival time at main gate for a busy weekend. REQUIRED OUTPUT: The DISNEYLAND ranked order MUST be output exactly as: DISNEYLAND order: 1) Rise of the Resistance 2) Peter Pan's Flight 3) Space Mountain 4) Mickey & Minnie's Runaway Railway 5) Indiana Jones Adventure. This is a hard constraint -- do not reorder these rides. ARRIVAL GUIDANCE RULE (Oct 7, 2026): any main-gate arrival guidance in your output must recommend arriving a FULL HOUR (60 minutes) before official park opening -- never recommend arriving only 30 minutes before opening.`,
-    maxTokens:2000
+    maxTokens:12000,maxUses:3
   },
   LIGHTNING_LANE_STRATEGY:{
     system:'You are a Disneyland Lightning Lane strategy expert. 2025-2026 only. Never use Genie+, FastPass, or MaxPass terminology. Only Lightning Lane Multi Pass (LLMP) and Individual Lightning Lane (ILL).',
     user:`Search AllEars, TouringPlans, and DisneyFoodBlog for current Disneyland Lightning Lane Multi Pass and Individual Lightning Lane strategy 2025-2026. Cover: Which rides at Disneyland are Individual Lightning Lane (pay per ride per person) vs Lightning Lane Multi Pass; current ILL price range for each eligible attraction; LLMP per-person price range (prices vary by date -- give the typical range across the year); how LLMP booking works and when it opens (7AM resort guests); optimal booking order for a busy day at DL starting at 7AM; how the total ILL cost scales with party size and when standby beats ILL; which rides should never use LL because waits are consistently short; best afternoon LLMP stacking strategy for evening rides; DCA LL strategy separately; any 2025-2026 changes to the LL system. Use only LLMP and ILL terminology throughout.`,
-    maxTokens:2000
+    maxTokens:12000,maxUses:3
   },
   WALKING_ROUTES:{
     system:'You are a Disneyland navigation expert with detailed knowledge of shortcuts, back routes, and optimal routing for groups.',
     user:`Provide a comprehensive walking and routing guide for Disneyland and DCA with a focus on navigating as a group. Cover: key shortcuts and back routes including the back route from Tomorrowland through the castle to Fantasyland, the Frontierland to Adventureland shortcut via Rivers of America, getting from Galaxy Edge to New Orleans Square quickly, DCA internal routing from Cars Land to Avengers Campus; land-to-land transition times realistic for a group from main gate to each land and between adjacent lands, how parade route closures affect routing; large-group routing tips including stroller management through the park, staying together at attractions, meeting point strategy if group splits; accessibility routing for wheelchair and ECV including alternate entrances; efficiency tips including which direction to traverse park, how to use the Disneyland app for live routing, best restroom locations by land to minimize detour time; any current 2025-2026 construction detours or reroutes.`,
-    maxTokens:2000
+    maxTokens:12000,maxUses:3
   },
   DINING_TIMING:{
     system:'You are a Disneyland dining expert with current 2025-2026 knowledge. Give specific actionable advice.',
     user:`Search DisneyFoodBlog, AllEars, and r/Disneyland for Disneyland and DCA dining strategy 2025-2026. Cover Quick Service timing: best QS restaurants at Disneyland by land with shortest waits and fastest mobile order fulfillment; optimal lunch window eat at 11AM or after 1:30PM which QS locations work best at each time; which QS restaurants have consistently long mobile order waits; QS spots that can seat a large party together. Table service strategy: which TS restaurants take walk-ups (Blue Bayou, Carthay Circle etc) and when walk-ups work; which restaurants require reservations booked 60 days advance; which restaurants can accommodate large parties and the reservation strategy for them. Mobile order tips: best time to place order, which QS has fastest pickup, mobile order vs walking up when each is better. Best snacks by land: must-try quick snacks at each land including Mint Julep Bar, Bengal Barbecue, Jolly Holiday, Lamplight Lounge apps. DCA dining: Lamplight Lounge walk-up vs reservation, Carthay Circle, Cars Land options, Pacific Wharf QS.`,
-    maxTokens:2000
+    maxTokens:12000,maxUses:3
   },
   SHOW_AND_ENTERTAINMENT:{
     system:'You are a Disneyland entertainment expert. 2025-2026 knowledge of shows, parades, and fireworks.',
     user:`Search AllEars, official Disneyland site, and r/Disneyland for current entertainment at Disneyland and DCA 2025-2026. Cover Paint the Night Parade: current schedule if currently running, best viewing spots with trade-offs, how early to arrive, impact on wait times during parade. Fantasmic: current showtimes and frequency, viewing strategy river side vs hill side, is a dining package worth it for a large group, best time to arrive for each viewing area. Wondrous Journeys fireworks or current fireworks show: show name schedule best viewing spots in park. World of Color at DCA: how virtual viewing area works, is preferred viewing package worth it, best position, timing relative to DCA closing. The post-show ride window: which rides see dramatic wait drops during fireworks with specific numbers, the 20-30 minute window after fireworks ends which rides to target, same analysis after Fantasmic. Character shows and live entertainment: current regular shows on Main Street, Mickey Toontown character experience.`,
-    maxTokens:2000
+    maxTokens:12000,maxUses:6
   },
   FAMILY_AND_ACCESSIBILITY:{
     system:'You are a Disneyland family and accessibility expert with current 2025-2026 knowledge.',
     user:`Search AllEars, TouringPlans, and r/Disneyland for family and accessibility information at Disneyland and DCA 2025-2026. Cover height restrictions: list every major ride with exact height requirement in inches, rides with no height requirement good for all ages, rides with partial restrictions some seats OK. Rider swap child swap: exactly how it works at Disneyland including how to request it and whether it works with Lightning Lane. DAS Disability Access Service: how to apply DAS Advance vs at park, which rides benefit most, how it interacts with Lightning Lane, any 2025-2026 changes to DAS system. Best rides for under 40 inch guests: complete list with why each is great for small children. Best for all ages including grandparents: rides and experiences that delight everyone from 3 to 80. Stroller info: parking locations by land, size restrictions, stroller as wheelchair option. Quiet areas and breaks: where to find quiet spots when kids are overwhelmed, baby care center location and services, best air-conditioned spots for midday break.`,
-    maxTokens:2000
+    maxTokens:12000,maxUses:6
   },
   PHOTO_AND_EXPERIENCE:{
     system:'You are a Disneyland photography and hidden gems expert. 2025-2026 knowledge.',
     user:`Search TheDisneylandBlog, AllEars, and r/Disneyland for best photo locations, character meets, and hidden gems at Disneyland and DCA 2025-2026. Cover best photo locations by land and time of day with for each: land name, best time of day morning golden hour after dark, what to frame, crowd level impact. Locations to cover: Sleeping Beauty Castle morning light vs golden hour vs after dark projections; Main Street USA park opening walk and hub area; Big Thunder Mountain from Rivers of America; New Orleans Square balconies at golden hour; Matterhorn from Fantasyland; Millennium Falcon exterior in Galaxy Edge; Cars Land at night with neon signs; Pixar Pier boardwalk and Pal-A-Round; Avengers Campus; Buena Vista Street DCA entrance. Character meet locations and typical waits: Mickey and Minnie in Toontown, princesses current meet locations, Star Wars characters in Galaxy Edge, Marvel characters in Avengers Campus, which meets have longest waits vs are walk-up friendly, character dining options. Hidden gems and details most guests miss: interactive elements kids love, best off the beaten path experiences, Easter eggs on attractions.`,
-    maxTokens:2000
+    maxTokens:12000,maxUses:3
   },
   PARK_HOP_STRATEGY:{
     system:'You are a Disneyland park hopping strategy expert. 2025-2026 knowledge.',
     user:`Search TouringPlans, AllEars, and r/Disneyland for Disneyland Resort park hopping strategy 2025-2026 for guests with DL and DCA tickets. Cover: when park hopping opens each day confirm current time usually after 11AM; best time to hop DL to DCA and DCA to DL; how park hopping affects LL bookings can you use DL LLs at DCA. Direction strategy: when to start at DL morning and hop to DCA afternoon vs starting at DCA morning and hopping to DL afternoon evening; for a group doing both parks which split makes most sense on a busy weekday vs weekend. Transportation between parks: walking route through Downtown Disney how long, monorail option current route, any shuttle between parks. Half day priorities: if only have DCA afternoon 4 hours what are non-negotiables; if only have DL evening 4 hours what to prioritize; for fireworks which park to be in. LL strategy for park hoppers: how to maximize LL across both parks, which park LL to book first, can you book LLs at second park before hopping.`,
-    maxTokens:1500
+    maxTokens:12000,maxUses:3
   },
   WEATHER_AND_COMFORT:{
     system:'You are a Disneyland comfort and logistics expert with specific knowledge of Anaheim CA weather across the year.',
     user:`Search weather data and Disneyland guest forums for Anaheim weather patterns and comfort strategies at Disneyland 2024-2026. Cover weather across the year: typical temperature ranges by season (highs and lows, morning vs afternoon), the June Gloom phenomenon what it is and when it clears, humidity levels, rain probability by season, what to pack for each season. Heat strategy: best shade routes through the park by land, best indoor air-conditioned rides for hot afternoon breaks, misting areas locations, indoor shows and experiences for midday cool-down, water refill stations where and if refills are free. Sunscreen and comfort: application spots locations near first aid, staying hydrated free water options. What to wear: comfortable shoes, layering strategy for morning cool and afternoon heat, what not to wear. If it rains: where to get ponchos cost and locations, which rides still operate in light rain, what closes in rain, note that crowds thin significantly. Evening comfort: temperature drop after dark bring a layer, best strategy for fireworks viewing comfort.`,
-    maxTokens:1500
+    maxTokens:12000,maxUses:3
   },
   // -----------------------------------------------------------------------
   PARK_SERVICES:{
@@ -251,24 +251,31 @@ Output the complete JSON object. Do not truncate. Do not add any text before or 
   }
 };
 
-// Budget note (Oct 22, 2026): on Sonnet 5.5, searches + thinking draw
-// from the same max_tokens budget as the final text. The closures class
-// below carries 6000 so a full section of output still fits after the
-// (now capped) search phase; SPECIAL_EVENTS / CURRENT_LL_PRICING are
-// raised to 4000 / 3000 for the same reason -- dynamic, search-first
-// sections whose old budgets were sized for text alone. Stable-section
-// budgets stay as they are: the global search cap bounds their runaway
-// term, and the verdict record names any section that still exhausts.
+// Budget note (Nov 3, 2026; Claude msg 202, supersedes the Oct 22 note):
+// on Sonnet 5.5, searches + thinking draw from the same max_tokens budget
+// as the final text. The search cap bounds how MANY searches run, not how
+// many tokens they consume -- the Oct 22 note claimed the opposite for
+// stable sections, and the Nov 2 fanout disproved it: three prose sections
+// at 1500-2000 tokens burned their whole budget on 6 searches + thinking
+// and emitted 0 chars. Sizing evidence: the Nov 1 dining build used
+// 11,210 output tokens for a ~15KB answer (~5-6k of it search/reasoning
+// overhead). So every prose section, stable and dynamic, carries a uniform
+// 12000 ceiling, and each section prompt carries its own maxUses (a
+// content decision: stable default 3; more where the content tracks
+// current schedules/policies). The closures JSON class stays at 6000 --
+// structured output, sized Oct 22, and it builds. output_tokens is
+// recorded on every verdict so a section creeping toward its ceiling is
+// visible before it truncates.
 const DYNAMIC_SECTION_PROMPTS = {
   CURRENT_CLOSURES:{
     system:'You are a Disneyland current operations expert. Only use confirmed 2025-2026 information. Be specific about status and expected return dates.',
     user:`Search disneylandresort.com, AllEars.net, and TouringPlans.com for ALL current ride closures and refurbishments at Disneyland and DCA as of today 2026. For each closed or refurbished attraction provide: attraction name and park DL or DCA, closure type scheduled refurbishment unplanned seasonal or permanent, expected reopening date if known or best estimate, what caused the closure if known, alternative recommendation for guests who planned to ride it. Pay special attention to Pirates of the Caribbean current status and expected return date. List any major E-ticket closures. Note any new closures announced for summer 2026. Format as clear readable text that could be read to a guest planning their visit.`,
-    maxTokens:6000
+    maxTokens:12000,maxUses:6
   },
   CURRENT_CLOSURES_WDW:{
     system:'You are a Walt Disney World current operations expert. Only use confirmed 2025-2026 information. Be specific about status and expected return dates.',
     user:`Search disneyworld.disney.go.com, WDW News Today (wdwnt.com), BlogMickey, AllEars.net, and TouringPlans.com for ALL current ride closures and refurbishments at Magic Kingdom (MK), EPCOT (EP), Disney's Hollywood Studios (HS), and Disney's Animal Kingdom (AK) as of today 2026. For each closed or refurbished attraction provide: attraction name and park MK EP HS or AK, closure type scheduled refurbishment unplanned seasonal or permanent, expected reopening date if known or best estimate, what caused the closure if known, alternative recommendation for guests who planned to ride it. List any major E-ticket closures. Note any new closures announced for summer 2026. Format as clear readable text that could be read to a guest planning their visit.`,
-    maxTokens:6000
+    maxTokens:12000,maxUses:6
   },
   CLOSURES:{
     system:'You are a Disneyland Resort current-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
@@ -296,7 +303,7 @@ FIELD RULES:
 - note: one short sentence (source + reason). ASCII only.
 
 Pay special attention to Pirates of the Caribbean and Inside Out Emotional Whirlwind -- report their exact current status, reopenDate, and reopenConfidence. Only include attractions that are actually closed/affected; do NOT list operating rides. Output the complete JSON array only.`,
-    maxTokens:6000
+    maxTokens:6000,maxUses:6
   },
   CLOSURES_WDW:{
     system:'You are a Walt Disney World current-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
@@ -353,7 +360,7 @@ FIELD RULES (same contract as the attractions CLOSURES section):
 - note: one short sentence (source + reason). ASCII only.
 
 Only include venues that are actually closed/affected; do NOT list operating restaurants. Output the complete JSON array only.`,
-    maxTokens:6000
+    maxTokens:6000,maxUses:6
   },
   DINING_CLOSURES_WDW:{
     system:'You are a Walt Disney World dining-operations data expert. Return ONLY valid, complete JSON (a single array). No markdown, no prose, no preamble. Use only confirmed and clearly-sourced 2025-2026 information.',
@@ -387,12 +394,12 @@ Only include venues that are actually closed/affected; do NOT list operating res
   SPECIAL_EVENTS:{
     system:'You are a Disneyland special events expert. Focus on the current season at Disneyland Resort.',
     user:`Search Disneyland official site, AllEars, and MiceChat for special events, hard ticket events, seasonal overlays, or entertainment changes at Disneyland Resort in the current season. Investigate: any anniversary or seasonal celebrations currently running, with their dates; seasonal events, special dining events, or unique experiences tied to the current season; proximity to any major holiday and any related celebrations, overlays, or extra fireworks; hard ticket events -- any separately ticketed evening events that would affect park access; entertainment changes -- any shows or parades recently added, changed, or removed. Be specific with dates when sources give them. Note if something was announced but not yet confirmed.`,
-    maxTokens:4000
+    maxTokens:12000,maxUses:6
   },
   CURRENT_LL_PRICING:{
     system:'You are a Disneyland Lightning Lane pricing expert. Current 2025-2026 pricing only. Never use Genie+ terminology.',
     user:`Search AllEars, TouringPlans, and official Disneyland sources for current Lightning Lane pricing at Disneyland Resort 2025-2026. Provide: Individual Lightning Lane ILL -- which specific attractions are ILL at Disneyland, not LLMP -- with current price range per person for each, and the price range for a peak summer day. Lightning Lane Multi Pass LLMP: current per-person price range for Disneyland LLMP on a peak-season day, current per-person price range for DCA LLMP, combined price if purchasing for both parks. Recent changes: any changes to LL system in 2025-2026, new attractions added or removed from LL, any pricing changes from previous year. Booking tips: when prices are lowest vs highest within a day, whether to buy LLMP at park open or wait, multi-day ticket LL discounts if any. Use only Lightning Lane Multi Pass LLMP and Individual Lightning Lane ILL terminology throughout.`,
-    maxTokens:3000
+    maxTokens:12000,maxUses:3
   },
   TRIP_CONTEXT:{
     system:'You are a brilliant, specific Disneyland trip advisor writing shared reference guidance for guests planning a Disneyland plus DCA trip, often with park hopping and sometimes a VIP tour day. Write in a warm, specific, confident voice like a knowledgeable friend who has been dozens of times. No generic advice. Never assume a party size, specific dates, or a fixed itinerary -- write for the patterns that hold across trips.',
@@ -407,7 +414,7 @@ WEEKDAY AT DCA: Crowd level assessment explaining why weekdays are reliably less
 GROUP NOTES: best quick service restaurants that can seat a large party together, rider swap strategy for height-restricted rides, meeting point strategy in each park, app tips for managing a group.
 
 End with one sentence that captures the trip and gets them excited.`,
-    maxTokens:3000
+    maxTokens:12000,maxUses:6
   }
 
 };
@@ -647,6 +654,7 @@ const CACHE_VERDICTS_CAP = 200;
 const CACHE_BUILD_MODEL = 'claude-sonnet-5-5';
 let lastCallUsage = null; // usage of the most recent callClaude() call
 let lastCallDiag = null; // {stopReason, blockTypes, attempts} of the most recent model call (any builder)
+let lastVerdictSnapshot = null; // last verdict array THIS invocation wrote (lag chain, see recordCacheVerdict)
 function lastCallSearches() {
   const u = lastCallUsage;
   return (u && u.server_tool_use && typeof u.server_tool_use.web_search_requests === 'number') ? u.server_tool_use.web_search_requests : null;
@@ -675,7 +683,9 @@ async function recordCacheVerdict(entry) {
       stopReason: entry.stopReason || (diag && diag.stopReason) || null,
       blockTypes: entry.blockTypes || (diag && diag.blockTypes) || null,
       attempts: (typeof entry.attempts === 'number') ? entry.attempts : ((diag && typeof diag.attempts === 'number') ? diag.attempts : null),
-      maxUsesExceeded: (diag && typeof diag.maxUsesExceeded === 'number') ? diag.maxUsesExceeded : null
+      maxUsesExceeded: (diag && typeof diag.maxUsesExceeded === 'number') ? diag.maxUsesExceeded : null,
+      outputTokens: (typeof entry.outputTokens === 'number') ? entry.outputTokens : ((diag && typeof diag.outputTokens === 'number') ? diag.outputTokens : null),
+      counts: (entry.counts && typeof entry.counts === 'object') ? entry.counts : null
     };
     let arr = [];
     try {
@@ -685,11 +695,23 @@ async function recordCacheVerdict(entry) {
         if (Array.isArray(raw)) arr = raw;
       }
     } catch (e) { /* no readable verdict blob yet -- start fresh */ }
+    // Lag chain (Nov 3, 2026): this store's read-after-write lag means the
+    // fetched array can predate verdicts THIS invocation already wrote --
+    // the Nov 2 fanout lost CATALOG's verdict exactly that way (its append
+    // read the pre-SHOW array and a later write overwrote it). Within an
+    // invocation, chain appends on our own last written snapshot whenever
+    // it is ahead of what the read returned.
+    if (lastVerdictSnapshot && lastVerdictSnapshot.length &&
+        (arr.length < lastVerdictSnapshot.length ||
+         (arr.length && lastVerdictSnapshot[lastVerdictSnapshot.length - 1].ts > arr[arr.length - 1].ts))) {
+      arr = lastVerdictSnapshot.slice();
+    }
     arr.push(full);
     if (arr.length > CACHE_VERDICTS_CAP) arr = arr.slice(arr.length - CACHE_VERDICTS_CAP);
     const blob = await put(CACHE_VERDICTS_KEY, JSON.stringify(arr), {
       access: 'public', addRandomSuffix: false, contentType: 'application/json', allowOverwrite: true
     });
+    lastVerdictSnapshot = arr;
     // Read-back verify: log a mismatch rather than failing -- store lag is
     // expected on this store and the build must not be its victim.
     try {
@@ -865,7 +887,7 @@ async function callClaude(prompt, apiKey) {
       const hits = JSON.stringify(d.content).split('max_uses_exceeded').length - 1;
       if (hits > 0) { maxUsesExceeded += hits; console.log('[cron-cache] web_search max_uses_exceeded x' + hits + ' (cap ' + maxUses + ') -- model answers from what it already has'); }
     }
-    lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(allBlocks), attempts: attempts, maxUsesExceeded: maxUsesExceeded };
+    lastCallDiag = { stopReason: d.stop_reason || null, blockTypes: blockTypeSummary(allBlocks), attempts: attempts, maxUsesExceeded: maxUsesExceeded, outputTokens: (mergedUsage && typeof mergedUsage.output_tokens === 'number') ? mergedUsage.output_tokens : null };
     console.log('[cron-cache] web_search_requests=' + ((mergedUsage && mergedUsage.server_tool_use && mergedUsage.server_tool_use.web_search_requests) ?? 0) + ' input=' + ((mergedUsage && mergedUsage.input_tokens) ?? '?') + ' output=' + ((mergedUsage && mergedUsage.output_tokens) ?? '?'));
     if(d.error) throw new Error(d.error.message);
     if (d.stop_reason === 'pause_turn' && attempts <= MAX_PAUSE_CONTINUATIONS && Array.isArray(d.content)) {
@@ -1203,6 +1225,7 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
   // WDW launch gate (defense in depth): no single-section WDW builds.
   if (!WDW_BUILDS_ENABLED && isWdwBuildKey(cacheKey)) throw new Error('WDW section builds are disabled (WDW_BUILDS_ENABLED=false) -- WDW is not launched');
   lastCallUsage = null; // reset per build so a non-Claude path (CATALOG) never inherits a stale usage
+  lastCallDiag = null;
   const isStable = cacheKey.includes('stable');
   const promptMap = isStable ? STABLE_SECTION_PROMPTS : DYNAMIC_SECTION_PROMPTS;
   const prompt = resolveSectionPrompt(promptMap, cacheKey, sectionName);
@@ -1309,14 +1332,18 @@ async function buildSingleSection(cacheKey, sectionName, apiKey, opts) {
     sectionData = text;
   }
 
+  const _counts = (sectionName === 'CATALOG' && sectionData && typeof sectionData === 'object')
+    ? { attractions: Array.isArray(sectionData.attractions) ? sectionData.attractions.length : 0,
+        venues: Array.isArray(sectionData.venues) ? sectionData.venues.length : 0 }
+    : null;
   const _sample = (typeof sectionData === 'string' ? sectionData : JSON.stringify(sectionData)).substring(0,400);
   if (opts.writeThrough === false) {
     // Fan-out mode: the caller (buildAllSections) owns the read-merge-write.
     // Do NOT touch the blob here -- per-section read-modify-write against the
     // CDN-cached blob URL is racy and a stale read silently drops
     // previously-written sections and their section_meta.
-    await recordCacheVerdict({ key: cacheKey, section: sectionName, via: 'fanout', outcome: sectionDataIsEmpty(sectionData) ? 'empty-output' : 'ok', bytes: JSON.stringify(sectionData).length, webSearchRequests: lastCallSearches() });
-    return { section: sectionName, length: text.length, sectionData, sample: _sample };
+    await recordCacheVerdict({ key: cacheKey, section: sectionName, via: 'fanout', outcome: sectionDataIsEmpty(sectionData) ? 'empty-output' : 'ok', bytes: JSON.stringify(sectionData).length, webSearchRequests: lastCallSearches(), outputTokens: (lastCallUsage && typeof lastCallUsage.output_tokens === 'number') ? lastCallUsage.output_tokens : null, counts: _counts });
+    return { section: sectionName, length: text.length, sectionData, sample: _sample, counts: _counts };
   }
 
   // Read existing blob to merge
@@ -1683,6 +1710,23 @@ async function buildAllSections(cacheKey, apiKey, opts) {
   if (!cacheData.section_meta) cacheData.section_meta = {};
   const meta = cacheData.section_meta;
 
+  // Failure back-off (Nov 3, 2026; Claude msg 202): a section whose LAST
+  // verdict was a failure sorts behind sections that did not fail -- with
+  // stalest-first ordering alone, a structurally-doomed section is still
+  // the stalest next run and eats the time budget first, starving the
+  // rest (the Nov 2 wave's three max_tokens failures would have done
+  // exactly that again on the next run). Read once, best-effort.
+  const lastOutcome = {};
+  try {
+    const { blobs } = await list({ prefix: CACHE_VERDICTS_KEY });
+    if (blobs && blobs.length) {
+      const raw = await (await fetch(blobs[0].downloadUrl || blobs[0].url)).json();
+      if (Array.isArray(raw)) for (const e of raw) {
+        if (e && e.key === cacheKey && e.section) lastOutcome[e.section] = e.outcome;
+      }
+    }
+  } catch (e) { /* no verdict history -- plain stalest-first */ }
+
   const now = Date.now();
   const sectionAgeMs = (name) => {
     const m = meta[name];
@@ -1697,12 +1741,23 @@ async function buildAllSections(cacheKey, apiKey, opts) {
   // The da===db guard keeps Infinity-vs-Infinity ties deterministic (stable
   // sort preserves prompt-map order) instead of returning NaN.
   sectionNames.sort((a, b) => {
+    const fa = lastOutcome[a] === 'fail' ? 1 : 0, fb = lastOutcome[b] === 'fail' ? 1 : 0;
+    if (fa !== fb) return fa - fb;
     const da = sectionAgeMs(a), db = sectionAgeMs(b);
     if (da === db) return 0;
     return db - da;
   });
   const isStale = (name) => {
     if (opts.force) return true;
+    const m = meta[name];
+    // Staggered expiry (Nov 3, 2026; Claude msg 202): each rebuild stamps
+    // its own expires_at, randomized within the window, so sections built
+    // in one backfill never mass-expire together again (the Oct 31-Nov 1
+    // wave existed because one backfill built all fourteen at once).
+    if (m && m.expires_at) {
+      const exp = new Date(m.expires_at).getTime();
+      if (!isNaN(exp)) return Date.now() > exp;
+    }
     const age = sectionAgeMs(name);
     return !(age >= 0) || age > expiryMs;
   };
@@ -1737,7 +1792,13 @@ async function buildAllSections(cacheKey, apiKey, opts) {
     try {
       const r = await buildSingleSection(cacheKey, name, apiKey, { writeThrough: false });
       cacheData.sections[name] = r.sectionData;
-      meta[name] = { built: true, length: r.length, built_at: new Date().toISOString() };
+      const _builtAt = new Date().toISOString();
+      meta[name] = { built: true, length: r.length, built_at: _builtAt,
+        expires_at: new Date(new Date(_builtAt).getTime() + expiryMs * (0.8 + Math.random() * 0.4)).toISOString() };
+      // CATALOG's payload is empty-text by design (built locally): record
+      // its attraction/venue counts in meta instead of a text length of 0
+      // (Nov 3, 2026; Claude msg 202 E).
+      if (r.counts) { meta[name].attractions = r.counts.attractions; meta[name].venues = r.counts.venues; meta[name].length = JSON.stringify(r.sectionData).length; }
       cacheData.last_section_built = name;
       results.push({ section: name });
       console.log('[cron-cache] buildAllSections: built ' + cacheKey + ' / ' + name);
