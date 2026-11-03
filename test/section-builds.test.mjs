@@ -119,9 +119,9 @@ test('budgets: uniform 12000 prose ceilings, closures class at 6000, per-section
   assert.ok(SRC.includes('const TIME_BUDGET_MS = 240000;'), 'time budget NOT raised');
 });
 
-test('vercel.json: stable fanout daily, dynamic unchanged', () => {
+test('vercel.json: stable fanout every other day, dynamic unchanged', () => {
   const byPath = Object.fromEntries(VERCEL.crons.map((c) => [c.path, c.schedule]));
-  assert.equal(byPath['/api/cron-cache?key=park_intel_dl_stable'], '0 3 * * *');
+  assert.equal(byPath['/api/cron-cache?key=park_intel_dl_stable'], '0 3 */2 * *');
   assert.equal(byPath['/api/cron-cache?key=park_intel_dl_dynamic'], '0 4 * * 1');
 });
 
