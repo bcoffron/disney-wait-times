@@ -1025,9 +1025,6 @@ const d = document.createElement('div');
 d.innerHTML = html || '';
 return [...d.querySelectorAll('img')].map(i => i.getAttribute('src') || '');
 }
-function ppCountEmpties(blocks) {
-return blocks.reduce((n, b) => n + (ppBlockInfo(b).spacer ? 1 : 0), 0);
-}
 // Nearest index from idx in direction dir holding a NON-spacer, NON-image
 // block (a text/heading/list anchor a photo can trade places with), or -1.
 function ppAnchorIndex(blocks, idx, dir) {
@@ -2758,11 +2755,6 @@ btn.disabled = false;
 // ============================================================
 // VIDEO EMBED
 // ============================================================
-function openVideoModal() {
-document.getElementById('video-url-input').value = '';
-document.getElementById('video-modal').style.display = 'flex';
-setTimeout(function() { document.getElementById('video-url-input').focus(); }, 100);
-}
 
 function closeVideoModal() {
 document.getElementById('video-modal').style.display = 'none';

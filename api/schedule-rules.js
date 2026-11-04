@@ -116,7 +116,6 @@ export function breakNoteForMin(min) {
 // truth and says one hour.)
 // ---------------------------------------------------------------------------
 
-export const ARRIVAL_LEAD_MIN = 60;
 
 // ---------------------------------------------------------------------------
 // ROPE-DROP RANKING (strategy DATA — read from cache, code only holds the LOGIC)

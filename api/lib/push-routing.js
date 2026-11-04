@@ -74,7 +74,6 @@ export const AUDIENCE = {
   // excluded by the caller's excludeToken mechanism, not by role.
   'plan-changed':     { audience: 'all',    variants: { leader: 'fact', guest: 'fact' } }
 };
-export const CATEGORIES = Object.keys(AUDIENCE);
 
 // Registry role -> routing role. 'admin' is the registry's name for the
 // trip leader. Anything unrecognized normalizes to null (unresolved),
