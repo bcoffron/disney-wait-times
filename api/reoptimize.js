@@ -1,5 +1,10 @@
 // redeploy-touch 2026-06-14: force Vercel to rebuild this function with current CORS headers (was serving stale deploy without Access-Control-Allow-Origin)
 import { list } from '@vercel/blob';
+// Shared anchor verify (anchor fix lane, Nov 4, 2026 -- Claude msg 205
+// section 2): verifyAnchorDay is the ONE anchor check for all three call
+// sites (post-generation, this endpoint's post-check, the /api/trip save
+// seam). scaffold.js is import-free, so this adds no cycle.
+import { verifyAnchorDay, buildCatalogIndex, parseCatalogVenues, correctVenueServices, closedNamesFromProse } from './scaffold.js';
 
 // --- Registry-backed trip-code validation (Oct 2026 lockdown) ---
 // A trip code is valid only if it was actually issued (present in the trip
@@ -292,6 +297,24 @@ function _scopeFmtMin(min) {
       h = h % 12; if (h === 0) h = 12;
       return h + ':' + String(mn).padStart(2, '0') + ' ' + ap;
 }
+// Anchor-verify day resolution: the INDEX of the trip day a request
+// targets, matched the same way _scopeResolveDay matches (same tolerant
+// parse, same first-match rule) -- verifyAnchorDay judges records per
+// day index, so the anchor check needs the index, not just the date.
+// _scopeResolveDay's own return shape is deep-equal tested by
+// test/reoptimize-scope.test.mjs and deliberately not extended.
+function _anchorDayIndex(tripCfg, tripDayDate, dayLabel) {
+      const days = (tripCfg && Array.isArray(tripCfg.days)) ? tripCfg.days : [];
+      if (!days.length) return -1;
+      const want = _scopeParseDay(tripDayDate) || _scopeParseDay(dayLabel);
+      if (!want) return -1;
+      for (let i = 0; i < days.length; i++) {
+            const pd = _scopeParseDay(days[i] && days[i].date);
+            if (!pd) continue;
+            if (pd.m === want.m && pd.d === want.d && (want.y === null || pd.y === null || pd.y === want.y)) return i;
+      }
+      return -1;
+}
 // The trip record for the scope guard (same salted-first/bare-fallback
 // key discipline as the registry read above).
 async function _readTripConfigForScope(tripId) {
@@ -422,8 +445,9 @@ async function handler(req, res) {
       // leaves _scopeCtx null and the guard silent: it must never
       // block a legitimate plan on a guess.
       let _scopeCtx = null;
+      let _tripCfg = null;
       try {
-            const _tripCfg = _session ? await _readTripConfigForScope(_session.tripId) : null;
+            _tripCfg = _session ? await _readTripConfigForScope(_session.tripId) : null;
             if (_tripCfg) {
                   const _day = _scopeResolveDay(_tripCfg, tripDayDate, dayLabel);
                   const _tz = _day ? _scopeParkTimezone(_day.park || _tripCfg.location || '') : null;
@@ -434,6 +458,36 @@ async function handler(req, res) {
             }
       } catch (e) { console.log('[reoptimize] scope context unresolved:', e.message); }
       if (_scopeCtx) console.log('[reoptimize] scope guard armed: day ' + _scopeCtx.dayYmd + ' (' + _scopeCtx.tz + '), cutoff ' + _scopeFmtMin(_scopeCtx.cutoffMin));
+      // ------ Anchor-verify context (anchor fix lane part 2, Nov 4, 2026) --
+      // The post-check below runs the shared verifyAnchorDay against the
+      // anchor RECORDS for the day being optimized. The records of truth
+      // are the STORED trip config's (reservations, held returns, the
+      // day's VIP window) -- read from the same registry-resolved trip
+      // record the scope guard uses, never assembled from client-sent
+      // fields: the request being checked does not get to declare which
+      // bookings exist. The day index is resolved with the scope guard's
+      // own date matching. When no stored record resolves (admin-key
+      // calls carry no session; a legacy trip record may be unreadable),
+      // the check falls back to the held returns the client sent for
+      // this day -- the one record class the request itself carries --
+      // so the shared verify still judges held returns on every path.
+      let _anchorCtx = null;
+      try {
+            if (_tripCfg) {
+                  const _aIdx = _anchorDayIndex(_tripCfg, tripDayDate, dayLabel);
+                  if (_aIdx >= 0) {
+                        const _aDayCfg = (Array.isArray(_tripCfg.days) && _tripCfg.days[_aIdx]) || {};
+                        _anchorCtx = { cfg: _tripCfg, dayIndex: _aIdx, dayParks: [_aDayCfg.park, _aDayCfg.startPark].filter(Boolean), dateStr: _aDayCfg.date || '' };
+                  }
+            }
+            if (!_anchorCtx) {
+                  const _bRecs = (Array.isArray(heldReturns) ? heldReturns : []).filter(r => r && typeof r === 'object');
+                  if (_bRecs.length) {
+                        const _bDay = _bRecs.find(r => typeof r.day === 'number');
+                        _anchorCtx = { cfg: { heldReturns: _bRecs, days: [] }, dayIndex: _bDay ? _bDay.day : 0, dayParks: [], dateStr: '' };
+                  }
+            }
+      } catch (e) { console.log('[reoptimize] anchor context unresolved:', e.message); }
 
       // ------ Build cache context from new two-cache architecture ------------------------------------------------------
       const cacheCtx = await buildCacheContext(
@@ -725,6 +779,40 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
               let changeCount = 0;
               const outEntries = [];
               normalized.forEach(sec => (sec.entries || []).forEach(e => outEntries.push(e)));
+              // ---- ANCHOR VERIFY (deterministic; anchor fix lane part 2,
+              // Nov 4, 2026 -- Claude msg 205 section 2, call site 2): the
+              // shared verifyAnchorDay judges the model's plan against
+              // EVERY anchor class with a record. Until now reservations
+              // and the VIP window were protected here by prompt text
+              // only -- the prompt even licensed a 30-minute reservation
+              // drift -- and held returns get the lane's stricter reading
+              // on top of the guard above: a plan for a day whose stored
+              // schedule already lacks the booked return (pre-fix damage)
+              // is refused and names the return, per msg 205. The
+              // held-return guard above is unchanged and fires first for
+              // the cases it has always caught; this check supplements
+              // it. Same refusal shape as both guards: the input schedule
+              // unchanged, the conflicts named. A failure INSIDE the
+              // check itself never blocks a plan (fail-open, like the
+              // post-generation call site): the other guards still ran.
+              if (_anchorCtx) {
+                    try {
+                          const _aCatCtx = await buildCacheContext(['CATALOG']);
+                          const _aCatalog = buildCatalogIndex(_aCatCtx.CATALOG);
+                          const _aVenues = correctVenueServices(parseCatalogVenues(_aCatCtx.CATALOG));
+                          const _aSkip = [...((_anchorCtx.cfg.ridePreferences && _anchorCtx.cfg.ridePreferences.skip) || []), ...(_anchorCtx.cfg.avoidWater === true ? ["Tiana's Bayou Adventure", 'Grizzly River Run'] : [])];
+                          const _aClosed = [...new Set(closedNamesFromProse(cacheCtx.CURRENT_CLOSURES, _anchorCtx.dateStr, Object.values(_aCatalog).map(e => e && e.name).filter(Boolean)))];
+                          const _av = verifyAnchorDay(outEntries, _anchorCtx.cfg, { dayIndex: _anchorCtx.dayIndex, catalog: _aCatalog, venues: _aVenues, closedNames: _aClosed, bannedNames: _aSkip, dayParks: _anchorCtx.dayParks });
+                          if (!_av.ok) {
+                                console.log('[reoptimize] anchor verify kept plan unchanged:', JSON.stringify(_av.violations.map(v => v.kind + ':' + v.name)));
+                                const _aResp = { sections: [{ title: dayLabel || 'Schedule', entries: (Array.isArray(scheduleItems) ? scheduleItems : []) }], explanation: 'Your plan is unchanged. ' + _av.violations.map(v => v.detail).join(' '), changed: false, changeCount: 0, anchorConflicts: _av.violations };
+                                const _aHeld = _av.violations.filter(v => v.kind && v.kind.indexOf('held-return') === 0).map(v => ({ ride: v.name, type: v.kind, detail: v.detail }));
+                                const _aAllHeld = _heldConflicts.concat(_aHeld);
+                                if (_aAllHeld.length) _aResp.heldReturnConflicts = _aAllHeld;
+                                return res.status(200).json(_aResp);
+                          }
+                    } catch (e) { console.log('[reoptimize] anchor verify failed (plan judged by the other guards only):', e.message); }
+              }
               // ---- REMAINDER-SCOPE GUARD (deterministic; Claude ruling,
               // Oct 22, 2026): when the reworked day is TODAY at the park,
               // items that start before the park-local cutoff (now - 30m)
@@ -813,4 +901,4 @@ export default handler;
 // Named exports for test/reoptimize-scope.test.mjs (the platform uses
 // the default export; these exist so the guard's pure helpers can be
 // unit-tested directly).
-export { _scopeParkTimezone, _scopeParseDay, _scopeResolveDay, _scopeParkNow, _scopeFmtMin };
+export { _scopeParkTimezone, _scopeParseDay, _scopeResolveDay, _scopeParkNow, _scopeFmtMin, _anchorDayIndex };
