@@ -56,7 +56,7 @@ function _isLeaderSession(s) {
 }
 
 import { validateSchedule, parseClosedFromCache, landToPark, normPark } from './validate-schedule.js';
-import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, scanProseVenueFlags, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, shortestHeightInches, thrillModeFor, parseDiningIntelDetails, correctPhotoSpotProse, computeLLSequence } from './scaffold.js';
+import { buildSkeleton, buildFillPrompt, applyFills, verifyScaffold, closedNamesForDate, closedNamesFromProse, buildCatalogIndex, parseCatalogVenues, deterministicBackfill, verifyTripParams, enforceTripParams, pickRopeDropRide, pickMorningRides, pickCharacterMeet, normName, normParkName, rideGroupKey, canonicalVenueKey, scanProseVenueFlags, correctVenueServices, normalizeLLAssignments, planCoverageReservations, planReservationAnchors, planHeldReturnAnchors, verifyAnchorDay, shortestHeightInches, thrillModeFor, parseDiningIntelDetails, correctPhotoSpotProse, computeLLSequence } from './scaffold.js';
 
 // --------- Per-IP daily AI cap (50 requests per IP per 24 hours) -----------
 const aiDailyLimit = new Map();
@@ -770,12 +770,33 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
           // Conflicts (wrong park at that time, closed venue, inside the VIP
           // window, unresolvable) are surfaced in the response, never
           // silently dropped.
+          // The catalog index is built here (ahead of its historical first
+          // use at the backfill wiring below) because the held-return
+          // planner needs it; the later consumers reuse this same index.
+          const _catIdx = buildCatalogIndex(cacheCtx.CATALOG);
           let _resvPlan = null;
           try {
             _resvPlan = planReservationAnchors(_sk, (typeof _allReservations !== 'undefined' && Array.isArray(_allReservations)) ? _allReservations : [], { venues: _venuesEarly, closedVenueNames: _closedV, vipWindow: (_vipStart !== null && _vipEnd !== null) ? [_vipStart, _vipEnd] : null, groupSize: _groupSize });
             if (_resvPlan.anchors.length) console.log('[scaffold] reservation anchors:', JSON.stringify(_resvPlan.anchors), 'suppressed:', JSON.stringify(_resvPlan.suppressed));
             if (_resvPlan.conflicts.length) console.warn('[scaffold] reservation conflicts:', JSON.stringify(_resvPlan.conflicts));
           } catch (e) { console.warn('[scaffold] reservation anchor planning failed:', e.message); }
+          // Held Lightning Lane return anchors (anchor fix lane, Nov 4,
+          // 2026 -- Claude msg 205): the sibling of the reservation anchors
+          // above, for booked LL returns (tripConfig.heldReturns). A booked
+          // return is re-seated from its RECORD on every generation,
+          // exactly the way reservations are -- before this lane, nothing
+          // on the generation path read heldReturns at all, so a rebuild
+          // silently un-anchored the booking (proof:
+          // ~/workspace/tpcp-code-audit/completesetup-proof.md). Conflicts
+          // (wrong park, closed, skip-listed, VIP overlap, an overlap with
+          // a reservation) are surfaced in the response, never silently
+          // dropped.
+          let _heldPlan = null;
+          try {
+            _heldPlan = planHeldReturnAnchors(_sk, Array.isArray(_cfg.heldReturns) ? _cfg.heldReturns : [], { dayIndex: _di, catalog: _catIdx, closedNames: _closedS, bannedNames: skipRides, vipWindow: (_vipStart !== null && _vipEnd !== null) ? [_vipStart, _vipEnd] : null });
+            if (_heldPlan.anchors.length) console.log('[scaffold] held-return anchors:', JSON.stringify(_heldPlan.anchors), 'suppressed:', JSON.stringify(_heldPlan.suppressed));
+            if (_heldPlan.conflicts.length) console.warn('[scaffold] held-return conflicts:', JSON.stringify(_heldPlan.conflicts));
+          } catch (e) { console.warn('[scaffold] held-return anchor planning failed:', e.message); }
           const _fillCtx = parkIntelContext
             + '\n\n=== VERIFIED DINING (choose venues ONLY from this list) ===\n' + diningIntel
             + ((charContext && charContext.trim()) ? '\n\n=== CHARACTER MEETS (from cache) ===\n' + charContext : '')
@@ -820,7 +841,6 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
           };
           // Deterministic backfill (recommendation #3): catalog + venues are read BEFORE the
           // fill so dropped slots get real cache-verified picks -- never placeholder cards.
-          const _catIdx = buildCatalogIndex(cacheCtx.CATALOG);
           console.log('[scaffold] catalog entries:', Object.keys(_catIdx).length);
           const _catList = Object.values(_catIdx);
           const _venues = correctVenueServices(parseCatalogVenues(cacheCtx.CATALOG));
@@ -1000,7 +1020,37 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
           // signal (it is legitimately null on some LL-built days).
           let llSequence = null;
           try { llSequence = computeLLSequence(_items, _catIdx, { llmp: _llmp === true, isVip: !!(_day && _day.isVip) }); } catch (e) { console.warn('[scaffold] LL sequence failed:', e.message); }
-          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts, proseVenueFlags: proseVenueFlags, generatedWith: { hasLLMP: _llmp === true, hasILL: _ill === true, illRides: _illNames }, llSequence: llSequence });
+          // Anchor verify (anchor fix lane, Nov 4, 2026 -- Claude msg 205
+          // sections 1+2): the shared anchor-verify judges the day AS IT
+          // SHIPS -- after every mutator and the enforcer -- against the
+          // anchor records for this day (held returns, reservations, the
+          // VIP window). A day that drops or moves an anchor does NOT
+          // ship: the failure response keeps the client's previously
+          // stored day (the shipped clients render { ok:false } as the
+          // failed day and save nothing), and the conflicts are named in
+          // the response. Violations that merely restate a refusal the
+          // planners already surfaced by name (wrong park, closed,
+          // during-VIP, skip-listed) are reconciled out below -- the
+          // planners' conflict channels own those; this check owns drops,
+          // moves, and duplicates of anchors that were seatable. Fail-open
+          // on the check's own errors, like the other surfacing seams: a
+          // verify bug must never brick generation.
+          try {
+            const _av = verifyAnchorDay(_items, _cfg, { dayIndex: _di, catalog: _catIdx, venues: _venues, closedNames: _closedS, bannedNames: skipRides, closedVenueNames: _closedV, dayParks: _dayParks });
+            const _refused = new Set();
+            for (const c of ((_resvPlan && _resvPlan.conflicts) || [])) { if (c && c.name) _refused.add('resv|' + canonicalVenueKey(c.name) + '|' + (typeof c.timeMin === 'number' ? c.timeMin : '')); }
+            for (const c of ((_heldPlan && _heldPlan.conflicts) || [])) { if (c && c.name) _refused.add('held|' + normName(c.name) + '|' + (typeof c.startMin === 'number' ? c.startMin : '')); }
+            const _anchorViolations = (_av.violations || []).filter(v => {
+              if (v.kind.indexOf('reservation') === 0) return !_refused.has('resv|' + canonicalVenueKey(v.name) + '|' + (typeof v.timeMin === 'number' ? v.timeMin : ''));
+              if (v.kind.indexOf('held-return') === 0) return !_refused.has('held|' + normName(v.name) + '|' + (typeof v.startMin === 'number' ? v.startMin : ''));
+              return true;
+            });
+            if (_anchorViolations.length) {
+              console.error('[scaffold] ANCHOR VIOLATIONS day ' + (_di + 1) + ': ' + JSON.stringify(_anchorViolations));
+              return res.status(502).json({ ok: false, error: 'The rebuilt day would drop or move a locked booking (' + _anchorViolations.map(v => v.name).join(', ') + ') -- your saved day was kept.', code: 'ANCHOR_VIOLATION', anchorConflicts: _anchorViolations });
+            }
+          } catch (e) { console.warn('[scaffold] anchor verify failed:', e.message); }
+          return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], heldAnchors: _heldPlan ? _heldPlan.anchors : [], heldConflicts: _heldPlan ? _heldPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts, proseVenueFlags: proseVenueFlags, generatedWith: { hasLLMP: _llmp === true, hasILL: _ill === true, illRides: _illNames }, llSequence: llSequence });
         } catch (_se) {
           // SAFE FAILURE (legacy retired Oct 7, 2026): never fall through
           // to a second engine. The shipped clients render { ok:false,
