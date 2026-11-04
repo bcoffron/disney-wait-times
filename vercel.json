@@ -244,9 +244,6 @@
     "api/blog-delete.js": {
       "maxDuration": 10
     },
-    "api/blog-migrate.js": {
-      "maxDuration": 120
-    },
     "api/blog-render-index.js": {
       "maxDuration": 15
     },
