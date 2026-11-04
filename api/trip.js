@@ -5,7 +5,7 @@ import { matchesKey } from './lib/blob.js';
 // scaffold.js IS imported, but only for the read-only trip-level surfacing
 // computation (computeTripSurfacing) in the POST handler: it reads the final
 // stored schedule and reports; it never mutates anything.
-import { buildCatalogIndex, computeTripSurfacing, parseCatalogVenues, correctVenueServices, scanTripProseForwardFlags } from './scaffold.js';
+import { buildCatalogIndex, computeTripSurfacing, parseCatalogVenues, correctVenueServices, scanTripProseForwardFlags, verifyAnchorDay, closedNamesForDate, closedNamesFromProse } from './scaffold.js';
 // Plan-changed notifications (restoration step iv): this POST is the single
 // persistence seam for schedules, so the material-change diff, the schedule
 // version stamp, and the notify call all live here (see api/plan-changed.js).
@@ -245,6 +245,11 @@ async function readSurfacingCache() {
           if (cl !== undefined) out.CLOSURES = cl;
           const cc = section(d, 'CURRENT_CLOSURES');
           if (cc !== undefined) out.CURRENT_CLOSURES = cc;
+          // DINING_CLOSURES rides along for the POST anchor verify's
+          // closed-venue expectations (anchor fix lane part 2); the
+          // surfacing computation ignores the extra key.
+          const dc = section(d, 'DINING_CLOSURES');
+          if (dc !== undefined) out.DINING_CLOSURES = dc;
         }
       } catch (e) { console.warn('[trip] surfacing dynamic cache read failed:', e.message); }
     })()
@@ -491,6 +496,13 @@ export default async function handler(req, res) {
           tripData.tripConfig.guestCode = entry.guestCode;
         }
       }
+      // Anchor verify (further below, after the guards): which days this
+      // write actually carries, captured BEFORE the merge guard runs. A
+      // day the write does not carry -- or carries empty, for the guard
+      // to rescue from the stored day -- is not this write's day to be
+      // judged on; the verify judges only the days being written.
+      const _avInDays = (tripData && tripData.tripConfig && tripData.tripConfig.schedule && Array.isArray(tripData.tripConfig.schedule.days)) ? tripData.tripConfig.schedule.days : [];
+      const _avJudge = _avInDays.map(d => !!(d && Array.isArray(d.items) && d.items.length));
       // NO save-time schedule rewriting. Generation validates its own output
       // (the scaffold path has its verify layer; the legacy path validates inside
       // /api/generateschedule). The legacy validateSchedule pass that used to run
@@ -576,6 +588,72 @@ export default async function handler(req, res) {
           if (_pdTouched.length) console.log('[trip-preserve] trip ' + entry.tripId + ': carried day field(s) forward -- ' + _pdTouched.join('; '));
         }
       } catch (e) { /* best-effort: never block a save */ }
+      // ANCHOR VERIFY (anchor fix lane part 2, Nov 4, 2026 -- Claude
+      // msg 205 section 2, call site 3): the shared verifyAnchorDay
+      // check runs here, at the one persistence seam every writer
+      // funnels through. This is a CHECK, not a rewrite -- the
+      // distinction the note above draws for validateSchedule: the seam
+      // still stores exactly what the client sent, or stores NOTHING
+      // for this write; it never edits a schedule into compliance. A
+      // day being written that drops or moves an anchor whose record
+      // exists in the INCOMING tripConfig (a confirmed reservation, a
+      // booked Lightning Lane return, the VIP window) refuses the whole
+      // write with the anchor(s) named. The expectation is keyed on the
+      // incoming records, so a legitimate removal still works: when the
+      // write itself removes or updates the anchor's record (the guest
+      // used the record's own Change/Remove controls), the day is no
+      // longer expected to contain it. Only days the write carries with
+      // items are judged (captured in _avJudge before the merge guard),
+      // against the final post-guard content of those days -- a
+      // schedule-less save and a guard-rescued empty day are never
+      // refused here. A failure INSIDE the check itself never blocks a
+      // save (fail-open, like the generation call site): the violations
+      // path is the refusal; a checker defect must not brick the seam.
+      let _scacheShared = null;
+      try {
+        const _avTc = tripData && tripData.tripConfig;
+        const _avDays = _avTc && _avTc.schedule && Array.isArray(_avTc.schedule.days) ? _avTc.schedule.days : null;
+        if (_avTc && _avDays && _avJudge.some(Boolean)) {
+          const _avHasRecords = (Array.isArray(_avTc.heldReturns) && _avTc.heldReturns.length > 0) ||
+            (Array.isArray(_avTc.reservations) && _avTc.reservations.length > 0) ||
+            (_avTc.dining && Array.isArray(_avTc.dining.reservations) && _avTc.dining.reservations.length > 0) ||
+            (Array.isArray(_avTc.days) && _avTc.days.some(d => d && d.isVip));
+          if (_avHasRecords) {
+            // The CATALOG only matters when ride/dining records exist
+            // (the VIP leg resolves from the config alone); read the
+            // surfacing cache once and share it with the surfacing
+            // computation below.
+            const _avNeedsCatalog = (Array.isArray(_avTc.heldReturns) && _avTc.heldReturns.length > 0) ||
+              (Array.isArray(_avTc.reservations) && _avTc.reservations.length > 0) ||
+              (_avTc.dining && Array.isArray(_avTc.dining.reservations) && _avTc.dining.reservations.length > 0);
+            let _avCatalog = {}, _avVenues = [];
+            if (_avNeedsCatalog) {
+              _scacheShared = await readSurfacingCache();
+              _avCatalog = buildCatalogIndex(_scacheShared.CATALOG);
+              _avVenues = correctVenueServices(parseCatalogVenues(_scacheShared.CATALOG));
+            }
+            const _avSkip = [...((_avTc.ridePreferences && _avTc.ridePreferences.skip) || []), ...(_avTc.avoidWater === true ? ["Tiana's Bayou Adventure", 'Grizzly River Run'] : [])];
+            const _avCatalogNames = Object.values(_avCatalog).map(e => e && e.name).filter(Boolean);
+            const _avViolations = [];
+            for (let _di = 0; _di < _avDays.length; _di++) {
+              if (!_avJudge[_di]) continue;
+              const _avDay = _avDays[_di];
+              if (!_avDay || !Array.isArray(_avDay.items)) continue;
+              const _avCfgDay = (Array.isArray(_avTc.days) && _avTc.days[_di]) || {};
+              const _avDate = _avCfgDay.date || _avDay.isoDate || _avDay.date || '';
+              const _avClosed = _scacheShared ? [...new Set([...closedNamesForDate(_scacheShared.CLOSURES, _avDate), ...closedNamesFromProse(_scacheShared.CURRENT_CLOSURES, _avDate, _avCatalogNames)])] : [];
+              const _avClosedV = _scacheShared ? closedNamesForDate(_scacheShared.DINING_CLOSURES, _avDate) : [];
+              const _avParks = [...new Set([_avDay.park, _avDay.finalPark, _avCfgDay.park, _avCfgDay.startPark].filter(Boolean))];
+              const _avRes = verifyAnchorDay(_avDay.items, _avTc, { dayIndex: _di, catalog: _avCatalog, venues: _avVenues, closedNames: _avClosed, bannedNames: _avSkip, closedVenueNames: _avClosedV, dayParks: _avParks });
+              for (const _avV of _avRes.violations) _avViolations.push(Object.assign({ day: _di + 1 }, _avV));
+            }
+            if (_avViolations.length) {
+              console.warn('[trip-anchor] refused save for trip ' + entry.tripId + ': ' + JSON.stringify(_avViolations.map(v => 'day' + v.day + ':' + v.kind + ':' + v.name)));
+              return res.status(400).json({ error: 'This save would drop or move a locked booking (' + _avViolations.map(v => v.name + ' on day ' + v.day).join('; ') + '), so your trip was not changed. To remove a booking, remove it through its booking controls instead of editing the day.', code: 'ANCHOR_VIOLATION', anchorConflicts: _avViolations });
+            }
+          }
+        }
+      } catch (e) { console.warn('[trip-anchor] anchor verify failed (save proceeds):', e.message); }
       // Plan-changed version stamp (step iv): computed against the FINAL
       // schedule (post merge-guard -- exactly what is about to be
       // stored). The version moves ONLY when a day's card sequence
@@ -637,7 +715,7 @@ export default async function handler(req, res) {
         const _stc = tripData && tripData.tripConfig;
         const _sdays = _stc && _stc.schedule && _stc.schedule.days;
         if (Array.isArray(_sdays) && _sdays.some(d => d && Array.isArray(d.items) && d.items.length)) {
-          const _scache = await readSurfacingCache();
+          const _scache = _scacheShared || await readSurfacingCache();
           const _surf = computeTripSurfacing(_stc, {
             catalog: buildCatalogIndex(_scache.CATALOG),
             closures: _scache.CLOSURES,
