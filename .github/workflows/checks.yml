@@ -33,6 +33,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Exactly one NativeMapSpikePlugin.swift
+        run: |
+          count=$(find . -name NativeMapSpikePlugin.swift -not -path './node_modules/*' | wc -l)
+          if [ "$count" -ne 1 ]; then
+            echo "Expected exactly 1 NativeMapSpikePlugin.swift in the tree, found $count:"
+            find . -name NativeMapSpikePlugin.swift -not -path './node_modules/*'
+            exit 1
+          fi
       - name: Cron auth class check
         run: node scripts/check-cron-auth.mjs
       - name: Photo bundle drift check

@@ -861,7 +861,6 @@ const ILL_ONLY_KEYS = new Set(['star wars rise of the resistance', 'radiator spr
 // the close is unknown). A 1:25 PM Radiator Springs card is exactly the
 // failure this rule exists to prevent.
 export const RSR_KEY = normName('Radiator Springs Racers');
-export function rsrWindowOk(startMin, closeMin) { return headlinerWindowOk(startMin, closeMin); }
 // HEADLINER WINDOW (Beau, Oct 7, 2026 -- generalizes the RSR rule): EVERY
 // catalog ropeDropValue='high' ride has the same standby physics as RSR --
 // the line explodes by late morning and stays brutal until the evening --

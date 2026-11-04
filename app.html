@@ -2255,16 +2255,7 @@ function stripMd(t){
 function renderLockCountdowns(){}
 function checkShowSetupBanner(){try{var isSetupDone=localStorage.getItem('tripSetupComplete')==='true'||localStorage.getItem('setup_done')==='yes';var banner=document.getElementById('tripSetupBanner');if(banner){banner.style.display=isSetupDone?'none':'flex';}if(typeof isAdmin==='function'&&isAdmin()&&typeof curTab!=='undefined'&&curTab==='schedule'){var b=document.getElementById('setupBanner');if(b&&!isSetupDone){var s=parseInt(localStorage.getItem('setup_skips')||'0');if(s<5)b.style.display='block';}}}catch(e){}}
 function getLiveClosures(){try{var ts=parseInt(localStorage.getItem('live_closure_ts')||'0');if(Date.now()-ts>30*60*1000)return null;return{refurb:JSON.parse(localStorage.getItem('live_refurb')||'[]'),tempDown:JSON.parse(localStorage.getItem('live_tempdown')||'[]')};}catch(e){return null;}}
-function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
 
-function isRideInRefurb(rideName){
-  try{
-    var stored=localStorage.getItem('weekly_refurbs');
-    if(stored){var data=JSON.parse(stored);if(Date.now()-data.ts<7*24*60*60*1000&&Array.isArray(data.rides)){var norm=typeof normalizeRideName==='function'?normalizeRideName(rideName):rideName.toLowerCase();return data.rides.some(function(r){var rn=typeof normalizeRideName==='function'?normalizeRideName(r):r.toLowerCase();return norm.indexOf(rn)>-1||rn.indexOf(norm)>-1;});}}
-  }catch(e){}
-  if(typeof waits!=='undefined'&&Object.keys(waits).length){var d=typeof lookupWait==='function'?lookupWait(rideName):null;if(d&&d.s==='REFURBISHMENT')return true;}
-  return false;
-}
 function renderClosuresFromWaits(){if(typeof waits==='undefined'||!Object.keys(waits).length)return;var r=[];Object.keys(waits).forEach(function(k){var w=waits[k];if(w.s==='REFURBISHMENT')r.push(w.raw);});try{localStorage.setItem('live_refurb',JSON.stringify(r));localStorage.setItem('live_tempdown',JSON.stringify([]));localStorage.setItem('live_closure_ts',Date.now().toString());}catch(e){}}
 function isParkOpen(){
   try{
@@ -2276,7 +2267,6 @@ function isParkOpen(){
     return hr>=(w.open-1)&&hr<=(w.close+1);
   }catch(e){return true;}
 }
-function isWithinParkWindow(){return isParkOpen();}
 function getNextParkOpenTime(){
   try{
     var w=getDayParkWindow();
@@ -2532,9 +2522,6 @@ function tpcpPickFromDays(daysArr){
     return parsed[parsed.length-1].idx;
   }catch(e){ return -1; }
 }
-function tpcpPickIsPossible(){
-  try{ return tpcpPickFromDays((window.TRIP_CONFIG&&TRIP_CONFIG.days)||[])>=0; }catch(e){ return false; }
-}
 // Reflect curDay onto the tab strip without rendering or logging: the
 // tabs display state, and the first paint must show the picked day's
 // tab lit even though no setDay "change" ever happened.
@@ -2607,12 +2594,6 @@ function tpcpParkTimeEpoch(dayIdx,iso,hour,min){
     }
     return guess;
   }catch(e){ return null; }
-}
-function tpcpIsInTripParkLocal(dayIdx){
-  var rd=(typeof tpcpRealDays==='function')?tpcpRealDays():[];
-  if(!rd.length) return false;
-  var iso=tpcpParkTodayIso(dayIdx||0); if(!iso) return false;
-  return iso>=rd[0].iso && iso<=rd[rd.length-1].iso;
 }
 /* TPCP-STARTUP-DAYSTATE-END */
 
@@ -3086,19 +3067,6 @@ function applyRoleUI(){
   document.body.classList.remove('tw-admin');
   if(_isAdmin){document.body.classList.add('tw-admin');}else{document.body.classList.add('tw-guest');}
 }
-function generateStars(){
-  var c=document.getElementById('lockStars');
-  if(!c) return;
-  var html='';
-  for(var i=0;i<60;i++){
-    var x=Math.random()*100;
-    var y=Math.random()*100;
-    var s=Math.random()*3+1.5;
-    var d=Math.random()*4;
-    html+='<div class="lock-star" style="left:'+x+'%;top:'+y+'%;width:'+s+'px;height:'+s+'px;animation-delay:'+d+'s"></div>';
-  }
-  c.innerHTML=html;
-}
 
 // Real trip-day derivation (grep-zero, Oct 2026 -- msg 66 ruling E): every
 // date/hours claim on a render or prompt surface comes from the LOADED trip
@@ -3268,21 +3236,6 @@ function scheduleWeatherCheck(){
   }
 }
 
-function wxIcon(code){
-  // SVG weather icons &mdash; no emoji
-  var sun='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
-  var cloud='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>';
-  var partlyCloud='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><line x1="19" y1="4" x2="19" y2="4.01"/><line x1="22" y1="7" x2="22.01" y2="7"/><line x1="16" y1="7" x2="16.01" y2="7"/></svg>';
-  var rain='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/></svg>';
-  var storm='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>';
-  if(code===0) return sun;
-  if(code<=2) return partlyCloud;
-  if(code<=3) return cloud;
-  if(code<=48) return cloud;
-  if(code<=67) return rain;
-  if(code<=82) return rain;
-  return storm;
-}
 
 function getCountdown(){
   // Computed from the trip's REAL days (grep-zero, Oct 2026): the June 2026
@@ -3359,14 +3312,6 @@ var constraintRules='HARD CONSTRAINTS never violate: '
 var SYNC_BASE='https://app.themeparkcopilot.com';
 
 // Secure AI fetch \u2014 always injects trip code for server-side authentication
-function _aiFetch(endpoint, body) {
-  var code = localStorage.getItem('tpcp_code') || '';
-  var role = localStorage.getItem('tpcp_role') || 'guest';
-  var headers = {'Content-Type': 'application/json'};
-  if (role === 'admin') { headers['x-admin-key'] = ensureAdminKey(); }
-  var secureBody = Object.assign({}, body, { tripCode: code });
-  return fetch(SYNC_BASE + endpoint, { method: 'POST', headers: headers, body: JSON.stringify(secureBody) });
-}
 
 // PART 7: Build wait time context for Ask AI
 function buildWaitContext() {
@@ -4212,28 +4157,6 @@ function lookupWait(rideName){
   return bestScore>=0.5?waits[bestKey]:null;
 }
 
-function wbHTML(rideName){
-  // Check refurb first (weekly Claude search overrides API)
-  if(isRideInRefurb(rideName)) return '<span class="wb wb-closed">Refurb</span>';
-  var d=lookupWait(rideName);
-  var grey='background:rgba(150,150,150,0.1);color:#888;border:1px solid rgba(150,150,150,0.2)';
-  var hasAnyData=Object.keys(waits).length>0;
-  if(!d){
-    // Ride not in wait data - only show Park Closed if we HAVE data but park is closed
-    if(hasAnyData&&!isWithinParkWindow())
-      return '<span class="wb" style="'+grey+'">Park Closed</span>';
-    return '';
-  }
-  if(d.s==='REFURBISHMENT') return '<span class="wb wb-closed">Refurb</span>';
-  if(d.s!=='OPERATING'||d.w===null){
-    // Ride specifically closed - only say Park Closed if outside hours
-    if(!isWithinParkWindow())
-      return '<span class="wb" style="'+grey+'">Park Closed</span>';
-    return '<span class="wb wb-closed">Closed</span>';
-  }
-  var cls=d.w===0?'wb-low':d.w<30?'wb-low':d.w<45?'wb-med':'wb-high';
-  return '<span class="wb '+cls+'">'+(d.w===0?'Walk on':(d.w===null||d.w===undefined)?'\u2014':d.w+' min')+'</span>';
-}
 
 function updateWaitStatus(){
   var txt=waitLastFetch?(Date.now()-waitLastFetch<60000?'Live \u2022 Just updated':'Updated '+Math.round((Date.now()-waitLastFetch)/60000)+' min ago'):'Loading wait times...';
@@ -5107,58 +5030,8 @@ function tpcpManualSinglePassHTML(dayIdx, seq){
 //    Magic Day fireworks                                                   
 var fwParticles=[], fwAnimId=null, fwLaunchTimer=null;
 
-function launchFwBurst(canvas){
-  var cx=Math.random()*canvas.width;
-  var cy=Math.random()*(canvas.height*.65)+canvas.height*.03;
-  var cols=['#FFD700','#E8A020','#C084FC','#FFFFFF','#FDE68A','#A78BFA','#60A5FA','#F472B6'];
-  var col=cols[Math.floor(Math.random()*cols.length)];
-  var count=70+Math.floor(Math.random()*30);
-  for(var i=0;i<count;i++){
-    var angle=Math.random()*Math.PI*2;
-    var speed=Math.random()*8+3;
-    fwParticles.push({x:cx,y:cy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,alpha:1,color:col,size:Math.random()*5+2,decay:Math.random()*.02+.014,gravity:.09});
-  }
-}
 
-function runFwAnimation(){
-  var canvas=document.getElementById('fwCanvas');
-  if(!canvas) return;
-  canvas.width=window.screen.width*window.devicePixelRatio||window.innerWidth;
-  canvas.height=window.screen.height*window.devicePixelRatio||window.innerHeight;
-  canvas.style.width='100%';
-  canvas.style.height='100%';
-  var ctx=canvas.getContext('2d');
-  fwParticles=[];
-  launchFwBurst(canvas); launchFwBurst(canvas); launchFwBurst(canvas);
-  fwLaunchTimer=setInterval(function(){
-    if(!document.getElementById('magicDayScreen')||document.getElementById('magicDayScreen').style.display==='none'){
-      clearInterval(fwLaunchTimer);return;
-    }
-    launchFwBurst(canvas);
-    if(Math.random()>.4) setTimeout(function(){launchFwBurst(canvas);},200);
-  },600);
-  function loop(){
-    ctx.fillStyle='rgba(13,27,110,0.13)';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    if(fwParticles.length>550) fwParticles.splice(0,fwParticles.length-550);
-    for(var i=fwParticles.length-1;i>=0;i--){
-      var p=fwParticles[i];
-      p.x+=p.vx; p.y+=p.vy; p.vy+=p.gravity; p.vx*=.97; p.alpha-=p.decay;
-      if(p.alpha<=0){fwParticles.splice(i,1);continue;}
-      ctx.save();ctx.globalAlpha=p.alpha;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
-      ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=6;ctx.fill();ctx.restore();
-    }
-    fwAnimId=requestAnimationFrame(loop);
-  }
-  loop();
-}
 
-function testMagicDay(){
-  // Reset shown flag so it can show again
-  try{localStorage.removeItem('magic_day_shown');}catch(e){}
-  var md=document.getElementById('magicDayScreen');
-  if(md){md.style.display='flex';md.style.flexDirection='column';md.style.alignItems='center';md.style.justifyContent='center';setTimeout(runFwAnimation,150);}
-}
 
 function closeMagicDay(){
   if(fwAnimId) cancelAnimationFrame(fwAnimId);
@@ -5419,13 +5292,8 @@ var pendingReopt=null, dragSrc=null;
 
 //    API Key                                                                
 function loadKey(){try{localStorage.removeItem('disney_api_key');}catch(e){}apiKey='server';var _s=document.getElementById('apiSetup');if(_s)_s.style.display='none';}
-function saveKey(){(document.getElementById('apiSaved')||{style:{},value:'',textContent:''}).classList.add('show');(document.getElementById('apiSetup')||{style:{},value:'',textContent:''}).style.display='none';}
-function saveKey2(){var _e=document.getElementById('apiSaved2');if(_e)_e.classList.add('show');}
-function resetKey(){apiKey='server';try{localStorage.removeItem('disney_api_key');}catch(e){}(document.getElementById('apiSetup')||{style:{},value:'',textContent:''}).style.display='';(document.getElementById('apiKeyInput')||{style:{},value:'',textContent:''}).value='';(document.getElementById('apiSaved')||{style:{},value:'',textContent:''}).classList.remove('show');}
 
 //    Deep links                                                             
-function openDisneyApp(){var a=document.createElement('a');a.href='https://disneyland.disney.go.com/wait-times/';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
-function openLightningLane(){var a=document.createElement('a');a.href='https://disneyland.disney.go.com/my-plans/';a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
 
 //    Schedule storage                                                       
 //    Schedule model sizing (Oct 20, 2026)
@@ -5497,11 +5365,6 @@ function saveCustom(d){
 function getCurDay(){return customSched[curDay]||JSON.parse(JSON.stringify(DAYS[curDay]||{}));}
 
 //    VIP notes                                                              
-function saveVipNotes(d,v){
-  try{localStorage.setItem('vip_notes_'+d,v);}catch(e){}
-  pushVipNotes(d,v);
-}
-function loadVipNotes(d){try{return localStorage.getItem('vip_notes_'+d)||'';}catch(e){return '';}}
 
 //    Edit mode                                                              
 function startInlineEdit(el, dayIdx, secIdx, entryIdx, field){
@@ -5531,7 +5394,6 @@ function startInlineEdit(el, dayIdx, secIdx, entryIdx, field){
 }
 
 function toggleEdit(){if(!isAdmin()){alert('Sign in as admin to edit the schedule.');return;}editMode=!editMode;var btn=document.getElementById('editToggle');btn.innerHTML=editMode?'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Done Editing':'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';btn.classList.toggle('active',editMode);renderSched();}
-function resetSched(){if(!confirm('Reset this day to the original schedule?'))return;customSched[curDay]=null;renderSched();}
 function deleteEntry(d,s,e){var data=JSON.parse(JSON.stringify(getCurDay()));data.sections[s].entries.splice(e,1);customSched[d]=data;saveCustom(d);renderSched();}
 
 //    Drag & drop                                                            
@@ -5568,9 +5430,6 @@ function vnRenderAvatars(){
 // Load/save entries via localStorage
 function vnLoadEntries(){
   try{return JSON.parse(localStorage.getItem('vn_entries_2')||'[]');}catch(e){return [];}
-}
-function vnPersist(entries){
-  // deprecated - use vnSyncChange instead
 }
 
 // Escape HTML for entry text
@@ -6162,39 +6021,7 @@ function renderLLBanner(e,dayIdx){
   return out;
 }
 
-function diningCacheKey(r){return 'dining_'+r.toLowerCase().replace(/[^a-z0-9]/g,'_');}
 
-function buildDiningHTML(restaurant, text){
-  var html='<div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> '+restaurant+'</div>';
-  var sections={must:[],kids:[],veggie:[]};
-  var lines=text.split('\n');
-  var cur=null;
-  lines.forEach(function(line){
-    var l=line.trim();
-    if(!l) return;
-    if(/must.have|must.order|signature|top.dish/i.test(l)) cur='must';
-    else if(/kid|children|child/i.test(l)) cur='kids';
-    else if(/veg(etarian|an|gie)/i.test(l)) cur='veggie';
-    else if(cur&&l.length>3) sections[cur].push(l.replace(/^[-*&#8226;0-9.]+\s*/,'').replace(/\*\*/g,''));
-  });
-  if(!sections.must.length&&!sections.kids.length&&!sections.veggie.length){
-    html+='<div style="font-size:12px;color:var(--text-muted);line-height:1.6;word-wrap:break-word">'+text.replace(/\n/g,'<br>').replace(/\*\*/g,'')+'</div>';
-    return html;
-  }
-  function renderItems(items,tagClass,tagLabel){
-    if(!items.length) return '';
-    var h='<div class="dr-row"><span class="dr-tag '+tagClass+'">'+tagLabel+'</span><div style="flex:1;min-width:0">';
-    h+=items.slice(0,3).map(function(item){
-      return '<div style="padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.05);word-wrap:break-word;line-height:1.5">'+item+'</div>';
-    }).join('');
-    h+='</div></div>';
-    return h;
-  }
-  html+=renderItems(sections.must,'dr-must','must have');
-  html+=renderItems(sections.kids,'dr-kids','kids');
-  html+=renderItems(sections.veggie,'dr-veggie','veggie');
-  return html;
-}
 async function fetchDiningRecs(e){
   if(e) e.preventDefault();
   var btn=this;
@@ -6780,15 +6607,6 @@ function renderWaitTab(){
   el.innerHTML=renderGroup('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21V9l4-4 4 4 4-4 4 4v12"/><path d="M9 21v-6h6v6"/></svg> Disneyland Park',dlRides)+renderGroup('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg> Disney California Adventure',dcaRides);
   if(typeof renderClosuresFromWaits==='function') renderClosuresFromWaits();
 }
-function toggleAccordion(id){
-  var hdr=document.getElementById('ah_'+id);
-  var body=document.getElementById('ab_'+id);
-  if(!hdr||!body) return;
-  var isOpen=body.classList.contains('open');
-  hdr.classList.toggle('open',!isOpen);
-  body.classList.toggle('open',!isOpen);
-  hdr.querySelector('.accordion-arrow').innerHTML=isOpen?'&#8964;':'&#8963;';
-}
 
 function toggleInfoSection(id){
   var body=document.getElementById('body-'+id);
@@ -6804,13 +6622,6 @@ function openInfoSection(id){
   if(!body) return;
   body.style.maxHeight=body.scrollHeight+'px';body.style.overflow='visible';
   if(chevron) chevron.style.transform='rotate(180deg)';
-}
-function closeInfoSection(id){
-  var body=document.getElementById('body-'+id);
-  var chevron=document.querySelector('#section-'+id+' .info-section-chevron');
-  if(!body) return;
-  body.style.maxHeight='0px';body.style.overflow='hidden';
-  if(chevron) chevron.style.transform='rotate(0deg)';
 }
 function shareViaText(){doShareText();}
 function copyShareInfo(){doCopyLink();}
@@ -6907,7 +6718,6 @@ function deleteCustomItem(index) {
   localStorage.setItem('tpcp_checklist_custom', JSON.stringify(custom));
   renderChecklist();
 }
-function buildFullDiningGuide(){var restaurants=[{name:'Blue Bayou Restaurant',area:'New Orleans Square',type:'Table Service',price:'$$$',note:'Iconic waterfront setting. Book via Disneyland app.'},{name:'Caf\u00e9 Orl\u00e9ans',area:'New Orleans Square',type:'Quick Service',price:'$$',note:'Monte Cristo sandwich is a must. Walk-up counter.'},{name:'River Belle Terrace',area:'Frontierland',type:'Quick Service',price:'$$',note:'Walk-up friendly, great views of Rivers of America.'},{name:'Carnation Caf\u00e9',area:'Main Street U.S.A.',type:'Table Service',price:'$$',note:'Classic American fare. Great for breakfast.'},{name:'Jolly Holiday Bakery',area:'Main Street U.S.A.',type:'Quick Service',price:'$',note:'Sandwiches and treats on Main Street.'},{name:'Galactic Grill',area:'Tomorrowland',type:'Quick Service',price:'$$',note:'Star Wars-themed. Cosmic Onion Rings are a must.'},{name:'Bengal Barbecue',area:'Adventureland',type:'Quick Service',price:'$',note:'Skewers near Indiana Jones. Walk-up window.'},{name:'Rancho del Zocalo',area:'Frontierland',type:'Quick Service',price:'$$',note:'Mexican cuisine near Big Thunder.'},{name:'Village Haus Restaurant',area:'Fantasyland',type:'Quick Service',price:'$$',note:'Pizzas and pastas with Matterhorn views.'},{name:'Harbour Galley',area:'Frontierland',type:'Quick Service',price:'$',note:'Clam chowder by the Rivers of America.'},{name:'Carthay Circle Restaurant',area:'DCA \u2014 Buena Vista St',type:'Table Service',price:'$$$',note:'Upscale dining. Reservations recommended.'},{name:'Lamplight Lounge',area:'DCA \u2014 Pixar Pier',type:'Table Service',price:'$$$',note:'Seafood with Pixar Pier views. Book in advance.'},{name:'Pacific Wharf Caf\u00e9',area:'DCA \u2014 Pacific Wharf',type:'Quick Service',price:'$$',note:'Clam chowder in sourdough bread bowls.'},{name:'Smokejumpers Grill',area:'DCA \u2014 Grizzly Peak',type:'Quick Service',price:'$$',note:'Burgers and fries. Mobile order recommended.'},{name:"Flo's V8 Caf\u00e9",area:'DCA \u2014 Cars Land',type:'Quick Service',price:'$$',note:'Route 66-themed diner.'},{name:'Shawarma Palace',area:'DCA \u2014 Avengers Campus',type:'Quick Service',price:'$$',note:'Shawarma wrap is excellent.'},{name:'Pym Test Kitchen',area:'DCA \u2014 Avengers Campus',type:'Quick Service',price:'$$',note:'Marvel-themed creative menu.'}];var byArea={};restaurants.forEach(function(r){if(!byArea[r.area])byArea[r.area]=[];byArea[r.area].push(r);});var h='<div class="info-card"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--magic);margin-bottom:12px">Disneyland Resort Dining</div>';Object.keys(byArea).forEach(function(area){h+='<div style="font-size:10px;font-weight:700;color:#1A6860;letter-spacing:.06em;text-transform:uppercase;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)">'+area+'</div>';byArea[area].forEach(function(r){h+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="font-size:12px;font-weight:600;color:var(--text)">'+r.name+'</div><div style="display:flex;gap:4px;flex-shrink:0"><span style="font-size:9px;background:rgba(26,104,96,0.1);color:#1A6860;padding:2px 7px;border-radius:99px;font-weight:600">'+r.type+'</span><span style="font-size:9px;background:rgba(180,120,40,0.1);color:#8A5800;padding:2px 7px;border-radius:99px;font-weight:700">'+r.price+'</span></div></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.4">'+r.note+'</div></div>';});});h+='<div style="font-size:9px;color:var(--text-dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><b style="color:var(--text)">Note:</b> Check the Disneyland app for current hours and reservation availability.</div></div>';return h;}
 function openEditTripModal(){window.location.href='/pretrip.html?edit=true';}
 function confirmRegenerateSchedule(){if(confirm('Rebuild schedule from your preferences?')){window.location.href='/pretrip.html?rebuild=true';}}
 function sanitizeText(s){if(!s)return s;return s.replace(/(\u00C3[\x82-\xFF]|\u00C2[\x80-\xBF])+/g,"").trim();}
@@ -7666,21 +7476,13 @@ function tpcpShareCode(){var own=(localStorage.getItem('tpcp_code')||'').toUpper
 function doShareText(){var code=tpcpShareCode();if(!code){showToast('Your group code is not loaded yet. Re-enter your trip code to refresh it.');return;}var msg='Hey! Here is our Disneyland trip plan in the Theme Park CP app.\n\nGroup code (view-only): '+code+'\n\nInstall Theme Park CP, choose "I have a trip code", and enter the code to follow along.';if(navigator.share){navigator.share({title:'Theme Park Co-Pilot',text:msg}).catch(function(){});}else{window.open('sms:?body='+encodeURIComponent(msg));}}
 function doCopyLink(){var _sc=tpcpShareCode();if(!_sc){showToast('Your group code is not loaded yet. Re-enter your trip code to refresh it.');return;}var text='Theme Park Co-Pilot trip\nGroup code (view-only): '+_sc+'\nInstall the Theme Park CP app and enter the code to follow our trip.';if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){var b=document.getElementById('copyBtn');if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Info';},2000);}});}}
 
-var HEIGHTS={"Space Mountain":40,"Matterhorn Bobsleds":42,"Big Thunder Mountain Railroad":40,"Indiana Jones Adventure":46,"Star Wars Rise of Resistance":40,"Millennium Falcon":38,"Tianas Bayou Adventure":40,"Incredicoaster":48,"Guardians of the Galaxy":40,"Radiator Springs Racers":40,"Grizzly River Run":42,"Star Tours":40};
-function getGroupHeights(){try{return JSON.parse(localStorage.getItem('group_heights')||'[]');}catch(e){return[];}}
 function saveGroupHeights(arr){try{localStorage.setItem('group_heights',JSON.stringify(arr));}catch(e){}}
-function addHeight(){var h=getGroupHeights();h.push(48);saveGroupHeights(h);renderInfoTab();}
-function removeHeight(i){var h=getGroupHeights();h.splice(i,1);saveGroupHeights(h);renderInfoTab();}
-function updateHeight(i,v){var h=getGroupHeights();h[i]=parseInt(v)||48;saveGroupHeights(h);renderSched();}
-function checkHeightWarning(rideName){if(!rideName)return null;var req=null;var rLower=rideName.toLowerCase();Object.keys(HEIGHTS).forEach(function(k){if(rLower.indexOf(k.toLowerCase().substring(0,8))>-1)req=HEIGHTS[k];});if(!req)return null;var heights=getGroupHeights();if(!heights.length)return null;return heights.some(function(h){return h<req;})?'warn':'ok';}
 
 var chatHistory=[];
 var setupData={};
 function getSetupSkips(){try{return parseInt(localStorage.getItem('setup_skips')||'0');}catch(e){return 0;}}
-function setSetupSkips(n){try{localStorage.setItem('setup_skips',String(n));}catch(e){}}
 function isSetupDone(){try{return localStorage.getItem('setup_done')==='yes';}catch(e){return false;}}
 function checkShowSetupBanner(){if(!isAdmin()||isSetupDone()||curTab!=='schedule')return;var sk=getSetupSkips();var b=document.getElementById('setupBanner');if(!b)return;if(sk>=5){openSetup();return;}b.style.display='block';if(sk>0){var s=document.getElementById('setupBannerSub');if(s)s.textContent='Personalize the AI ('+(5-sk)+' reminders left)';}}
-function skipSetup(){setSetupSkips(getSetupSkips()+1);var b=document.getElementById('setupBanner');if(b)b.style.display='none';}
 function openSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.remove('hidden');setupGoTo(0);}
 function closeSetup(){var o=document.getElementById('setupOverlay');if(o)o.classList.add('hidden');}
 function setupGoTo(s){document.querySelectorAll('.setup-step').forEach(function(el,i){el.classList.toggle('active',i===s);});[0,1,2,3].forEach(function(i){var d=document.getElementById('sp'+i);if(d){d.classList.toggle('done',i<s);d.classList.toggle('active',i===s);}});}
@@ -7691,16 +7493,6 @@ function toggleHeightKids(y){document.getElementById('hasKidsYes').classList.tog
 function addKidHeight(){var a=document.getElementById('kidsHeightInputs');var i=a.children.length;var d=document.createElement('div');d.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px';d.innerHTML='<span style="font-size:13px;color:var(--text-muted)">Child '+(i+1)+'</span><input type="number" min="24" max="60" value="44" style="width:80px;padding:6px 8px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit">';a.appendChild(d);}
 function getChipSelections(id){return Array.from(document.querySelectorAll('#'+id+' .setup-chip.selected')).map(function(c){return c.textContent.trim();});}
 function showToast(msg,bg){var t=document.createElement('div');t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:'+(bg||'linear-gradient(135deg,var(--magic),var(--purple))')+';color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:900;white-space:nowrap';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove();},2500);}
-async function completeSetup(){
-  var wc=document.getElementById('charYes')&&document.getElementById('charYes').classList.contains('selected');
-  setupData={groupSize:parseInt(document.getElementById('groupSize').value),ages:getChipSelections('ageChips'),thrill:getChipSelections('thrillChips')[0]||'Mix',startTime:getChipSelections('startChips')[0]||'Rope drop',mustRides:getChipSelections('mustRideChips'),skipRides:getChipSelections('skipRideChips'),ll:getChipSelections('llChips')[0]||'Undecided',dining:getChipSelections('diningChips')[0]||'Mix',pace:getChipSelections('paceChips')[0]||'Balanced',wantsChars:wc,charsDL:wc?getChipSelections('charDLChips'):[],charsDCA:wc?getChipSelections('charDCAChips'):[],charPriority:wc?(getChipSelections('charPriorityChips')[0]||'Fit in when convenient'):'none'};
-  var ki=document.querySelectorAll('#kidsHeightInputs input');if(ki.length){saveGroupHeights(Array.from(ki).map(function(i){return parseInt(i.value)||44;}));}
-  try{localStorage.setItem('setup_data',JSON.stringify(setupData));localStorage.setItem('setup_done','yes');}catch(e){}
-  closeSetup();var b=document.getElementById('setupBanner');if(b)b.style.display='none';
-  if(apiKey){showSetupGeneratePrompt();}else{showToast('Ride Style saved!');}
-}
-function showSetupGeneratePrompt(){var card=document.createElement('div');card.id='sgc';card.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border:1.5px solid rgba(27,47,160,0.3);border-radius:var(--radius);padding:16px;z-index:900;box-shadow:0 8px 40px rgba(0,0,0,.4)';card.innerHTML='<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M19 16l.5 1.5L21 18l-1.5.5L19 20l-.5-1.5L17 18l1.5-.5z"/><path d="M5 4l.5 1.5L7 6l-1.5.5L5 8l-.5-1.5L3 6l1.5-.5z"/></svg> Generate personalized schedule?</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Claude can rebuild your schedule based on your Ride Style.</div><div style="display:flex;gap:8px"><button onclick="generateFromSetup()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--magic),var(--purple));color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">Yes, rebuild</button><button onclick="dismissGenCard()" style="padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:none;color:var(--text-muted);font-size:13px;font-family:inherit;cursor:pointer">Later</button></div>';document.body.appendChild(card);}
-function dismissGenCard(){var c=document.getElementById('sgc');if(c)c.remove();showToast('Ride Style saved!');}
 // Trip-level must-do surfacing (Oct 7, 2026): rendered ONLY from the save
 // response fields the server computes once at the save seam (api/trip.js) --
 // tripUnplacedMustDos (placed on no day of the saved schedule) and
@@ -8183,25 +7975,6 @@ function storeRefurbs(rides){
   }catch(e){}
 }
 
-function isRideInRefurb(rideName){
-  // Check weekly Claude search results first
-  var weeklyRefurbs=getStoredRefurbs();
-  if(weeklyRefurbs&&weeklyRefurbs.length){
-    var norm=normalizeRideName(rideName);
-    var found=weeklyRefurbs.some(function(r){
-      var rn=normalizeRideName(r);
-      return norm.indexOf(rn)>-1||rn.indexOf(norm)>-1||
-        norm.split(' ').filter(function(w){return w.length>3&&rn.indexOf(w)>-1;}).length>=1;
-    });
-    if(found) return true;
-  }
-  // Fallback: check wait times API status
-  if(Object.keys(waits).length){
-    var d=lookupWait(rideName);
-    if(d&&d.s==='REFURBISHMENT') return true;
-  }
-  return false;
-}
 
 async function runWeeklyRefurbCheck(){
   await ensureApiKey();
@@ -8241,22 +8014,6 @@ setTimeout(function(){runWeeklyRefurbCheck();},30000);
 
 
 //    Pre-Trip Panel                                                         
-var PACK_ITEMS=[
-  {id:'p1',label:'Comfortable walking shoes',checked:false},
-  {id:'p2',label:'Portable phone charger / power bank',checked:false},
-  {id:'p3',label:'Sunscreen (reapply every 2 hours)',checked:false},
-  {id:'p4',label:'Sunglasses and hat',checked:false},
-  {id:'p5',label:'Light jacket for the evening',checked:false},
-  {id:'p6',label:'Refillable water bottle',checked:false},
-  {id:'p7',label:'Disneyland app downloaded and logged in',checked:false},
-  {id:'p8',label:'Screenshot your park tickets',checked:false},
-  {id:'p9',label:'Dining reservations confirmed',checked:false},
-  {id:'p10',label:'Lightning Lane strategy ready',checked:false},
-  {id:'p11',label:'Snacks for the bag',checked:false},
-  {id:'p12',label:'Small backpack or crossbody bag',checked:false},
-];
-function loadPackItems(){try{var s=localStorage.getItem('pack_items');if(s){var p=JSON.parse(s);if(Array.isArray(p)&&p.length>0)PACK_ITEMS=p;}}catch(e){}}
-function savePackItems(){try{localStorage.setItem('pack_items',JSON.stringify(PACK_ITEMS));}catch(e){}}
 
 
 function ptToggle(id){
@@ -8401,25 +8158,6 @@ function renderDiningReservationsList(){
   }).join('');
 }
 
-function addDiningReservation(){
-  var nameEl=document.getElementById('pt_new_rest');
-  var timeEl=document.getElementById('pt_new_time');
-  var btn=document.getElementById('pt_save_res_btn');
-  if(!nameEl||!timeEl||!nameEl.value.trim()) return;
-  var drs=[];
-  try{drs=JSON.parse(localStorage.getItem('dining_reservations'))||[];}catch(e){}
-  drs.push({name:nameEl.value.trim(),time:timeEl.value.trim()||''});
-  try{localStorage.setItem('dining_reservations',JSON.stringify(drs));}catch(e){}
-  nameEl.value='';
-  timeEl.value='';
-  if(btn){
-    var orig=btn.textContent;
-    btn.style.background='#22c55e';
-    btn.textContent='Saved!';
-    setTimeout(function(){btn.textContent=orig;btn.style.background='';},1000);
-  }
-  renderDiningReservationsList();
-}
 
 function removeDiningRes(i){
   loadDiningReservations();
@@ -8731,14 +8469,6 @@ function renderSplashCtas(){
       if(soNote){ sessionStorage.removeItem('tpcp_signout_note'); var nd=document.createElement('div'); nd.style.cssText='font-size:11px;color:rgba(255,255,255,0.75);text-align:center;margin-top:10px;line-height:1.5;'; nd.textContent=soNote; area.appendChild(nd); }
     }catch(e){}
   }
-}
-function showTripCodeInput(){
-  var area=document.getElementById('tripCodeInputArea');
-  if(!area)return;
-  if(area.style.display==='block'){area.style.display='none';return;}
-  area.style.display='block';
-  area.innerHTML='<div style="display:flex;gap:8px;align-items:center"><input id="tripCodeInput" type="text" placeholder="Enter your trip code" style="flex:1;background:rgba(7,30,37,0.6);border:1.5px solid #1A6860;border-radius:8px;padding:8px 12px;color:#FFFFFF;font-size:12px;font-family:\'Outfit\',sans-serif;outline:none"><button onclick="submitTripCode()" style="background:#1A6860;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Enter</button></div><div id="tripCodeError" style="display:none;font-size:9px;color:rgba(255,100,100,0.9);margin-top:5px"></div><div style="font-size:11px;color:rgba(255,255,255,0.65);text-align:center;margin-top:12px;line-height:1.55">New to Theme Park Co-Pilot? Trip codes are created free at <a href="https://themeparkcopilot.com" target="_blank" rel="noopener" style="color:#ECA050;font-weight:700;text-decoration:none">themeparkcopilot.com</a> &mdash; start your free trial there, then come back and enter your code.</div>';
-  setTimeout(function(){var inp=document.getElementById('tripCodeInput');if(inp)inp.focus();},50);
 }
 function submitTripCode() {
   var inp = document.getElementById('twPassInput') || document.getElementById('tripCodeInput');
@@ -9087,35 +8817,15 @@ function renderVipBanner(dayNum) {
 }
 
 /* --- AI Optimize result sheet helpers --- */
-function showReoptResult(summaryText, changeText) {
-  var box = document.getElementById('reoptBox');
-  var sub = document.getElementById('reoptSummarySub');
-  var text = document.getElementById('reoptText');
-  if (!box) return;
-  if (sub) sub.textContent = summaryText || 'Analyzing your schedule...';
-  if (text) text.textContent = changeText || '';
-  box.classList.add('show');
-  var btns = document.getElementById('reoptBtns');
-  if (btns) btns.classList.add('show');
-}
 
 /* --- Tab switching updated to also update bottom nav --- */
 var _origSetTab = typeof setTab === 'function' ? setTab : null;
 
 /* --- Highlight AI-changed cards --- */
-function highlightAiChanged(entryTitles) {
-  document.querySelectorAll('.ride-block').forEach(function(el) { el.classList.remove('ai-changed'); });
-  (entryTitles || []).forEach(function(title) {
-    document.querySelectorAll('.ride-block').forEach(function(el) {
-      if (el.textContent.indexOf(title) > -1) el.classList.add('ai-changed');
-    });
-  });
-}
 
 /* --- Init new UI components on load --- */
 document.addEventListener('DOMContentLoaded', function() {
   // If returning from pretrip setup and already authenticated, skip splash entirely
-  var _fromSetup = (new URLSearchParams(window.location.search)).get('from') === 'setup';
   var _hasAuth = localStorage.getItem('tpcp_code') && localStorage.getItem('tpcp_role');
   if (_hasAuth) {
     enterSplash(true);
@@ -10917,36 +10627,7 @@ function tpcpReworkAccept(item) {
 // The ~10s blob poll above is a different mechanism (schedule sync) and is
 // untouched.
 const _spikeIgnored = {}; // tracks ignored rides this session
-let _spikeToastTimer = null;
 
-function showWaitSpikeToast(rideName, waitMins) {
-  const toast = document.getElementById('waitSpikeToast');
-  const title = document.getElementById('waitSpikeTitle');
-  if (!toast || !title) return;
-
-  title.textContent = rideName + ' is spiking \u2014 ' + waitMins + ' min wait';
-  toast.dataset.rideName = rideName;
-  toast.dataset.pushClass = ''; // a local spike render is not a booking: no push tap target
-  toast.dataset.pushUrl = '';
-
-  // Show toast with slide-up animation
-  toast.style.display = 'flex';
-  var rrBtn = toast.querySelector('[onclick*="handleWaitSpikeReroute"]');
-  if (rrBtn) rrBtn.style.display = isAdmin() ? '' : 'none';
-  // The booking reminder's state buttons belong to booking renders
-  // only -- a local spike render never shows them.
-  var bkDone = document.getElementById('waitSpikeDoneBtn');
-  var bkRemind = document.getElementById('waitSpikeRemindBtn');
-  if (bkDone) bkDone.style.display = 'none';
-  if (bkRemind) bkRemind.style.display = 'none';
-  requestAnimationFrame(() => {
-    toast.style.transform = 'translateY(0)';
-  });
-
-  // Auto-dismiss after 12 seconds
-  if (_spikeToastTimer) clearTimeout(_spikeToastTimer);
-  _spikeToastTimer = setTimeout(() => tpcpDismissAlert(), 12000);
-}
 
 function handleWaitSpikeReroute() {
   var toast = document.getElementById('waitSpikeToast');
@@ -13168,44 +12849,6 @@ function closeParkMap() {
 // and re-adding the two header buttons (ids tpcpParkDL / tpcpParkDCA) and
 // the Restrooms chip (id tpcpChipRR). The fitted resort frame is the
 // first-line mitigation, so restoration should not be needed.
-function tpcpLegacySwitchParkMap(park, skipEnsure) {
-  _pm.park = park;
-  document.getElementById('tpcpParkDL').classList.toggle('on', park === 'DL');
-  document.getElementById('tpcpParkDCA').classList.toggle('on', park === 'DCA');
-  var build = function () {
-    var graph = window['TPCP_GRAPH_' + park];
-    if (_pm.map) { _pm.map.remove(); _pm.map = null; }
-    _pm.map = L.map('tpcpFullMap', { minZoom: 16, maxZoom: 19, maxBounds: [[33.8012, -117.9272], [33.8208, -117.9112]], maxBoundsViscosity: 1.0 }).setView(park === 'DL' ? [33.8125, -117.9190] : [33.8072, -117.9190], 16);
-    tpcpTileLayer(park).addTo(_pm.map);
-    _pm.placeMarkers.forEach(function (m) { m.remove(); });
-    _pm.rrMarkers.forEach(function (m) { m.remove(); });
-    _pm.svcMarkers.forEach(function (m) { m.remove(); });
-    _pm.placeMarkers = []; _pm.rrMarkers = []; _pm.svcMarkers = [];
-    (graph.places || []).forEach(function (p) {
-      if (p.lat == null) return;
-      var m = L.circleMarker([p.lat, p.lon], { radius: 9, color: '#FFFFFF', weight: 2, fillColor: p.k === 'food' ? '#D4893A' : '#1A6860', fillOpacity: 0.95 });
-      tpcpBindPopup(park, m, { n: p.n, lat: p.lat, lon: p.lon, node: p.node, land: p.land || '' });
-      _pm.placeMarkers.push(m);
-    });
-    (graph.restrooms || []).forEach(function (p) {
-      var m = L.circleMarker([p.lat, p.lon], { radius: 7.5, color: '#FFFFFF', weight: 1.8, fillColor: '#4A7A7C', fillOpacity: 0.9 });
-      var snr = window.TPCPRouter.snap(graph, p.lat, p.lon);
-      tpcpBindPopup(park, m, { n: 'Restrooms', lat: p.lat, lon: p.lon, node: snr.node, land: '' });
-      _pm.rrMarkers.push(m);
-    });
-    (graph.services || []).forEach(function (p) {
-      var m = L.circleMarker([p.lat, p.lon], { radius: 9, color: '#FFFFFF', weight: 2, fillColor: TPCP_SVC_COLORS[p.k] || '#173A5E', fillOpacity: 0.95 });
-      var sn = window.TPCPRouter.snap(graph, p.lat, p.lon);
-      tpcpBindPopup(park, m, { n: p.n, lat: p.lat, lon: p.lon, node: sn.node, land: TPCP_SVC_LABELS[p.k] || 'Park Services' });
-      _pm.svcMarkers.push(m);
-    });
-    tpcpApplyLayers();
-    document.getElementById('tpcpPlaceCard').classList.remove('open');
-    setTimeout(function () { if (_pm.map) _pm.map.invalidateSize(); }, 60);
-  };
-  if (skipEnsure) build();
-  else tpcpEnsurePark(park).then(build).catch(function () { tpcpToast('The park map could not be loaded.'); });
-}
 function tpcpChip(id, on) { var c = document.getElementById(id); if (c) c.classList.toggle('on', !!on); }
 function tpcpApplyLayers(mapArg) {
   var map = mapArg || _pm.map;
@@ -13228,16 +12871,6 @@ function toggleMapLayer(which) {
   if (which === 'restrooms' || which === 'services') _pm.showSvc = !_pm.showSvc;
   if (which === 'se') _pm.showSE = !_pm.showSE;
   tpcpApplyLayers();
-}
-function tpcpSelectPlace(park, p) {
-  _pm.selected = { park: park, place: p };
-  document.getElementById('tpcpPlaceName').textContent = p.n;
-  document.getElementById('tpcpPlaceSub').textContent = (p.land ? p.land + ' · ' : '') + (park === 'DL' ? 'Disneyland' : 'California Adventure');
-  document.getElementById('tpcpPlaceCard').classList.add('open');
-  document.getElementById('tpcpPlaceDirBtn').onclick = function () {
-    closeParkMap();
-    tpcpOpenDirectionsTo(park, { name: p.n, lat: p.lat, lon: p.lon, node: p.node });
-  };
 }
 
 // ---------- Directions sheet ----------
