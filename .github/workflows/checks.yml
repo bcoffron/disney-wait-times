@@ -59,6 +59,8 @@ jobs:
         run: node --test test/reoptimize-scope.test.mjs
       - name: Reoptimize held-return guard suite
         run: node --test test/reoptimize-held-guard.test.mjs
+      - name: Generation held-return anchor suite
+        run: node --test test/generation-held-anchors.test.mjs
       - name: Rework fresh-run + interruption suite
         run: node --test test/rework-interruption.test.mjs
       - name: Rework result copy suite
