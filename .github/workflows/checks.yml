@@ -69,6 +69,8 @@ jobs:
         run: node --test test/manual-edit-anchor-guard.test.mjs
       - name: Reoptimize anchor stamps suite (part 4)
         run: node --test test/reoptimize-anchor-stamps.test.mjs
+      - name: Pretrip anchor carry suite (part 5)
+        run: node --test test/pretrip-anchor-carry.test.mjs
       - name: Rework fresh-run + interruption suite
         run: node --test test/rework-interruption.test.mjs
       - name: Rework result copy suite
