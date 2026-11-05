@@ -6469,7 +6469,7 @@ function tpcpToggleLLMP(dayIdx){
     _tpcpLLRebuilding=-1;
     if(err){
       snap.forEach(function(sn){ sn.d.hasLL=sn.hasLL; sn.d.hasLLMP=sn.hasLLMP; });
-      if(typeof showToast==='function') showToast(dayName+' could not be rebuilt \u2014 nothing changed.');
+      if(typeof showToast==='function') showToast(tpcpAnchorRefusalMsg(err) || (dayName+' could not be rebuilt \u2014 nothing changed.'));
       if(typeof renderSched==='function') renderSched();
       return;
     }
@@ -7598,6 +7598,15 @@ function tpcpDayIsComplete(day, closeMinutes) {
 }
 /* ==== END SHARED: tpcpDayIsComplete ==== */
 
+function tpcpAnchorRefusalMsg(err) {
+  // Anchor refusal surfacing (anchor fix lane part 8, Nov 4, 2026 --
+  // Claude anchor-lane ruling, hardening point 3): generateFromSetup
+  // prefixes a generation ANCHOR_VIOLATION refusal with this marker.
+  // The server's message NAMES the locked bookings and says the saved
+  // day was kept, so callers show it verbatim instead of their generic
+  // failure copy. Returns null for any other error.
+  return (typeof err === 'string' && err.indexOf('ANCHOR_VIOLATION: ') === 0) ? err.substring('ANCHOR_VIOLATION: '.length) : null;
+}
 function generateFromSetup(params, callback) {
   window._genSurfacing = null; // re-filled by this call's save response below
   var context = [
@@ -7625,7 +7634,15 @@ function generateFromSetup(params, callback) {
   })
   .then(function(r){return r.json();})
   .then(function(d){
-    if(!d.ok||!(d.parsed&&d.parsed.length)&&!d.text){if(typeof callback==='function')callback('AI error: '+(d.error||'no response'));return;}
+    // Anchor refusal (part 8, hardening point 3): a 502
+    // ANCHOR_VIOLATION means the rebuilt day would drop or move a
+    // locked booking, and the server kept the saved day. The refusal
+    // is marker-prefixed into the callback error so the callers can
+    // surface the server's message (which names the bookings) via
+    // tpcpAnchorRefusalMsg instead of generic copy. No retry loop
+    // exists on this path: a failure halts the caller, which waits
+    // for a manual re-tap.
+    if(!d.ok||!(d.parsed&&d.parsed.length)&&!d.text){if(typeof callback==='function')callback(d.code==='ANCHOR_VIOLATION'?('ANCHOR_VIOLATION: '+(d.error||'no response')):('AI error: '+(d.error||'no response')));return;}
     // Per-day unplacedMustDos is a diagnostic only (see _renderSurfacingSummary);
     // the guest summary renders from the SAVE response further below.
     if (d.unplacedMustDos && d.unplacedMustDos.length) { console.warn('[generateFromSetup] per-day unplaced must-dos (diagnostic): ' + d.unplacedMustDos.join(', ')); }
@@ -7936,7 +7953,7 @@ function generateAllDays() {
     var idx = i; i++;
     gpSetDay(idx, 'building');
     generateFromSetup(idx, function (err, sections) {
-      if (err) { gpSetDay(idx, 'failed'); _restorePriors(); showToast('Day ' + (idx + 1) + ' hit a snag \u2014 tap AI Optimize to retry'); return; }
+      if (err) { gpSetDay(idx, 'failed'); _restorePriors(); var _aMsg = tpcpAnchorRefusalMsg(err); if (_aMsg) { showToast(_aMsg); return; } showToast('Day ' + (idx + 1) + ' hit a snag \u2014 tap AI Optimize to retry'); return; }
       var park = (tc.days && tc.days[idx] && (tc.days[idx].park || tc.days[idx].startPark)) || '';
       // Completeness gate, defense in depth behind generateFromSetup's
       // own gate: a day that does not run to park closing is marked
