@@ -724,6 +724,9 @@ export default async function handler(req, res) {
       // refused here. A failure INSIDE the check itself never blocks a
       // save (fail-open, like the generation call site): the violations
       // path is the refusal; a checker defect must not brick the seam.
+      // The fail-open is LOUD (part 8): the catch logs the exception
+      // with console.error -- silent failure would turn the guarantee
+      // off with no sign.
       // PART 6 AMENDMENT (Nov 4, 2026): the records judged here are
       // the POST-WRITE set -- the incoming config after the record
       // carry-forward above -- not the write's records as sent, and
@@ -775,7 +778,7 @@ export default async function handler(req, res) {
             }
           }
         }
-      } catch (e) { console.warn('[trip-anchor] anchor verify failed (save proceeds):', e.message); }
+      } catch (e) { console.error('[trip-anchor] anchor verify failed (save seam; save proceeds unverified):', e); }
       // Plan-changed version stamp (step iv): computed against the FINAL
       // schedule (post merge-guard -- exactly what is about to be
       // stored). The version moves ONLY when a day's card sequence

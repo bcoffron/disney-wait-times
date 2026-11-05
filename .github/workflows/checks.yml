@@ -73,6 +73,10 @@ jobs:
         run: node --test test/pretrip-anchor-carry.test.mjs
       - name: Trip anchor seam records suite (part 6)
         run: node --test test/trip-anchor-seam-part6.test.mjs
+      - name: Anchor loud fail-open suite (part 8)
+        run: node --test test/anchor-loud-failopen.test.mjs
+      - name: Generation anchor refusal clients suite (part 8)
+        run: node --test test/generation-anchor-refusal-clients.test.mjs
       - name: Rework fresh-run + interruption suite
         run: node --test test/rework-interruption.test.mjs
       - name: Rework result copy suite

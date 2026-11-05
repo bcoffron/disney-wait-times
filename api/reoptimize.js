@@ -182,28 +182,63 @@ function buildCharacterContext(charIntel, maxChars) {
     return full.substring(0, maxChars);
 }
 
-// --------- Normalize entry (unchanged) ---------------------------------------------------------------------------------------------------------------------------------------
+// --------- Normalize entry ---------------------------------------------------------------------------------------------------------------------------------------
+// KEEP-ALL-FIELDS (anchor fix lane part 8, Nov 4, 2026 -- Claude
+// anchor-lane ruling, hardening point 1): normalization starts from a
+// COPY of the model's entry and then normalizes the known fields, so a
+// field this function does not know about survives by default. Until
+// now the entry was rebuilt from a fixed field list: every field the
+// list did not name dropped silently, which is how the anchor stamps
+// were lost on every reoptimize round-trip before part 4 -- and the
+// part 4/7 passthrough list only fixed the fields it named, one line
+// per stamp, so the next new field would have dropped the same way.
+// The known-field behavior below is exactly what the rebuild version
+// did (the suites are the spec):
+//   - t/h/type/n/land are derived from their aliases; the consumed
+//     alias keys (time, name, title, attraction, note, tip,
+//     description) and the alternate name carriers (ride, venue -- h
+//     is canonical after normalization, and the anchor verify matches
+//     on it) do not ride through;
+//   - ll / returnStart / returnEnd never ride through model output:
+//     booking state is re-derived by the deterministic layers, never
+//     echoed (pinned by the part 4 stamps suite);
+//   - the dining-only fields (topPick, veg, kids, reservationTime)
+//     exist only on dining/quickservice entries, with the same
+//     truthiness and boolean-deletion rules as before, and the
+//     character fields (typicalWait, vipAccessible, disclaimer) only
+//     on character entries.
+// The anchor stamps are no longer this function's concern at all: the
+// handler restores them deterministically from the matching INPUT item
+// after normalization (see the stamp restore where normalizeEntry is
+// applied), so what the model echoes for them is irrelevant either way.
 function normalizeEntry(e) {
-    var base = {
-          t: e.t || e.time || '',
-          h: e.h || e.name || e.title || e.attraction || '',
-          type: e.type || 'ride',
-          n: e.n || e.note || e.tip || e.description || '',
-          land: e.land || ''
-    };
+    var base = Object.assign({}, e);
+    base.t = e.t || e.time || '';
+    base.h = e.h || e.name || e.title || e.attraction || '';
+    base.type = e.type || 'ride';
+    base.n = e.n || e.note || e.tip || e.description || '';
+    base.land = e.land || '';
+    delete base.time; delete base.name; delete base.title; delete base.attraction;
+    delete base.note; delete base.tip; delete base.description;
+    delete base.ride; delete base.venue;
+    delete base.ll; delete base.returnStart; delete base.returnEnd;
     if (e.type === 'dining' || e.type === 'quickservice') {
-          if (e.topPick) base.topPick = e.topPick;
-          if (e.veg) base.veg = e.veg;
-          if (e.kids) base.kids = e.kids;
-          if (e.reservationTime) base.reservationTime = e.reservationTime;
+          if (e.topPick) base.topPick = e.topPick; else delete base.topPick;
+          if (e.veg) base.veg = e.veg; else delete base.veg;
+          if (e.kids) base.kids = e.kids; else delete base.kids;
+          if (e.reservationTime) base.reservationTime = e.reservationTime; else delete base.reservationTime;
           if (base.topPick === true || base.topPick === false || base.topPick === 'true' || base.topPick === 'false') { delete base.topPick; }
           if (base.veg === true || base.veg === false || base.veg === 'true' || base.veg === 'false') { delete base.veg; }
           if (base.kids === true || base.kids === false || base.kids === 'true' || base.kids === 'false') { delete base.kids; }
+    } else {
+          delete base.topPick; delete base.veg; delete base.kids; delete base.reservationTime;
     }
     if (e.type === 'character') {
           base.typicalWait = e.typicalWait || 0;
           base.vipAccessible = !!e.vipAccessible;
           base.disclaimer = true;
+    } else {
+          delete base.typicalWait; delete base.vipAccessible; delete base.disclaimer;
     }
     if (e.type === 'tip' || e.type === 'snack' || e.type === 'photo' || e.type === 'character') {
           const origNote = e.n || e.note || e.tip || e.description || '';
@@ -211,25 +246,6 @@ function normalizeEntry(e) {
                   base.n = origNote;
           }
     }
-    // Anchor stamps pass through (anchor fix lane part 4, Nov 4, 2026):
-    // the client's manual-edit guard (tpcpIsAnchorEntry in app.html) and
-    // the record-keyed anchor checks rely on these flags riding the
-    // entry itself. Rebuilding an entry without them stripped a
-    // confirmed booking's anchor identity on every reoptimize
-    // round-trip, so the edit guard could not see the card until the
-    // next regeneration re-seated it from its record. Values are copied
-    // exactly as present -- absent stays absent, so a stamp-less entry
-    // gains no anchor identity here. (Part 7, Nov 4, 2026: the VIP tour
-    // card's class marker vip joins the list now that generation stamps
-    // it -- Claude anchor-lane ruling, flag 6. Part 8 generalizes this
-    // list; for now the field is simply added.)
-    if (e.anchor !== undefined) base.anchor = e.anchor;
-    if (e.heldReturn !== undefined) base.heldReturn = e.heldReturn;
-    if (e.reservation !== undefined) base.reservation = e.reservation;
-    if (e.isConfirmed !== undefined) base.isConfirmed = e.isConfirmed;
-    if (e._preBook !== undefined) base._preBook = e._preBook;
-    if (e._recordedInsert !== undefined) base._recordedInsert = e._recordedInsert;
-    if (e.vip !== undefined) base.vip = e.vip;
     return base;
 }
 
@@ -773,6 +789,56 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                         title: s.title || '',
                         entries: (s.entries || []).map(normalizeEntry)
               }));
+              // ---- ANCHOR STAMP RESTORE (deterministic; anchor fix lane
+              // part 8, Nov 4, 2026 -- Claude anchor-lane ruling,
+              // hardening point 1): the shipped plan's anchor stamps
+              // come from the matching INPUT item, never from the
+              // model's returned entry. Parts 4/7 passed the stamps
+              // through from the model output (normalizeEntry's list),
+              // but no real model has ever been observed echoing them --
+              // notably _preBook, the client's {idx, item} restore
+              // stash -- so a model that omits them would ship flag-less
+              // anchor cards (invisible to the client's manual-edit
+              // guard until the next regeneration), and a model that
+              // altered them would ship the alteration. Now the input
+              // is the only source: each output entry's seven stamp
+              // fields are overwritten from its input counterpart, or
+              // removed when the counterpart carries none.
+              // MATCHER: the identity this handler already uses for an
+              // entry -- normalized name (lowercase, punctuation
+              // stripped, spaces collapsed: the same normalization as
+              // the _norm defined for change detection below) + clock
+              // time in minutes (_parseClock). Input items are queued
+              // per key and consumed in order, so duplicate name+time
+              // pairs match pairwise. An output entry with NO input
+              // counterpart at its name+time (a card the model invented,
+              // or an anchored card the model moved to a new time)
+              // ships stamp-less, whatever the model emitted: the
+              // stamps are the client-facing proof that a card IS a
+              // booking, and only the input can prove it. (A held
+              // return the model moves inside its booked window is the
+              // one legal move that loses its stamps here; reservations
+              // and the VIP window refuse such plans at the verify
+              // below instead. The card is re-stamped at the next
+              // regeneration; the RECORD is never affected.)
+              const _STAMP_FIELDS = ['anchor', 'heldReturn', 'reservation', 'isConfirmed', 'vip', '_preBook', '_recordedInsert'];
+              const _stampNorm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+              const _stampKey = (nm, t) => { const mn = _parseClock(t); return _stampNorm(nm) + '|' + (mn === null ? '?' : mn); };
+              const _inStampsByKey = {};
+              (Array.isArray(scheduleItems) ? scheduleItems : []).forEach(it => {
+                      if (!it) return;
+                      const k = _stampKey(it.h || it.title || it.name || '', it.t || it.time || '');
+                      (_inStampsByKey[k] = _inStampsByKey[k] || []).push(it);
+              });
+              normalized.forEach(sec => (sec.entries || []).forEach(e => {
+                      const k = _stampKey(e.h || '', e.t || '');
+                      const _q = _inStampsByKey[k];
+                      const _src = (_q && _q.length) ? _q.shift() : null;
+                      for (const f of _STAMP_FIELDS) {
+                            if (_src && _src[f] !== undefined) e[f] = _src[f];
+                            else delete e[f];
+                      }
+              }));
               // ---- CHANGE DETECTION: tell the client whether anything actually moved, so it can show an
               // honest result. The bug being fixed: the result sheet always said "N items reordered / Tap
               // Accept Changes" even when the severity gate correctly returned the schedule UNCHANGED -- the
@@ -851,6 +917,8 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
               // unchanged, the conflicts named. A failure INSIDE the
               // check itself never blocks a plan (fail-open, like the
               // post-generation call site): the other guards still ran.
+              // The fail-open is LOUD (part 8): the catch logs the
+              // exception with console.error, never silently.
               if (_anchorCtx) {
                     try {
                           const _aCatCtx = await buildCacheContext(['CATALOG']);
@@ -868,7 +936,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                                 if (_aAllHeld.length) _aResp.heldReturnConflicts = _aAllHeld;
                                 return res.status(200).json(_aResp);
                           }
-                    } catch (e) { console.log('[reoptimize] anchor verify failed (plan judged by the other guards only):', e.message); }
+                    } catch (e) { console.error('[reoptimize] anchor verify failed (reoptimize post-check seam; plan judged by the other guards only):', e); }
               }
               // ---- REMAINDER-SCOPE GUARD (deterministic; Claude ruling,
               // Oct 22, 2026): when the reworked day is TODAY at the park,

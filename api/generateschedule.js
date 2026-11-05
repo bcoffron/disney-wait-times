@@ -1034,7 +1034,9 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
           // planners' conflict channels own those; this check owns drops,
           // moves, and duplicates of anchors that were seatable. Fail-open
           // on the check's own errors, like the other surfacing seams: a
-          // verify bug must never brick generation.
+          // verify bug must never brick generation -- but LOUD (part 8):
+          // the catch logs the exception with console.error, because a
+          // silent fail-open turns the guarantee off with no sign.
           try {
             const _av = verifyAnchorDay(_items, _cfg, { dayIndex: _di, catalog: _catIdx, venues: _venues, closedNames: _closedS, bannedNames: skipRides, closedVenueNames: _closedV, dayParks: _dayParks });
             const _refused = new Set();
@@ -1049,7 +1051,7 @@ console.log('[generateschedule] allUsedDining (cross-day dedup):', JSON.stringif
               console.error('[scaffold] ANCHOR VIOLATIONS day ' + (_di + 1) + ': ' + JSON.stringify(_anchorViolations));
               return res.status(502).json({ ok: false, error: 'The rebuilt day would drop or move a locked booking (' + _anchorViolations.map(v => v.name).join(', ') + ') -- your saved day was kept.', code: 'ANCHOR_VIOLATION', anchorConflicts: _anchorViolations });
             }
-          } catch (e) { console.warn('[scaffold] anchor verify failed:', e.message); }
+          } catch (e) { console.error('[scaffold] anchor verify failed (generation post-generation check seam; day ships unverified):', e); }
           return res.status(200).json({ ok: true, scaffold: true, text: _r.text, parsed: _items, model: _r.model, skeletonSlots: _sk.slots.length, rideSlots: _sk.slots.filter(s => s.type === 'ride').length, report: _ap.report, verifyRemoved: _vf.removed, verifyMutations: _mutations, paramViolations: _violations, paramFixed: _enf.fixed, paramUnfixable: _enf.unfixable, paramBlocked: _enf.blocked || [], unplacedMustDos: unplacedMustDos, coverage: _coverage ? { reserved: _coverage.assignments, unreserved: _coverage.unreserved } : null, coverageInsights: _coverage ? _coverage.insights : [], reservationAnchors: _resvPlan ? _resvPlan.anchors : [], reservationConflicts: _resvPlan ? _resvPlan.conflicts : [], heldAnchors: _heldPlan ? _heldPlan.anchors : [], heldConflicts: _heldPlan ? _heldPlan.conflicts : [], dietaryConflicts: _dietaryConflicts, dayConflicts: _dayConflicts, proseVenueFlags: proseVenueFlags, generatedWith: { hasLLMP: _llmp === true, hasILL: _ill === true, illRides: _illNames }, llSequence: llSequence });
         } catch (_se) {
           // SAFE FAILURE (legacy retired Oct 7, 2026): never fall through
