@@ -178,6 +178,7 @@ body{font-family:'Outfit',sans-serif;background:#EEF5F4;min-height:100vh;overflo
 .pt-gen-line.done{color:#1A6860;font-weight:700;}
 .pt-gen-line.failed{color:#B0552F;font-weight:600;flex-wrap:wrap;}
 .pt-gen-retry{background:#C86030;color:#fff;border:none;border-radius:9px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;}
+.pt-gen-detail{flex-basis:100%;font-size:11.5px;font-weight:500;color:#8A4A2B;line-height:1.45;}
 .pt-gen-skip{background:none;border:none;color:#4A7A7C;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;text-decoration:underline;padding:6px 0;}
 .gp-label{font-size:12.5px;font-weight:700;color:#071E25;margin-top:10px;}
 .gp-segs{display:flex;gap:4px;margin:8px 0 2px;}
@@ -1843,7 +1844,7 @@ function ptLoadFromStorage() {
 // -- Schedule generation ---------------------------------
 var SYNC_BASE = 'https://app.themeparkcopilot.com';
 
-function ptSetGenLine(idx, state, canRetry) {
+function ptSetGenLine(idx, state, canRetry, detail) {
   var el = document.getElementById('ptGenDay' + idx);
   if (!el) return;
   var label = 'Day ' + (idx + 1);
@@ -1856,6 +1857,15 @@ function ptSetGenLine(idx, state, canRetry) {
       '<button type="button" class="pt-gen-skip" onclick="ptGenSkipDay(' + idx + ')">Continue without this day</button>' : '');
   }
   else el.innerHTML = '<span>\u00B7</span><span>' + label + '</span>';
+  if (state === 'failed' && detail) {
+    // Failure detail (anchor fix lane part 8, Nov 4, 2026): the
+    // server's anchor-refusal message, naming the locked bookings,
+    // rendered as text under the failed line -- never as markup.
+    var dEl = document.createElement('div');
+    dEl.className = 'pt-gen-detail';
+    dEl.textContent = detail;
+    el.appendChild(dEl);
+  }
   ptSyncGenProgress();
 }
 function gpLabelText(total, states) {
@@ -2089,6 +2099,20 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
   .then(function(d) {
     if (!d.ok || !d.text) {
           console.error('[pretrip] Day ' + (dayIndex+1) + ' API error - HTTP ' + (d._httpStatus||'?') + ', ok:' + d.ok + ', error:' + JSON.stringify(d.error||null));
+      // Anchor refusal (anchor fix lane part 8, Nov 4, 2026 -- Claude
+      // anchor-lane ruling, hardening point 3): the server refused to
+      // build this day because the rebuilt day would drop or move a
+      // locked booking. The refusal is deterministic -- every retry
+      // rebuilds the same day against the same records and refuses
+      // again -- so the retry loop below must NOT burn full
+      // generations on it. Fail the day at once, carrying the server's
+      // message (which NAMES the bookings) to the failure line via
+      // the marker prefix the driver unwraps, instead of landing on
+      // the generic 'couldn't build' after three wasted rebuilds.
+      if (d.code === 'ANCHOR_VIOLATION') {
+        callback('ANCHOR_VIOLATION: ' + (d.error || 'A locked booking could not be kept in the rebuilt day.'));
+        return;
+      }
       if (retries < 3) {
         console.log('[pretrip] Day ' + (dayIndex+1) + ' failed, retry ' + (retries+1));
             setTimeout(function(){ ptGenerateDaySchedule(tripConfig, dayIndex, retries+1, callback); }, 2000);
@@ -2667,8 +2691,8 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
     // the generation-error path and the completeness-validation path: a
     // day that does not run to park closing is a FAILED day -- it never
     // counts as done and never reaches _finishAndSave as a finished day.
-    function _parkFailed() {
-      ptSetGenLine(idx, 'failed', true);
+    function _parkFailed(detail) {
+      ptSetGenLine(idx, 'failed', true, detail || null);
       _ptGenRetry = function() { ptSetGenLine(idx, 'building', false); _attempt(); };
       _ptGenSkip = function() {
         generatedDays[idx] = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: [] };
@@ -2679,7 +2703,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       ptGenerateDaySchedule(dayTripConfig, idx, 0, function(err, items, _fp) {
         if (err) {
           console.error('[pretrip] Day ' + (idx+1) + ' generation failed:', err);
-          _parkFailed();
+          _parkFailed((typeof err === 'string' && err.indexOf('ANCHOR_VIOLATION: ') === 0) ? err.substring('ANCHOR_VIOLATION: '.length) : null);
           return;
         }
         var _dayObj = { park: (d.days[idx] && d.days[idx].park) || 'Disneyland', items: items || [] }; if (_fp) _dayObj.finalPark = _fp; if (window._ptLlSeq && window._ptLlSeq[idx]) _dayObj.llSequence = window._ptLlSeq[idx]; if (window._ptGenWith && window._ptGenWith[idx]) _dayObj.generatedWith = window._ptGenWith[idx];
