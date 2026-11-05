@@ -1623,6 +1623,25 @@ function ptResumeDraft() {
     .catch(function(){ /* no server draft -- a fresh start is correct */ });
 }
 
+// -- Anchor carry-forward state (anchor fix part 5, Nov 4, 2026) ------
+// Held LL returns and the trip-level VIP window are bookings recorded in
+// the app (app.html's record layer), NOT onboarding form fields -- this
+// page has no UI to view or edit either one, so the loaded values can
+// only be PRESERVED here. ptRestoreFromConfig captures them from the
+// loaded tripConfig; ptFinish writes them into the config it builds
+// (verbatim), and through that config into both saves and every
+// generation request, so a Settings -> Regenerate rebuild can neither
+// erase the records at save time nor generate a day that never hears
+// about them. Null until a stored config has been restored: a fresh
+// trip has nothing to carry and gains nothing.
+var ptLoadedAnchors = null;
+function ptCaptureLoadedAnchors(cfg) {
+  ptLoadedAnchors = {
+    heldReturns: (cfg && Array.isArray(cfg.heldReturns)) ? cfg.heldReturns : null,
+    vipWindow: (cfg && cfg.vipWindow !== undefined && cfg.vipWindow !== null) ? cfg.vipWindow : null
+  };
+}
+
 // -- Load from storage -----------------------------------
 function ptLoadFromBlob(isRebuild) {
     var code = localStorage.getItem('tpcp_code') || '';
@@ -1643,6 +1662,7 @@ function ptLoadFromBlob(isRebuild) {
                                                             }
 
                                                             function ptRestoreFromConfig(cfg, isRebuild) {
+  ptCaptureLoadedAnchors(cfg);
                                                               var nameEl = document.getElementById('tripName');
                                                                 ptRestoreParty(cfg);
                                                                 if (nameEl && cfg.tripName) nameEl.value = cfg.tripName;
@@ -2017,6 +2037,7 @@ function ptGenerateDaySchedule(tripConfig, dayIndex, retryCount, callback) {
           _priorShows: tripConfig._priorShows || [],
           groupProfile: tripConfig.groupProfile ? { dietary: tripConfig.groupProfile.dietary, size: tripConfig.groupProfile.size, adults: tripConfig.groupProfile.adults, children: tripConfig.groupProfile.children } : undefined,
           reservations: tripConfig.reservations || [],
+          heldReturns: tripConfig.heldReturns || [],
           parkHopping: tripConfig.parkHopping,
           dining: {
             reservations: (tripConfig.dining && tripConfig.dining.reservations) || [],
@@ -2310,6 +2331,20 @@ function ptFinish() {
     },
     onboardingComplete: true
   };
+
+  // Anchor carry-forward (part 5): the literal above is built from form
+  // fields only, and BOTH saves POST it (the early write in
+  // ptFinishAfterHours and the terminal save in _saveDays) -- without
+  // this, a rebuild erased the trip's held LL returns (and any top-level
+  // VIP window) at the early write, before generation even ran, and the
+  // generation configs derived from this object never carried them
+  // either. Carry the loaded records verbatim. Keys are added only when
+  // the loaded trip actually has them, so a fresh trip's config keeps
+  // exactly the shape it has always had.
+  if (ptLoadedAnchors) {
+    if (ptLoadedAnchors.heldReturns) tripConfig.heldReturns = ptLoadedAnchors.heldReturns;
+    if (ptLoadedAnchors.vipWindow !== null) tripConfig.vipWindow = ptLoadedAnchors.vipWindow;
+  }
 
   // Populate tripConfig.parkHours from the park_hours_intel cache for THIS trip's dates,
   // so the generator targets the real close times (e.g. DL open until midnight) instead of
