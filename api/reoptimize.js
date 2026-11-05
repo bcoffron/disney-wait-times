@@ -211,6 +211,21 @@ function normalizeEntry(e) {
                   base.n = origNote;
           }
     }
+    // Anchor stamps pass through (anchor fix lane part 4, Nov 4, 2026):
+    // the client's manual-edit guard (tpcpIsAnchorEntry in app.html) and
+    // the record-keyed anchor checks rely on these six flags riding the
+    // entry itself. Rebuilding an entry without them stripped a
+    // confirmed booking's anchor identity on every reoptimize
+    // round-trip, so the edit guard could not see the card until the
+    // next regeneration re-seated it from its record. Values are copied
+    // exactly as present -- absent stays absent, so a stamp-less entry
+    // gains no anchor identity here.
+    if (e.anchor !== undefined) base.anchor = e.anchor;
+    if (e.heldReturn !== undefined) base.heldReturn = e.heldReturn;
+    if (e.reservation !== undefined) base.reservation = e.reservation;
+    if (e.isConfirmed !== undefined) base.isConfirmed = e.isConfirmed;
+    if (e._preBook !== undefined) base._preBook = e._preBook;
+    if (e._recordedInsert !== undefined) base._recordedInsert = e._recordedInsert;
     return base;
 }
 
