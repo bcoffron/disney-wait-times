@@ -213,19 +213,23 @@ function normalizeEntry(e) {
     }
     // Anchor stamps pass through (anchor fix lane part 4, Nov 4, 2026):
     // the client's manual-edit guard (tpcpIsAnchorEntry in app.html) and
-    // the record-keyed anchor checks rely on these six flags riding the
+    // the record-keyed anchor checks rely on these flags riding the
     // entry itself. Rebuilding an entry without them stripped a
     // confirmed booking's anchor identity on every reoptimize
     // round-trip, so the edit guard could not see the card until the
     // next regeneration re-seated it from its record. Values are copied
     // exactly as present -- absent stays absent, so a stamp-less entry
-    // gains no anchor identity here.
+    // gains no anchor identity here. (Part 7, Nov 4, 2026: the VIP tour
+    // card's class marker vip joins the list now that generation stamps
+    // it -- Claude anchor-lane ruling, flag 6. Part 8 generalizes this
+    // list; for now the field is simply added.)
     if (e.anchor !== undefined) base.anchor = e.anchor;
     if (e.heldReturn !== undefined) base.heldReturn = e.heldReturn;
     if (e.reservation !== undefined) base.reservation = e.reservation;
     if (e.isConfirmed !== undefined) base.isConfirmed = e.isConfirmed;
     if (e._preBook !== undefined) base._preBook = e._preBook;
     if (e._recordedInsert !== undefined) base._recordedInsert = e._recordedInsert;
+    if (e.vip !== undefined) base.vip = e.vip;
     return base;
 }
 
