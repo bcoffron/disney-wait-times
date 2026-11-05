@@ -52,6 +52,7 @@ import { register } from 'node:module';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const blobStubSrc = [
   'const table = () => globalThis.__seamBlobTable;',
@@ -265,8 +266,11 @@ test('(d) a normal BEAU01-shaped write succeeds', async () => {
   seedBlob(null);
   // The real restored BEAU01 fixture: three generated days, no held
   // returns, no reservation records, no VIP days -- the shape of every
-  // ordinary trip save in production today.
-  const beau = JSON.parse(readFileSync('/home/hatch/workspace/tpcp-debug/beau01_restored.json', 'utf8'));
+  // ordinary trip save in production today. The fixture is vendored at
+  // test/fixtures/beau01_restored.json (part 9: it was read from an
+  // absolute path on the build VM, which reddened the CI gate on every
+  // run from part 2 onward -- a clean checkout has no such file).
+  const beau = JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/beau01_restored.json', import.meta.url)), 'utf8'));
   const { statusCode, payload } = await postSave('BEAU01', beau.tripData);
   assert.equal(statusCode, 200, 'the BEAU01 save succeeds: ' + JSON.stringify(payload));
   assert.equal(payload.ok, true);
