@@ -32,6 +32,19 @@
 // BEAU01 test code skips the model entirely -- deterministic, $0), so
 // the Anthropic leg is never called.
 //
+// PART 7 AMENDMENTS (Claude anchor-lane ruling, flags 1, 2, 3, 6): the
+// "part 7" cases below supersede three part-1 behaviors -- the day
+// park-SET test (now window presence, seating at the first in-park
+// moment), refuse-on-any-VIP-overlap (now edge-seating; only a window
+// entirely inside the tour refuses), and refuse-when-skip-listed (now
+// seat + a named non-blocking note, with anchored items exempt from
+// verifyTripParams' skip enforcement) -- and add the VIP anchor stamp.
+// One part-1 case was amended in place: the verify unit's VIP leg now
+// reads "fully inside the VIP window" (its fixture window always was
+// fully inside; partial overlaps are expected now and pinned by a new
+// case). Against pre-part-7 main (089fc566) every amended-behavior case
+// fails; the cases labeled "pin" pass on both trees by design.
+//
 //   node --test test/generation-held-anchors.test.mjs
 import { register } from 'node:module';
 import test from 'node:test';
@@ -388,13 +401,18 @@ test('unit: verifyAnchorDay names a duplicated held return', () => {
   assert.ok(v.violations.some(x => x.kind === 'held-return-duplicated' && x.name === SM));
 });
 
-test('unit: verifyAnchorDay does not expect a wrong-park or VIP-overlapping return', () => {
+test('unit: verifyAnchorDay does not expect a wrong-park return or one falling fully inside the VIP window', () => {
+  // Part 7 amendment (flag 2): the VIP exclusion is now ONLY a window
+  // falling entirely inside the tour (this fixture's 2-3 PM return sits
+  // fully inside the 10 AM-4 PM tour). Part 1 excluded ANY overlap; a
+  // partially overlapping window seats at the tour edge and IS expected
+  // -- pinned by the part-7 verify case below.
   const wrongPark = scaffold.verifyAnchorDay([], VCFG({ heldReturns: [held(RSR, '2:00 PM', '3:00 PM')] }), VOPTS());
   assert.equal(wrongPark.ok, true, 'a DCA return is not this DL day\'s anchor to hold');
   const vipCfg = VCFG({ days: [{ date: '2026-12-07', park: 'Disneyland', isVip: true, vipStart: '10:00 AM', vipEnd: '4:00 PM' }] });
   const vipItems = [{ t: '10:00 AM', h: 'VIP Tour', type: 'vip' }];
   const vip = scaffold.verifyAnchorDay(vipItems, vipCfg, VOPTS());
-  assert.equal(vip.ok, true, 'a return inside the VIP window is the planner\'s conflict to name, not a verify violation');
+  assert.equal(vip.ok, true, 'a return fully inside the VIP window is the planner\'s conflict to name, not a verify violation');
 });
 
 test('unit: verifyAnchorDay judges reservations and the VIP window too', () => {
@@ -414,4 +432,154 @@ test('unit: verifyAnchorDay judges reservations and the VIP window too', () => {
   assert.ok(moved.violations.some(x => x.kind === 'reservation-moved'), 'a moved reservation is named');
   const noVip = scaffold.verifyAnchorDay([good[1]], cfg, VOPTS());
   assert.ok(noVip.violations.some(x => x.kind === 'vip-missing'), 'a dropped VIP window is named');
+});
+
+// ------------------------------------------------------------ part 7: flag 1 (park presence)
+// DCA start, hop to Disneyland at 12:50 PM (atMin 770). The skeleton's
+// hop slot is stamped with the destination park and opens at 12:40
+// (atMin - 10: the walk-over), so the presence machinery -- the same
+// runs the reservation planner judges by -- puts the group in
+// Disneyland from 12:40 PM.
+function cfgHop(heldReturns, extra) {
+  const cfg = cfgWith(heldReturns, extra);
+  cfg.days = [{ date: '2026-12-07', park: DCA, hasLL: true, hasLLMP: true, hasILL: true, intent: { hop: { toPark: DL, atMin: 770 } } }];
+  return cfg;
+}
+
+test('part 7 (flag 1): a hop-straddling window seats at its first in-park moment', async () => {
+  const r = await generate(cfgHop([held(SM, '12:00 PM', '1:00 PM')]));
+  assert.equal(r.code, 200);
+  assert.equal(r.payload.ok, true);
+  const cards = rideCards(r.payload.parsed, SM);
+  assert.equal(cards.length, 1, 'the held ride appears exactly once');
+  assert.equal(cards[0].t, '12:40 PM', 'seated at the first in-park moment of the window (the hop slot opens 12:40 for the 12:50 hop)');
+  assert.equal(cards[0].anchor, true);
+  assert.equal(cards[0].returnStart, '12:00 PM', 'the card still states the booked window, not the seat moment');
+  assert.equal(cards[0].returnEnd, '1:00 PM');
+  assert.equal(r.payload.heldAnchors.length, 1);
+  assert.equal(r.payload.heldAnchors[0].seatMin, 760, 'the anchor record names the seat moment');
+});
+
+test("part 7 (flag 1): a window never spent in its park is a conflict, not a seat (Claude's 10-11 AM example)", async () => {
+  const r = await generate(cfgHop([held(SM, '10:00 AM', '11:00 AM')]));
+  assert.equal(r.code, 200);
+  assert.equal(r.payload.ok, true, 'the day still generates');
+  assert.ok(!(r.payload.parsed || []).some(c => c && c.anchor === true && scaffold.normName(c.ride || c.h) === scaffold.normName(SM)), 'no anchor card was seated for a window the group never spends in Disneyland');
+  assert.deepEqual(r.payload.heldAnchors, [], 'nothing was seated');
+  const conf = (r.payload.heldConflicts || []).find(c => c && c.type === 'held-return-park-conflict');
+  assert.ok(conf, 'a named park-presence conflict is surfaced');
+  assert.equal(conf.name, SM, 'the conflict names the ride');
+});
+
+// ------------------------------------------------------------ part 7: flags 2 + 6 (VIP)
+function cfgVip(heldReturns, extra) {
+  const cfg = cfgWith(heldReturns, extra);
+  cfg.days = [{ date: '2026-12-07', park: DL, hasLL: true, hasLLMP: true, hasILL: true, isVip: true, vipStart: '12:00 PM', vipEnd: '2:00 PM' }];
+  return cfg;
+}
+
+test('part 7 (flag 6): the generated VIP tour card carries the anchor stamp set', async () => {
+  const r = await generate(cfgVip(null));
+  assert.equal(r.code, 200);
+  assert.equal(r.payload.ok, true);
+  const vip = (r.payload.parsed || []).find(c => c && c.type === 'vip');
+  assert.ok(vip, 'the tour card is in the day');
+  assert.equal(vip.t, '12:00 PM');
+  assert.equal(vip.anchor, true, 'the shared anchor stamp is present');
+  assert.equal(vip.vip, true, 'the VIP class marker is present');
+});
+
+test('part 7 (flag 2): a held window crossing the tour edge seats at the edge', async () => {
+  const r = await generate(cfgVip([held(SM, '1:30 PM', '2:30 PM')]));
+  assert.equal(r.code, 200);
+  assert.equal(r.payload.ok, true);
+  const cards = rideCards(r.payload.parsed, SM);
+  assert.equal(cards.length, 1, 'the held ride appears exactly once');
+  assert.equal(cards[0].t, '2:00 PM', 'seated at the first usable moment outside the 12:00-2:00 PM tour');
+  assert.equal(cards[0].anchor, true);
+  assert.equal(cards[0].returnStart, '1:30 PM', 'the card still states the booked window');
+  assert.equal(cards[0].returnEnd, '2:30 PM');
+  assert.ok(!(r.payload.heldConflicts || []).some(c => c.type === 'held-return-during-vip'), 'no refusal for a partial overlap');
+  assert.equal(r.payload.heldAnchors[0].seatMin, 840);
+});
+
+test('part 7 (flag 2): a window entirely inside the tour is refused and named (pin: passes on both trees)', async () => {
+  const r = await generate(cfgVip([held(SM, '12:30 PM', '1:30 PM')]));
+  assert.equal(r.code, 200);
+  assert.equal(r.payload.ok, true, 'the day still generates');
+  assert.ok(!(r.payload.parsed || []).some(c => c && c.anchor === true && scaffold.normName(c.ride || c.h) === scaffold.normName(SM)), 'the return is not seated');
+  assert.deepEqual(r.payload.heldAnchors, [], 'nothing was seated');
+  const conf = (r.payload.heldConflicts || []).find(c => c && c.type === 'held-return-during-vip');
+  assert.ok(conf, 'the refusal is surfaced');
+  assert.equal(conf.name, SM, 'the refusal names the ride');
+});
+
+// ------------------------------------------------------------ part 7: flag 3 (skip list)
+test('part 7 (flag 3): a skip-listed held ride seats; the contradiction is surfaced by name, not enforced', async () => {
+  const cfg = cfgWith([held(SM, '2:00 PM', '3:00 PM')], { ridePreferences: { mustDo: [], wantToDo: [], skip: [SM] } });
+  const r = await generate(cfg);
+  assert.equal(r.code, 200);
+  assert.equal(r.payload.ok, true);
+  const cards = rideCards(r.payload.parsed, SM);
+  assert.equal(cards.length, 1, 'the booked return seats exactly once despite the skip entry');
+  assert.equal(cards[0].t, '2:00 PM');
+  assert.equal(cards[0].anchor, true);
+  const note = (r.payload.heldConflicts || []).find(c => c && c.type === 'held-return-skip-listed');
+  assert.ok(note, 'the contradiction is surfaced through the conflict channel');
+  assert.equal(note.name, SM, 'the note names the ride');
+  assert.ok(note.detail.includes('skip list'), 'the note names the contradiction: ' + note.detail);
+  assert.ok(!(r.payload.heldConflicts || []).some(c => c.type === 'held-return-banned'), 'the part-1 refusal is gone');
+  assert.ok(!(r.payload.paramViolations || []).some(v => v.kind === 'skip-present'), 'verifyTripParams does not flag the anchored ride');
+  assert.ok(!(r.payload.paramFixed || []).some(v => v.kind === 'skip-present'), 'enforceTripParams did not strip it');
+});
+
+test('part 7 unit: verifyTripParams exempts an anchored skip-listed ride but not a standby placement of it', () => {
+  const vAnchor = scaffold.verifyTripParams([anchorCard], { mustDo: [], skip: [SM], hasLL: true });
+  assert.ok(!vAnchor.some(v => v.kind === 'skip-present'), 'the booked anchor is exempt from skip enforcement');
+  const standby = { t: '9:00 AM', h: SM, ride: SM, type: 'ride' };
+  const vStandby = scaffold.verifyTripParams([standby], { mustDo: [], skip: [SM], hasLL: true });
+  assert.ok(vStandby.some(v => v.kind === 'skip-present'), 'an ordinary placement of the same ride still violates (pin: passes on both trees)');
+  const vMixed = scaffold.verifyTripParams([anchorCard, standby], { mustDo: [], skip: [SM], hasLL: true });
+  assert.ok(vMixed.some(v => v.kind === 'skip-present'), 'a standby twin beside the anchor still violates');
+});
+
+test('part 7 unit: enforceTripParams never removes an anchored card on a skip-present violation', () => {
+  const other = { t: '9:30 AM', h: 'Jungle Cruise', ride: 'Jungle Cruise', type: 'ride' };
+  const enf = scaffold.enforceTripParams([anchorCard, other], [{ kind: 'skip-present', name: SM }], { catalog: {}, landToPark, closedNames: [], bannedNames: [SM], mustDoNames: [] });
+  assert.ok(enf.cards.some(c => c.anchor === true && scaffold.normName(c.ride || c.h) === scaffold.normName(SM)), 'the anchor survives enforcement');
+  assert.equal(enf.cards.length, 2, 'nothing was removed');
+});
+
+// ------------------------------------------------------------ part 7: verify mirrors
+const hopDayCfg = (heldReturns) => ({
+  days: [{ date: '2026-12-07', park: DCA, startPark: DCA, intent: { hop: { toPark: DL, atMin: 770 } } }],
+  heldReturns, reservations: [], dining: { reservations: [] },
+});
+const hopOpts = () => Object.assign(VOPTS(), { dayParks: [DCA, DL] });
+
+test('part 7 unit: verifyAnchorDay presence -- a never-in-park window is not expected; a straddling window is', () => {
+  const notExpected = scaffold.verifyAnchorDay([], hopDayCfg([held(SM, '10:00 AM', '11:00 AM')]), hopOpts());
+  assert.equal(notExpected.ok, true, "Claude's 10-11 AM return creates no expectation on a DCA-start day");
+  const expected = scaffold.verifyAnchorDay([], hopDayCfg([held(SM, '12:00 PM', '1:00 PM')]), hopOpts());
+  assert.ok(expected.violations.some(v => v.kind === 'held-return-missing' && v.name === SM), 'the straddling window IS expected -- dropping it is a violation (pin: passes on both trees)');
+  const seated = scaffold.verifyAnchorDay([{ t: '12:40 PM', h: SM, ride: SM, type: 'ride', anchor: true, heldReturn: true }], hopDayCfg([held(SM, '12:00 PM', '1:00 PM')]), hopOpts());
+  assert.equal(seated.ok, true, 'the card at the first in-park moment satisfies the check (pin: passes on both trees)');
+});
+
+test('part 7 unit: verifyAnchorDay expects a partially-VIP-overlapping return (the edge seat)', () => {
+  const cfg = VCFG({
+    days: [{ date: '2026-12-07', park: 'Disneyland', isVip: true, vipStart: '12:00 PM', vipEnd: '2:00 PM' }],
+    heldReturns: [held(SM, '1:30 PM', '2:30 PM')],
+  });
+  const vipCard = { t: '12:00 PM', h: 'VIP Tour', type: 'vip' };
+  const dropped = scaffold.verifyAnchorDay([vipCard], cfg, VOPTS());
+  assert.ok(dropped.violations.some(v => v.kind === 'held-return-missing' && v.name === SM), 'the edge-seated return is expected -- dropping it is a violation');
+  const seated = scaffold.verifyAnchorDay([vipCard, { t: '2:00 PM', h: SM, ride: SM, type: 'ride', anchor: true, heldReturn: true }], cfg, VOPTS());
+  assert.equal(seated.ok, true, 'the card at the tour edge satisfies the check (pin: passes on both trees)');
+});
+
+test('part 7 unit: verifyAnchorDay expects a skip-listed held return (the booking outranks the skip list)', () => {
+  const opts = Object.assign(VOPTS(), { bannedNames: [SM] });
+  const v = scaffold.verifyAnchorDay([], VCFG(), opts);
+  assert.ok(v.violations.some(x => x.kind === 'held-return-missing' && x.name === SM), 'a dropped skip-listed booking is a true drop now');
 });
