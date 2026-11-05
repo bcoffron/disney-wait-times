@@ -38,6 +38,31 @@
 // (d). Against pre-part-7 main (089fc566) the vip half of (d) fails:
 // normalizeEntry drops the field the predicate now keys on.
 //
+// PART 8 (Claude anchor-lane ruling, hardening point 1): the sourcing
+// of the stamps changed, and normalizeEntry's contract with it.
+//   - The shipped plan's stamps are now restored DETERMINISTICALLY
+//     from the matching INPUT item (name + clock time, the handler's
+//     entry identity) -- never taken from the model's returned entry.
+//     Cases (e)-(g): a model that OMITS the stamps ships the input's;
+//     a model that ALTERS _preBook ships the input's object verbatim;
+//     a stamp-less input item gains nothing even when the model adds
+//     stamps, and a model-invented entry ships stamp-less.
+//   - normalizeEntry itself is now keep-all-fields (copy the entry,
+//     normalize the known fields), so unknown/future fields survive
+//     by default -- case (h). The deliberate drops are the consumed
+//     aliases, the ride/venue alternates, and ll/returnStart/
+//     returnEnd; the type-scoped field rules (dining-only and
+//     character-only fields, boolean deletion) are unchanged, and
+//     case (c) above still pins them. Cases (a)/(d) still pass --
+//     under keep-all the stamps are copied like any field -- but the
+//     GUARANTEE they used to prove (that the model's echo is what
+//     ships) is now proven by (e)-(g) against the input instead.
+// Negative controls for part 8 (against pre-part-8 main 13429785):
+// (e), (f), (g) and the unknown-field half of (h) FAIL there -- the
+// passthrough ships the model's omission/alteration/addition, and
+// unknown fields drop. The preserved-behavior pins in (h) pass on
+// both trees by design.
+//
 // Run with Node's built-in runner (no new dependencies):
 //   node --test test/reoptimize-anchor-stamps.test.mjs
 // Handler harness mirrors test/reoptimize-anchor-verify.test.mjs:
@@ -300,4 +325,107 @@ test('(b) anchor stamps survive the reoptimize round-trip and the client guard s
   const jc = out.find(e => e.h === 'Jungle Cruise');
   for (const k of STAMPS) assert.ok(!(k in jc), 'normal card gains no stamp through the round-trip: ' + k);
   assert.equal(tpcpIsAnchorEntry(jc), false, 'client guard stays silent on the normal card');
+});
+
+// ------------------------------------------------- part 8: keep-all unit
+test('(h) part 8: normalizeEntry keeps unknown fields by default and preserves the known-field rules', () => {
+  // Unknown / future fields survive untouched (the point of keep-all).
+  const future = { t: '3:00 PM', h: 'Astro Orbitor', type: 'ride', n: '', land: 'Tomorrowland', futureFieldX: { a: 1 }, anotherNew: 'v', waitMins: 25 };
+  const fo = normalizeEntry(clone(future));
+  assert.deepEqual(fo.futureFieldX, { a: 1 }, 'an unknown object field survives normalization');
+  assert.equal(fo.anotherNew, 'v', 'an unknown string field survives normalization');
+  assert.equal(fo.waitMins, 25, 'an unknown numeric field survives normalization');
+  // The consumed aliases and alternate name carriers still do not ride
+  // through (h/t/n are canonical after normalization), and the derived
+  // fields are normalized from them.
+  const aliased = normalizeEntry({ time: '4:00 PM', name: 'Dumbo', note: 'spin', extra: 1 });
+  assert.equal(aliased.t, '4:00 PM', 't is still derived from the time alias');
+  assert.equal(aliased.h, 'Dumbo', 'h is still derived from the name alias');
+  assert.equal(aliased.n, 'spin', 'n is still derived from the note alias');
+  for (const k of ['time', 'name', 'title', 'attraction', 'note', 'tip', 'description', 'ride', 'venue']) {
+    assert.ok(!(k in aliased), 'consumed/alternate key does not ride through: ' + k);
+  }
+  assert.equal(aliased.extra, 1, 'the unknown field on the same entry still survives');
+  // Dining rules preserved exactly: truthy non-boolean values ride,
+  // boolean-ish flags are deleted, and the fields exist only on
+  // dining/quickservice entries.
+  const din = normalizeEntry({ t: '6:30 PM', h: BB, type: 'dining', n: '', topPick: true, veg: 'yes', kids: 'no', reservationTime: '6:30 PM' });
+  assert.ok(!('topPick' in din), 'a boolean topPick is still deleted on dining');
+  assert.equal(din.veg, 'yes', 'a non-boolean veg value still rides on dining');
+  assert.equal(din.kids, 'no', 'a non-boolean kids value still rides on dining');
+  assert.equal(din.reservationTime, '6:30 PM', 'reservationTime still rides on dining');
+  const ride = normalizeEntry({ t: '1:00 PM', h: 'Jungle Cruise', type: 'ride', n: '', topPick: 'yes', reservationTime: '6:30 PM', typicalWait: 40, disclaimer: true });
+  for (const k of ['topPick', 'veg', 'kids', 'reservationTime', 'typicalWait', 'vipAccessible', 'disclaimer']) {
+    assert.ok(!(k in ride), 'a type-scoped field does not leak onto a ride entry: ' + k);
+  }
+  // Character rules preserved exactly.
+  const chr = normalizeEntry({ t: '9:00 AM', h: 'Mickey Mouse', type: 'character', n: '' });
+  assert.equal(chr.typicalWait, 0, 'character typicalWait still defaults to 0');
+  assert.equal(chr.vipAccessible, false, 'character vipAccessible still coerces to boolean');
+  assert.equal(chr.disclaimer, true, 'character disclaimer is still forced true');
+});
+
+// --------------------------------------- part 8: deterministic restore
+test('(e) part 8: a model that OMITS the stamps ships the input stamps, restored', async () => {
+  proposal = clone(ITEMS);
+  for (const e of proposal) for (const k of [...STAMPS, 'vip']) delete e[k];
+  proposal.find(e => e.h === 'Jungle Cruise').t = '12:30 PM';
+  const res = await callHandler({
+    scheduleItems: clone(ITEMS), dayLabel: 'Tuesday Dec 8', tripDayDate: 'Dec 8, 2026',
+    isInTrip: false, currentTime: null, liveWaits: null, tripCode: 'ANCHORP4',
+    heldReturns: clone([HELD_SM]),
+  });
+  assert.equal(res.code, 200);
+  assert.equal(res.payload.changed, true, 'the legal plan ships');
+  const out = outEntries(res);
+  const sm = out.find(e => e.h === SM);
+  assert.equal(sm.anchor, true, 'held card anchor restored from input, not the model omission');
+  assert.equal(sm.heldReturn, true, 'held card heldReturn restored from input');
+  assert.deepEqual(sm._preBook, ITEMS.find(e => e.h === SM)._preBook, 'held card _preBook restored from input verbatim');
+  const bb = out.find(e => e.h === BB);
+  assert.equal(bb.anchor, true, 'reservation anchor restored from input');
+  assert.equal(bb.reservation, true, 'reservation stamp restored from input');
+  assert.equal(bb.isConfirmed, true, 'reservation isConfirmed restored from input');
+  assert.equal(out.find(e => e.h === HM)._recordedInsert, true, 'recorded-insert stamp restored from input');
+  assert.equal(tpcpIsAnchorEntry(sm), true, 'the client guard fires on the restored held card');
+});
+
+test('(f) part 8: a model that ALTERS _preBook ships the input object verbatim', async () => {
+  proposal = clone(ITEMS);
+  const pSm = proposal.find(e => e.h === SM);
+  pSm._preBook = { idx: 99, item: { t: '9:99 AM', h: 'Forged Entry' } };
+  pSm.anchor = false;
+  pSm.heldReturn = false;
+  proposal.find(e => e.h === 'Jungle Cruise').t = '12:30 PM';
+  const res = await callHandler({
+    scheduleItems: clone(ITEMS), dayLabel: 'Tuesday Dec 8', tripDayDate: 'Dec 8, 2026',
+    isInTrip: false, currentTime: null, liveWaits: null, tripCode: 'ANCHORP4',
+    heldReturns: clone([HELD_SM]),
+  });
+  assert.equal(res.code, 200);
+  assert.equal(res.payload.changed, true, 'the legal plan ships');
+  const sm = outEntries(res).find(e => e.h === SM);
+  assert.deepEqual(sm._preBook, ITEMS.find(e => e.h === SM)._preBook, 'the shipped _preBook is the INPUT object, not the model alteration');
+  assert.equal(sm.anchor, true, 'the shipped anchor is the input value, not the model false');
+  assert.equal(sm.heldReturn, true, 'the shipped heldReturn is the input value, not the model false');
+});
+
+test('(g) part 8: a stamp-less input gains nothing, even when the model adds stamps', async () => {
+  proposal = clone(ITEMS);
+  const pJc = proposal.find(e => e.h === 'Jungle Cruise');
+  pJc.anchor = true; pJc.heldReturn = true; pJc._preBook = { idx: 1, item: { t: '1:00 PM', h: 'Jungle Cruise' } };
+  proposal.push({ t: '3:30 PM', h: 'Astro Orbitor', type: 'ride', n: '', land: 'Tomorrowland', anchor: true, vip: true });
+  const res = await callHandler({
+    scheduleItems: clone(ITEMS), dayLabel: 'Tuesday Dec 8', tripDayDate: 'Dec 8, 2026',
+    isInTrip: false, currentTime: null, liveWaits: null, tripCode: 'ANCHORP4',
+    heldReturns: clone([HELD_SM]),
+  });
+  assert.equal(res.code, 200);
+  const out = outEntries(res);
+  const jc = out.find(e => e.h === 'Jungle Cruise');
+  for (const k of [...STAMPS, 'vip']) assert.ok(!(k in jc), 'the model cannot stamp a stamp-less input card: ' + k);
+  assert.equal(tpcpIsAnchorEntry(jc), false, 'the client guard stays silent on the model-stamped normal card');
+  const astro = out.find(e => e.h === 'Astro Orbitor');
+  assert.ok(astro, 'the model-invented entry itself still ships (stamps are not content)');
+  for (const k of [...STAMPS, 'vip']) assert.ok(!(k in astro), 'a model-invented entry ships stamp-less: ' + k);
 });
