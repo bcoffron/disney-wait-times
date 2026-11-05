@@ -5382,27 +5382,30 @@ function getCurDay(){return customSched[curDay]||JSON.parse(JSON.stringify(DAYS[
 //    the writers actually stamp, never on the entry's name:
 //      generation (api/scaffold.js applyFills): reservation cards
 //        carry anchor:true + reservation:true; held-return cards
-//        carry anchor:true + heldReturn:true. isConfirmed:true is
-//        the third member of the trio the collision check in
-//        heldReturnConflict and api/reoptimize.js already test.
+//        carry anchor:true + heldReturn:true; VIP tour cards carry
+//        anchor:true + vip:true (anchor lane part 7 -- every anchor
+//        class has a stamp). isConfirmed:true is the third member of
+//        the trio the collision check in heldReturnConflict and
+//        api/reoptimize.js already test.
 //      this client's record path: a booked return's timeline face
 //        carries _preBook (a converted plan item) or _recordedInsert
 //        (an inserted item) -- set only when a held-return record is
 //        written, cleared only when the record is removed.
-//      VIP tour cards carry NO flag anywhere (generation emits
-//        {type:'vip'} bare), so that one class is keyed on its type:
-//        'vip' is emitted only for the tour card itself.
-//    Known gap (part-3 build log): entries that come back through
-//    /api/reoptimize lose every stamp above -- the endpoint's
-//    normalizeEntry rebuilds each entry from {t,h,type,n,land} -- so
-//    a reoptimized day's reservation and held-return cards are
-//    invisible to this guard until the next regeneration re-stamps
-//    them. The save seam (api/trip.js) still refuses any save that
-//    drops or moves them: it keys on the records, not the cards.
+//      VIP tour cards saved BEFORE the part-7 stamp existed carry no
+//        flag (generation emitted {type:'vip'} bare), so the type
+//        check below stays as their fallback: 'vip' is emitted only
+//        for the tour card itself.
+//    Reoptimize round-trips keep the stamps: api/reoptimize.js's
+//    normalizeEntry passes the whole anchor flag set through (part 4;
+//    vip added in part 7), so a reoptimized day's booking cards stay
+//    visible to this guard. The save seam (api/trip.js) also refuses
+//    any save that drops or moves them: it keys on the records, not
+//    the cards.
 function tpcpIsAnchorEntry(entry){
   if(!entry) return false;
   if(entry.anchor===true||entry.heldReturn===true||entry.reservation===true||entry.isConfirmed===true) return true;
   if(entry._preBook||entry._recordedInsert) return true;
+  if(entry.vip===true) return true;
   if(entry.type==='vip') return true;
   return false;
 }
@@ -5411,7 +5414,7 @@ function tpcpAnchorBlockMsg(entry){
   if(entry&&(entry.heldReturn===true||entry._preBook||entry._recordedInsert)){
     return name+' is a booked Lightning Lane return, locked into this day. To change or remove it, use the Change or Remove controls on the return itself.';
   }
-  if(entry&&entry.type==='vip'){
+  if(entry&&(entry.type==='vip'||entry.vip===true)){
     return 'The VIP Tour is locked into this day. To change it, update the tour in your trip setup.';
   }
   return name+' is a confirmed booking, locked into this day. To change or remove it, edit the booking in your trip details, not the schedule.';
