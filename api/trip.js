@@ -5,7 +5,7 @@ import { matchesKey } from './lib/blob.js';
 // scaffold.js IS imported, but only for the read-only trip-level surfacing
 // computation (computeTripSurfacing) in the POST handler: it reads the final
 // stored schedule and reports; it never mutates anything.
-import { buildCatalogIndex, computeTripSurfacing, parseCatalogVenues, correctVenueServices, scanTripProseForwardFlags, verifyAnchorDay, closedNamesForDate, closedNamesFromProse } from './scaffold.js';
+import { buildCatalogIndex, computeTripSurfacing, parseCatalogVenues, correctVenueServices, scanTripProseForwardFlags, verifyAnchorDay, closedNamesForDate, closedNamesFromProse, parseReservationEntry } from './scaffold.js';
 // Plan-changed notifications (restoration step iv): this POST is the single
 // persistence seam for schedules, so the material-change diff, the schedule
 // version stamp, and the notify call all live here (see api/plan-changed.js).
@@ -496,6 +496,121 @@ export default async function handler(req, res) {
           tripData.tripConfig.guestCode = entry.guestCode;
         }
       }
+      // ANCHOR RECORD CARRY-FORWARD + NULL-DAY PARTITION (anchor fix
+      // lane part 6, Nov 4, 2026 -- Claude's anchor-lane ruling closing
+      // the hole part 2's seam left, and its flag 5). Part 2 keyed the
+      // seam's expectations on the INCOMING config's records, so a
+      // write that lost an anchor RECORD and its card together passed,
+      // and any general save could silently delete booking records it
+      // knew nothing about (the pretrip trace, Q3: every writer
+      // funnels through this seam in the same body shape, and no
+      // writer could be told apart). The closure:
+      // (1) A write that IS a record action declares the record
+      //     class(es) it is authoritative for in the top-level body
+      //     field `anchorRecordActions` -- chosen over a tripConfig
+      //     field because this handler already reads body-level fields
+      //     (deviceToken, action) and the marker must never persist
+      //     into the stored config. The app.html record layer's
+      //     saveHeldReturns declares ['heldReturns'] (confirm, change
+      //     and remove all funnel through it); pretrip's two saves
+      //     declare ['reservations'] (the Dining slide is the
+      //     reservations editor; part 5 made pretrip a preserver of
+      //     the other two classes, which stay undeclared there).
+      //     Record classes: 'heldReturns'; 'reservations' (the flat
+      //     tripConfig.reservations mirror AND the structured
+      //     tripConfig.dining.reservations rows, ONE class);
+      //     'vipWindow'.
+      // (2) For every class a write does NOT declare, the persisted
+      //     config carries the STORED records forward: the write's
+      //     version of that class is not consulted for record
+      //     existence, so no unmarked write can shrink an anchor
+      //     record set. Declared classes, and classes the stored
+      //     config holds no records for, take the write's version as
+      //     sent -- a genuine record action (including a removal)
+      //     works exactly as the guest performed it, and a first save
+      //     (no stored blob) makes this a no-op.
+      // (3) The anchor verify below then judges each written day
+      //     against the records that will actually be stored after
+      //     this write -- this block mutates the same tripData object
+      //     the write persists, before the verify reads it.
+      // (4) NULL-DAY PARTITION (flag 5): a stored reservation record
+      //     with a readable time but NO day (legacy flat shapes only --
+      //     the shipped Dining slide always writes a day; pretrip
+      //     trace Q4 confirms structured rows shipped) is filtered out
+      //     of the config the verify judges (_avJudgeTc) and collected
+      //     in _avNeedsDay, surfaced by name in the save response's
+      //     surfacing channel as needing a day. It creates no
+      //     expectation on any day and can never cause a refusal. The
+      //     stored record itself is NOT edited -- the partition judges
+      //     a copy; the guest repairs the record through the editor.
+      //     The generation call site is deliberately NOT partitioned:
+      //     its per-day context strings carry day:null by design.
+      // Best-effort posture matches the guards around this block: a
+      // failure inside it logs and the save proceeds on the write as
+      // sent, judged by the part-2 verify as before.
+      const _rcDeclared = new Set((body && Array.isArray(body.anchorRecordActions) ? body.anchorRecordActions : []).filter(c => c === 'heldReturns' || c === 'reservations' || c === 'vipWindow'));
+      let _avNeedsDay = [];
+      let _avJudgeTc = null;
+      try {
+        const _rcTc = tripData && tripData.tripConfig;
+        const _rcStored = _pcStored && _pcStored.tripConfig;
+        if (_rcTc) {
+          if (_rcStored) {
+            const _rcCarried = [];
+            // heldReturns: one field.
+            if (!_rcDeclared.has('heldReturns') && Array.isArray(_rcStored.heldReturns) && _rcStored.heldReturns.length) {
+              if (JSON.stringify(_rcTc.heldReturns || null) !== JSON.stringify(_rcStored.heldReturns)) _rcCarried.push('heldReturns');
+              _rcTc.heldReturns = _rcStored.heldReturns;
+            }
+            // reservations: ONE class over two encodings.
+            const _rcStoredResv = (Array.isArray(_rcStored.reservations) && _rcStored.reservations.length > 0) ||
+              (_rcStored.dining && Array.isArray(_rcStored.dining.reservations) && _rcStored.dining.reservations.length > 0);
+            if (!_rcDeclared.has('reservations') && _rcStoredResv) {
+              const _rcResvShape = (tc) => JSON.stringify([tc.reservations || null, (tc.dining && tc.dining.reservations) || null]);
+              const _rcBefore = _rcResvShape(_rcTc);
+              if (Object.prototype.hasOwnProperty.call(_rcStored, 'reservations')) _rcTc.reservations = _rcStored.reservations;
+              else delete _rcTc.reservations;
+              if (_rcStored.dining && Object.prototype.hasOwnProperty.call(_rcStored.dining, 'reservations')) {
+                if (!_rcTc.dining || typeof _rcTc.dining !== 'object') _rcTc.dining = {};
+                _rcTc.dining.reservations = _rcStored.dining.reservations;
+              } else if (_rcTc.dining && typeof _rcTc.dining === 'object') {
+                delete _rcTc.dining.reservations;
+              }
+              if (_rcResvShape(_rcTc) !== _rcBefore) _rcCarried.push('reservations');
+            }
+            // vipWindow: one field (a stored config may carry the
+            // tour window here; per-day days[].isVip is rebuilt by
+            // its writers and is not a record field).
+            if (!_rcDeclared.has('vipWindow') && _rcStored.vipWindow !== undefined && _rcStored.vipWindow !== null) {
+              if (JSON.stringify(_rcTc.vipWindow || null) !== JSON.stringify(_rcStored.vipWindow)) _rcCarried.push('vipWindow');
+              _rcTc.vipWindow = _rcStored.vipWindow;
+            }
+            if (_rcCarried.length) console.log('[trip-anchor] trip ' + entry.tripId + ': carried stored anchor record(s) forward over an unmarked write: ' + _rcCarried.join(', '));
+          }
+          // Null-day partition, on the post-carry-forward record set.
+          const _ndFlat = [], _ndDining = [], _ndSeen = new Set();
+          const _ndSplit = (arr, out) => {
+            for (const _rec of (Array.isArray(arr) ? arr : [])) {
+              const _pr = parseReservationEntry(_rec);
+              if (_pr && _pr.timeMin !== null && _pr.day === null) {
+                const _ndKey = _pr.name + '|' + _pr.timeMin;
+                if (!_ndSeen.has(_ndKey)) {
+                  _ndSeen.add(_ndKey);
+                  _avNeedsDay.push({ name: _pr.name, time: _pr.time, detail: 'the ' + _pr.name + ' reservation at ' + _pr.time + ' has no day recorded, so it is not anchored to any day -- give it a day through the trip editor so it can be protected' });
+                }
+                continue;
+              }
+              out.push(_rec);
+            }
+          };
+          _ndSplit(_rcTc.reservations, _ndFlat);
+          _ndSplit(_rcTc.dining && _rcTc.dining.reservations, _ndDining);
+          if (_avNeedsDay.length) {
+            _avJudgeTc = Object.assign({}, _rcTc, { reservations: _ndFlat, dining: Object.assign({}, _rcTc.dining || {}, { reservations: _ndDining }) });
+            console.warn('[trip-anchor] trip ' + entry.tripId + ': reservation record(s) with no day, surfaced not anchored: ' + _avNeedsDay.map(x => x.name).join(', '));
+          }
+        }
+      } catch (e) { console.warn('[trip-anchor] record carry-forward failed (save proceeds on the write as sent):', e.message); }
       // Anchor verify (further below, after the guards): which days this
       // write actually carries, captured BEFORE the merge guard runs. A
       // day the write does not carry -- or carries empty, for the guard
@@ -609,6 +724,13 @@ export default async function handler(req, res) {
       // refused here. A failure INSIDE the check itself never blocks a
       // save (fail-open, like the generation call site): the violations
       // path is the refusal; a checker defect must not brick the seam.
+      // PART 6 AMENDMENT (Nov 4, 2026): the records judged here are
+      // the POST-WRITE set -- the incoming config after the record
+      // carry-forward above -- not the write's records as sent, and
+      // null-day reservation records are partitioned out of the judged
+      // config (_avJudgeTc) and surfaced instead of expected. A
+      // legitimate removal now keys on the write DECLARING the class
+      // (anchorRecordActions), not merely on omitting the record.
       let _scacheShared = null;
       try {
         const _avTc = tripData && tripData.tripConfig;
@@ -644,7 +766,7 @@ export default async function handler(req, res) {
               const _avClosed = _scacheShared ? [...new Set([...closedNamesForDate(_scacheShared.CLOSURES, _avDate), ...closedNamesFromProse(_scacheShared.CURRENT_CLOSURES, _avDate, _avCatalogNames)])] : [];
               const _avClosedV = _scacheShared ? closedNamesForDate(_scacheShared.DINING_CLOSURES, _avDate) : [];
               const _avParks = [...new Set([_avDay.park, _avDay.finalPark, _avCfgDay.park, _avCfgDay.startPark].filter(Boolean))];
-              const _avRes = verifyAnchorDay(_avDay.items, _avTc, { dayIndex: _di, catalog: _avCatalog, venues: _avVenues, closedNames: _avClosed, bannedNames: _avSkip, closedVenueNames: _avClosedV, dayParks: _avParks });
+              const _avRes = verifyAnchorDay(_avDay.items, _avJudgeTc || _avTc, { dayIndex: _di, catalog: _avCatalog, venues: _avVenues, closedNames: _avClosed, bannedNames: _avSkip, closedVenueNames: _avClosedV, dayParks: _avParks });
               for (const _avV of _avRes.violations) _avViolations.push(Object.assign({ day: _di + 1 }, _avV));
             }
             if (_avViolations.length) {
@@ -758,7 +880,7 @@ export default async function handler(req, res) {
         }
       } catch (e) { console.warn('[trip] surfacing computation failed (save unaffected):', e.message); }
 
-      return res.status(200).json(Object.assign({ ok: true, tripId: entry.tripId }, _surfFields || {}));
+      return res.status(200).json(Object.assign({ ok: true, tripId: entry.tripId }, _surfFields || {}, _avNeedsDay.length ? { anchorRecordsNeedingDay: _avNeedsDay } : {}));
     } catch (e) {
       return res.status(400).json({ error: e.message });
     }
