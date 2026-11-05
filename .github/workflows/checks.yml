@@ -65,6 +65,8 @@ jobs:
         run: node --test test/reoptimize-anchor-verify.test.mjs
       - name: Trip save anchor seam suite (part 2)
         run: node --test test/trip-anchor-seam.test.mjs
+      - name: Manual-edit anchor guard suite (part 3)
+        run: node --test test/manual-edit-anchor-guard.test.mjs
       - name: Rework fresh-run + interruption suite
         run: node --test test/rework-interruption.test.mjs
       - name: Rework result copy suite

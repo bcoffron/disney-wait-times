@@ -5367,10 +5367,55 @@ function getCurDay(){return customSched[curDay]||JSON.parse(JSON.stringify(DAYS[
 //    VIP notes                                                              
 
 //    Edit mode                                                              
+//    Anchor edit guard (anchor fix lane part 3, Nov 4, 2026 -- Claude
+//    msg 205: anchors change only through their record). A timeline
+//    entry that IS a booking -- a confirmed reservation, a booked
+//    Lightning Lane return, the VIP tour -- may not be deleted,
+//    retimed, renamed, or dragged from the schedule editor. The
+//    booking's own Change / Remove controls stay fully functional;
+//    the card is only the record's face. The guard keys on the flags
+//    the writers actually stamp, never on the entry's name:
+//      generation (api/scaffold.js applyFills): reservation cards
+//        carry anchor:true + reservation:true; held-return cards
+//        carry anchor:true + heldReturn:true. isConfirmed:true is
+//        the third member of the trio the collision check in
+//        heldReturnConflict and api/reoptimize.js already test.
+//      this client's record path: a booked return's timeline face
+//        carries _preBook (a converted plan item) or _recordedInsert
+//        (an inserted item) -- set only when a held-return record is
+//        written, cleared only when the record is removed.
+//      VIP tour cards carry NO flag anywhere (generation emits
+//        {type:'vip'} bare), so that one class is keyed on its type:
+//        'vip' is emitted only for the tour card itself.
+//    Known gap (part-3 build log): entries that come back through
+//    /api/reoptimize lose every stamp above -- the endpoint's
+//    normalizeEntry rebuilds each entry from {t,h,type,n,land} -- so
+//    a reoptimized day's reservation and held-return cards are
+//    invisible to this guard until the next regeneration re-stamps
+//    them. The save seam (api/trip.js) still refuses any save that
+//    drops or moves them: it keys on the records, not the cards.
+function tpcpIsAnchorEntry(entry){
+  if(!entry) return false;
+  if(entry.anchor===true||entry.heldReturn===true||entry.reservation===true||entry.isConfirmed===true) return true;
+  if(entry._preBook||entry._recordedInsert) return true;
+  if(entry.type==='vip') return true;
+  return false;
+}
+function tpcpAnchorBlockMsg(entry){
+  var name=(entry&&(entry.h||entry.ride))||'This booking';
+  if(entry&&(entry.heldReturn===true||entry._preBook||entry._recordedInsert)){
+    return name+' is a booked Lightning Lane return, locked into this day. To change or remove it, use the Change or Remove controls on the return itself.';
+  }
+  if(entry&&entry.type==='vip'){
+    return 'The VIP Tour is locked into this day. To change it, update the tour in your trip setup.';
+  }
+  return name+' is a confirmed booking, locked into this day. To change or remove it, edit the booking in your trip details, not the schedule.';
+}
 function startInlineEdit(el, dayIdx, secIdx, entryIdx, field){
   if(!editMode) return;
   var data=JSON.parse(JSON.stringify(getCurDay()));
   var entry=data.sections[secIdx].entries[entryIdx];
+  if(tpcpIsAnchorEntry(entry)){alert(tpcpAnchorBlockMsg(entry));return;}
   var cur=field==='t'?entry.t:entry.h;
   var inp=document.createElement('input');
   inp.className='inline-edit-input'+(field==='t'?' inline-edit-time':'');
@@ -5394,14 +5439,14 @@ function startInlineEdit(el, dayIdx, secIdx, entryIdx, field){
 }
 
 function toggleEdit(){if(!isAdmin()){alert('Sign in as admin to edit the schedule.');return;}editMode=!editMode;var btn=document.getElementById('editToggle');btn.innerHTML=editMode?'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg> Done Editing':'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti ti-pencil"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg> Edit Schedule';btn.classList.toggle('active',editMode);renderSched();}
-function deleteEntry(d,s,e){var data=JSON.parse(JSON.stringify(getCurDay()));data.sections[s].entries.splice(e,1);customSched[d]=data;saveCustom(d);renderSched();}
+function deleteEntry(d,s,e){var data=JSON.parse(JSON.stringify(getCurDay()));var _ent=data.sections[s]&&data.sections[s].entries?data.sections[s].entries[e]:null;if(tpcpIsAnchorEntry(_ent)){alert(tpcpAnchorBlockMsg(_ent));return;}data.sections[s].entries.splice(e,1);customSched[d]=data;saveCustom(d);renderSched();}
 
 //    Drag & drop                                                            
 function onDragStart(e,d,s,i){dragSrc=d+'_'+s+'_'+i;e.dataTransfer.effectAllowed='move';e.currentTarget.classList.add('dragging');}
 function onDragEnd(e){e.currentTarget.classList.remove('dragging');document.querySelectorAll('.drag-over').forEach(function(el){el.classList.remove('drag-over');});}
 function onDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
 function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
-function onDrop(e,d,s,i){e.preventDefault();e.currentTarget.classList.remove('drag-over');if(!dragSrc)return;var p=dragSrc.split('_');var ss=parseInt(p[1]),si=parseInt(p[2]);if(ss===s&&si===i)return;var data=JSON.parse(JSON.stringify(getCurDay()));var moved=data.sections[ss].entries.splice(si,1)[0];var di=(ss===s&&si<i)?i-1:i;data.sections[s].entries.splice(di,0,moved);customSched[d]=data;saveCustom(d);dragSrc=null;renderSched();}
+function onDrop(e,d,s,i){e.preventDefault();e.currentTarget.classList.remove('drag-over');if(!dragSrc)return;var p=dragSrc.split('_');var ss=parseInt(p[1]),si=parseInt(p[2]);if(ss===s&&si===i)return;var data=JSON.parse(JSON.stringify(getCurDay()));var _mv=data.sections[ss]&&data.sections[ss].entries?data.sections[ss].entries[si]:null;var _tg=data.sections[s]&&data.sections[s].entries?data.sections[s].entries[i]:null;var _anch=tpcpIsAnchorEntry(_mv)?_mv:(tpcpIsAnchorEntry(_tg)?_tg:null);if(_anch){alert(tpcpAnchorBlockMsg(_anch));dragSrc=null;return;}var moved=data.sections[ss].entries.splice(si,1)[0];var di=(ss===s&&si<i)?i-1:i;data.sections[s].entries.splice(di,0,moved);customSched[d]=data;saveCustom(d);dragSrc=null;renderSched();}
 
 //    Add entry modal                                                        
 function openModal(si){addSecIdx=si;document.getElementById('newTime').value='';document.getElementById('newTitle').value='';document.getElementById('newNote').value='';document.getElementById('newType').value='ride';document.getElementById('addModal').classList.remove('hidden');setTimeout(function(){document.getElementById('newTime').focus();},100);}
