@@ -2435,7 +2435,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       fetch(SYNC_BASE + '/api/trip', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ code: code, deviceToken: tpcpDeviceToken(), tripData: { tripConfig: tripConfig } })
+        body: JSON.stringify({ code: code, deviceToken: tpcpDeviceToken(), anchorRecordActions: ['reservations'], tripData: { tripConfig: tripConfig } })
       })
       .then(function(r){ return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
       .then(function(resp){
@@ -2520,7 +2520,7 @@ function ptFinishAfterHours(tripConfig, d, totalDays) {
       fetch(SYNC_BASE + '/api/trip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code, deviceToken: tpcpDeviceToken(), tripData: { tripConfig: finalConfig } }),
+        body: JSON.stringify({ code: code, deviceToken: tpcpDeviceToken(), anchorRecordActions: ['reservations'], tripData: { tripConfig: finalConfig } }),
         signal: _saveAbort.signal
       })
       .then(function(r){ clearTimeout(_saveAbortT); _saveStatus = r.status; return r.json().then(function(j){ j._httpStatus = r.status; return j; }); })
