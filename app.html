@@ -3429,16 +3429,9 @@ async function pushVipNotes(dayIdx,val){
   }catch(e){ console.warn('[vipnotes] save error', e); }
 }
 
-//    Web push: enable wait-spike alerts for this trip
-var TPCP_VAPID_PUBLIC_KEY='BGlV30uXIaqPvUBF5GW8cRDGlDdjxGdvet9hi6i6uGKL132fncv5gyX9n2r2f3hz8o23Ijm-ckFCjVUGigLWCPM';
-function tpcpUrlB64ToUint8(base64){
-  var pad='='.repeat((4-base64.length%4)%4);
-  var b=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');
-  var raw=atob(b);
-  var arr=new Uint8Array(raw.length);
-  for(var i=0;i<raw.length;i++){arr[i]=raw.charCodeAt(i);}
-  return arr;
-}
+//    Web Push retired Nov 4, 2026 (app-only; Claude msg 204 B8): the
+//    browser subscription flow that lived here is gone -- wait alerts
+//    are native-only (below).
 //    Native push (APNs via @capacitor/push-notifications): register this
 //    device for wait alerts on the current trip. Web Push does not exist in
 //    the native webview; this is the native counterpart of
@@ -3723,11 +3716,7 @@ async function tpcpAlertsAreOn(){
     if (window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform()) {
       return await tpcpNativeAlertsAreOn();
     }
-    if(!('serviceWorker' in navigator)||!('PushManager' in window)) return false;
-    if(typeof Notification==='undefined'||Notification.permission!=='granted') return false;
-    var reg=await navigator.serviceWorker.ready;
-    var sub=await reg.pushManager.getSubscription();
-    return !!sub;
+    return false; // Web Push retired (msg 204 B8): no web channel remains to be on.
   }catch(e){ return false; }
 }
 function tpcpSetAlertBtn(btn,on){
@@ -3800,29 +3789,9 @@ async function tpcpEnableWaitAlerts(){
     if (window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform()) {
       return await tpcpEnableNativeWaitAlerts();
     }
-    if(!('serviceWorker' in navigator)||!('PushManager' in window)){
-      return {ok:false,reason:'unsupported'};
-    }
-    var code=localStorage.getItem('tpcp_code')||'';
-    if(!code){return {ok:false,reason:'no-trip-code'};}
-    var perm=await Notification.requestPermission();
-    if(perm!=='granted'){return {ok:false,reason:'denied'};}
-    var reg=await navigator.serviceWorker.ready;
-    var sub=await reg.pushManager.getSubscription();
-    if(!sub){
-      sub=await reg.pushManager.subscribe({
-        userVisibleOnly:true,
-        applicationServerKey:tpcpUrlB64ToUint8(TPCP_VAPID_PUBLIC_KEY)
-      });
-    }
-    var r=await fetch(SYNC_BASE+'/api/push-subscribe',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-trip-code':code},
-      body:JSON.stringify({tripCode:code,subscription:sub.toJSON()})
-    });
-    var data=await r.json().catch(function(){return {};});
-    if(r.ok&&data.ok){return {ok:true,count:data.count};}
-    return {ok:false,reason:'server',status:r.status};
+    // Web Push retired Nov 4, 2026 (app-only; Claude msg 204 B8): outside
+    // the native app there is no alert channel to enable here.
+    return {ok:false,reason:'in-app'};
   }catch(e){
     console.warn('[push] enable failed',e&&e.message);
     return {ok:false,reason:'error'};
@@ -11371,19 +11340,6 @@ function tpcpConfirmSwap() {
     }
   });
   </script>
-<script>
-  (function(){
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function(){
-        navigator.serviceWorker.register('/sw.js').then(function(reg){
-          console.log('[PWA] service worker registered, scope:', reg.scope);
-        }).catch(function(err){
-          console.log('[PWA] service worker registration failed:', err);
-        });
-      });
-    }
-  })();
-</script>
 <div class="tpcp-map-view" id="tpcpMapView">
   <div class="tpcp-map-head">
     <button class="tpcp-map-back" onclick="closeParkMap()" aria-label="Back">&#8592; Back</button>
