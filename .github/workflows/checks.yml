@@ -71,6 +71,8 @@ jobs:
         run: node --test test/reoptimize-anchor-stamps.test.mjs
       - name: Pretrip anchor carry suite (part 5)
         run: node --test test/pretrip-anchor-carry.test.mjs
+      - name: Trip anchor seam records suite (part 6)
+        run: node --test test/trip-anchor-seam-part6.test.mjs
       - name: Rework fresh-run + interruption suite
         run: node --test test/rework-interruption.test.mjs
       - name: Rework result copy suite

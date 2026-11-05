@@ -261,3 +261,38 @@ test('(f) a legal plan that keeps every anchor ships (no over-refusal)', async (
   assert.equal((res.payload.anchorConflicts || []).length, 0, 'no anchor conflicts on a clean plan');
   assert.equal(outEntries(res).find(e => e.h === 'Jungle Cruise').t, '12:30 PM');
 });
+
+// ------------------------------------------------------------ part 6
+// Flag 5 close at this call site (anchor fix lane part 6, Nov 4,
+// 2026): a stored reservation record with a readable time but NO day
+// (a legacy flat shape; the shipped Dining slide always writes a day)
+// belongs to no day. Part 2's record reads handed it to
+// verifyAnchorDay untouched, where day:null reads as "expected on the
+// day being judged" -- a false refusal of every plan for a day that
+// never owed the venue a card. The record-keyed paths now partition
+// such records out of the judged config and surface them by name on
+// the response (anchorRecordsNeedingDay) as needing a day. Negative
+// control: this case FAILS against pre-part-6 main -- the plan is
+// refused there with a reservation-missing conflict.
+test('(g) a stored null-day reservation creates no expectation and surfaces as needing a day (part 6)', async () => {
+  const KEY = 'twize/trip_anchor-p2-trip.json';
+  const orig = globalThis.__anchorP2BlobTable[KEY];
+  const variant = clone(orig);
+  variant.tripConfig.dining = { reservations: [{ name: BB, time: '6:30 PM' }] }; // no day recorded
+  globalThis.__anchorP2BlobTable[KEY] = variant;
+  try {
+    // A legal plan that keeps the day's real anchors (held return,
+    // VIP window) and simply has no Blue Bayou card on it -- the
+    // null-day record names no day, so this day owes it nothing.
+    proposal = clone(ITEMS).filter(e => e.h !== BB);
+    proposal.find(e => e.h === 'Jungle Cruise').t = '12:30 PM';
+    const res = await callHandler(bodyFor(clone(ITEMS)));
+    assert.equal(res.code, 200);
+    assert.equal(res.payload.changed, true, 'the null-day record must not refuse the plan');
+    assert.equal((res.payload.anchorConflicts || []).length, 0, 'no anchor conflicts from a record with no day');
+    const nd = (res.payload.anchorRecordsNeedingDay || []).filter(x => x && x.name === BB);
+    assert.equal(nd.length, 1, 'the record surfaces by name as needing a day');
+  } finally {
+    globalThis.__anchorP2BlobTable[KEY] = orig;
+  }
+});

@@ -4,7 +4,7 @@ import { list } from '@vercel/blob';
 // section 2): verifyAnchorDay is the ONE anchor check for all three call
 // sites (post-generation, this endpoint's post-check, the /api/trip save
 // seam). scaffold.js is import-free, so this adds no cycle.
-import { verifyAnchorDay, buildCatalogIndex, parseCatalogVenues, correctVenueServices, closedNamesFromProse } from './scaffold.js';
+import { verifyAnchorDay, buildCatalogIndex, parseCatalogVenues, correctVenueServices, closedNamesFromProse, parseReservationEntry } from './scaffold.js';
 
 // --- Registry-backed trip-code validation (Oct 2026 lockdown) ---
 // A trip code is valid only if it was actually issued (present in the trip
@@ -492,7 +492,44 @@ async function handler(req, res) {
                   const _aIdx = _anchorDayIndex(_tripCfg, tripDayDate, dayLabel);
                   if (_aIdx >= 0) {
                         const _aDayCfg = (Array.isArray(_tripCfg.days) && _tripCfg.days[_aIdx]) || {};
-                        _anchorCtx = { cfg: _tripCfg, dayIndex: _aIdx, dayParks: [_aDayCfg.park, _aDayCfg.startPark].filter(Boolean), dateStr: _aDayCfg.date || '' };
+                        // Null-day partition (anchor fix lane part 6,
+                        // Nov 4, 2026 -- Claude flag 5): a stored
+                        // reservation record with a readable time but
+                        // NO day (legacy flat shapes only -- the
+                        // shipped Dining slide always writes a day;
+                        // pretrip trace Q4) belongs to no day, so at
+                        // this RECORD-keyed call site it is filtered
+                        // out of the config the verify judges and
+                        // surfaced by name on the response as needing
+                        // a day (anchorRecordsNeedingDay). It creates
+                        // no expectation and can never cause a refusal
+                        // here. The generation call site is NOT
+                        // partitioned: its per-day context strings
+                        // carry day:null by design.
+                        let _aCfg = _tripCfg;
+                        const _aNeedsDay = [];
+                        const _ndKeptF = [], _ndKeptD = [], _ndSeen = new Set();
+                        const _ndSplit = (arr, out) => {
+                              for (const _rec of (Array.isArray(arr) ? arr : [])) {
+                                    const _pr = parseReservationEntry(_rec);
+                                    if (_pr && _pr.timeMin !== null && _pr.day === null) {
+                                          const _ndKey = _pr.name + '|' + _pr.timeMin;
+                                          if (!_ndSeen.has(_ndKey)) {
+                                                _ndSeen.add(_ndKey);
+                                                _aNeedsDay.push({ name: _pr.name, time: _pr.time, detail: 'the ' + _pr.name + ' reservation at ' + _pr.time + ' has no day recorded, so it is not anchored to any day -- give it a day through the trip editor so it can be protected' });
+                                          }
+                                          continue;
+                                    }
+                                    out.push(_rec);
+                              }
+                        };
+                        _ndSplit(_tripCfg.reservations, _ndKeptF);
+                        _ndSplit(_tripCfg.dining && _tripCfg.dining.reservations, _ndKeptD);
+                        if (_aNeedsDay.length) {
+                              _aCfg = Object.assign({}, _tripCfg, { reservations: _ndKeptF, dining: Object.assign({}, _tripCfg.dining || {}, { reservations: _ndKeptD }) });
+                              console.log('[reoptimize] reservation record(s) with no day, surfaced not anchored:', _aNeedsDay.map(x => x.name).join(', '));
+                        }
+                        _anchorCtx = { cfg: _aCfg, dayIndex: _aIdx, dayParks: [_aDayCfg.park, _aDayCfg.startPark].filter(Boolean), dateStr: _aDayCfg.date || '', needsDay: _aNeedsDay };
                   }
             }
             if (!_anchorCtx) {
@@ -821,6 +858,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                           if (!_av.ok) {
                                 console.log('[reoptimize] anchor verify kept plan unchanged:', JSON.stringify(_av.violations.map(v => v.kind + ':' + v.name)));
                                 const _aResp = { sections: [{ title: dayLabel || 'Schedule', entries: (Array.isArray(scheduleItems) ? scheduleItems : []) }], explanation: 'Your plan is unchanged. ' + _av.violations.map(v => v.detail).join(' '), changed: false, changeCount: 0, anchorConflicts: _av.violations };
+                                if (_anchorCtx.needsDay && _anchorCtx.needsDay.length) _aResp.anchorRecordsNeedingDay = _anchorCtx.needsDay;
                                 const _aHeld = _av.violations.filter(v => v.kind && v.kind.indexOf('held-return') === 0).map(v => ({ ride: v.name, type: v.kind, detail: v.detail }));
                                 const _aAllHeld = _heldConflicts.concat(_aHeld);
                                 if (_aAllHeld.length) _aResp.heldReturnConflicts = _aAllHeld;
@@ -880,6 +918,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
                     if (_scopeViolations.length) {
                           console.log('[reoptimize] scope guard kept plan unchanged:', JSON.stringify(_scopeViolations.map(v => v.type + ':' + v.name)));
                           const _svResp = { sections: [{ title: dayLabel || 'Schedule', entries: (Array.isArray(scheduleItems) ? scheduleItems : []) }], explanation: 'Your plan is unchanged. ' + _scopeViolations.map(v => v.detail).join(' '), changed: false, changeCount: 0, scopeConflicts: _scopeViolations };
+                          if (_anchorCtx && _anchorCtx.needsDay && _anchorCtx.needsDay.length) _svResp.anchorRecordsNeedingDay = _anchorCtx.needsDay;
                           if (_heldConflicts.length) _svResp.heldReturnConflicts = _heldConflicts;
                           return res.status(200).json(_svResp);
                     }
@@ -895,6 +934,7 @@ systemPrompt += '\n\nRESTROOM BREAK RULE:';
               const changed = changeCount > 0;
               const _respObj = { sections: normalized, explanation: parsed.explanation || 'Schedule optimized.', changed: changed, changeCount: changeCount };
               if (_heldConflicts.length) _respObj.heldReturnConflicts = _heldConflicts;
+              if (_anchorCtx && _anchorCtx.needsDay && _anchorCtx.needsDay.length) _respObj.anchorRecordsNeedingDay = _anchorCtx.needsDay;
               return res.status(200).json(_respObj);
       }
 

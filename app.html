@@ -4769,7 +4769,12 @@ function removeHeldReturn(dayIdx,rideName){
 // same endpoint, auth header, and body shape pushSchedule uses). The
 // stored tripConfig is carried exactly as-is apart from heldReturns and
 // the version stamp; the schedule is never re-serialized from the
-// editing model on this path.
+// editing model on this path. The body declares
+// anchorRecordActions:['heldReturns'] (anchor fix lane part 6): this
+// function IS the record action for that class -- confirm, change and
+// remove all funnel through here -- so the save seam takes this
+// write's heldReturns as authoritative instead of carrying the stored
+// records forward over it.
 async function saveHeldReturns(){
   if(!isAdmin())return false;
   try{
@@ -4778,7 +4783,7 @@ async function saveHeldReturns(){
     var updatedTc=Object.assign({},tc,{heldReturns:getHeldReturns(),scheduleVersion:Date.now().toString()});
     if(window._loadedTripData)window._loadedTripData.tripConfig=updatedTc;
     if(typeof TRIP_CONFIG!=='undefined'&&TRIP_CONFIG)TRIP_CONFIG.heldReturns=updatedTc.heldReturns;
-    var r=await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),tripData:{tripConfig:updatedTc}})});
+    var r=await fetch(SYNC_BASE+'/api/trip',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':ensureAdminKey()},body:JSON.stringify({code:code,deviceToken:tpcpDeviceToken(),anchorRecordActions:['heldReturns'],tripData:{tripConfig:updatedTc}})});
     return !!(r&&r.ok);
   }catch(e){console.warn('Save held returns:',e);return false;}
 }

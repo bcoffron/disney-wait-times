@@ -24,6 +24,18 @@
 // days present (case (e)) and a schedule-less save is never refused
 // here (case (f)).
 //
+// PART 6 AMENDMENT (Nov 4, 2026): part 2's keying left a hole -- a
+// write that removed the record AND its card together passed, and any
+// general save could silently delete records. The seam now carries
+// stored records forward for every class the write does not declare
+// in the body's anchorRecordActions marker, and judges days against
+// the post-write record set. Case (b) below is therefore now sent in
+// its post-part-6 shape: the same record-removal write, carrying the
+// record layer's marker (anchorRecordActions: ['heldReturns']) --
+// under part 6 an UNMARKED version of that write is refused, because
+// the record survives by carry-forward while its card is gone. That
+// new behavior is pinned in test/trip-anchor-seam-part6.test.mjs.
+//
 // Negative controls (run against pre-part-2 main, recorded in the
 // lane's build log): cases (a), (c) and (g) FAIL there -- the dropping
 // writes persist. The remaining cases pass on both trees by design:
@@ -125,13 +137,13 @@ test.before(async () => {
   handler = (await import('../api/trip.js')).default;
 });
 
-async function postSave(code, tripData) {
+async function postSave(code, tripData, extra) {
   let statusCode = 0; let payload = null;
   const res = {
     setHeader() {}, status(c) { statusCode = c; return this; },
     json(o) { payload = o; return this; }, end() { return this; },
   };
-  await handler({ method: 'POST', headers: {}, query: {}, body: { code, tripData } }, res);
+  await handler({ method: 'POST', headers: {}, query: {}, body: Object.assign({ code, tripData }, extra || {}) }, res);
   return { statusCode, payload };
 }
 
@@ -189,9 +201,9 @@ test('(a) a day write that drops a held return whose record persists is refused,
 });
 
 // ---------------------------------------------------------------- (b)
-test('(b) the same write WITH the record removed succeeds (removal goes through the record)', async () => {
+test('(b) the record-removal write succeeds when it declares the class (part 6 marker shape)', async () => {
   seedBlob({ tripConfig: heldConfig(ITEMS_GOOD, HELD_SM) });
-  const { statusCode, payload } = await postSave('SEAM1', { tripConfig: heldConfig(ITEMS_DROPPED, []) });
+  const { statusCode, payload } = await postSave('SEAM1', { tripConfig: heldConfig(ITEMS_DROPPED, []) }, { anchorRecordActions: ['heldReturns'] });
   assert.equal(statusCode, 200, 'the record-removal write succeeds: ' + JSON.stringify(payload));
   assert.equal(payload.ok, true);
   const stored = storedTrip(CODES.SEAM1);
