@@ -17,19 +17,22 @@
 //     _preBook (converted plan item) or _recordedInsert (inserted
 //     item), set only when a held-return record is written and
 //     cleared only when the record is removed;
-//   VIP tour cards carry NO flag anywhere (generation emits
-//     {type:'vip'} bare), so that class is keyed on its type --
-//     'vip' is emitted only for the tour card itself.
+//   VIP tour cards: since part 7 (Claude anchor-lane ruling, flag 6)
+//     generation stamps them anchor:true + vip:true like every other
+//     anchor class, and the predicate keys on the stamp; the type key
+//     remains as the fallback for tour cards saved before the stamp
+//     existed (this suite's fixture card is exactly that legacy shape:
+//     {type:'vip'} bare).
 // The record controls themselves (llRemoveHeld for held returns,
 // removeDiningRes for reservations) are NOT guarded and must keep
 // working end to end: removing a booking goes through its record.
 //
-// Known gap, pinned as a finding in the part-3 build log rather than
-// papered over here: entries returned by /api/reoptimize lose every
-// stamp above (the endpoint's normalizeEntry rebuilds each entry
-// from {t,h,type,n,land}), so a reoptimized day's reservation and
-// held-return cards are invisible to this guard until the next
-// regeneration re-stamps them. The save seam (part 2) still refuses
+// The part-3 build log's known gap -- entries returned by
+// /api/reoptimize losing every stamp (normalizeEntry rebuilt each
+// entry from {t,h,type,n,land}) -- was closed in part 4 by the
+// normalizeEntry passthrough, and part 7 added the vip stamp to both
+// generation and that passthrough; a reoptimized day's booking cards
+// now stay visible to this guard. The save seam (part 2) also refuses
 // any save that drops or moves them -- it keys on the records.
 //
 // The suite extracts the REAL code from app.html (held-return record
@@ -196,7 +199,7 @@ test('(c) delete on a client-stamped held-return card (recorded insert) is refus
   assert.ok(w.alerts[0].includes("it's a small world"), 'message names the ride: ' + w.alerts[0]);
 });
 
-test('(d) delete on the VIP tour card is refused (keyed on type -- the VIP card carries no flag)', () => {
+test('(d) delete on a legacy (pre-stamp) VIP tour card is refused via the type fallback', () => {
   const w = makeWorld();
   w.ctx.deleteEntry(0, 0, 1);
   assert.equal(w.entries().length, 6);
@@ -328,7 +331,24 @@ test('(o) static pins: all three edit sites consult the guard; the record handle
   assert.ok(!rec.includes('tpcpIsAnchorEntry') && !rec.includes('tpcpAnchorBlockMsg'), 'held-return record controls carry no guard');
   const dres = sliceRange('function removeDiningRes', '//    Crowd Prediction');
   assert.ok(!dres.includes('tpcpIsAnchorEntry') && !dres.includes('tpcpAnchorBlockMsg'), 'reservation record control carries no guard');
-  assert.ok(SRC.includes("entry.type==='vip'"), 'the VIP class is keyed on its type (no flag exists for it)');
+  assert.ok(SRC.includes("entry.type==='vip'"), 'the VIP type fallback is retained for pre-stamp tour cards');
+  assert.ok(SRC.includes('entry.vip===true'), 'the part-7 VIP stamp is keyed');
   assert.ok(SRC.includes('entry._recordedInsert') && SRC.includes('entry._preBook'), 'the client-stamped held-return flags are keyed');
   assert.ok(SRC.includes('entry.heldReturn===true') && SRC.includes('entry.reservation===true'), 'the server-stamped flags are keyed');
+});
+
+// ------------------------------------------------------------ part 7: the VIP stamp
+test('(p) part 7 (flag 6): the predicate fires on the VIP stamp itself; the legacy type fallback still fires', () => {
+  const w = makeWorld();
+  assert.equal(typeof w.ctx.tpcpIsAnchorEntry, 'function');
+  // The real post-part-7 shape generation emits.
+  assert.equal(w.ctx.tpcpIsAnchorEntry({ t: '10:00 AM', h: 'VIP Tour', type: 'vip', anchor: true, vip: true }), true, 'the fully stamped tour card is an anchor (pin: fires via anchor on both trees)');
+  // The stamp ALONE trips the guard, whatever the type says: the stamp
+  // is the rule now, the type is only the legacy fallback. (On
+  // pre-part-7 main this entry is invisible to the predicate.)
+  const stampOnly = { t: '10:00 AM', h: 'VIP Tour', type: 'ride', vip: true };
+  assert.equal(w.ctx.tpcpIsAnchorEntry(stampOnly), true, 'the vip stamp alone marks the entry as an anchor');
+  assert.ok(w.ctx.tpcpAnchorBlockMsg(stampOnly).includes('trip setup'), 'the stamp earns the VIP wording, not the generic booking wording');
+  // A tour card saved before the stamp existed still fires via type.
+  assert.equal(w.ctx.tpcpIsAnchorEntry({ t: '10:00 AM', h: 'VIP Tour', type: 'vip' }), true, 'a legacy pre-stamp card still fires via the type fallback (pin: passes on both trees)');
 });
