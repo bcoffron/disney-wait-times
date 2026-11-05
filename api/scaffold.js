@@ -570,15 +570,25 @@ export function applyFills(skeleton, fills, opts) {
 
   for (const slot of skeleton.slots) {
     if (slot.type === 'vip') {
-      cards.push({ t: toClock(winStart(slot.window)), h: 'VIP Tour', type: 'vip', n: slot.role || '', land: '' });
+      // VIP tour anchor stamp (anchor fix lane part 7, Nov 4, 2026 --
+      // Claude anchor-lane ruling, flag 6): the tour card now carries
+      // the same anchor stamp set as the other classes (anchor: true
+      // plus its class marker vip: true), so every stamp-keyed guard --
+      // the client's edit guard above all -- sees it without keying on
+      // its type. One rule for every anchor class: has a stamp. Cards
+      // saved before this stamp existed are still caught by the edit
+      // guard's documented type === 'vip' fallback.
+      cards.push({ t: toClock(winStart(slot.window)), h: 'VIP Tour', type: 'vip', n: slot.role || '', land: '', anchor: true, vip: true });
       continue;
     }
     if (slot.block === 'held-anchor') {
       // Held Lightning Lane return anchor (anchor fix lane, Nov 4, 2026 --
       // Claude msg 205): a booked return is an IMMUTABLE anchor in the
       // reservation class. The card is emitted verbatim from the record --
-      // any model fill for this slot is ignored -- at the return window's
-      // start, flagged anchor:true so every post-fill keep that honors the
+      // any model fill for this slot is ignored -- at the planner's seat
+      // moment (the return window's start, or the first in-park / first
+      // post-tour moment of the window when part 7's rulings move it),
+      // flagged anchor:true so every post-fill keep that honors the
       // reservation anchors honors it too, and carrying the genuine LL tag
       // for the day's purchased products (deriveLLForRide, the same oracle
       // the enforcer uses) so the headliner-window and pace machinery treat
@@ -586,7 +596,13 @@ export function applyFills(skeleton, fills, opts) {
       // afternoon standby.
       const _hStart = (typeof slot.fixed === 'number') ? slot.fixed : winStart(slot.window);
       const _hEnd = (Array.isArray(slot.window) && typeof slot.window[1] === 'number') ? slot.window[1] : _hStart;
-      const hCard = { t: toClock(_hStart), h: slot.anchorName || 'Booked Lightning Lane Return', type: 'ride', n: 'Your booked Lightning Lane return -- this time is locked in from your booking, and the rest of the day is built around it.', land: slot.anchorLand || '', anchor: true, heldReturn: true, returnStart: toClock(_hStart), returnEnd: toClock(_hEnd) };
+      // The card's TIME is the seat moment (part 7: the first in-park
+      // moment of the window, or the VIP tour edge -- slot.fixed),
+      // while returnStart/returnEnd state the BOOKED window itself
+      // (the slot's window), which the seat moment may sit inside.
+      // Before part 7 the two always coincided.
+      const _hWinStart = winStart(slot.window);
+      const hCard = { t: toClock(_hStart), h: slot.anchorName || 'Booked Lightning Lane Return', type: 'ride', n: 'Your booked Lightning Lane return -- this time is locked in from your booking, and the rest of the day is built around it.', land: slot.anchorLand || '', anchor: true, heldReturn: true, returnStart: toClock(_hWinStart), returnEnd: toClock(_hEnd) };
       if (slot.anchorName) hCard.ride = slot.anchorName;
       const _hLl = slot.anchorName ? deriveLLForRide(slot.anchorName, { llmp: opts.llmp === true, ill: opts.ill === true }, catalogIdx) : null;
       if (_hLl) hCard.ll = _hLl;
@@ -3374,14 +3390,30 @@ export function planReservationAnchors(skeleton, reservations, opts) {
 // closedNames, bannedNames (the day's effective skip list), vipWindow }.
 //
 // A held return that cannot be seated -- unreadable window, unknown ride,
-// closed that date, skip-listed (a contradiction the guest must resolve),
-// a park the day does not visit, or a window overlapping the VIP tour --
-// is NOT silently dropped: it is returned as a named conflict, the
-// reservation planner's surfacing contract. Two deliberate divergences
-// from the reservation rules, both because a return is a WINDOW, not a
-// point: park presence is judged against the day's park SET (a hop day
-// visits both parks; the guest holds the return for a park they will be
-// in that day), and the VIP test is interval overlap, not point-in-window.
+// closed that date, no moment of the window spent in the ride's park, or
+// a window falling entirely inside the VIP tour -- is NOT silently
+// dropped: it is returned as a named conflict, the reservation planner's
+// surfacing contract.
+//
+// PART 7 AMENDMENTS (Claude anchor-lane ruling, flags 1-3, Nov 4, 2026)
+// -- a return is a WINDOW, and the window is what the rulings judge:
+//   1. PARK PRESENCE is evaluated across the whole window with the
+//      reservation planner's presence machinery (runs over the
+//      skeleton): the anchor seats at the FIRST in-park moment of the
+//      window; a window the guest never spends in that park is a
+//      park-presence conflict, surfaced not seated (reservations' rule).
+//      This supersedes part 1's day park-SET test, which would seat a
+//      10-11 AM Disneyland return on a DCA-start day hopping at 12:50.
+//   2. VIP OVERLAP seats at the first usable moment OUTSIDE the tour
+//      (the tour edge the window crosses) instead of refusing; only a
+//      window falling entirely inside the tour is refused, by name.
+//      This supersedes part 1's refuse-on-any-overlap.
+//   3. THE BOOKING OUTRANKS THE SKIP LIST: a held ride on the guest's
+//      skip list SEATS, and the contradiction is surfaced by name as a
+//      non-blocking note. This supersedes part 1's refusal, which
+//      existed only because verifyTripParams' skip enforcement would
+//      have removed the seated card; anchored items are now exempt
+//      from that enforcement (see verifyTripParams).
 // ---------------------------------------------------------------------------
 export function planHeldReturnAnchors(skeleton, heldReturns, opts) {
   opts = opts || {};
@@ -3401,6 +3433,37 @@ export function planHeldReturnAnchors(skeleton, heldReturns, opts) {
   // first): their times are the overlap surface for held windows.
   const resvAnchors = skeleton.slots.filter(s => s && s.block === 'anchor' && typeof s.fixed === 'number')
     .map(s => ({ name: s.anchorName || '', timeMin: s.fixed }));
+  // Park presence (part 7, flag 1): the reservation planner's machinery,
+  // built the same way over the skeleton -- maximal runs of same-park
+  // slots, a run lasting until the next run's first slot starts (the hop
+  // tip slot is stamped with the destination park, so presence flips as
+  // the group starts walking). Reservation anchor slots are excluded:
+  // the reservation planner built its runs over the pristine skeleton,
+  // and these runs must answer the same question about the same day.
+  const runs = [];
+  for (const s of skeleton.slots) {
+    if (!s || s.block === 'anchor') continue;
+    const pk = normParkName(s.park);
+    const last = runs[runs.length - 1];
+    if (last && last.parkKey === pk) continue;
+    runs.push({ parkKey: pk, park: s.park, startMin: winStart(s.window) });
+  }
+  const presentParkAt = (t) => {
+    let cur = null;
+    for (const r of runs) { if (r.startMin <= t) cur = r; else break; }
+    return cur;
+  };
+  // The first moment of [s, e) the guest is in parkKey, or null when the
+  // window is never spent in that park.
+  const firstInParkMoment = (parkKey, s, e) => {
+    for (let i = 0; i < runs.length; i++) {
+      if (runs[i].parkKey !== parkKey) continue;
+      const runEnd = (i + 1 < runs.length) ? runs[i + 1].startMin : Infinity;
+      const m = Math.max(s, runs[i].startMin);
+      if (m < e && m < runEnd) return m;
+    }
+    return null;
+  };
 
   let mutated = false;
   const seatedGroups = new Set();
@@ -3427,17 +3490,46 @@ export function planHeldReturnAnchors(skeleton, heldReturns, opts) {
       out.conflicts.push({ type: 'held-return-closed', name: entry.name, day: dayNum, startMin, detail: entry.name + ' is closed on this date -- the booked return was not seated' });
       continue;
     }
-    if (bannedKeys.has(normName(entry.name)) || bannedGroups.has(gk)) {
-      out.conflicts.push({ type: 'held-return-banned', name: entry.name, day: dayNum, startMin, detail: entry.name + ' is on the guest\'s skip list, which contradicts the booked return -- the return was not seated; remove one of the two to resolve it' });
-      continue;
-    }
-    if (dayParkKeys.size && entry.park && !dayParkKeys.has(normParkName(entry.park))) {
+    // Skip list (part 7, flag 3): the booking outranks the onboarding
+    // skip list, so this is no longer a refusal -- the return seats
+    // below and the contradiction is surfaced by name there as a
+    // non-blocking note. Anchored items are exempt from
+    // verifyTripParams' skip enforcement, so the seated card survives
+    // the post-fill passes part 1 feared would strip it.
+    const skipListed = bannedKeys.has(normName(entry.name)) || bannedGroups.has(gk);
+    // Park presence (part 7, flag 1): the anchor seats at the first
+    // moment of the window the guest is actually in the ride's park.
+    // No such moment -> park-presence conflict, surfaced not seated
+    // (reservations' rule). The day park-SET fallback remains only for
+    // a degenerate skeleton with no slots to build runs from.
+    let seatMin = startMin;
+    if (entry.park && runs.length) {
+      seatMin = firstInParkMoment(normParkName(entry.park), startMin, endMin);
+      if (seatMin === null) {
+        out.conflicts.push({ type: 'held-return-park-conflict', name: entry.name, day: dayNum, startMin, detail: 'the booked ' + entry.name + ' return (' + toClock(startMin) + ' - ' + toClock(endMin) + ') is in ' + entry.park + ', but the group is not in ' + entry.park + ' at any point during that window -- it was not seated' });
+        continue;
+      }
+    } else if (dayParkKeys.size && entry.park && !dayParkKeys.has(normParkName(entry.park))) {
       out.conflicts.push({ type: 'held-return-park-conflict', name: entry.name, day: dayNum, startMin, detail: 'the booked ' + entry.name + ' return (' + toClock(startMin) + ' - ' + toClock(endMin) + ') is in ' + (entry.park || 'another park') + ', which this day does not visit -- it was not seated' });
       continue;
     }
-    if (vipWindow && startMin < vipWindow[1] && endMin > vipWindow[0]) {
-      out.conflicts.push({ type: 'held-return-during-vip', name: entry.name, day: dayNum, startMin, detail: 'the booked ' + entry.name + ' return (' + toClock(startMin) + ' - ' + toClock(endMin) + ') overlaps the VIP tour window -- it was not seated' });
-      continue;
+    // VIP window (part 7, flag 2): a seat moment inside the tour moves
+    // to the first usable moment OUTSIDE it -- the tour edge the window
+    // crosses (vipEnd), provided the window reaches that edge and the
+    // guest is in the ride's park there. The window is honored, not
+    // moved wholesale: a seat moment already outside the tour (the
+    // window crosses into the tour) never moves. Refuse + name only
+    // when no usable moment of the window exists outside the tour --
+    // the whole window falls inside it.
+    if (vipWindow && seatMin >= vipWindow[0] && seatMin < vipWindow[1]) {
+      const edge = vipWindow[1];
+      const edgeParkOk = !entry.park || !runs.length || (presentParkAt(edge) && presentParkAt(edge).parkKey === normParkName(entry.park));
+      if (edge <= endMin && edgeParkOk) {
+        seatMin = edge;
+      } else {
+        out.conflicts.push({ type: 'held-return-during-vip', name: entry.name, day: dayNum, startMin, detail: 'the booked ' + entry.name + ' return (' + toClock(startMin) + ' - ' + toClock(endMin) + ') falls entirely inside the VIP tour window -- it was not seated' });
+        continue;
+      }
     }
     // Overlap with a seated reservation anchor: BOTH are real bookings,
     // so both seat and the overlap surfaces by name -- the guest chooses
@@ -3477,21 +3569,27 @@ export function planHeldReturnAnchors(skeleton, heldReturns, opts) {
         mutated = true;
       }
     }
+    if (skipListed) {
+      // Non-blocking note (part 7, flag 3): the return seats; the guest
+      // hears about the contradiction by name, through this same
+      // conflict/surfacing channel, instead of losing the booking.
+      out.conflicts.push({ type: 'held-return-skip-listed', name: entry.name, day: dayNum, startMin, detail: 'You booked a Lightning Lane return for ' + entry.name + ' (' + toClock(startMin) + ' - ' + toClock(endMin) + '), but ' + entry.name + ' is on your skip list. The booking was kept and seated; the skip list entry did not override it.' });
+    }
     skeleton.slots.push({
       id: 'held-anchor', block: 'held-anchor', type: 'ride', park: entry.park,
-      window: [startMin, endMin], fixed: startMin,
+      window: [startMin, endMin], fixed: seatMin,
       anchorName: entry.name, anchorLand: entry.land || '', anchorRideKey: normName(entry.name),
-      role: 'HELD LIGHTNING LANE RETURN at ' + entry.name + ' -- a booked return seated by the plan at exactly ' + toClock(startMin) + ' (window ' + toClock(startMin) + ' - ' + toClock(endMin) + '); this slot is already filled by the booking -- return the ride name at exactly that time'
+      role: 'HELD LIGHTNING LANE RETURN at ' + entry.name + ' -- a booked return seated by the plan at exactly ' + toClock(seatMin) + ' (window ' + toClock(startMin) + ' - ' + toClock(endMin) + '); this slot is already filled by the booking -- return the ride name at exactly that time'
     });
     mutated = true;
     seatedGroups.add(gk);
-    out.anchors.push({ name: entry.name, startMin, endMin, start: toClock(startMin), end: toClock(endMin), park: entry.park, land: entry.land || '', day: dayNum });
+    out.anchors.push({ name: entry.name, startMin, endMin, start: toClock(startMin), end: toClock(endMin), seatMin, seat: toClock(seatMin), park: entry.park, land: entry.land || '', day: dayNum });
   }
   if (mutated) {
     skeleton.slots.sort((a, b) => winStart(a.window) - winStart(b.window));
     skeleton.slots.forEach((s, i) => { s.id = 's' + pad2(i + 1); });
     for (const a of out.anchors) {
-      const sl = skeleton.slots.find(s => s.block === 'held-anchor' && s.fixed === a.startMin && s.anchorName === a.name);
+      const sl = skeleton.slots.find(s => s.block === 'held-anchor' && s.fixed === a.seatMin && s.anchorName === a.name);
       if (sl) a.slotId = sl.id;
     }
   }
@@ -3521,12 +3619,15 @@ export function planHeldReturnAnchors(skeleton, heldReturns, opts) {
 // EXPECTATION DISCIPLINE: verify judges only records it can resolve
 // deterministically from what it is given (opts.catalog / opts.venues) --
 // a record the seating planner legitimately refuses (unreadable window,
-// unknown ride/venue, closed that date, skip-listed, a park the day does
-// not visit per opts.dayParks, inside/overlapping the VIP window) is NOT
-// expected here; the planner's named-conflict channel owns those, so this
-// check fires only on true drops, moves, and duplicates of anchors that
-// were seatable. Pure and deterministic; no model involvement; never
-// throws on malformed records (they are skipped, as above).
+// unknown ride/venue, closed that date, a held window never spent in
+// its park, a held window falling entirely inside the VIP window) is
+// NOT expected here; the planner's named-conflict channel owns those,
+// so this check fires only on true drops, moves, and duplicates of
+// anchors that were seatable. (Part 7: a skip-listed held return is
+// seatable -- the booking outranks the skip list -- so it is expected
+// here like any other booking.) Pure and deterministic; no model
+// involvement; never throws on malformed records (they are skipped,
+// as above).
 // opts: { dayIndex (0-based), catalog, venues, closedNames, bannedNames,
 //         closedVenueNames, dayParks }
 // ---------------------------------------------------------------------------
@@ -3559,6 +3660,31 @@ export function verifyAnchorDay(items, tripConfig, opts) {
     const vs = _anchorClock(dayCfg.vipStart), ve = _anchorClock(dayCfg.vipEnd);
     if (vs !== null && ve !== null && ve > vs) vipWindow = [vs, ve];
   }
+  // Park-presence spans for the held-return leg (part 7, flag 1 mirror):
+  // when the day config carries its hop (intent.hop { toPark, atMin })
+  // and a start park, presence is the two spans the hop makes -- the
+  // start park until the hop, the destination from the hop. The flip
+  // sits at atMin - 10 because buildHopSkeleton stamps the hop slot
+  // [atMin - 10, atMin + 20] with the destination park, so the seating
+  // planner's runs (which this mirrors) flip there -- the group is
+  // walking over. A VIP day never hops (generateschedule drops the hop
+  // when a tour is booked), so no spans are derived when a VIP window
+  // exists. No hop on record -> null, and the caller falls back to the
+  // day park set, part 1's test. Return hops are not modeled: a span
+  // test can only stop EXPECTING a return the planner seated (a missed
+  // drop), never expect one it refused.
+  let presenceSpans = null;
+  if (!vipWindow && dayCfg && dayCfg.intent && dayCfg.intent.hop) {
+    const hop = dayCfg.intent.hop;
+    const startPark = dayCfg.startPark || dayCfg.park;
+    if (startPark && hop.toPark && typeof hop.atMin === 'number') {
+      const flip = hop.atMin - 10;
+      presenceSpans = [
+        { parkKey: normParkName(startPark), from: -Infinity, to: flip },
+        { parkKey: normParkName(hop.toPark), from: flip, to: Infinity },
+      ];
+    }
+  }
   const resolveVenue = (name) => {
     const ck = canonicalVenueKey(name);
     if (!ck) return null;
@@ -3577,9 +3703,23 @@ export function verifyAnchorDay(items, tripConfig, opts) {
     if (!entry || !entry.name) continue;
     const gk = rideGroupKey(entry.name);
     if (closedRideKeys.has(normName(entry.name))) continue;
-    if (bannedKeys.has(normName(entry.name)) || bannedGroups.has(gk)) continue;
-    if (dayParkKeys.size && entry.park && !dayParkKeys.has(normParkName(entry.park))) continue;
-    if (vipWindow && startMin < vipWindow[1] && endMin > vipWindow[0]) continue;
+    // Skip-listed is NOT an exclusion (part 7, flag 3): the planner now
+    // seats a booked return even when the ride is on the skip list, so
+    // this check expects it like any other booking -- a save or re-plan
+    // that drops it is a true drop. (opts.bannedNames still arrives for
+    // parity across the three call sites; this leg no longer reads it.)
+    if (entry.park) {
+      const epk = normParkName(entry.park);
+      if (presenceSpans) {
+        // Presence (part 7, flag 1): the return is this day's anchor to
+        // hold only if some moment of its window is spent in its park.
+        if (!presenceSpans.some(sp => sp.parkKey === epk && startMin < sp.to && endMin > sp.from)) continue;
+      } else if (dayParkKeys.size && !dayParkKeys.has(epk)) continue;
+    }
+    // VIP overlap excludes only a window falling ENTIRELY inside the
+    // tour (part 7, flag 2): a partially overlapping window seats at
+    // the tour edge, inside [startMin, endMin], so it IS expected.
+    if (vipWindow && startMin >= vipWindow[0] && endMin <= vipWindow[1]) continue;
     const matches = list.filter(c => c && c.type === 'ride' && (normName(c.ride || c.h) === normName(entry.name) || rideGroupKey(c.ride || c.h) === gk));
     if (!matches.length) {
       violations.push({ kind: 'held-return-missing', name: entry.name, startMin, endMin, detail: 'the day drops the booked ' + entry.name + ' return (' + toClock(startMin) + ' - ' + toClock(endMin) + ')' });
@@ -3995,6 +4135,16 @@ export function deterministicBackfill(slot, ctx) {
 // PARAMETER-FIDELITY VERIFIER (recommendation #2): guest parameters are absolute.
 // Checks the final cards against explicit trip parameters and reports violations.
 // params: { mustDo: [names], skip: [names], hasLL: bool }. Never throws.
+// Anchor-stamp test shared by the param checks (anchor fix lane part 7,
+// Nov 4, 2026): the same flag set the client's edit guard
+// (tpcpIsAnchorEntry, app.html) keys on, minus the VIP type key -- a VIP
+// tour card is not a ride and can never be a skip-list name. A card
+// carrying any of these stamps is a BOOKING's face, not a planner
+// placement, and the booking outranks the onboarding skip list.
+function _isAnchorCard(c) {
+  return !!(c && (c.anchor === true || c.heldReturn === true || c.reservation === true || c.isConfirmed === true || c._preBook || c._recordedInsert));
+}
+
 export function verifyTripParams(cards, params) {
   params = params || {};
   const violations = [];
@@ -4012,7 +4162,15 @@ export function verifyTripParams(cards, params) {
   }
   for (const name of (params.skip || [])) {
     const k = normName(name);
-    if (k && cardKeys.has(k)) violations.push({ kind: 'skip-present', name: String(name) });
+    if (!k) continue;
+    // Skip enforcement exempts anchored items (part 7, flag 3): a
+    // skip-listed ride present ONLY as its booked anchor (a held LL
+    // return the guest paid to lock in) is not a skip violation -- the
+    // booking outranks the skip list, and the planner surfaces the
+    // contradiction by name instead. The same ride placed as ordinary
+    // standby still violates, anchor or no anchor elsewhere in the day.
+    const present = (cards || []).some(c => c && keyOf(c) === k && !_isAnchorCard(c));
+    if (present) violations.push({ kind: 'skip-present', name: String(name) });
   }
   if (params.hasLL === false) {
     for (const c of (cards || [])) {
@@ -4061,7 +4219,12 @@ export function enforceTripParams(cards, violations, ctx) {
     if (v.kind === 'skip-present') {
       const k = normName(v.name);
       const before = out.length;
-      out = out.filter(c => normName((c.ride || c.h) || '') !== k);
+      // Anchored cards are never removed by skip enforcement (part 7,
+      // flag 3): the filter strips ordinary placements of the skipped
+      // ride and leaves any booked anchor standing, so a violation
+      // raised by a caller that does not apply the anchor exemption
+      // still cannot un-seat a booking here.
+      out = out.filter(c => normName((c.ride || c.h) || '') !== k || _isAnchorCard(c));
       if (out.length < before) fixed.push({ kind: v.kind, name: v.name, action: 'removed' });
       else unfixable.push(v);
     } else if (v.kind === 'll-when-none') {

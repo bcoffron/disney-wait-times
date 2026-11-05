@@ -33,6 +33,11 @@
 // the stamps and the predicate does not fire on the shipped cards. (c)
 // passes on both trees by design: it pins the absence of false anchors.
 //
+// PART 7 ADDITION (flag 6): generation now stamps the VIP tour card
+// (anchor:true + vip:true), so vip joins the passthrough list -- case
+// (d). Against pre-part-7 main (089fc566) the vip half of (d) fails:
+// normalizeEntry drops the field the predicate now keys on.
+//
 // Run with Node's built-in runner (no new dependencies):
 //   node --test test/reoptimize-anchor-stamps.test.mjs
 // Handler harness mirrors test/reoptimize-anchor-verify.test.mjs:
@@ -90,6 +95,17 @@ test('(a) normalizeEntry passes all six anchor stamps through exactly', () => {
   const falsy = normalizeEntry({ t: '9:00 AM', h: 'Jungle Cruise', type: 'ride', n: '', anchor: false });
   assert.equal(falsy.anchor, false);
   assert.equal(tpcpIsAnchorEntry(falsy), false);
+});
+
+test('(d) part 7 (flag 6): normalizeEntry passes the vip stamp through; a stamp-less tour card gains none', () => {
+  const tour = { t: '10:00 AM', h: 'VIP Tour', type: 'vip', n: 'Your private guide handles all skip-the-line access.', land: '', anchor: true, vip: true };
+  const out = normalizeEntry(clone(tour));
+  assert.equal(out.anchor, true, 'the shared anchor stamp survives');
+  assert.equal(out.vip, true, 'the vip class marker survives');
+  assert.equal(tpcpIsAnchorEntry(out), true, 'the client predicate fires on the round-tripped tour card');
+  const bare = normalizeEntry({ t: '10:00 AM', h: 'VIP Tour', type: 'vip', n: '', land: '' });
+  assert.ok(!('vip' in bare) && !('anchor' in bare), 'a stamp-less tour card gains no stamp here (pin: passes on both trees)');
+  assert.equal(tpcpIsAnchorEntry(bare), true, 'the predicate still sees it via the documented type fallback (pin)');
 });
 
 test('(c) a stamp-less entry gains no stamps, and non-stamp extras still drop', () => {
