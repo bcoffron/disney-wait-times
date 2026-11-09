@@ -198,6 +198,7 @@ Batch Upload
 <\/div>
 <div class="field-group" style="margin-top:20px">
 <div class="field-label">Keep Reading (Related Posts)<\/div>
+<div id="related-status" class="related-status"><\/div>
 <div id="related-list"><\/div>
 <button type="button" class="btn-add-faq" onclick="addRelatedRow()">+ Add Related Post<\/button>
 <\/div>

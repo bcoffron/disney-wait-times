@@ -36,6 +36,7 @@ import jwt from 'jsonwebtoken';
 import { put } from '@vercel/blob';
 import { updateBlobJson, computeBodySnippet, readBlobJson } from './lib/blob.js';
 import { resolvePublishedAt } from './lib/publish-date.js';
+import { resolveRelated, applyRelated } from './lib/related.js';
 
 const rateLimit = new Map();
 
@@ -140,6 +141,14 @@ export default async function handler(req, res) {
     const bpd = resolvePublishedAt(batchPreImage, post, post.updatedAt);
     if (bpd.publishedAt) post.publishedAt = bpd.publishedAt;
     transitionBySlug.set(post.slug, bpd.transition);
+    // Related-posts resolution (api/lib/related.js): the importer is
+    // not the editor, so it takes the resolver's non-editor branch -
+    // any related list in the payload is ignored, a stored manual or
+    // legacy list is preserved from the pre-image just read, and
+    // everything else computes as automatic. The guard's index read
+    // is the corpus; no extra read. (The non-editor branch cannot
+    // produce a validation error.)
+    applyRelated(post, resolveRelated(post, batchPreImage, 'batch', guardIndex));
     if (post.body && typeof post.body === 'string') {
       post.body = post.body.replace(/<img([^>]*?)>/gi, function (match, attrs) {
         attrs = attrs.replace(/\s*(width|height|style)=["'][^"']*["']/gi, '');
@@ -150,7 +159,7 @@ export default async function handler(req, res) {
       await put('blog/posts/' + post.slug, JSON.stringify(post), { access: 'public', allowOverwrite: true });
       landed.push(post);
       if (!existingSlugs.includes(post.slug)) acceptedNewSlugs.push(post.slug);
-      results.push({ slug: post.slug, status: 'ok' });
+      results.push({ slug: post.slug, status: 'ok', related: post.related, relatedSource: post.relatedSource || null });
     } catch (err) {
       results.push({ slug: post.slug, status: 'failed', error: err.message });
     }

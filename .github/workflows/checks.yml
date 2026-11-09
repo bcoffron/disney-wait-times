@@ -55,6 +55,8 @@ jobs:
         run: node --test test/blog-reconcile-auth.test.mjs test/blog-images-delete.test.mjs test/blog-images-cleanup.test.mjs test/blog-upload-ratelimit.test.mjs test/check-cron-auth.test.mjs
       - name: Blog upload agent auth suite
         run: node --test test/blog-upload-agent-auth.test.mjs
+      - name: Blog related auto-build suite
+        run: node --test test/blog-related-auto.test.mjs
       - name: Push-tap presenter suite
         run: node --test test/push-tap-presenter.test.mjs
       - name: Reoptimize scope guard suite

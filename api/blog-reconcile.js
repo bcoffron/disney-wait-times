@@ -11,11 +11,20 @@
 // verdict in a status blob that an external reader polls. Healthy runs
 // are silent downstream; divergence raises an alert with the diff.
 //
-// This endpoint is READ-ONLY with respect to the blog: its only write
-// is its own status blob. It is deliberately NOT a mode on
-// blog-reindex - that file holds the hash-gated commit path, which
-// stays human-run and cron-unreachable (PR #39). Repair, when needed,
-// is the reviewed blog-reindex dry run + hash-gated commit.
+// The CHECK above is read-only with respect to the blog: it never
+// repairs the index (that stays the reviewed blog-reindex dry run +
+// hash-gated commit, PR #39), and its only write is its own status
+// blob. A separate STEP rides this daily run since the related-auto
+// lane (Nov 9, 2026): the related sweep at the bottom of this file
+// refreshes AUTOMATIC related lists (api/lib/related.js) - the
+// mechanism that lands new or re-tagged posts in their siblings'
+// lists without waiting for a re-save. The sweep is provenance-
+// gated (it writes only posts whose stored relatedSource is 'auto',
+// re-checked at write time), touches only the `related` field
+// (updatedAt deliberately untouched - a related refresh must not
+// fake sitemap freshness), and logs any post left with zero inbound
+// links. Its summary rides the status blob; a sweep failure never
+// fails the reconciliation verdict.
 //
 // Auth: Vercel cron only - the CRON_SECRET bearer alone, the same
 // pattern as the project's working crons (cron-push-monitor,
@@ -53,6 +62,7 @@
 import { put } from '@vercel/blob';
 import { readBlobJson } from './lib/blob.js';
 import { buildCandidate } from './lib/reindex-candidate.js';
+import { computeRelated, relatedListsEqual } from './lib/related.js';
 
 const INDEX_KEY = 'blog/posts/index';
 const STATUS_KEY = 'blog/reconcile/status';
@@ -91,6 +101,73 @@ async function writeStatus(status) {
   });
 }
 
+// --- Related sweep ---------------------------------------------------
+// Recompute every AUTOMATIC related list against the current corpus
+// (the candidate build's post blobs - the source of truth, carrying
+// the same fields the index would). Manual and legacy (no
+// relatedSource) lists are never touched: provenance is sticky and
+// only a human editor action changes it. A post is written only when
+// its computed list differs from the stored one, and provenance is
+// re-checked against a fresh read at write time - a list a human
+// froze mid-sweep is skipped, never overwritten. The write changes
+// ONLY `related`: all other fields are the fresh blob's own, and
+// updatedAt is left exactly as stored.
+export async function sweepRelatedPosts(posts) {
+  const summary = { checked: 0, changed: 0, skippedProvenance: 0, zeroInbound: [] };
+  const list = (Array.isArray(posts) ? posts : []).filter(p => p && p.slug);
+  const corpus = list.map(p => ({
+    slug: p.slug, title: p.title, park: p.park, category: p.category,
+    heroImage: p.heroImage, published: p.published,
+    publishedAt: p.publishedAt, tags: p.tags || []
+  }));
+  const finalLists = new Map();
+  for (const post of list) {
+    if (post.relatedSource !== 'auto') {
+      finalLists.set(post.slug, post.related || []);
+      continue;
+    }
+    summary.checked++;
+    const computed = computeRelated(post, corpus);
+    if (relatedListsEqual(computed, post.related)) {
+      finalLists.set(post.slug, post.related || []);
+      continue;
+    }
+    const fresh = await readBlobJson('blog/posts/' + post.slug, 'blog-reconcile.related-sweep', { expected: false });
+    if (!fresh || fresh.relatedSource !== 'auto') {
+      summary.skippedProvenance++;
+      finalLists.set(post.slug, (fresh && fresh.related) || post.related || []);
+      if (fresh) console.log('[blog-reconcile] related sweep: "' + post.slug + '" turned manual mid-sweep - skipped.');
+      continue;
+    }
+    const recomputed = computeRelated(fresh, corpus);
+    if (relatedListsEqual(recomputed, fresh.related)) {
+      finalLists.set(post.slug, fresh.related || []);
+      continue;
+    }
+    await put('blog/posts/' + post.slug, JSON.stringify({ ...fresh, related: recomputed }), { access: 'public', allowOverwrite: true });
+    summary.changed++;
+    finalLists.set(post.slug, recomputed);
+    console.log('[blog-reconcile] related sweep: refreshed "' + post.slug + '" -> [' + recomputed.map(r => r.slug).join(', ') + ']');
+  }
+  // Inbound census over the post-sweep state: a published post no
+  // list points at is an internal orphan (the DCA-guide failure this
+  // system exists to prevent) - surface it in the log and the status.
+  const inbound = new Map();
+  for (const rel of finalLists.values()) {
+    for (const r of rel || []) {
+      if (r && r.slug) inbound.set(r.slug, (inbound.get(r.slug) || 0) + 1);
+    }
+  }
+  for (const p of list) {
+    if (p.published === true && !inbound.get(p.slug)) summary.zeroInbound.push(p.slug);
+  }
+  summary.zeroInbound.sort();
+  if (summary.zeroInbound.length) {
+    console.log('[blog-reconcile] related sweep: zero inbound links: ' + summary.zeroInbound.join(', '));
+  }
+  return summary;
+}
+
 export default async function handler(req, res) {
   if (!cronAuthorized(req)) {
     console.error('[SECURITY] blog-reconcile: unauthorized invocation rejected (no status written).');
@@ -109,6 +186,20 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error('[blog-reconcile] run-started marker write failed:', e.message);
   }
+  // Related sweep runner: best-effort around the verdict paths below.
+  // Runs on the freshest candidate build (pass 2's when there was
+  // one); a candidate without post objects (an older build shape)
+  // skips cleanly, and any sweep error is recorded, never thrown -
+  // the reconciliation verdict must not fail because the sweep did.
+  const runSweep = async (candidate) => {
+    try {
+      if (!candidate || !Array.isArray(candidate.posts)) return { skipped: 'candidate posts unavailable' };
+      return await sweepRelatedPosts(candidate.posts);
+    } catch (e) {
+      console.error('[blog-reconcile] related sweep failed:', e.message);
+      return { error: String(e.message || e) };
+    }
+  };
   try {
     const pass1Start = Date.now();
     const c1 = await buildCandidate();
@@ -119,6 +210,7 @@ export default async function handler(req, res) {
 
     if (!hasDivergence(d1)) {
       const status = { ranAt, verdict: 'ok', candidateCount: c1.index.length, storedCount: s1.length, missing: [], extra: [], publishedDrift: [], lagArtifacts: [], note: null };
+      status.relatedSweep = await runSweep(c1);
       await writeStatus(status);
       return res.status(200).json(status);
     }
@@ -136,12 +228,14 @@ export default async function handler(req, res) {
 
     if (!hasDivergence(d2)) {
       const status = { ranAt, verdict: 'ok', candidateCount: c2.index.length, storedCount: s2.length, missing: [], extra: [], publishedDrift: [], lagArtifacts, note: 'Pass-1 divergence did not persist past the lag window; treated as a store visibility artifact.' };
+      status.relatedSweep = await runSweep(c2);
       await writeStatus(status);
       console.log('[blog-reconcile] pass-1 divergence resolved as lag artifact: ' + lagArtifacts.join(', '));
       return res.status(200).json(status);
     }
 
     const status = { ranAt, verdict: 'divergent', candidateCount: c2.index.length, storedCount: s2.length, missing: d2.missing, extra: d2.extra, publishedDrift: d2.publishedDrift, lagArtifacts, note: 'Divergence persisted across two passes spanning the lag window. Repair: reviewed blog-reindex dry run + hash-gated commit.' };
+    status.relatedSweep = await runSweep(c2);
     await writeStatus(status);
     console.error('[blog-reconcile] DIVERGENCE confirmed: missing=[' + d2.missing.join(', ') + '] extra=[' + d2.extra.join(', ') + '] publishedDrift=[' + d2.publishedDrift.map(x => x.slug).join(', ') + ']');
     return res.status(200).json(status);

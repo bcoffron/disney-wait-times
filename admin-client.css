@@ -119,6 +119,9 @@ input,textarea,select,button{font-family:'Outfit',sans-serif}
 .related-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
 .related-row select{flex:1;padding:8px 10px;border:1px solid rgba(7,30,37,0.12);border-radius:8px;font-size:12px;outline:none}
 .related-remove{background:none;border:none;color:#C82030;cursor:pointer;font-size:18px;line-height:1;padding:0 4px}
+.related-status{font-size:11px;color:#4A7A7C;margin-bottom:8px}
+.related-status a{color:#1A6860;font-weight:600;text-decoration:underline;cursor:pointer;margin-left:8px}
+.related-note{font-size:11px;color:#B45309;white-space:nowrap}
 /* Status toggle */
 .toggle-row{display:flex;align-items:center;gap:12px}
 .toggle-switch{position:relative;width:44px;height:24px;cursor:pointer}

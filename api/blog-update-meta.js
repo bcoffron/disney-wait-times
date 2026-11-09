@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import jwt from 'jsonwebtoken';
 import { readBlobJson, updateBlobJson } from './lib/blob.js';
+import { carryRelatedFields } from './lib/related.js';
 
 export default async function handler(req, res) {
   // Fix 5: JWT verification FIRST before any data processing
@@ -25,9 +26,14 @@ export default async function handler(req, res) {
   try {
     const post = await readBlobJson('blog/posts/' + slug, 'blog-update-meta', { expected: true });
     if (!post) return res.status(404).json({ error: 'Post not found' });
+    // Related provenance is not this endpoint's to adjudicate (it
+    // receives no post payload): snapshot the fields at read time and
+    // carry them across the write explicitly (api/lib/related.js).
+    const relatedSnapshot = { related: post.related, relatedSource: post.relatedSource };
 
     if (publishedAt) post.publishedAt = publishedAt;
     if (updatedAt) post.updatedAt = updatedAt;
+    carryRelatedFields(post, relatedSnapshot);
 
     await put('blog/posts/' + slug, JSON.stringify(post), {
       access: 'public',

@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import { readBlobJson, updateBlobJson } from './lib/blob.js';
 import { resolvePublishedAt } from './lib/publish-date.js';
+import { carryRelatedFields } from './lib/related.js';
 
 // api/cron-publish.js â runs every hour, publishes scheduled posts whose time has passed
 // Cron schedule: 0 * * * * (top of every hour)
@@ -44,6 +45,10 @@ export default async function handler(req, res) {
           errors.push('Post not found: ' + meta.slug);
           continue;
         }
+        // Related provenance snapshot (api/lib/related.js): this
+        // cron mutates publish state only; the stored related list +
+        // source are carried across the write explicitly below.
+        const relatedSnapshot = { related: post.related, relatedSource: post.relatedSource };
 
         // Publish it. The stamp comes from the shared publish-date
         // helper (api/lib/publish-date.js): the stored blob just read
@@ -57,6 +62,10 @@ export default async function handler(req, res) {
         post.publishedAt = pd.publishedAt;
         post.scheduledAt = null;
         post.updatedAt = new Date().toISOString();
+        // The daily reconcile sweep refreshes automatic lists
+        // against the post-publish corpus; here the stored list
+        // simply rides through.
+        carryRelatedFields(post, relatedSnapshot);
 
         // Save post
         await put('blog/posts/' + post.slug, JSON.stringify(post), {
