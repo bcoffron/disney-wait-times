@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { put } from '@vercel/blob';
 import { updateBlobJson, computeBodySnippet, readBlobJson } from './lib/blob.js';
 import { resolvePublishedAt } from './lib/publish-date.js';
+import { resolveRelated, applyRelated } from './lib/related.js';
 
 const rateLimit = new Map();
 
@@ -143,6 +144,21 @@ export default async function handler(req, res) {
     post.publishedAt = post.updatedAt;
   }
 
+  // Related-posts resolution (api/lib/related.js): provenance is
+  // adjudicated at this one save seam, from the pre-image read above
+  // and the slug guard's index read - the guard's array IS the scorer
+  // corpus, so resolution costs no extra read. The session editor is
+  // the only caller that can set or clear a hand-picked (manual)
+  // list; the agent path preserves manual lists and legacy posts
+  // (no relatedSource) exactly as stored. An invalid hand-picked
+  // list refuses the save here, BEFORE anything is written, naming
+  // the problem.
+  const resolvedRelated = resolveRelated(post, preImage, authKind, Array.isArray(guardIndex) ? guardIndex : []);
+  if (resolvedRelated.error) {
+    return res.status(400).json({ error: resolvedRelated.error });
+  }
+  applyRelated(post, resolvedRelated);
+
   if (post.body && typeof post.body === 'string') {
     post.body = post.body.replace(/<img([^>]*?)>/gi, function(match, attrs) {
       attrs = attrs.replace(/\s*(width|height|style)=["'][^"']*["']/gi, '');
@@ -179,7 +195,10 @@ export default async function handler(req, res) {
     });
 
     console.log('blog-save: saved "' + post.slug + '" (auth: ' + authKind + ')');
-    return res.status(200).json({ success: true, slug: post.slug, updatedAt: post.updatedAt });
+    // The resolved related list + provenance ride the response so the
+    // editor re-renders its rows from what the server actually stored
+    // (an automatic list may differ from the rows that were sent).
+    return res.status(200).json({ success: true, slug: post.slug, updatedAt: post.updatedAt, related: post.related, relatedSource: post.relatedSource || null });
   } catch (err) {
     // A refused index update (api/lib/blob.js INDEX_CONFLICT) is a
     // distinct, retryable state, not a server error: the post blob
@@ -194,7 +213,9 @@ export default async function handler(req, res) {
         code: 'INDEX_CONFLICT',
         retryable: true,
         state: 'blob_written_index_not_updated',
-        slug: post.slug
+        slug: post.slug,
+        related: post.related,
+        relatedSource: post.relatedSource || null
       });
     }
     console.error('blog-save error (auth: ' + authKind + '):', err.message);

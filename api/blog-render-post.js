@@ -76,54 +76,14 @@ if (!related || !related.length) return '';
   return '<div class="related-posts"><h3>You might also like</h3><div class="related-grid">' + cards + '</div></div>';
 }
 
-// Cross-links computed at render time from index metadata — deterministic, no
-// hand-maintained lists (Claude's constraint, Oct 15): same park scores highest,
-// then same category, then shared tags; ties resolve by a stable per-post hash
-// rotation (see the sort below). Published posts only; self always excluded.
-// FNV-1a 32-bit — small, stable across engines and runs (no Date/Math.random).
-function stableHash(str) {
-  var h = 0x811c9dc5;
-  for (var i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
-}
-
-function computeRelated(post, indexPosts) {
-  if (!post || !Array.isArray(indexPosts)) return null;
-  var LIMIT = 6;
-  var myPark = post.park || 'both';
-  var myCategory = post.category || '';
-  var myTags = {};
-  (post.tags || []).forEach(function(t) { myTags[t] = true; });
-  var scored = [];
-  indexPosts.forEach(function(p) {
-    if (!p || p.published !== true || !p.slug || p.slug === post.slug) return;
-    var s = 0;
-    var pPark = p.park || 'both';
-    if (pPark === myPark) s += 4;
-    else if (pPark === 'both' || myPark === 'both') s += 1;
-    if (myCategory && p.category && p.category === myCategory) s += 3;
-    var shared = 0;
-    (p.tags || []).forEach(function(t) { if (myTags[t]) shared++; });
-    s += Math.min(shared, 2);
-    scored.push({ slug: p.slug, title: p.title, heroImage: p.heroImage, park: pPark, _s: s });
-  });
-  // Within an equal score, order by a stable hash of (this post, candidate):
-  // every post surfaces a different slice of its tied cohort, so inbound links
-  // spread across all equally-relevant posts instead of the newest few always
-  // winning the recency tiebreak (which starved the oldest park guides).
-  scored.sort(function(a, b) {
-    if (b._s !== a._s) return b._s - a._s;
-    var ha = stableHash(post.slug + '|' + a.slug), hb = stableHash(post.slug + '|' + b.slug);
-    if (ha !== hb) return ha - hb;
-    return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;
-  });
-  return scored.slice(0, LIMIT).map(function(r) {
-    return { slug: r.slug, title: r.title, heroImage: r.heroImage, park: r.park };
-  });
-}
+// Related posts are NOT computed here anymore. Until Nov 9, 2026 this
+// file scored cross-links at render time (an Oct 15 constraint) and
+// the editor's stored lists were only a fallback - which made
+// hand-picked lists invisible on the live page and left provenance
+// with nowhere to live. Resolution moved to save time + the daily
+// sweep (api/lib/related.js, with per-list provenance: automatic by
+// default, hand-picked sticks). The handler below renders the STORED
+// list, filtered and refreshed against the index.
 
 function breadcrumbHtml(post) {
   return '<nav class="breadcrumb"><a href="https://themeparkcopilot.com">Home</a><span> \u203a </span><a href="https://themeparkcopilot.com/blog">Blog</a><span> \u203a </span><span>' + esc(post.title) + '</span></nav>';
@@ -208,14 +168,29 @@ var settings = await readSettings();
 // rather than not at all.
 var imageMeta = await readImageMeta('blog-render-post.image-meta');
 
-// Related posts: computed from the index; the stored list is only a fallback
-// if the index read fails, so a blob hiccup never strips the block.
-var relatedForRender = null;
+// Related posts: the stored list is the source of truth (resolved
+// at save time / by the daily sweep - see api/lib/related.js). This
+// index read only filters and refreshes it: an entry whose target
+// is not currently published is skipped (a hand-picked row aimed at
+// a draft stays hidden until the target publishes), and the title
+// and hero shown are the target's CURRENT ones, not the copies
+// frozen into the list when it was stored. If the index read fails,
+// the stored list renders as-is - a blob hiccup never strips the
+// block.
+var relatedForRender = post.related || [];
 try {
   var indexPosts = await readBlobJson('blog/posts/index', 'blog-render-post.readBlob', { expected: true });
-  relatedForRender = computeRelated(post, indexPosts);
-} catch(e) { relatedForRender = null; }
-if (!relatedForRender || !relatedForRender.length) relatedForRender = post.related;
+  if (Array.isArray(indexPosts)) {
+    var publishedBySlug = {};
+    indexPosts.forEach(function(p) { if (p && p.slug && p.published === true) publishedBySlug[p.slug] = p; });
+    relatedForRender = (post.related || []).filter(function(r) {
+      return r && publishedBySlug[r.slug];
+    }).map(function(r) {
+      var t = publishedBySlug[r.slug];
+      return { slug: r.slug, park: t.park || r.park, title: t.title || r.title, heroImage: t.heroImage || r.heroImage };
+    });
+  }
+} catch(e) { /* index unavailable: the stored list stands */ }
   var byline = settings.byline || 'By the Theme Park Co-Pilot Team';
 
 // Show updated date if post was updated more than 7 days after publish

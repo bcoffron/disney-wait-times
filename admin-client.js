@@ -884,7 +884,7 @@ document.getElementById('status-label').textContent = 'Draft';
 document.getElementById('f-cta-type').value = 'dl';
 document.getElementById('hero-preview').src = '';
 document.getElementById('faq-list').innerHTML = '';
-document.getElementById('related-list').innerHTML = '';
+setRelatedRows([], null);
 const tagsEl = document.getElementById('f-tags');
 if (tagsEl) tagsEl.value = '';
 if (quill) quill.setContents([]);
@@ -938,9 +938,7 @@ initPhotoPanel();
 const faqList = document.getElementById('faq-list');
 faqList.innerHTML = '';
 (post.faqs || []).forEach(faq => addFaqItem(faq.q, faq.a));
-const relList = document.getElementById('related-list');
-relList.innerHTML = '';
-(post.related || []).forEach(rel => addRelatedRow(rel.slug));
+setRelatedRows(post.related || [], post.relatedSource || null);
 document.getElementById('f-tags').value = (post.tags || []).join(', ');
 applyReadTimeModeToField();
 onMetaChange();
@@ -1454,13 +1452,95 @@ list.appendChild(div);
 // ============================================================
 // RELATED
 // ============================================================
+// Related provenance (related-auto, Nov 9, 2026): the server resolves
+// every list at save time (api/lib/related.js) - automatic by
+// default, hand-picked sticks. The editor's contract: snapshot the
+// rows at load; on save send 'manual' ONLY when the rows differ from
+// the snapshot (an edit undone before saving stays automatic, and
+// open-and-save does not freeze a list), otherwise send the loaded
+// source - or nothing for a legacy post, whose stored list the
+// server then preserves untouched. "Return to automatic" sends
+// 'auto'. After a save, the rows re-render from the save response:
+// what the server stored is what the editor shows.
+let relatedLoadedSlugs = [];
+let relatedLoadedSource = null; // 'auto' | 'manual' | null (legacy post / new post)
+let relatedReturnToAuto = false;
+let relatedPopulating = false;
+
+function relatedRowSlugs() {
+return Array.from(document.querySelectorAll('#related-list .related-row select')).map(sel => sel.value);
+}
+function sameSlugList(a, b) {
+return a.length === b.length && a.every((s, i) => s === b[i]);
+}
+function renderRelatedStatus() {
+const el = document.getElementById('related-status');
+if (!el) return;
+const slugs = relatedRowSlugs();
+if (!currentPost && !relatedReturnToAuto && slugs.length === 0) {
+el.innerHTML = 'Automatic &mdash; filled when you save';
+return;
+}
+// A legacy post (no stored provenance) is treated as hand-picked
+// until the backfill sets it - automatic updates are off for it, so
+// the line says so rather than promising updates that won't happen.
+const handPicked = !relatedReturnToAuto && (!sameSlugList(slugs, relatedLoadedSlugs)
+|| relatedLoadedSource === 'manual'
+|| (relatedLoadedSource === null && !!currentPost));
+if (handPicked) {
+el.innerHTML = 'Hand-picked &mdash; automatic updates are off for this post'
++ '<a onclick="returnRelatedToAuto()">Return to automatic</a>';
+} else {
+el.innerHTML = 'Automatic &mdash; picked from shared tags, park and category';
+}
+}
+function refreshRelatedNotes() {
+document.querySelectorAll('#related-list .related-row').forEach(row => {
+const sel = row.querySelector('select');
+let note = row.querySelector('.related-note');
+const target = sel ? allPosts.find(p => p.slug === sel.value) : null;
+const unpublished = !!target && target.published !== true;
+if (unpublished && !note) {
+note = document.createElement('span');
+note.className = 'related-note';
+note.textContent = 'not published \u2014 hidden on the live page.';
+row.appendChild(note);
+} else if (!unpublished && note) {
+note.remove();
+}
+});
+}
+function relatedRowsChanged() {
+if (relatedPopulating) return;
+refreshRelatedNotes();
+renderRelatedStatus();
+}
+function returnRelatedToAuto() {
+if (!confirm('Return this post to automatic related posts?')) return;
+relatedReturnToAuto = true;
+markDirty();
+renderRelatedStatus();
+}
+function setRelatedRows(related, source) {
+relatedPopulating = true;
+const relList = document.getElementById('related-list');
+relList.innerHTML = '';
+(related || []).forEach(rel => addRelatedRow(rel.slug));
+relatedLoadedSlugs = (related || []).map(r => r.slug);
+relatedLoadedSource = source || null;
+relatedReturnToAuto = false;
+relatedPopulating = false;
+refreshRelatedNotes();
+renderRelatedStatus();
+}
 function addRelatedRow(selectedSlug) {
 const list = document.getElementById('related-list');
 const div = document.createElement('div');
 div.className = 'related-row';
 const opts = allPosts.map(p => '<option value="' + p.slug + '" ' + (p.slug===selectedSlug?'selected':'') + '>' + escHtml(p.title||p.slug) + '</option>').join('');
-div.innerHTML = '<select onchange="markDirty()">' + opts + '</select><button class="related-remove" onclick="this.parentElement.remove();markDirty()">&times;</button>';
+div.innerHTML = '<select onchange="markDirty();relatedRowsChanged()">' + opts + '</select><button class="related-remove" onclick="this.parentElement.remove();markDirty();relatedRowsChanged()">&times;</button>';
 list.appendChild(div);
+relatedRowsChanged();
 }
 
 // ============================================================
@@ -1486,6 +1566,14 @@ const slug = sel.value;
 const post = allPosts.find(p => p.slug === slug);
 if (post) related.push({ slug: post.slug, park: post.park, title: post.title, heroImage: post.heroImage || '' });
 });
+// Provenance to send (see the RELATED section): 'manual' only when
+// the rows differ from the load snapshot; the loaded source when
+// untouched; undefined for a legacy post (field omitted - the
+// server preserves its list); 'auto' after "Return to automatic".
+let relatedSource;
+if (relatedReturnToAuto) relatedSource = 'auto';
+else if (!sameSlugList(related.map(r => r.slug), relatedLoadedSlugs)) relatedSource = 'manual';
+else relatedSource = relatedLoadedSource || undefined;
 const slug = document.getElementById('f-slug').value.trim();
 const park = document.getElementById('f-park').value;
 const ctaType = document.getElementById('f-cta-type').value;
@@ -1515,7 +1603,7 @@ heroImage, heroAlt: document.getElementById('f-hero-alt').value.trim(),
 heroFocal: document.getElementById('hero-preview').dataset.focal || 'center',
 intro: document.getElementById('f-intro').value.trim(),
 readTime, publishedAt: currentPost ? currentPost.publishedAt : null, updatedAt: new Date().toISOString(),
-published: isPublished, scheduledAt, body: bodyHtml, faqs, related,
+published: isPublished, scheduledAt, body: bodyHtml, faqs, related, relatedSource,
 cta: { type: ctaType, ...CTA_TEXT[ctaType] },
 tags: (document.getElementById('f-tags').value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean)
 };
@@ -1551,6 +1639,14 @@ const data = await r.json();
 if ((r.ok && data.success) || (r.status === 409 && data && data.code === 'INDEX_CONFLICT')) {
 if (data.slug) optimisticUpsert(data.slug, toOptimisticEntry(post, allPosts.find(function(p) { return p.slug === post.slug; })));
 currentPost = post;
+// Re-render the related rows from the save response: the server's
+// resolved list is authoritative (an automatic list can differ from
+// the rows that were sent, and provenance is now whatever it stored).
+if (Array.isArray(data.related)) {
+post.related = data.related;
+if (data.relatedSource) post.relatedSource = data.relatedSource; else delete post.relatedSource;
+setRelatedRows(data.related, data.relatedSource || null);
+}
 isDirty = false;
 if (typeof ppAfterCommittedSave === 'function') ppAfterCommittedSave(post.body);
 document.getElementById('f-readtime').value = post.readTime;

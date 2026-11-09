@@ -44,6 +44,10 @@ export async function buildCandidate() {
     }
   }
 
+  // The winning post objects ride along: the reconcile related sweep
+  // works from the same store read instead of listing/fetching the
+  // corpus a second time. Existing consumers ignore the extra field.
+  const posts = [...bySlug.values()].map(({ post }) => post);
   const index = [...bySlug.values()].map(({ post }) => ({
     slug: post.slug,
     title: post.title,
@@ -62,5 +66,5 @@ export async function buildCandidate() {
     bodySnippet: computeBodySnippet(post.body)
   }));
   index.sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));
-  return { index, errors };
+  return { index, errors, posts };
 }

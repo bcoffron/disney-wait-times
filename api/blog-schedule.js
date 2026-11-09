@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { put } from '@vercel/blob';
 import { readBlobJson, updateBlobJson } from './lib/blob.js';
+import { carryRelatedFields } from './lib/related.js';
 
 // POST /api/blog-schedule
 // Body: { slug, scheduledAt } — scheduledAt can be ISO string or null to cancel
@@ -30,6 +31,10 @@ export default async function handler(req, res) {
   try {
     const post = await readBlobJson('blog/posts/' + slug, 'blog-schedule', { expected: true });
     if (!post) return res.status(404).json({ error: 'Post not found: ' + slug });
+    // Related provenance is not this endpoint's to adjudicate (it
+    // receives no post payload): snapshot the fields at read time and
+    // carry them across the write explicitly (api/lib/related.js).
+    const relatedSnapshot = { related: post.related, relatedSource: post.relatedSource };
 
     if (scheduledAt === null || scheduledAt === undefined || scheduledAt === '') {
       delete post.scheduledAt;
@@ -37,6 +42,7 @@ export default async function handler(req, res) {
       post.scheduledAt = scheduledAt;
     }
     post.updatedAt = new Date().toISOString();
+    carryRelatedFields(post, relatedSnapshot);
 
     await put('blog/posts/' + slug, JSON.stringify(post), {
       access: 'public',
