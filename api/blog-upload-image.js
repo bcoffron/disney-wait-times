@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { timingSafeEqual } from 'node:crypto';
 import { put, list } from '@vercel/blob';
 import Busboy from 'busboy';
 
@@ -67,15 +68,39 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // Fix 5: JWT verification FIRST before any data processing
+  // Fix 5: JWT verification FIRST before any data processing.
+  // Two credentials are accepted (parity with blog-save.js):
+  //   - the admin session JWT (auth: session), as before;
+  //   - BLOG_AGENT_TOKEN (auth: agent), a static high-entropy bearer
+  //     held in a Vercel env var, compared in constant time, so
+  //     reviewed agent tooling can upload a post's images without
+  //     holding Beau's session token. An unset env var means the
+  //     agent path simply never matches. The JWT check stays the
+  //     FIRST operation, and an auth failure is logged ONCE, at the
+  //     final rejection below: an expected JWT miss that the agent
+  //     branch then satisfies must not write a [SECURITY] line.
+  //     Agent callers are restricted further below (their own
+  //     rate-limit bucket and a 1MB size cap), and every
+  //     agent-authenticated upload is logged with its auth kind.
   const sentToken = req.headers['x-admin-key'] || '';
-  if (!sentToken) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
-  try {
-    jwt.verify(sentToken, process.env.JWT_SECRET);
-  } catch {
-    console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', time: new Date().toISOString() });
-    return res.status(401).json({ error: 'Unauthorized' });
+  let authKind = null;
+  let agentChecked = false;
+  // Shape only, never the value: three dot-separated segments reads
+  // as a JWT. The failure log below records it so an operator can
+  // tell a bad agent token (wrong or rotated credential) from a
+  // session expiry (Beau signs in again) - different problems,
+  // different fix.
+  const presentedShape = !sentToken ? 'none' : (/^[^.\s]+\.[^.\s]+\.[^.\s]+$/.test(sentToken) ? 'jwt' : 'other');
+  if (sentToken) {
+    try { jwt.verify(sentToken, process.env.JWT_SECRET); authKind = 'session'; } catch (err) { /* not a session JWT: try the agent token below */ }
+    if (!authKind && process.env.BLOG_AGENT_TOKEN) {
+      agentChecked = true;
+      const expected = Buffer.from(process.env.BLOG_AGENT_TOKEN);
+      const presented = Buffer.from(sentToken);
+      if (presented.length === expected.length && timingSafeEqual(presented, expected)) authKind = 'agent';
+    }
   }
+  if (!authKind) { console.warn('[SECURITY] Auth failed:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', reason: 'invalid_token', agentChecked, presentedShape, time: new Date().toISOString() }); return res.status(401).json({ error: 'Unauthorized' }); }
 
   // Fix 7: Restricted CORS
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -87,11 +112,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Filename too long' });
   }
 
-  // Fix 2: Server-side file size check (header check before reading body)
+  // Fix 2: Server-side file size check (header check before reading body).
+  // Session uploads keep the 4MB ceiling; agent uploads are capped at
+  // 1MB (the house image spec), so a leaked static token is bounded
+  // per file. The session path's limit and message are unchanged.
   const MAX_SIZE = 4 * 1024 * 1024; // 4MB
+  const AGENT_MAX_SIZE = 1 * 1024 * 1024; // 1MB
+  const sizeLimit = authKind === 'agent' ? AGENT_MAX_SIZE : MAX_SIZE;
+  const sizeError = authKind === 'agent' ? 'File too large. Maximum 1MB.' : 'File too large. Maximum 4MB.';
   const contentLength = parseInt(req.headers['content-length'] || '0');
-  if (contentLength > MAX_SIZE) {
-    return res.status(413).json({ error: 'File too large. Maximum 4MB.' });
+  if (contentLength > sizeLimit) {
+    return res.status(413).json({ error: sizeError });
   }
 
   // Fix 2: File type check via Content-Type header
@@ -111,9 +142,20 @@ export default async function handler(req, res) {
   // the admin mid-batch. The in-code limiter stays in place as a backstop
   // against a compromised-token flood, sized so normal bulk uploads fit
   // comfortably: 600 uploads per IP per hour.
+  // Agent callers get their OWN bucket, keyed apart from the admin's:
+  // a static token skips the rate-limited login endpoint, so it must
+  // not inherit the admin's 600/hr bulk ceiling. 60/hour is sized for
+  // the authoring lane - a post's images are a handful of files, and
+  // even a full re-shoot of one post plus retries fits comfortably;
+  // raise it deliberately if a bulk program ever needs more. Session
+  // callers keep the same 600/hr accounting as before (their bucket
+  // key gains the auth-kind prefix, nothing else changes).
   const ADMIN_UPLOAD_LIMIT = 600;
+  const AGENT_UPLOAD_LIMIT = 60;
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
-  if (!checkRateLimit(ip, ADMIN_UPLOAD_LIMIT, 60 * 60 * 1000)) {
+  const limitKey = authKind + ':' + ip;
+  const limitMax = authKind === 'agent' ? AGENT_UPLOAD_LIMIT : ADMIN_UPLOAD_LIMIT;
+  if (!checkRateLimit(limitKey, limitMax, 60 * 60 * 1000)) {
     console.warn('[SECURITY] Rate limit exceeded:', { endpoint: req.url, ip: req.headers['x-forwarded-for']?.split(',')[0] || 'unknown', time: new Date().toISOString() });
     return res.status(429).json({ error: 'Too many requests' });
   }
@@ -127,9 +169,9 @@ export default async function handler(req, res) {
       req.on('error', reject);
     });
 
-    // Fix 2: Check actual buffer size after reading
-    if (rawBody.length > MAX_SIZE) {
-      return res.status(413).json({ error: 'File too large. Maximum 4MB.' });
+    // Fix 2: Check actual buffer size after reading (same per-kind cap)
+    if (rawBody.length > sizeLimit) {
+      return res.status(413).json({ error: sizeError });
     }
 
     let fileBuffer;
@@ -192,7 +234,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'File content does not match claimed type' });
     }
 
-    // Check for recent duplicate (same file size uploaded in last 5 minutes)
+    // Check for recent duplicate (same file size uploaded in last 5 minutes).
+    // Downstream audit: this guard keys ONLY on file size + a 5-minute
+    // window over the blog-images/ listing - nothing is read from the
+    // caller's identity, so both auth kinds use it unchanged and no
+    // agent identity value is needed here. Nothing downstream reads
+    // JWT claims either: jwt.verify's return value is discarded at
+    // the gate, the stored filename is random, and put() carries no
+    // caller metadata for either auth kind.
     const { blobs } = await list({
       prefix: 'blog-images/',
       limit: 100,
@@ -204,6 +253,7 @@ export default async function handler(req, res) {
       return b.size === fileBuffer.length && uploadedAt > fiveMinutesAgo;
     });
     if (recentDuplicate) {
+      if (authKind === 'agent') console.log('blog-upload-image: agent upload (deduplicated)', { auth: authKind, size: fileBuffer.length, path: recentDuplicate.pathname, time: new Date().toISOString() });
       return res.status(200).json({
         success: true,
         url: recentDuplicate.url,
@@ -223,6 +273,8 @@ export default async function handler(req, res) {
       contentType: fileMime,
       allowOverwrite: true,
     });
+
+    if (authKind === 'agent') console.log('blog-upload-image: agent upload', { auth: authKind, size: fileBuffer.length, path: 'blog-images/' + safeFilename, time: new Date().toISOString() });
 
     return res.status(200).json({
       url: blob.url,
