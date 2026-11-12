@@ -1,6 +1,17 @@
 import Pusher from 'pusher';
 
+// Secret path-prefix hardening (mirrors api/trip.js). When BLOB_PATH_SALT
+// is set, the notes record lives behind the same unguessable path segment
+// as the trip blobs, so its fixed public URL is no longer guessable. When
+// unset, the key falls back to the bare path (current behavior -- no
+// lockout). Never log the salted key or full pathname.
+const SALT = (process.env.BLOB_PATH_SALT || '').trim();
+
+// Bare key (also used as the transition-fallback for reads).
 const BLOB_KEY = 'twize/vipnotes.json';
+
+// Salted key -- salted when SALT is set, bare otherwise.
+const notesSaltedKey = () => SALT ? ('twize/' + SALT + '/vipnotes.json') : BLOB_KEY;
 
 function getPusher() {
       return new Pusher({
@@ -13,9 +24,17 @@ function getPusher() {
 }
 
 async function readFromBlob() {
+      // salted-first, bare-fallback (transition-safe, same as api/trip.js)
+      const key = notesSaltedKey();
+      const record = await readFromBlobAt(key);
+      if (record || key === BLOB_KEY) return record;
+      return readFromBlobAt(BLOB_KEY);
+}
+
+async function readFromBlobAt(key) {
       try {
               const { list } = await import('@vercel/blob');
-              const { blobs } = await list({ prefix: BLOB_KEY });
+              const { blobs } = await list({ prefix: key });
               if (!blobs || blobs.length === 0) return null;
               const fetchUrl = blobs[0].url;
               const resp = await fetch(fetchUrl);
@@ -30,7 +49,7 @@ async function readFromBlob() {
 async function writeToBlob(data) {
       const { put } = await import('@vercel/blob');
       const payload = JSON.stringify(data);
-      await put(BLOB_KEY, payload, {
+      await put(notesSaltedKey(), payload, {
               access: 'public',
               allowOverwrite: true,
               addRandomSuffix: false,

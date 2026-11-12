@@ -160,10 +160,17 @@ async function writeTripBlob(tripId, tripData) {
 // in a SEPARATE blob namespace keyed by trip CODE. A draft write can never
 // touch the live trip blob (twize/trip_<id>.json); a draft becomes a real
 // trip only when the client promotes it through the normal POST save path
-// above. Draft keys are intentionally NOT salted (same as the booking-cron
-// and device-state keys); the trip-code registry is the access control.
+// above. Draft keys are salted exactly like the trip keys (Nov 12, 2026):
+// the blob store is public, so a bare code-derived pathname is itself an
+// access path -- the registry check gates the API route only, never a
+// direct blob fetch. Writes go to the salted key when the salt is set;
+// reads try the salted prefix first, then the bare prefix (transition
+// fallback, same pattern as the trip reads above).
 const DRAFT_PREFIX = 'twize/onboarding-drafts/';
-const draftKey = (code) => DRAFT_PREFIX + code + '.json';
+const draftBareKey = (code) => DRAFT_PREFIX + code + '.json';
+const draftSaltedPrefix = () => SALT ? ('twize/' + SALT + '/onboarding-drafts/') : DRAFT_PREFIX;
+const draftSaltedKey = (code) => draftSaltedPrefix() + code + '.json';
+const draftKey = draftSaltedKey;
 
 // Log-safe rendering of a trip code for [trip-draft] lines: the code
 // alphabet only, length-capped -- a hostile code string must never
@@ -189,16 +196,10 @@ async function writeDraftBlob(code, payload) {
 // and take the newest by upload time.
 async function readDraftBlob(code) {
   try {
-    const { blobs } = await list({ prefix: DRAFT_PREFIX + code });
-    if (!blobs || !blobs.length) return null;
-    const esc = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp('^' + DRAFT_PREFIX + esc + '(-[^/]*)?\\.json$');
-    const matches = blobs.filter(b => b && re.test(b.pathname || ''));
-    if (!matches.length) return null;
-    matches.sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0));
-    const resp = await fetch((matches[0].downloadUrl || matches[0].url) + '?t=' + Date.now());
-    if (!resp.ok) return null;
-    return await resp.json();
+    // salted-first, bare-fallback (transition-safe, same as readTripBlob)
+    let found = await readDraftBlobAt(draftSaltedPrefix(), code);
+    if (!found) found = await readDraftBlobAt(DRAFT_PREFIX, code);
+    return found;
   } catch (e) {
     // Fail-soft for the reader (a draft read failure reads as "no
     // draft" and must never break onboarding resume) -- but LOUD: a
@@ -207,6 +208,21 @@ async function readDraftBlob(code) {
     console.warn('[trip-draft] read failed code=' + safeCodeForLog(code) + ' (reporting no draft)');
     return null;
   }
+}
+
+// Reads one namespace (the given drafts prefix) for the code's draft.
+async function readDraftBlobAt(prefix, code) {
+    const { blobs } = await list({ prefix: prefix + code });
+    if (!blobs || !blobs.length) return null;
+    const escPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const esc = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('^' + escPrefix + esc + '(-[^/]*)?\\.json$');
+    const matches = blobs.filter(b => b && re.test(b.pathname || ''));
+    if (!matches.length) return null;
+    matches.sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0));
+    const resp = await fetch((matches[0].downloadUrl || matches[0].url) + '?t=' + Date.now());
+    if (!resp.ok) return null;
+    return await resp.json();
 }
 
 // Cache sections for the trip-level surfacing computation: the SAME blobs and
@@ -393,7 +409,8 @@ export default async function handler(req, res) {
       // trip save, full stop; the save path below (with its merge
       // guard) is the only code that may consume one. Structural note:
       // this branch's ONLY write is writeDraftBlob -> draftKey(), a
-      // key confined to twize/onboarding-drafts/ by construction (the
+      // key confined to the drafts namespace (under the salted prefix
+      // when the salt is set) by construction (the
       // code is regex-validated to a single path segment, so it can
       // never address twize/trip_<id>.json), meaning no draft write
       // can land on a trip blob even before this guard is consulted.
