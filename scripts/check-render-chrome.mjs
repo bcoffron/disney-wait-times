@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // ---------------------------------------------------------------------------
 // check-render-chrome.mjs -- render-chrome DRIFT CHECK (Oct 14, 2026;
-// extended Nov 12, 2026 to cover api/terms.js alongside api/editorial.js).
+// extended Nov 12, 2026 to cover api/terms.js and api/privacy.js
+// alongside api/editorial.js).
 //
-// The static pages in the blog post shell (api/editorial.js, api/terms.js)
+// The static pages in the blog post shell (api/editorial.js, api/terms.js,
+// api/privacy.js)
 // carry byte-copies of the shared chrome from api/blog-render-post.js:
 //   1. POST_CSS (the post stylesheet)
 //   2. the nav markup and the footer markup
@@ -28,7 +30,7 @@ const failures = [];
 const fail = (m) => failures.push(m);
 
 const post = fs.readFileSync(path.join(ROOT, 'api', 'blog-render-post.js'), 'utf8');
-const STATIC_PAGES = ['editorial.js', 'terms.js'];
+const STATIC_PAGES = ['editorial.js', 'terms.js', 'privacy.js'];
 
 // Extract the raw literal of `const NAME = '...';` (single-quoted, escapes kept).
 function rawLiteral(src, name) {
@@ -129,4 +131,4 @@ if (failures.length) {
   for (const f of failures) console.error('  - ' + f);
   process.exit(1);
 }
-console.log('render chrome OK: POST_CSS, nav, footer, headers, rate limit identical; editorial.js and terms.js fully static.');
+console.log('render chrome OK: POST_CSS, nav, footer, headers, rate limit identical; editorial.js, terms.js and privacy.js fully static.');
