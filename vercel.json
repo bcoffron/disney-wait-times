@@ -140,6 +140,10 @@
       "destination": "/api/editorial"
     },
     {
+      "source": "/terms",
+      "destination": "/api/terms"
+    },
+    {
       "source": "/wp-admin",
       "destination": "/api/not-found"
     },
@@ -275,6 +279,9 @@
       "maxDuration": 15
     },
     "api/home.js": {
+      "maxDuration": 10
+    },
+    "api/terms.js": {
       "maxDuration": 10
     },
     "api/blog-settings.js": {
